@@ -1,0 +1,38 @@
+{
+  "name": "ProblemHistory",
+  "type": "object",
+  "properties": {
+    "problem": {
+      "type": "string",
+      "description": "The math problem entered by the user"
+    },
+    "topic": {
+      "type": "string",
+      "enum": [
+        "algebra",
+        "trigonometry",
+        "limits",
+        "derivatives",
+        "integrals",
+        "functions",
+        "other"
+      ],
+      "description": "The topic category"
+    },
+    "solution": {
+      "type": "string",
+      "description": "The solution provided"
+    },
+    "user_answer": {
+      "type": "string",
+      "description": "The answer provided by the user"
+    },
+    "feedback": {
+      "type": "string",
+      "description": "Feedback on the solution"
+    }
+  },
+  "required": [
+    "problem"
+  ]
+}
