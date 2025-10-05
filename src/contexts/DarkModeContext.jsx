@@ -4,12 +4,13 @@ const DarkModeContext = createContext();
 
 export function DarkModeProvider({ children }) {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check localStorage or system preference
+    // Check localStorage, default to light mode
     const saved = localStorage.getItem('darkMode');
     if (saved !== null) {
       return saved === 'true';
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // Default to light mode instead of system preference
+    return false;
   });
 
   useEffect(() => {
