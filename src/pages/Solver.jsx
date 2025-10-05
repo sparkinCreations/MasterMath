@@ -41,7 +41,7 @@ export default function Solver() {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Let's Solve Some Math!
+          Let's Master Some Math!
         </h1>
         <p className="text-gray-600 text-lg">
           Enter any precalculus or calculus problem and I'll guide you through it step-by-step

@@ -24,9 +24,9 @@ export default function TermsOfService() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            Welcome to MathMaster by sparkinCreations™. By accessing or using our educational math
+            Welcome to MasterMath by sparkinCreations™. By accessing or using our educational math
             application, you agree to be bound by these Terms of Service. If you do not agree to
-            these terms, please do not use MathMaster.
+            these terms, please do not use MasterMath.
           </p>
         </CardContent>
       </Card>
@@ -45,7 +45,7 @@ export default function TermsOfService() {
               What MathMaster Provides
             </h3>
             <p className="text-gray-700 dark:text-gray-300 mb-2">
-              MathMaster is an educational tool designed to help students learn and understand
+              MasterMath is an educational tool designed to help students learn and understand
               precalculus and calculus concepts. The service provides:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
@@ -62,7 +62,7 @@ export default function TermsOfService() {
               Educational Purpose Only
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
-              MathMaster is intended as a learning aid to help students understand mathematical
+              MasterMath is intended as a learning aid to help students understand mathematical
               concepts. It should be used to supplement, not replace, traditional learning methods
               and instruction from qualified educators.
             </p>
@@ -84,11 +84,11 @@ export default function TermsOfService() {
               You May:
             </h3>
             <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
-              <li>Use MathMaster for personal educational purposes</li>
+              <li>Use MasterMath for personal educational purposes</li>
               <li>Input mathematical problems to receive step-by-step solutions</li>
               <li>Export your solutions and progress for personal study and reference</li>
               <li>Use the application to learn and understand mathematical concepts</li>
-              <li>Share knowledge gained from MathMaster with others</li>
+              <li>Share knowledge gained from MasterMath with others</li>
             </ul>
           </div>
         </CardContent>
@@ -108,8 +108,8 @@ export default function TermsOfService() {
               You May NOT:
             </h3>
             <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
-              <li>Use MathMaster to cheat on exams, tests, or assignments without understanding the material</li>
-              <li>Submit MathMaster solutions as your own work without proper attribution when required</li>
+              <li>Use MasterMath to cheat on exams, tests, or assignments without understanding the material</li>
+              <li>Submit MasterMath solutions as your own work without proper attribution when required</li>
               <li>Attempt to reverse engineer, decompile, or extract source code from the application</li>
               <li>Use the service for any illegal or unauthorized purpose</li>
               <li>Attempt to interfere with or disrupt the service's functionality</li>
@@ -130,7 +130,7 @@ export default function TermsOfService() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-3">
-            <strong>Important:</strong> MathMaster is designed as a learning tool. Users are
+            <strong>Important:</strong> MasterMath is designed as a learning tool. Users are
             responsible for adhering to their institution's academic integrity policies and honor codes.
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
@@ -138,11 +138,11 @@ export default function TermsOfService() {
             <li>Use solutions to understand the process, not just copy answers</li>
             <li>Consult your instructor about appropriate use of educational tools</li>
             <li>Follow your school's policies regarding homework help and study aids</li>
-            <li>Be honest about when and how you use MathMaster for academic work</li>
+            <li>Be honest about when and how you use MasterMath for academic work</li>
           </ul>
           <p className="text-gray-700 dark:text-gray-300 mt-3">
             sparkinCreations™ is not responsible for any academic integrity violations resulting
-            from misuse of MathMaster.
+            from misuse of MasterMath.
           </p>
         </CardContent>
       </Card>
@@ -161,7 +161,7 @@ export default function TermsOfService() {
               Always Check Your Work
             </h3>
             <p className="text-gray-700 dark:text-gray-300 mb-3">
-              <strong>Important:</strong> MathMaster is an educational aid that may contain errors or 
+              <strong>Important:</strong> MasterMath is an educational aid that may contain errors or 
               inaccuracies. Users are strongly advised to verify all information independently.
             </p>
             <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
@@ -202,7 +202,7 @@ export default function TermsOfService() {
               As-Is Service
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
-              MathMaster is provided "AS IS" and "AS AVAILABLE" without warranties of any kind,
+              MasterMath is provided "AS IS" and "AS AVAILABLE" without warranties of any kind,
               either express or implied. While we strive for accuracy, we do not guarantee that:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4 mt-2">
@@ -403,7 +403,7 @@ export default function TermsOfService() {
         <ul className="space-y-2 text-gray-700 dark:text-gray-300">
           <li className="flex items-start gap-2">
             <span className="text-blue-600 font-bold mt-1">•</span>
-            <span>MathMaster is an educational tool - use it to learn, not to cheat</span>
+            <span>MasterMath is an educational tool - use it to learn, not to cheat</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-yellow-600 font-bold mt-1">⚠</span>
@@ -430,8 +430,8 @@ export default function TermsOfService() {
 
       {/* Footer */}
       <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-        <p>MathMaster by sparkinCreations™</p>
-        <p className="text-sm mt-1">Use responsibly and learn with confidence</p>
+        <p>MasterMath by sparkinCreations™</p>
+        <p className="text-sm mt-1">Master math with confidence</p>
       </div>
     </div>
   );

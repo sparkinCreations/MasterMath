@@ -1,13 +1,13 @@
-# 📚 MathMaster
+# 📚 MasterMath
 
-> **A privacy-focused, AI-powered educational math solver that helps students learn precalculus and calculus concepts through step-by-step solutions.**
+> **A privacy-focused, AI-powered educational math solver that helps students master precalculus and calculus concepts through step-by-step solutions.**
 
-[![Built with AI](https://img.shields.io/badge/Built%20with-AI%20Assistance-blue)](https://github.com/sparkinCreations/MathMaster)
+[![Built with AI](https://img.shields.io/badge/Built%20with-AI%20Assistance-blue)](https://github.com/sparkinCreations/MasterMath)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.3.1-blue)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4.5-purple)](https://vitejs.dev/)
 
-![MathMaster Screenshot](./docs/screenshot.png)
+![MasterMath Screenshot](./docs/screenshot.png)
 
 ## 🌟 Features
 
@@ -48,8 +48,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/sparkinCreations/MathMaster.git
-cd MathMaster
+git clone https://github.com/sparkinCreations/MasterMath.git
+cd MasterMath
 
 # Install dependencies
 npm install
@@ -114,7 +114,7 @@ npm run build
 
 ## 📖 Educational Philosophy
 
-MathMaster is designed as a **learning companion**, not a homework shortcut:
+MasterMath is designed as a **learning companion**, not a homework shortcut:
 
 ### ✅ **Encourage:**
 - Understanding mathematical concepts
@@ -131,7 +131,7 @@ MathMaster is designed as a **learning companion**, not a homework shortcut:
 ## 🗂️ Project Structure
 
 ```
-mathmaster/
+mastermath/
 ├── 📄 Core Application
 │   ├── index.html              # Main entry point
 │   ├── package.json           # Dependencies and scripts
@@ -196,12 +196,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🏢 About sparkinCreations™
 
-MathMaster is developed by [sparkinCreations™](https://sparkincreations.com), committed to creating educational tools that promote learning and understanding.
+MasterMath is developed by [sparkinCreations™](https://sparkincreations.com), committed to creating educational tools that promote learning and understanding.
 
 ### **Contact:**
 - 🌐 **Website:** [sparkincreations.com](https://sparkincreations.com)
 - 📧 **Email:** admin@sparkincreations.com
-- 💬 **Issues:** [GitHub Issues](https://github.com/sparkinCreations/MathMaster/issues)
+- 💬 **Issues:** [GitHub Issues](https://github.com/sparkinCreations/MasterMath/issues)
 
 ## 🙏 Acknowledgments
 
@@ -212,10 +212,10 @@ MathMaster is developed by [sparkinCreations™](https://sparkincreations.com), 
 
 ## ⚠️ Important Notice
 
-**MathMaster is an educational tool designed to help students learn mathematical concepts. Always verify solutions independently and respect your institution's academic integrity policies. Solutions may contain errors and should not be used as the sole source of mathematical truth.**
+**MasterMath is an educational tool designed to help students learn mathematical concepts. Always verify solutions independently and respect your institution's academic integrity policies. Solutions may contain errors and should not be used as the sole source of mathematical truth.**
 
 ---
 
 **Made with ❤️ for education • Built with 🤖 AI assistance • Powered by ⚛️ React**
 
-*Use responsibly and learn with confidence!*
+*Master math with confidence!*

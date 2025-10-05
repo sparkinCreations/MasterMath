@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to MathMaster will be documented in this file.
+All notable changes to MasterMath will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Improved Terms of Service with comprehensive accuracy disclaimers
+- Rebranded from MathMaster to MasterMath for better domain availability
 
 ## [1.0.0] - 2025-10-05
 
@@ -86,10 +87,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This project was developed using AI-assisted programming techniques, demonstrating modern collaborative development between human vision and AI implementation. The core educational philosophy and user experience design remained human-driven, while AI assistance accelerated implementation and feature development.
 
 ### Educational Mission
-MathMaster was created to serve as a learning companion that promotes understanding over quick answers. The tool emphasizes the importance of verifying solutions independently and using the application as a supplement to traditional learning methods.
+MasterMath was created to serve as a learning companion that promotes understanding over quick answers. The tool emphasizes the importance of verifying solutions independently and using the application as a supplement to traditional learning methods.
 
 ### Open Source Release
-Version 1.0.0 marks the initial open source release of MathMaster, making this educational tool freely available to students, educators, and developers worldwide.
+Version 1.0.0 marks the initial open source release of MasterMath, making this educational tool freely available to students, educators, and developers worldwide.
 
 ---
 

@@ -59,7 +59,7 @@ export default function Feedback() {
 
       // Create email body
       const emailBody = `
-MathMaster Feedback Report
+MasterMath Feedback Report
 =========================
 
 Type: ${FEEDBACK_TYPES.find(t => t.value === feedbackType)?.label || feedbackType}
@@ -82,20 +82,20 @@ Technical Information:
       `.trim();
 
       // Create mailto link
-      const subject = `[MathMaster] ${FEEDBACK_TYPES.find(t => t.value === feedbackType)?.label || 'Feedback'}`;
+      const subject = `[MasterMath] ${FEEDBACK_TYPES.find(t => t.value === feedbackType)?.label || 'Feedback'}`;
       const mailtoLink = `mailto:admin@sparkincreations.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
       
       // Open email client
       window.location.href = mailtoLink;
 
       // Store feedback locally for user reference
-      const localFeedback = JSON.parse(localStorage.getItem('mathmaster-feedback') || '[]');
+      const localFeedback = JSON.parse(localStorage.getItem('mastermath-feedback') || '[]');
       localFeedback.push({
         ...feedbackData,
         id: Date.now(),
         status: 'sent'
       });
-      localStorage.setItem('mathmaster-feedback', JSON.stringify(localFeedback));
+      localStorage.setItem('mastermath-feedback', JSON.stringify(localFeedback));
 
       // Reset form
       setFeedbackType("");
@@ -106,7 +106,7 @@ Technical Information:
       setDescription("");
       setEmail("");
 
-      toast.success("Feedback email opened! Thank you for helping improve MathMaster.");
+      toast.success("Feedback email opened! Thank you for helping improve MasterMath.");
       
     } catch (error) {
       console.error("Error processing feedback:", error);
@@ -126,7 +126,7 @@ Technical Information:
           Feedback & Support
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Help us improve MathMaster by sharing your experience, reporting issues, or suggesting new features.
+          Help us improve MasterMath by sharing your experience, reporting issues, or suggesting new features.
         </p>
       </div>
 
@@ -192,7 +192,7 @@ Technical Information:
                   id="problem"
                   value={problem}
                   onChange={(e) => setProblem(e.target.value)}
-                  placeholder="Enter the exact problem you entered into MathMaster..."
+                  placeholder="Enter the exact problem you entered into MasterMath..."
                   className="min-h-[80px]"
                   required
                 />
@@ -225,7 +225,7 @@ Technical Information:
                     id="actual"
                     value={actual}
                     onChange={(e) => setActual(e.target.value)}
-                    placeholder="What did MathMaster show?"
+                    placeholder="What did MasterMath show?"
                     className="min-h-[100px]"
                     required
                   />
@@ -249,7 +249,7 @@ Technical Information:
                   feedbackType === "feature" ? "Describe the feature you'd like to see..." :
                   feedbackType === "bug" ? "Describe what happened and steps to reproduce..." :
                   feedbackType === "accuracy" ? "Explain the accuracy issue in detail..." :
-                  feedbackType === "praise" ? "Tell us what you enjoyed about MathMaster..." :
+                  feedbackType === "praise" ? "Tell us what you enjoyed about MasterMath..." :
                   "Share your feedback, suggestions, or questions..."
                 }
                 className="min-h-[120px]"

@@ -77,9 +77,9 @@ export default function Layout({ children }) {
                 </div>
                 <div>
                   <h2 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    MathMaster
+                    MasterMath
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Learn with confidence</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Master math with confidence</p>
                 </div>
               </div>
             </SidebarHeader>
@@ -117,11 +117,11 @@ export default function Layout({ children }) {
                 <SidebarTrigger className="hover:bg-purple-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
                 <div className="hidden md:block text-center flex-1">
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    MathMaster <span className="text-sm font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Learn with confidence</span>
+                    MasterMath <span className="text-sm font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Master math with confidence</span>
                   </h1>
                 </div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent md:hidden">
-                  MathMaster <span className="text-xs font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span>
+                  MasterMath <span className="text-xs font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span>
                 </h1>
                 <button
                   onClick={toggleDarkMode}
@@ -145,7 +145,7 @@ export default function Layout({ children }) {
 
         <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-purple-100 dark:border-gray-700 px-6 py-4">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-400 text-center">
-            <span>MathMaster by sparkinCreations™</span>
+            <span>MasterMath by sparkinCreations™</span>
             <span className="hidden sm:inline">|</span>
             <span className="flex items-center gap-1">
               <span>© 2025</span>
