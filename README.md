@@ -1,6 +1,8 @@
 # 📚 MasterMath
 
-> **A privacy-focused, AI-powered educational math solver that helps students master precalculus and calculus concepts through step-by-step solutions.**
+> **A privacy-focused educational math solver that helps students master precalculus and calculus concepts through step-by-step solutions.**
+
+🌐 **Live at [mastermath.app](https://mastermath.app)**
 
 [![Built with AI](https://img.shields.io/badge/Built%20with-AI%20Assistance-blue)](https://github.com/sparkinCreations/MasterMath)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -77,97 +79,133 @@ npm run build
 - **React Router** - Client-side routing
 
 ### **Math Libraries**
-- **Algebrite** - Symbolic math computations
-- **MathJS** - Math expression parser and evaluator
-- **mathsteps** - Step-by-step algebra solutions
+- **Algebrite** - Symbolic calculus and algebra
+- **MathJS** - Expression parsing and evaluation
+- **mathsteps** - Step-by-step algebraic solutions
 
 ### **Styling & UI**
 - **Tailwind CSS** - Utility-first styling
-- **Lucide React** - Beautiful icons
-- **Custom Components** - Reusable UI elements
-- **Framer Motion** - Smooth animations
+- **shadcn/ui** - Modern component library
+- **Lucide React** - Icon system
+- **Framer Motion** - Animations
 
 ### **Charts & Visualization**
-- **Recharts** - Interactive graph generation
-- **Custom Graphing** - Mathematical function plotting
+- **Recharts** - Interactive function graphs
 
-## 🤖 AI-Assisted Development
+### **Storage & Export**
+- **IndexedDB** - Browser-based local storage
+- **jsPDF** - PDF generation for exports
 
-**This project demonstrates modern AI-assisted development practices:**
+## 📖 How It Works
 
-- **Initial Prototype** - Built with AI assistance for rapid development
-- **Human Oversight** - Curated and refined for quality and educational value
-- **Iterative Improvement** - Continuous enhancement with AI collaboration
-- **Educational Focus** - AI helped implement learning-first design principles
+MasterMath uses **local JavaScript math libraries** (not AI) to solve problems:
 
-**Key AI Contributions:**
-- Mathematical solver implementations
-- User interface design and components
-- Educational explanations and tips
-- Error handling and edge cases
+1. **Math Parser** extracts expressions from natural language input
+2. **Topic Router** directs problems to the appropriate solver
+3. **Solver Engines** compute solutions using mathjs, algebrite, and mathsteps
+4. **Solution Formatter** generates step-by-step explanations, tips, and graphs
+5. **Local Storage** saves your history in the browser (IndexedDB)
 
-**Human Contributions:**
-- Project vision and educational philosophy
-- Privacy-first architecture decisions
-- User experience design
-- Quality assurance and testing
+All computations happen **entirely in your browser** - no data is sent to external servers.
 
 ## 📖 Educational Philosophy
 
 MasterMath is designed as a **learning companion**, not a homework shortcut:
 
-### ✅ **Encourage:**
-- Understanding mathematical concepts
-- Step-by-step problem solving
-- Independent verification of results
+### ✅ **Use For:**
+- Understanding solution steps
+- Verifying your work
+- Learning problem-solving patterns
 - Building mathematical intuition
 
-### ⚠️ **Important Disclaimers:**
-- **Always verify solutions** independently
-- Solutions may contain errors - use as learning aid only
+### ⚠️ **Important:**
+- Always verify solutions independently
+- Use as a learning aid, not a replacement for practice
 - Respect your institution's academic integrity policies
-- Cross-reference with textbooks and instructors
 
 ## 🗂️ Project Structure
 
 ```
-mastermath/
-├── 📄 Core Application
+MathMaster/
+├── 📄 Configuration
 │   ├── index.html              # Main entry point
-│   ├── package.json           # Dependencies and scripts
-│   └── vite.config.js         # Build configuration
+│   ├── package.json            # Dependencies and scripts
+│   ├── vite.config.js          # Vite build configuration
+│   ├── tailwind.config.js      # Tailwind CSS configuration
+│   └── postcss.config.js       # PostCSS configuration
 │
-├── 🎨 Source Code
-│   ├── src/
-│   │   ├── App.jsx            # Main application component
-│   │   ├── Layout.jsx         # App layout and navigation
-│   │   ├── main.jsx          # React entry point
-│   │   │
-│   │   ├── components/        # Reusable UI components
-│   │   │   ├── solver/        # Math solver components
-│   │   │   └── ui/           # Base UI components
-│   │   │
-│   │   ├── pages/            # Application pages
-│   │   │   ├── Solver.jsx    # Main solver interface
-│   │   │   ├── Progress.jsx  # Progress tracking
-│   │   │   └── UserManual.jsx # Help documentation
-│   │   │
-│   │   ├── lib/              # Core logic and utilities
-│   │   │   ├── api.js        # Math problem solving API
-│   │   │   ├── mathParser.js # Expression parsing
-│   │   │   └── solvers/      # Topic-specific solvers
-│   │   │
-│   │   └── contexts/         # React context providers
-│   │       └── DarkModeContext.jsx
+├── 🎨 Source Code (src/)
+│   ├── main.jsx                # React entry point
+│   ├── App.jsx                 # Root component with providers & routes
+│   ├── Layout.jsx              # Main layout with sidebar navigation
+│   ├── index.css               # Global styles
 │   │
-├── 📁 Assets
-│   └── public/
-│       └── favicon.svg       # App icon
+│   ├── components/
+│   │   ├── ErrorBoundary.jsx   # Error boundary component
+│   │   ├── solver/             # Solver-specific components
+│   │   │   ├── ProblemInput.jsx     # Problem input form
+│   │   │   ├── SolutionDisplay.jsx  # Solution with steps & tips
+│   │   │   └── GraphViewer.jsx      # Function graph visualization
+│   │   └── ui/                 # shadcn/ui components
+│   │       ├── button.jsx
+│   │       ├── card.jsx
+│   │       ├── sidebar.jsx
+│   │       ├── toast.jsx
+│   │       └── ...             # Other UI components
+│   │
+│   ├── pages/
+│   │   ├── Home.jsx            # Landing page
+│   │   ├── Solver.jsx          # Main problem solver interface
+│   │   ├── Progress.jsx        # History & statistics
+│   │   ├── UserManual.jsx      # Documentation
+│   │   ├── FAQ.jsx             # Frequently asked questions
+│   │   ├── Feedback.jsx        # User feedback form
+│   │   ├── PrivacyPolicy.jsx   # Privacy policy
+│   │   └── TermsOfService.jsx  # Terms of service
+│   │
+│   ├── lib/
+│   │   ├── api.js              # Main API for solving & storage
+│   │   ├── indexedDB.js        # IndexedDB wrapper
+│   │   ├── mathParser.js       # Expression parsing utilities
+│   │   ├── exportUtils.js      # Export to PDF/CSV/JSON/Markdown
+│   │   ├── validation.js       # Input validation utilities
+│   │   ├── utils.js            # General utilities
+│   │   └── solvers/            # Topic-specific math solvers
+│   │       ├── algebraSolver.js
+│   │       ├── derivativesSolver.js
+│   │       ├── integralsSolver.js
+│   │       ├── arithmeticSolver.js
+│   │       └── otherSolvers.js      # Limits, trig, functions
+│   │
+│   ├── contexts/
+│   │   └── DarkModeContext.jsx # Dark mode state management
+│   │
+│   ├── hooks/
+│   │   └── usePageTitle.js     # Custom hook for page titles
+│   │
+│   ├── entities/
+│   │   └── ProblemHistory.json # IndexedDB schema definition
+│   │
+│   └── utils/
+│       └── index.js            # Utility functions
+│
+├── 📁 Public Assets (public/)
+│   ├── favicon.svg             # App icon
+│   ├── favicon.png             # PNG favicon
+│   ├── manifest.json           # PWA manifest
+│   ├── robots.txt              # Search engine directives
+│   ├── sitemap.xml             # Site map
+│   ├── og-image.jpg            # Open Graph image
+│   └── twitter-image.jpg       # Twitter card image
 │
 └── 📚 Documentation
-    ├── README.md             # This file
-    ├── LICENSE              # MIT license
-    └── CONTRIBUTING.md      # Contribution guidelines
+    ├── README.md               # This file
+    ├── CLAUDE.md               # Claude Code project instructions
+    ├── CONTRIBUTING.md         # Contribution guidelines
+    ├── CHANGELOG.md            # Version history
+    ├── DEPLOYMENT.md           # Deployment instructions
+    ├── SECURITY.md             # Security policy
+    └── LICENSE                 # MIT license
 ```
 
 ## 🤝 Contributing
@@ -212,10 +250,10 @@ MasterMath is developed by [sparkinCreations™](https://sparkincreations.com), 
 
 ## ⚠️ Important Notice
 
-**MasterMath is an educational tool designed to help students learn mathematical concepts. Always verify solutions independently and respect your institution's academic integrity policies. Solutions may contain errors and should not be used as the sole source of mathematical truth.**
+**MasterMath is an educational tool designed to help students learn mathematical concepts. All computations are performed using JavaScript math libraries (not AI). Always verify solutions independently and respect your institution's academic integrity policies.**
 
 ---
 
-**Made with ❤️ for education • Built with 🤖 AI assistance • Powered by ⚛️ React**
+**Made with ❤️ by sparkinCreations™ • Powered by ⚛️ React**
 
 *Master math with confidence!*
