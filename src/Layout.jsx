@@ -74,7 +74,7 @@ export default function Layout({ children }) {
       
       <div className="min-h-screen flex flex-col w-full bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="flex flex-1">
-          <Sidebar className="border-r border-purple-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+          <Sidebar className="border-r border-purple-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" role="navigation" aria-label="Main navigation">
             <SidebarHeader className="border-b border-purple-100 p-6">
               <div className="flex items-center gap-3">
                 <img
@@ -118,8 +118,8 @@ export default function Layout({ children }) {
             </SidebarContent>
           </Sidebar>
 
-          <main className="flex-1 flex flex-col">
-            <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-purple-100 dark:border-gray-700 px-6 py-4 shadow-sm">
+          <main id="main-content" className="flex-1 flex flex-col" role="main">
+            <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-purple-100 dark:border-gray-700 px-6 py-4 shadow-sm" role="banner">
               <div className="flex items-center justify-between">
                 <SidebarTrigger className="hover:bg-purple-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
                 <div className="hidden md:block text-center flex-1">
@@ -133,12 +133,13 @@ export default function Layout({ children }) {
                 <button
                   onClick={toggleDarkMode}
                   className="p-2 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors duration-200"
-                  aria-label="Toggle dark mode"
+                  aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+                  aria-pressed={isDarkMode}
                 >
                   {isDarkMode ? (
-                    <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
                   ) : (
-                    <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
                   )}
                 </button>
               </div>
@@ -150,7 +151,7 @@ export default function Layout({ children }) {
           </main>
         </div>
 
-        <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-purple-100 dark:border-gray-700 px-6 py-4">
+        <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-purple-100 dark:border-gray-700 px-6 py-4" role="contentinfo">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-400 text-center">
             <span>MasterMath by sparkinCreations™ v1.1.0</span>
             <span className="hidden sm:inline">|</span>

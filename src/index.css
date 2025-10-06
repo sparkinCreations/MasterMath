@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Accessibility: Skip to main content link */
+.skip-to-main:focus {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

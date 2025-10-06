@@ -31,7 +31,12 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      <div
+        className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+        role="region"
+        aria-live="polite"
+        aria-label="Notifications"
+      >
         {toasts.map(({ id, message, type }) => (
           <Toast key={id} message={message} type={type} onClose={() => removeToast(id)} />
         ))}
@@ -64,14 +69,17 @@ function Toast({ message, type, onClose }) {
 
   return (
     <div
+      role="status"
+      aria-atomic="true"
       className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border-2 shadow-lg backdrop-blur-sm animate-in slide-in-from-right ${styles[type]}`}
     >
-      <div className={iconStyles[type]}>
+      <div className={iconStyles[type]} aria-hidden="true">
         {icons[type]}
       </div>
       <p className="font-medium text-sm">{message}</p>
       <button
         onClick={onClose}
+        aria-label="Close notification"
         className="ml-2 hover:opacity-70 transition-opacity"
       >
         <X className="w-4 h-4" />
