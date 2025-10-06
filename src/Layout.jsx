@@ -77,9 +77,11 @@ export default function Layout({ children }) {
           <Sidebar className="border-r border-purple-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
             <SidebarHeader className="border-b border-purple-100 p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <BookOpen className="w-7 h-7 text-white" />
-                </div>
+                <img
+                  src="/favicon.png"
+                  alt="MasterMath Logo"
+                  className="w-12 h-12 rounded-2xl shadow-lg"
+                />
                 <div>
                   <h2 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     MasterMath
