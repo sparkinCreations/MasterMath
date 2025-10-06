@@ -46,7 +46,7 @@ export default function Feedback() {
     setIsSubmitting(true);
 
     try {
-      // Format feedback data
+      // Format feedback data for Web3Forms
       const feedbackData = {
         type: feedbackType,
         mathTopic,
@@ -60,13 +60,13 @@ export default function Feedback() {
         url: window.location.href
       };
 
-      // Create email body
-      const emailBody = `
+      // Create formatted message for Web3Forms
+      const formattedMessage = `
 MasterMath Feedback Report
 =========================
 
 Type: ${FEEDBACK_TYPES.find(t => t.value === feedbackType)?.label || feedbackType}
-Math Topic: ${mathTopic}
+Math Topic: ${mathTopic || 'N/A'}
 Timestamp: ${new Date().toLocaleString()}
 
 ${problem ? `Problem/Question:\n${problem}\n\n` : ''}
@@ -76,44 +76,56 @@ ${actual ? `Actual Result:\n${actual}\n\n` : ''}
 Description:
 ${description}
 
-${email ? `User Email: ${email}\n\n` : ''}
-
 Technical Information:
 - User Agent: ${navigator.userAgent}
 - Page URL: ${window.location.href}
 - Timestamp: ${feedbackData.timestamp}
       `.trim();
 
-      // Create mailto link
-      const subject = `[MasterMath] ${FEEDBACK_TYPES.find(t => t.value === feedbackType)?.label || 'Feedback'}`;
-      const mailtoLink = `mailto:admin@sparkincreations.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-      
-      // Open email client
-      window.location.href = mailtoLink;
-
-      // Store feedback locally for user reference
-      const localFeedback = JSON.parse(localStorage.getItem('mastermath-feedback') || '[]');
-      localFeedback.push({
-        ...feedbackData,
-        id: Date.now(),
-        status: 'sent'
+      // Submit to Web3Forms
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          access_key: '691907ec-ad04-4447-9d45-861ee622a091', // Your Web3Forms access key
+          subject: `[MasterMath] ${FEEDBACK_TYPES.find(t => t.value === feedbackType)?.label || 'Feedback'}`,
+          from_name: email || 'Anonymous User',
+          email: email || 'noreply@mastermath.app',
+          message: formattedMessage,
+        }),
       });
-      localStorage.setItem('mastermath-feedback', JSON.stringify(localFeedback));
 
-      // Reset form
-      setFeedbackType("");
-      setMathTopic("");
-      setProblem("");
-      setExpected("");
-      setActual("");
-      setDescription("");
-      setEmail("");
+      const result = await response.json();
 
-      toast.success("Feedback email opened! Thank you for helping improve MasterMath.");
-      
+      if (result.success) {
+        // Store feedback locally for user reference
+        const localFeedback = JSON.parse(localStorage.getItem('mastermath-feedback') || '[]');
+        localFeedback.push({
+          ...feedbackData,
+          id: Date.now(),
+          status: 'sent'
+        });
+        localStorage.setItem('mastermath-feedback', JSON.stringify(localFeedback));
+
+        // Reset form
+        setFeedbackType("");
+        setMathTopic("");
+        setProblem("");
+        setExpected("");
+        setActual("");
+        setDescription("");
+        setEmail("");
+
+        toast.success("✅ Feedback sent successfully! Thank you for helping improve MasterMath.");
+      } else {
+        throw new Error('Failed to send feedback');
+      }
+
     } catch (error) {
-      console.error("Error processing feedback:", error);
-      toast.error("Error processing feedback. Please try again or email us directly at admin@sparkincreations.com");
+      console.error("Error sending feedback:", error);
+      toast.error("❌ Failed to send feedback. Please try again or email us directly at admin@sparkincreations.com");
     } finally {
       setIsSubmitting(false);
     }
@@ -282,8 +294,8 @@ Technical Information:
             <div className="bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-4">
               <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Privacy Notice</h3>
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                Your feedback will be sent via your default email client to admin@sparkincreations.com. 
-                We store feedback locally on your device for your reference. We don't collect or share 
+                Your feedback will be securely sent to sparkinCreations.
+                We store feedback locally on your device for your reference. We don't collect or share
                 personal information beyond what you choose to include in your feedback.
               </p>
             </div>
