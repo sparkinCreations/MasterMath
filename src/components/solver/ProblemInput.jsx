@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Lightbulb } from "lucide-react";
+import { Sparkles, Lightbulb, AlertCircle } from "lucide-react";
+import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validation";
 
 const TOPICS = [
   { value: "derivatives", label: "Derivatives" },
@@ -36,9 +37,49 @@ const EXAMPLE_PROBLEMS = [
 ];
 
 export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, isLoading }) {
+  const [validationError, setValidationError] = useState(null);
+
   const loadExample = (exampleProblem) => {
     setProblem(exampleProblem.problem);
     setTopic(exampleProblem.topic);
+    setValidationError(null);
+  };
+
+  const handleProblemChange = (e) => {
+    // Allow all input, only sanitize when validating
+    setProblem(e.target.value);
+    setValidationError(null);
+  };
+
+  const handleKeyDown = (e) => {
+    // Submit on Enter (without Shift)
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (problem.trim() && topic && !isLoading) {
+        handleSolve();
+      }
+    }
+    // Shift+Enter creates a new line (default behavior)
+  };
+
+  const handleSolve = () => {
+    // Validate topic
+    const topicValidation = validateTopic(topic);
+    if (!topicValidation.isValid) {
+      setValidationError(topicValidation.error);
+      return;
+    }
+
+    // Sanitize and validate math input
+    const sanitized = sanitizeInput(problem);
+    const inputValidation = validateMathInput(sanitized);
+    if (!inputValidation.isValid) {
+      setValidationError(inputValidation.error);
+      return;
+    }
+
+    setValidationError(null);
+    onSolve();
   };
 
   // Get the display label for the selected topic
@@ -73,14 +114,28 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
         <Textarea
           id="problem"
           value={problem}
-          onChange={(e) => setProblem(e.target.value)}
+          onChange={handleProblemChange}
+          onKeyDown={handleKeyDown}
           placeholder={topic ? PLACEHOLDERS[topic] : "Select a topic first, then enter your problem..."}
-          className="min-h-32 text-lg border-2 border-purple-200 focus:border-purple-400 rounded-xl p-4 resize-none"
+          className={`min-h-32 text-lg border-2 ${
+            validationError ? 'border-red-300 focus:border-red-400' : 'border-purple-200 focus:border-purple-400'
+          } rounded-xl p-4 resize-none`}
+          maxLength={1000}
         />
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {problem.length}/1000 characters
+        </p>
       </div>
 
+      {validationError && (
+        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>
+        </div>
+      )}
+
       <Button
-        onClick={onSolve}
+        onClick={handleSolve}
         disabled={!problem.trim() || !topic || isLoading}
         className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
       >

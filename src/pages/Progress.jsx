@@ -216,7 +216,9 @@ export default function Progress() {
                   </div>
                   <p className="text-gray-800 font-medium">{p.problem}</p>
                   {p.solution && (
-                    <p className="text-gray-600 text-sm mt-2">Solution: {p.solution}</p>
+                    <p className="text-gray-600 text-sm mt-2">
+                      Solution: {typeof p.solution === 'string' ? p.solution : p.solution.answer}
+                    </p>
                   )}
                 </div>
               ))}

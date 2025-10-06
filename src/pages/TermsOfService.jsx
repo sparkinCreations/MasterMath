@@ -144,7 +144,7 @@ export default function TermsOfService() {
             <li>Be honest about when and how you use MasterMath for academic work</li>
           </ul>
           <p className="text-gray-700 dark:text-gray-300 mt-3">
-            sparkinCreations™ is not responsible for any academic integrity violations resulting
+            sparkinCreations is not responsible for any academic integrity violations resulting
             from misuse of MasterMath.
           </p>
         </CardContent>
@@ -221,7 +221,7 @@ export default function TermsOfService() {
               No Responsibility for Inaccurate Data
             </h3>
             <p className="text-gray-700 dark:text-gray-300 mb-2">
-              sparkinCreations™ explicitly disclaims responsibility for any inaccurate, incomplete, 
+              sparkinCreations explicitly disclaims responsibility for any inaccurate, incomplete, 
               or misleading information provided by MathMaster, including but not limited to:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
@@ -249,7 +249,7 @@ export default function TermsOfService() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-3">
-            To the maximum extent permitted by law, sparkinCreations™ shall not be liable for any
+            To the maximum extent permitted by law, sparkinCreations shall not be liable for any
             indirect, incidental, special, consequential, or punitive damages, or any loss of profits
             or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill,
             or other intangible losses resulting from:
@@ -287,7 +287,7 @@ export default function TermsOfService() {
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
               MathMaster, including its design, code, features, and content, is owned by
-              sparkinCreations™ and is protected by copyright, trademark, and other intellectual
+              sparkinCreations and is protected by copyright, trademark, and other intellectual
               property laws.
             </p>
           </div>
@@ -322,6 +322,18 @@ export default function TermsOfService() {
               We reserve the right to modify, suspend, or discontinue MathMaster (or any part thereof)
               at any time without notice. We shall not be liable to you or any third party for any
               modification, suspension, or discontinuance of the service.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">
+              Pricing and Features
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              All current features of MasterMath are provided at no cost. If we introduce premium
+              features in the future, all existing features will remain free. Any pricing changes or
+              new paid features will be clearly communicated in advance, and you will never be charged
+              for features that were previously free.
             </p>
           </div>
 
@@ -369,7 +381,7 @@ export default function TermsOfService() {
             These Terms shall be governed by and construed in accordance with applicable laws,
             without regard to conflict of law provisions. Any disputes arising from these terms
             or your use of MathMaster shall be resolved in accordance with the laws of the
-            jurisdiction where sparkinCreations™ operates.
+            jurisdiction where sparkinCreations operates.
           </p>
         </CardContent>
       </Card>
@@ -384,7 +396,7 @@ export default function TermsOfService() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-3">
-            If you have any questions about these Terms of Service, please contact sparkinCreations™:
+            If you have any questions about these Terms of Service, please contact sparkinCreations:
           </p>
           <p className="text-gray-700 dark:text-gray-300">
             <strong>Website:</strong>{" "}

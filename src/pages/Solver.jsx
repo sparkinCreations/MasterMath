@@ -26,7 +26,7 @@ export default function Solver() {
       await createProblemHistory({
         problem,
         topic,
-        solution: result.answer,
+        solution: result,
         feedback: "Solved successfully"
       });
 

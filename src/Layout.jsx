@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, Calculator, History, BookOpen, Shield, Scale, MessageSquare, Moon, Sun } from "lucide-react";
+import { Home, Calculator, History, BookOpen, HelpCircle, Shield, Scale, MessageSquare, Moon, Sun } from "lucide-react";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import {
   Sidebar,
@@ -36,6 +36,11 @@ const navigationItems = [
     title: "User Manual",
     url: createPageUrl("UserManual"),
     icon: BookOpen,
+  },
+  {
+    title: "FAQ",
+    url: createPageUrl("FAQ"),
+    icon: HelpCircle,
   },
   {
     title: "Feedback & Support",
@@ -76,7 +81,7 @@ export default function Layout({ children }) {
         <div className="flex flex-1">
           <Sidebar className="border-r border-purple-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" role="navigation" aria-label="Main navigation">
             <SidebarHeader className="border-b border-purple-100 p-6">
-              <div className="flex items-center gap-3">
+              <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                 <img
                   src="/favicon.png"
                   alt="MasterMath Logo"
@@ -88,7 +93,7 @@ export default function Layout({ children }) {
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Master math with confidence</p>
                 </div>
-              </div>
+              </Link>
             </SidebarHeader>
 
             <SidebarContent className="p-3">
@@ -122,14 +127,26 @@ export default function Layout({ children }) {
             <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-purple-100 dark:border-gray-700 px-6 py-4 shadow-sm" role="banner">
               <div className="flex items-center justify-between">
                 <SidebarTrigger className="hover:bg-purple-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
-                <div className="hidden md:block text-center flex-1">
+                <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">
+                  <img
+                    src="/favicon.png"
+                    alt="MasterMath Logo"
+                    className="w-8 h-8 rounded-lg shadow-md"
+                  />
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     MasterMath <span className="text-sm font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Master math with confidence</span>
                   </h1>
-                </div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent md:hidden">
-                  MasterMath <span className="text-xs font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span>
-                </h1>
+                </Link>
+                <Link to="/" className="flex md:hidden items-center gap-2 hover:opacity-80 transition-opacity">
+                  <img
+                    src="/favicon.png"
+                    alt="MasterMath Logo"
+                    className="w-6 h-6 rounded-lg shadow-md"
+                  />
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    MasterMath <span className="text-xs font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span>
+                  </h1>
+                </Link>
                 <button
                   onClick={toggleDarkMode}
                   className="p-2 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors duration-200"

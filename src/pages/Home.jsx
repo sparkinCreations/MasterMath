@@ -12,7 +12,8 @@ import {
   BookOpen,
   Target,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  Github
 } from "lucide-react";
 
 export default function Home() {
@@ -22,7 +23,12 @@ export default function Home() {
     <div className="p-4 md:p-6">
       {/* Hero Section */}
       <div className="max-w-6xl mx-auto mb-8 md:mb-16 text-center">
-        <div className="mb-6 md:mb-8">
+        <div className="mb-6 md:mb-8 flex flex-col items-center">
+          <img
+            src="/favicon.png"
+            alt="MasterMath Logo"
+            className="w-20 h-20 md:w-24 md:h-24 mb-4 md:mb-6"
+          />
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 md:mb-4 px-2">
             Welcome to MasterMath
           </h1>
@@ -30,11 +36,11 @@ export default function Home() {
             Master math with confidence
           </p>
           <p className="text-base md:text-lg text-gray-500 dark:text-gray-500 px-2">
-            Your personal math tutor for precalculus and calculus
+            Your personal math tutor for solving common math problems like calculus, algebra, and trigonometry
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 mb-8 md:mb-12 px-2">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 mb-6 md:mb-8 px-2">
           <Link to={createPageUrl("Solver")} className="w-full sm:w-auto">
             <Button
               size="lg"
@@ -55,6 +61,19 @@ export default function Home() {
               Learn How It Works
             </Button>
           </Link>
+        </div>
+
+        {/* GitHub Link */}
+        <div className="mb-8 md:mb-12 px-2">
+          <a
+            href="https://github.com/sparkinCreations/MasterMath"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 text-base md:text-lg font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+          >
+            <Github className="w-5 h-5" />
+            Star on GitHub
+          </a>
         </div>
 
         {/* Hero Image/Illustration Placeholder */}
@@ -259,8 +278,8 @@ export default function Home() {
             <div className="flex items-start gap-2 md:gap-3">
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0 mt-1" />
               <div>
-                <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Always Free</h4>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">All features available at no cost, forever</p>
+                <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Completely Free</h4>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">All current features at no cost</p>
               </div>
             </div>
 
@@ -309,6 +328,15 @@ export default function Home() {
       <div className="text-center py-8 md:py-12 text-gray-500 dark:text-gray-400 px-2">
         <p className="text-base md:text-lg">MasterMath by sparkinCreations™</p>
         <p className="text-xs md:text-sm mt-1">Master math with confidence - Your personal math tutor, anytime, anywhere</p>
+        <a
+          href="https://github.com/sparkinCreations/MasterMath"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 mt-4 text-sm md:text-base text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+        >
+          <Github className="w-5 h-5" />
+          View on GitHub
+        </a>
       </div>
     </div>
   );

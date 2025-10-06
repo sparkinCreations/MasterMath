@@ -1,6 +1,13 @@
 // Export utilities for MathMaster
 import jsPDF from 'jspdf';
 
+// Helper to extract solution text
+function getSolutionText(solution) {
+  if (!solution) return '';
+  if (typeof solution === 'string') return solution;
+  return solution.answer || '';
+}
+
 // Export progress history as CSV
 export function exportAsCSV(problems, topicLabels) {
   const headers = ['Date', 'Topic', 'Problem', 'Solution'];
@@ -8,7 +15,7 @@ export function exportAsCSV(problems, topicLabels) {
     new Date(p.createdAt).toLocaleDateString(),
     topicLabels[p.topic] || p.topic,
     `"${p.problem.replace(/"/g, '""')}"`, // Escape quotes
-    `"${(p.solution || '').replace(/"/g, '""')}"`
+    `"${getSolutionText(p.solution).replace(/"/g, '""')}"`
   ]);
 
   const csvContent = [
@@ -43,8 +50,9 @@ export function exportAsMarkdown(problems, topicLabels) {
     probs.forEach(p => {
       markdown += `### ${new Date(p.createdAt).toLocaleDateString()}\n`;
       markdown += `**Problem:** ${p.problem}\n\n`;
-      if (p.solution) {
-        markdown += `**Solution:** ${p.solution}\n\n`;
+      const solutionText = getSolutionText(p.solution);
+      if (solutionText) {
+        markdown += `**Solution:** ${solutionText}\n\n`;
       }
       markdown += '---\n\n';
     });
@@ -143,8 +151,9 @@ export function exportAsPDF(problems, topicLabels) {
     doc.text(problemLines, margin + 5, yPos);
     yPos += problemLines.length * 5;
 
-    if (p.solution) {
-      const solutionLines = doc.splitTextToSize(`Solution: ${p.solution}`, 170);
+    const solutionText = getSolutionText(p.solution);
+    if (solutionText) {
+      const solutionLines = doc.splitTextToSize(`Solution: ${solutionText}`, 170);
       doc.text(solutionLines, margin + 5, yPos);
       yPos += solutionLines.length * 5;
     }

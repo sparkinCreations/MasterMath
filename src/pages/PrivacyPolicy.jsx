@@ -236,7 +236,7 @@ export default function PrivacyPolicy() {
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-3">
             If you have any questions or concerns about this Privacy Policy or how MasterMath handles
-            your information, please contact sparkinCreations™:
+            your information, please contact sparkinCreations:
           </p>
           <p className="text-gray-700 dark:text-gray-300">
             <strong>Website:</strong>{" "}
