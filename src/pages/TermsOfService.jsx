@@ -1,8 +1,11 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Scale, BookOpen, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function TermsOfService() {
+  usePageTitle("Terms of Service - Usage Guidelines");
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">

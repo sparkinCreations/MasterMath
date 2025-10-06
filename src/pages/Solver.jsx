@@ -4,8 +4,10 @@ import SolutionDisplay from "@/components/solver/SolutionDisplay";
 import GraphViewer from "@/components/solver/GraphViewer";
 import { solveProblem, createProblemHistory } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Solver() {
+  usePageTitle("Solver - Step-by-Step Math Solutions");
   const [problem, setProblem] = useState("");
   const [topic, setTopic] = useState("");
   const [solution, setSolution] = useState(null);

@@ -6,6 +6,7 @@ import { fetchProblemHistory, clearProblemHistory } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { exportAsCSV, exportAsJSON, exportAsMarkdown, exportAsPDF } from "@/lib/exportUtils";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function Progress() {
+  usePageTitle("My Progress - Track Your Learning Journey");
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();

@@ -1,8 +1,11 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Calculator, Download, History, Lightbulb, TrendingUp } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function UserManual() {
+  usePageTitle("User Manual - How to Use MasterMath");
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-8">
@@ -10,7 +13,7 @@ export default function UserManual() {
           User Manual
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Learn how to use MathMaster by sparkinCreations™ effectively
+          Learn how to use MasterMath by sparkinCreations™ effectively
         </p>
       </div>
 
@@ -19,14 +22,14 @@ export default function UserManual() {
         <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-purple-600" />
-            Welcome to MathMaster!
+            Welcome to MasterMath!
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            MathMaster is your personal math tutor designed to help you understand and solve precalculus
+            MasterMath is your personal math tutor designed to help you understand and solve precalculus
             and calculus problems step-by-step. Whether you're struggling with derivatives, integrals,
-            limits, or basic algebra, MathMaster guides you through each problem with clear explanations,
+            limits, or basic algebra, MasterMath guides you through each problem with clear explanations,
             helpful tips, and warnings about common mistakes.
           </p>
         </CardContent>
@@ -73,7 +76,7 @@ export default function UserManual() {
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Step 3: Click "Solve Problem"</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              MathMaster will analyze your problem and provide a complete solution with step-by-step explanations!
+              MasterMath will analyze your problem and provide a complete solution with step-by-step explanations!
             </p>
           </div>
         </CardContent>
@@ -173,7 +176,7 @@ export default function UserManual() {
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Graph Visualization</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              When applicable, MathMaster displays an interactive graph to help you visualize the function or solution.
+              When applicable, MasterMath displays an interactive graph to help you visualize the function or solution.
             </p>
           </div>
         </CardContent>
@@ -262,7 +265,7 @@ export default function UserManual() {
 
       {/* Footer */}
       <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-        <p>MathMaster by sparkinCreations™</p>
+        <p>MasterMath by sparkinCreations™</p>
         <p className="text-sm mt-1">Learn with confidence - Your personal math tutor, anytime, anywhere</p>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { MessageSquare, Send, Bug, Lightbulb, AlertTriangle, Star } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const FEEDBACK_TYPES = [
   { value: "bug", label: "Bug Report", icon: Bug, color: "text-red-600" },
@@ -27,6 +28,8 @@ const MATH_TOPICS = [
 ];
 
 export default function Feedback() {
+  usePageTitle("Feedback & Support - We'd Love to Hear From You");
+
   const [feedbackType, setFeedbackType] = useState("");
   const [mathTopic, setMathTopic] = useState("");
   const [problem, setProblem] = useState("");
@@ -35,7 +38,7 @@ export default function Feedback() {
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const toast = useToast();
 
   const handleSubmit = async (e) => {

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Calculator, History, BookOpen, Shield, Scale, MessageSquare, Moon, Sun } from "lucide-react";
+import { Home, Calculator, History, BookOpen, Shield, Scale, MessageSquare, Moon, Sun } from "lucide-react";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import {
   Sidebar,
@@ -17,6 +17,11 @@ import {
 } from "@/components/ui/sidebar";
 
 const navigationItems = [
+  {
+    title: "Home",
+    url: "/",
+    icon: Home,
+  },
   {
     title: "Solver",
     url: createPageUrl("Solver"),
@@ -54,7 +59,7 @@ export default function Layout({ children }) {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <style>{`
         :root {
           --primary: 250 100% 65%;
@@ -145,7 +150,7 @@ export default function Layout({ children }) {
 
         <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-purple-100 dark:border-gray-700 px-6 py-4">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-400 text-center">
-            <span>MasterMath by sparkinCreations™</span>
+            <span>MasterMath by sparkinCreations™ v1.1.0</span>
             <span className="hidden sm:inline">|</span>
             <span className="flex items-center gap-1">
               <span>© 2025</span>

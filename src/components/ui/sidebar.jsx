@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils"
 
 const SidebarContext = React.createContext({ isOpen: true, setIsOpen: () => {} })
 
-const SidebarProvider = ({ children }) => {
-  const [isOpen, setIsOpen] = React.useState(true)
+const SidebarProvider = ({ children, defaultOpen = true }) => {
+  const [isOpen, setIsOpen] = React.useState(defaultOpen)
 
   return (
     <SidebarContext.Provider value={{ isOpen, setIsOpen }}>

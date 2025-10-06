@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './Layout';
+import Home from './pages/Home';
 import Solver from './pages/Solver';
 import Progress from './pages/Progress';
 import UserManual from './pages/UserManual';
@@ -19,7 +20,7 @@ function App() {
           <Router>
             <Layout>
               <Routes>
-                <Route path="/" element={<Navigate to="/solver" replace />} />
+                <Route path="/" element={<Home />} />
                 <Route path="/solver" element={<Solver />} />
                 <Route path="/progress" element={<Progress />} />
                 <Route path="/usermanual" element={<UserManual />} />

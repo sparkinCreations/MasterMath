@@ -1,8 +1,11 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Database, Lock, Eye, Trash2, FileText } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function PrivacyPolicy() {
+  usePageTitle("Privacy Policy - Your Privacy Matters");
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
@@ -24,7 +27,7 @@ export default function PrivacyPolicy() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            At MathMaster by sparkinCreations™, we are committed to protecting your privacy.
+            At MasterMath by sparkinCreations™, we are committed to protecting your privacy.
             This Privacy Policy explains how we handle your information when you use our educational
             math application. We believe in transparency and want you to understand exactly how your
             data is managed.
@@ -46,7 +49,7 @@ export default function PrivacyPolicy() {
               Information Stored Locally on Your Device
             </h3>
             <p className="text-gray-700 dark:text-gray-300 mb-2">
-              MathMaster stores the following information locally in your browser using IndexedDB:
+              MasterMath stores the following information locally in your browser using IndexedDB:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
               <li>Math problems you enter into the solver</li>
@@ -82,7 +85,7 @@ export default function PrivacyPolicy() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-3">
-            All data stored by MathMaster remains on your device and is used solely to:
+            All data stored by MasterMath remains on your device and is used solely to:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
             <li>Display your problem-solving history in the "My Progress" section</li>
@@ -108,7 +111,7 @@ export default function PrivacyPolicy() {
               Local Storage Only
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
-              MathMaster operates entirely within your browser. All your data is stored locally using
+              MasterMath operates entirely within your browser. All your data is stored locally using
               IndexedDB technology, which is a secure, browser-based storage system. Your data never
               leaves your device unless you explicitly choose to export it.
             </p>
@@ -119,7 +122,7 @@ export default function PrivacyPolicy() {
               No Server Storage
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
-              Unlike many web applications, MathMaster does not use any backend servers or databases.
+              Unlike many web applications, MasterMath does not use any backend servers or databases.
               We do not store, process, or have access to your data on any remote servers. This means
               your mathematical problems and solutions remain completely private to you.
             </p>
@@ -145,7 +148,7 @@ export default function PrivacyPolicy() {
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
               <li>Use the "Clear History" button on the My Progress page to delete all stored problems and solutions</li>
-              <li>Clear your browser data to remove all MathMaster information</li>
+              <li>Clear your browser data to remove all MasterMath information</li>
               <li>Uninstall or stop using the application - your data remains only on your device</li>
             </ul>
           </div>
@@ -173,7 +176,7 @@ export default function PrivacyPolicy() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-3">
-            MathMaster uses the following third-party libraries to provide its functionality:
+            MasterMath uses the following third-party libraries to provide its functionality:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
             <li><strong>Math.js:</strong> For mathematical computations (runs locally in your browser)</li>
@@ -196,7 +199,7 @@ export default function PrivacyPolicy() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300">
-            MathMaster is designed to be a safe educational tool for students of all ages. We do not
+            MasterMath is designed to be a safe educational tool for students of all ages. We do not
             knowingly collect any personal information from children or adults. Since all data is stored
             locally on the user's device and we do not have servers or databases, there is no collection
             of personal information that could identify a child or any user.
@@ -232,7 +235,7 @@ export default function PrivacyPolicy() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-3">
-            If you have any questions or concerns about this Privacy Policy or how MathMaster handles
+            If you have any questions or concerns about this Privacy Policy or how MasterMath handles
             your information, please contact sparkinCreations™:
           </p>
           <p className="text-gray-700 dark:text-gray-300">
@@ -274,7 +277,7 @@ export default function PrivacyPolicy() {
 
       {/* Footer */}
       <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-        <p>MathMaster by sparkinCreations™</p>
+        <p>MasterMath by sparkinCreations™</p>
         <p className="text-sm mt-1">Your privacy is our priority</p>
       </div>
     </div>

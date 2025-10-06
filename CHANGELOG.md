@@ -7,13 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-01-05
+
 ### Added
-- Feedback form for user reports and suggestions
-- Enhanced documentation for open source release
+- **New Homepage/Landing Page**
+  - Hero section with welcome message and prominent CTAs
+  - Feature showcase grid highlighting 6 core features
+  - "How It Works" section with 3-step process
+  - "Why Choose MasterMath?" benefits section with checkmarks
+  - Final CTA section encouraging users to start solving
+  - Fully responsive design with dark mode support
+  - Home navigation link added to sidebar (first position)
+
+- **SEO Optimization**
+  - Comprehensive meta tags in index.html (title, description, keywords, author)
+  - Open Graph tags for Facebook/LinkedIn social sharing
+  - Twitter Card meta tags for Twitter previews
+  - Canonical URL and theme color configuration
+  - Schema.org JSON-LD structured data for Google rich snippets
+  - Dynamic page-specific titles using custom `usePageTitle` hook
+  - Sitemap.xml for search engine crawling
+  - Robots.txt for crawler instructions
+
+- **Developer Experience**
+  - Custom `usePageTitle` hook for SEO-friendly page titles
+  - Completely rewrote CLAUDE.md with accurate, comprehensive documentation
+  - Documented all 7 pages, IndexedDB implementation, math solvers, and architecture
 
 ### Changed
+- **Sidebar UX Improvement**
+  - Sidebar now starts collapsed by default for better first impression
+  - Updated `SidebarProvider` to accept `defaultOpen` prop
+  - Improved mobile and desktop user experience
+
+- **Branding Consistency**
+  - Updated all references from "MathMaster" to "MasterMath"
+  - Updated UserManual.jsx, PrivacyPolicy.jsx with consistent branding
+  - Updated Layout.jsx header and footer
+
+- **Page Titles** (SEO-optimized)
+  - Home: "Master Math with Confidence - Free Math Solver"
+  - Solver: "Solver - Step-by-Step Math Solutions"
+  - Progress: "My Progress - Track Your Learning Journey"
+  - User Manual: "User Manual - How to Use MasterMath"
+  - Privacy Policy: "Privacy Policy - Your Privacy Matters"
+  - Terms of Service: "Terms of Service - Usage Guidelines"
+  - Feedback: "Feedback & Support - We'd Love to Hear From You"
+
+### Fixed
+- Feedback form for user reports and suggestions
+- Enhanced documentation for open source release
 - Improved Terms of Service with comprehensive accuracy disclaimers
-- Rebranded from MathMaster to MasterMath for better domain availability
 
 ## [1.0.0] - 2025-10-05
 
