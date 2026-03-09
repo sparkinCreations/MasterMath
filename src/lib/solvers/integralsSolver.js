@@ -131,13 +131,13 @@ function generateIntegralSteps(expression, integral, variable) {
 function generateIntegralGraph(original, integral, variable) {
   try {
     const points = [];
+    const secondaryPoints = [];
 
     for (let i = -10; i <= 10; i += 0.5) {
       const scope = {};
       scope[variable] = i;
 
       try {
-        // Evaluate the original function
         const y = math.evaluate(original, scope);
         if (isFinite(y) && Math.abs(y) < 1000) {
           points.push({ x: i, y });
@@ -145,13 +145,24 @@ function generateIntegralGraph(original, integral, variable) {
       } catch (e) {
         // Skip points where function is undefined
       }
+
+      try {
+        const iy = math.evaluate(integral, scope);
+        if (isFinite(iy) && Math.abs(iy) < 1000) {
+          secondaryPoints.push({ x: i, y: iy });
+        }
+      } catch (e) {
+        // Skip points where integral is undefined
+      }
     }
 
     if (points.length > 0) {
       return {
         points,
+        secondaryPoints: secondaryPoints.length > 0 ? secondaryPoints : null,
+        secondaryLabel: `F(${variable}) = ${integral}`,
         title: `Graph of f(${variable}) = ${original}`,
-        description: `The area under this curve is given by the integral: ${integral} + C`
+        description: `Blue/purple: f(${variable}) = ${original}  |  Green: F(${variable}) = ${integral} (antiderivative)`
       };
     }
   } catch (error) {

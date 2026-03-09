@@ -146,6 +146,7 @@ function generateDerivativeSteps(expression, derivative, variable) {
 function generateDerivativeGraph(original, derivative, variable) {
   try {
     const points = [];
+    const secondaryPoints = [];
 
     for (let i = -10; i <= 10; i += 0.5) {
       const scope = {};
@@ -159,13 +160,24 @@ function generateDerivativeGraph(original, derivative, variable) {
       } catch (e) {
         // Skip points where function is undefined
       }
+
+      try {
+        const dy = math.evaluate(derivative, scope);
+        if (isFinite(dy) && Math.abs(dy) < 1000) {
+          secondaryPoints.push({ x: i, y: dy });
+        }
+      } catch (e) {
+        // Skip points where derivative is undefined
+      }
     }
 
     if (points.length > 0) {
       return {
         points,
+        secondaryPoints: secondaryPoints.length > 0 ? secondaryPoints : null,
+        secondaryLabel: `f'(${variable}) = ${derivative}`,
         title: `Graph of f(${variable}) = ${original}`,
-        description: `The derivative f'(${variable}) = ${derivative} represents the slope at each point`
+        description: `Blue/purple: f(${variable}) = ${original}  |  Green: f'(${variable}) = ${derivative} (slope at each point)`
       };
     }
   } catch (error) {

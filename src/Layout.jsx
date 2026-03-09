@@ -173,7 +173,7 @@ export default function Layout({ children }) {
             <span>MasterMath by sparkinCreations™ v1.1.0</span>
             <span className="hidden sm:inline">|</span>
             <span className="flex items-center gap-1">
-              <span>© 2025</span>
+              <span>© 2026</span>
               <a
                 href="https://sparkincreations.com"
                 target="_blank"
