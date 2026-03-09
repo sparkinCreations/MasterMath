@@ -52,22 +52,72 @@ export function solveIntegral(expression) {
 
 function generateIntegralSteps(expression, integral, variable) {
   const steps = [];
+  const expr = expression.toLowerCase();
 
   steps.push(`Identify the function we want to integrate: ∫(${expression}) d${variable}`);
 
-  // Analyze the expression to provide relevant steps
-  if (expression.includes('+') || expression.includes('-')) {
+  // Detect which rules/techniques are involved
+  const hasTrigFunctions = /\b(sin|cos|tan|sec|csc|cot)\b/.test(expr);
+  const hasExpOrLn = /\b(exp|ln|log)\b/.test(expr) || expr.includes('e^');
+  const hasSqrt = /\bsqrt\b/.test(expr) || expr.includes('√');
+  const hasPower = /\^\s*\d+/.test(expression) || /\*\*\s*\d+/.test(expression);
+
+  // Check for u-substitution indicators: function of a function
+  const hasUSubstitution = hasTrigFunctions && new RegExp(`\\b(?:sin|cos|tan)\\s*\\([^)]*[${variable}][^)]*[+\\-*/^]`).test(expression) ||
+    hasExpOrLn && new RegExp(`(?:exp|ln)\\s*\\([^)]*[${variable}][^)]*[+\\-*/^]`).test(expression) ||
+    /\([^)]+\)\s*\^\s*\d+/.test(expression);
+
+  // Check for integration by parts indicators: product of different function types
+  const hasIntegrationByParts = /[a-z][^+\-]*\*[^+\-]*[a-z]/i.test(expression) &&
+    (hasTrigFunctions || hasExpOrLn) &&
+    (hasPower || /\b[a-z]\b/.test(expr));
+
+  // Sum/difference rule
+  if (expression.includes('+') || /[^e]-/.test(expression)) {
     steps.push('Apply the sum/difference rule: the integral of a sum is the sum of the integrals');
   }
 
-  if (expression.match(/\^\s*\d+/) || expression.match(/\*\*\s*\d+/)) {
-    steps.push(`Apply the power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C`);
+  // Power rule
+  if (hasPower) {
+    steps.push(`Apply the power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C (where n ≠ -1)`);
   }
 
+  // U-substitution
+  if (hasUSubstitution) {
+    steps.push(`This may require u-substitution: let u = inner function, then du = u' d${variable}`);
+    steps.push('Rewrite the integral in terms of u, integrate, then substitute back');
+  }
+
+  // Integration by parts
+  if (hasIntegrationByParts && !hasUSubstitution) {
+    steps.push(`This may require integration by parts: ∫u dv = uv − ∫v du`);
+    steps.push('Choose u and dv using the LIATE rule (Logarithmic, Inverse trig, Algebraic, Trig, Exponential)');
+  }
+
+  // Trig integrals
+  if (hasTrigFunctions) {
+    if (expr.includes('sin')) steps.push(`Trig integral: ∫sin(${variable}) d${variable} = -cos(${variable}) + C`);
+    if (expr.includes('cos')) steps.push(`Trig integral: ∫cos(${variable}) d${variable} = sin(${variable}) + C`);
+    if (expr.includes('sec') && expr.includes('^2')) steps.push(`Trig integral: ∫sec²(${variable}) d${variable} = tan(${variable}) + C`);
+    if (expr.includes('tan') && !expr.includes('^2')) steps.push(`Trig integral: ∫tan(${variable}) d${variable} = -ln|cos(${variable})| + C`);
+  }
+
+  // Exponential and logarithmic
+  if (hasExpOrLn) {
+    if (expr.includes('e^') || expr.includes('exp')) steps.push(`Exponential integral: ∫e^${variable} d${variable} = e^${variable} + C`);
+    if (expr.includes('1/' + variable) || expr.includes(variable + '^(-1)')) steps.push(`Reciprocal integral: ∫1/${variable} d${variable} = ln|${variable}| + C`);
+  }
+
+  // Square root
+  if (hasSqrt) {
+    steps.push(`Rewrite √(${variable}) as ${variable}^(1/2), then apply the power rule`);
+  }
+
+  // Constant multiplication
   if (expression.includes('*')) {
     const hasConstant = expression.match(/\d+\s*\*/);
     if (hasConstant) {
-      steps.push('Constants can be factored out: ∫c*f(x)dx = c*∫f(x)dx');
+      steps.push('Constants can be factored out: ∫c·f(x)dx = c·∫f(x)dx');
     }
   }
 

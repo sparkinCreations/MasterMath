@@ -6,16 +6,38 @@ const math = create(all);
 // Limits Solver
 export function solveLimit(expression) {
   try {
-    const variable = extractVariable(expression);
+    // Strip natural language prefixes (e.g., "find the limit of", "evaluate the limit")
+    let cleaned = expression.trim().replace(/[.?!]+$/, '').trim();
+    cleaned = cleaned.replace(/^(?:find the limit|evaluate the limit|calculate the limit)\s+(?:of\s+)?/i, '');
 
-    // Parse limit notation (e.g., "lim x->0 (sin(x)/x)")
-    const limitMatch = expression.match(/(?:lim|limit).*?(?:->|→)\s*(\S+)\s+(.+)/i);
+    // Parse limit notation (e.g., "lim x->0 (sin(x)/x)", "x->2 (x^2-4)/(x-2)", "(x^2-4)/(x-2) as x->2")
     let approachValue = 0;
-    let func = expression;
+    let func = cleaned;
+    let variable = 'x';
 
-    if (limitMatch) {
-      approachValue = limitMatch[1];
-      func = parseMathExpression(limitMatch[2]);
+    // Pattern 1: "lim x->value expression" or "limit as x->value of expression"
+    const limitMatch1 = cleaned.match(/(?:lim(?:it)?)\s+(?:as\s+)?([a-z])\s*(?:->|→|approaches)\s*([^\s,]+)[\s,]+(?:of\s+)?(.+)/i);
+    // Pattern 2: "x->value expression" (no lim prefix)
+    const limitMatch2 = cleaned.match(/([a-z])\s*(?:->|→|approaches)\s*([^\s,]+)[\s,]+(.+)/i);
+    // Pattern 3: "expression as x->value"
+    const limitMatch3 = cleaned.match(/(.+?)\s+as\s+([a-z])\s*(?:->|→|approaches)\s*(.+)/i);
+
+    if (limitMatch1) {
+      variable = limitMatch1[1];
+      approachValue = limitMatch1[2];
+      func = parseMathExpression(limitMatch1[3]);
+    } else if (limitMatch2) {
+      variable = limitMatch2[1];
+      approachValue = limitMatch2[2];
+      func = parseMathExpression(limitMatch2[3]);
+    } else if (limitMatch3) {
+      func = parseMathExpression(limitMatch3[1]);
+      variable = limitMatch3[2];
+      approachValue = limitMatch3[3].trim();
+    } else {
+      // No limit notation found — treat entire input as the function, default x->0
+      func = parseMathExpression(cleaned.replace(/^(?:lim(?:it)?)\s*/i, ''));
+      variable = extractVariable(func);
     }
 
     // Evaluate limit numerically by approaching from both sides
@@ -109,6 +131,9 @@ function generateLimitGraph(func, variable, approachValue) {
   return null;
 }
 
+// Common degree values that students typically use
+const COMMON_DEGREE_VALUES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360];
+
 // Trigonometry Solver
 export function solveTrigonometry(expression) {
   try {
@@ -117,10 +142,43 @@ export function solveTrigonometry(expression) {
 
     // Detect what type of trig function is being used
     const hasRadians = expression.includes('pi') || expression.includes('PI');
-    const hasDegrees = !hasRadians && /\d+/.test(expression);
+    const hasDegreeSymbol = expression.includes('°');
 
-    // Evaluate the expression
-    let result = math.evaluate(expression);
+    // Check if the argument looks like a common degree value (e.g., sin(45), cos(60))
+    // This catches cases where students type degrees without specifying
+    const degreeArgMatch = expression.match(/(?:sin|cos|tan|sec|csc|cot)\s*\(\s*(\d+)\s*\)/i);
+    const argValue = degreeArgMatch ? parseInt(degreeArgMatch[1]) : null;
+    const looksLikeDegrees = !hasRadians && argValue !== null && COMMON_DEGREE_VALUES.includes(argValue);
+
+    let result;
+    let degreeResult = null;
+    let radianResult = null;
+
+    // Evaluate the expression as-is (radians by default in mathjs)
+    radianResult = math.evaluate(expression);
+
+    // If it looks like degrees, also evaluate with degree conversion
+    if (looksLikeDegrees || hasDegreeSymbol) {
+      // Convert degree argument to radians for evaluation
+      const degExpr = expression.replace(/(\d+)\s*°?/g, '($1 * pi / 180)');
+      try {
+        degreeResult = math.evaluate(degExpr);
+      } catch (e) {
+        // Fall back to radian result
+      }
+    }
+
+    // Decide which result to use as primary
+    if (looksLikeDegrees && degreeResult !== null) {
+      result = degreeResult;
+      steps.push(`Detected input as degrees: ${argValue}° = ${argValue} × π/180 radians`);
+      steps.push(`Converting: ${argValue}° = ${(argValue * Math.PI / 180).toFixed(4)} radians`);
+    } else if (hasDegreeSymbol && degreeResult !== null) {
+      result = degreeResult;
+      steps.push('Input is in degrees (° symbol detected), converting to radians');
+    } else {
+      result = radianResult;
+    }
 
     // Provide context based on the function
     if (expression.toLowerCase().includes('sin')) {
@@ -145,9 +203,20 @@ export function solveTrigonometry(expression) {
       'sin(pi/6)': { value: 0.5, degrees: '30°', note: 'sin(30°) = 1/2' },
       'sin(pi/4)': { value: Math.sqrt(2)/2, degrees: '45°', note: 'sin(45°) = √2/2' },
       'sin(pi/3)': { value: Math.sqrt(3)/2, degrees: '60°', note: 'sin(60°) = √3/2' },
+      'sin(pi/2)': { value: 1, degrees: '90°', note: 'sin(90°) = 1' },
       'cos(pi/6)': { value: Math.sqrt(3)/2, degrees: '30°', note: 'cos(30°) = √3/2' },
       'cos(pi/4)': { value: Math.sqrt(2)/2, degrees: '45°', note: 'cos(45°) = √2/2' },
       'cos(pi/3)': { value: 0.5, degrees: '60°', note: 'cos(60°) = 1/2' },
+      'cos(pi/2)': { value: 0, degrees: '90°', note: 'cos(90°) = 0' },
+      'tan(pi/4)': { value: 1, degrees: '45°', note: 'tan(45°) = 1' },
+      'tan(pi/3)': { value: Math.sqrt(3), degrees: '60°', note: 'tan(60°) = √3' },
+      'tan(pi/6)': { value: 1/Math.sqrt(3), degrees: '30°', note: 'tan(30°) = 1/√3' },
+    };
+
+    // Map degree inputs to their radian equivalents for lookup
+    const degreeToRadianAngles = {
+      30: 'pi/6', 45: 'pi/4', 60: 'pi/3', 90: 'pi/2',
+      120: '2*pi/3', 135: '3*pi/4', 150: '5*pi/6', 180: 'pi',
     };
 
     const normalized = expression.replace(/\s/g, '').toLowerCase();
@@ -155,6 +224,17 @@ export function solveTrigonometry(expression) {
       const angle = commonAngles[normalized];
       steps.push(`This is a special angle: ${angle.degrees}`);
       steps.push(`Common value: ${angle.note}`);
+    } else if (looksLikeDegrees && degreeArgMatch) {
+      // Check if the degree value maps to a common angle
+      const funcName = expression.match(/(sin|cos|tan)/i)?.[1]?.toLowerCase();
+      const radianKey = degreeToRadianAngles[argValue];
+      if (funcName && radianKey) {
+        const lookupKey = `${funcName}(${radianKey})`;
+        if (commonAngles[lookupKey]) {
+          steps.push(`This is a special angle: ${argValue}°`);
+          steps.push(`Common value: ${commonAngles[lookupKey].note}`);
+        }
+      }
     }
 
     // Format the result nicely
@@ -166,18 +246,37 @@ export function solveTrigonometry(expression) {
       // Also provide exact values for common results
       if (Math.abs(result - 0.5) < 0.0001) {
         formattedResult = '0.5000 (or 1/2)';
+      } else if (Math.abs(result + 0.5) < 0.0001) {
+        formattedResult = '-0.5000 (or -1/2)';
       } else if (Math.abs(result - Math.sqrt(2)/2) < 0.0001) {
         formattedResult = '0.7071 (or √2/2)';
+      } else if (Math.abs(result + Math.sqrt(2)/2) < 0.0001) {
+        formattedResult = '-0.7071 (or -√2/2)';
       } else if (Math.abs(result - Math.sqrt(3)/2) < 0.0001) {
         formattedResult = '0.8660 (or √3/2)';
+      } else if (Math.abs(result + Math.sqrt(3)/2) < 0.0001) {
+        formattedResult = '-0.8660 (or -√3/2)';
+      } else if (Math.abs(result - Math.sqrt(3)) < 0.0001) {
+        formattedResult = '1.7321 (or √3)';
+      } else if (Math.abs(result - 1/Math.sqrt(3)) < 0.0001) {
+        formattedResult = '0.5774 (or 1/√3 or √3/3)';
       } else if (Math.abs(result - 1) < 0.0001) {
         formattedResult = '1.0000';
+      } else if (Math.abs(result + 1) < 0.0001) {
+        formattedResult = '-1.0000';
       } else if (Math.abs(result) < 0.0001) {
         formattedResult = '0.0000';
       }
     }
 
-    steps.push(`Calculate the value: ${formattedResult}`);
+    // Show both radian and degree results if we detected degrees
+    if (looksLikeDegrees && radianResult !== null && degreeResult !== null) {
+      steps.push(`Result (treating input as degrees): ${formattedResult}`);
+      const radFormatted = typeof radianResult === 'number' ? radianResult.toFixed(4) : radianResult;
+      steps.push(`Note: If you meant radians, the result would be ${radFormatted}`);
+    } else {
+      steps.push(`Calculate the value: ${formattedResult}`);
+    }
 
     // Generate graph for trig functions
     const graph = generateTrigGraph(expression);
@@ -336,17 +435,32 @@ export function solveFunctions(expression) {
 }
 
 function findVertex(points) {
-  if (points.length === 0) return null;
+  if (points.length < 3) return null;
 
-  // Find point with minimum or maximum y value
-  let extremum = points[0];
-  for (const point of points) {
-    if (Math.abs(point.y) > Math.abs(extremum.y)) {
-      extremum = point;
+  // Find local extrema by detecting where the slope changes direction
+  const extrema = [];
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const slopeBefore = points[i].y - points[i - 1].y;
+    const slopeAfter = points[i + 1].y - points[i].y;
+
+    // Local minimum: slope goes from negative to positive
+    // Local maximum: slope goes from positive to negative
+    if ((slopeBefore <= 0 && slopeAfter >= 0) || (slopeBefore >= 0 && slopeAfter <= 0)) {
+      extrema.push(points[i]);
     }
   }
 
-  return extremum;
+  // If we found local extrema, return the one closest to x=0 (most likely the "main" vertex)
+  if (extrema.length > 0) {
+    return extrema.reduce((closest, point) =>
+      Math.abs(point.x) < Math.abs(closest.x) ? point : closest
+    );
+  }
+
+  // If no local extremum found (monotonic function), return the midpoint
+  const midIndex = Math.floor(points.length / 2);
+  return points[midIndex];
 }
 
 function findIntercepts(func, variable) {

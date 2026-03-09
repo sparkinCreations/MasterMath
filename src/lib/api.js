@@ -98,7 +98,9 @@ export async function solveProblem(problem, topic) {
         break;
 
       case 'limits':
-        result = solveLimit(expression);
+        // Pass raw problem text so the limit solver can extract the approach value
+        // (the parser strips "lim x->0" notation which the solver needs)
+        result = solveLimit(problem);
         break;
 
       case 'trigonometry':

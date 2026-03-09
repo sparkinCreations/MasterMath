@@ -6,7 +6,9 @@
       "Bash(npm install)",
       "Bash(npm run dev:*)",
       "WebSearch",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "WebFetch(domain:sparkincreations.com)",
+      "Bash(npm run:*)"
     ],
     "deny": [],
     "ask": []

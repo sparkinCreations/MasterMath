@@ -51,22 +51,88 @@ export function solveDerivative(expression) {
 
 function generateDerivativeSteps(expression, derivative, variable) {
   const steps = [];
+  const expr = expression.toLowerCase();
 
   steps.push(`Identify the function we want to differentiate: f(${variable}) = ${expression}`);
 
-  // Analyze the expression to provide relevant steps
-  if (expression.includes('+') || expression.includes('-')) {
+  // Detect which rules are needed based on expression structure
+  const hasTrigFunctions = /\b(sin|cos|tan|sec|csc|cot)\b/.test(expr);
+  const hasExpOrLn = /\b(exp|ln|log)\b/.test(expr) || expr.includes('e^');
+  const hasSqrt = /\bsqrt\b/.test(expr) || expr.includes('√');
+  const hasPower = /\^\s*\d+/.test(expression) || /\*\*\s*\d+/.test(expression);
+
+  // Check for product rule: two or more variable-containing terms multiplied
+  // e.g., "x*sin(x)", "(x^2)*(x+1)"
+  const hasProductRule = /[a-z][^+\-]*\*[^+\-]*[a-z]/i.test(expression) &&
+    !/^\d+\s*\*/.test(expression.trim()); // exclude constant * expression
+
+  // Check for quotient rule: expression with division where both sides have the variable
+  const divParts = expression.split('/');
+  const hasQuotientRule = divParts.length >= 2 &&
+    new RegExp(variable).test(divParts[0]) &&
+    new RegExp(variable).test(divParts.slice(1).join('/'));
+
+  // Check for chain rule: function of a function, e.g., sin(x^2), (x+1)^3, e^(2x)
+  const hasChainRule = hasTrigFunctions && new RegExp(`\\b(?:sin|cos|tan|sec|csc|cot)\\s*\\([^)]*[${variable}][^)]*[+\\-*/^][^)]*\\)`).test(expression) ||
+    hasSqrt && new RegExp(`sqrt\\s*\\([^)]*[${variable}][^)]*[+\\-*/^]`).test(expression) ||
+    hasExpOrLn && new RegExp(`(?:exp|ln|log)\\s*\\([^)]*[${variable}][^)]*[+\\-*/^]`).test(expression) ||
+    /\([^)]+\)\s*\^\s*\d+/.test(expression); // (expr)^n
+
+  // Sum/difference rule
+  if (expression.includes('+') || /[^e]-/.test(expression)) {
     steps.push(`Apply the sum/difference rule: the derivative of a sum is the sum of the derivatives`);
   }
 
-  if (expression.match(/\^\s*\d+/) || expression.match(/\*\*\s*\d+/)) {
-    steps.push(`Apply the power rule: if f(${variable}) = ${variable}^n, then f'(${variable}) = n*${variable}^(n-1)`);
+  // Power rule
+  if (hasPower) {
+    steps.push(`Apply the power rule: if f(${variable}) = ${variable}^n, then f'(${variable}) = n·${variable}^(n-1)`);
   }
 
+  // Chain rule
+  if (hasChainRule) {
+    steps.push(`Apply the chain rule: d/d${variable}[f(g(${variable}))] = f'(g(${variable})) · g'(${variable})`);
+    steps.push('Identify the outer function and the inner function, then differentiate each');
+  }
+
+  // Product rule
+  if (hasProductRule) {
+    steps.push(`Apply the product rule: d/d${variable}[u·v] = u'·v + u·v'`);
+    steps.push('Identify the two factors, differentiate each separately, then combine');
+  }
+
+  // Quotient rule
+  if (hasQuotientRule) {
+    steps.push(`Apply the quotient rule: d/d${variable}[u/v] = (u'·v − u·v') / v²`);
+    steps.push('Identify the numerator (u) and denominator (v), differentiate each');
+  }
+
+  // Trig functions
+  if (hasTrigFunctions) {
+    if (expr.includes('sin')) steps.push(`Trig derivative: d/d${variable}[sin(${variable})] = cos(${variable})`);
+    if (expr.includes('cos')) steps.push(`Trig derivative: d/d${variable}[cos(${variable})] = -sin(${variable})`);
+    if (expr.includes('tan')) steps.push(`Trig derivative: d/d${variable}[tan(${variable})] = sec²(${variable})`);
+    if (expr.includes('sec')) steps.push(`Trig derivative: d/d${variable}[sec(${variable})] = sec(${variable})·tan(${variable})`);
+    if (expr.includes('csc')) steps.push(`Trig derivative: d/d${variable}[csc(${variable})] = -csc(${variable})·cot(${variable})`);
+    if (expr.includes('cot')) steps.push(`Trig derivative: d/d${variable}[cot(${variable})] = -csc²(${variable})`);
+  }
+
+  // Exponential and logarithmic
+  if (hasExpOrLn) {
+    if (expr.includes('e^') || expr.includes('exp')) steps.push(`Exponential derivative: d/d${variable}[e^${variable}] = e^${variable}`);
+    if (expr.includes('ln')) steps.push(`Logarithmic derivative: d/d${variable}[ln(${variable})] = 1/${variable}`);
+    if (expr.includes('log')) steps.push(`Log derivative: d/d${variable}[log(${variable})] = 1/(${variable}·ln(10))`);
+  }
+
+  // Square root
+  if (hasSqrt) {
+    steps.push(`Rewrite √(${variable}) as ${variable}^(1/2), then apply the power rule`);
+  }
+
+  // Constant multiplication
   if (expression.includes('*')) {
     const hasConstant = expression.match(/\d+\s*\*/);
-    if (hasConstant) {
-      steps.push('Constants can be factored out: d/dx(c*f(x)) = c*f\'(x)');
+    if (hasConstant && !hasProductRule) {
+      steps.push('Constants can be factored out: d/dx(c·f(x)) = c·f\'(x)');
     }
   }
 

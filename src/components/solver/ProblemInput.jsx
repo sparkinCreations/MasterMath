@@ -36,7 +36,7 @@ const EXAMPLE_PROBLEMS = [
   { topic: "other", problem: "(5 + 3) * 4 - 2^3" }
 ];
 
-export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, isLoading }) {
+export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, isLoading, onNavigateHistory, hasHistory }) {
   const [validationError, setValidationError] = useState(null);
 
   const loadExample = (exampleProblem) => {
@@ -58,6 +58,15 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       if (problem.trim() && topic && !isLoading) {
         handleSolve();
       }
+    }
+    // Navigate input history with ArrowUp/ArrowDown when input is empty or at start
+    if (e.key === 'ArrowUp' && onNavigateHistory && (problem === '' || e.target.selectionStart === 0)) {
+      e.preventDefault();
+      onNavigateHistory('up');
+    }
+    if (e.key === 'ArrowDown' && onNavigateHistory && (problem === '' || e.target.selectionStart === e.target.value.length)) {
+      e.preventDefault();
+      onNavigateHistory('down');
     }
     // Shift+Enter creates a new line (default behavior)
   };
@@ -122,9 +131,16 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           } rounded-xl p-4 resize-none`}
           maxLength={1000}
         />
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {problem.length}/1000 characters
-        </p>
+        <div className="flex justify-between">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {problem.length}/1000 characters
+          </p>
+          {hasHistory && (
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              ↑↓ to recall previous problems
+            </p>
+          )}
+        </div>
       </div>
 
       {validationError && (
