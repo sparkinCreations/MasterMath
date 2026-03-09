@@ -8,7 +8,10 @@
       "WebSearch",
       "Bash(npm install:*)",
       "WebFetch(domain:sparkincreations.com)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(git branch:*)",
+      "Bash(git worktree:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
