@@ -7,7 +7,7 @@
 // Math solving is 100% client-side so no API caching is needed —
 // we only need to cache the app shell (HTML, JS, CSS, images).
 
-const CACHE_NAME = 'mastermath-v1.1.0';
+const CACHE_NAME = 'mastermath-v1.2.0';
 
 // Core app shell — these are cached on install
 // Vite hashes JS/CSS filenames on build, so we cache them dynamically

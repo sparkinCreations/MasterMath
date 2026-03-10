@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          Last Updated: March 10, 2026
         </p>
       </div>
 
@@ -30,7 +30,8 @@ export default function PrivacyPolicy() {
             At MasterMath by sparkinCreations™, we are committed to protecting your privacy.
             This Privacy Policy explains how we handle your information when you use our educational
             math application. We believe in transparency and want you to understand exactly how your
-            data is managed.
+            data is managed. MasterMath runs entirely in your browser — all math solving is done
+            locally using JavaScript libraries, not AI or external APIs.
           </p>
         </CardContent>
       </Card>
@@ -58,6 +59,29 @@ export default function PrivacyPolicy() {
               <li>Selected topic categories (e.g., Derivatives, Integrals, Algebra)</li>
               <li>Your dark mode preference</li>
             </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">
+              Information Stored in localStorage
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              MasterMath also stores the following in your browser's localStorage:
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
+              <li>Your dark mode preference (light or dark theme)</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">
+              Offline Caching
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              MasterMath uses a service worker to cache application files (HTML, CSS, JavaScript, images)
+              in your browser so the app works offline. This cached data contains only the app itself —
+              no personal information is included in the cache.
+            </p>
           </div>
 
           <div>
@@ -176,15 +200,23 @@ export default function PrivacyPolicy() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-3">
-            MasterMath uses the following third-party libraries to provide its functionality:
+            MasterMath uses the following third-party libraries and services:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
             <li><strong>Math.js:</strong> For mathematical computations (runs locally in your browser)</li>
+            <li><strong>Algebrite:</strong> For symbolic algebra and calculus (runs locally in your browser)</li>
+            <li><strong>mathsteps:</strong> For step-by-step algebraic solutions (runs locally in your browser)</li>
             <li><strong>Recharts:</strong> For graph visualization (runs locally in your browser)</li>
+            <li><strong>Framer Motion:</strong> For UI animations (runs locally in your browser)</li>
             <li><strong>jsPDF:</strong> For PDF export functionality (runs locally in your browser)</li>
+            <li><strong>Web3Forms:</strong> Used on the Feedback page to submit your feedback messages.
+              When you submit feedback, your message and optional contact information are sent to
+              Web3Forms, a third-party form processing service. No feedback is sent unless you
+              explicitly submit the feedback form.</li>
           </ul>
           <p className="text-gray-700 dark:text-gray-300 mt-3">
-            None of these libraries collect, transmit, or store your personal data.
+            All math libraries run entirely in your browser and do not collect, transmit, or store
+            your personal data. Web3Forms only receives data when you voluntarily submit the feedback form.
           </p>
         </CardContent>
       </Card>

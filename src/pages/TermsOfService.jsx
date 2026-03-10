@@ -13,7 +13,7 @@ export default function TermsOfService() {
           Terms of Service
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          Last Updated: March 10, 2026
         </p>
       </div>
 
@@ -45,11 +45,11 @@ export default function TermsOfService() {
         <CardContent className="p-6 space-y-4">
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">
-              What MathMaster Provides
+              What MasterMath Provides
             </h3>
             <p className="text-gray-700 dark:text-gray-300 mb-2">
               MasterMath is an educational tool designed to help students learn and understand
-              precalculus and calculus concepts. The service provides:
+              mathematics concepts including algebra, arithmetic, trigonometry, and calculus. The service provides:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
               <li>Step-by-step solutions to mathematical problems</li>
@@ -222,7 +222,7 @@ export default function TermsOfService() {
             </h3>
             <p className="text-gray-700 dark:text-gray-300 mb-2">
               sparkinCreations explicitly disclaims responsibility for any inaccurate, incomplete, 
-              or misleading information provided by MathMaster, including but not limited to:
+              or misleading information provided by MasterMath, including but not limited to:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
               <li>Mathematical calculations and step-by-step solutions</li>
@@ -232,7 +232,7 @@ export default function TermsOfService() {
               <li>Tips, suggestions, and learning recommendations</li>
             </ul>
             <p className="text-gray-700 dark:text-gray-300 mt-3">
-              Users should always verify solutions and understand the methodology. MathMaster is
+              Users should always verify solutions and understand the methodology. MasterMath is
               an educational aid, not a substitute for learning or professional mathematical advice.
             </p>
           </div>
@@ -255,17 +255,17 @@ export default function TermsOfService() {
             or other intangible losses resulting from:
           </p>
           <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-            <li>Your use or inability to use MathMaster</li>
+            <li>Your use or inability to use MasterMath</li>
             <li>Any inaccuracies in solutions, step-by-step processes, or explanations provided</li>
             <li>Incorrect final answers or mathematical results</li>
             <li>Inaccurate graphs, visualizations, or mathematical representations</li>
             <li>Academic consequences resulting from use of the service</li>
-            <li>Reliance on MathMaster's output without independent verification</li>
+            <li>Reliance on MasterMath's output without independent verification</li>
             <li>Any data loss or corruption</li>
             <li>Any other matter relating to the service</li>
           </ul>
           <p className="text-gray-700 dark:text-gray-300 mt-3">
-            <strong>By using MathMaster, you acknowledge that you understand the service may contain 
+            <strong>By using MasterMath, you acknowledge that you understand the service may contain 
             errors and agree to independently verify all mathematical information before relying on it 
             for academic, professional, or personal purposes.</strong>
           </p>
@@ -286,7 +286,7 @@ export default function TermsOfService() {
               Our Rights
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
-              MathMaster, including its design, code, features, and content, is owned by
+              MasterMath, including its design, code, features, and content, is owned by
               sparkinCreations and is protected by copyright, trademark, and other intellectual
               property laws.
             </p>
@@ -297,7 +297,7 @@ export default function TermsOfService() {
               Your Content
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
-              You retain all rights to the mathematical problems you input into MathMaster. By using
+              You retain all rights to the mathematical problems you input into MasterMath. By using
               the service, you grant us permission to process your inputs solely for the purpose of
               providing solutions and maintaining the service functionality on your local device.
             </p>
@@ -319,7 +319,7 @@ export default function TermsOfService() {
               Service Changes
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
-              We reserve the right to modify, suspend, or discontinue MathMaster (or any part thereof)
+              We reserve the right to modify, suspend, or discontinue MasterMath (or any part thereof)
               at any time without notice. We shall not be liable to you or any third party for any
               modification, suspension, or discontinuance of the service.
             </p>
@@ -343,7 +343,7 @@ export default function TermsOfService() {
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
               We may update these Terms of Service from time to time. When we do, we will revise
-              the "Last Updated" date at the top of this page. Your continued use of MathMaster
+              the "Last Updated" date at the top of this page. Your continued use of MasterMath
               after any changes constitutes acceptance of the new terms.
             </p>
           </div>
@@ -360,7 +360,7 @@ export default function TermsOfService() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300">
-            You may stop using MathMaster at any time. Since all data is stored locally on your device,
+            You may stop using MasterMath at any time. Since all data is stored locally on your device,
             you can simply clear your browser data or stop accessing the application. We reserve the
             right to refuse service to anyone for any reason at any time, though as a client-side
             application, enforcement is limited.
@@ -380,7 +380,7 @@ export default function TermsOfService() {
           <p className="text-gray-700 dark:text-gray-300">
             These Terms shall be governed by and construed in accordance with applicable laws,
             without regard to conflict of law provisions. Any disputes arising from these terms
-            or your use of MathMaster shall be resolved in accordance with the laws of the
+            or your use of MasterMath shall be resolved in accordance with the laws of the
             jurisdiction where sparkinCreations operates.
           </p>
         </CardContent>

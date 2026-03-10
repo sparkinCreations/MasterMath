@@ -18,7 +18,7 @@ export default function FAQ() {
     },
     {
       question: "Does MasterMath work offline?",
-      answer: "Yes! All math calculations happen in your browser using JavaScript libraries. Once the page loads, you can solve problems without an internet connection. Your data is stored locally, so it's always accessible."
+      answer: "Yes! MasterMath includes a service worker that caches the entire app for offline use. After your first visit, you can solve problems without an internet connection. All math calculations happen locally in your browser using JavaScript libraries, and your data is stored in IndexedDB, so everything is always accessible — even without Wi-Fi."
     },
     {
       question: "Is my data private and secure?",
@@ -42,7 +42,23 @@ export default function FAQ() {
     },
     {
       question: "How do I input mathematical expressions?",
-      answer: "Use standard notation: * for multiplication (2*x), ^ for exponents (x^2), / for division. You can also use function names like sin, cos, tan, sqrt, ln, log. Spaces are allowed for readability."
+      answer: "Use standard notation: * for multiplication (2*x), ^ for exponents (x^2), / for division. You can also use function names like sin, cos, tan, sqrt, ln, log. Spaces are allowed for readability. You can also type in natural language like \"find the derivative of x^2 + 3x\" and MasterMath will extract the math expression automatically."
+    },
+    {
+      question: "Can I recall previous problems I've entered?",
+      answer: "Yes! Use the up arrow (↑) and down arrow (↓) keys in the problem input area to navigate through your recent inputs from the current session. This makes it easy to re-solve or modify problems you've already tried."
+    },
+    {
+      question: "Can I zoom and pan on graphs?",
+      answer: "Yes! The graph viewer includes zoom in/out buttons and left/right pan controls. There's also a reset button to return to the default view. This helps you examine specific parts of a function in detail."
+    },
+    {
+      question: "Why do I see two curves on my graph?",
+      answer: "For derivatives and integrals, MasterMath shows both the original function (blue/purple curve) and the result (green dashed curve) overlaid on the same graph. This helps you visualize the relationship between a function and its derivative or integral."
+    },
+    {
+      question: "Does MasterMath handle degree inputs for trigonometry?",
+      answer: "Yes! MasterMath auto-detects common degree values (like 30, 45, 60, 90) when using trigonometric functions. For example, sin(45) is automatically interpreted as sin(45°) and shows results in both degrees and radians."
     },
     {
       question: "Can I use MasterMath for homework or exams?",

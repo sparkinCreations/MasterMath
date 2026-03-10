@@ -1,6 +1,6 @@
 # MasterMath — How the App Works
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **By:** sparkinCreations™
 **Last Updated:** March 9, 2026
 
@@ -330,6 +330,59 @@ After solving a problem, you can export that single solution:
 | **Markdown** | Problems grouped by topic |
 
 All exports trigger a **browser download** — the file is generated in JavaScript and downloaded directly. No server involved.
+
+---
+
+## How Offline Mode Works
+
+MasterMath includes a **custom service worker** (`public/sw.js`) that makes the entire app work offline.
+
+### The Strategy: Cache-First
+
+```
+1. On first visit:
+   - Service worker installs and caches the app shell
+     (index.html, manifest.json, favicons)
+   - As you browse, JS/CSS/image assets are cached on fetch
+
+2. On subsequent visits:
+   - Cached assets are served instantly (no network wait)
+   - Non-hashed assets are revalidated in the background (stale-while-revalidate)
+   - Hashed assets (Vite builds like index-BhaDqFn9.js) are permanent — never revalidated
+
+3. When offline:
+   - Everything serves from cache
+   - Navigation requests serve index.html (so client-side routing works)
+   - Math solving works because all libraries are cached locally
+
+4. When a new version deploys:
+   - New service worker installs in the background
+   - Old caches from previous versions are cleaned up
+   - An update banner prompts the user to refresh
+```
+
+### Key Files
+
+| File | Role |
+|------|------|
+| `public/sw.js` | The service worker — caching, fetching, version management |
+| `src/hooks/useServiceWorker.js` | Registers SW, checks for updates every 30 min, shows update banner |
+| `src/App.jsx` | Contains the UpdateBanner component |
+
+---
+
+## How Input History Works
+
+The Solver page tracks your recent inputs in memory (not persisted to storage):
+
+```
+1. When you solve a problem, the input is added to the history array (max 20)
+2. Press ↑ (up arrow) in the input area to recall the previous problem
+3. Press ↓ (down arrow) to go forward through history
+4. History resets when you refresh the page
+```
+
+This is managed by `inputHistory` and `historyIndex` state in `Solver.jsx`, passed to `ProblemInput.jsx` as props.
 
 ---
 

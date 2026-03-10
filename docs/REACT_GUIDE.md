@@ -1,6 +1,6 @@
 # Learning React Through MasterMath
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **By:** sparkinCreations™
 **Last Updated:** March 9, 2026
 

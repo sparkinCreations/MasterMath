@@ -174,7 +174,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="p-6">
               <p className="text-gray-700 dark:text-gray-300">
-                Export solutions as PDF, Markdown, or JSON for offline study and assignment submissions.
+                Export solutions as PDF, CSV, Markdown, or JSON for offline study and assignment submissions.
               </p>
             </CardContent>
           </Card>
@@ -287,7 +287,7 @@ export default function Home() {
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0 mt-1" />
               <div>
                 <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Works Offline</h4>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">All calculations happen in your browser, no internet needed</p>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Service worker caches the entire app — solve problems anywhere, even without Wi-Fi</p>
               </div>
             </div>
 

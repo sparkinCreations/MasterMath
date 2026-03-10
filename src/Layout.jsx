@@ -170,7 +170,7 @@ export default function Layout({ children }) {
 
         <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-purple-100 dark:border-gray-700 px-6 py-4" role="contentinfo">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-400 text-center">
-            <span>MasterMath by sparkinCreations™ v1.1.0</span>
+            <span>MasterMath by sparkinCreations™ v1.2.0</span>
             <span className="hidden sm:inline">|</span>
             <span className="flex items-center gap-1">
               <span>© 2026</span>

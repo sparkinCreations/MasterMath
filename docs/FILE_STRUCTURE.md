@@ -1,6 +1,6 @@
 # MasterMath — File Structure Documentation
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **By:** sparkinCreations™
 **Last Updated:** March 9, 2026
 
@@ -190,7 +190,8 @@ Custom React hooks for reusable logic.
 
 | File               | Purpose                                  |
 |--------------------|------------------------------------------|
-| `usePageTitle.js`  | Sets the document title for each page    |
+| `usePageTitle.js`      | Sets the document title for each page          |
+| `useServiceWorker.js`  | Registers service worker and manages app updates |
 
 ---
 
@@ -218,6 +219,13 @@ General-purpose utility functions.
 
 Static files served directly by the web server (images, icons, manifest, etc.).
 
+| File                    | Purpose                                    |
+|-------------------------|--------------------------------------------|
+| `sw.js`                 | Custom service worker for offline caching  |
+| `manifest.json`        | PWA manifest for installability             |
+| `favicon.png`          | Application favicon (PNG)                   |
+| `favicon.svg`          | Application favicon (SVG)                   |
+
 ---
 
 ## Documentation (`docs/`)
@@ -226,8 +234,10 @@ Project documentation and visual assets.
 
 | File                    | Purpose                          |
 |-------------------------|----------------------------------|
-| `screenshot.png`        | Application screenshot           |
-| `FILE_STRUCTURE.md`     | This file — file organization docs |
+| `screenshot.png`        | Application screenshot              |
+| `FILE_STRUCTURE.md`     | This file — file organization docs  |
+| `HOW_THE_APP_WORKS.md`  | Architecture and data flow guide    |
+| `REACT_GUIDE.md`        | React concepts explained for the app |
 
 ---
 

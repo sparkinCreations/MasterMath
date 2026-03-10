@@ -27,10 +27,11 @@ export default function UserManual() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            MasterMath is your personal math tutor designed to help you understand and solve precalculus
-            and calculus problems step-by-step. Whether you're struggling with derivatives, integrals,
-            limits, or basic algebra, MasterMath guides you through each problem with clear explanations,
-            helpful tips, and warnings about common mistakes.
+            MasterMath is your personal math tutor designed to help you understand and solve math
+            problems step-by-step. Whether you're working on derivatives, integrals, limits, algebra,
+            trigonometry, or basic arithmetic, MasterMath guides you through each problem with clear
+            explanations, helpful tips, and warnings about common mistakes. The app works fully offline
+            after your first visit — a service worker caches everything so you can study anywhere.
           </p>
         </CardContent>
       </Card>
@@ -66,10 +67,12 @@ export default function UserManual() {
               Type your math problem in the text area. Here are some formatting tips:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-              <li>Use <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">*</code> for multiplication: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">2*x</code> instead of 2x</li>
-              <li>Use <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">^</code> for exponents: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">x^2</code> for x²</li>
+              <li>Use <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">*</code> for multiplication: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">2*x</code> instead of 2x (though MasterMath handles both)</li>
+              <li>Use <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">^</code> for exponents: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">x^2</code> for x² (unicode superscripts like x² also work)</li>
               <li>Use parentheses for clarity: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">(x + 2)*(x - 3)</code></li>
               <li>For limits, use format: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">lim x-&gt;0 (sin(x)/x)</code></li>
+              <li>You can type in natural language: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">find the derivative of x^2 + 3x</code></li>
+              <li>Use <strong>↑/↓ arrow keys</strong> in the input area to recall previous problems from your current session</li>
             </ul>
           </div>
 
@@ -175,8 +178,24 @@ export default function UserManual() {
 
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Graph Visualization</h3>
-            <p className="text-gray-700 dark:text-gray-300">
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
               When applicable, MasterMath displays an interactive graph to help you visualize the function or solution.
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
+              <li><strong>Zoom:</strong> Use the + and - buttons to zoom in and out</li>
+              <li><strong>Pan:</strong> Use the left/right arrow buttons to slide the view</li>
+              <li><strong>Reset:</strong> Click the reset button to return to the default view</li>
+              <li><strong>Dual curves:</strong> For derivatives and integrals, the graph shows both the original function and the result overlaid together</li>
+              <li><strong>Hover:</strong> Move your mouse over the graph to see exact coordinate values</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Trigonometry Degree Detection</h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              MasterMath auto-detects common degree values (30, 45, 60, 90, etc.) when you use
+              trigonometric functions. For example, <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">sin(45)</code> is
+              automatically treated as sin(45°) and results are shown in both degrees and radians.
             </p>
           </div>
         </CardContent>
