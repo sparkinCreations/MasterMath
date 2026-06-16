@@ -1,11 +1,20 @@
-import Algebrite from 'algebrite';
 import { create, all } from 'mathjs';
-import { extractVariable } from '../mathParser';
+import { extractVariable } from '../mathParser.js';
 
 const math = create(all);
 
-export function solveIntegral(expression) {
+let algebritePromise = null;
+
+function loadAlgebrite() {
+  if (!algebritePromise) {
+    algebritePromise = import('algebrite').then((module) => module.default);
+  }
+  return algebritePromise;
+}
+
+export async function solveIntegral(expression) {
   try {
+    const Algebrite = await loadAlgebrite();
     const variable = extractVariable(expression);
 
     // Use Algebrite to compute the integral

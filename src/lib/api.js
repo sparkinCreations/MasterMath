@@ -1,6 +1,7 @@
 // Import IndexedDB functions (local storage - no API needed!)
-import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './indexedDB';
-import { validateProblemHistory } from './validation';
+import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './indexedDB.js';
+import { validateProblemHistory } from './validation.js';
+import { extractFunctionFromProblem } from './mathParser.js';
 
 // Fetch all problem history from local IndexedDB
 export async function fetchProblemHistory() {
@@ -51,19 +52,54 @@ export async function clearProblemHistory() {
   }
 }
 
-// Import solvers
-import { solveAlgebra } from './solvers/algebraSolver';
-import { solveDerivative } from './solvers/derivativesSolver';
-import { solveIntegral } from './solvers/integralsSolver';
-import { solveLimit, solveTrigonometry, solveFunctions } from './solvers/otherSolvers';
-import { solveArithmetic } from './solvers/arithmeticSolver';
-import { extractFunctionFromProblem } from './mathParser';
+async function loadSolver(topic) {
+  switch (topic) {
+    case 'algebra':
+      return (await import('./solvers/algebraSolver.js')).solveAlgebra;
+    case 'derivatives':
+      return (await import('./solvers/derivativesSolver.js')).solveDerivative;
+    case 'integrals':
+      return (await import('./solvers/integralsSolver.js')).solveIntegral;
+    case 'limits':
+      return (await import('./solvers/otherSolvers.js')).solveLimit;
+    case 'trigonometry':
+      return (await import('./solvers/otherSolvers.js')).solveTrigonometry;
+    case 'functions':
+      return (await import('./solvers/otherSolvers.js')).solveFunctions;
+    case 'other':
+      return (await import('./solvers/arithmeticSolver.js')).solveArithmetic;
+    default:
+      return null;
+  }
+}
+
+async function resolveSolver(problem, topic) {
+  const solver = await loadSolver(topic);
+  if (solver) {
+    return solver;
+  }
+
+  const lower = problem.toLowerCase();
+  if (lower.includes('derivative') || lower.includes('differentiate')) {
+    return loadSolver('derivatives').then((fn) => fn);
+  }
+  if (lower.includes('integral') || lower.includes('integrate')) {
+    return loadSolver('integrals').then((fn) => fn);
+  }
+  if (lower.includes('limit') || lower.includes('lim')) {
+    return loadSolver('limits').then((fn) => fn);
+  }
+
+  const expression = extractFunctionFromProblem(problem);
+  if (lower.includes('graph') || expression.includes('f(')) {
+    return loadSolver('functions').then((fn) => fn);
+  }
+
+  return loadSolver('algebra').then((fn) => fn);
+}
 
 // Real math solver using local libraries
 export async function solveProblem(problem, topic) {
-  // Simulate slight delay for UX (so users see the loading state)
-  await new Promise(resolve => setTimeout(resolve, 500));
-
   try {
     // Validate inputs
     if (!problem || typeof problem !== 'string') {
@@ -74,62 +110,28 @@ export async function solveProblem(problem, topic) {
       throw new Error('Invalid topic selection');
     }
 
-    // Extract the mathematical expression from natural language
-    const expression = extractFunctionFromProblem(problem);
-
-    if (!expression || expression.trim().length === 0) {
-      throw new Error('Unable to extract mathematical expression from input');
+    const solver = await resolveSolver(problem, topic);
+    if (!solver) {
+      throw new Error('No solver available for this topic');
     }
 
     let result;
 
     // Route to appropriate solver based on topic
     switch (topic) {
-      case 'algebra':
-        result = solveAlgebra(expression);
-        break;
-
-      case 'derivatives':
-        result = solveDerivative(expression);
-        break;
-
-      case 'integrals':
-        result = solveIntegral(expression);
-        break;
-
       case 'limits':
         // Pass raw problem text so the limit solver can extract the approach value
-        // (the parser strips "lim x->0" notation which the solver needs)
-        result = solveLimit(problem);
+        result = await solver(problem);
         break;
 
-      case 'trigonometry':
-        result = solveTrigonometry(expression);
-        break;
-
-      case 'functions':
-        result = solveFunctions(expression);
-        break;
-
-      case 'other':
-        // Arithmetic / Basic Operations
-        result = solveArithmetic(expression);
-        break;
-
-      default:
-        // Try to auto-detect based on keywords
-        if (problem.toLowerCase().includes('derivative') || problem.toLowerCase().includes('differentiate')) {
-          result = solveDerivative(expression);
-        } else if (problem.toLowerCase().includes('integral') || problem.toLowerCase().includes('integrate')) {
-          result = solveIntegral(expression);
-        } else if (problem.toLowerCase().includes('limit') || problem.toLowerCase().includes('lim')) {
-          result = solveLimit(expression);
-        } else if (problem.toLowerCase().includes('graph') || expression.includes('f(')) {
-          result = solveFunctions(expression);
-        } else {
-          // Default to algebra for general expressions
-          result = solveAlgebra(expression);
+      default: {
+        const expression = extractFunctionFromProblem(problem);
+        if (!expression || expression.trim().length === 0) {
+          throw new Error('Unable to extract mathematical expression from input');
         }
+        result = await solver(expression);
+        break;
+      }
     }
 
     // Validate result structure

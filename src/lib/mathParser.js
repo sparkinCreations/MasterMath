@@ -48,8 +48,9 @@ export function parseMathExpression(input) {
     .replace(/(\d)([a-z])/gi, '$1*$2')
     // Handle implicit multiplication: number before paren (2(x+1) → 2*(x+1))
     .replace(/(\d)\(/g, '$1*(')
-    // Handle implicit multiplication: variable/paren before paren (x(x+1) → x*(x+1), )(  → )*(  )
-    .replace(/([a-z])\(/gi, '$1*(')
+    // Handle implicit multiplication for single-letter variables before parens.
+    // A word boundary avoids breaking function calls like sqrt(x) into sqrt*(x).
+    .replace(/\b([a-z])\(/gi, '$1*(')
     .replace(/\)\(/g, ')*(')
     // Handle implicit multiplication: paren/variable after paren ()x → )*x, )2 → )*2)
     .replace(/\)([a-z])/gi, ')*$1')

@@ -309,7 +309,7 @@ export default function Home() {
             Ready to Master Math?
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-6 md:mb-8">
-            Join thousands of students who are learning math with confidence
+            Start solving for free — no account, no tracking, all on your device
           </p>
           <Link to={createPageUrl("Solver")} className="inline-block w-full sm:w-auto">
             <Button

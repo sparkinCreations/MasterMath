@@ -1,5 +1,5 @@
 import { create, all } from 'mathjs';
-import { extractVariable, parseMathExpression } from '../mathParser';
+import { extractVariable, parseMathExpression } from '../mathParser.js';
 
 const math = create(all);
 
@@ -40,9 +40,14 @@ export function solveLimit(expression) {
       variable = extractVariable(func);
     }
 
+    const numericApproachValue = resolveApproachValue(approachValue);
+    if (!Number.isFinite(numericApproachValue)) {
+      throw new Error('Unable to interpret the limit approach value');
+    }
+
     // Evaluate limit numerically by approaching from both sides
-    const leftLimit = evaluateLimitNumerically(func, variable, approachValue, 'left');
-    const rightLimit = evaluateLimitNumerically(func, variable, approachValue, 'right');
+    const leftLimit = evaluateLimitNumerically(func, variable, numericApproachValue, 'left');
+    const rightLimit = evaluateLimitNumerically(func, variable, numericApproachValue, 'right');
 
     const limitExists = Math.abs(leftLimit - rightLimit) < 0.0001;
     const limitValue = limitExists ? leftLimit : 'Does not exist';
@@ -71,7 +76,7 @@ export function solveLimit(expression) {
         'Assuming the limit exists without verification',
         'Confusing the limit value with the function value'
       ],
-      graph: generateLimitGraph(func, variable, approachValue)
+      graph: generateLimitGraph(func, variable, numericApproachValue, approachValue)
     };
   } catch (error) {
     console.error('Limit solver error:', error);
@@ -85,11 +90,31 @@ export function solveLimit(expression) {
   }
 }
 
-function evaluateLimitNumerically(func, variable, approachValue, direction) {
+function resolveApproachValue(approachValue) {
+  if (typeof approachValue === 'number') {
+    return approachValue;
+  }
+
+  const normalized = String(approachValue).trim();
+  if (!normalized) {
+    return Number.NaN;
+  }
+
+  try {
+    const evaluated = math.evaluate(normalized);
+    const numeric = typeof evaluated === 'number' ? evaluated : Number(evaluated);
+    return Number.isFinite(numeric) ? numeric : Number.NaN;
+  } catch (error) {
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+}
+
+function evaluateLimitNumerically(func, variable, numericApproachValue, direction) {
   const epsilon = 0.0001;
   const offset = direction === 'left' ? -epsilon : epsilon;
   const scope = {};
-  scope[variable] = parseFloat(approachValue) + offset;
+  scope[variable] = numericApproachValue + offset;
 
   try {
     return math.evaluate(func, scope);
@@ -98,12 +123,12 @@ function evaluateLimitNumerically(func, variable, approachValue, direction) {
   }
 }
 
-function generateLimitGraph(func, variable, approachValue) {
+function generateLimitGraph(func, variable, numericApproachValue, displayApproachValue = numericApproachValue) {
   try {
     const points = [];
-    const center = parseFloat(approachValue) || 0;
+    const center = Number.isFinite(numericApproachValue) ? numericApproachValue : 0;
 
-    for (let i = -10; i <= 10; i += 0.2) {
+    for (let i = center - 10; i <= center + 10; i += 0.2) {
       const scope = {};
       scope[variable] = i;
 
@@ -121,7 +146,7 @@ function generateLimitGraph(func, variable, approachValue) {
       return {
         points,
         title: `Graph of f(${variable}) = ${func}`,
-        description: `Showing the behavior as ${variable} approaches ${approachValue}`
+        description: `Showing the behavior as ${variable} approaches ${displayApproachValue}`
       };
     }
   } catch (error) {

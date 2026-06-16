@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback — direct links like /solver must serve index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

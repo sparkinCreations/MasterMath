@@ -59,6 +59,9 @@ npm install
 # Start development server
 npm run dev
 
+# Run the automated test suite
+npm test
+
 # Build for production
 npm run build
 ```

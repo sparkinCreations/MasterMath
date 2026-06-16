@@ -1,6 +1,7 @@
 import mathsteps from 'mathsteps';
 import { create, all } from 'mathjs';
-import { isEquation, extractVariable } from '../mathParser';
+import { isEquation, extractVariable } from '../mathParser.js';
+import { stepsFromMathstepsResult } from '../mathstepsUtils.js';
 
 const math = create(all);
 
@@ -15,23 +16,11 @@ export function solveAlgebra(expression) {
       let solutions = [];
       try {
         const result = mathsteps.solveEquation(expression);
+        const parsed = stepsFromMathstepsResult(result);
 
-        if (result && result.steps && result.steps.length > 0) {
-          steps = result.steps.map((step) => {
-            if (step.changeType) {
-              // Format the change type nicely
-              const changeType = step.changeType.replace(/_/g, ' ');
-              const equation = step.newEquation || step.newNode?.toString() || '';
-              return `${changeType}: ${equation}`;
-            }
-            return step.newEquation?.toString() || step.newNode?.toString() || '';
-          }).filter(Boolean);
-
-          // Extract final answer
-          const lastStep = result.steps[result.steps.length - 1];
-          answer = lastStep.newEquation?.toString() || result.solution?.toString() || 'x = ?';
-
-          // Extract numerical solutions for graphing
+        if (parsed && parsed.steps.length > 0) {
+          steps = parsed.steps;
+          answer = parsed.answer || 'x = ?';
           solutions = extractSolutionsFromAnswer(answer);
         } else {
           // Fallback: try to solve with math.js
@@ -56,19 +45,11 @@ export function solveAlgebra(expression) {
       // Simplify expression
       try {
         const result = mathsteps.simplifyExpression(expression);
+        const parsed = stepsFromMathstepsResult(result);
 
-        if (result && result.steps && result.steps.length > 0) {
-          steps = result.steps.map((step) => {
-            if (step.changeType) {
-              const changeType = step.changeType.replace(/_/g, ' ');
-              const node = step.newNode?.toString() || '';
-              return `${changeType}: ${node}`;
-            }
-            return step.newNode?.toString() || '';
-          }).filter(Boolean);
-
-          const lastStep = result.steps[result.steps.length - 1];
-          answer = lastStep.newNode?.toString() || expression;
+        if (parsed && parsed.steps.length > 0) {
+          steps = parsed.steps;
+          answer = parsed.answer || expression;
         } else {
           // Fallback: use math.js to simplify
           const simplified = simplifyWithMathJS(expression);

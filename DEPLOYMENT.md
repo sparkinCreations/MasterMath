@@ -1,25 +1,27 @@
 # 🚀 Deployment Guide
 
-This guide covers different ways to deploy MathMaster for public access.
+This guide covers different ways to deploy MasterMath for public access.
 
-## 🌐 Live Demo
+## 🌐 Live Site
 
-**Official Demo:** [mathmaster.sparkincreations.com](https://mathmaster.sparkincreations.com) *(update with your actual URL)*
+**Production:** [mastermath.app](https://mastermath.app)
 
 ## ⚡ Quick Deploy Options
 
 ### 1. **Netlify** (Recommended - Free)
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/sparkinCreations/MathMaster)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/sparkinCreations/MasterMath)
 
 **Manual Netlify Deployment:**
 1. Fork the repository
 2. Connect your GitHub account to Netlify
-3. Import the MathMaster repository
-4. Build settings:
+3. Import the MasterMath repository
+4. Build settings (also defined in `netlify.toml`):
    - **Build command:** `npm run build`
    - **Publish directory:** `dist`
 5. Deploy!
+
+**SPA routing:** `public/_redirects` and `netlify.toml` both include `/* → /index.html` so direct links like `/solver` work on refresh and shared URLs.
 
 ### 2. **Vercel** (Free)
 
