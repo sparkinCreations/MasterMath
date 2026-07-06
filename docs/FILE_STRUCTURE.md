@@ -238,6 +238,7 @@ Project documentation and visual assets.
 | `FILE_STRUCTURE.md`     | This file — file organization docs  |
 | `HOW_THE_APP_WORKS.md`  | Architecture and data flow guide    |
 | `REACT_GUIDE.md`        | React concepts explained for the app |
+| `future-work/ROADMAP.md` | Prioritized future improvements (from review findings + code assessment) |
 
 ---
 
