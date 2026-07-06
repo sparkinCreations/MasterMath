@@ -70,6 +70,50 @@ test('solveTrigonometry recognizes special-angle values', () => {
   assert.ok(result.tips.length > 0);
 });
 
+test('solveTrigonometry returns Undefined at the tan(pi/2) asymptote', () => {
+  const result = solveTrigonometry('tan(pi/2)');
+  assert.equal(result.answer, 'Undefined');
+  assert.ok(result.steps.some((step) => /vertical asymptote/i.test(step)));
+  assert.ok(result.steps.some((step) => /cos\(pi\/2\) = 0/.test(step)));
+  assert.ok(result.common_mistakes.some((mistake) => /cos\(x\) = 0/.test(mistake)));
+  // The reference tan graph should still render (asymptotes are capped).
+  assert.ok(result.graph?.points?.length > 0);
+});
+
+test('solveTrigonometry returns Undefined for other odd multiples of pi/2', () => {
+  assert.equal(solveTrigonometry('tan(3*pi/2)').answer, 'Undefined');
+  assert.equal(solveTrigonometry('sec(pi/2)').answer, 'Undefined');
+});
+
+test('solveTrigonometry returns Undefined for tan(90) via degree detection', () => {
+  const result = solveTrigonometry('tan(90)');
+  assert.equal(result.answer, 'Undefined');
+  assert.ok(result.steps.some((step) => /degrees/i.test(step)));
+  assert.ok(result.steps.some((step) => /vertical asymptote/i.test(step)));
+});
+
+test('solveTrigonometry still evaluates tan(pi/4) normally', () => {
+  const result = solveTrigonometry('tan(pi/4)');
+  assert.equal(result.answer, '1');
+});
+
+test('solveLimit returns Undefined when the expression itself sits on an asymptote', () => {
+  // e.g. the user typed tan(pi/2) with the Limits topic selected.
+  const result = solveLimit('tan(pi/2)');
+  assert.equal(result.answer, 'Undefined');
+  assert.ok(result.steps.some((step) => /vertical asymptote/i.test(step)));
+});
+
+test('solveLimit reports divergence at a vertical asymptote instead of a huge float', () => {
+  const twoSided = solveLimit('lim x->pi/2 tan(x)');
+  assert.match(twoSided.answer, /Does not exist$/);
+  assert.ok(twoSided.steps.some((step) => /diverges to ∞/.test(step)));
+  assert.ok(twoSided.steps.some((step) => /diverges to -∞/.test(step)));
+
+  const infinite = solveLimit('lim x->0 1/x^2');
+  assert.match(infinite.answer, /=\s*∞$/);
+});
+
 test('solveLimit evaluates limits at infinity', () => {
   const result = solveLimit('lim x->infinity 1/x');
   assert.match(result.answer, /=\s*0$/);

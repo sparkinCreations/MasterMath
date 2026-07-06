@@ -41,6 +41,33 @@ export function solveLimit(expression) {
     }
 
     const displayTarget = formatApproach(approachValue, target);
+
+    // A constant sub-expression can sit exactly on a trig asymptote (e.g. the
+    // user typed tan(pi/2) under the Limits topic). The expression is
+    // undefined no matter what the variable does, so say that instead of
+    // reporting the floating-point blow-up as a limit. Passing 0 as the
+    // result restricts the check to calls with a concrete constant argument.
+    const hit = detectTrigAsymptote(func, 0, false);
+    if (hit) {
+      return {
+        steps: [
+          `Evaluate lim (${variable}→${displayTarget}) ${beautify(func)}`,
+          `${hit.func}(${hit.argDisplay}) is undefined — ${hit.identity}, and ${hit.denom}(${hit.argDisplay}) = 0, so the graph has a vertical asymptote there.`,
+          `The expression inside the limit is undefined for every ${variable}, so the limit is undefined as well.`,
+        ],
+        answer: 'Undefined',
+        tips: [
+          `${hit.func}(x) has a vertical asymptote wherever ${hit.denom}(x) = 0 — the value grows without bound instead of settling on a number.`,
+          'A limit can only exist where the expression takes real values near the point.',
+        ],
+        common_mistakes: [
+          `Assuming ${hit.func} is defined everywhere — it blows up wherever ${hit.denom}(x) = 0.`,
+          'Reading the huge floating-point number near an asymptote as the actual answer.',
+        ],
+        graph: null,
+      };
+    }
+
     const result = Number.isFinite(target)
       ? estimateFiniteLimit(func, variable, target)
       : estimateInfiniteLimit(func, variable, target);
@@ -116,33 +143,66 @@ function evalAt(func, variable, x) {
 }
 
 function estimateFiniteLimit(func, variable, target) {
-  const eps = 1e-6;
-  const left = evalAt(func, variable, target - eps);
-  const right = evalAt(func, variable, target + eps);
   const direct = evalAt(func, variable, target);
-
   const steps = [];
-  const bothFinite = Number.isFinite(left) && Number.isFinite(right);
-  const agree = bothFinite && Math.abs(left - right) < 1e-4;
 
-  if (Number.isFinite(direct)) {
+  // A huge magnitude means the point sits on a vertical asymptote and the
+  // float value is rounding noise, not a real function value.
+  if (Number.isFinite(direct) && Math.abs(direct) < EXPLODED_MAGNITUDE) {
     steps.push(`Substitute directly: at ${variable} = ${formatNumber(target)}, the function is defined and equals ${formatNumber(direct)}.`);
     return { steps, answer: formatNumber(direct) };
   }
 
-  // Direct substitution is undefined (e.g. 0/0) — approach from both sides.
-  steps.push(`Direct substitution at ${variable} = ${formatNumber(target)} is undefined (an indeterminate form), so approach from both sides.`);
-  steps.push(`From the left (${variable} → ${formatNumber(target)}⁻): ${Number.isFinite(left) ? formatNumber(left) : 'diverges'}`);
-  steps.push(`From the right (${variable} → ${formatNumber(target)}⁺): ${Number.isFinite(right) ? formatNumber(right) : 'diverges'}`);
+  if (Number.isNaN(direct)) {
+    steps.push(`Direct substitution at ${variable} = ${formatNumber(target)} is undefined (an indeterminate form), so approach from both sides.`);
+  } else {
+    steps.push(`Direct substitution at ${variable} = ${formatNumber(target)} blows up instead of settling on a value, so approach from both sides.`);
+  }
 
-  if (agree) {
-    const value = formatNumber((left + right) / 2);
+  const left = sampleSide(func, variable, target, -1);
+  const right = sampleSide(func, variable, target, 1);
+  steps.push(`From the left (${variable} → ${formatNumber(target)}⁻): ${describeSide(left)}`);
+  steps.push(`From the right (${variable} → ${formatNumber(target)}⁺): ${describeSide(right)}`);
+
+  if (left.diverges && right.diverges) {
+    if (left.sign === right.sign) {
+      const answer = left.sign > 0 ? '∞' : '-∞';
+      steps.push(`Both sides grow without bound in the same direction, so the limit diverges to ${answer}.`);
+      return { steps, answer };
+    }
+    steps.push('The two sides run off to opposite infinities (a vertical asymptote), so the limit does not exist.');
+    return { steps, answer: 'Does not exist' };
+  }
+
+  const bothConverge = left.value !== undefined && right.value !== undefined;
+  if (bothConverge && Math.abs(left.value - right.value) < 1e-4) {
+    const value = formatNumber((left.value + right.value) / 2);
     steps.push(`Both sides approach ${value}, so the limit exists.`);
     return { steps, answer: value };
   }
 
   steps.push('The one-sided limits disagree, so the limit does not exist.');
   return { steps, answer: 'Does not exist' };
+}
+
+// Probe one side of a limit at two distances from the point. A closer sample
+// that is an order of magnitude larger means the side is diverging toward an
+// asymptote rather than settling on a value.
+function sampleSide(func, variable, target, direction) {
+  const far = evalAt(func, variable, target + direction * 1e-6);
+  const near = evalAt(func, variable, target + direction * 1e-8);
+
+  if (Number.isNaN(near)) return { outOfDomain: true };
+  if (!Number.isFinite(near) || (Math.abs(near) > 1e5 && Math.abs(near) > 10 * Math.abs(far))) {
+    return { diverges: true, sign: near > 0 ? 1 : -1 };
+  }
+  return { value: near };
+}
+
+function describeSide(side) {
+  if (side.diverges) return side.sign > 0 ? 'diverges to ∞' : 'diverges to -∞';
+  if (side.outOfDomain) return 'not defined on this side';
+  return formatNumber(side.value);
 }
 
 function estimateInfiniteLimit(func, variable, target) {
@@ -202,6 +262,61 @@ function generateLimitGraph(func, variable, target, displayTarget) {
 // ---------------------------------------------------------------------------
 
 const COMMON_DEGREE_VALUES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360];
+
+// Trig functions with vertical asymptotes, keyed by the function whose zero
+// causes them: tan/sec blow up where cos = 0, cot/csc where sin = 0.
+const TRIG_ASYMPTOTES = {
+  tan: { denom: 'cos', identity: 'tan(x) = sin(x)/cos(x)' },
+  sec: { denom: 'cos', identity: 'sec(x) = 1/cos(x)' },
+  cot: { denom: 'sin', identity: 'cot(x) = cos(x)/sin(x)' },
+  csc: { denom: 'sin', identity: 'csc(x) = 1/sin(x)' },
+};
+
+const ASYMPTOTE_EPSILON = 1e-9;
+const EXPLODED_MAGNITUDE = 1e12;
+
+/**
+ * Detect when a trig expression lands on a vertical asymptote. mathjs never
+ * errors there: the floating-point argument misses the asymptote by a hair,
+ * so tan(pi/2) comes back as ~1.6e16 (or csc(0) as Infinity) instead of
+ * failing. Returns `{ func, denom, identity, argDisplay }` for the offending
+ * call, or null when the expression is genuinely defined.
+ */
+function detectTrigAsymptote(expression, result, treatAsDegrees) {
+  const calls = [...String(expression).matchAll(/\b(tan|sec|csc|cot)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)/gi)];
+  if (calls.length === 0) return null;
+
+  for (const [, name, rawArg] of calls) {
+    const func = name.toLowerCase();
+    const { denom, identity } = TRIG_ASYMPTOTES[func];
+
+    let arg;
+    try {
+      arg = Number(math.evaluate(rawArg.replace(/°/g, '')));
+    } catch {
+      continue;
+    }
+    if (!Number.isFinite(arg)) continue;
+
+    const radians = treatAsDegrees ? (arg * Math.PI) / 180 : arg;
+    const denomValue = denom === 'cos' ? Math.cos(radians) : Math.sin(radians);
+    if (Math.abs(denomValue) < ASYMPTOTE_EPSILON) {
+      const argDisplay = treatAsDegrees ? `${beautify(rawArg.replace(/°/g, ''))}°` : beautify(rawArg);
+      return { func, denom, identity, argDisplay };
+    }
+  }
+
+  // No single call sits exactly on an asymptote, but a blown-up magnitude
+  // still means the expression as a whole is effectively undefined.
+  const numeric = typeof result === 'number' ? result : Number(result);
+  if (Math.abs(numeric) > EXPLODED_MAGNITUDE) {
+    const func = calls[0][1].toLowerCase();
+    const { denom, identity } = TRIG_ASYMPTOTES[func];
+    return { func, denom, identity, argDisplay: null };
+  }
+
+  return null;
+}
 
 export function solveTrigonometry(expression) {
   try {
@@ -277,6 +392,36 @@ export function solveTrigonometry(expression) {
       if (lookupKey && commonAngles[lookupKey]) {
         steps.push(`This is a special angle: ${argValue}°. Common value: ${commonAngles[lookupKey]}`);
       }
+    }
+
+    const treatAsDegrees = (looksLikeDegrees || hasDegreeSymbol) && degreeResult !== null;
+    const asymptote = detectTrigAsymptote(expression, result, treatAsDegrees);
+    if (asymptote) {
+      const { func, denom, identity, argDisplay } = asymptote;
+      if (argDisplay !== null) {
+        steps.push(`${func}(${argDisplay}) is undefined — ${identity}, and ${denom}(${argDisplay}) = 0, so the graph has a vertical asymptote there.`);
+      } else {
+        steps.push(`The expression is undefined — ${identity}, and ${denom} hits 0 at this input, so ${func} has a vertical asymptote there.`);
+      }
+      if (treatAsDegrees && Number.isFinite(radianResult) && Math.abs(radianResult) < EXPLODED_MAGNITUDE) {
+        steps.push(`Note: if you meant radians, the result would be ${formatNumber(radianResult)}.`);
+      }
+
+      return {
+        steps,
+        answer: 'Undefined',
+        tips: [
+          `${func}(x) has a vertical asymptote wherever ${denom}(x) = 0 — the value grows without bound instead of settling on a number.`,
+          'A calculator that shows a huge number here is hitting floating-point rounding, not a real value.',
+          'math.js uses radians by default (π radians = 180°).',
+        ],
+        common_mistakes: [
+          `Assuming ${func} is defined everywhere — it blows up wherever ${denom}(x) = 0.`,
+          'Reading the huge floating-point number near an asymptote as the actual answer.',
+          'Mixing up radians and degrees (use pi for radians).',
+        ],
+        graph: generateTrigGraph(expression),
+      };
     }
 
     const formattedResult = formatTrigResult(result);

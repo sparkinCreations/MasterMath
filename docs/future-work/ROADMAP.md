@@ -44,7 +44,7 @@ and the code disagreed, the code's behavior is what's documented.
 
 | # | Item | Priority | Effort | Type |
 |---|------|----------|--------|------|
-| 1 | Undefined trig values (`tan(π/2)`) | **P0** | Small | Bug |
+| 1 | ~~Undefined trig values (`tan(π/2)`)~~ ✅ Fixed July 2026 | **P0** | Small | Bug |
 | 2 | Quadratic insights (axis of symmetry, opens up/down) | P1 | Small | Feature |
 | 3 | KaTeX math rendering | P1 | Medium | Feature |
 | 4 | Graph annotations (limit point, extrema, asymptotes) | P2 | Medium | Feature |
@@ -59,6 +59,16 @@ sittings, Large = real engine work that needs its own design pass.
 ---
 
 ## P0 — Undefined Trig Values
+
+> **✅ Fixed (July 2026).** `solveTrigonometry` now detects vertical
+> asymptotes (argument within epsilon of a zero of the relevant denominator,
+> or a result magnitude past 1e12) and returns "Undefined" with an
+> explanatory step. Covers tan/sec at odd multiples of π/2 and cot/csc at
+> multiples of π, in both radian and degree inputs. The Limits topic is
+> guarded too: a constant expression on an asymptote (`tan(pi/2)`) returns
+> "Undefined", and a limit approaching one (`lim x->pi/2 tan(x)`) reports
+> one-sided divergence instead of the float blow-up. Tests added in
+> `tests/solvers.test.js`.
 
 **The bug (verified):** `tan(pi/2)` returns `16331239353195370` instead of
 "Undefined."
