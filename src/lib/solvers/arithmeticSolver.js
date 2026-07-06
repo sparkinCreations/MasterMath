@@ -1,133 +1,96 @@
-import { create, all } from 'mathjs';
-
-const math = create(all);
+import { math, formatNumber } from './solverUtils.js';
 
 export function solveArithmetic(expression) {
   try {
-    // Clean the expression
-    let cleaned = expression.trim();
+    const cleaned = expression.trim();
 
-    // Detect operation type
-    const hasAddition = cleaned.includes('+');
-    const hasSubtraction = cleaned.includes('-') && !cleaned.startsWith('-');
-    const hasMultiplication = cleaned.includes('*') || cleaned.includes('×');
-    const hasDivision = cleaned.includes('/') || cleaned.includes('÷');
-    const hasExponent = cleaned.includes('^') || cleaned.includes('**');
-    const hasParentheses = cleaned.includes('(');
-
-    const steps = [];
-    steps.push(`Problem: ${cleaned}`);
-
-    // Evaluate the expression
     const result = math.evaluate(cleaned);
+    const steps = [`Evaluate: ${cleaned}`];
 
-    // Generate step-by-step based on complexity
-    if (hasParentheses) {
-      steps.push('Step 1: Evaluate expressions inside parentheses first (following PEMDAS/BODMAS)');
-
-      // Try to show intermediate steps
-      const innerMatch = cleaned.match(/\(([^()]+)\)/);
-      if (innerMatch) {
-        const innerExpr = innerMatch[1];
-        const innerResult = math.evaluate(innerExpr);
-        steps.push(`   Evaluate (${innerExpr}) = ${innerResult}`);
-        const simplified = cleaned.replace(innerMatch[0], innerResult.toString());
-        if (simplified !== result.toString()) {
-          steps.push(`   Expression becomes: ${simplified}`);
-        }
+    // Show the real reduction by collapsing the innermost parentheses one at a
+    // time — this is genuine intermediate work, not a canned reminder.
+    let working = cleaned;
+    let guard = 0;
+    while (/\([^()]+\)/.test(working) && guard++ < 25) {
+      const match = working.match(/\([^()]+\)/);
+      let value;
+      try {
+        value = math.evaluate(match[0]);
+      } catch {
+        break;
       }
+      const shown = formatNumber(value);
+      const substitution = Number(value) < 0 ? `(${shown})` : shown;
+      const next = working.slice(0, match.index) + substitution + working.slice(match.index + match[0].length);
+      steps.push(`Work inside the parentheses: ${match[0]} = ${shown}  →  ${next}`);
+      working = next;
     }
 
-    if (hasExponent && !hasParentheses) {
-      steps.push('Step 1: Calculate exponents first (following PEMDAS/BODMAS)');
-      const expMatch = cleaned.match(/(\d+\.?\d*)\s*[\^]\s*(\d+\.?\d*)/);
-      if (expMatch) {
-        const base = parseFloat(expMatch[1]);
-        const exp = parseFloat(expMatch[2]);
-        const expResult = Math.pow(base, exp);
-        steps.push(`   ${base}^${exp} = ${expResult}`);
-      }
-    }
+    // For the remaining flat expression, state the order that applies. The UI
+    // numbers each step, so we describe the action rather than prefixing "Step N".
+    describeOrder(working, steps);
 
-    if ((hasMultiplication || hasDivision) && (hasAddition || hasSubtraction)) {
-      const stepNum = steps.length;
-      steps.push(`Step ${stepNum}: Perform multiplication and division from left to right`);
-    } else if (hasMultiplication || hasDivision) {
-      const stepNum = steps.length;
-      steps.push(`Step ${stepNum}: Perform the ${hasMultiplication ? 'multiplication' : 'division'}`);
-    }
-
-    if ((hasAddition || hasSubtraction) && (hasMultiplication || hasDivision || hasExponent)) {
-      const stepNum = steps.length;
-      steps.push(`Step ${stepNum}: Finally, perform addition and subtraction from left to right`);
-    } else if (hasAddition && hasSubtraction) {
-      const stepNum = steps.length;
-      steps.push(`Step ${stepNum}: Perform addition and subtraction from left to right`);
-    } else if (hasAddition || hasSubtraction) {
-      const stepNum = steps.length;
-      steps.push(`Step ${stepNum}: Perform the ${hasAddition ? 'addition' : 'subtraction'}`);
-    }
-
-    steps.push(`Final Answer: ${result}`);
-
-    // Format the result
-    let formattedResult = result;
-    if (typeof result === 'number') {
-      // Show as fraction if it's a simple division result
-      if (hasDivision && !hasAddition && !hasSubtraction && !hasMultiplication) {
-        const parts = cleaned.split(/[\/÷]/);
-        if (parts.length === 2) {
-          const num = parseFloat(parts[0].trim());
-          const den = parseFloat(parts[1].trim());
-          if (!isNaN(num) && !isNaN(den)) {
-            formattedResult = `${result} (or ${num}/${den} = ${result})`;
-          }
-        }
-      }
-
-      // Round to reasonable precision
-      if (result % 1 !== 0) {
-        formattedResult = result.toFixed(4);
-      }
-    }
+    steps.push(`Final answer: ${formatNumber(result)}`);
 
     return {
       steps,
-      answer: formattedResult.toString(),
+      answer: formatArithmeticResult(result, cleaned),
       tips: [
-        'Remember PEMDAS/BODMAS order: Parentheses/Brackets, Exponents/Orders, Multiplication & Division (left to right), Addition & Subtraction (left to right)',
-        'When multiplying/dividing multiple numbers, work from left to right',
-        'When adding/subtracting multiple numbers, work from left to right',
-        'Use parentheses to group operations you want done first'
+        'PEMDAS/BODMAS order: Parentheses, Exponents, Multiplication & Division (left to right), Addition & Subtraction (left to right).',
+        'Multiplication and division share a tier — resolve them left to right, not multiplication first.',
+        'Use parentheses to force a different order of operations.',
       ],
       common_mistakes: [
-        'Forgetting to follow the order of operations (doing addition before multiplication)',
-        'Not evaluating parentheses first',
-        'Adding/subtracting before multiplying/dividing',
-        'Making sign errors with negative numbers'
+        'Adding or subtracting before multiplying or dividing.',
+        'Evaluating left to right while ignoring precedence.',
+        'Sign errors when subtracting a negative number.',
       ],
-      graph: null
+      graph: null,
     };
   } catch (error) {
     console.error('Arithmetic solver error:', error);
     return {
       steps: [
-        'Parse the arithmetic expression: ' + expression,
-        'Apply PEMDAS/BODMAS rules',
-        'Calculate the result'
+        `Parse the arithmetic expression: ${expression}`,
+        'Apply PEMDAS/BODMAS order of operations.',
+        'Calculate the result.',
       ],
       answer: 'Unable to evaluate',
       tips: [
-        'Use * for multiplication (e.g., 5*3)',
-        'Use / for division (e.g., 10/2)',
-        'Use ^ for exponents (e.g., 2^3)',
-        'Use parentheses to group operations: (2+3)*4'
+        'Use * for multiplication (e.g., 5*3).',
+        'Use / for division (e.g., 10/2).',
+        'Use ^ for exponents (e.g., 2^3).',
+        'Use parentheses to group operations: (2+3)*4.',
       ],
-      common_mistakes: [
-        'Missing operators between numbers',
-        'Incorrect order of operations'
-      ],
-      graph: null
+      common_mistakes: ['Missing operators between numbers', 'Incorrect order of operations'],
+      graph: null,
     };
   }
+}
+
+// Describe which PEMDAS tiers remain in a parenthesis-free expression. The UI
+// numbers the steps, so these read as ordered actions without "Step N" prefixes.
+function describeOrder(expr, steps) {
+  const hasExponent = /\^|\*\*/.test(expr);
+  const hasMulDiv = /[*/×÷]/.test(expr);
+  // A binary +/- between two operands (ignores a leading unary sign).
+  const hasAddSub = /[\d)]\s*[-+]\s*[\d(]/.test(expr);
+
+  if (hasExponent) steps.push('Resolve the exponents.');
+  if (hasMulDiv) steps.push('Handle multiplication and division from left to right.');
+  if (hasAddSub) steps.push('Add and subtract from left to right.');
+}
+
+function formatArithmeticResult(result, cleaned) {
+  const formatted = formatNumber(result);
+
+  // For a single division, also show the fractional form for context.
+  if (typeof result === 'number' && /^[^/]+\/[^/]+$/.test(cleaned) && !/[-+*×÷]/.test(cleaned.replace(/^-/, ''))) {
+    const [num, den] = cleaned.split('/').map((p) => p.trim());
+    if (num && den && !Number.isNaN(Number(num)) && !Number.isNaN(Number(den))) {
+      return `${formatted} (${num}/${den})`;
+    }
+  }
+
+  return formatted;
 }

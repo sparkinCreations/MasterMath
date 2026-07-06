@@ -77,10 +77,10 @@ export default function Layout({ children }) {
         }
       `}</style>
       
-      <div className="min-h-screen flex flex-col w-full bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen flex flex-col w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="flex flex-1">
-          <Sidebar className="border-r border-purple-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" role="navigation" aria-label="Main navigation">
-            <SidebarHeader className="border-b border-purple-100 p-6">
+          <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" role="navigation" aria-label="Main navigation">
+            <SidebarHeader className="border-b border-indigo-100 p-6">
               <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                 <img
                   src="/favicon.png"
@@ -88,7 +88,7 @@ export default function Layout({ children }) {
                   className="w-12 h-12 rounded-2xl shadow-lg"
                 />
                 <div>
-                  <h2 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h2 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                     MasterMath
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Master math with confidence</p>
@@ -104,9 +104,9 @@ export default function Layout({ children }) {
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                           asChild
-                          className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 rounded-xl mb-2 ${
+                          className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 rounded-xl mb-2 ${
                             location.pathname === item.url
-                              ? 'bg-gradient-to-r from-blue-100 to-purple-100 dark:from-gray-600 dark:to-gray-700 text-purple-700 dark:text-purple-300 shadow-sm'
+                              ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-gray-600 dark:to-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm'
                               : ''
                           }`}
                         >
@@ -124,16 +124,16 @@ export default function Layout({ children }) {
           </Sidebar>
 
           <main id="main-content" className="flex-1 flex flex-col" role="main">
-            <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-purple-100 dark:border-gray-700 px-6 py-4 shadow-sm" role="banner">
+            <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-sm" role="banner">
               <div className="flex items-center justify-between">
-                <SidebarTrigger className="hover:bg-purple-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
+                <SidebarTrigger className="hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
                 <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">
                   <img
                     src="/favicon.png"
                     alt="MasterMath Logo"
                     className="w-8 h-8 rounded-lg shadow-md"
                   />
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                     MasterMath <span className="text-sm font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Master math with confidence</span>
                   </h1>
                 </Link>
@@ -143,13 +143,13 @@ export default function Layout({ children }) {
                     alt="MasterMath Logo"
                     className="w-6 h-6 rounded-lg shadow-md"
                   />
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                     MasterMath <span className="text-xs font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span>
                   </h1>
                 </Link>
                 <button
                   onClick={toggleDarkMode}
-                  className="p-2 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                  className="p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors duration-200"
                   aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
                   aria-pressed={isDarkMode}
                 >
@@ -168,7 +168,7 @@ export default function Layout({ children }) {
           </main>
         </div>
 
-        <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-purple-100 dark:border-gray-700 px-6 py-4" role="contentinfo">
+        <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-indigo-100 dark:border-gray-700 px-6 py-4" role="contentinfo">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-400 text-center">
             <span>MasterMath by sparkinCreations™ v1.2.0</span>
             <span className="hidden sm:inline">|</span>
@@ -178,7 +178,7 @@ export default function Layout({ children }) {
                 href="https://sparkincreations.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-purple-600"
+                className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-indigo-600"
               >
                 sparkinCreations
               </a>
@@ -186,21 +186,21 @@ export default function Layout({ children }) {
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("PrivacyPolicy")}
-              className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-purple-600"
+              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-indigo-600"
             >
               Privacy Policy
             </Link>
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("TermsOfService")}
-              className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-purple-600"
+              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-indigo-600"
             >
               Terms of Service
             </Link>
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("Feedback")}
-              className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-purple-600"
+              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-indigo-600"
             >
               Feedback
             </Link>

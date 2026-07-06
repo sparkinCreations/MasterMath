@@ -54,7 +54,7 @@ export default function FAQ() {
     },
     {
       question: "Why do I see two curves on my graph?",
-      answer: "For derivatives and integrals, MasterMath shows both the original function (blue/purple curve) and the result (green dashed curve) overlaid on the same graph. This helps you visualize the relationship between a function and its derivative or integral."
+      answer: "For derivatives and integrals, MasterMath shows both the original function (blue/indigo curve) and the result (green dashed curve) overlaid on the same graph. This helps you visualize the relationship between a function and its derivative or integral."
     },
     {
       question: "Does MasterMath handle degree inputs for trigonometry?",
@@ -106,8 +106,8 @@ export default function FAQ() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <HelpCircle className="w-10 h-10 text-purple-600" />
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <HelpCircle className="w-10 h-10 text-indigo-600" />
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Frequently Asked Questions
           </h1>
         </div>
@@ -120,11 +120,11 @@ export default function FAQ() {
         {faqs.map((faq, index) => (
           <Card
             key={index}
-            className="border-2 border-purple-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md"
+            className="border-2 border-indigo-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md"
           >
             <button
               onClick={() => toggleFAQ(index)}
-              className="w-full text-left p-6 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-inset"
+              className="w-full text-left p-6 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-inset"
               aria-expanded={openIndex === index}
             >
               <div className="flex justify-between items-start gap-4">
@@ -132,9 +132,9 @@ export default function FAQ() {
                   {faq.question}
                 </h3>
                 {openIndex === index ? (
-                  <ChevronUp className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
+                  <ChevronUp className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-1" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
+                  <ChevronDown className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-1" />
                 )}
               </div>
             </button>
@@ -149,7 +149,7 @@ export default function FAQ() {
         ))}
       </div>
 
-      <div className="mt-12 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border-2 border-purple-200 dark:border-gray-600">
+      <div className="mt-12 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border-2 border-indigo-200 dark:border-gray-600">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
           Still have questions?
         </h2>
@@ -159,13 +159,13 @@ export default function FAQ() {
         <div className="flex flex-col sm:flex-row gap-3">
           <a
             href="/usermanual"
-            className="inline-flex items-center justify-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
           >
             Read User Manual
           </a>
           <a
             href="/feedback"
-            className="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 font-semibold rounded-lg border-2 border-purple-600 dark:border-purple-400 hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 font-semibold rounded-lg border-2 border-indigo-600 dark:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-600 transition-colors"
           >
             Contact Support
           </a>

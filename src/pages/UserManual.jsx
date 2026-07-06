@@ -9,7 +9,7 @@ export default function UserManual() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
           User Manual
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -18,10 +18,10 @@ export default function UserManual() {
       </div>
 
       {/* Welcome Section */}
-      <Card className="mb-6 border-2 border-purple-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-purple-600" />
+            <BookOpen className="w-6 h-6 text-indigo-600" />
             Welcome to MasterMath!
           </CardTitle>
         </CardHeader>
@@ -38,7 +38,7 @@ export default function UserManual() {
 
       {/* Getting Started */}
       <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2">
             <Calculator className="w-6 h-6 text-blue-600" />
             Getting Started - Using the Solver
@@ -67,11 +67,11 @@ export default function UserManual() {
               Type your math problem in the text area. Here are some formatting tips:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-              <li>Use <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">*</code> for multiplication: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">2*x</code> instead of 2x (though MasterMath handles both)</li>
-              <li>Use <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">^</code> for exponents: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">x^2</code> for x² (unicode superscripts like x² also work)</li>
-              <li>Use parentheses for clarity: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">(x + 2)*(x - 3)</code></li>
-              <li>For limits, use format: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">lim x-&gt;0 (sin(x)/x)</code></li>
-              <li>You can type in natural language: <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">find the derivative of x^2 + 3x</code></li>
+              <li>Use <code className="bg-indigo-100 dark:bg-gray-700 px-1 rounded">*</code> for multiplication: <code className="bg-indigo-100 dark:bg-gray-700 px-1 rounded">2*x</code> instead of 2x (though MasterMath handles both)</li>
+              <li>Use <code className="bg-indigo-100 dark:bg-gray-700 px-1 rounded">^</code> for exponents: <code className="bg-indigo-100 dark:bg-gray-700 px-1 rounded">x^2</code> for x² (unicode superscripts like x² also work)</li>
+              <li>Use parentheses for clarity: <code className="bg-indigo-100 dark:bg-gray-700 px-1 rounded">(x + 2)*(x - 3)</code></li>
+              <li>For limits, use format: <code className="bg-indigo-100 dark:bg-gray-700 px-1 rounded">lim x-&gt;0 (sin(x)/x)</code></li>
+              <li>You can type in natural language: <code className="bg-indigo-100 dark:bg-gray-700 px-1 rounded">find the derivative of x^2 + 3x</code></li>
               <li>Use <strong>↑/↓ arrow keys</strong> in the input area to recall previous problems from your current session</li>
             </ul>
           </div>
@@ -103,8 +103,8 @@ export default function UserManual() {
               </p>
             </div>
 
-            <div className="p-4 bg-purple-50 dark:bg-gray-700 rounded-lg">
-              <p className="font-semibold text-purple-700 dark:text-purple-400 mb-1">Integrals Example:</p>
+            <div className="p-4 bg-indigo-50 dark:bg-gray-700 rounded-lg">
+              <p className="font-semibold text-indigo-700 dark:text-indigo-400 mb-1">Integrals Example:</p>
               <p className="text-gray-700 dark:text-gray-300">
                 Topic: Integrals<br />
                 Problem: <code className="bg-white dark:bg-gray-600 px-2 py-1 rounded">2*x + 1</code>
@@ -194,7 +194,7 @@ export default function UserManual() {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Trigonometry Degree Detection</h3>
             <p className="text-gray-700 dark:text-gray-300">
               MasterMath auto-detects common degree values (30, 45, 60, 90, etc.) when you use
-              trigonometric functions. For example, <code className="bg-purple-100 dark:bg-gray-700 px-1 rounded">sin(45)</code> is
+              trigonometric functions. For example, <code className="bg-indigo-100 dark:bg-gray-700 px-1 rounded">sin(45)</code> is
               automatically treated as sin(45°) and results are shown in both degrees and radians.
             </p>
           </div>
@@ -203,7 +203,7 @@ export default function UserManual() {
 
       {/* Exporting Solutions */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2">
             <Download className="w-6 h-6 text-indigo-600" />
             Exporting Solutions
@@ -255,27 +255,27 @@ export default function UserManual() {
         <CardContent className="p-6">
           <ul className="space-y-3 text-gray-700 dark:text-gray-300">
             <li className="flex items-start gap-2">
-              <span className="text-purple-600 font-bold mt-1">✓</span>
+              <span className="text-indigo-600 font-bold mt-1">✓</span>
               <span><strong>Try it yourself first:</strong> Attempt the problem before checking the solution to maximize learning</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-600 font-bold mt-1">✓</span>
+              <span className="text-indigo-600 font-bold mt-1">✓</span>
               <span><strong>Use the examples:</strong> Click any example problem to see how to format your input correctly</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-600 font-bold mt-1">✓</span>
+              <span className="text-indigo-600 font-bold mt-1">✓</span>
               <span><strong>Read the insights:</strong> The Key Insights section teaches concepts that apply to many problems</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-600 font-bold mt-1">✓</span>
+              <span className="text-indigo-600 font-bold mt-1">✓</span>
               <span><strong>Learn from mistakes:</strong> Review the Common Mistakes section before tests and exams</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-600 font-bold mt-1">✓</span>
+              <span className="text-indigo-600 font-bold mt-1">✓</span>
               <span><strong>Export for study:</strong> Create PDF study guides by exporting solutions for exam preparation</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-600 font-bold mt-1">✓</span>
+              <span className="text-indigo-600 font-bold mt-1">✓</span>
               <span><strong>Track progress:</strong> Use the Progress page to see how much you're improving over time</span>
             </li>
           </ul>

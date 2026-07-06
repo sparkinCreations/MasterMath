@@ -51,18 +51,18 @@ export default function SolutionDisplay({ solution, problem, topic }) {
   if (!solution) {
     return (
       <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 bg-gradient-to-r from-green-50 to-emerald-50">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <BookOpen className="w-6 h-6 text-green-600" />
+        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+          <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
+            <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
             Solution & Feedback
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mb-4">
-              <BookOpen className="w-8 h-8 text-green-500" />
+            <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-gray-700 dark:to-gray-700 rounded-full flex items-center justify-center mb-4">
+              <BookOpen className="w-8 h-8 text-green-500 dark:text-green-400" />
             </div>
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-lg">
               Your solution will appear here!
             </p>
           </div>
@@ -78,10 +78,10 @@ export default function SolutionDisplay({ solution, problem, topic }) {
       transition={{ duration: 0.5 }}
     >
       <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 bg-gradient-to-r from-green-50 to-emerald-50">
+        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
           <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
+              <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
               Solution & Explanation
             </CardTitle>
             <DropdownMenu>
@@ -114,7 +114,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
           {solution.steps && solution.steps.length > 0 && (
             <div className="space-y-3">
               <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
-                <BookOpen className="w-5 h-5 text-purple-600" />
+                <BookOpen className="w-5 h-5 text-indigo-600" />
                 Step-by-Step Solution:
               </h3>
               <div className="space-y-3">
@@ -124,13 +124,13 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-purple-400"
+                    className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-indigo-950/40 dark:to-blue-950/30 border-l-4 border-indigo-400 dark:border-indigo-500"
                   >
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
                         {idx + 1}
                       </div>
-                      <p className="text-gray-800 flex-1 leading-relaxed">{step}</p>
+                      <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed">{step}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -139,12 +139,12 @@ export default function SolutionDisplay({ solution, problem, topic }) {
           )}
 
           {solution.answer && (
-            <div className="p-5 rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-green-300">
+            <div className="p-5 rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+                <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
                 <div>
-                  <h3 className="font-bold text-lg text-gray-800 mb-2">Final Answer:</h3>
-                  <p className="text-gray-800 text-xl font-semibold">{solution.answer}</p>
+                  <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-2">Final Answer:</h3>
+                  <p className="text-gray-800 dark:text-emerald-50 text-xl font-semibold">{solution.answer}</p>
                 </div>
               </div>
             </div>
@@ -160,9 +160,9 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                 {solution.tips.map((tip, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200"
+                    className="p-3 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border border-amber-200 dark:border-amber-700/60"
                   >
-                    <p className="text-gray-700">{tip}</p>
+                    <p className="text-gray-700 dark:text-gray-200">{tip}</p>
                   </div>
                 ))}
               </div>
@@ -179,9 +179,9 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                 {solution.common_mistakes.map((mistake, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-lg bg-gradient-to-r from-red-50 to-pink-50 border border-red-200"
+                    className="p-3 rounded-lg bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border border-red-200 dark:border-red-800/60"
                   >
-                    <p className="text-gray-700">{mistake}</p>
+                    <p className="text-gray-700 dark:text-gray-200">{mistake}</p>
                   </div>
                 ))}
               </div>

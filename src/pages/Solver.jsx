@@ -82,7 +82,7 @@ export default function Solver() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
           Let's Master Some Math!
         </h1>
         <p className="text-gray-600 text-lg">
@@ -92,7 +92,7 @@ export default function Solver() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-purple-200 dark:border-gray-700 shadow-lg">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-indigo-200 dark:border-gray-700 shadow-lg">
             <ProblemInput
               problem={problem}
               setProblem={setProblem}

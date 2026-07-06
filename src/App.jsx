@@ -20,12 +20,12 @@ function UpdateBanner({ updateAvailable, applyUpdate }) {
   if (!updateAvailable) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce-in">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce-in">
       <RefreshCw className="w-5 h-5 flex-shrink-0" />
       <span className="text-sm font-medium">A new version of MasterMath is available!</span>
       <button
         onClick={applyUpdate}
-        className="bg-white text-purple-700 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-purple-50 transition-colors"
+        className="bg-white text-indigo-700 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-indigo-50 transition-colors"
       >
         Update
       </button>

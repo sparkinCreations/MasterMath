@@ -42,14 +42,14 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
       />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-2xl shadow-2xl border-2 border-purple-200 p-6 max-w-md w-full mx-4 animate-in zoom-in-95">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-indigo-200 dark:border-gray-700 p-6 max-w-md w-full mx-4 animate-in zoom-in-95">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-6 h-6 text-amber-600" />
+          <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/50 rounded-full flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">{message}</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{message}</p>
           </div>
         </div>
 
@@ -57,7 +57,7 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
           <Button
             onClick={onCancel}
             variant="outline"
-            className="flex-1 border-gray-300 hover:bg-gray-50"
+            className="flex-1 border-gray-300 dark:border-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </Button>

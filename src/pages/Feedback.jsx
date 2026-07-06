@@ -13,7 +13,7 @@ const FEEDBACK_TYPES = [
   { value: "accuracy", label: "Accuracy Issue", icon: AlertTriangle, color: "text-yellow-600" },
   { value: "feature", label: "Feature Request", icon: Lightbulb, color: "text-blue-600" },
   { value: "general", label: "General Feedback", icon: MessageSquare, color: "text-green-600" },
-  { value: "praise", label: "Positive Feedback", icon: Star, color: "text-purple-600" }
+  { value: "praise", label: "Positive Feedback", icon: Star, color: "text-indigo-600" }
 ];
 
 const MATH_TOPICS = [
@@ -137,7 +137,7 @@ Technical Information:
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
           Feedback & Support
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -145,10 +145,10 @@ Technical Information:
         </p>
       </div>
 
-      <Card className="border-2 border-purple-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-purple-600" />
+            <MessageSquare className="w-6 h-6 text-indigo-600" />
             Send Feedback
           </CardTitle>
         </CardHeader>
@@ -283,7 +283,7 @@ Technical Information:
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Include your email if you'd like a response. We respect your privacy and won't share your email.
@@ -305,7 +305,7 @@ Technical Information:
               <Button
                 type="submit"
                 disabled={!feedbackType || !description || isSubmitting}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {isSubmitting ? "Processing..." : "Send Feedback"}

@@ -106,7 +106,7 @@ export default function Progress() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
           Your Learning Journey
         </h1>
         <p className="text-gray-600 text-lg">
@@ -115,12 +115,12 @@ export default function Progress() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200">
+        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200">
           <CardHeader>
-            <CardTitle className="text-purple-700 text-lg">Total Problems</CardTitle>
+            <CardTitle className="text-indigo-700 text-lg">Total Problems</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-5xl font-bold text-purple-600">{totalProblems}</p>
+            <p className="text-5xl font-bold text-indigo-600">{totalProblems}</p>
           </CardContent>
         </Card>
 
@@ -143,8 +143,8 @@ export default function Progress() {
         </Card>
       </div>
 
-      <Card className="border-2 border-purple-200 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-purple-200">
+      <Card className="border-2 border-indigo-200 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-indigo-200">
           <div className="flex justify-between items-center">
             <CardTitle className="text-xl">Problem History</CardTitle>
             {problems.length > 0 && (
@@ -153,7 +153,7 @@ export default function Progress() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="border-purple-200 text-purple-600 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300"
+                      className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export
@@ -190,7 +190,7 @@ export default function Progress() {
         <CardContent className="p-6">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
             </div>
           ) : problems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -204,10 +204,10 @@ export default function Progress() {
               {problems.map((p, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-lg border-2 border-purple-200 bg-gradient-to-r from-blue-50 to-purple-50 hover:shadow-md transition-shadow"
+                  className="p-4 rounded-lg border-2 border-indigo-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="px-3 py-1 rounded-full bg-purple-200 text-purple-700 text-sm font-medium">
+                    <span className="px-3 py-1 rounded-full bg-indigo-200 text-indigo-700 text-sm font-medium">
                       {topicLabels[p.topic] || p.topic}
                     </span>
                     <span className="text-sm text-gray-500">

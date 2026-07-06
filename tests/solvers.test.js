@@ -22,23 +22,36 @@ test('solveArithmetic evaluates PEMDAS-style expressions', () => {
   assert.match(result.steps.at(-1), /24/);
 });
 
-test('solveAlgebra solves a simple linear equation with mathsteps steps', () => {
-  const result = solveAlgebra('2*x + 5 = 11');
+test('solveAlgebra solves a simple linear equation with mathsteps steps', async () => {
+  const result = await solveAlgebra('2*x + 5 = 11');
   assert.match(result.answer, /x\s*=\s*3/);
   assert.ok(result.steps.some((step) => /subtract from both sides/i.test(step)));
 });
 
-test('solveDerivative returns a derivative answer and graph data', async () => {
+test('solveAlgebra returns exact roots for quadratics mathsteps cannot finish', async () => {
+  const irrational = await solveAlgebra('x^2 = 2');
+  // Radical roots are kept exact, not collapsed to decimals.
+  assert.match(irrational.answer, /2\^\(1\/2\)/);
+
+  const complex = await solveAlgebra('x^2 + 1 = 0');
+  assert.match(complex.answer, /\bi\b/);
+});
+
+test('solveDerivative shows worked, term-by-term steps', async () => {
   const result = await solveDerivative('x^2 + 3*x');
-  assert.match(result.answer.replace(/\s+/g, ''), /f'\(x\)=((2\*x\+3)|(3\+2\*x))/);
+  assert.match(result.answer.replace(/\s+/g, ''), /f'\(x\)=2x\+3/);
+  // The intermediate derivative of each term is shown, not just the final answer.
+  assert.ok(result.steps.some((step) => /d\/dx\(x\^2\)\s*=\s*2x/.test(step)));
   assert.ok(result.graph?.points?.length > 0);
   assert.ok(result.graph?.secondaryPoints?.length > 0);
 });
 
-test('solveIntegral includes the constant of integration and graph data', async () => {
+test('solveIntegral shows worked steps and the constant of integration', async () => {
   const result = await solveIntegral('2*x + 1');
   assert.match(result.answer, /\+ C$/);
   assert.ok(result.steps.some((step) => step.includes('constant of integration')));
+  // Each term is integrated on its own line.
+  assert.ok(result.steps.some((step) => /∫\(2x\)\s*d?x?\s*=\s*x\^2/.test(step)));
   assert.ok(result.graph?.secondaryPoints?.length > 0);
 });
 
@@ -57,8 +70,20 @@ test('solveTrigonometry recognizes special-angle values', () => {
   assert.ok(result.tips.length > 0);
 });
 
+test('solveLimit evaluates limits at infinity', () => {
+  const result = solveLimit('lim x->infinity 1/x');
+  assert.match(result.answer, /=\s*0$/);
+  assert.ok(result.steps.some((step) => /large/i.test(step)));
+});
+
+test('solveLimit reports indeterminate 0/0 forms via both sides', () => {
+  const result = solveLimit('lim x->2 (x^2 - 4)/(x - 2)');
+  assert.match(result.answer, /=\s*4$/);
+  assert.ok(result.steps.some((step) => /indeterminate/i.test(step)));
+});
+
 test('solveFunctions returns graphable function analysis', () => {
   const result = solveFunctions('x^2 - 4*x + 3');
-  assert.match(result.answer.replace(/\s+/g, ''), /f\(x\)=x\^2-4\*x\+3/);
+  assert.match(result.answer.replace(/\s+/g, ''), /f\(x\)=x\^2-4x\+3/);
   assert.ok(result.graph?.points?.length > 0);
 });

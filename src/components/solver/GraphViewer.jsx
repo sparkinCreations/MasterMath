@@ -74,28 +74,28 @@ export default function GraphViewer({ functionData }) {
   const resetZoom = () => setRange(DEFAULT_RANGE);
 
   // Theme-aware colors
-  const gridColor = isDarkMode ? '#374151' : '#e9d5ff';
-  const axisColor = isDarkMode ? '#9ca3af' : '#9333ea';
+  const gridColor = isDarkMode ? '#374151' : '#c7d2fe';
+  const axisColor = isDarkMode ? '#9ca3af' : '#4f46e5';
   const axisLineColor = isDarkMode ? '#4b5563' : '#cbd5e1';
   const tooltipBg = isDarkMode ? '#1f2937' : 'white';
-  const tooltipBorder = isDarkMode ? '#4b5563' : '#e9d5ff';
+  const tooltipBorder = isDarkMode ? '#4b5563' : '#c7d2fe';
   const tooltipText = isDarkMode ? '#e5e7eb' : '#1f2937';
-  const descBg = isDarkMode ? '' : 'from-blue-50 to-purple-50';
-  const descBorder = isDarkMode ? 'border-gray-600' : 'border-purple-200';
+  const descBg = isDarkMode ? '' : 'from-blue-50 to-indigo-50';
+  const descBorder = isDarkMode ? 'border-gray-600' : 'border-indigo-200';
 
   if (!functionData || !functionData.points) {
     return (
-      <Card className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-purple-100 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-gray-700 shadow-lg rounded-xl">
+        <CardHeader className="border-b border-indigo-100 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2 text-xl">
-            <TrendingUp className="w-6 h-6 text-purple-600" />
+            <TrendingUp className="w-6 h-6 text-indigo-600" />
             Graph View
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
-              <TrendingUp className="w-8 h-8 text-purple-500" />
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mb-4">
+              <TrendingUp className="w-8 h-8 text-indigo-500" />
             </div>
             <p className="text-gray-500 text-lg">
               Enter a function to see its graph!
@@ -109,11 +109,11 @@ export default function GraphViewer({ functionData }) {
   const hasSecondary = mergedPoints.some(p => p.y2 !== undefined);
 
   return (
-    <Card className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-gray-700 shadow-lg rounded-xl">
-      <CardHeader className="border-b border-purple-100 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-700">
+    <Card className="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-gray-700 shadow-lg rounded-xl">
+      <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-xl">
-            <TrendingUp className="w-6 h-6 text-purple-600" />
+            <TrendingUp className="w-6 h-6 text-indigo-600" />
             {functionData.title || "Graph View"}
           </CardTitle>
           <div className="flex items-center gap-1">
@@ -213,7 +213,7 @@ export default function GraphViewer({ functionData }) {
               <defs>
                 <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="100%" stopColor="#9333ea" />
+                  <stop offset="100%" stopColor="#4f46e5" />
                 </linearGradient>
               </defs>
             </LineChart>
@@ -223,7 +223,7 @@ export default function GraphViewer({ functionData }) {
         {hasSecondary && (
           <div className="flex items-center gap-4 mt-3 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600" />
+              <div className="w-6 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-600" />
               <span className="text-gray-600 dark:text-gray-400">f(x)</span>
             </div>
             <div className="flex items-center gap-2">

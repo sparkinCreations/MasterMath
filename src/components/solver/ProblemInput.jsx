@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Lightbulb, AlertCircle } from "lucide-react";
+import { Calculator, Lightbulb, AlertCircle } from "lucide-react";
 import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validation";
 
 const TOPICS = [
@@ -101,7 +101,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           What are you working on?
         </Label>
         <Select value={topic} onValueChange={setTopic}>
-          <SelectTrigger className="h-12 text-lg border-2 border-purple-200 focus:border-purple-400 rounded-xl">
+          <SelectTrigger className="h-12 text-lg border-2 border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500 rounded-xl">
             <SelectValue placeholder="Select a topic">
               {selectedLabel}
             </SelectValue>
@@ -127,7 +127,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           onKeyDown={handleKeyDown}
           placeholder={topic ? PLACEHOLDERS[topic] : "Select a topic first, then enter your problem..."}
           className={`min-h-32 text-lg border-2 ${
-            validationError ? 'border-red-300 focus:border-red-400' : 'border-purple-200 focus:border-purple-400'
+            validationError ? 'border-red-300 focus:border-red-400' : 'border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500'
           } rounded-xl p-4 resize-none`}
           maxLength={1000}
         />
@@ -153,22 +153,22 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       <Button
         onClick={handleSolve}
         disabled={!problem.trim() || !topic || isLoading}
-        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+        className="w-full h-14 text-lg font-semibold text-white bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
       >
         {isLoading ? (
           <>
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
-            Solving...
+            Calculating...
           </>
         ) : (
           <>
-            <Sparkles className="w-5 h-5 mr-2" />
+            <Calculator className="w-5 h-5 mr-2" />
             Solve Problem
           </>
         )}
       </Button>
 
-      <div className="pt-4 border-t border-purple-200">
+      <div className="pt-4 border-t border-indigo-200">
         <div className="flex items-center gap-2 mb-3">
           <Lightbulb className="w-5 h-5 text-amber-500" />
           <span className="font-semibold text-gray-700 dark:text-gray-200">Try an example:</span>
@@ -178,9 +178,9 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             <button
               key={idx}
               onClick={() => loadExample(ex)}
-              className="text-left p-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all duration-200 border border-purple-200 text-sm"
+              className="text-left p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm"
             >
-              <span className="font-medium text-purple-700 capitalize">{ex.topic}:</span>{" "}
+              <span className="font-medium text-indigo-700 dark:text-indigo-300 capitalize">{ex.topic}:</span>{" "}
               <span className="text-gray-700 dark:text-gray-300">{ex.problem}</span>
             </button>
           ))}

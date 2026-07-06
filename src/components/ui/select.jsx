@@ -24,7 +24,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
       type="button"
       onClick={() => setIsOpen(!isOpen)}
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-10 w-full items-center justify-between rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}
@@ -64,7 +64,7 @@ const SelectContent = ({ children }) => {
         className="fixed inset-0 z-40"
         onClick={() => setIsOpen(false)}
       />
-      <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+      <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-none sm:text-sm">
         {React.Children.map(children, child => {
           if (child.type === SelectItem) {
             return React.cloneElement(child, {
@@ -86,8 +86,8 @@ const SelectItem = React.forwardRef(({ className, children, value, onSelect, isS
   <div
     ref={ref}
     className={cn(
-      "relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-gray-100",
-      isSelected && "bg-purple-100 font-semibold",
+      "relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-gray-100 dark:hover:bg-gray-700",
+      isSelected && "bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-200 font-semibold",
       className
     )}
     onClick={() => onSelect && onSelect(value)}

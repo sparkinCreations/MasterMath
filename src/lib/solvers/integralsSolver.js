@@ -1,177 +1,189 @@
-import { create, all } from 'mathjs';
+import {
+  loadAlgebrite,
+  beautify,
+  splitTerms,
+  sampleFunction,
+  hasVariable,
+} from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
-
-const math = create(all);
-
-let algebritePromise = null;
-
-function loadAlgebrite() {
-  if (!algebritePromise) {
-    algebritePromise = import('algebrite').then((module) => module.default);
-  }
-  return algebritePromise;
-}
 
 export async function solveIntegral(expression) {
   try {
     const Algebrite = await loadAlgebrite();
     const variable = extractVariable(expression);
 
-    // Use Algebrite to compute the integral
+    // Authoritative antiderivative for the whole expression.
     const integral = Algebrite.integral(expression, variable).toString();
 
-    // Generate step-by-step explanation
-    const steps = generateIntegralSteps(expression, integral, variable);
+    const steps = generateIntegralSteps(expression, integral, variable, Algebrite);
 
     const tips = [
-      `Remember the power rule for integration: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C`,
-      'Don\'t forget to add the constant of integration (+C) for indefinite integrals',
-      'The integral of a constant k is k*x + C'
+      `Power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C  (n ≠ -1)`,
+      'Always add the constant of integration (+C) for an indefinite integral.',
+      'Constant factors pull out front: ∫c·f dx = c·∫f dx.',
     ];
 
     const common_mistakes = [
-      'Forgetting to add the constant of integration (+C)',
-      'Incorrectly applying the power rule, especially with the (n+1) in the denominator',
-      'Leaving out the constant factor when integrating terms like 3x'
+      'Forgetting the constant of integration (+C).',
+      'Mishandling the (n+1) denominator in the power rule.',
+      'Applying the power rule to 1/x — that integrates to ln|x|, not x⁰/0.',
     ];
 
     return {
       steps,
-      answer: `∫(${expression}) d${variable} = ${integral} + C`,
+      answer: `∫(${beautify(expression)}) d${variable} = ${beautify(integral)} + C`,
       tips,
       common_mistakes,
-      graph: generateIntegralGraph(expression, integral, variable)
+      graph: generateIntegralGraph(expression, integral, variable),
     };
   } catch (error) {
     console.error('Integral solver error:', error);
     return {
       steps: [
         `Identify the function to integrate: ∫(${expression}) dx`,
-        'Apply integration rules',
-        'Add constant of integration',
-        'Simplify the result'
+        'Integrate each term, applying the appropriate rule',
+        'Add the constant of integration (+C)',
       ],
       answer: 'Unable to compute integral',
-      tips: ['Check that your function is properly formatted'],
+      tips: ['Check that your function is properly formatted.'],
       common_mistakes: ['Using incorrect notation'],
-      graph: null
+      graph: null,
     };
   }
 }
 
-function generateIntegralSteps(expression, integral, variable) {
+/**
+ * Worked steps: integrate each top-level term individually with Algebrite and
+ * show the intermediate antiderivative, then combine and add +C. Integration is
+ * linear, so this term-by-term breakdown is exact.
+ */
+function generateIntegralSteps(expression, integral, variable, Algebrite) {
   const steps = [];
-  const expr = expression.toLowerCase();
+  steps.push(`Identify the function to integrate: ∫(${beautify(expression)}) d${variable}`);
 
-  steps.push(`Identify the function we want to integrate: ∫(${expression}) d${variable}`);
+  const terms = splitTerms(expression);
 
-  // Detect which rules/techniques are involved
-  const hasTrigFunctions = /\b(sin|cos|tan|sec|csc|cot)\b/.test(expr);
-  const hasExpOrLn = /\b(exp|ln|log)\b/.test(expr) || expr.includes('e^');
-  const hasSqrt = /\bsqrt\b/.test(expr) || expr.includes('√');
-  const hasPower = /\^\s*\d+/.test(expression) || /\*\*\s*\d+/.test(expression);
-
-  // Check for u-substitution indicators: function of a function
-  const hasUSubstitution = hasTrigFunctions && new RegExp(`\\b(?:sin|cos|tan)\\s*\\([^)]*[${variable}][^)]*[+\\-*/^]`).test(expression) ||
-    hasExpOrLn && new RegExp(`(?:exp|ln)\\s*\\([^)]*[${variable}][^)]*[+\\-*/^]`).test(expression) ||
-    /\([^)]+\)\s*\^\s*\d+/.test(expression);
-
-  // Check for integration by parts indicators: product of different function types
-  const hasIntegrationByParts = /[a-z][^+\-]*\*[^+\-]*[a-z]/i.test(expression) &&
-    (hasTrigFunctions || hasExpOrLn) &&
-    (hasPower || /\b[a-z]\b/.test(expr));
-
-  // Sum/difference rule
-  if (expression.includes('+') || /[^e]-/.test(expression)) {
-    steps.push('Apply the sum/difference rule: the integral of a sum is the sum of the integrals');
+  if (terms.length > 1) {
+    steps.push('Apply the sum rule: integrate each term separately, then add the results.');
   }
 
-  // Power rule
-  if (hasPower) {
-    steps.push(`Apply the power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C (where n ≠ -1)`);
-  }
+  for (const { signed } of terms) {
+    const { label, hint } = classifyIntegralRule(signed, variable);
+    let termIntegral = null;
+    try {
+      termIntegral = Algebrite.integral(signed, variable).toString();
+    } catch {
+      termIntegral = null;
+    }
 
-  // U-substitution
-  if (hasUSubstitution) {
-    steps.push(`This may require u-substitution: let u = inner function, then du = u' d${variable}`);
-    steps.push('Rewrite the integral in terms of u, integrate, then substitute back');
-  }
+    if (hint) {
+      steps.push(`${label} — ${hint}.`);
+    }
 
-  // Integration by parts
-  if (hasIntegrationByParts && !hasUSubstitution) {
-    steps.push(`This may require integration by parts: ∫u dv = uv − ∫v du`);
-    steps.push('Choose u and dv using the LIATE rule (Logarithmic, Inverse trig, Algebraic, Trig, Exponential)');
-  }
-
-  // Trig integrals
-  if (hasTrigFunctions) {
-    if (expr.includes('sin')) steps.push(`Trig integral: ∫sin(${variable}) d${variable} = -cos(${variable}) + C`);
-    if (expr.includes('cos')) steps.push(`Trig integral: ∫cos(${variable}) d${variable} = sin(${variable}) + C`);
-    if (expr.includes('sec') && expr.includes('^2')) steps.push(`Trig integral: ∫sec²(${variable}) d${variable} = tan(${variable}) + C`);
-    if (expr.includes('tan') && !expr.includes('^2')) steps.push(`Trig integral: ∫tan(${variable}) d${variable} = -ln|cos(${variable})| + C`);
-  }
-
-  // Exponential and logarithmic
-  if (hasExpOrLn) {
-    if (expr.includes('e^') || expr.includes('exp')) steps.push(`Exponential integral: ∫e^${variable} d${variable} = e^${variable} + C`);
-    if (expr.includes('1/' + variable) || expr.includes(variable + '^(-1)')) steps.push(`Reciprocal integral: ∫1/${variable} d${variable} = ln|${variable}| + C`);
-  }
-
-  // Square root
-  if (hasSqrt) {
-    steps.push(`Rewrite √(${variable}) as ${variable}^(1/2), then apply the power rule`);
-  }
-
-  // Constant multiplication
-  if (expression.includes('*')) {
-    const hasConstant = expression.match(/\d+\s*\*/);
-    if (hasConstant) {
-      steps.push('Constants can be factored out: ∫c·f(x)dx = c·∫f(x)dx');
+    if (termIntegral !== null) {
+      steps.push(`∫(${beautify(signed)}) d${variable} = ${beautify(termIntegral)}`);
+    } else {
+      steps.push(`Integrate ${beautify(signed)} using the ${label.toLowerCase()}.`);
     }
   }
 
-  steps.push('Integrate each term according to the appropriate rule');
-  steps.push('Add the constant of integration (+C)');
-  steps.push(`Final result: ${integral} + C`);
+  if (terms.length > 1) {
+    steps.push(`Add the term integrals: ${beautify(integral)}`);
+  }
+
+  steps.push(`Add the constant of integration: ∫(${beautify(expression)}) d${variable} = ${beautify(integral)} + C`);
 
   return steps;
 }
 
+/**
+ * Classify which integration technique a single term needs. Because it operates
+ * on one term at a time, the heuristics are reliable and the label sits next to
+ * the real computed antiderivative.
+ */
+function classifyIntegralRule(term, variable) {
+  const v = variable;
+
+  if (!hasVariable(term, v)) {
+    return { label: 'Constant rule', hint: `∫c d${v} = c·${v}` };
+  }
+
+  const inner = term.replace(/^[-+]/, '');
+
+  // Reciprocal: 1/x or x^-1.
+  if (new RegExp(`(?:^|[^a-z])1\\s*/\\s*${v}\\b`, 'i').test(inner) || new RegExp(`${v}\\s*\\^\\s*-\\s*1\\b`, 'i').test(inner)) {
+    return { label: 'Reciprocal rule', hint: `∫1/${v} d${v} = ln|${v}|` };
+  }
+
+  // Products mixing function families usually need integration by parts.
+  const factors = splitTopLevel(inner, '*');
+  const varFactors = factors.filter((f) => hasVariable(f, v));
+  const mixesFamilies =
+    varFactors.length >= 2 &&
+    /\b(?:sin|cos|tan|exp|ln|log)\b|e\^/i.test(inner);
+  if (mixesFamilies) {
+    return {
+      label: 'Integration by parts',
+      hint: '∫u dv = uv − ∫v du (choose u by LIATE: Log, Inverse-trig, Algebraic, Trig, Exponential)',
+    };
+  }
+
+  // Composite function → u-substitution.
+  if (isComposite(inner, v)) {
+    return { label: 'u-substitution', hint: `let u = the inner function, then du = u′ d${v}` };
+  }
+
+  if (/\bsin\b/i.test(inner)) return { label: 'Trig rule', hint: `∫sin(${v}) d${v} = -cos(${v})` };
+  if (/\bcos\b/i.test(inner)) return { label: 'Trig rule', hint: `∫cos(${v}) d${v} = sin(${v})` };
+  if (/\bexp\b|e\^/i.test(inner)) return { label: 'Exponential rule', hint: `∫e^${v} d${v} = e^${v}` };
+  if (/\bsqrt\b|√/i.test(inner)) return { label: 'Power rule', hint: `rewrite √${v} as ${v}^(1/2), then use the power rule` };
+
+  if (/\^/.test(inner)) return { label: 'Power rule', hint: `∫${v}^n d${v} = ${v}^(n+1)/(n+1)` };
+
+  // Linear term (a·x or x).
+  return { label: 'Power rule', hint: `∫${v} d${v} = ${v}²/2` };
+}
+
+function isComposite(term, variable) {
+  const fnInner = term.match(/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt)\s*\(([^()]*)\)/i);
+  if (fnInner) {
+    const arg = fnInner[1];
+    if (hasVariable(arg, variable) && /[+\-*/^]/.test(arg)) return true;
+  }
+  if (/\([^()]*[+\-*/][^()]*\)\s*\^/.test(term)) return true;
+  return false;
+}
+
+function splitTopLevel(str, delimiter) {
+  const parts = [];
+  let depth = 0;
+  let current = '';
+  for (const ch of str) {
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    if (ch === delimiter && depth === 0) {
+      parts.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  parts.push(current);
+  return parts;
+}
+
 function generateIntegralGraph(original, integral, variable) {
   try {
-    const points = [];
-    const secondaryPoints = [];
-
-    for (let i = -10; i <= 10; i += 0.5) {
-      const scope = {};
-      scope[variable] = i;
-
-      try {
-        const y = math.evaluate(original, scope);
-        if (isFinite(y) && Math.abs(y) < 1000) {
-          points.push({ x: i, y });
-        }
-      } catch (e) {
-        // Skip points where function is undefined
-      }
-
-      try {
-        const iy = math.evaluate(integral, scope);
-        if (isFinite(iy) && Math.abs(iy) < 1000) {
-          secondaryPoints.push({ x: i, y: iy });
-        }
-      } catch (e) {
-        // Skip points where integral is undefined
-      }
-    }
+    const points = sampleFunction(original, variable);
+    const secondaryPoints = sampleFunction(integral, variable);
 
     if (points.length > 0) {
       return {
         points,
         secondaryPoints: secondaryPoints.length > 0 ? secondaryPoints : null,
-        secondaryLabel: `F(${variable}) = ${integral}`,
-        title: `Graph of f(${variable}) = ${original}`,
-        description: `Blue/purple: f(${variable}) = ${original}  |  Green: F(${variable}) = ${integral} (antiderivative)`
+        secondaryLabel: `F(${variable}) = ${beautify(integral)}`,
+        title: `Graph of f(${variable}) = ${beautify(original)}`,
+        description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: F(${variable}) = ${beautify(integral)} (antiderivative)`,
       };
     }
   } catch (error) {

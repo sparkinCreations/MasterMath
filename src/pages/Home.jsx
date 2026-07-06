@@ -29,7 +29,7 @@ export default function Home() {
             alt="MasterMath Logo"
             className="w-20 h-20 md:w-24 md:h-24 mb-4 md:mb-6"
           />
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 md:mb-4 px-2">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3 md:mb-4 px-2">
             Welcome to MasterMath
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-2 px-2">
@@ -44,7 +44,7 @@ export default function Home() {
           <Link to={createPageUrl("Solver")} className="w-full sm:w-auto">
             <Button
               size="lg"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300"
+              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold text-white bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <Calculator className="w-5 h-5 mr-2" />
               Start Solving
@@ -55,7 +55,7 @@ export default function Home() {
             <Button
               size="lg"
               variant="outline"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold border-2 border-purple-200 hover:bg-purple-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
+              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold border-2 border-indigo-200 hover:bg-indigo-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
             >
               <BookOpen className="w-5 h-5 mr-2" />
               Learn How It Works
@@ -78,14 +78,14 @@ export default function Home() {
 
         {/* Hero Image/Illustration Placeholder */}
         <div className="relative max-w-4xl mx-auto px-2">
-          <div className="bg-gradient-to-br from-blue-100 via-purple-100 to-green-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-purple-200 dark:border-gray-600 shadow-2xl">
+          <div className="bg-gradient-to-br from-blue-100 via-indigo-100 to-green-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-indigo-200 dark:border-gray-600 shadow-2xl">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-center">
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
                 <Calculator className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-blue-600" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Step-by-Step Solutions</p>
               </div>
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
-                <TrendingUp className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-purple-600" />
+                <TrendingUp className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-indigo-600" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Visual Graphs</p>
               </div>
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
@@ -99,7 +99,7 @@ export default function Home() {
 
       {/* Features Section */}
       <div className="max-w-6xl mx-auto mb-8 md:mb-16 px-2">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6 md:mb-12">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-12">
           Everything You Need to Master Math
         </h2>
 
@@ -120,9 +120,9 @@ export default function Home() {
           </Card>
 
           {/* Feature 2 */}
-          <Card className="border-2 border-purple-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
-              <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
+          <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
+              <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                 <Zap className="w-6 h-6" />
                 Instant Solutions
               </CardTitle>
@@ -166,7 +166,7 @@ export default function Home() {
 
           {/* Feature 5 */}
           <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-700 dark:to-gray-700">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
               <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                 <BookOpen className="w-6 h-6" />
                 Export & Save
@@ -198,16 +198,16 @@ export default function Home() {
 
       {/* How It Works Section */}
       <div className="max-w-5xl mx-auto mb-8 md:mb-16 px-2">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6 md:mb-12">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-12">
           How It Works
         </h2>
 
         <div className="space-y-4 md:space-y-6">
-          <Card className="border-2 border-purple-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <CardContent className="p-4 md:p-8">
               <div className="flex items-start gap-4 md:gap-6">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
                     1
                   </div>
                 </div>
@@ -221,11 +221,11 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-purple-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <CardContent className="p-4 md:p-8">
               <div className="flex items-start gap-4 md:gap-6">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
                     2
                   </div>
                 </div>
@@ -239,11 +239,11 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-purple-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <CardContent className="p-4 md:p-8">
               <div className="flex items-start gap-4 md:gap-6">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
                     3
                   </div>
                 </div>
@@ -261,8 +261,8 @@ export default function Home() {
 
       {/* Benefits Section */}
       <div className="max-w-5xl mx-auto mb-8 md:mb-16 px-2">
-        <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-purple-200 dark:border-gray-600">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6 md:mb-8">
+        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-indigo-200 dark:border-gray-600">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-8">
             Why Choose MasterMath?
           </h2>
 
@@ -304,7 +304,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <div className="max-w-4xl mx-auto text-center px-2">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-2xl">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-2xl">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">
             Ready to Master Math?
           </h2>
@@ -314,7 +314,7 @@ export default function Home() {
           <Link to={createPageUrl("Solver")} className="inline-block w-full sm:w-auto">
             <Button
               size="lg"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-white text-purple-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300"
+              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-white text-indigo-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <Calculator className="w-5 h-5 mr-2" />
               Start Solving Now
@@ -332,7 +332,7 @@ export default function Home() {
           href="https://github.com/sparkinCreations/MasterMath"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 mt-4 text-sm md:text-base text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+          className="inline-flex items-center gap-2 mt-4 text-sm md:text-base text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
         >
           <Github className="w-5 h-5" />
           View on GitHub
