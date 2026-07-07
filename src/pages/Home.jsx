@@ -35,7 +35,7 @@ export default function Home() {
           <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-2 px-2">
             Master math with confidence
           </p>
-          <p className="text-base md:text-lg text-gray-500 dark:text-gray-500 px-2">
+          <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 px-2">
             Your personal math tutor for solving common math problems like calculus, algebra, and trigonometry
           </p>
         </div>
@@ -81,15 +81,15 @@ export default function Home() {
           <div className="bg-gradient-to-br from-blue-100 via-indigo-100 to-green-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-indigo-200 dark:border-gray-600 shadow-2xl">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-center">
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
-                <Calculator className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-blue-600" />
+                <Calculator className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-blue-600 dark:text-blue-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Step-by-Step Solutions</p>
               </div>
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
-                <TrendingUp className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-indigo-600" />
+                <TrendingUp className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-indigo-600 dark:text-indigo-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Visual Graphs</p>
               </div>
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
-                <Lightbulb className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-green-600" />
+                <Lightbulb className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-green-600 dark:text-green-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Key Insights</p>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="flex items-start gap-2 md:gap-3">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0 mt-1" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
                 <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">No Sign-Up Required</h4>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Start solving immediately without creating an account</p>
@@ -276,7 +276,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-start gap-2 md:gap-3">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0 mt-1" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
                 <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Completely Free</h4>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">All current features at no cost</p>
@@ -284,7 +284,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-start gap-2 md:gap-3">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0 mt-1" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
                 <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Works Offline</h4>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Service worker caches the entire app — solve problems anywhere, even without Wi-Fi</p>
@@ -292,7 +292,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-start gap-2 md:gap-3">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0 mt-1" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
                 <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Student-Friendly</h4>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Designed for students by understanding their needs</p>

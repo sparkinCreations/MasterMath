@@ -9,11 +9,11 @@ import { useToast } from "@/components/ui/toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const FEEDBACK_TYPES = [
-  { value: "bug", label: "Bug Report", icon: Bug, color: "text-red-600" },
-  { value: "accuracy", label: "Accuracy Issue", icon: AlertTriangle, color: "text-yellow-600" },
-  { value: "feature", label: "Feature Request", icon: Lightbulb, color: "text-blue-600" },
-  { value: "general", label: "General Feedback", icon: MessageSquare, color: "text-green-600" },
-  { value: "praise", label: "Positive Feedback", icon: Star, color: "text-indigo-600" }
+  { value: "bug", label: "Bug Report", icon: Bug, color: "text-red-600 dark:text-red-400" },
+  { value: "accuracy", label: "Accuracy Issue", icon: AlertTriangle, color: "text-yellow-600 dark:text-yellow-400" },
+  { value: "feature", label: "Feature Request", icon: Lightbulb, color: "text-blue-600 dark:text-blue-400" },
+  { value: "general", label: "General Feedback", icon: MessageSquare, color: "text-green-600 dark:text-green-400" },
+  { value: "praise", label: "Positive Feedback", icon: Star, color: "text-indigo-600 dark:text-indigo-400" }
 ];
 
 const MATH_TOPICS = [
@@ -147,8 +147,8 @@ Technical Information:
 
       <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-indigo-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <MessageSquare className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Send Feedback
           </CardTitle>
         </CardHeader>
@@ -156,7 +156,7 @@ Technical Information:
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Feedback Type */}
             <div>
-              <Label htmlFor="feedback-type" className="text-sm font-medium mb-2 block">
+              <Label htmlFor="feedback-type" className="text-sm font-medium mb-2 block dark:text-gray-200">
                 Feedback Type *
               </Label>
               <Select value={feedbackType} onValueChange={setFeedbackType} required>
@@ -179,7 +179,7 @@ Technical Information:
             {/* Math Topic */}
             {feedbackType && (
               <div>
-                <Label htmlFor="math-topic" className="text-sm font-medium mb-2 block">
+                <Label htmlFor="math-topic" className="text-sm font-medium mb-2 block dark:text-gray-200">
                   Math Topic {isAccuracyIssue ? "*" : "(Optional)"}
                 </Label>
                 <Select value={mathTopic} onValueChange={setMathTopic} required={isAccuracyIssue}>
@@ -200,7 +200,7 @@ Technical Information:
             {/* Problem/Question */}
             {isAccuracyIssue && (
               <div>
-                <Label htmlFor="problem" className="text-sm font-medium mb-2 block">
+                <Label htmlFor="problem" className="text-sm font-medium mb-2 block dark:text-gray-200">
                   Problem/Question *
                 </Label>
                 <Textarea
@@ -221,7 +221,7 @@ Technical Information:
             {feedbackType === "accuracy" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="expected" className="text-sm font-medium mb-2 block">
+                  <Label htmlFor="expected" className="text-sm font-medium mb-2 block dark:text-gray-200">
                     Expected Result
                   </Label>
                   <Textarea
@@ -233,7 +233,7 @@ Technical Information:
                   />
                 </div>
                 <div>
-                  <Label htmlFor="actual" className="text-sm font-medium mb-2 block">
+                  <Label htmlFor="actual" className="text-sm font-medium mb-2 block dark:text-gray-200">
                     Actual Result *
                   </Label>
                   <Textarea
@@ -250,7 +250,7 @@ Technical Information:
 
             {/* Description */}
             <div>
-              <Label htmlFor="description" className="text-sm font-medium mb-2 block">
+              <Label htmlFor="description" className="text-sm font-medium mb-2 block dark:text-gray-200">
                 {feedbackType === "feature" ? "Feature Description *" : 
                  feedbackType === "bug" ? "Bug Description *" :
                  feedbackType === "praise" ? "What did you like? *" :
@@ -274,7 +274,7 @@ Technical Information:
 
             {/* Email */}
             <div>
-              <Label htmlFor="email" className="text-sm font-medium mb-2 block">
+              <Label htmlFor="email" className="text-sm font-medium mb-2 block dark:text-gray-200">
                 Email (Optional)
               </Label>
               <input
@@ -317,7 +317,7 @@ Technical Information:
 
       {/* Additional Information */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-2 border-green-200 dark:border-gray-700">
+        <Card className="border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
             <CardTitle className="text-green-800 dark:text-green-100">Quick Tips</CardTitle>
           </CardHeader>
@@ -331,7 +331,7 @@ Technical Information:
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-blue-200 dark:border-gray-700">
+        <Card className="border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
             <CardTitle className="text-blue-800 dark:text-blue-100">Contact Information</CardTitle>
           </CardHeader>

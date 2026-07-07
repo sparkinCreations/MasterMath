@@ -136,7 +136,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             {problem.length}/1000 characters
           </p>
           {hasHistory && (
-            <p className="text-xs text-gray-400 dark:text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               ↑↓ to recall previous problems
             </p>
           )}

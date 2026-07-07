@@ -146,10 +146,12 @@ export default function GraphViewer({ functionData }) {
                 type="number"
                 domain={[range.xMin, range.xMax]}
                 tickFormatter={(v) => Number.isInteger(v) ? v : v.toFixed(1)}
+                tick={{ fill: axisColor }}
                 label={{ value: 'x', position: 'insideBottomRight', offset: -5, fill: axisColor }}
               />
               <YAxis
                 stroke={axisColor}
+                tick={{ fill: axisColor }}
                 label={{ value: 'y', angle: -90, position: 'insideLeft', fill: axisColor }}
               />
               <Tooltip

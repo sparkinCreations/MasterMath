@@ -80,7 +80,7 @@ export default function Layout({ children }) {
       <div className="min-h-screen flex flex-col w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="flex flex-1">
           <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" role="navigation" aria-label="Main navigation">
-            <SidebarHeader className="border-b border-indigo-100 p-6">
+            <SidebarHeader className="border-b border-indigo-100 dark:border-gray-700 p-6">
               <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                 <img
                   src="/favicon.png"
@@ -134,7 +134,7 @@ export default function Layout({ children }) {
                     className="w-8 h-8 rounded-lg shadow-md"
                   />
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    MasterMath <span className="text-sm font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Master math with confidence</span>
+                    MasterMath <span className="text-sm font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Master math with confidence</span>
                   </h1>
                 </Link>
                 <Link to="/" className="flex md:hidden items-center gap-2 hover:opacity-80 transition-opacity">
@@ -144,7 +144,7 @@ export default function Layout({ children }) {
                     className="w-6 h-6 rounded-lg shadow-md"
                   />
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    MasterMath <span className="text-xs font-normal text-gray-400 dark:text-gray-500">by sparkinCreations™</span>
+                    MasterMath <span className="text-xs font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span>
                   </h1>
                 </Link>
                 <button
@@ -178,7 +178,7 @@ export default function Layout({ children }) {
                 href="https://sparkincreations.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-indigo-600"
+                className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
               >
                 sparkinCreations
               </a>
@@ -186,21 +186,21 @@ export default function Layout({ children }) {
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("PrivacyPolicy")}
-              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-indigo-600"
+              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
             >
               Privacy Policy
             </Link>
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("TermsOfService")}
-              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-indigo-600"
+              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
             >
               Terms of Service
             </Link>
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("Feedback")}
-              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 hover:decoration-indigo-600"
+              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
             >
               Feedback
             </Link>

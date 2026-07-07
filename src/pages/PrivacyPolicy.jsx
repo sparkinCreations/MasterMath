@@ -20,8 +20,8 @@ export default function PrivacyPolicy() {
       {/* Introduction */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-indigo-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Your Privacy Matters
           </CardTitle>
         </CardHeader>
@@ -39,8 +39,8 @@ export default function PrivacyPolicy() {
       {/* Data Collection */}
       <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <Database className="w-6 h-6 text-blue-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <Database className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             What Information We Collect
           </CardTitle>
         </CardHeader>
@@ -102,8 +102,8 @@ export default function PrivacyPolicy() {
       {/* How We Use Data */}
       <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <Eye className="w-6 h-6 text-green-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <Eye className="w-6 h-6 text-green-600 dark:text-green-400" />
             How We Use Your Information
           </CardTitle>
         </CardHeader>
@@ -124,8 +124,8 @@ export default function PrivacyPolicy() {
       {/* Data Storage & Security */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="w-6 h-6 text-indigo-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <Lock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Data Storage and Security
           </CardTitle>
         </CardHeader>
@@ -157,8 +157,8 @@ export default function PrivacyPolicy() {
       {/* User Control */}
       <Card className="mb-6 border-2 border-rose-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <Trash2 className="w-6 h-6 text-rose-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
             Your Control Over Your Data
           </CardTitle>
         </CardHeader>
@@ -193,8 +193,8 @@ export default function PrivacyPolicy() {
       {/* Third-Party Services */}
       <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-6 h-6 text-amber-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <FileText className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             Third-Party Services
           </CardTitle>
         </CardHeader>
@@ -224,8 +224,8 @@ export default function PrivacyPolicy() {
       {/* Children's Privacy */}
       <Card className="mb-6 border-2 border-teal-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-teal-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <Shield className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             Children's Privacy
           </CardTitle>
         </CardHeader>
@@ -242,8 +242,8 @@ export default function PrivacyPolicy() {
       {/* Changes to Policy */}
       <Card className="mb-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-6 h-6 text-gray-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <FileText className="w-6 h-6 text-gray-600 dark:text-gray-400" />
             Changes to This Privacy Policy
           </CardTitle>
         </CardHeader>
@@ -260,8 +260,8 @@ export default function PrivacyPolicy() {
       {/* Contact */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-indigo-600" />
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Contact Us
           </CardTitle>
         </CardHeader>
@@ -289,19 +289,19 @@ export default function PrivacyPolicy() {
         <h3 className="font-bold text-xl text-gray-800 dark:text-gray-200 mb-3">Privacy Summary</h3>
         <ul className="space-y-2 text-gray-700 dark:text-gray-300">
           <li className="flex items-start gap-2">
-            <span className="text-green-600 font-bold mt-1">✓</span>
+            <span className="text-green-600 dark:text-green-400 font-bold mt-1">✓</span>
             <span>All your data stays on your device - we have no servers</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-green-600 font-bold mt-1">✓</span>
+            <span className="text-green-600 dark:text-green-400 font-bold mt-1">✓</span>
             <span>We don't collect personal information</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-green-600 font-bold mt-1">✓</span>
+            <span className="text-green-600 dark:text-green-400 font-bold mt-1">✓</span>
             <span>You can delete your data anytime</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-green-600 font-bold mt-1">✓</span>
+            <span className="text-green-600 dark:text-green-400 font-bold mt-1">✓</span>
             <span>No tracking, no ads, no data sharing</span>
           </li>
         </ul>
