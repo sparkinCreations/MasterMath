@@ -117,14 +117,14 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                 <BookOpen className="w-5 h-5 text-indigo-600" />
                 Step-by-Step Solution:
               </h3>
-              <div className="space-y-3">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {solution.steps.map((step, idx) => (
                   <motion.div
                     key={idx}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-indigo-950/40 dark:to-blue-950/30 border-l-4 border-indigo-400 dark:border-indigo-500"
+                    className="py-4 first:pt-1"
                   >
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
