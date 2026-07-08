@@ -1,3 +1,6 @@
+# Build output — Netlify builds from source (netlify.toml), so dist is never served from git
+dist
+
 # Dependencies
 node_modules
 
