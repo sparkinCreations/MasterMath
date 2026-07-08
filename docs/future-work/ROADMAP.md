@@ -45,16 +45,27 @@ and the code disagreed, the code's behavior is what's documented.
 | # | Item | Priority | Effort | Type |
 |---|------|----------|--------|------|
 | 1 | ~~Undefined trig values (`tan(π/2)`)~~ ✅ Fixed July 2026 | **P0** | Small | Bug |
-| 2 | Quadratic insights (axis of symmetry, opens up/down) | P1 | Small | Feature |
-| 3 | KaTeX math rendering | P1 | Medium | Feature |
-| 4 | Graph annotations (limit point, extrema, asymptotes) | P2 | Medium | Feature |
-| 5 | Messy-input test corpus | P2 | Medium | Quality |
-| 6 | Integration by parts walkthrough | P3 | Large | Engine |
-| 7 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine |
-| 8 | Tutor mode (collapsible / reveal-one-at-a-time steps) | P4 | Medium | UX |
+| 2 | Eval Wave 1: input-perimeter fixes (arctan, `!`, `C(n,k)`, `ln` alias, abs-limit verification gate, one-sided limits, factor verb, exact radicals, `ln\|x\|`, refuse-clearly guards) | **P0** | Small–Med | Bug |
+| 3 | Eval Wave 2: Functions/Graphing rebuild (derivative-based extrema, root-based intercepts, domain + asymptotes) | **P1** | Medium | Engine |
+| 4 | Quadratic insights (axis of symmetry, opens up/down) — fold into Wave 2 | P1 | Small | Feature |
+| 5 | KaTeX math rendering | P1 | Medium | Feature |
+| 6 | Graph annotations (limit point, extrema, asymptotes) — pairs with Wave 2 | P2 | Medium | Feature |
+| 7 | Messy-input test corpus (the 91-row eval CSV is the seed corpus) | P2 | Medium | Quality |
+| 8 | Definite integrals (Algebrite `defint` + notation parsing) | P2 | Medium | Feature |
+| 9 | Systems of equations (2×2 linear, elimination steps) | P3 | Medium | Feature |
+| 10 | Inequalities (roots + sign chart) | P3 | Medium | Feature |
+| 11 | Integration by parts walkthrough | P3 | Large | Engine |
+| 12 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine |
+| 13 | Tutor mode (collapsible / reveal-one-at-a-time steps) | P4 | Medium | UX |
 
 "Effort" is relative to this codebase: Small = one sitting, Medium = a few
 sittings, Large = real engine work that needs its own design pass.
+
+> **July 2026 external evaluation:** a 91-problem black-box test of the live
+> app scored ~78% (6/10). Every failure was reproduced and root-caused — see
+> [`../evaluations/2026-07/ANALYSIS.md`](../evaluations/2026-07/ANALYSIS.md).
+> Items 2, 3, and 8–10 come from that analysis; ~10 of the 16 wrong answers
+> are input-perimeter bugs (Wave 1), not missing math.
 
 ---
 

@@ -239,6 +239,7 @@ Project documentation and visual assets.
 | `HOW_THE_APP_WORKS.md`  | Architecture and data flow guide    |
 | `REACT_GUIDE.md`        | React concepts explained for the app |
 | `future-work/ROADMAP.md` | Prioritized future improvements (from review findings + code assessment) |
+| `evaluations/2026-07/` | External 91-problem evaluation (report, CSV) + verified root-cause analysis and fix plan |
 
 ---
 
