@@ -7,6 +7,10 @@
 // Math solving is 100% client-side so no API caching is needed —
 // we only need to cache the app shell (HTML, JS, CSS, images).
 
+// The build stamps this with the package version plus a build hash
+// (see stampServiceWorker in vite.config.js). Browsers only detect an
+// update when this file's bytes change, so the stamp is what makes the
+// in-app update banner fire on every release.
 const CACHE_NAME = 'mastermath-v1.2.0';
 
 // Core app shell — these are cached on install
@@ -54,11 +58,11 @@ self.addEventListener('install', (event) => {
         console.log('[MasterMath SW] Caching app shell');
         return cache.addAll(APP_SHELL);
       })
-      .then(() => {
-        // Skip waiting — activate immediately instead of waiting
-        // for all tabs to close. This ensures updates go live fast.
-        return self.skipWaiting();
-      })
+      // Note: no self.skipWaiting() here. The new worker stays in the
+      // "waiting" state so the app can show its update banner; it only
+      // activates when the user clicks Update (the SKIP_WAITING message
+      // below) or when every tab is closed. Activating immediately would
+      // trigger the controllerchange auto-reload mid-session.
       .catch((error) => {
         console.error('[MasterMath SW] Install failed:', error);
       })
