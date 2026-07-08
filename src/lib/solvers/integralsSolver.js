@@ -4,6 +4,7 @@ import {
   splitTerms,
   sampleFunction,
   hasVariable,
+  rewriteReciprocalTrig,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
 
@@ -12,8 +13,12 @@ export async function solveIntegral(expression) {
     const Algebrite = await loadAlgebrite();
     const variable = extractVariable(expression);
 
+    // Algebrite throws "Unsupported function sec" on sec/csc/cot; rewrite into
+    // sin/cos first so these integrate (or degrade gracefully) instead.
+    const forAlgebrite = rewriteReciprocalTrig(expression);
+
     // Authoritative antiderivative for the whole expression.
-    const integral = Algebrite.integral(expression, variable).toString();
+    const integral = Algebrite.integral(forAlgebrite, variable).toString();
 
     const steps = generateIntegralSteps(expression, integral, variable, Algebrite);
 
@@ -71,7 +76,7 @@ function generateIntegralSteps(expression, integral, variable, Algebrite) {
     const { label, hint } = classifyIntegralRule(signed, variable);
     let termIntegral = null;
     try {
-      termIntegral = Algebrite.integral(signed, variable).toString();
+      termIntegral = Algebrite.integral(rewriteReciprocalTrig(signed), variable).toString();
     } catch {
       termIntegral = null;
     }

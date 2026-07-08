@@ -50,7 +50,7 @@ and the code disagreed, the code's behavior is what's documented.
 | 4 | Graph annotations (limit point, extrema, asymptotes) | P2 | Medium | Feature |
 | 5 | Messy-input test corpus | P2 | Medium | Quality |
 | 6 | Integration by parts walkthrough | P3 | Large | Engine |
-| 7 | Technique-aware limit explanations | P3 | Large | Engine |
+| 7 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine |
 | 8 | Tutor mode (collapsible / reveal-one-at-a-time steps) | P4 | Medium | UX |
 
 "Effort" is relative to this codebase: Small = one sitting, Medium = a few

@@ -149,6 +149,63 @@ export function splitTerms(expression) {
 }
 
 /**
+ * Rewrite reciprocal trig functions into the sin/cos forms Algebrite
+ * understands. Algebrite has no sec/csc/cot: it returns an unevaluated
+ * `d(sec(x),x)` for derivatives and throws "Unsupported function sec" for
+ * integrals. But it handles the definitions perfectly — 1/cos(x) differentiates
+ * and 1/cos(x)^2 integrates to tan(x) — so rewriting before the handoff is all
+ * that is needed.
+ *
+ *   sec(u) -> (1/cos(u))     csc(u) -> (1/sin(u))     cot(u) -> (cos(u)/sin(u))
+ *
+ * The argument is matched with balanced-parenthesis scanning so nested calls
+ * like sec(cos(x)) and multi-token arguments like sec(2*x) rewrite correctly.
+ * A trailing power binds to the whole reciprocal: sec(x)^2 -> (1/cos(x))^2.
+ */
+const RECIPROCAL_TRIG = {
+  sec: (arg) => `(1/cos(${arg}))`,
+  csc: (arg) => `(1/sin(${arg}))`,
+  cot: (arg) => `(cos(${arg})/sin(${arg}))`,
+};
+
+export function rewriteReciprocalTrig(expression) {
+  let expr = String(expression);
+  // Repeat until stable so nested reciprocals (e.g. cot(sec(x))) fully resolve.
+  for (let pass = 0; pass < 5; pass += 1) {
+    const next = rewriteReciprocalTrigOnce(expr);
+    if (next === expr) break;
+    expr = next;
+  }
+  return expr;
+}
+
+function rewriteReciprocalTrigOnce(expr) {
+  const names = Object.keys(RECIPROCAL_TRIG).join('|');
+  const re = new RegExp(`\\b(${names})\\s*\\(`, 'i');
+  const match = re.exec(expr);
+  if (!match) return expr;
+
+  const name = match[1].toLowerCase();
+  const openIdx = match.index + match[0].length - 1; // index of the '('
+
+  // Find the matching close paren by depth counting.
+  let depth = 0;
+  let closeIdx = -1;
+  for (let i = openIdx; i < expr.length; i += 1) {
+    if (expr[i] === '(') depth += 1;
+    else if (expr[i] === ')') {
+      depth -= 1;
+      if (depth === 0) { closeIdx = i; break; }
+    }
+  }
+  if (closeIdx === -1) return expr; // Unbalanced; leave untouched.
+
+  const arg = expr.slice(openIdx + 1, closeIdx);
+  const replacement = RECIPROCAL_TRIG[name](arg);
+  return expr.slice(0, match.index) + replacement + expr.slice(closeIdx + 1);
+}
+
+/**
  * Test whether an expression actually contains the given variable as a
  * standalone identifier — not as a letter buried inside a function name
  * (e.g. the "x" in "exp"). Variables here are always single letters.
@@ -156,6 +213,7 @@ export function splitTerms(expression) {
 export function hasVariable(expression, variable) {
   return new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'i').test(String(expression));
 }
+
 
 /**
  * Sample a single-variable expression over a range, returning `{x, y}` points

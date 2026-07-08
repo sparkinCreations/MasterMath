@@ -55,8 +55,8 @@ test('solveIntegral shows worked steps and the constant of integration', async (
   assert.ok(result.graph?.secondaryPoints?.length > 0);
 });
 
-test('solveLimit supports symbolic approach values like pi/2', () => {
-  const result = solveLimit('lim x->pi/2 sin(x)');
+test('solveLimit supports symbolic approach values like pi/2', async () => {
+  const result = await solveLimit('lim x->pi/2 sin(x)');
   const numericAnswer = extractNumericAnswer(result.answer);
 
   assert.ok(Number.isFinite(numericAnswer));
@@ -97,31 +97,31 @@ test('solveTrigonometry still evaluates tan(pi/4) normally', () => {
   assert.equal(result.answer, '1');
 });
 
-test('solveLimit returns Undefined when the expression itself sits on an asymptote', () => {
+test('solveLimit returns Undefined when the expression itself sits on an asymptote', async () => {
   // e.g. the user typed tan(pi/2) with the Limits topic selected.
-  const result = solveLimit('tan(pi/2)');
+  const result = await solveLimit('tan(pi/2)');
   assert.equal(result.answer, 'Undefined');
   assert.ok(result.steps.some((step) => /vertical asymptote/i.test(step)));
 });
 
-test('solveLimit reports divergence at a vertical asymptote instead of a huge float', () => {
-  const twoSided = solveLimit('lim x->pi/2 tan(x)');
+test('solveLimit reports divergence at a vertical asymptote instead of a huge float', async () => {
+  const twoSided = await solveLimit('lim x->pi/2 tan(x)');
   assert.match(twoSided.answer, /Does not exist$/);
   assert.ok(twoSided.steps.some((step) => /diverges to ∞/.test(step)));
   assert.ok(twoSided.steps.some((step) => /diverges to -∞/.test(step)));
 
-  const infinite = solveLimit('lim x->0 1/x^2');
+  const infinite = await solveLimit('lim x->0 1/x^2');
   assert.match(infinite.answer, /=\s*∞$/);
 });
 
-test('solveLimit evaluates limits at infinity', () => {
-  const result = solveLimit('lim x->infinity 1/x');
+test('solveLimit evaluates limits at infinity', async () => {
+  const result = await solveLimit('lim x->infinity 1/x');
   assert.match(result.answer, /=\s*0$/);
   assert.ok(result.steps.some((step) => /large/i.test(step)));
 });
 
-test('solveLimit reports indeterminate 0/0 forms via both sides', () => {
-  const result = solveLimit('lim x->2 (x^2 - 4)/(x - 2)');
+test('solveLimit reports indeterminate 0/0 forms via both sides', async () => {
+  const result = await solveLimit('lim x->2 (x^2 - 4)/(x - 2)');
   assert.match(result.answer, /=\s*4$/);
   assert.ok(result.steps.some((step) => /indeterminate/i.test(step)));
 });

@@ -1,12 +1,12 @@
 import { extractVariable, parseMathExpression } from '../mathParser.js';
-import { math, beautify, formatNumber, sampleFunction } from './solverUtils.js';
+import { math, beautify, formatNumber, sampleFunction, loadAlgebrite } from './solverUtils.js';
 import { getSettings } from '../settings.js';
 
 // ---------------------------------------------------------------------------
 // Limits
 // ---------------------------------------------------------------------------
 
-export function solveLimit(expression) {
+export async function solveLimit(expression) {
   try {
     let cleaned = expression.trim().replace(/[.?!]+$/, '').trim();
     cleaned = cleaned.replace(/^(?:find the limit|evaluate the limit|calculate the limit)\s+(?:of\s+)?/i, '');
@@ -70,7 +70,7 @@ export function solveLimit(expression) {
     }
 
     const result = Number.isFinite(target)
-      ? estimateFiniteLimit(func, variable, target)
+      ? await evaluateFiniteLimit(func, variable, target)
       : estimateInfiniteLimit(func, variable, target);
 
     const steps = [
@@ -81,6 +81,8 @@ export function solveLimit(expression) {
     return {
       steps,
       answer: `lim (${variable}→${displayTarget}) ${beautify(func)} = ${result.answer}`,
+      verified: result.verified ?? false,
+      verificationMethod: result.verified ? (result.verificationMethod ?? 'numeric check') : null,
       tips: [
         'Try substituting the value directly first — if the function is continuous there, that is the limit.',
         'A 0/0 or ∞/∞ result is indeterminate: factor, rationalize, or use L\'Hôpital\'s rule.',
@@ -143,7 +145,278 @@ function evalAt(func, variable, x) {
   }
 }
 
-function estimateFiniteLimit(func, variable, target) {
+// Orchestrates the finite-limit strategy ladder. Each rung is exact/symbolic
+// where possible; numeric sampling is the *last* resort, and even then only
+// after the symbolic rungs have had a chance. This ordering is what fixes the
+// classic 0/0 removable limits — (1-cos x)/x^2, (sin x - x)/x^3, etc. — that
+// blind sampling at 1e-6/1e-8 gets wrong through floating-point cancellation.
+async function evaluateFiniteLimit(func, variable, target) {
+  // Rung 1: direct substitution. If the function is continuous at the point,
+  // that value *is* the limit and we are done. This is exact by evaluation —
+  // stronger than a numeric cross-check — so it carries its own method label
+  // rather than surfacing as unverified alongside the sampled cases.
+  const direct = evalAt(func, variable, target);
+  if (Number.isFinite(direct) && Math.abs(direct) < EXPLODED_MAGNITUDE) {
+    return {
+      steps: [`Substitute directly: at ${variable} = ${formatNumber(target)}, the function is defined and equals ${formatNumber(direct)}.`],
+      answer: formatNumber(direct),
+      verified: true,
+      verificationMethod: 'direct substitution',
+    };
+  }
+
+  // Rungs 2-4 need Algebrite. If it cannot load for any reason, fall straight
+  // through to numeric sampling so the solver still returns an answer.
+  let Algebrite = null;
+  try {
+    Algebrite = await loadAlgebrite();
+  } catch {
+    Algebrite = null;
+  }
+
+  if (Algebrite) {
+    // Rung 2: simplify, then re-substitute. Catches removable factors like
+    // (x^2-1)/(x-1) -> x+1, and rational cancellations generally.
+    const simplified = tryAlgebriteSimplify(Algebrite, func, variable, target);
+    if (simplified) return simplified;
+
+    // Rung 3: series (Taylor) expansion ratio. This is the principled version
+    // of a hardcoded pattern table: expand numerator and denominator about the
+    // point and read off the leading-order behaviour. Handles the whole family
+    // of trig/exp removable limits at once, not just enumerated special cases.
+    const series = trySeriesLimit(Algebrite, func, variable, target);
+    if (series) return series;
+
+    // Rung 4: L'Hôpital, capped so a stubborn indeterminate form cannot loop.
+    const lhopital = tryLHopital(Algebrite, func, variable, target);
+    if (lhopital) return lhopital;
+  }
+
+  // Rung 5: numeric sampling from both sides. Unchanged legacy behaviour, now
+  // reached only when every exact method above declined. Still the right tool
+  // for genuine jump/oscillation cases and one-sided divergence.
+  return estimateFiniteLimitNumeric(func, variable, target);
+}
+
+// --- Symbolic rungs ---------------------------------------------------------
+
+// Turn an Algebrite output string into a finite JS number, or null. Algebrite
+// returns strings like "1/2", "-1/6", "3"; a symbolic result still containing
+// the variable means "not resolved", so we reject it. An exploded magnitude is
+// rejected too — substituting a float at a vertical asymptote (tan at pi/2)
+// yields rounding noise like 1.6e16, not a real value, and accepting it would
+// re-introduce the float-blow-up answer the asymptote handling exists to stop.
+// Rejecting it lets the ladder fall through to the numeric rung, which reports
+// one-sided divergence correctly.
+function algebriteNumber(Algebrite, expr, variable, at) {
+  try {
+    const wrapped = at === undefined ? expr : `subst(${at}, ${variable}, ${expr})`;
+    const raw = String(Algebrite.run(`float(${wrapped})`)).trim();
+    if (/stop|error|nil/i.test(raw)) return null;
+    if (new RegExp(`\\b${variable}\\b`).test(raw)) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && Math.abs(n) < EXPLODED_MAGNITUDE ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+function tryAlgebriteSimplify(Algebrite, func, variable, target) {
+  try {
+    const simplified = String(Algebrite.run(`simplify(${func})`)).trim();
+    if (!simplified || /nil|error/i.test(simplified)) return null;
+
+    // Re-substitute into the simplified form.
+    const value = algebriteNumber(Algebrite, `(${simplified})`, variable, target);
+    if (value === null) return null;
+
+    return {
+      steps: [
+        `Direct substitution gives an indeterminate form, so simplify first.`,
+        `Simplify the expression: ${beautify(simplified)}.`,
+        `Now substitute ${variable} = ${formatNumber(target)}: the limit is ${formatNumber(value)}.`,
+      ],
+      answer: formatNumber(value),
+      verified: verifyLimitNumerically(func, variable, target, value),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function taylorExpand(Algebrite, expr, variable, target) {
+  try {
+    const out = String(Algebrite.run(`taylor(${expr}, ${variable}, 8, ${target})`)).trim();
+    if (!out || /nil|error|taylor|stop/i.test(out)) return null;
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+function trySeriesLimit(Algebrite, func, variable, target) {
+  // Algebrite refuses to Taylor-expand a whole fraction whose denominator
+  // vanishes ("divide by zero"). The correct move for a 0/0 quotient is to
+  // expand numerator and denominator *separately* and take the ratio of the
+  // resulting polynomials, which cancels the common vanishing factor. This is
+  // the general mechanism a hardcoded (1-cos x)/x^2 -> 1/2 table only fakes.
+  const parts = splitQuotient(func);
+
+  if (parts) {
+    const numExp = taylorExpand(Algebrite, parts.num, variable, target);
+    const denExp = taylorExpand(Algebrite, parts.den, variable, target);
+    if (!numExp || !denExp) return null;
+
+    // Ratio of the two truncated series, simplified, then evaluated at target.
+    // If the first simplify leaves a common factor uncancelled (substitution
+    // still 0/0), a second simplify pass usually clears it. Either way,
+    // algebriteNumber returns null on an unresolved form, so a stubborn case
+    // degrades safely to the next rung rather than producing a wrong answer.
+    let value = algebriteNumber(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target);
+    if (value === null) {
+      value = algebriteNumber(Algebrite, `simplify(simplify((${numExp})/(${denExp})))`, variable, target);
+    }
+    if (value === null) return null;
+
+    return {
+      steps: [
+        `Direct substitution gives 0/0, so expand the numerator and denominator as Taylor series about ${variable} = ${formatNumber(target)}.`,
+        `Numerator ≈ ${beautify(numExp)}; denominator ≈ ${beautify(denExp)}.`,
+        `Divide the series and cancel the common factor; the limit is ${formatNumber(value)}.`,
+      ],
+      answer: formatNumber(value),
+      verified: verifyLimitNumerically(func, variable, target, value),
+    };
+  }
+
+  // Non-quotient indeterminate forms: expand the whole expression directly.
+  const expanded = taylorExpand(Algebrite, func, variable, target);
+  if (!expanded) return null;
+  const value = algebriteNumber(Algebrite, `(${expanded})`, variable, target);
+  if (value === null) return null;
+
+  return {
+    steps: [
+      `Expand as a Taylor series about ${variable} = ${formatNumber(target)}.`,
+      `Series: ${beautify(expanded)}.`,
+      `Evaluating the leading behaviour gives ${formatNumber(value)}.`,
+    ],
+    answer: formatNumber(value),
+    verified: verifyLimitNumerically(func, variable, target, value),
+  };
+}
+
+function tryLHopital(Algebrite, func, variable, target) {
+  // Only applies to an explicit quotient n/d that is 0/0 or ∞/∞ at the point.
+  const parts = splitQuotient(func);
+  if (!parts) return null;
+
+  let { num, den } = parts;
+  const steps = [`Direct substitution gives an indeterminate form, so apply L'Hôpital's rule (differentiate top and bottom).`];
+
+  for (let i = 0; i < 4; i += 1) {
+    const nAtTarget = algebriteNumber(Algebrite, `(${num})`, variable, target);
+    const dAtTarget = algebriteNumber(Algebrite, `(${den})`, variable, target);
+
+    // Only a *confirmed* 0/0 justifies another differentiation. When both
+    // sides come back null we cannot tell ∞/∞ from a symbolic-evaluation
+    // failure, so we stop and let a later rung (or the numeric fallback)
+    // handle it rather than over-trusting a guess.
+    const indeterminate = nAtTarget === 0 && dAtTarget === 0;
+    const symbolicFailure = nAtTarget === null || dAtTarget === null;
+
+    if (!indeterminate) {
+      if (symbolicFailure) return null;
+      if (dAtTarget === 0) return null; // n/0 with n≠0: not a finite limit here
+      const value = nAtTarget / dAtTarget;
+      steps.push(`After ${i} differentiation${i === 1 ? '' : 's'}, substitution gives ${formatNumber(value)}.`);
+      return {
+        steps,
+        answer: formatNumber(value),
+        verified: verifyLimitNumerically(func, variable, target, value),
+      };
+    }
+
+    try {
+      num = String(Algebrite.run(`d(${num}, ${variable})`)).trim();
+      den = String(Algebrite.run(`d(${den}, ${variable})`)).trim();
+    } catch {
+      return null;
+    }
+    steps.push(`Differentiate: numerator → ${beautify(num)}, denominator → ${beautify(den)}.`);
+  }
+
+  return null; // Did not resolve within the iteration cap.
+}
+
+// Split "a/b" into {num, den} only when the top-level operator is a division.
+// Rejects expressions where the "/" sits inside parentheses (e.g. sin(x/2)).
+// First strips any balanced outer parentheses so a fully-wrapped fraction like
+// "((1-cos(x))/(x^2))" is still recognized as a quotient.
+function splitQuotient(expr) {
+  const inner = stripOuterParens(expr.trim());
+  let depth = 0;
+  for (let i = 0; i < inner.length; i += 1) {
+    const ch = inner[i];
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    else if (ch === '/' && depth === 0) {
+      const num = stripOuterParens(inner.slice(0, i).trim());
+      const den = stripOuterParens(inner.slice(i + 1).trim());
+      if (num && den) return { num, den };
+    }
+  }
+  return null;
+}
+
+// Remove one or more layers of balanced parentheses that wrap the whole
+// string. "((a)/(b))" -> "(a)/(b)"; "sin(x)" is left untouched because its
+// outer parens are not balanced around the entire expression.
+function stripOuterParens(expr) {
+  let s = expr.trim();
+  while (s.length >= 2 && s[0] === '(' && s[s.length - 1] === ')') {
+    let depth = 0;
+    let wrapsWhole = true;
+    for (let i = 0; i < s.length; i += 1) {
+      if (s[i] === '(') depth += 1;
+      else if (s[i] === ')') depth -= 1;
+      // If depth returns to 0 before the final char, the leading "(" does not
+      // pair with the trailing ")", so the parens do not wrap the whole thing.
+      if (depth === 0 && i < s.length - 1) { wrapsWhole = false; break; }
+    }
+    if (!wrapsWhole) break;
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+// Independent numeric check of a claimed symbolic answer. Returns a boolean —
+// never a fabricated probability. Samples small offsets on both sides and
+// requires agreement. The tolerance is scaled to the offset: a point 1e-3 away
+// from the limit will, for any function with nonzero slope, sit ~1e-3 away in
+// value, so a fixed tiny tolerance would wrongly reject correct answers (this
+// is exactly what made removable limits like (x^2-1)/(x-1) read "unverified").
+// We use offsets close enough that the linear term is small and a tolerance
+// generous enough to absorb it, while still catching a genuinely wrong answer.
+function verifyLimitNumerically(func, variable, target, claimed) {
+  const offsets = [1e-4, -1e-4, 1e-5, -1e-5, 1e-6, -1e-6];
+  const tol = Math.max(1e-3, Math.abs(claimed) * 1e-3);
+  let agree = 0;
+  let seen = 0;
+  for (const dx of offsets) {
+    const y = evalAt(func, variable, target + dx);
+    if (!Number.isFinite(y)) continue;
+    seen += 1;
+    if (Math.abs(y - claimed) < tol) agree += 1;
+  }
+  return seen >= 3 && agree >= seen - 1;
+}
+
+function estimateFiniteLimitNumeric(func, variable, target) {
+  // This is the sampling rung itself, so it deliberately does not set
+  // `verified`: cross-checking a numeric estimate with more numeric sampling
+  // would be circular. Answers from here surface as unverified, which honestly
+  // signals "numerical estimate" rather than "proven symbolically".
   const direct = evalAt(func, variable, target);
   const steps = [];
 

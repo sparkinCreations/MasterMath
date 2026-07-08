@@ -103,6 +103,17 @@ async function solveWithAlgebriteRoots(equation, variable) {
     // Move everything to one side: (left) - (right) = 0.
     const polynomial = `(${left.trim()}) - (${right.trim()})`;
     const rootsRaw = Algebrite.roots(polynomial, variable).toString();
+
+    // Algebrite mangles many cubics: rather than a clean real root like x = 2
+    // for x^3 - 8, it emits terms like "-2*(-1)^(1/3)", the *principal complex*
+    // cube root, which is both unreadable and numerically wrong for the real
+    // solution. Detect that signature and recompute the roots numerically from
+    // the polynomial's coefficients, which yields clean, correct values.
+    if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) {
+      const numericRoots = rootsViaPolynomialRoot(Algebrite, polynomial, variable);
+      if (numericRoots) return numericRoots;
+    }
+
     const roots = parseRootsList(rootsRaw);
     if (roots.length === 0) return null;
 
@@ -124,9 +135,95 @@ async function solveWithAlgebriteRoots(equation, variable) {
 }
 
 /**
- * Parse Algebrite's root output — a bracketed list like "[-2,2]",
- * "[-2^(1/2),2^(1/2)]", or "[-i,i]" — into display + numeric pairs.
+ * Recompute polynomial roots numerically when Algebrite's symbolic output is
+ * malformed. Extracts integer/rational coefficients with Algebrite's coeff(),
+ * hands them to mathjs's polynomialRoot (which returns correct real and complex
+ * roots), then formats each cleanly: real roots as numbers, complex roots as
+ * "a + bi", with floating-point noise snapped away.
  */
+function rootsViaPolynomialRoot(Algebrite, polynomial, variable) {
+  try {
+    // Algebrite's degree() is unreliable in this build (returns unevaluated),
+    // so find the degree by scanning coefficients from high order down to the
+    // first nonzero one. coeff() is dependable.
+    const MAX_DEGREE = 6;
+    let degree = -1;
+    const rawCoeffs = [];
+    for (let n = MAX_DEGREE; n >= 0; n -= 1) {
+      const cRaw = String(Algebrite.run(`coeff(${polynomial}, ${variable}, ${n})`)).trim();
+      rawCoeffs[n] = cRaw;
+      if (degree === -1 && cRaw !== '0' && cRaw !== '') degree = n;
+    }
+    if (degree < 1) return null;
+
+    const coeffs = [];
+    for (let n = 0; n <= degree; n += 1) {
+      const c = math.evaluate(rawCoeffs[n]);
+      const num = typeof c === 'number' ? c : Number(c);
+      if (!Number.isFinite(num)) return null;
+      coeffs.push(num);
+    }
+
+    // mathjs wants coefficients low-order first: polynomialRoot(c0, c1, ..., cN).
+    const rawRoots = math.polynomialRoot(...coeffs);
+    if (!Array.isArray(rawRoots) || rawRoots.length === 0) return null;
+
+    const roots = rawRoots.map(formatComplexRoot);
+
+    // Present real roots first, each group ascending, for a stable readable order.
+    roots.sort((a, b) => {
+      if (a.isReal !== b.isReal) return a.isReal ? -1 : 1;
+      return a.numeric - b.numeric || a.im - b.im;
+    });
+
+    const answer = roots.map((r) => `${variable} = ${r.display}`).join('  or  ');
+    const numericSolutions = roots.filter((r) => r.isReal).map((r) => r.numeric);
+
+    const steps = [
+      `Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`,
+      `This is a degree-${degree} polynomial; find all ${degree} roots.`,
+      `Solution: ${answer}`,
+    ];
+
+    return { steps, answer, solutions: numericSolutions };
+  } catch {
+    return null;
+  }
+}
+
+// Snap a number to the nearest integer when within rounding noise, else round
+// to 4 decimals. Keeps 2.0000000004 -> 2 and 1.7320508 -> 1.7321.
+function cleanNumber(n) {
+  const rounded = Math.round(n);
+  if (Math.abs(n - rounded) < 1e-9) return rounded;
+  return parseFloat(n.toFixed(4));
+}
+
+// Format a mathjs root (number or {re, im} Complex) as a display string plus
+// metadata, treating a negligible imaginary part as a real root.
+function formatComplexRoot(root) {
+  const re = typeof root === 'number' ? root : (root.re ?? 0);
+  const im = typeof root === 'number' ? 0 : (root.im ?? 0);
+
+  const cleanRe = cleanNumber(re);
+  const cleanIm = cleanNumber(im);
+
+  if (Math.abs(cleanIm) < 1e-9) {
+    return { display: formatNumber(cleanRe), numeric: cleanRe, im: 0, isReal: true };
+  }
+
+  const sign = cleanIm < 0 ? '-' : '+';
+  const absIm = Math.abs(cleanIm);
+  const imPart = absIm === 1 ? 'i' : `${formatNumber(absIm)}i`;
+  const rePart = cleanRe === 0 ? '' : `${formatNumber(cleanRe)} `;
+  const display = rePart
+    ? `${rePart}${sign} ${imPart}`
+    : `${cleanIm < 0 ? '-' : ''}${imPart}`;
+
+  return { display, numeric: cleanRe, im: cleanIm, isReal: false };
+}
+
+
 function parseRootsList(raw) {
   const trimmed = String(raw).trim().replace(/^\[|\]$/g, '');
   if (!trimmed) return [];

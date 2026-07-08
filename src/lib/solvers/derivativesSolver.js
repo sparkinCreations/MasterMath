@@ -4,6 +4,7 @@ import {
   splitTerms,
   sampleFunction,
   hasVariable,
+  rewriteReciprocalTrig,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
 
@@ -12,8 +13,12 @@ export async function solveDerivative(expression) {
     const Algebrite = await loadAlgebrite();
     const variable = extractVariable(expression);
 
+    // Algebrite has no sec/csc/cot; rewrite them into sin/cos before handing
+    // off so those derivatives evaluate instead of coming back unevaluated.
+    const forAlgebrite = rewriteReciprocalTrig(expression);
+
     // Authoritative, fully-simplified derivative.
-    const derivative = Algebrite.derivative(expression, variable).toString();
+    const derivative = Algebrite.derivative(forAlgebrite, variable).toString();
 
     const steps = generateDerivativeSteps(expression, derivative, variable, Algebrite);
 
@@ -72,7 +77,7 @@ function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
     const { label, hint } = classifyDerivativeRule(signed, variable);
     let termDerivative = null;
     try {
-      termDerivative = Algebrite.derivative(signed, variable).toString();
+      termDerivative = Algebrite.derivative(rewriteReciprocalTrig(signed), variable).toString();
     } catch {
       termDerivative = null;
     }
