@@ -7,11 +7,12 @@
 // Math solving is 100% client-side so no API caching is needed —
 // we only need to cache the app shell (HTML, JS, CSS, images).
 
-// The build stamps this with the package version plus a build hash
+// The build stamps this with the package version plus the commit hash
 // (see stampServiceWorker in vite.config.js). Browsers only detect an
 // update when this file's bytes change, so the stamp is what makes the
-// in-app update banner fire on every release.
-const CACHE_NAME = 'mastermath-v1.2.0';
+// in-app update banner fire on every release. The placeholder below is
+// only ever served if the file somehow ships unbuilt.
+const CACHE_NAME = 'mastermath-v0-unstamped';
 
 // Core app shell — these are cached on install
 // Vite hashes JS/CSS filenames on build, so we cache them dynamically

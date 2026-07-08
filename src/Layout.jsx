@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Home, Calculator, History, BookOpen, HelpCircle, MessageSquare, Moon, Sun, Settings } from "lucide-react";
+import pkg from "../package.json";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import {
   Sidebar,
@@ -176,7 +177,7 @@ export default function Layout({ children }) {
 
         <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-indigo-100 dark:border-gray-700 px-6 py-4" role="contentinfo">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-400 text-center">
-            <span>MasterMath by sparkinCreations™ v1.2.0</span>
+            <span>MasterMath by sparkinCreations™ v{pkg.version}</span>
             <span className="hidden sm:inline">|</span>
             <span className="flex items-center gap-1">
               <span>© 2026</span>
