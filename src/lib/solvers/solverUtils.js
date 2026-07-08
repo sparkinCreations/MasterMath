@@ -5,6 +5,7 @@
 // so the individual solvers can focus on the mathematics and the step wording.
 
 import { create, all } from 'mathjs';
+import { getSettings } from '../settings.js';
 
 export const math = create(all);
 
@@ -21,10 +22,12 @@ export function loadAlgebrite() {
 
 /**
  * Format a number for display: collapse floating-point noise to a clean
- * integer when appropriate, otherwise show up to 4 decimals with trailing
- * zeros trimmed. Non-finite values are passed through as readable text.
+ * integer when appropriate, otherwise show up to `decimals` decimals with
+ * trailing zeros trimmed. The default precision comes from user settings
+ * (Settings page, 2-6, default 4). Non-finite values are passed through as
+ * readable text.
  */
-export function formatNumber(value, decimals = 4) {
+export function formatNumber(value, decimals = getSettings().decimalPlaces) {
   const n = typeof value === 'number' ? value : Number(value);
 
   if (!Number.isFinite(n)) {

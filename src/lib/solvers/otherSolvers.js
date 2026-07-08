@@ -1,5 +1,6 @@
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { math, beautify, formatNumber, sampleFunction } from './solverUtils.js';
+import { getSettings } from '../settings.js';
 
 // ---------------------------------------------------------------------------
 // Limits
@@ -318,23 +319,40 @@ function detectTrigAsymptote(expression, result, treatAsDegrees) {
   return null;
 }
 
-export function solveTrigonometry(expression) {
+export function solveTrigonometry(expression, settingsOverride) {
   try {
     const steps = [];
     steps.push(`Evaluate the trigonometric expression: ${beautify(expression)}`);
+
+    // 'auto' (default) guesses degrees for bare common angles like sin(30);
+    // 'degrees'/'radians' pin the interpretation from the Settings page.
+    const angleUnit = settingsOverride?.angleUnit ?? getSettings().angleUnit;
 
     const hasRadians = expression.includes('pi') || expression.includes('PI');
     const hasDegreeSymbol = expression.includes('°');
 
     const degreeArgMatch = expression.match(/(?:sin|cos|tan|sec|csc|cot)\s*\(\s*(\d+)\s*\)/i);
     const argValue = degreeArgMatch ? parseInt(degreeArgMatch[1], 10) : null;
-    const looksLikeDegrees = !hasRadians && argValue !== null && COMMON_DEGREE_VALUES.includes(argValue);
+
+    const autoDegrees = !hasRadians && argValue !== null && COMMON_DEGREE_VALUES.includes(argValue);
+    let looksLikeDegrees;
+    if (angleUnit === 'degrees') {
+      // An explicit pi in the input still means radians, even with the
+      // preference set to degrees — pi is unambiguous.
+      looksLikeDegrees = !hasRadians && argValue !== null;
+    } else if (angleUnit === 'radians') {
+      looksLikeDegrees = false;
+    } else {
+      looksLikeDegrees = autoDegrees;
+    }
 
     let result;
     let degreeResult = null;
     const radianResult = math.evaluate(expression);
 
-    if (looksLikeDegrees || hasDegreeSymbol) {
+    // Also computed in radians mode when the input *looks* like degrees, so
+    // we can offer the "if you meant degrees" cross-check note below.
+    if (looksLikeDegrees || hasDegreeSymbol || (angleUnit === 'radians' && autoDegrees)) {
       const degExpr = expression.replace(/(\d+)\s*°?/g, '($1 * pi / 180)');
       try {
         degreeResult = math.evaluate(degExpr);
@@ -344,14 +362,21 @@ export function solveTrigonometry(expression) {
     }
 
     if (looksLikeDegrees && degreeResult !== null) {
+      if (angleUnit === 'degrees') {
+        steps.push(`Angle unit is set to degrees (Settings): ${argValue}° = ${argValue} × π/180 radians`);
+      } else {
+        steps.push(`Detected input as degrees: ${argValue}° = ${argValue} × π/180 radians`);
+      }
       result = degreeResult;
-      steps.push(`Detected input as degrees: ${argValue}° = ${argValue} × π/180 radians`);
       steps.push(`Converting: ${argValue}° = ${formatNumber(argValue * Math.PI / 180)} radians`);
     } else if (hasDegreeSymbol && degreeResult !== null) {
       result = degreeResult;
       steps.push('Input is in degrees (° symbol detected), converting to radians.');
     } else {
       result = radianResult;
+      if (angleUnit === 'radians' && autoDegrees) {
+        steps.push(`Angle unit is set to radians (Settings), so ${argValue} is treated as ${argValue} radians.`);
+      }
     }
 
     const lower = expression.toLowerCase();
@@ -429,6 +454,9 @@ export function solveTrigonometry(expression) {
     if (looksLikeDegrees && radianResult !== null && degreeResult !== null) {
       steps.push(`Result (treating input as degrees): ${formattedResult}`);
       steps.push(`Note: if you meant radians, the result would be ${formatNumber(radianResult)}.`);
+    } else if (angleUnit === 'radians' && autoDegrees && degreeResult !== null) {
+      steps.push(`Calculate the value: ${formattedResult}`);
+      steps.push(`Note: if you meant ${argValue}°, the result would be ${formatNumber(degreeResult)} (switch the angle unit in Settings).`);
     } else {
       steps.push(`Calculate the value: ${formattedResult}`);
     }
