@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-07-08
+
+### Fixed
+- **Limits no longer return confidently wrong answers on 0/0 forms** —
+  numeric-only sampling suffered floating-point cancellation (e.g.
+  (1−cos x)/x² returned 0 instead of 0.5, (sin x − x)/x³ returned 0 instead
+  of −1/6). Finite limits now climb a symbolic ladder — direct substitution,
+  simplify-and-resubstitute, Taylor-series ratio, L'Hôpital — with numeric
+  sampling as the last resort, and answers are independently cross-checked
+  (verified flag with the method named)
+- sec/csc/cot now differentiate and integrate — Algebrite has no reciprocal
+  trig functions, so d/dx sec(x) previously returned the unevaluated literal
+  "d(sec(x),x)" and ∫sec²x failed; they are rewritten to sin/cos forms first
+- Cubic equations like x³ = 8 now return clean roots (x = 2 plus the complex
+  pair) instead of principal-complex-root notation like −2·(−1)^(1/3)
+
+### Added
+- Regression test suite (tests/regressions.test.js) pinning every bug above
+  with its original wrong output, plus a numeric-invariant test for the
+  limit substitution guard (55 tests total)
+
 ## [1.3.0] - 2026-07-07
 
 ### Added
