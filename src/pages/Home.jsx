@@ -80,16 +80,16 @@ export default function Home() {
         <div className="relative max-w-4xl mx-auto px-2">
           <div className="bg-gradient-to-br from-blue-100 via-indigo-100 to-green-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-indigo-200 dark:border-gray-600 shadow-2xl">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-center">
-              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
-                <Calculator className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 sm:p-4 md:p-6 flex items-center justify-center gap-3 sm:flex-col sm:gap-0">
+                <Calculator className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex-shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-blue-600 dark:text-blue-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Step-by-Step Solutions</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
-                <TrendingUp className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-indigo-600 dark:text-indigo-400" />
+              <div className="p-2 sm:p-4 md:p-6 flex items-center justify-center gap-3 sm:flex-col sm:gap-0">
+                <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex-shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-indigo-600 dark:text-indigo-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Visual Graphs</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-md">
-                <Lightbulb className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-green-600 dark:text-green-400" />
+              <div className="p-2 sm:p-4 md:p-6 flex items-center justify-center gap-3 sm:flex-col sm:gap-0">
+                <Lightbulb className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex-shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-green-600 dark:text-green-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Key Insights</p>
               </div>
             </div>

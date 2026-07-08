@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, Calculator, History, BookOpen, HelpCircle, Shield, Scale, MessageSquare, Moon, Sun } from "lucide-react";
+import { Home, Calculator, History, BookOpen, HelpCircle, MessageSquare, Moon, Sun, Settings } from "lucide-react";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import {
   Sidebar,
@@ -14,6 +14,7 @@ import {
   SidebarHeader,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 const navigationItems = [
@@ -48,19 +49,66 @@ const navigationItems = [
     icon: MessageSquare,
   },
   {
-    title: "Privacy Policy",
-    url: createPageUrl("PrivacyPolicy"),
-    icon: Shield,
-  },
-  {
-    title: "Terms of Service",
-    url: createPageUrl("TermsOfService"),
-    icon: Scale,
+    title: "Settings",
+    url: createPageUrl("Settings"),
+    icon: Settings,
   },
 ];
 
-export default function Layout({ children }) {
+function AppSidebar() {
   const location = useLocation();
+  const { setIsOpen } = useSidebar();
+  // Collapse the menu after navigating so the page isn't left covered.
+  const closeSidebar = () => setIsOpen(false);
+
+  return (
+    <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" role="navigation" aria-label="Main navigation">
+      <SidebarHeader className="border-b border-indigo-100 dark:border-gray-700 p-6">
+        <Link to="/" onClick={closeSidebar} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <img
+            src="/favicon.png"
+            alt="MasterMath Logo"
+            className="w-12 h-12 rounded-2xl shadow-lg"
+          />
+          <div>
+            <h2 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              MasterMath
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Master math with confidence</p>
+          </div>
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent className="p-3">
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 rounded-xl mb-2 ${
+                      location.pathname === item.url
+                        ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-gray-600 dark:to-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                        : ''
+                    }`}
+                  >
+                    <Link to={item.url} onClick={closeSidebar} className="flex items-center gap-3 px-4 py-3 dark:text-gray-200">
+                      <item.icon className="w-5 h-5" />
+                      <span className="font-medium">{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
+}
+
+export default function Layout({ children }) {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   return (
@@ -79,49 +127,7 @@ export default function Layout({ children }) {
       
       <div className="min-h-screen flex flex-col w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="flex flex-1">
-          <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" role="navigation" aria-label="Main navigation">
-            <SidebarHeader className="border-b border-indigo-100 dark:border-gray-700 p-6">
-              <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <img
-                  src="/favicon.png"
-                  alt="MasterMath Logo"
-                  className="w-12 h-12 rounded-2xl shadow-lg"
-                />
-                <div>
-                  <h2 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    MasterMath
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Master math with confidence</p>
-                </div>
-              </Link>
-            </SidebarHeader>
-
-            <SidebarContent className="p-3">
-              <SidebarGroup>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {navigationItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                          asChild
-                          className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 rounded-xl mb-2 ${
-                            location.pathname === item.url
-                              ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-gray-600 dark:to-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm'
-                              : ''
-                          }`}
-                        >
-                          <Link to={item.url} className="flex items-center gap-3 px-4 py-3 dark:text-gray-200">
-                            <item.icon className="w-5 h-5" />
-                            <span className="font-medium">{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            </SidebarContent>
-          </Sidebar>
+          <AppSidebar />
 
           <main id="main-content" className="flex-1 flex flex-col" role="main">
             <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-sm" role="banner">

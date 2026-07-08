@@ -3,6 +3,10 @@ import { cn } from "@/lib/utils"
 
 const SidebarContext = React.createContext({ isOpen: true, setIsOpen: () => {} })
 
+// Read/control the sidebar from any descendant of SidebarProvider —
+// e.g. to auto-collapse the menu after a navigation link is clicked.
+const useSidebar = () => React.useContext(SidebarContext)
+
 const SidebarProvider = ({ children, defaultOpen = true }) => {
   const [isOpen, setIsOpen] = React.useState(defaultOpen)
 
@@ -144,4 +148,5 @@ export {
   SidebarHeader,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 }
