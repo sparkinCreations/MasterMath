@@ -171,7 +171,7 @@ MasterMath uses **IndexedDB**, which is a database built into every modern brows
 ```
 Browser
   └── IndexedDB
-       └── Database: "MathMasterDB"
+       └── Database: "MathMasterDB"  (legacy name, kept so existing history isn't orphaned)
             └── Object Store: "problemHistory"
                  ├── Record { id: 1, problem: "x^2+3x", topic: "derivatives", solution: {...}, createdAt: "..." }
                  ├── Record { id: 2, problem: "2x+5=11", topic: "algebra", solution: {...}, createdAt: "..." }

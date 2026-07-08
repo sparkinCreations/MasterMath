@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-07
+
+### Added
+- **Settings page** (`/settings`) — Appearance (theme), Solver Preferences,
+  Data & Privacy (export all / clear history), and About sections
+- **Solver preferences that change solving behavior**
+  - Angle unit: auto-detect / degrees / radians for trig inputs like sin(30),
+    with explanatory steps and a cross-check note for the other unit
+  - Decimal places (2–6) for all numeric results
+- **Worked, term-by-term solution steps** — derivatives and integrals now show
+  the real intermediate result for each term with the rule that produced it,
+  instead of generic rule reminders
+- Exact algebra fallback via Algebrite roots — quadratics like x^2 = 2 return
+  exact radicals (and complex roots like x = ±i) instead of stopping early
+- Limits at infinity and honest indeterminate-form (0/0) handling
+- Build-time service worker stamping so the in-app update banner fires on
+  every release
+
+### Changed
+- **Rebrand to match the logo** — indigo replaces purple throughout; primary
+  action buttons (Solve, Start Solving) are now orange with a Calculator icon
+- Solution steps restyled as a clean divided list (no boxed backgrounds)
+- Sidebar menu slimmed (legal pages moved to footer/Settings) and now
+  auto-collapses after selecting a page
+- Home hero tiles are unboxed, and lay out icon-beside-text on mobile
+- Dark mode overhauled across every page and base component (inputs, selects,
+  toasts, dialogs), with WCAG-contrast fixes in both themes
+
+### Fixed
+- tan(π/2) and other vertical-asymptote trig values now return "Undefined"
+  with an explanation instead of a floating-point artifact
+- Service worker no longer force-reloads the page mid-session when an update
+  is detected — updates apply when the user clicks the banner
+
 ## [1.1.0] - 2025-01-05
 
 ### Added
@@ -41,7 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved mobile and desktop user experience
 
 - **Branding Consistency**
-  - Updated all references from "MathMaster" to "MasterMath"
+  - Updated all references from "MasterMath" to "MasterMath"
   - Updated UserManual.jsx, PrivacyPolicy.jsx with consistent branding
   - Updated Layout.jsx header and footer
 
@@ -162,4 +196,4 @@ Version 1.0.0 marks the initial open source release of MasterMath, making this e
 
 ---
 
-*For the complete history of changes, see the [GitHub releases page](https://github.com/sparkinCreations/MathMaster/releases).*
+*For the complete history of changes, see the [GitHub releases page](https://github.com/sparkinCreations/MasterMath/releases).*

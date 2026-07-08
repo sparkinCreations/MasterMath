@@ -85,7 +85,7 @@ The design features:
 ### IndexedDB Implementation (`src/lib/indexedDB.js`)
 
 The app uses **IndexedDB** for local, browser-based storage (no backend API):
-- Database name: `MathMasterDB`
+- Database name: `MathMasterDB` (legacy pre-rebrand name, kept so existing users' saved history is not orphaned — IndexedDB databases are identified by this string)
 - Object store: `problemHistory`
 - Schema: Auto-incrementing `id`, with indexes on `topic` and `createdAt`
 - Functions:

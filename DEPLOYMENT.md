@@ -25,7 +25,7 @@ This guide covers different ways to deploy MasterMath for public access.
 
 ### 2. **Vercel** (Free)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sparkinCreations/MathMaster)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sparkinCreations/MasterMath)
 
 **Manual Vercel Deployment:**
 1. Install Vercel CLI: `npm i -g vercel`
@@ -80,8 +80,8 @@ jobs:
 ### Build Steps
 ```bash
 # Clone repository
-git clone https://github.com/sparkinCreations/MathMaster.git
-cd MathMaster
+git clone https://github.com/sparkinCreations/MasterMath.git
+cd MasterMath
 
 # Install dependencies
 npm install
@@ -135,7 +135,7 @@ npm run build
 server {
     listen 80;
     server_name your-domain.com;
-    root /path/to/mathmaster/dist;
+    root /path/to/mastermath/dist;
     index index.html;
 
     # Handle client-side routing
@@ -172,7 +172,7 @@ Most hosting providers offer free SSL certificates:
 ## 📊 Analytics & Monitoring
 
 ### Privacy-Friendly Analytics
-Since MathMaster is privacy-focused, consider:
+Since MasterMath is privacy-focused, consider:
 - **Simple Analytics** - GDPR compliant
 - **Plausible** - Privacy-first analytics
 - **Self-hosted Umami** - Open source analytics
@@ -268,7 +268,7 @@ Consider using a CDN for faster global access:
 ## 🤝 Need Help?
 
 - 📧 **Email:** admin@sparkincreations.com
-- 💬 **Issues:** [GitHub Issues](https://github.com/sparkinCreations/MathMaster/issues)
+- 💬 **Issues:** [GitHub Issues](https://github.com/sparkinCreations/MasterMath/issues)
 - 📚 **Documentation:** [README.md](README.md)
 
 **Happy deploying! 🚀**

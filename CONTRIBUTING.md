@@ -1,6 +1,6 @@
-# Contributing to MathMaster
+# Contributing to MasterMath
 
-Thank you for your interest in contributing to MathMaster! We welcome contributions from developers, educators, and students who want to help improve this educational math tool.
+Thank you for your interest in contributing to MasterMath! We welcome contributions from developers, educators, and students who want to help improve this educational math tool.
 
 ## 🎯 Project Goals
 
@@ -39,7 +39,7 @@ What actually happens
 ## Environment
 - Browser: [e.g., Chrome 118]
 - OS: [e.g., macOS 14]
-- MathMaster Version: [e.g., 1.0.0]
+- MasterMath Version: [e.g., 1.0.0]
 
 ## Mathematical Problem (if applicable)
 - Problem entered: [e.g., "x^2 + 2x = 0"]
@@ -96,8 +96,8 @@ Any thoughts on how it could work?
 1. **Fork the Repository**
    ```bash
    # Click "Fork" on GitHub, then clone your fork
-   git clone https://github.com/yourusername/mathmaster.git
-   cd mathmaster
+   git clone https://github.com/yourusername/MasterMath.git
+   cd MasterMath
    ```
 
 2. **Install Dependencies**
@@ -265,7 +265,7 @@ Brief description of changes
 
 ### **Questions?**
 - 📧 **Email:** admin@sparkincreations.com
-- 💬 **Issues:** [GitHub Issues](https://github.com/yourusername/mathmaster/issues)
+- 💬 **Issues:** [GitHub Issues](https://github.com/yourusername/MasterMath/issues)
 - 📚 **Documentation:** Check existing docs first
 
 ### **Discussion Topics**

@@ -29,7 +29,7 @@
 MasterMath is a fully client-side React application. The project follows a modular architecture with clear separation between UI components, business logic, math solvers, and data management. All processing happens in the browser — there is no backend server.
 
 ```
-MathMaster/
+MasterMath/
 ├── docs/                    # Documentation & assets
 ├── public/                  # Static assets (images, icons, manifest)
 ├── src/                     # Application source code

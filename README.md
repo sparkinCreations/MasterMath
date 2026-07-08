@@ -129,7 +129,7 @@ MasterMath is designed as a **learning companion**, not a homework shortcut:
 ## 🗂️ Project Structure
 
 ```
-MathMaster/
+MasterMath/
 ├── 📄 Configuration
 │   ├── index.html              # Main entry point
 │   ├── package.json            # Dependencies and scripts

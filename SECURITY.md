@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-We actively maintain and provide security updates for the following versions of MathMaster:
+We actively maintain and provide security updates for the following versions of MasterMath:
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -12,7 +12,7 @@ We actively maintain and provide security updates for the following versions of 
 ## Security Considerations
 
 ### Client-Side Application
-MathMaster is a **client-side only** application that:
+MasterMath is a **client-side only** application that:
 - Runs entirely in the user's browser
 - Does not transmit data to external servers
 - Stores data locally using browser storage APIs
@@ -26,7 +26,7 @@ MathMaster is a **client-side only** application that:
 
 ## Reporting Security Vulnerabilities
 
-If you discover a security vulnerability in MathMaster, please help us maintain a secure environment for all users.
+If you discover a security vulnerability in MasterMath, please help us maintain a secure environment for all users.
 
 ### Reporting Process
 
@@ -70,7 +70,7 @@ Subject: [SECURITY] Brief description of vulnerability
 ## Environment
 - Browser: [e.g., Chrome 118]
 - OS: [e.g., macOS 14]
-- MathMaster Version: [e.g., 1.0.0]
+- MasterMath Version: [e.g., 1.0.0]
 
 ## Additional Information
 [Any other relevant details]
@@ -121,7 +121,7 @@ We use the following guidelines to assess vulnerability severity:
 
 ### For Users
 
-1. **Keep Updated** - Always use the latest version of MathMaster
+1. **Keep Updated** - Always use the latest version of MasterMath
 2. **Verify Sources** - Only download from official sources
 3. **Browser Security** - Keep your browser updated
 4. **Local Storage** - Be aware that data is stored locally in your browser
@@ -160,6 +160,6 @@ For security-related inquiries:
 
 ---
 
-**Thank you for helping keep MathMaster secure for all users!**
+**Thank you for helping keep MasterMath secure for all users!**
 
 *Security is a shared responsibility - we appreciate your vigilance and responsible disclosure.*

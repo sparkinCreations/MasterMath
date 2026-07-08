@@ -1,5 +1,8 @@
 // IndexedDB utility for storing problem history locally
 
+// NOTE: the database keeps its original (pre-rebrand) name on purpose.
+// IndexedDB databases are identified by this string — renaming it to
+// "MasterMathDB" would orphan every existing user's saved history.
 const DB_NAME = 'MathMasterDB';
 const STORE_NAME = 'problemHistory';
 const DB_VERSION = 1;
