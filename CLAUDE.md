@@ -164,6 +164,33 @@ All exports trigger browser downloads with appropriate filenames and timestamps.
 - **Start dev server**: `npm run dev` (opens at http://localhost:5173)
 - **Build for production**: `npm run build`
 - **Preview production build**: `npm run preview`
+- **Run tests**: `npm test` (node --test; keep all tests green before pushing)
+
+## Release Process (REQUIRED)
+
+Every push to `main` deploys to production (Netlify builds from source per
+`netlify.toml`). **Any push that changes what the deployed app does or looks
+like MUST include, in the same push:**
+
+1. **A version bump** in `package.json` following semver:
+   - patch (x.y.Z) — bug fixes only
+   - minor (x.Y.0) — new features, no breaking changes
+   - Run `npm install --package-lock-only` after editing so the lockfile
+     version stays in sync.
+2. **A dated `CHANGELOG.md` entry** under the version heading (Keep a
+   Changelog format: Added / Changed / Fixed), inserted above the previous
+   release and below `## [Unreleased]`.
+
+App-affecting means changes to `src/`, `public/`, `index.html`,
+`vite.config.js`, `tailwind.config.js`, or dependencies. Docs-only, test-only,
+or repo-housekeeping pushes do **not** need a version bump.
+
+The version is single-sourced from `package.json`: the footer (`Layout.jsx`),
+the Settings About card, and the service-worker cache stamp
+(`stampServiceWorker` in `vite.config.js`) all read it automatically — never
+hardcode a version string anywhere else. The commit-stamped service worker is
+also what makes the in-app update banner fire, so a forgotten version bump
+still deploys safely; the bump is for humans (changelog, footer, releases).
 
 ## Important Notes
 
