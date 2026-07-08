@@ -14,13 +14,13 @@
 ## 🌟 Features
 
 ### 🧮 **Comprehensive Math Solver**
-- **Derivatives & Differentiation** - Step-by-step calculus solutions
-- **Integrals & Integration** - Detailed integration processes  
-- **Limits** - Limit calculations with explanations
-- **Algebra** - Equation solving and simplification
-- **Trigonometry** - Trig function solutions
+- **Derivatives & Differentiation** - Worked term-by-term, showing the rule used and the intermediate result for each term
+- **Integrals & Integration** - Real per-term antiderivatives with the technique named (power rule, u-substitution, by parts)
+- **Limits** - Symbolic strategy ladder (substitution → simplify → Taylor series → L'Hôpital), with answers independently cross-checked
+- **Algebra** - Equation solving with exact roots (radicals and complex numbers included)
+- **Trigonometry** - Special angles, degree/radian handling, and honest "Undefined" at vertical asymptotes
 - **Functions & Graphing** - Visual function analysis
-- **Arithmetic** - Basic mathematical operations
+- **Arithmetic** - Order-of-operations walkthroughs
 
 ### 📊 **Visual Learning**
 - **Interactive Graphs** - Visualize functions and solutions
@@ -29,13 +29,15 @@
 - **Educational Tips** - Contextual learning guidance
 
 ### 🔒 **Privacy-First Design**
-- **100% Client-Side** - No data sent to servers
+- **100% Client-Side** - No data sent to servers, no AI
+- **Works Offline** - Installable PWA; solve problems with no connection at all
 - **Local Storage** - Your problems stay on your device
 - **No Account Required** - Start solving immediately
-- **Export Functionality** - Save your work locally
+- **Export Functionality** - Save your work locally (PDF, CSV, JSON, Markdown)
 
 ### 🎨 **Modern User Experience**
 - **Dark/Light Mode** - Comfortable viewing in any environment
+- **Settings & Solver Preferences** - Choose your angle unit (auto/degrees/radians) and result precision
 - **Responsive Design** - Works on desktop, tablet, and mobile
 - **Progress Tracking** - Monitor your learning journey
 - **Clean Interface** - Focus on learning, not distractions
@@ -111,6 +113,11 @@ MasterMath uses **local JavaScript math libraries** (not AI) to solve problems:
 
 All computations happen **entirely in your browser** - no data is sent to external servers.
 
+The solvers are covered by an automated test suite (55 tests, `npm test`),
+including a regression suite that pins every previously-fixed math bug —
+from `tan(π/2)` floating-point artifacts to cancellation-prone limits —
+so they can't silently return.
+
 ## 📖 Educational Philosophy
 
 MasterMath is designed as a **learning companion**, not a homework shortcut:
@@ -160,6 +167,7 @@ MasterMath/
 │   │   ├── Home.jsx            # Landing page
 │   │   ├── Solver.jsx          # Main problem solver interface
 │   │   ├── Progress.jsx        # History & statistics
+│   │   ├── Settings.jsx        # Theme, solver preferences, data & about
 │   │   ├── UserManual.jsx      # Documentation
 │   │   ├── FAQ.jsx             # Frequently asked questions
 │   │   ├── Feedback.jsx        # User feedback form
@@ -170,10 +178,13 @@ MasterMath/
 │   │   ├── api.js              # Main API for solving & storage
 │   │   ├── indexedDB.js        # IndexedDB wrapper
 │   │   ├── mathParser.js       # Expression parsing utilities
+│   │   ├── mathstepsUtils.js   # mathsteps output formatting
+│   │   ├── settings.js         # User preferences (localStorage-backed)
 │   │   ├── exportUtils.js      # Export to PDF/CSV/JSON/Markdown
 │   │   ├── validation.js       # Input validation utilities
 │   │   ├── utils.js            # General utilities
 │   │   └── solvers/            # Topic-specific math solvers
+│   │       ├── solverUtils.js       # Shared helpers (beautify, terms, sampling)
 │   │       ├── algebraSolver.js
 │   │       ├── derivativesSolver.js
 │   │       ├── integralsSolver.js
@@ -184,7 +195,8 @@ MasterMath/
 │   │   └── DarkModeContext.jsx # Dark mode state management
 │   │
 │   ├── hooks/
-│   │   └── usePageTitle.js     # Custom hook for page titles
+│   │   ├── usePageTitle.js     # Custom hook for page titles
+│   │   └── useServiceWorker.js # PWA update detection & banner flow
 │   │
 │   ├── entities/
 │   │   └── ProblemHistory.json # IndexedDB schema definition
@@ -192,10 +204,20 @@ MasterMath/
 │   └── utils/
 │       └── index.js            # Utility functions
 │
+├── 🧪 Tests (tests/)
+│   ├── solvers.test.js         # Solver behavior across all topics
+│   ├── regressions.test.js     # Pinned past bugs (never let them return)
+│   ├── settings.test.js        # Preferences store & solver wiring
+│   ├── mathParser.test.js      # Input parsing
+│   ├── mathstepsUtils.test.js  # Step formatting
+│   ├── solverUtils.test.js     # Shared helpers
+│   └── validation.test.js      # Input validation
+│
 ├── 📁 Public Assets (public/)
 │   ├── favicon.svg             # App icon
 │   ├── favicon.png             # PNG favicon
 │   ├── manifest.json           # PWA manifest
+│   ├── sw.js                   # Offline-first service worker
 │   ├── robots.txt              # Search engine directives
 │   ├── sitemap.xml             # Site map
 │   ├── og-image.jpg            # Open Graph image
@@ -208,7 +230,12 @@ MasterMath/
     ├── CHANGELOG.md            # Version history
     ├── DEPLOYMENT.md           # Deployment instructions
     ├── SECURITY.md             # Security policy
-    └── LICENSE                 # MIT license
+    ├── LICENSE                 # MIT license
+    └── docs/
+        ├── HOW_THE_APP_WORKS.md     # Architecture & data flow guide
+        ├── FILE_STRUCTURE.md        # File organization docs
+        ├── REACT_GUIDE.md           # React concepts for this app
+        └── future-work/ROADMAP.md   # Prioritized future improvements
 ```
 
 ## 🤝 Contributing
