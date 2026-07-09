@@ -66,14 +66,14 @@ job. Do them in Wave order; treat the P0s as one severity class.
 | # | Item | Priority | Effort | Type | Wave |
 |---|------|----------|--------|------|------|
 | 1 | ~~Undefined trig values (`tan(π/2)`)~~ ✅ Fixed July 2026 | **P0** | Small | Bug | — |
-| 2 | Regression harness over the 91-row eval CSV (math-equivalence check, not string match) — grows to every fixed bug | **P0** | Medium | Quality | 1 |
-| 3 | Input-perimeter fixes (arctan, `!`, `C(n,k)`, `ln` alias, abs-limit verification gate, one-sided limits, factor verb, exact radicals, `ln\|x\|`) + **refuse-clearly guards** | **P0** | Small–Med | Bug | 1 |
+| 2 | ~~Regression harness over the 91-row eval CSV~~ ✅ Done v1.4.0 (`tests/corpus/`, math-equivalence grading, wired into `npm test`) | **P0** | Medium | Quality | 1 |
+| 3 | ~~Input-perimeter fixes (arctan, `!`, `C(n,k)`, `ln` alias, abs-limit gate, `ln\|x\|`) + refuse-clearly guards~~ ✅ Done v1.4.0 — **0 confident-wrong on the corpus**. Tail: one-sided limits, factor verb, exact-radical form, symbolic trig identity | **P0** | Small–Med | Bug | 1 |
 | 4 | Functions/Graphing rebuild (derivative-based extrema, root-based intercepts, domain + asymptotes) — **correctness, not a feature** | **P0** | Medium | Engine | 2 |
 | 5 | Quadratic insights (axis of symmetry, opens up/down) — fold into #4 | P1 | Small | Feature | 2 |
 | 6 | KaTeX math rendering | P1 | Medium | Feature | 3 |
 | 7 | Graph annotations (limit point, extrema, asymptotes) — pairs with #4 | P2 | Medium | Feature | 3 |
-| 8 | Definite integrals (Algebrite `defint` + notation parsing) | P2 | Medium | Feature | — |
-| 9 | Systems of equations (2×2 linear, elimination steps) | P3 | Medium | Feature | — |
+| 8 | Definite integrals — *refuses clearly as of v1.4.0*; building actual `defint` support is the remaining feature | P2 | Medium | Feature | — |
+| 9 | Systems of equations — *refuses clearly as of v1.4.0*; building the 2×2 solver is the remaining feature | P3 | Medium | Feature | — |
 | 10 | Inequalities (roots + sign chart) | P3 | Medium | Feature | — |
 | 11 | Integration by parts walkthrough | P3 | Large | Engine | — |
 | 12 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine | — |

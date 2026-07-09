@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-08
+
+### Added
+- **Regression harness over the 91-problem evaluation corpus**
+  (`tests/corpus/`) — re-runs every eval input through the real pipeline and
+  grades by math-equivalence (not string match), so no fixed bug returns
+  silently. Wired into `npm test`; it fails if any answer is confidently wrong.
+- Combinatorics: `C(n,k)`/`nCr` and `P(n,k)`/`nPr` notation now evaluate
+  (e.g. `C(5,2)` = 10).
+- Clear refusals for not-yet-supported input instead of confident wrong
+  answers: definite integrals (`∫_a^b`) and systems of equations now explain
+  they aren't supported rather than returning a garbage number.
+
+### Fixed
+- **Wave 1 of the July 2026 evaluation** — zero confidently-wrong answers
+  remain on the graded corpus:
+  - `d/dx arctan(x)` now returns `1/(x^2+1)` (was `0`; inverse-trig names were
+    missing from the variable detector, so it differentiated w.r.t. "a").
+  - `7!` evaluates to `5040` (the trailing `!` was being stripped as sentence
+    punctuation).
+  - `lim x→0 |x|/x` correctly reports "does not exist" (was `0`; the symbolic
+    limit ladder now discards any rung whose numeric cross-check fails).
+  - `∫1/x dx` displays `ln|x| + C` (was `log(x) + C`).
+  - `ln(x)` is now evaluable everywhere (graphs, sampling) via a mathjs `ln`
+    alias — mathjs only knew `log`.
+
 ## [1.3.1] - 2026-07-08
 
 ### Fixed
