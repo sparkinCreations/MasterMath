@@ -10,6 +10,7 @@ import { solveLimit } from '../src/lib/solvers/otherSolvers.js';
 import { solveDerivative } from '../src/lib/solvers/derivativesSolver.js';
 import { solveIntegral } from '../src/lib/solvers/integralsSolver.js';
 import { solveAlgebra } from '../src/lib/solvers/algebraSolver.js';
+import { solveProblem } from '../src/lib/api.js';
 
 // ---------------------------------------------------------------------------
 // Limits: cancellation-prone 0/0 forms (fixed July 2026, v1.3.1)
@@ -109,4 +110,58 @@ test('regression: quadratics still take the exact-radical path', async () => {
   // Guard that the cubic fallback did not hijack the quadratic flow.
   const r = await solveAlgebra('x^2 = 2');
   assert.match(r.answer, /2\^\(1\/2\)/);
+});
+
+// ---------------------------------------------------------------------------
+// July 2026 evaluation — Wave 1 fixes (fixed July 2026)
+// Each cites the eval CSV row it pins. These go through solveProblem (the real
+// app pipeline) because several bugs lived in the parser, not the solver.
+// ---------------------------------------------------------------------------
+
+test('regression: eval — d/dx arctan(x) is 1/(x^2+1), not 0', async () => {
+  // Was f'(a) = 0: extractVariable picked "a" from "arctan" (not in the
+  // function-name list), so Algebrite differentiated w.r.t. the wrong variable.
+  const r = await solveProblem('arctan(x)', 'derivatives');
+  assert.doesNotMatch(r.answer, /f'\(a\)/);
+  assert.match(r.answer.replace(/\s+/g, ''), /1\/\(x\^2\+1\)/);
+});
+
+test('regression: eval — 7! evaluates to 5040, not 7', async () => {
+  // The trailing "!" was stripped as sentence punctuation before evaluation.
+  const r = await solveProblem('7!', 'other');
+  assert.equal(r.answer, '5040');
+});
+
+test('regression: eval — C(5,2) evaluates to 10 (combinatorics notation)', async () => {
+  const r = await solveProblem('C(5,2)', 'other');
+  assert.equal(r.answer, '10');
+});
+
+test('regression: eval — lim abs(x)/x at 0 does not exist, not 0', async () => {
+  // The symbolic ladder returned a spurious, unverified 0; the verification
+  // gate now falls through to numeric two-sided sampling → DNE.
+  const r = await solveLimit('lim x->0 abs(x)/x');
+  assert.match(r.answer, /Does not exist$/);
+});
+
+test('regression: eval — definite integrals refuse clearly, never a garbage number', async () => {
+  const r = await solveProblem('definite ∫_0^1 x dx', 'integrals');
+  assert.match(r.answer, /not supported yet/i);
+  assert.doesNotMatch(r.answer, /\bC\b\s*$/); // not an indefinite-style answer
+});
+
+test('regression: eval — systems of equations refuse clearly, not an unrelated number', async () => {
+  const r = await solveProblem('2x+3y=6; x-y=4', 'algebra');
+  assert.match(r.answer, /not supported yet/i);
+});
+
+test('regression: eval — integral of 1/x displays ln|x|, not log(x)', async () => {
+  const r = await solveIntegral('1/x');
+  assert.match(r.answer, /ln\|x\| \+ C$/);
+});
+
+test('regression: eval — ln(x) is evaluable numerically (mathjs alias)', async () => {
+  // mathjs has no "ln"; without the alias, graphs/sampling of ln died silently.
+  const { math } = await import('../src/lib/solvers/solverUtils.js');
+  assert.ok(Math.abs(math.evaluate('ln(exp(1))') - 1) < 1e-9);
 });

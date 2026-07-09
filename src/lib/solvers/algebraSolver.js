@@ -23,6 +23,24 @@ const COMMON_MISTAKES = [
 
 export async function solveAlgebra(expression) {
   try {
+    // Systems of equations aren't supported yet. A semicolon/newline separator
+    // or two '=' signs means multiple equations; refuse clearly rather than
+    // mangling them into one expression and returning an unrelated number.
+    const equalsCount = (expression.match(/(?<![><!=])=(?!=)/g) || []).length;
+    if (/[;\n]/.test(expression) || equalsCount >= 2) {
+      return {
+        steps: [
+          'This looks like a system of equations (more than one equation).',
+          'MasterMath solves one equation at a time right now.',
+          'Tip: solve each equation for a variable and substitute by hand, or enter them individually.',
+        ],
+        answer: 'Systems of equations are not supported yet',
+        tips: ['Enter a single equation, e.g., 2*x + 5 = 11.'],
+        common_mistakes: ['Entering two equations at once — only the first would be read.'],
+        graph: null,
+      };
+    }
+
     if (isEquation(expression)) {
       return await solveEquation(expression);
     }

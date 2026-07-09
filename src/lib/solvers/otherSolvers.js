@@ -175,21 +175,26 @@ async function evaluateFiniteLimit(func, variable, target) {
   }
 
   if (Algebrite) {
+    // A symbolic rung is only trusted if its own numeric cross-check confirms
+    // it. This is what stops abs(x)/x from returning a spurious 0: Algebrite's
+    // manipulation of a non-differentiable point produces an unverifiable
+    // value, so we fall through to the numeric rung, which correctly reports
+    // the two-sided disagreement as "does not exist".
     // Rung 2: simplify, then re-substitute. Catches removable factors like
     // (x^2-1)/(x-1) -> x+1, and rational cancellations generally.
     const simplified = tryAlgebriteSimplify(Algebrite, func, variable, target);
-    if (simplified) return simplified;
+    if (simplified && simplified.verified) return simplified;
 
     // Rung 3: series (Taylor) expansion ratio. This is the principled version
     // of a hardcoded pattern table: expand numerator and denominator about the
     // point and read off the leading-order behaviour. Handles the whole family
     // of trig/exp removable limits at once, not just enumerated special cases.
     const series = trySeriesLimit(Algebrite, func, variable, target);
-    if (series) return series;
+    if (series && series.verified) return series;
 
     // Rung 4: L'Hôpital, capped so a stubborn indeterminate form cannot loop.
     const lhopital = tryLHopital(Algebrite, func, variable, target);
-    if (lhopital) return lhopital;
+    if (lhopital && lhopital.verified) return lhopital;
   }
 
   // Rung 5: numeric sampling from both sides. Unchanged legacy behaviour, now

@@ -1,14 +1,26 @@
 // Utility to parse and clean user math input
 
-// Known math function and constant names (used in multiple places)
-const MATH_FUNCTIONS = ['sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'sqrt', 'log', 'ln', 'exp', 'abs'];
+// Known math function and constant names (used in multiple places).
+// Inverse-trig names must be listed so extractVariable doesn't mistake the
+// leading letter of `arctan`/`asin` for the variable.
+const MATH_FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'sqrt', 'log', 'ln', 'exp', 'abs', 'combinations', 'permutations'];
 const MATH_CONSTANTS = ['pi', 'PI'];
 
 export function parseMathExpression(input) {
   let cleaned = input.trim();
 
-  // Remove trailing punctuation from natural language input (periods, question marks)
-  cleaned = cleaned.replace(/[.?!]+$/, '').trim();
+  // Remove trailing sentence punctuation ("What is 5+3?") — but preserve a
+  // factorial `!` that follows a number or a closing paren (`7!`, `(x+1)!`).
+  cleaned = cleaned.replace(/[.?]+$/, '').trim();
+  cleaned = cleaned.replace(/(?<![\d)])!+$/, '').trim();
+
+  // Combinatorics notation → mathjs built-ins: C(5,2) -> combinations(5,2),
+  // P(5,2) -> permutations(5,2), and the nCr / nPr infix forms.
+  cleaned = cleaned
+    .replace(/\bC\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/g, 'combinations($1,$2)')
+    .replace(/\bP\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/g, 'permutations($1,$2)')
+    .replace(/(\d+)\s*C\s*(\d+)/g, 'combinations($1,$2)')
+    .replace(/(\d+)\s*P\s*(\d+)/g, 'permutations($1,$2)');
 
   // First, protect mathematical constants and functions by replacing them with placeholders
   const protectedTerms = [];
@@ -99,8 +111,9 @@ export function extractFunctionFromProblem(problemText) {
   // "What is 5 + 3?" -> "5 + 3"
   // "d/dx x^3" -> "x^3"
 
-  // Clean up trailing punctuation first
-  let text = problemText.trim().replace(/[.?!]+$/, '').trim();
+  // Clean up trailing sentence punctuation, but keep a factorial `!`.
+  let text = problemText.trim().replace(/[.?]+$/, '').trim();
+  text = text.replace(/(?<![\d)])!+$/, '').trim();
 
   // Patterns are ordered from most specific to least specific.
   // More specific patterns (like "find the derivative of") must come before

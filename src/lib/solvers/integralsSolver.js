@@ -10,6 +10,23 @@ import { extractVariable } from '../mathParser.js';
 
 export async function solveIntegral(expression) {
   try {
+    // Definite integrals aren't supported yet. Detect the notation and refuse
+    // clearly instead of mis-parsing `∫_0^1 x dx` into a nonsense answer — a
+    // confident wrong number is worse than an honest "not yet".
+    if (/\bdefinite\b|_\s*[-\d]|\bfrom\b.*\bto\b/i.test(expression)) {
+      return {
+        steps: [
+          'This looks like a definite integral (it has bounds).',
+          'MasterMath currently computes indefinite integrals (antiderivatives) only.',
+          'Tip: find the antiderivative F(x) here, then evaluate F(upper) − F(lower) yourself.',
+        ],
+        answer: 'Definite integrals are not supported yet',
+        tips: ['Enter just the function (e.g., x^2) to get its antiderivative.'],
+        common_mistakes: ['Including limits of integration — those are not parsed yet.'],
+        graph: null,
+      };
+    }
+
     const Algebrite = await loadAlgebrite();
     const variable = extractVariable(expression);
 
@@ -36,7 +53,7 @@ export async function solveIntegral(expression) {
 
     return {
       steps,
-      answer: `∫(${beautify(expression)}) d${variable} = ${beautify(integral)} + C`,
+      answer: `∫(${beautify(expression)}) d${variable} = ${lnify(integral)} + C`,
       tips,
       common_mistakes,
       graph: generateIntegralGraph(expression, integral, variable),
@@ -55,6 +72,14 @@ export async function solveIntegral(expression) {
       graph: null,
     };
   }
+}
+
+// Algebrite writes the natural log as `log(x)` and omits the absolute value.
+// The textbook antiderivative of 1/x is ln|x| (correct for negative x too), so
+// present integral RESULTS with that convention. Only applied to outputs, never
+// to the integrand.
+function lnify(integralResult) {
+  return beautify(integralResult).replace(/\blog\(([^()]+)\)/g, 'ln|$1|');
 }
 
 /**
@@ -86,17 +111,17 @@ function generateIntegralSteps(expression, integral, variable, Algebrite) {
     }
 
     if (termIntegral !== null) {
-      steps.push(`∫(${beautify(signed)}) d${variable} = ${beautify(termIntegral)}`);
+      steps.push(`∫(${beautify(signed)}) d${variable} = ${lnify(termIntegral)}`);
     } else {
       steps.push(`Integrate ${beautify(signed)} using the ${label.toLowerCase()}.`);
     }
   }
 
   if (terms.length > 1) {
-    steps.push(`Add the term integrals: ${beautify(integral)}`);
+    steps.push(`Add the term integrals: ${lnify(integral)}`);
   }
 
-  steps.push(`Add the constant of integration: ∫(${beautify(expression)}) d${variable} = ${beautify(integral)} + C`);
+  steps.push(`Add the constant of integration: ∫(${beautify(expression)}) d${variable} = ${lnify(integral)} + C`);
 
   return steps;
 }
@@ -186,9 +211,9 @@ function generateIntegralGraph(original, integral, variable) {
       return {
         points,
         secondaryPoints: secondaryPoints.length > 0 ? secondaryPoints : null,
-        secondaryLabel: `F(${variable}) = ${beautify(integral)}`,
+        secondaryLabel: `F(${variable}) = ${lnify(integral)}`,
         title: `Graph of f(${variable}) = ${beautify(original)}`,
-        description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: F(${variable}) = ${beautify(integral)} (antiderivative)`,
+        description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: F(${variable}) = ${lnify(integral)} (antiderivative)`,
       };
     }
   } catch (error) {

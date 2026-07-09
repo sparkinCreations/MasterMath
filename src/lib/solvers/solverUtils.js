@@ -9,6 +9,11 @@ import { getSettings } from '../settings.js';
 
 export const math = create(all);
 
+// mathjs names the natural log `log`; students (and Algebrite) write `ln`.
+// Alias it so every numeric evaluation — graphs, sampling, arithmetic —
+// understands `ln(x)` instead of throwing "Undefined function ln".
+math.import({ ln: (x) => math.log(x) }, { override: true });
+
 // Algebrite is large and only needed for symbolic work, so it is imported
 // lazily and memoized. Every solver shares this single promise.
 let algebritePromise = null;
