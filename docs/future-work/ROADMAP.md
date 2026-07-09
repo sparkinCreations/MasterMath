@@ -1,8 +1,8 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.2.0 (commit `971613db`)
+**Version referenced:** 1.3.1 (commit `da7098d5`)
 **By:** sparkinCreations™
-**Last Updated:** July 6, 2026
+**Last Updated:** July 8, 2026
 
 ---
 
@@ -14,7 +14,7 @@
 4. [P1 — Quadratic Function Insights](#p1--quadratic-function-insights)
 5. [P1 — KaTeX Math Rendering](#p1--katex-math-rendering)
 6. [P2 — Graph Annotations](#p2--graph-annotations)
-7. [P2 — Messy-Input Test Corpus](#p2--messy-input-test-corpus)
+7. [P0 — Regression Harness Over the Evaluation Corpus](#p0--regression-harness-over-the-evaluation-corpus)
 8. [P3 — Integration by Parts Walkthrough](#p3--integration-by-parts-walkthrough)
 9. [P3 — Technique-Aware Limit Explanations](#p3--technique-aware-limit-explanations)
 10. [P4 — Tutor Mode (Step Interactivity)](#p4--tutor-mode-step-interactivity)
@@ -25,47 +25,81 @@
 
 ## Where This List Comes From
 
-Two sources, merged and verified in July 2026:
+Three inputs, merged and verified in July 2026. They graded **different
+things**, so their scores are not in conflict — read together they tell one
+story: strong presentation, real correctness gaps on the edges.
 
-1. **An external review** (July 2026) that tested easy, intermediate, and
-   conceptual problems across every category. Overall verdict: 9.2/10 —
-   "starting to feel like a real educational tool rather than just a
-   calculator."
-2. **An internal code assessment** done alongside the v1.2.0 solver overhaul
+1. **A usability/pedagogy review** (early July 2026) that worked
+   well-formed problems and graded presentation, explanations, and teaching
+   value — praising it as "starting to feel like a real educational tool
+   rather than just a calculator." This is what drove the worked-step and
+   dark-mode work.
+2. **A correctness evaluation** (mid-July 2026): 91 problems, black-box
+   against the live app, every answer independently verified with SymPy and
+   classified Correct / Partial / Incorrect. It scored **~78% (16 wrong
+   answers)** and is what drives the correctness items below. Full analysis:
+   [`../evaluations/2026-07/ANALYSIS.md`](../evaluations/2026-07/ANALYSIS.md).
+3. **An internal code assessment** done alongside the solver overhaul
    (worked-solution steps, indigo/orange rebrand, dark mode fixes).
 
+The two external reviews are complementary, not contradictory: the first
+measured *how well it teaches* on problems it can solve; the second measured
+*how often it is right* across a hard, adversarial set. A tool can be
+excellent at the former and still have the correctness gaps this roadmap now
+prioritizes.
+
 Every mathematical claim below was **verified against the actual solvers**
-before being written down — including reproducing the bugs. Where the review
+before being written down — including reproducing the bugs. Where a review
 and the code disagreed, the code's behavior is what's documented.
 
 ---
 
 ## Priority Overview
 
-| # | Item | Priority | Effort | Type |
-|---|------|----------|--------|------|
-| 1 | ~~Undefined trig values (`tan(π/2)`)~~ ✅ Fixed July 2026 | **P0** | Small | Bug |
-| 2 | Eval Wave 1: input-perimeter fixes (arctan, `!`, `C(n,k)`, `ln` alias, abs-limit verification gate, one-sided limits, factor verb, exact radicals, `ln\|x\|`, refuse-clearly guards) | **P0** | Small–Med | Bug |
-| 3 | Eval Wave 2: Functions/Graphing rebuild (derivative-based extrema, root-based intercepts, domain + asymptotes) | **P1** | Medium | Engine |
-| 4 | Quadratic insights (axis of symmetry, opens up/down) — fold into Wave 2 | P1 | Small | Feature |
-| 5 | KaTeX math rendering | P1 | Medium | Feature |
-| 6 | Graph annotations (limit point, extrema, asymptotes) — pairs with Wave 2 | P2 | Medium | Feature |
-| 7 | Messy-input test corpus (the 91-row eval CSV is the seed corpus) | P2 | Medium | Quality |
-| 8 | Definite integrals (Algebrite `defint` + notation parsing) | P2 | Medium | Feature |
-| 9 | Systems of equations (2×2 linear, elimination steps) | P3 | Medium | Feature |
-| 10 | Inequalities (roots + sign chart) | P3 | Medium | Feature |
-| 11 | Integration by parts walkthrough | P3 | Large | Engine |
-| 12 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine |
-| 13 | Tutor mode (collapsible / reveal-one-at-a-time steps) | P4 | Medium | UX |
+**Priority = severity (how wrong is the current behavior). Sequence = the
+order to actually do the work, which also weighs effort.** They differ:
+everything in the P0 *correctness* tier is equally "must fix," but the cheap,
+high-yield perimeter fixes go first because they clear ~10 of 16 wrong
+answers in a single sitting, while the Functions rebuild is a medium engine
+job. Do them in Wave order; treat the P0s as one severity class.
+
+| # | Item | Priority | Effort | Type | Wave |
+|---|------|----------|--------|------|------|
+| 1 | ~~Undefined trig values (`tan(π/2)`)~~ ✅ Fixed July 2026 | **P0** | Small | Bug | — |
+| 2 | Regression harness over the 91-row eval CSV (math-equivalence check, not string match) — grows to every fixed bug | **P0** | Medium | Quality | 1 |
+| 3 | Input-perimeter fixes (arctan, `!`, `C(n,k)`, `ln` alias, abs-limit verification gate, one-sided limits, factor verb, exact radicals, `ln\|x\|`) + **refuse-clearly guards** | **P0** | Small–Med | Bug | 1 |
+| 4 | Functions/Graphing rebuild (derivative-based extrema, root-based intercepts, domain + asymptotes) — **correctness, not a feature** | **P0** | Medium | Engine | 2 |
+| 5 | Quadratic insights (axis of symmetry, opens up/down) — fold into #4 | P1 | Small | Feature | 2 |
+| 6 | KaTeX math rendering | P1 | Medium | Feature | 3 |
+| 7 | Graph annotations (limit point, extrema, asymptotes) — pairs with #4 | P2 | Medium | Feature | 3 |
+| 8 | Definite integrals (Algebrite `defint` + notation parsing) | P2 | Medium | Feature | — |
+| 9 | Systems of equations (2×2 linear, elimination steps) | P3 | Medium | Feature | — |
+| 10 | Inequalities (roots + sign chart) | P3 | Medium | Feature | — |
+| 11 | Integration by parts walkthrough | P3 | Large | Engine | — |
+| 12 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine | — |
+| 13 | Tutor mode (collapsible / reveal-one-at-a-time steps) | P4 | Medium | UX | — |
 
 "Effort" is relative to this codebase: Small = one sitting, Medium = a few
 sittings, Large = real engine work that needs its own design pass.
 
-> **July 2026 external evaluation:** a 91-problem black-box test of the live
-> app scored ~78% (6/10). Every failure was reproduced and root-caused — see
+**Why Functions/Graphing is P0, not a feature (#4):** fabricating a vertex for
+`exp(x)` or inventing x-intercepts at −10/−9.5/−9 is a *wrong answer*, the same
+severity class as a wrong limit — not a missing capability. It scored 2/10 in
+the evaluation.
+
+**The refuse-clearly guard (in #3) is the hinge that downgrades the rest of the
+list.** Definite integrals (#8), systems (#9), and inequalities (#10) sit low
+*because* they will refuse clearly after Wave 1 instead of mis-answering.
+Today they parse to nonsense and hand back a confident wrong number — a P0
+correctness harm. The moment a guard says "I can't solve this yet," the harm is
+gone and *building* the capability becomes an optional P2/P3 feature. Trustworthy
+does not mean "solves everything"; it means "never confidently wrong," and the
+guard buys that far ahead of the features.
+
+> **July 2026 external evaluation:** 91 problems, black-box, ~78% (16 wrong).
+> Every failure reproduced and root-caused — see
 > [`../evaluations/2026-07/ANALYSIS.md`](../evaluations/2026-07/ANALYSIS.md).
-> Items 2, 3, and 8–10 come from that analysis; ~10 of the 16 wrong answers
-> are input-perimeter bugs (Wave 1), not missing math.
+> ~10 of the 16 wrong answers are input-perimeter bugs (Wave 1), not missing math.
 
 ---
 
@@ -159,21 +193,39 @@ with optional `annotations`, and render them in
 
 ---
 
-## P2 — Messy-Input Test Corpus
+## P0 — Regression Harness Over the Evaluation Corpus
 
-The external review tested well-formed inputs. Real students type things
-like `2x+5=11 solve it pls`, `whats the derivative of x squared`, mismatched
-parens, and mixed notation. A mis-parse that produces a *confident wrong
-answer* is worse than an error message.
+**This is the highest-leverage item on the list** — arguably worth more than
+any single feature. The July 2026 evaluation left a 91-problem corpus of
+input → expected-answer pairs
+([`../evaluations/2026-07/mastermath_evaluation.csv`](../evaluations/2026-07/mastermath_evaluation.csv)).
+Turn it into a permanent, runnable regression suite so no fixed bug can
+silently return — the discipline SymPy, Maple, and Wolfram use to stay
+correct as they grow.
 
-- Build a corpus file (`tests/fixtures/student-inputs.txt`) of realistic
-  messy inputs per topic.
-- For each: assert the parser either extracts the right expression **or**
-  the validation layer rejects it — never a silently wrong parse.
-- Grow the corpus from the Feedback page whenever a user reports a
-  wrong answer.
+**The non-obvious part — it can't be a string match.** Several CSV rows
+classified "Correct" are *format-divergent* from their expected answer:
+- `d/dx tan(x)` → solver `1/(cos(x)^2)` vs expected `sec^2(x)`
+- `d/dx sqrt(x)` → solver `1/(2*x^(1/2))` vs expected `1/(2*sqrt(x))`
+- `∫1/x` → solver `log(x)` vs expected `ln|x|`
 
-This is the main defense for the app's credibility as it gets real users.
+A naive `assert.equal` harness would fail these true-positives and flood the
+run with false alarms until everyone ignores it. So the harness needs a
+**math-equivalence check**, not text comparison:
+
+- Evaluate both expressions at several sample points and compare numerically
+  (fast, catches ~everything), **or** normalize both through Algebrite
+  `simplify(a - b) == 0` for symbolic forms.
+- Classify each row Correct / Equivalent-but-reformatted / Wrong / Refused.
+  "Refused" is a *pass* for the unbuilt-feature rows (see refuse-clearly
+  guards) — the suite must reward an honest refusal, never a confident guess.
+- Grow it: every bug fixed anywhere lands a new row citing its source (eval
+  CSV row, user report, or `tests/regressions.test.js` case). It subsumes the
+  earlier "messy-input corpus" idea — add realistic malformed inputs
+  (`2x+5=11 solve it pls`, mismatched parens) as Refused-expected rows.
+
+**Acceptance target:** after Wave 2, a full re-run scores ≥ 90% Correct/Equivalent
+**and zero confident wrong answers** — every failure is an explicit refusal.
 
 ---
 

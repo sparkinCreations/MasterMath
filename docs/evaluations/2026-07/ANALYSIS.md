@@ -164,9 +164,51 @@ Per the repo's established practice (`tests/regressions.test.js`):
 
 - Every Wave 1/2 fix lands **with a regression test citing the evaluation
   row** it fixes (e.g. "CSV row 10: d/dx arctan(x) returned 0").
-- The full evaluation CSV in this folder doubles as an acceptance corpus —
-  after Wave 2, a scripted re-run of all 91 inputs against the solvers should
-  score ≥ 90% and, critically, produce **zero confident wrong answers**
-  (failures must be explicit refusals).
+- The full evaluation CSV in this folder becomes a **runnable regression
+  harness** (roadmap P0, Wave 1) — after Wave 2, a scripted re-run of all 91
+  inputs scores ≥ 90% and, critically, produces **zero confident wrong
+  answers** (failures must be explicit refusals).
 - The "refuse clearly" guards get their own tests: mangled input (systems,
   definite integrals, inequalities) must never return a numeric answer.
+
+### The harness cannot be a string match
+
+Several CSV rows classified "Correct" are *format-divergent* from their
+expected answer — the engine is right, the text differs:
+
+- `d/dx tan(x)`: solver `1/(cos(x)^2)` vs expected `sec^2(x)`
+- `d/dx sqrt(x)`: solver `1/(2*x^(1/2))` vs expected `1/(2*sqrt(x))`
+- `∫1/x`: solver `log(x)` vs expected `ln|x|`
+
+A naive `assert.equal` harness fails these true-positives and floods the run
+with false alarms until it gets ignored. The harness must compare by **math
+equivalence**: evaluate both expressions at several sample points and compare
+numerically, or normalize both through Algebrite (`simplify(a - b) == 0`).
+Each row resolves to Correct / Equivalent-but-reformatted / Wrong / Refused,
+where **Refused is a pass** for the unbuilt-feature rows.
+
+## Why "Refuse Clearly" Downgrades Half the Roadmap
+
+The single most important structural point, and the honest answer to "when is
+MasterMath trustworthy?":
+
+**Trustworthy ≠ solves everything. Trustworthy = never confidently wrong.**
+
+Definite integrals, systems of equations, and inequalities appear as *P0
+correctness harms* today only because they **mis-answer** — parse to nonsense
+and return a confident wrong number (A5, A6, and the inequality echo). They
+are not P0 because the feature is missing; they are P0 because the failure is
+*silent and wrong*.
+
+The refuse-clearly guard (Wave 1) severs that. The moment the app says "I
+can't solve definite integrals yet" instead of returning garbage:
+
+- the **correctness harm is gone** — a student is never misled;
+- *building* the capability drops from **P0 correctness → P2/P3 feature**,
+  scheduled by demand, not by danger.
+
+So one small guard converts three frightening correctness bugs into three
+calm, optional features. This is why the roadmap lists the *guard* in Wave 1
+P0 but the *definite-integral / systems / inequality solvers* down at P2/P3 —
+they are deliberately different line items, and conflating them (as an
+outside reader might) overstates the remaining correctness risk.
