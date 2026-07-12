@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-07-12
+
+### Added
+- **Integration by parts walkthrough** — `∫x·cos(x) dx`, `∫x³·sin(x) dx`,
+  `∫eˣ·sin(x) dx`, `∫ln(x) dx`, `∫arctan(x) dx` and friends now show the full
+  derivation: the LIATE choice of u and dv, du and v, and the
+  `∫u dv = uv − ∫v du` line for each round
+- **Repeated by-parts now computes** — `x³·sin(x)` (which Algebrite fails
+  outright) recurses through three rounds to a direct base case
+- **Cyclic by-parts now computes** — `eˣ·sin(x)` / `eˣ·cos(x)` are solved
+  algebraically: the walkthrough shows the original integral reappearing and
+  moves it to the left to solve for it
+- **Per-term walkthroughs** — a by-parts term inside a sum
+  (`x³·sin(x) + x²`) gets its own labelled walkthrough
+- Steps render through KaTeX where possible, plain text otherwise
+
+### Changed
+- Indefinite integrals are now computed term by term, so a single hard term
+  no longer sinks the whole integral. Every antiderivative is differentiated
+  back and checked against the integrand before it is shown; anything that
+  fails falls back to Algebrite or an honest "unable to compute"
+
+### Fixed
+- Numeric evaluation now understands `arcsin`/`arccos`/`arctan` (aliased to
+  mathjs's `asin`/`acos`/`atan`), so graphs and verification of inverse-trig
+  expressions no longer silently fail
+
 ## [1.11.0] - 2026-07-12
 
 ### Added
