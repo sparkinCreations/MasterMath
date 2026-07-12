@@ -226,7 +226,13 @@ export function hasVariable(expression, variable) {
  * non-finite, or explodes beyond `cap` are skipped.
  */
 export function sampleFunction(expression, variable, options = {}) {
-  const { min = -10, max = 10, step = 0.5, cap = 1000 } = options;
+  // Default window is ±40 so the graph viewer can pan beyond the initial
+  // ±10 view "to a reasonable extent" without hitting empty space; the
+  // viewer clamps panning to the sampled data. The cap only excludes true
+  // blow-ups (asymptotes, exponential explosion) — the viewer windows the
+  // y-axis itself, so ordinary polynomial growth must NOT be dropped or the
+  // pannable extent collapses.
+  const { min = -40, max = 40, step = 0.5, cap = 1e5 } = options;
   const points = [];
 
   for (let x = min; x <= max + 1e-9; x += step) {

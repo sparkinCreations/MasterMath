@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertCircle, BookOpen, Lightbulb, Download, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
+import MathText from "@/components/MathText";
 import { exportSolutionAsMarkdown, exportSolutionAsJSON, exportSolutionAsPDF } from "@/lib/exportUtils";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -130,7 +131,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
                         {idx + 1}
                       </div>
-                      <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed">{step}</p>
+                      <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
                     </div>
                   </motion.div>
                 ))}
@@ -144,7 +145,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                 <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-2">Final Answer:</h3>
-                  <p className="text-gray-800 dark:text-emerald-50 text-xl font-semibold">{solution.answer}</p>
+                  <p className="text-gray-800 dark:text-emerald-50 text-xl font-semibold"><MathText text={solution.answer} /></p>
                 </div>
               </div>
             </div>

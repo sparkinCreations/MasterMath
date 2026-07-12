@@ -52,7 +52,9 @@ export async function solveFunctions(expression) {
 
     const features = analyzeFunction(func, variable, Algebrite);
     const steps = buildSteps(func, variable, features);
-    const points = sampleFunction(func, variable, { min: WINDOW.min, max: WINDOW.max, step: 0.25 });
+    // Plot over a wider window than the ±10 analysis so panning has room;
+    // the viewer starts at ±10 and clamps to this extent.
+    const points = sampleFunction(func, variable, { min: -40, max: 40, step: 0.25 });
 
     return {
       steps,
@@ -67,6 +69,13 @@ export async function solveFunctions(expression) {
         points,
         title: `Graph of f(${variable}) = ${beautify(func)}`,
         description: describeGraph(features, variable),
+        // Computed features rendered as markers by GraphViewer.
+        annotations: {
+          extrema: features.extrema.map((e) => ({ x: e.x, y: e.y, kind: e.kind })),
+          intercepts: features.xIntercepts.list.map((r) => ({ x: r.numeric, y: 0 })),
+          yIntercept: features.yIntercept,
+          verticalAsymptotes: features.verticalAsymptotes,
+        },
       } : null,
       features,
     };

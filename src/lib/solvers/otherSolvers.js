@@ -93,7 +93,7 @@ export async function solveLimit(expression) {
         'Only checking one side when the two sides can disagree.',
         'Stopping at a 0/0 form instead of simplifying first.',
       ],
-      graph: generateLimitGraph(func, variable, target, displayTarget),
+      graph: generateLimitGraph(func, variable, target, displayTarget, result.answer),
     };
   } catch (error) {
     console.error('Limit solver error:', error);
@@ -518,16 +518,31 @@ function estimateInfiniteLimit(func, variable, target) {
   return { steps, answer: 'Does not exist' };
 }
 
-function generateLimitGraph(func, variable, target, displayTarget) {
+function generateLimitGraph(func, variable, target, displayTarget, limitAnswer) {
   try {
     const center = Number.isFinite(target) ? target : 0;
-    const points = sampleFunction(func, variable, { min: center - 10, max: center + 10, step: 0.2, cap: 1000 });
+    // Sample wide (±30 around the point) so the viewer can pan; it opens
+    // focused on the approach point.
+    const points = sampleFunction(func, variable, { min: center - 30, max: center + 30, step: 0.2, cap: 1e5 });
 
     if (points.length > 0) {
+      // Annotate the point of interest: a guideline at the approach value and,
+      // when the limit is a finite number, a marker at (target, L) — hollow,
+      // because the function need not actually reach that value.
+      const numericLimit = Number(String(limitAnswer).trim());
+      const annotations = Number.isFinite(target)
+        ? {
+            guideline: { x: target, label: `${variable} → ${displayTarget}` },
+            limitPoint: Number.isFinite(numericLimit) ? { x: target, y: numericLimit } : null,
+          }
+        : null;
+
       return {
         points,
         title: `Graph of f(${variable}) = ${beautify(func)}`,
         description: `Showing the behavior as ${variable} approaches ${displayTarget}`,
+        annotations,
+        initialWindow: Number.isFinite(target) ? { xMin: center - 10, xMax: center + 10 } : null,
       };
     }
   } catch (error) {

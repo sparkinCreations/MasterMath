@@ -225,3 +225,28 @@ test('regression: broken-domain functions never claim global monotonicity', asyn
   const r = await solveProblem('1/(x-2)', 'functions');
   assert.equal(r.features.monotonic, null);
 });
+
+// ---------------------------------------------------------------------------
+// Wave 3 presentation: graph annotation payloads (July 2026)
+// GraphViewer renders these; the solvers must supply them.
+// ---------------------------------------------------------------------------
+
+test('functions graphs carry annotations (extrema, intercepts, asymptotes)', async () => {
+  const r = await solveProblem('x^3 - x', 'functions');
+  const ann = r.graph.annotations;
+  assert.ok(ann.extrema.length === 2);
+  assert.ok(ann.intercepts.some((p) => p.x === 0));
+  const asym = await solveProblem('1/(x-2)', 'functions');
+  assert.deepEqual(asym.graph.annotations.verticalAsymptotes, [2]);
+});
+
+test('limit graphs carry the approach guideline and finite limit point', async () => {
+  const r = await solveLimit('lim x->2 (x^2 - 4)/(x - 2)');
+  const ann = r.graph.annotations;
+  assert.equal(ann.guideline.x, 2);
+  assert.equal(ann.limitPoint.y, 4);
+  // Window opens centered on the approach point with wider pannable data.
+  assert.equal(r.graph.initialWindow.xMin, -8);
+  assert.ok(r.graph.points.length > 0);
+  assert.ok(r.graph.points[0].x <= -25);
+});
