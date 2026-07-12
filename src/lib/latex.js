@@ -35,6 +35,8 @@ export function toLatex(ascii) {
     .replace(/≤/g, ' \\le ')
     .replace(/≥/g, ' \\ge ')
     .replace(/∞/g, ' \\infty ')
+    .replace(/⁺/g, '^{+}')
+    .replace(/⁻/g, '^{-}')
     .replace(/→/g, ' \\to ')
     .replace(/π/g, ' \\pi ')
     .replace(/°/g, '^{\\circ}')

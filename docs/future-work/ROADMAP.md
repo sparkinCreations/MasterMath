@@ -1,8 +1,8 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.5.0
+**Version referenced:** 1.7.0
 **By:** sparkinCreations™
-**Last Updated:** July 8, 2026
+**Last Updated:** July 12, 2026
 
 ---
 
@@ -67,7 +67,7 @@ job. Do them in Wave order; treat the P0s as one severity class.
 |---|------|----------|--------|------|------|
 | 1 | ~~Undefined trig values (`tan(π/2)`)~~ ✅ Fixed July 2026 | **P0** | Small | Bug | — |
 | 2 | ~~Regression harness over the 91-row eval CSV~~ ✅ Done v1.4.0 (`tests/corpus/`, math-equivalence grading, wired into `npm test`) | **P0** | Medium | Quality | 1 |
-| 3 | ~~Input-perimeter fixes (arctan, `!`, `C(n,k)`, `ln` alias, abs-limit gate, `ln\|x\|`) + refuse-clearly guards~~ ✅ Done v1.4.0 — **0 confident-wrong on the corpus**. Tail: one-sided limits, factor verb, exact-radical form, symbolic trig identity | **P0** | Small–Med | Bug | 1 |
+| 3 | ~~Input-perimeter fixes (arctan, `!`, `C(n,k)`, `ln` alias, abs-limit gate, `ln\|x\|`) + refuse-clearly guards~~ ✅ Done v1.4.0 — **0 confident-wrong on the corpus**. ~~Tail: one-sided limits, factor verb, exact-radical form, symbolic trig identity~~ ✅ Done v1.7.0 (all four, each verified numerically before being claimed) | **P0** | Small–Med | Bug | 1 |
 | 4 | ~~Functions/Graphing rebuild~~ ✅ Done v1.5.0 (`functionsSolver.js`: f′-based extrema, verified intercepts, domain + asymptotes; all 10 eval rows pass) | **P0** | Medium | Engine | 2 |
 | 5 | ~~Quadratic insights (axis of symmetry, opens up/down)~~ ✅ Done v1.5.0 (folded into #4) | P1 | Small | Feature | 2 |
 | 6 | ~~KaTeX math rendering~~ ✅ Done v1.6.0 (typeset steps/answers, offline, plain-text fallback) | P1 | Medium | Feature | 3 |

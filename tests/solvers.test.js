@@ -64,14 +64,14 @@ test('solveLimit supports symbolic approach values like pi/2', async () => {
   assert.ok(result.graph?.points?.length > 0);
 });
 
-test('solveTrigonometry recognizes special-angle values', () => {
-  const result = solveTrigonometry('sin(pi/4)');
+test('solveTrigonometry recognizes special-angle values', async () => {
+  const result = await solveTrigonometry('sin(pi/4)');
   assert.match(result.answer, /0\.7071/);
   assert.ok(result.tips.length > 0);
 });
 
-test('solveTrigonometry returns Undefined at the tan(pi/2) asymptote', () => {
-  const result = solveTrigonometry('tan(pi/2)');
+test('solveTrigonometry returns Undefined at the tan(pi/2) asymptote', async () => {
+  const result = await solveTrigonometry('tan(pi/2)');
   assert.equal(result.answer, 'Undefined');
   assert.ok(result.steps.some((step) => /vertical asymptote/i.test(step)));
   assert.ok(result.steps.some((step) => /cos\(pi\/2\) = 0/.test(step)));
@@ -80,20 +80,20 @@ test('solveTrigonometry returns Undefined at the tan(pi/2) asymptote', () => {
   assert.ok(result.graph?.points?.length > 0);
 });
 
-test('solveTrigonometry returns Undefined for other odd multiples of pi/2', () => {
-  assert.equal(solveTrigonometry('tan(3*pi/2)').answer, 'Undefined');
-  assert.equal(solveTrigonometry('sec(pi/2)').answer, 'Undefined');
+test('solveTrigonometry returns Undefined for other odd multiples of pi/2', async () => {
+  assert.equal((await solveTrigonometry('tan(3*pi/2)')).answer, 'Undefined');
+  assert.equal((await solveTrigonometry('sec(pi/2)')).answer, 'Undefined');
 });
 
-test('solveTrigonometry returns Undefined for tan(90) via degree detection', () => {
-  const result = solveTrigonometry('tan(90)');
+test('solveTrigonometry returns Undefined for tan(90) via degree detection', async () => {
+  const result = await solveTrigonometry('tan(90)');
   assert.equal(result.answer, 'Undefined');
   assert.ok(result.steps.some((step) => /degrees/i.test(step)));
   assert.ok(result.steps.some((step) => /vertical asymptote/i.test(step)));
 });
 
-test('solveTrigonometry still evaluates tan(pi/4) normally', () => {
-  const result = solveTrigonometry('tan(pi/4)');
+test('solveTrigonometry still evaluates tan(pi/4) normally', async () => {
+  const result = await solveTrigonometry('tan(pi/4)');
   assert.equal(result.answer, '1');
 });
 

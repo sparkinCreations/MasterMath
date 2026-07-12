@@ -45,30 +45,30 @@ test('saveSettings sanitizes bad values and merges with defaults', () => {
   }
 });
 
-test('angle unit preference changes how bare numbers are interpreted', () => {
+test('angle unit preference changes how bare numbers are interpreted', async () => {
   // auto (default): common angles read as degrees
-  const auto = solveTrigonometry('sin(30)');
+  const auto = await solveTrigonometry('sin(30)');
   assert.match(auto.answer, /^0\.5/);
 
   // radians: sin(30) is 30 radians, with a cross-check note offered
-  const rad = solveTrigonometry('sin(30)', { angleUnit: 'radians' });
+  const rad = await solveTrigonometry('sin(30)', { angleUnit: 'radians' });
   assert.match(rad.answer, /^-0\.988/);
   assert.ok(rad.steps.some((s) => /set to radians/i.test(s)));
   assert.ok(rad.steps.some((s) => /if you meant 30°/i.test(s)));
 
   // degrees: even non-common angles convert (auto would treat 37 as radians)
-  const deg = solveTrigonometry('sin(37)', { angleUnit: 'degrees' });
+  const deg = await solveTrigonometry('sin(37)', { angleUnit: 'degrees' });
   assert.ok(Math.abs(parseFloat(deg.answer) - 0.6018) < 1e-3);
   assert.ok(deg.steps.some((s) => /set to degrees/i.test(s)));
 });
 
-test('explicit pi stays radians even with degrees preference', () => {
-  const result = solveTrigonometry('sin(pi/2)', { angleUnit: 'degrees' });
+test('explicit pi stays radians even with degrees preference', async () => {
+  const result = await solveTrigonometry('sin(pi/2)', { angleUnit: 'degrees' });
   assert.equal(parseFloat(result.answer), 1);
 });
 
-test('asymptote detection respects the degrees preference', () => {
-  const result = solveTrigonometry('tan(90)', { angleUnit: 'degrees' });
+test('asymptote detection respects the degrees preference', async () => {
+  const result = await solveTrigonometry('tan(90)', { angleUnit: 'degrees' });
   assert.equal(result.answer, 'Undefined');
 });
 

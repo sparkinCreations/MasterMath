@@ -129,7 +129,14 @@ export async function solveProblem(problem, topic) {
         if (!expression || expression.trim().length === 0) {
           throw new Error('Unable to extract mathematical expression from input');
         }
-        result = await solver(expression);
+        // The extractor strips verbs, so intent has to ride alongside the
+        // expression: "factor x^2 - 9" routes to the algebra solver's
+        // factoring path instead of the (no-op) simplify path.
+        if (topic === 'algebra' && /\b(?:factor|factorize|factorise)\b/i.test(problem)) {
+          result = await solver(expression, { intent: 'factor' });
+        } else {
+          result = await solver(expression);
+        }
         break;
       }
     }

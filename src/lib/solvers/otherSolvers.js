@@ -1,5 +1,14 @@
-import { extractVariable, parseMathExpression } from '../mathParser.js';
-import { math, beautify, formatNumber, sampleFunction, loadAlgebrite } from './solverUtils.js';
+import { extractVariable, parseMathExpression, isEquation } from '../mathParser.js';
+import {
+  math,
+  beautify,
+  formatNumber,
+  sampleFunction,
+  loadAlgebrite,
+  hasVariable,
+  rewriteReciprocalTrig,
+  expressionsNumericallyEqual,
+} from './solverUtils.js';
 import { getSettings } from '../settings.js';
 
 // ---------------------------------------------------------------------------
@@ -10,6 +19,19 @@ export async function solveLimit(expression) {
   try {
     let cleaned = expression.trim().replace(/[.?!]+$/, '').trim();
     cleaned = cleaned.replace(/^(?:find the limit|evaluate the limit|calculate the limit)\s+(?:of\s+)?/i, '');
+
+    // One-sided limits, phrasing form: "… as x approaches 0 from the right".
+    // The phrase is stripped here, before the notation regexes run, so it can
+    // never leak into the extracted function expression. The suffix form
+    // ("x→0⁺", "x->0+") is handled after the approach token is captured.
+    let side = 0; // 0 = two-sided, 1 = from the right (⁺), -1 = from the left (⁻)
+    cleaned = cleaned
+      .replace(/\bfrom\s+the\s+(left|right)(?:\s+side)?\b/i, (_, s) => {
+        side = s.toLowerCase() === 'right' ? 1 : -1;
+        return '';
+      })
+      .replace(/\s{2,}/g, ' ')
+      .trim();
 
     let approachValue = 0;
     let func = cleaned;
@@ -36,12 +58,25 @@ export async function solveLimit(expression) {
       variable = extractVariable(func);
     }
 
-    const target = resolveApproachValue(approachValue);
+    // One-sided limits, suffix form: a trailing +/- (or ⁺/⁻, or ^+/^-) on the
+    // approach value selects a side. The base must itself resolve to a number
+    // for the suffix to count — this keeps a plain negative like "-2" from
+    // losing its sign to the side detector.
+    let approachToken = String(approachValue).trim();
+    const sideSuffix = approachToken.match(/^(.+?)\^?([+⁺\-−⁻])$/);
+    if (sideSuffix && Number.isFinite(resolveApproachValue(sideSuffix[1]))) {
+      approachToken = sideSuffix[1];
+      side = /[+⁺]/.test(sideSuffix[2]) ? 1 : -1;
+    }
+
+    const target = resolveApproachValue(approachToken);
     if (Number.isNaN(target)) {
       throw new Error('Unable to interpret the limit approach value');
     }
+    if (!Number.isFinite(target)) side = 0; // ±∞ has no sides to approach from
 
-    const displayTarget = formatApproach(approachValue, target);
+    const sideMark = side === 1 ? '⁺' : side === -1 ? '⁻' : '';
+    const displayTarget = formatApproach(approachToken, target) + sideMark;
 
     // A constant sub-expression can sit exactly on a trig asymptote (e.g. the
     // user typed tan(pi/2) under the Limits topic). The expression is
@@ -69,9 +104,11 @@ export async function solveLimit(expression) {
       };
     }
 
-    const result = Number.isFinite(target)
-      ? await evaluateFiniteLimit(func, variable, target)
-      : estimateInfiniteLimit(func, variable, target);
+    const result = !Number.isFinite(target)
+      ? estimateInfiniteLimit(func, variable, target)
+      : side !== 0
+        ? evaluateOneSidedLimit(func, variable, target, side)
+        : await evaluateFiniteLimit(func, variable, target);
 
     const steps = [
       `Evaluate lim (${variable}→${displayTarget}) ${beautify(func)}`,
@@ -83,12 +120,20 @@ export async function solveLimit(expression) {
       answer: `lim (${variable}→${displayTarget}) ${beautify(func)} = ${result.answer}`,
       verified: result.verified ?? false,
       verificationMethod: result.verified ? (result.verificationMethod ?? 'numeric check') : null,
-      tips: [
+      tips: side !== 0 ? [
+        'A one-sided limit only follows the function along one side of the point — the other side is ignored entirely.',
+        'The two-sided limit exists exactly when the left- and right-hand limits agree.',
+        'One-sided limits are the right tool at domain boundaries, jump discontinuities, and vertical asymptotes.',
+      ] : [
         'Try substituting the value directly first — if the function is continuous there, that is the limit.',
         'A 0/0 or ∞/∞ result is indeterminate: factor, rationalize, or use L\'Hôpital\'s rule.',
         'For limits at infinity, compare the growth rates of the numerator and denominator.',
       ],
-      common_mistakes: [
+      common_mistakes: side !== 0 ? [
+        'Mixing up the notation: x → a⁺ approaches from the right (values above a), x → a⁻ from the left.',
+        'Reporting a two-sided limit when only one side was asked for (or exists).',
+        'Assuming a one-sided limit exists where the function is not even defined on that side.',
+      ] : [
         'Assuming the limit equals the function value even at a discontinuity.',
         'Only checking one side when the two sides can disagree.',
         'Stopping at a 0/0 form instead of simplifying first.',
@@ -484,6 +529,83 @@ function describeSide(side) {
   return formatNumber(side.value);
 }
 
+// Evaluate a one-sided limit (side: 1 = from the right, -1 = from the left)
+// by sampling a log-spaced ladder of offsets shrinking toward the point.
+// Numeric by nature — like estimateFiniteLimitNumeric, it does not fabricate
+// a "verified" flag — with one exactness upgrade: when the function is defined
+// at the point and the samples settle onto that value, the limit is reported
+// as the exact value and marked verified by direct substitution.
+function evaluateOneSidedLimit(func, variable, target, side) {
+  const dirWord = side > 0 ? 'right' : 'left';
+  const mark = side > 0 ? '⁺' : '⁻';
+  const steps = [
+    `This is a one-sided limit: only the ${dirWord}-hand behaviour (${variable} → ${formatNumber(target)}${mark}) matters.`,
+  ];
+
+  const offsets = [1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9];
+  const samples = offsets
+    .map((o) => evalAt(func, variable, target + side * o))
+    .filter((y) => !Number.isNaN(y));
+  const values = samples.filter((y) => Number.isFinite(y));
+
+  if (values.length < 3) {
+    // Mostly undefined or infinite on that side. Distinguish the two.
+    const infinities = samples.filter((y) => !Number.isFinite(y));
+    if (infinities.length >= 2) {
+      const answer = infinities[infinities.length - 1] > 0 ? '∞' : '-∞';
+      steps.push(`Approaching from the ${dirWord}, the values grow without bound — the limit is ${answer}.`);
+      return { steps, answer };
+    }
+    steps.push(`The function is not defined on the ${dirWord} side of ${variable} = ${formatNumber(target)}, so this one-sided limit does not exist.`);
+    return { steps, answer: 'Does not exist' };
+  }
+
+  const first = values[0];
+  const last = values[values.length - 1];
+  const preview = [values[0], values[Math.floor(values.length / 2)], last]
+    .map((v) => formatNumber(v));
+  steps.push(`Sample ever closer on the ${dirWord} side: the values run ${preview.join(' → ')}.`);
+
+  // Explosive growth: magnitudes climbing steadily to something huge.
+  if (Math.abs(last) > 1e4 && Math.abs(last) > 5 * Math.abs(first)) {
+    const answer = last > 0 ? '∞' : '-∞';
+    steps.push(`The values grow without bound, so the one-sided limit is ${answer}.`);
+    return { steps, answer };
+  }
+
+  const deltas = [];
+  for (let i = 1; i < values.length; i += 1) deltas.push(values[i] - values[i - 1]);
+  const lastDelta = Math.abs(deltas[deltas.length - 1]);
+
+  // Convergence: consecutive samples settle within a tight tolerance.
+  if (lastDelta <= 1e-4 * (1 + Math.abs(last))) {
+    const direct = evalAt(func, variable, target);
+    if (
+      Number.isFinite(direct) &&
+      Math.abs(direct) < EXPLODED_MAGNITUDE &&
+      Math.abs(direct - last) < 1e-3 * (1 + Math.abs(direct))
+    ) {
+      steps.push(`The values settle onto the function's own value there: f(${formatNumber(target)}) = ${formatNumber(direct)}.`);
+      return { steps, answer: formatNumber(direct), verified: true, verificationMethod: 'direct substitution' };
+    }
+    steps.push(`The values settle toward ${formatNumber(last)}, so that is the one-sided limit.`);
+    return { steps, answer: formatNumber(last) };
+  }
+
+  // Slow, steady divergence (e.g. ln(x) as x → 0⁺): each step keeps the same
+  // sign and never decays, so the values are marching off to ±∞ even though
+  // the magnitudes still look tame at these offsets.
+  const sameSign = deltas.every((d) => d !== 0 && Math.sign(d) === Math.sign(deltas[0]));
+  if (sameSign && lastDelta >= 0.5 * Math.abs(deltas[0])) {
+    const answer = deltas[0] > 0 ? '∞' : '-∞';
+    steps.push(`The values keep marching in the same direction without settling — a slow divergence to ${answer}.`);
+    return { steps, answer };
+  }
+
+  steps.push('The values do not settle on that side, so the one-sided limit does not exist.');
+  return { steps, answer: 'Does not exist' };
+}
+
 function estimateInfiniteLimit(func, variable, target) {
   const sign = target === Infinity ? 1 : -1;
   const samples = [1e2, 1e3, 1e4, 1e6].map((m) => evalAt(func, variable, sign * m));
@@ -612,8 +734,18 @@ function detectTrigAsymptote(expression, result, treatAsDegrees) {
   return null;
 }
 
-export function solveTrigonometry(expression, settingsOverride) {
+export async function solveTrigonometry(expression, settingsOverride) {
   try {
+    // A free variable means this is a symbolic expression (an identity to
+    // simplify), not a value to compute — math.evaluate would just throw
+    // "Undefined symbol x". Route it to the Algebrite simplification path.
+    // Equations are excluded: Algebrite reads "=" as assignment, and solving
+    // trig equations is not built yet — the error fallback refuses clearly.
+    const variable = extractVariable(expression);
+    if (!isEquation(expression) && hasVariable(expression, variable)) {
+      return await simplifyTrigExpression(expression, variable);
+    }
+
     const steps = [];
     steps.push(`Evaluate the trigonometric expression: ${beautify(expression)}`);
 
@@ -784,6 +916,111 @@ export function solveTrigonometry(expression, settingsOverride) {
       common_mistakes: ['Using incorrect notation'],
       graph: null,
     };
+  }
+}
+
+// Symbolic trig input (contains a variable): simplify with Algebrite and only
+// claim the result after a numeric equivalence check at sample points. This is
+// what turns sin(x)^2 + cos(x)^2 into 1 instead of "Unable to evaluate".
+async function simplifyTrigExpression(expression, variable) {
+  const display = beautify(expression);
+  const tips = [
+    'Pythagorean identity: sin²(x) + cos²(x) = 1 (and its ÷cos², ÷sin² forms).',
+    'Double angle: sin(2x) = 2·sin(x)·cos(x), cos(2x) = cos²(x) − sin²(x).',
+    'Rewriting tan, sec, csc, cot in terms of sin and cos often unlocks a simplification.',
+  ];
+  const commonMistakes = [
+    'Cancelling across a sum: sin(x)/x is not sin — only common *factors* cancel.',
+    'Dropping the argument: sin² + cos² means nothing without the same angle inside both.',
+    'Forgetting that an identity must hold for every angle, not just one test value.',
+  ];
+
+  try {
+    const Algebrite = await loadAlgebrite();
+    const rewritten = rewriteReciprocalTrig(expression);
+    const simplified = String(Algebrite.run(`simplify(${rewritten})`)).trim();
+
+    const usable = Boolean(simplified) && !/nil|error|stop/i.test(simplified);
+    const verified = usable && expressionsNumericallyEqual(expression, simplified, variable);
+    // "Changed" requires a strictly shorter form — a mere reordering of terms
+    // is not a simplification worth presenting as one.
+    const changed = usable &&
+      normalizeForCompare(simplified) !== normalizeForCompare(expression) &&
+      normalizeForCompare(simplified).length < normalizeForCompare(expression).length;
+
+    if (usable && verified && changed) {
+      const steps = [`Simplify the trigonometric expression: ${display}`];
+      if (simplified === '1' && isPythagoreanIdentity(expression)) {
+        steps.push('Apply the Pythagorean identity: sin²(θ) + cos²(θ) = 1 for every angle θ.');
+      } else {
+        steps.push('Apply trigonometric identities and combine terms.');
+      }
+      steps.push(`Result: ${beautify(simplified)} (confirmed numerically at several values of ${variable}).`);
+      return {
+        steps,
+        answer: beautify(simplified),
+        tips,
+        common_mistakes: commonMistakes,
+        graph: generateSymbolicTrigGraph(expression, variable, beautify(simplified)),
+      };
+    }
+
+    // Nothing simpler was found (or the candidate failed verification):
+    // be honest rather than guessing.
+    return {
+      steps: [
+        `Simplify the trigonometric expression: ${display}`,
+        verified
+          ? 'No simpler equivalent form was found — the expression is already in simplest terms.'
+          : 'No trustworthy simplification was found for this expression.',
+      ],
+      answer: display,
+      tips,
+      common_mistakes: commonMistakes,
+      graph: generateSymbolicTrigGraph(expression, variable, null),
+    };
+  } catch (error) {
+    console.error('Symbolic trig simplification error:', error);
+    return {
+      steps: [
+        `Simplify the trigonometric expression: ${display}`,
+        'Unable to simplify — check the formatting.',
+      ],
+      answer: 'Unable to simplify',
+      tips,
+      common_mistakes: ['Using incorrect notation'],
+      graph: null,
+    };
+  }
+}
+
+function normalizeForCompare(s) {
+  return String(s).replace(/[\s*]/g, '');
+}
+
+function isPythagoreanIdentity(expression) {
+  const s = String(expression).replace(/\s+/g, '');
+  return (
+    /^sin\(([^()]+)\)\^2\+cos\(\1\)\^2$/i.test(s) ||
+    /^cos\(([^()]+)\)\^2\+sin\(\1\)\^2$/i.test(s)
+  );
+}
+
+// Graph the symbolic expression itself over -2π..2π (an identity like
+// sin²+cos² draws its constant value — a flat line at 1 — which is the point).
+function generateSymbolicTrigGraph(expression, variable, simplifiedDisplay) {
+  try {
+    const points = sampleFunction(expression, variable, { min: -6.28, max: 6.28, step: 0.1, cap: 10 });
+    if (points.length === 0) return null;
+    return {
+      points,
+      title: `Graph of ${beautify(expression)}`,
+      description: simplifiedDisplay
+        ? `Equivalent to ${simplifiedDisplay} over -2π to 2π`
+        : 'Shown over -2π to 2π',
+    };
+  } catch {
+    return null;
   }
 }
 

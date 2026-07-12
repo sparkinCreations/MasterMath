@@ -19,6 +19,11 @@ test('toLatex converts integrals, limits, and unicode operators', () => {
   assert.match(toLatex('x = -2 ± i'), /\\pm/);
 });
 
+test('toLatex converts one-sided limit markers to proper superscripts', () => {
+  assert.match(toLatex('lim (x→0⁺) 1/x = ∞'), /\\lim_\{x \\to 0\^\{\+\}\}/);
+  assert.match(toLatex('lim (x→0⁻) 1/x = -∞'), /0\^\{-\}/);
+});
+
 test('toLatex names trig and log functions', () => {
   assert.match(toLatex('sin(x)^2 + cos(x)^2'), /\\sin/);
   assert.match(toLatex('sin(x)^2 + cos(x)^2'), /\\cos/);
@@ -65,6 +70,8 @@ test('katex renders converted solver answers without throwing', async () => {
     'ln|x^2 + 4| + C',
     'f(x) = x^2 - 4x + 3',
     'x = 2^(1/2)',
+    'lim (x→0⁺) 1/x = ∞',
+    '5√2 (≈ 7.0711)',
   ];
   for (const s of samples) {
     assert.doesNotThrow(() => katex.renderToString(toLatex(s), { throwOnError: true }), `failed on: ${s}`);

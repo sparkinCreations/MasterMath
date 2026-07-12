@@ -221,6 +221,34 @@ export function hasVariable(expression, variable) {
 
 
 /**
+ * Are two expressions numerically equal? Samples both at several points and
+ * requires agreement everywhere both are defined (at least 3 usable points).
+ * This is the verification gate for symbolic results — a factorization or
+ * identity simplification is only *claimed* after it passes this check, so a
+ * symbolic-engine bug degrades to "no answer" rather than a wrong answer.
+ */
+const EQUIVALENCE_SAMPLE_POINTS = [-2.31, -1.17, -0.43, 0.29, 0.87, 1.61, 2.53];
+
+export function expressionsNumericallyEqual(exprA, exprB, variable = 'x') {
+  let seen = 0;
+  let agree = 0;
+  for (const x of EQUIVALENCE_SAMPLE_POINTS) {
+    let a;
+    let b;
+    try {
+      a = Number(math.evaluate(String(exprA), { [variable]: x }));
+      b = Number(math.evaluate(String(exprB), { [variable]: x }));
+    } catch {
+      continue;
+    }
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+    seen += 1;
+    if (Math.abs(a - b) <= 1e-6 * (1 + Math.abs(a))) agree += 1;
+  }
+  return seen >= 3 && agree === seen;
+}
+
+/**
  * Sample a single-variable expression over a range, returning `{x, y}` points
  * suitable for the graph components. Points where the function is undefined,
  * non-finite, or explodes beyond `cap` are skipped.

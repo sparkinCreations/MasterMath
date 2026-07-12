@@ -250,3 +250,126 @@ test('limit graphs carry the approach guideline and finite limit point', async (
   assert.ok(r.graph.points.length > 0);
   assert.ok(r.graph.points[0].x <= -25);
 });
+
+// ---------------------------------------------------------------------------
+// Wave 1 quality tail (July 2026 evaluation, items B2-B5 in ANALYSIS.md)
+// Four "Partial" behaviours: one-sided limit notation silently degraded to
+// the two-sided limit; "factor" echoed the input back; sqrt(50) answered a
+// decimal instead of 5√2; sin(x)^2 + cos(x)^2 was "Unable to evaluate".
+// ---------------------------------------------------------------------------
+
+// B2 — one-sided limits. "lim x->0+ 1/x" used to parse the approach token
+// "0+" through parseFloat (which silently drops the +) and answer the
+// two-sided limit ("Does not exist") instead of ∞.
+test('regression: lim x->0+ 1/x is ∞ (suffix notation)', async () => {
+  const r = await solveLimit('lim x->0+ 1/x');
+  assert.match(r.answer, /=\s*∞$/);
+  assert.match(r.answer, /0⁺/);
+});
+
+test('regression: lim x->0- 1/x is -∞', async () => {
+  const r = await solveLimit('lim x->0- 1/x');
+  assert.match(r.answer, /=\s*-∞$/);
+  assert.match(r.answer, /0⁻/);
+});
+
+test('regression: lim x->0^+ abs(x)/x is 1 (caret-suffix notation)', async () => {
+  const r = await solveLimit('lim x->0^+ abs(x)/x');
+  assert.match(r.answer, /=\s*1$/);
+});
+
+test('regression: one-sided "from the right" phrasing works too', async () => {
+  const r = await solveLimit('limit as x approaches 0 from the right of 1/x');
+  assert.match(r.answer, /=\s*∞$/);
+});
+
+test('regression: lim x->0- sqrt(x) does not exist (domain boundary)', async () => {
+  // Direct substitution gives 0, but sqrt is undefined on the left of 0 —
+  // a one-sided evaluator that trusts substitution alone gets this wrong.
+  const r = await solveLimit('lim x->0- sqrt(x)');
+  assert.match(r.answer, /Does not exist$/);
+  assert.ok(r.steps.some((s) => /not defined on the left side/i.test(s)));
+});
+
+test('regression: lim x->0+ log(x) is -∞ (slow divergence, not a sample value)', async () => {
+  // Naive sampling at 1e-8 reads log(x) as ≈ -18.4 and reports that number.
+  const r = await solveLimit('lim x->0+ log(x)');
+  assert.match(r.answer, /=\s*-∞$/);
+});
+
+test('regression: continuous one-sided limits verify by direct substitution', async () => {
+  const r = await solveLimit('lim x->2+ x^2');
+  assert.match(r.answer, /=\s*4$/);
+  assert.equal(r.verified, true);
+});
+
+test('regression: a plain negative approach value is not read as one-sided', async () => {
+  // "-2" ends in a digit, not a sign — the side detector must leave it alone.
+  const r = await solveLimit('lim x->-2 x^2');
+  assert.match(r.answer, /=\s*4$/);
+  assert.doesNotMatch(r.answer, /[⁺⁻]/);
+});
+
+test('regression: two-sided lim x->0 1/x still does not exist', async () => {
+  const r = await solveLimit('lim x->0 1/x');
+  assert.match(r.answer, /Does not exist$/);
+});
+
+// B4 — the factor verb. "factor x^2 - 9" echoed back "x^2 - 9": the extractor
+// stripped the verb, so the solver just simplified an already-simple input.
+test('regression: eval — factor x^2 - 9 yields (x - 3)(x + 3)', async () => {
+  const r = await solveProblem('factor x^2 - 9', 'algebra');
+  assert.equal(r.answer, '(x - 3)(x + 3)');
+  assert.ok(r.steps.some((s) => /difference of squares/i.test(s)));
+  assert.ok(r.steps.some((s) => /check by expanding/i.test(s)));
+});
+
+test('regression: factoring pulls common factors and handles trinomials', async () => {
+  const trinomial = await solveProblem('factor x^2 + 5x + 6', 'algebra');
+  assert.equal(trinomial.answer, '(x + 2)(x + 3)');
+  const common = await solveProblem('factor 2x^2 - 8', 'algebra');
+  assert.equal(common.answer, '2(x - 2)(x + 2)');
+});
+
+test('regression: an irreducible polynomial factors honestly, not wrongly', async () => {
+  const r = await solveProblem('factor x^2 + 1', 'algebra');
+  assert.match(r.answer, /no simpler factors over the integers/);
+});
+
+// B5 — exact radicals. "sqrt(50)" answered 7.0711; the simplify path had no
+// exact-radical rung even though the exact form is what the topic teaches.
+test('regression: eval — sqrt(50) simplifies to 5√2, not 7.0711', async () => {
+  const r = await solveProblem('sqrt(50)', 'algebra');
+  assert.equal(r.answer, '5√2 (≈ 7.0711)');
+  assert.ok(r.steps.some((s) => /50 = 25 × 2/.test(s)));
+});
+
+test('regression: perfect squares and already-simple radicals stay honest', async () => {
+  assert.equal((await solveProblem('sqrt(49)', 'algebra')).answer, '7');
+  assert.match((await solveProblem('sqrt(2)', 'algebra')).answer, /^√2 \(≈ 1\.4142\)$/);
+  assert.match((await solveProblem('sqrt(72)', 'algebra')).answer, /^6√2/);
+});
+
+test('regression: radical sums combine exactly via the Algebrite rung', async () => {
+  const r = await solveProblem('sqrt(8) + sqrt(2)', 'algebra');
+  assert.match(r.answer, /^3√2/);
+});
+
+// B3 — symbolic trig identities. sin(x)^2 + cos(x)^2 hit math.evaluate,
+// threw "Undefined symbol x", and answered "Unable to evaluate".
+test('regression: eval — sin(x)^2 + cos(x)^2 simplifies to 1', async () => {
+  const r = await solveProblem('sin(x)^2 + cos(x)^2', 'trigonometry');
+  assert.equal(r.answer, '1');
+  assert.ok(r.steps.some((s) => /pythagorean identity/i.test(s)));
+});
+
+test('regression: symbolic trig that cannot simplify says so honestly', async () => {
+  const r = await solveProblem('sin(x) + cos(x)', 'trigonometry');
+  assert.match(r.answer, /sin\(x\) \+ cos\(x\)/);
+  assert.ok(r.steps.some((s) => /already in simplest terms|no trustworthy simplification/i.test(s)));
+});
+
+test('regression: numeric trig still evaluates after the symbolic split', async () => {
+  const r = await solveProblem('sin(pi/6)', 'trigonometry');
+  assert.match(r.answer, /^0\.5/);
+});

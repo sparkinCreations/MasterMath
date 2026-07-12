@@ -7,6 +7,7 @@ import {
   beautify,
   formatNumber,
   sampleFunction,
+  expressionsNumericallyEqual,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -21,7 +22,7 @@ const COMMON_MISTAKES = [
   'Sign errors when moving a term across the equals sign.',
 ];
 
-export async function solveAlgebra(expression) {
+export async function solveAlgebra(expression, options = {}) {
   try {
     // Systems of equations aren't supported yet. A semicolon/newline separator
     // or two '=' signs means multiple equations; refuse clearly rather than
@@ -41,10 +42,19 @@ export async function solveAlgebra(expression) {
       };
     }
 
+    // "factor x^2 - 9": the expression extractor strips the verb, so the
+    // intent arrives separately from the API layer. Without it, factoring
+    // requests fell into the simplify path — and x^2 - 9 is already "simple",
+    // so the input was just echoed back.
+    if (options.intent === 'factor' && !isEquation(expression)) {
+      const factored = await factorExpression(expression);
+      if (factored) return factored;
+    }
+
     if (isEquation(expression)) {
       return await solveEquation(expression);
     }
-    return simplifyExpression(expression);
+    return await simplifyExpression(expression);
   } catch (error) {
     console.error('Algebra solver error:', error);
     return {
@@ -393,7 +403,100 @@ function refineRoot(expression, variable, a, b) {
   return (left + right) / 2;
 }
 
-function simplifyExpression(expression) {
+// Factor an expression over the integers with Algebrite. The result is only
+// claimed after two independent checks: a numeric equivalence sweep and a
+// symbolic re-expansion (which doubles as the "check your work" step). If
+// anything fails, return null so the caller falls back to the simplify path.
+async function factorExpression(expression) {
+  try {
+    const Algebrite = await loadAlgebrite();
+    const variable = extractVariable(expression);
+    const factored = String(Algebrite.run(`factor(${expression})`)).trim();
+    if (!factored || /nil|error|stop/i.test(factored)) return null;
+    if (!expressionsNumericallyEqual(expression, factored, variable)) return null;
+
+    const changed = factored.replace(/[\s*]/g, '') !== String(expression).replace(/[\s*]/g, '');
+
+    const tips = [
+      'Always pull out the greatest common factor first.',
+      'a² − b² = (a − b)(a + b) — the difference-of-squares pattern.',
+      'Check a factorization by expanding it back out.',
+    ];
+    const commonMistakes = [
+      'Stopping before the expression is fully factored.',
+      'Sign errors inside the factors — expand to verify.',
+      'Treating a sum of squares like a difference: a² + b² does not factor over the reals.',
+    ];
+
+    if (!changed) {
+      return {
+        steps: [
+          `Factor the expression: ${beautify(expression)}`,
+          'No factorization over the integers exists — the expression is already fully factored.',
+        ],
+        answer: `${beautify(expression)} (no simpler factors over the integers)`,
+        tips,
+        common_mistakes: commonMistakes,
+        graph: generateAlgebraGraph(expression),
+      };
+    }
+
+    const display = formatFactoredForm(factored);
+    const steps = [`Factor the expression: ${beautify(expression)}`];
+
+    const squares = diffOfSquares(expression);
+    if (squares) {
+      steps.push(`Recognize a difference of squares: ${squares}`);
+    } else {
+      steps.push('Pull out common factors and match factoring patterns (difference of squares, trinomials).');
+    }
+    steps.push(`Factored form: ${display}`);
+
+    // Genuinely recompute the expansion for the verification step.
+    try {
+      const expanded = String(Algebrite.run(`expand(${factored})`)).trim();
+      if (expanded && !/nil|error|stop/i.test(expanded)) {
+        steps.push(`Check by expanding: ${display} = ${beautify(expanded)}.`);
+      }
+    } catch {
+      // The check step is optional; the numeric gate above already passed.
+    }
+
+    return {
+      steps,
+      answer: display,
+      tips,
+      common_mistakes: commonMistakes,
+      graph: generateAlgebraGraph(expression),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Drop the explicit '*' between factors for display: (x-3)*(x+3) reads as
+// (x - 3)(x + 3). beautify() already handles digit coefficients like 2*(…).
+function formatFactoredForm(factored) {
+  return beautify(factored).replace(/([a-z0-9)])\s*\*\s*\(/gi, '$1(');
+}
+
+// Textbook narration for the x^2 - N (perfect square N) shape.
+function diffOfSquares(expression) {
+  const m = String(expression).replace(/\s+/g, '').match(/^([a-z])\^2-(\d+)$/i);
+  if (!m) return null;
+  const n = Number(m[2]);
+  const root = Math.round(Math.sqrt(n));
+  if (root * root !== n) return null;
+  const v = m[1];
+  return `${v}² − ${n} = ${v}² − ${root}², so it factors as (${v} − ${root})(${v} + ${root}).`;
+}
+
+async function simplifyExpression(expression) {
+  // Exact-radical rung: a constant expression containing a radical should
+  // answer in exact simplified form (sqrt(50) → 5√2), not a decimal.
+  const exact = await exactRadicalForm(expression);
+  if (exact) return exact;
+
   let steps = [];
   let answer = '';
 
@@ -433,6 +536,124 @@ function simplifyExpression(expression) {
     common_mistakes: COMMON_MISTAKES,
     graph: generateAlgebraGraph(expression),
   };
+}
+
+const RADICAL_TIPS = [
+  'Factor out the largest perfect square: √50 = √25 · √2 = 5√2.',
+  'A radical is in simplest form when nothing under it has a square factor left.',
+  '√(a·b) = √a · √b, but √(a + b) is NOT √a + √b.',
+];
+
+const RADICAL_MISTAKES = [
+  'Splitting a radical across addition: √(a + b) ≠ √a + √b.',
+  'Missing the largest square factor (√72 = 6√2, not 2√18).',
+  'Stopping at a decimal when the exact simplified radical was the point.',
+];
+
+// Constant expressions with radicals should simplify exactly: sqrt(50) → 5√2,
+// not 7.0711. Pure sqrt(N) gets the textbook perfect-square walkthrough in
+// plain JS; other constant radical expressions go through Algebrite simplify,
+// verified numerically before being claimed. Returns null when the input has
+// a variable or no radical, so the regular simplify path runs instead.
+async function exactRadicalForm(expression) {
+  const expr = String(expression).trim();
+  if (!/sqrt|√|\^\(1\/\d+\)/.test(expr)) return null;
+
+  // Constant check: no letters may remain once function/constant names go.
+  const residue = expr
+    .replace(/\b(?:sqrt|abs|sin|cos|tan|sec|csc|cot|ln|log|exp|pi)\b/gi, '')
+    .replace(/\be\b/gi, '');
+  if (/[a-z]/i.test(residue)) return null;
+
+  let decimal;
+  try {
+    decimal = Number(math.evaluate(expr));
+  } catch {
+    return null;
+  }
+  if (!Number.isFinite(decimal)) return null;
+
+  // Pure sqrt(N): factor out the largest perfect square by hand.
+  const pure = expr.replace(/\s+/g, '').match(/^sqrt\((\d+)\)$/);
+  if (pure) {
+    const n = Number(pure[1]);
+    let k = 1;
+    for (let i = Math.floor(Math.sqrt(n)); i >= 2; i -= 1) {
+      if (n % (i * i) === 0) { k = i; break; }
+    }
+    const m = n / (k * k);
+
+    if (m === 1) {
+      return radicalResult([
+        `Simplify the radical: √${n}`,
+        `${n} is a perfect square: ${k}² = ${n}.`,
+        `√${n} = ${k}.`,
+      ], String(k));
+    }
+    if (k === 1) {
+      return radicalResult([
+        `Simplify the radical: √${n}`,
+        `${n} has no perfect-square factor larger than 1, so √${n} is already in simplest form.`,
+        `Decimal value: √${n} ≈ ${formatNumber(decimal)}.`,
+      ], `√${n} (≈ ${formatNumber(decimal)})`);
+    }
+    return radicalResult([
+      `Simplify the radical: √${n}`,
+      `Find the largest perfect square that divides ${n}: ${n} = ${k * k} × ${m}.`,
+      `Split the radical: √${n} = √${k * k} · √${m} = ${k}√${m}.`,
+      `Decimal value: ${k}√${m} ≈ ${formatNumber(decimal)}.`,
+    ], `${k}√${m} (≈ ${formatNumber(decimal)})`);
+  }
+
+  // General constant radical (sqrt(8) + sqrt(2), 2*sqrt(12), …): Algebrite
+  // finds the exact form; a numeric cross-check gates it before display.
+  try {
+    const Algebrite = await loadAlgebrite();
+    const simplified = String(Algebrite.run(`simplify(${expr})`)).trim();
+    if (!simplified || /nil|error|stop/i.test(simplified)) return null;
+
+    const value = Number(math.evaluate(simplified));
+    if (!Number.isFinite(value) || Math.abs(value - decimal) > 1e-9 * (1 + Math.abs(decimal))) return null;
+
+    if (!/\^\(1\/\d+\)/.test(simplified)) {
+      // Collapsed all the way to a plain number or fraction.
+      const display = beautify(simplified);
+      if (display.replace(/\s/g, '') === expr.replace(/\s/g, '')) return null;
+      return radicalResult([
+        `Simplify the radical expression: ${beautify(expr)}`,
+        `The radicals combine exactly: ${display}.`,
+      ], display);
+    }
+
+    const exact = prettifyRadicals(simplified);
+    return radicalResult([
+      `Simplify the radical expression: ${beautify(expr)}`,
+      `Combine into exact simplified form: ${exact}.`,
+      `Decimal value: ${exact} ≈ ${formatNumber(decimal)}.`,
+    ], `${exact} (≈ ${formatNumber(decimal)})`);
+  } catch {
+    return null;
+  }
+}
+
+function radicalResult(steps, answer) {
+  return {
+    steps,
+    answer,
+    tips: RADICAL_TIPS,
+    common_mistakes: RADICAL_MISTAKES,
+    graph: null, // a constant has no curve worth drawing
+  };
+}
+
+// Algebrite writes radicals as fractional powers: 5*2^(1/2). Convert to the
+// familiar 5√2 for display (value untouched — presentation only).
+function prettifyRadicals(s) {
+  let out = String(s)
+    .replace(/(\d+)\^\(1\/2\)/g, '√$1')
+    .replace(/(\d+)\^\(1\/3\)/g, '∛$1');
+  out = beautify(out);
+  return out.replace(/(\d+)\s*\*\s*([√∛])/g, '$1$2');
 }
 
 function generateAlgebraGraph(expression) {
