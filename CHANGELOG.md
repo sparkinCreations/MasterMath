@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-07-12
+
+### Added
+- **Definite integrals** — `∫_0^1 x^2 dx`, `∫_0^pi sin(x) dx`, and
+  "x^2 from 0 to 3" now evaluate to an exact value (`1/3`, `2`, `9`) via the
+  Fundamental Theorem of Calculus. The steps show the antiderivative F, its
+  values at each bound, and the subtraction F(b) − F(a). Previously these
+  refused clearly ("not supported yet"); this replaces the honest refusal
+  with a real capability
+- **Improper-integral guard** — an integral across a discontinuity
+  (`∫_{-1}^{1} 1/x dx`) is detected and refused instead of reporting
+  Algebrite's meaningless complex value. Every definite result is
+  independently confirmed by Simpson's-rule quadrature before it is shown;
+  the two methods must agree or the solver refuses
+- **Shaded-area graphs** — a definite integral graphs the integrand with the
+  interval [a, b] shaded and its bounds marked, since the integral *is* that
+  signed area
+- KaTeX now typesets definite integrals with their bounds (`\int_{a}^{b}`)
+
+### Changed
+- The integrals solver now receives the raw problem text (like limits do) so
+  it can read bounds before notation is normalized; indefinite integrals are
+  unaffected
+
 ## [1.8.1] - 2026-07-12
 
 Fixes every defect from the July 2026 production audit of v1.8.0
