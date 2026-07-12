@@ -303,8 +303,14 @@ async function grade(category, problem, expected) {
 
   if (cat === 'integrals') {
     if (isDefiniteIntegral) {
-      // Unbuilt: a clear refusal is the desired Wave-1 outcome, not a number.
-      return { verdict: isRefusal(ans) ? 'REFUSED' : 'WRONG', got: ans, note: 'definite (unbuilt)' };
+      // Built as of v1.9.0. Grade the numeric value; a refusal is only a pass
+      // for a genuinely improper integral (expected value says so).
+      if (/improper|diverge|does not exist|dne/i.test(expected)) {
+        return { verdict: isRefusal(ans) || /improper/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
+      }
+      if (isRefusal(ans) || /improper/i.test(ans)) return { verdict: 'REFUSED', got: ans };
+      const gotNum = toNumber(ans.replace(/^.*=\s*/, ''));
+      return { verdict: numClose(gotNum, toNumber(expected)) ? 'CORRECT' : 'WRONG', got: ans };
     }
     if (isRefusal(ans)) return { verdict: 'REFUSED', got: ans };
     // Correctness: the antiderivative must differ from the expected one by only

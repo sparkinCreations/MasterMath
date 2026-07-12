@@ -48,6 +48,9 @@ export function toLatex(ascii) {
   // lim (x→0) → \lim_{x \to 0}
   s = s.replace(/\blim\s*\(([^()]*?)\\to([^()]*?)\)/g, (_, a, b) => `\\lim_{${a.trim()} \\to ${b.trim()}}`);
 
+  // ∫_a^b (expr) dx → \int_{a}^{b} expr \, dx  (definite; bounds before body)
+  s = s.replace(/∫\s*_\s*([^\s^]+)\s*\^\s*(\S+?)\s*\(([^]*?)\)\s*d([a-z])\b/g,
+    (_, a, b, body, v) => `\\int_{${a}}^{${b}} ${body} \\, d${v}`);
   // ∫(expr) dx = → \int expr \, dx =
   s = s.replace(/∫\s*\(([^]*?)\)\s*d([a-z])\b/g, (_, body, v) => `\\int ${body} \\, d${v}`);
   s = s.replace(/∫/g, '\\int ');

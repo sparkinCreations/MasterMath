@@ -18,7 +18,7 @@ const TOPICS = [
 
 const PLACEHOLDERS = {
   derivatives: "e.g., x^2 + 3*x or Find the derivative of x^3 - 2*x",
-  integrals: "e.g., 2*x + 1 or Integrate x^2",
+  integrals: "e.g., 2*x + 1, Integrate x^2, or ∫_0^1 x^2 dx (definite)",
   limits: "e.g., lim x->0 (sin(x)/x) or (x^2 - 4)/(x - 2) as x->2",
   functions: "e.g., x^2 - 4*x + 3 or f(x) = x^3 - x",
   trigonometry: "e.g., sin(pi/4) or cos(60) or tan(x)",
@@ -29,6 +29,7 @@ const PLACEHOLDERS = {
 const EXAMPLE_PROBLEMS = [
   { topic: "derivatives", problem: "x^2 + 3*x" },
   { topic: "integrals", problem: "2*x + 1" },
+  { topic: "integrals", problem: "∫_0^1 x^2 dx" },
   { topic: "limits", problem: "lim x->0 (sin(x)/x)" },
   { topic: "functions", problem: "x^2 - 4*x + 3" },
   { topic: "algebra", problem: "2*x + 5 = 11" },

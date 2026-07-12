@@ -144,10 +144,12 @@ test('regression: eval — lim abs(x)/x at 0 does not exist, not 0', async () =>
   assert.match(r.answer, /Does not exist$/);
 });
 
-test('regression: eval — definite integrals refuse clearly, never a garbage number', async () => {
+test('regression: eval — definite integrals compute via FTC (built v1.9.0)', async () => {
+  // Was a refuse-clearly guard ("not supported yet"); now a real capability.
+  // The eval's own row for this input expected 0.5.
   const r = await solveProblem('definite ∫_0^1 x dx', 'integrals');
-  assert.match(r.answer, /not supported yet/i);
-  assert.doesNotMatch(r.answer, /\bC\b\s*$/); // not an indefinite-style answer
+  assert.match(r.answer, /=\s*1\/2/);
+  assert.doesNotMatch(r.answer, /\+ C\s*$/); // definite, so no constant
 });
 
 test('regression: eval — systems of equations refuse clearly, not an unrelated number', async () => {
@@ -436,4 +438,58 @@ test('regression: audit — periodic equations prefer roots nearest zero', async
   const r = await solveProblem('sin(x) = 0', 'algebra');
   assert.ok(r.answer.includes('x = 0'));
   assert.doesNotMatch(r.answer, /-100/);
+});
+
+// ---------------------------------------------------------------------------
+// Definite integrals (v1.9.0) — the honest refusal became a real capability.
+// Exact value via Algebrite defint, worked FTC steps, and a Simpson numeric
+// cross-check that doubles as the improper-integral guard: Algebrite returns
+// a bogus complex value for ∫_{-1}^{1} 1/x dx, which must be refused.
+// ---------------------------------------------------------------------------
+
+test('regression: ∫_0^1 x dx = 1/2 via FTC (the eval row that was "nonsense")', async () => {
+  const r = await solveProblem('definite ∫_0^1 x dx', 'integrals');
+  assert.match(r.answer, /=\s*1\/2/);
+  assert.equal(r.verified, true);
+  assert.ok(r.steps.some((s) => /Fundamental Theorem/i.test(s)));
+});
+
+test('regression: definite integral of a polynomial (∫_0^2 x^2 = 8/3)', async () => {
+  const r = await solveProblem('∫_0^2 x^2 dx', 'integrals');
+  assert.match(r.answer, /=\s*8\/3/);
+});
+
+test('regression: definite integral with a pi bound (∫_0^pi sin = 2)', async () => {
+  const r = await solveProblem('∫_0^pi sin(x) dx', 'integrals');
+  assert.match(r.answer, /=\s*2\b/);
+});
+
+test('regression: arctan definite integral (∫_0^1 1/(x^2+1) = pi/4)', async () => {
+  const r = await solveProblem('∫_0^1 1/(x^2+1) dx', 'integrals');
+  const val = Number((r.answer.match(/≈\s*([\d.]+)/) || [])[1]);
+  assert.ok(Math.abs(val - Math.PI / 4) < 1e-3, `got ${r.answer}`);
+});
+
+test('regression: "from a to b" phrasing works (x^2 from 0 to 3 = 9)', async () => {
+  const r = await solveProblem('x^2 from 0 to 3', 'integrals');
+  assert.match(r.answer, /=\s*9\b/);
+});
+
+test('regression: improper integral ∫_{-1}^{1} 1/x is refused, never -i*pi', async () => {
+  const r = await solveProblem('∫_{-1}^{1} 1/x dx', 'integrals');
+  assert.match(r.answer, /improper|unable/i);
+  // Must not leak Algebrite's bogus complex value or its float (-3.14159…).
+  assert.doesNotMatch(r.answer, /i\s*\*\s*pi|3\.14/i);
+});
+
+test('regression: indefinite integrals still work after the definite split', async () => {
+  const r = await solveProblem('Integrate x^2', 'integrals');
+  assert.match(r.answer, /x\^3.*\+ C$/);
+  const sec = await solveProblem('sec(x)^2', 'integrals');
+  assert.match(sec.answer, /tan\(x\) \+ C$/);
+});
+
+test('regression: swapped bounds negate (∫_2^0 x^2 = -8/3)', async () => {
+  const r = await solveProblem('∫_2^0 x^2 dx', 'integrals');
+  assert.match(r.answer, /=\s*-8\/3/);
 });

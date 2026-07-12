@@ -5,3 +5,8 @@ Algebra,|x-3| = 5,x = -2 or x = 8,No real solution found,Incorrect (July 2026 pr
 Algebra,5x-7 = 5x+2,No solution,No real solution found (hedged wording),Partial (July 2026 production audit of v1.8.0)
 Algebra,x^4 - 16 = 0,x = -2 or x = 2 or x = -2i or x = 2i,unreadable principal-root forms,Partial (July 2026 production audit of v1.8.0)
 Algebra,sqrt(x) = -2,No solution,—,Guard row: truly has no real solution — must refuse or say no solution and never invent roots
+Integrals,∫_0^2 x^2 dx,8/3,—,Definite integral support added v1.9.0
+Integrals,∫_0^pi sin(x) dx,2,—,Definite integral support added v1.9.0
+Integrals,∫_1^e 1/x dx,1,—,Definite integral support added v1.9.0
+Integrals,∫_0^1 1/(x^2+1) dx,0.7853981634,—,Definite integral (arctan) support added v1.9.0
+Integrals,∫_{-1}^{1} 1/x dx,improper (diverges),Algebrite returns -i*pi — must refuse,Guard row: improper integral must be refused not mis-answered

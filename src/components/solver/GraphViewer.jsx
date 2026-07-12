@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot, ReferenceArea } from "recharts";
 import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDarkMode } from "@/contexts/DarkModeContext";
@@ -243,6 +243,35 @@ export default function GraphViewer({ functionData }) {
               />
               <ReferenceLine x={0} stroke={axisLineColor} strokeWidth={2} />
               <ReferenceLine y={0} stroke={axisLineColor} strokeWidth={2} />
+
+              {/* Definite-integral region: shade [a, b] and mark the bounds */}
+              {ann.shaded && (
+                <ReferenceArea
+                  x1={Math.max(ann.shaded.from, range.xMin)}
+                  x2={Math.min(ann.shaded.to, range.xMax)}
+                  fill={extremumColor}
+                  fillOpacity={0.15}
+                  stroke="none"
+                />
+              )}
+              {ann.shaded && inX(ann.shaded.from) && (
+                <ReferenceLine
+                  x={ann.shaded.from}
+                  stroke={extremumColor}
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  label={{ value: `${ann.shaded.fromLabel}`, position: 'bottom', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
+                />
+              )}
+              {ann.shaded && inX(ann.shaded.to) && (
+                <ReferenceLine
+                  x={ann.shaded.to}
+                  stroke={extremumColor}
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  label={{ value: `${ann.shaded.toLabel}`, position: 'bottom', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
+                />
+              )}
 
               {/* Vertical asymptotes (functions) */}
               {(ann.verticalAsymptotes || []).filter(inX).map((a, i) => (

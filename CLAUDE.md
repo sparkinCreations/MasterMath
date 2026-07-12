@@ -128,7 +128,8 @@ Each solver module exports a solve function that returns a consistent solution o
       yIntercept: {x: 0, y},
       verticalAsymptotes: [x],
       guideline: {x, label},    // limits: the approach point
-      limitPoint: {x, y}        // limits: hollow marker at (a, L)
+      limitPoint: {x, y},       // limits: hollow marker at (a, L)
+      shaded: {from, to, fromLabel, toLabel}  // definite integrals: shaded area over [a,b]
     },
     initialWindow: {xMin, xMax} // optional non-default starting view
   }
@@ -138,7 +139,7 @@ Each solver module exports a solve function that returns a consistent solution o
 **Available Solvers:**
 - `algebraSolver.js`: Equations, simplification, factoring (using mathsteps, algebrite)
 - `derivativesSolver.js`: Differentiation (using algebrite)
-- `integralsSolver.js`: Integration (using algebrite)
+- `integralsSolver.js`: Integration (using algebrite) — indefinite antiderivatives and definite integrals (`∫_a^b f dx` via the Fundamental Theorem of Calculus, exact value cross-checked by Simpson's-rule quadrature; improper integrals across a discontinuity are refused, not mis-answered). Receives the raw problem text (like limits) so it can read definite-integral bounds before notation is normalized.
 - `arithmeticSolver.js`: Basic arithmetic operations (using mathjs)
 - `otherSolvers.js`: Limits, trigonometry (using mathjs, algebrite)
 - `functionsSolver.js`: Function analysis/graphing — exact extrema via f'(x)=0, root-based intercepts, domain & asymptote detection (never fabricates a feature)

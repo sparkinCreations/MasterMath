@@ -124,6 +124,12 @@ export async function solveProblem(problem, topic) {
         result = await solver(problem);
         break;
 
+      case 'integrals':
+        // Pass raw problem text so the integral solver can read definite-
+        // integral bounds before parseMathExpression collapses the spacing.
+        result = await solver(problem);
+        break;
+
       default: {
         const expression = extractFunctionFromProblem(problem);
         if (!expression || expression.trim().length === 0) {

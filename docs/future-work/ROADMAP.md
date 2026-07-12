@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.8.1
+**Version referenced:** 1.9.0
 **By:** sparkinCreations™
 **Last Updated:** July 12, 2026
 
@@ -72,7 +72,7 @@ job. Do them in Wave order; treat the P0s as one severity class.
 | 5 | ~~Quadratic insights (axis of symmetry, opens up/down)~~ ✅ Done v1.5.0 (folded into #4) | P1 | Small | Feature | 2 |
 | 6 | ~~KaTeX math rendering~~ ✅ Done v1.6.0 (typeset steps/answers, offline, plain-text fallback) | P1 | Medium | Feature | 3 |
 | 7 | ~~Graph annotations~~ ✅ Done v1.6.0 (extrema, intercepts, asymptotes, limit guideline + L marker; plus height controls and clamped 4-way pan) | P2 | Medium | Feature | 3 |
-| 8 | Definite integrals — *refuses clearly as of v1.4.0*; building actual `defint` support is the remaining feature | P2 | Medium | Feature | — |
+| 8 | ~~Definite integrals~~ ✅ Done v1.9.0 (`defint` via FTC, worked steps, Simpson cross-check + improper-integral guard, shaded-area graph) | P2 | Medium | Feature | — |
 | 9 | Systems of equations — *refuses clearly as of v1.4.0*; building the 2×2 solver is the remaining feature | P3 | Medium | Feature | — |
 | 10 | Inequalities (roots + sign chart) | P3 | Medium | Feature | — |
 | 11 | Integration by parts walkthrough | P3 | Large | Engine | — |
