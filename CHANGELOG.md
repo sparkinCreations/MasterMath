@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-07-12
+
+### Added
+- **Tutor mode (step-through)** — a "Show all / Step through" toggle on the
+  step-by-step solution. In step-through mode steps are revealed one at a
+  time via a "Reveal next step" button (with a "Reveal all" shortcut and a
+  "Step X of N" counter), and a prompt invites the student to predict the
+  next move before revealing it. The final answer, key insights, and common
+  mistakes stay hidden until every step has been revealed, so it teaches
+  rather than lets you copy the answer. Defaults to "Show all"; the toggle
+  only appears for multi-step solutions.
+
 ## [1.7.0] - 2026-07-12
 
 The Wave 1 "quality tail" from the July 2026 evaluation (items B2–B5 in

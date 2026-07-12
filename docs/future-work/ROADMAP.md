@@ -77,7 +77,7 @@ job. Do them in Wave order; treat the P0s as one severity class.
 | 10 | Inequalities (roots + sign chart) | P3 | Medium | Feature | — |
 | 11 | Integration by parts walkthrough | P3 | Large | Engine | — |
 | 12 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine | — |
-| 13 | Tutor mode (collapsible / reveal-one-at-a-time steps) | P4 | Medium | UX | — |
+| 13 | ~~Tutor mode (reveal-one-at-a-time steps)~~ ✅ Done v1.8.0 — "Show all / Step through" toggle; answer/tips/mistakes gated until every step is revealed | P4 | Medium | UX | — |
 
 "Effort" is relative to this codebase: Small = one sitting, Medium = a few
 sittings, Large = real engine work that needs its own design pass.
@@ -286,6 +286,15 @@ mini-solver, hence Large.
 ---
 
 ## P4 — Tutor Mode (Step Interactivity)
+
+> **✅ Done (v1.8.0).** `SolutionDisplay` has a "Show all / Step through"
+> toggle (shown only for multi-step solutions). Step-through reveals steps one
+> at a time via a "Reveal next step" button — with a "Reveal all" shortcut, a
+> "Step X of N" counter, and a "predict the next step" prompt — and the "hide
+> the final answer until the end" idea below is implemented: the final answer,
+> key insights, and common mistakes stay hidden until every step is revealed,
+> so it teaches rather than lets you copy the answer. Reset per new problem.
+> The collapsible-accordion sibling was not needed.
 
 Steps currently animate in with a stagger, all visible at once. The
 review's more interesting suggestion is a **reveal-one-at-a-time mode**:

@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, BookOpen, Lightbulb, Download, ChevronDown } from "lucide-react";
+import { CheckCircle2, AlertCircle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, Eye, Footprints } from "lucide-react";
 import { motion } from "framer-motion";
 import MathText from "@/components/MathText";
 import { exportSolutionAsMarkdown, exportSolutionAsJSON, exportSolutionAsPDF } from "@/lib/exportUtils";
@@ -25,6 +25,17 @@ const TOPIC_LABELS = {
 
 export default function SolutionDisplay({ solution, problem, topic }) {
   const toast = useToast();
+
+  const steps = solution?.steps || [];
+  const [stepThrough, setStepThrough] = useState(false);
+  const [revealed, setRevealed] = useState(0);
+
+  // Restart the walkthrough whenever a new problem is solved.
+  useEffect(() => {
+    setRevealed(1);
+  }, [solution]);
+
+  const allRevealed = !stepThrough || revealed >= steps.length;
 
   const handleExportSolution = (format) => {
     if (!solution || !problem || !topic) return;
@@ -112,19 +123,54 @@ export default function SolutionDisplay({ solution, problem, topic }) {
           </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {solution.steps && solution.steps.length > 0 && (
+          {steps.length > 0 && (
             <div className="space-y-3">
-              <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
-                <BookOpen className="w-5 h-5 text-indigo-600" />
-                Step-by-Step Solution:
-              </h3>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
+                  <BookOpen className="w-5 h-5 text-indigo-600" />
+                  Step-by-Step Solution:
+                </h3>
+                {steps.length > 1 && (
+                  <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5 bg-gray-50 dark:bg-gray-900/40">
+                    <button
+                      type="button"
+                      onClick={() => setStepThrough(false)}
+                      aria-pressed={!stepThrough}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        !stepThrough
+                          ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      }`}
+                    >
+                      <Eye className="w-4 h-4" />
+                      Show all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStepThrough(true);
+                        setRevealed(1);
+                      }}
+                      aria-pressed={stepThrough}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        stepThrough
+                          ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      }`}
+                    >
+                      <Footprints className="w-4 h-4" />
+                      Step through
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {solution.steps.map((step, idx) => (
+                {(stepThrough ? steps.slice(0, revealed) : steps).map((step, idx) => (
                   <motion.div
                     key={idx}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
+                    transition={{ delay: stepThrough ? 0 : idx * 0.1 }}
                     className="py-4 first:pt-1"
                   >
                     <div className="flex gap-3">
@@ -136,10 +182,36 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                   </motion.div>
                 ))}
               </div>
+              {stepThrough && !allRevealed && (
+                <div className="flex flex-col items-center gap-3 pt-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    Try to predict the next step, then reveal it.
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      onClick={() => setRevealed((r) => Math.min(r + 1, steps.length))}
+                      className="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm hover:from-blue-600 hover:to-indigo-700"
+                    >
+                      Reveal next step
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setRevealed(steps.length)}
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 underline underline-offset-2"
+                    >
+                      Reveal all
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Step {revealed} of {steps.length}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-          {solution.answer && (
+          {solution.answer && allRevealed && (
             <div className="p-5 rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
@@ -151,7 +223,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
             </div>
           )}
 
-          {solution.tips && solution.tips.length > 0 && (
+          {solution.tips && solution.tips.length > 0 && allRevealed && (
             <div className="space-y-3">
               <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
                 <Lightbulb className="w-5 h-5 text-amber-500" />
@@ -170,7 +242,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
             </div>
           )}
 
-          {solution.common_mistakes && solution.common_mistakes.length > 0 && (
+          {solution.common_mistakes && solution.common_mistakes.length > 0 && allRevealed && (
             <div className="space-y-3">
               <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
                 <AlertCircle className="w-5 h-5 text-red-500" />
