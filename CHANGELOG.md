@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-07-12
+
+Presentation polish — the three cosmetic nits noted in the July 2026
+production audit. Each fix keeps the correctness discipline (the exact form
+is numerically re-checked before it is shown).
+
+### Changed
+- **Exact-fraction limits** — removable limits now report the exact value
+  (`lim x→0 (sin x − x)/x³ = −1/6`, `(1−cos x)/x² = 1/2`) instead of a rounded
+  decimal (`−0.1667`, `0.5`). Clean integers stay integers; the fraction is
+  confirmed to match the verified numeric value before it is displayed, and
+  renders as a proper KaTeX fraction
+- **Oscillation wording** — a limit that fails because the function oscillates
+  (`sin(1/x)`, `cos(1/x)`) now says so explicitly, rather than blaming
+  "one-sided limits disagree." A genuine jump (`|x|/x`) still reads
+  "the one-sided limits disagree" — the two DNE reasons are no longer conflated
+
+### Fixed
+- **Simplification never grows the expression** — `(x²−9)/(x+3)` now
+  simplifies to `x−3` (via Algebrite) instead of mathsteps' longer split form
+  `x²/(x+3) − 9/(x+3)`. The solver gathers candidate simplifications from
+  mathsteps, Algebrite, and math.js, verifies each is equivalent, and picks
+  the shortest — so a result is never longer than what was typed; genuinely
+  simple inputs are left alone
+
 ## [1.9.0] - 2026-07-12
 
 ### Added
