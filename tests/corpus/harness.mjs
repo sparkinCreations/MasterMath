@@ -190,9 +190,84 @@ function solutionNumbers(s) {
 
 // --- per-category grading ---------------------------------------------------
 
+// Ground truth for the Functions rows, graded against the structured
+// `features` object (the CSV "expected" column is prose). Each checker
+// returns null on pass, or a string describing the failure.
+const FUNCTION_TRUTH = {
+  'x^2 - 4x + 3': (f) => {
+    if (!f.quadratic || Math.abs(f.quadratic.vertex.x - 2) > 1e-6 || Math.abs(f.quadratic.vertex.y + 1) > 1e-6) return 'vertex must be (2,-1)';
+    const xs = f.xIntercepts.list.map((r) => r.numeric);
+    if (!(xs.includes(1) && xs.includes(3))) return 'zeros must be 1 and 3';
+    return null;
+  },
+  '1/(x-2)': (f) => {
+    if (f.xIntercepts.list.length !== 0) return 'must have no x-intercepts';
+    if (!f.verticalAsymptotes.some((a) => Math.abs(a - 2) < 1e-6)) return 'must report vertical asymptote x=2';
+    if (f.extrema.length !== 0) return 'must not fabricate extrema';
+    return null;
+  },
+  'sqrt(x-3)': (f) => {
+    if (!f.domain.some((r) => Number.isFinite(r.to) && Math.abs(r.to - 3) < 1e-3)) return 'domain must exclude x<3';
+    if (!f.xIntercepts.list.some((r) => Math.abs(r.numeric - 3) < 1e-3)) return 'must find the (3,0) starting point';
+    if (f.extrema.length !== 0) return 'must not fabricate a vertex';
+    return null;
+  },
+  'ln(x)': (f) => {
+    if (!f.domain.some((r) => Number.isFinite(r.to) && Math.abs(r.to) < 1e-3)) return 'domain must exclude x<=0';
+    if (!f.xIntercepts.list.some((r) => Math.abs(r.numeric - 1) < 1e-6)) return 'must find the (1,0) intercept';
+    return null;
+  },
+  'abs(x)': (f) => {
+    if (!f.extrema.some((e) => e.kind === 'min' && Math.abs(e.x) < 1e-6)) return 'must find the vertex/min at (0,0)';
+    if (!f.xIntercepts.list.some((r) => Math.abs(r.numeric) < 1e-6)) return 'must find the intercept at 0';
+    return null;
+  },
+  'x^3 - x': (f) => {
+    const xs = f.xIntercepts.list.map((r) => r.numeric);
+    if (!([-1, 0, 1].every((v) => xs.some((x) => Math.abs(x - v) < 1e-6)))) return 'zeros must be -1, 0, 1';
+    if (!f.extrema.some((e) => Math.abs(Math.abs(e.x) - 1 / Math.sqrt(3)) < 1e-3)) return 'extrema must be at ±1/√3 ≈ ±0.577';
+    if (!f.inflections.some((i) => Math.abs(i.x) < 1e-6)) return 'inflection at 0';
+    return null;
+  },
+  'sin(x)': (f) => {
+    if (!f.isPeriodic) return 'must be flagged periodic';
+    if (!f.xIntercepts.list.some((r) => Math.abs(r.numeric) < 1e-6)) return 'zeros must include 0';
+    if (!f.xIntercepts.list.some((r) => Math.abs(r.numeric - Math.PI) < 1e-3)) return 'zeros must include π';
+    if (!f.extrema.some((e) => e.kind === 'max' && Math.abs(e.x - Math.PI / 2) < 1e-3)) return 'max at π/2';
+    return null;
+  },
+  'exp(x)': (f) => {
+    if (f.xIntercepts.list.length !== 0) return 'must have no x-intercepts';
+    if (f.extrema.length !== 0) return 'must not fabricate a vertex';
+    if (f.monotonic !== 'increasing') return 'must be reported increasing';
+    if (!f.yIntercept || Math.abs(f.yIntercept.y - 1) > 1e-9) return 'y-intercept must be (0,1)';
+    return null;
+  },
+  'log(x^2)': (f) => {
+    if (!f.domain.some((r) => Math.abs(r.from) < 1e-3 && Math.abs(r.to) < 1e-3)) return 'domain must exclude x=0';
+    const xs = f.xIntercepts.list.map((r) => r.numeric);
+    if (!(xs.some((x) => Math.abs(x - 1) < 1e-6) && xs.some((x) => Math.abs(x + 1) < 1e-6))) return 'zeros must be ±1';
+    if (f.extrema.length !== 0) return 'must not fabricate extrema';
+    return null;
+  },
+  '1/(x^2)': (f) => {
+    if (f.xIntercepts.list.length !== 0) return 'must have no x-intercepts';
+    if (!f.verticalAsymptotes.some((a) => Math.abs(a) < 1e-6)) return 'must report vertical asymptote x=0';
+    if (f.extrema.length !== 0) return 'must not fabricate extrema';
+    return null;
+  },
+};
+
 async function grade(category, problem, expected) {
   const cat = category.toLowerCase();
-  if (cat === 'functions') return { verdict: 'SKIP', detail: 'Wave 2 (feature analysis)' };
+  if (cat === 'functions') {
+    const checker = FUNCTION_TRUTH[problem];
+    if (!checker) return { verdict: 'SKIP', detail: 'no truth entry' };
+    const r = await solveProblem(problem, 'functions');
+    if (!r.features) return { verdict: 'WRONG', got: 'no structured features returned' };
+    const fail = checker(r.features);
+    return fail ? { verdict: 'WRONG', got: fail } : { verdict: 'CORRECT', got: 'features verified' };
+  }
 
   const topic = TOPIC[cat];
 

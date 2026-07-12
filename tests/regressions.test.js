@@ -165,3 +165,63 @@ test('regression: eval — ln(x) is evaluable numerically (mathjs alias)', async
   const { math } = await import('../src/lib/solvers/solverUtils.js');
   assert.ok(Math.abs(math.evaluate('ln(exp(1))') - 1) < 1e-9);
 });
+
+// ---------------------------------------------------------------------------
+// July 2026 evaluation — Wave 2: Functions/Graphing rebuild (fixed July 2026)
+// The old module guessed features from coarse samples: a MIDPOINT fallback
+// fabricated a "vertex" for monotonic functions, and any |y| < 0.1 sample was
+// called an "intercept" (inventing intercepts near -10 for decaying tails).
+// The rebuild computes features from f'(x)=0 / real roots and never fabricates.
+// ---------------------------------------------------------------------------
+
+test('regression: eval — exp(x) gets no fabricated vertex or intercepts', async () => {
+  // Was: "vertex near (-1.5, 0.22); x-intercepts near -10, -9.5, -9".
+  const r = await solveProblem('exp(x)', 'functions');
+  assert.equal(r.features.extrema.length, 0);
+  assert.equal(r.features.xIntercepts.list.length, 0);
+  assert.equal(r.features.monotonic, 'increasing');
+  assert.equal(r.features.yIntercept.y, 1);
+});
+
+test('regression: eval — 1/(x-2) reports the asymptote, not fake intercepts', async () => {
+  // Was: "x-intercepts near -10, -9.5, -9" with no mention of x = 2.
+  const r = await solveProblem('1/(x-2)', 'functions');
+  assert.deepEqual(r.features.verticalAsymptotes, [2]);
+  assert.equal(r.features.xIntercepts.list.length, 0);
+  assert.ok(r.steps.some((s) => /vertical asymptote/i.test(s)));
+});
+
+test('regression: eval — sqrt(x-3) gets its domain and (3,0), not a fake vertex', async () => {
+  // Was: "vertex near (6.5, 1.87)"; domain ignored.
+  const r = await solveProblem('sqrt(x-3)', 'functions');
+  assert.equal(r.features.extrema.length, 0);
+  assert.ok(r.features.domain.some((d) => Math.abs(d.to - 3) < 1e-3));
+  assert.ok(r.features.xIntercepts.list.some((i) => Math.abs(i.numeric - 3) < 1e-3));
+});
+
+test('regression: eval — ln(x) finds its (1,0) intercept', async () => {
+  // Was: "no x-intercepts found" (mathjs has no ln; every evaluation died).
+  const r = await solveProblem('ln(x)', 'functions');
+  assert.ok(r.features.xIntercepts.list.some((i) => Math.abs(i.numeric - 1) < 1e-6));
+});
+
+test('regression: eval — x^3 - x extrema come from f\'(x)=0, not samples', async () => {
+  // Was: "vertex near (-0.5, 0.375)"; true extrema are at ±1/√3 ≈ ±0.5774.
+  const r = await solveProblem('x^3 - x', 'functions');
+  const max = r.features.extrema.find((e) => e.kind === 'max');
+  assert.ok(max && Math.abs(max.x + 1 / Math.sqrt(3)) < 1e-3);
+  assert.ok(r.features.inflections.some((i) => Math.abs(i.x) < 1e-6));
+});
+
+test('regression: eval — log(x^2) domain excludes 0, zeros at ±1', async () => {
+  const r = await solveProblem('log(x^2)', 'functions');
+  assert.ok(r.features.domain.some((d) => Math.abs(d.from) < 1e-3 && Math.abs(d.to) < 1e-3));
+  const xs = r.features.xIntercepts.list.map((i) => i.numeric);
+  assert.ok(xs.includes(1) && xs.includes(-1));
+});
+
+test('regression: broken-domain functions never claim global monotonicity', async () => {
+  // 1/(x-2) decreases on each side of its asymptote but not "on ℝ".
+  const r = await solveProblem('1/(x-2)', 'functions');
+  assert.equal(r.features.monotonic, null);
+});

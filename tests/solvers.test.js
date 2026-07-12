@@ -126,8 +126,12 @@ test('solveLimit reports indeterminate 0/0 forms via both sides', async () => {
   assert.ok(result.steps.some((step) => /indeterminate/i.test(step)));
 });
 
-test('solveFunctions returns graphable function analysis', () => {
-  const result = solveFunctions('x^2 - 4*x + 3');
+test('solveFunctions returns graphable function analysis', async () => {
+  const result = await solveFunctions('x^2 - 4*x + 3');
   assert.match(result.answer.replace(/\s+/g, ''), /f\(x\)=x\^2-4x\+3/);
   assert.ok(result.graph?.points?.length > 0);
+  // Wave 2: quadratic insights are exact, not sampled.
+  assert.ok(result.steps.some((s) => /axis of symmetry/i.test(s) && /= 2/.test(s)));
+  assert.ok(result.steps.some((s) => /opens upward/i.test(s)));
+  assert.ok(result.steps.some((s) => /vertex/i.test(s) && /\(2, -1\)/.test(s)));
 });
