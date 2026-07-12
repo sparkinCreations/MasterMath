@@ -336,6 +336,19 @@ export default function GraphViewer({ functionData }) {
                 />
               ))}
 
+              {/* System-of-equations intersection: the solution point */}
+              {ann.intersection && inX(ann.intersection.x) && inY(ann.intersection.y) && (
+                <ReferenceDot
+                  x={ann.intersection.x}
+                  y={ann.intersection.y}
+                  r={6}
+                  fill={extremumColor}
+                  stroke={markerStroke}
+                  strokeWidth={2}
+                  label={{ value: ann.intersection.label, position: 'top', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
+                />
+              )}
+
               {/* The limit value marker — hollow: the function need not reach it */}
               {ann.limitPoint && inX(ann.limitPoint.x) && inY(ann.limitPoint.y) && (
                 <ReferenceDot

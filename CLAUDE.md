@@ -129,7 +129,8 @@ Each solver module exports a solve function that returns a consistent solution o
       verticalAsymptotes: [x],
       guideline: {x, label},    // limits: the approach point
       limitPoint: {x, y},       // limits: hollow marker at (a, L)
-      shaded: {from, to, fromLabel, toLabel}  // definite integrals: shaded area over [a,b]
+      shaded: {from, to, fromLabel, toLabel},  // definite integrals: shaded area over [a,b]
+      intersection: {x, y, label}  // systems: the solution point where two lines cross
     },
     initialWindow: {xMin, xMax} // optional non-default starting view
   }
@@ -138,6 +139,7 @@ Each solver module exports a solve function that returns a consistent solution o
 
 **Available Solvers:**
 - `algebraSolver.js`: Equations, simplification, factoring (using mathsteps, algebrite)
+- `systemsSolver.js`: Systems of two linear equations in two unknowns — Cramer's rule in exact rational arithmetic (18/5, not 3.6), worked substitution steps, and the unique / no-solution (parallel) / infinitely-many (same line) trichotomy. The solution is substituted back into both equations before it is reported. Receives the raw problem text (routed from api.js when it detects two `=` signs) so the first equation isn't mangled by single-expression extraction.
 - `derivativesSolver.js`: Differentiation (using algebrite)
 - `integralsSolver.js`: Integration (using algebrite) — indefinite antiderivatives and definite integrals (`∫_a^b f dx` via the Fundamental Theorem of Calculus, exact value cross-checked by Simpson's-rule quadrature; improper integrals across a discontinuity are refused, not mis-answered). Receives the raw problem text (like limits) so it can read definite-integral bounds before notation is normalized.
 - `arithmeticSolver.js`: Basic arithmetic operations (using mathjs)

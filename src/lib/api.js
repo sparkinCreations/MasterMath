@@ -98,6 +98,34 @@ async function resolveSolver(problem, topic) {
   return loadSolver('algebra').then((fn) => fn);
 }
 
+// A system of equations has two or more equations (two or more '=' signs that
+// aren't part of >=, <=, ==, !=). Detected on the raw text so the router can
+// hand it to the systems solver before single-expression extraction.
+function looksLikeSystem(problem) {
+  const equalsCount = (String(problem).match(/(?<![><!=])=(?!=)/g) || []).length;
+  return equalsCount >= 2;
+}
+
+// Shared result validation — every solver's output passes through here.
+function finalizeResult(result) {
+  if (!result || typeof result !== 'object') {
+    throw new Error('Invalid solver result');
+  }
+  if (!result.steps || !Array.isArray(result.steps)) {
+    result.steps = ['Solution computed'];
+  }
+  if (!result.answer) {
+    throw new Error('No solution found');
+  }
+  if (!result.tips || !Array.isArray(result.tips)) {
+    result.tips = [];
+  }
+  if (!result.common_mistakes || !Array.isArray(result.common_mistakes)) {
+    result.common_mistakes = [];
+  }
+  return result;
+}
+
 // Real math solver using local libraries
 export async function solveProblem(problem, topic) {
   try {
@@ -110,12 +138,21 @@ export async function solveProblem(problem, topic) {
       throw new Error('Invalid topic selection');
     }
 
+    let result;
+
+    // Systems of equations: two or more equations. Detected from the RAW
+    // problem (before the single-expression extractor mangles the first
+    // equation) and routed to the dedicated 2×2 linear solver.
+    if (topic === 'algebra' && looksLikeSystem(problem)) {
+      const { solveSystem } = await import('./solvers/systemsSolver.js');
+      result = await solveSystem(problem);
+      return finalizeResult(result);
+    }
+
     const solver = await resolveSolver(problem, topic);
     if (!solver) {
       throw new Error('No solver available for this topic');
     }
-
-    let result;
 
     // Route to appropriate solver based on topic
     switch (topic) {
@@ -147,28 +184,7 @@ export async function solveProblem(problem, topic) {
       }
     }
 
-    // Validate result structure
-    if (!result || typeof result !== 'object') {
-      throw new Error('Invalid solver result');
-    }
-
-    if (!result.steps || !Array.isArray(result.steps)) {
-      result.steps = ['Solution computed'];
-    }
-
-    if (!result.answer) {
-      throw new Error('No solution found');
-    }
-
-    if (!result.tips || !Array.isArray(result.tips)) {
-      result.tips = [];
-    }
-
-    if (!result.common_mistakes || !Array.isArray(result.common_mistakes)) {
-      result.common_mistakes = [];
-    }
-
-    return result;
+    return finalizeResult(result);
 
   } catch (error) {
     console.error('Solver error:', error);

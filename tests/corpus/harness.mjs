@@ -52,6 +52,10 @@ const CORPUS_CORRECTIONS = {
     expected: '-1',
     reason: '(x-2)/|x-2| = -1 for all x<2, so the x→0 limit is -1, not DNE. The eval report text discusses x→2 (which does DNE); the CSV row says x→0.',
   },
+  '2x+3y=6; x-y=4 (system)': {
+    expected: 'x=3.6, y=-0.4',
+    reason: 'The eval CSV lists x=2.8, but 2x+3y=6 and x-y=4 give x=18/5=3.6, y=-2/5=-0.4 (verify: 2(3.6)+3(-0.4)=6 ✓, 3.6-(-0.4)=4 ✓). The app now solves it exactly.',
+  },
 };
 
 // --- tiny CSV parser (handles quoted fields with commas) --------------------
@@ -187,6 +191,21 @@ function isRefusal(answer) {
 }
 function saysDNE(s) {
   return /does not exist|dne|undefined/i.test(String(s));
+}
+
+// Parse "x = 18/5, y = -2/5" (or "x=3.6, y=-0.4") into { x: 3.6, y: -0.4 }.
+function parseVarValues(s) {
+  const out = {};
+  for (const m of String(s).matchAll(/([a-z])\s*=\s*([^,]+?)(?:,|$)/gi)) {
+    const key = m[1].toLowerCase();
+    try {
+      const v = Number(math.evaluate(m[2].replace(/[?\s]/g, '')));
+      if (Number.isFinite(v)) out[key] = v;
+    } catch {
+      // not a numeric value (e.g. "y=?") — skip
+    }
+  }
+  return out;
 }
 
 // Pull the numeric solution set out of an algebra answer like "x = 2  or  x = 3".
@@ -346,6 +365,23 @@ async function grade(category, problem, expected) {
 
   if (cat === 'algebra') {
     const cleaned = input;
+
+    // Systems of equations (two or more '='): grade each variable's value.
+    if ((cleaned.match(/=/g) || []).length >= 2) {
+      if (/infinitely many/i.test(expected)) {
+        return { verdict: /infinitely many/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
+      }
+      if (/no solution|inconsistent/i.test(expected)) {
+        return { verdict: /no solution/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
+      }
+      if (isRefusal(ans)) return { verdict: 'REFUSED', got: ans };
+      const expVals = parseVarValues(expected);
+      const gotVals = parseVarValues(ans);
+      const keys = Object.keys(expVals);
+      const ok = keys.length > 0 && keys.every((k) => k in gotVals && numClose(gotVals[k], expVals[k]));
+      return { verdict: ok ? 'CORRECT' : 'WRONG', got: ans };
+    }
+
     // Statement answers (identity / no-solution rows): the expected value is
     // a claim about the solution set, not a number — grade the claim. These
     // run before the refusal check because "No solution" IS the answer here,

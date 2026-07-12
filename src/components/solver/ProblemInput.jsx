@@ -22,7 +22,7 @@ const PLACEHOLDERS = {
   limits: "e.g., lim x->0 (sin(x)/x) or (x^2 - 4)/(x - 2) as x->2",
   functions: "e.g., x^2 - 4*x + 3 or f(x) = x^3 - x",
   trigonometry: "e.g., sin(pi/4) or cos(60) or tan(x)",
-  algebra: "e.g., 2*x + 5 = 11 or x^2 - 4 or (x + 2)*(x - 3)",
+  algebra: "e.g., 2*x + 5 = 11, factor x^2 - 4, or 2x + 3y = 6; x - y = 4 (system)",
   other: "e.g., 15 + 23, 8 * 7, (5 + 3) * 4, 2^3 + 10/2"
 };
 
@@ -33,6 +33,7 @@ const EXAMPLE_PROBLEMS = [
   { topic: "limits", problem: "lim x->0 (sin(x)/x)" },
   { topic: "functions", problem: "x^2 - 4*x + 3" },
   { topic: "algebra", problem: "2*x + 5 = 11" },
+  { topic: "algebra", problem: "2x + 3y = 6; x - y = 4" },
   { topic: "trigonometry", problem: "sin(pi/4)" },
   { topic: "other", problem: "(5 + 3) * 4 - 2^3" }
 ];

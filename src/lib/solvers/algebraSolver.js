@@ -24,20 +24,21 @@ const COMMON_MISTAKES = [
 
 export async function solveAlgebra(expression, options = {}) {
   try {
-    // Systems of equations aren't supported yet. A semicolon/newline separator
-    // or two '=' signs means multiple equations; refuse clearly rather than
-    // mangling them into one expression and returning an unrelated number.
+    // Two-equation systems are handled upstream (api.js routes them to the
+    // systems solver from the raw text). If a multi-equation string still
+    // reaches here — e.g. a stray separator the router didn't count as a
+    // system — refuse clearly rather than mangling it into one expression.
     const equalsCount = (expression.match(/(?<![><!=])=(?!=)/g) || []).length;
     if (/[;\n]/.test(expression) || equalsCount >= 2) {
       return {
         steps: [
-          'This looks like a system of equations (more than one equation).',
-          'MasterMath solves one equation at a time right now.',
-          'Tip: solve each equation for a variable and substitute by hand, or enter them individually.',
+          'This looks like more than one equation.',
+          'For a 2×2 system, use two equations separated by a semicolon, e.g. 2x + 3y = 6; x − y = 4.',
+          'For a single equation, enter just one, e.g. 2x + 5 = 11.',
         ],
-        answer: 'Systems of equations are not supported yet',
-        tips: ['Enter a single equation, e.g., 2*x + 5 = 11.'],
-        common_mistakes: ['Entering two equations at once — only the first would be read.'],
+        answer: 'Please enter either one equation, or a 2×2 system as "eq1; eq2"',
+        tips: ['A 2×2 system needs exactly two equations in two variables.'],
+        common_mistakes: ['A stray semicolon or extra “=” in a single-equation entry.'],
         graph: null,
       };
     }

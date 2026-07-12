@@ -10,3 +10,7 @@ Integrals,∫_0^pi sin(x) dx,2,—,Definite integral support added v1.9.0
 Integrals,∫_1^e 1/x dx,1,—,Definite integral support added v1.9.0
 Integrals,∫_0^1 1/(x^2+1) dx,0.7853981634,—,Definite integral (arctan) support added v1.9.0
 Integrals,∫_{-1}^{1} 1/x dx,improper (diverges),Algebrite returns -i*pi — must refuse,Guard row: improper integral must be refused not mis-answered
+Algebra,x + y = 5; x - y = 1,"x=3, y=2",—,2x2 system support added v1.10.0
+Algebra,3a + 2b = 12; a - b = 1,"a=2.8, b=1.8",—,2x2 system in non-xy variables v1.10.0
+Algebra,2x + y = 5; 4x + 2y = 10,infinitely many,—,Dependent system (same line) v1.10.0
+Algebra,x + y = 2; x + y = 5,no solution,—,Inconsistent system (parallel lines) v1.10.0

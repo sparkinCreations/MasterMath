@@ -153,9 +153,11 @@ test('regression: eval — definite integrals compute via FTC (built v1.9.0)', a
   assert.doesNotMatch(r.answer, /\+ C\s*$/); // definite, so no constant
 });
 
-test('regression: eval — systems of equations refuse clearly, not an unrelated number', async () => {
+test('regression: eval — systems of equations solve via Cramer (built v1.10.0)', async () => {
+  // Was a refuse-clearly guard; now a real 2×2 solver with exact fractions.
   const r = await solveProblem('2x+3y=6; x-y=4', 'algebra');
-  assert.match(r.answer, /not supported yet/i);
+  assert.equal(r.answer, 'x = 18/5,  y = -2/5');
+  assert.equal(r.verified, true);
 });
 
 test('regression: eval — integral of 1/x displays ln|x|, not log(x)', async () => {
@@ -549,4 +551,58 @@ test('regression: audit polish — an already-simple expression is left alone', 
   const r = await solveProblem('x^2 + 2x + 1', 'algebra');
   assert.match(r.answer, /x\^2 \+ 2x \+ 1/);
   assert.ok(r.steps.some((s) => /already in simplest form/i.test(s)));
+});
+
+// ---------------------------------------------------------------------------
+// Systems of two linear equations (v1.10.0) — roadmap item 9.
+// Cramer's rule in exact rational arithmetic; the solution is substituted back
+// into both equations before it is reported. Replaces the refuse-clearly guard.
+// ---------------------------------------------------------------------------
+
+test('regression: 2x2 system solves with exact fractions', async () => {
+  const r = await solveProblem('2x + 3y = 6; x - y = 4', 'algebra');
+  assert.equal(r.answer, 'x = 18/5,  y = -2/5');
+  assert.equal(r.verified, true);
+  assert.ok(r.steps.some((s) => /Check:/i.test(s)));
+});
+
+test('regression: 2x2 system with an integer solution', async () => {
+  const r = await solveProblem('x + y = 5; x - y = 1', 'algebra');
+  assert.equal(r.answer, 'x = 3,  y = 2');
+});
+
+test('regression: 2x2 system in non-xy variables (a, b)', async () => {
+  const r = await solveProblem('solve the system 3a + 2b = 12; a - b = 1', 'algebra');
+  assert.equal(r.answer, 'a = 14/5,  b = 9/5');
+});
+
+test('regression: comma-separated system parses', async () => {
+  const r = await solveProblem('2x + 3y = 6, x - y = 4', 'algebra');
+  assert.equal(r.answer, 'x = 18/5,  y = -2/5');
+});
+
+test('regression: dependent system reports infinitely many solutions', async () => {
+  const r = await solveProblem('2x + y = 5; 4x + 2y = 10', 'algebra');
+  assert.match(r.answer, /[Ii]nfinitely many/);
+});
+
+test('regression: inconsistent system reports no solution (parallel)', async () => {
+  const r = await solveProblem('x + y = 2; x + y = 5', 'algebra');
+  assert.match(r.answer, /[Nn]o solution/);
+  assert.match(r.answer, /parallel/i);
+});
+
+test('regression: a 3-variable system is refused, not mis-solved', async () => {
+  const r = await solveProblem('x + y + z = 1; x - y = 2', 'algebra');
+  assert.match(r.answer, /unable to solve this system/i);
+});
+
+test('regression: a nonlinear system is refused', async () => {
+  const r = await solveProblem('x^2 + y = 1; x - y = 0', 'algebra');
+  assert.match(r.answer, /unable to solve this system/i);
+});
+
+test('regression: single equations are unaffected by the system router', async () => {
+  const r = await solveProblem('2x + 5 = 11', 'algebra');
+  assert.match(r.answer, /x = 3/);
 });

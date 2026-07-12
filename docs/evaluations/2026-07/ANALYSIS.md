@@ -152,10 +152,11 @@ graphs. Pairs with the existing "Graph annotations" roadmap item.
 
 ### Wave 3 — new capabilities (roadmap items, by demand)
 
-Definite integrals → systems (2×2) → inequalities. (One-sided limits, the
-factor verb, exact radicals, and symbolic trig identities — the Wave 1
-quality tail, B2–B5 — landed in v1.7.0.) Each remaining item needs parsing
-conventions, solver, steps, and tests; sized individually on the roadmap.
+Inequalities remains. (Definite integrals landed in v1.9.0; the 2×2 systems
+solver in v1.10.0; and the Wave 1 quality tail — one-sided limits, the factor
+verb, exact radicals, symbolic trig identities, B2–B5 — in v1.7.0.) Each
+remaining item needs parsing conventions, solver, steps, and tests; sized
+individually on the roadmap.
 
 ---
 
