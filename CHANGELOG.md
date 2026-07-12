@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-07-12
+
+### Added
+- **Inequalities** — solve linear, polynomial, and rational inequalities with
+  `<`, `>`, `≤`, `≥` by the sign-chart method: `x^2 - 4 > 0` → `x < -2 or
+  x > 2`, `2x + 3 < 7` → `x < 2`, `(x-1)/(x+2) >= 0` → `x < -2 or x ≥ 1`.
+  Worked steps show moving to one side, finding the critical points, and the
+  sign on each interval; the answer is given in both inequality and interval
+  notation
+- **Correct endpoints** — a root is closed for `≤`/`≥` and open for `<`/`>`,
+  and a denominator zero (pole) is always excluded. All-real-numbers,
+  no-solution, and single-point (`x^2 ≤ 0` → `x = 0`) cases are named
+  correctly
+- **Sign-chart graph** — plots the expression with its zeros marked, breaks
+  drawn as dashed lines, and the solution ranges shaded (new graph annotation
+  `shadedRegions`)
+- Compound inequalities (`a < x < b`) are refused clearly for now
+
+### Changed
+- Algebra input containing a comparison operator is routed to the inequality
+  solver from the raw text; equations, systems, factoring, and simplification
+  are unaffected
+
 ## [1.10.0] - 2026-07-12
 
 ### Added
