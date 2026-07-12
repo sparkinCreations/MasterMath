@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-07-12
+
+### Added
+- **Systems of equations** — solve a 2×2 linear system like
+  `2x + 3y = 6; x − y = 4` and get exact fractions (`x = 18/5, y = −2/5`),
+  not decimals. Worked steps show the substitution; the solution is checked
+  by substituting back into both equations before it is reported. Accepts
+  semicolon-, comma-, newline-, or "and"-separated equations, any two
+  variable names, and "solve the system …" phrasing
+- **The three system outcomes** are named correctly: a unique solution, *no
+  solution* (parallel lines), or *infinitely many* (the two equations are the
+  same line) — the classic elimination pitfall of reading "0 = 0" as "no
+  solution" is handled
+- **Intersection graph** — both lines are plotted with the solution point
+  marked where they cross (new graph annotation `intersection`)
+- Non-linear systems, three-variable systems, and anything that isn't a clean
+  2×2 linear system are refused clearly instead of mis-solved
+
+### Changed
+- Algebra input with two or more equations is routed to the new systems
+  solver from the raw text (before single-expression extraction); single
+  equations, factoring, and simplification are unaffected
+
 ## [1.9.1] - 2026-07-12
 
 Presentation polish — the three cosmetic nits noted in the July 2026
