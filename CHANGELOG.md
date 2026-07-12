@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-08
+
+### Added
+- **Quadratic insights** — parabolas now report the axis of symmetry
+  (x = −b/2a), opening direction from the leading coefficient, and the exact
+  vertex
+- Function analysis now reports domain restrictions, y-intercept, inflection
+  points, and horizontal asymptotes
+
+### Changed
+- **Functions/Graphing rebuilt from scratch** (scored 2/10 in the July 2026
+  evaluation). Features are now computed, never guessed:
+  - extrema from solving f′(x) = 0 (exact via Algebrite, verified numeric
+    fallback) — no more fabricated "vertices" for monotonic functions like eˣ
+  - x-intercepts from real root-finding with |f(root)| ≈ 0 verification — no
+    more invented intercepts near the window edge for 1/(x−2)
+  - vertical asymptotes detected and reported (denominator roots + divergence
+    check), including slow log-type divergence
+  - domain boundaries found by bisection (sqrt(x−3) reports "undefined for
+    x < 3" and its (3, 0) starting point)
+  - honest fallbacks: "no local extrema" / "none found" instead of made-up
+    features; no global monotonicity claims across a broken domain
+- All 10 Functions rows of the evaluation corpus now pass — the full 91-row
+  corpus grades 100% with zero confidently-wrong answers and zero skips
+
+### Fixed
+- ln(x) graphing/analysis works (previously every numeric evaluation failed)
+
 ## [1.4.0] - 2026-07-08
 
 ### Added

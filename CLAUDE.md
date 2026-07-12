@@ -131,7 +131,8 @@ Each solver module exports a solve function that returns a consistent solution o
 - `derivativesSolver.js`: Differentiation (using algebrite)
 - `integralsSolver.js`: Integration (using algebrite)
 - `arithmeticSolver.js`: Basic arithmetic operations (using mathjs)
-- `otherSolvers.js`: Limits, trigonometry, functions/graphing (using mathjs, algebrite)
+- `otherSolvers.js`: Limits, trigonometry (using mathjs, algebrite)
+- `functionsSolver.js`: Function analysis/graphing — exact extrema via f'(x)=0, root-based intercepts, domain & asymptote detection (never fabricates a feature)
 
 ### Math Parser (`src/lib/mathParser.js`)
 

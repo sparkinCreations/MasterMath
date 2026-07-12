@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.3.1 (commit `da7098d5`)
+**Version referenced:** 1.5.0
 **By:** sparkinCreations™
 **Last Updated:** July 8, 2026
 
@@ -68,8 +68,8 @@ job. Do them in Wave order; treat the P0s as one severity class.
 | 1 | ~~Undefined trig values (`tan(π/2)`)~~ ✅ Fixed July 2026 | **P0** | Small | Bug | — |
 | 2 | ~~Regression harness over the 91-row eval CSV~~ ✅ Done v1.4.0 (`tests/corpus/`, math-equivalence grading, wired into `npm test`) | **P0** | Medium | Quality | 1 |
 | 3 | ~~Input-perimeter fixes (arctan, `!`, `C(n,k)`, `ln` alias, abs-limit gate, `ln\|x\|`) + refuse-clearly guards~~ ✅ Done v1.4.0 — **0 confident-wrong on the corpus**. Tail: one-sided limits, factor verb, exact-radical form, symbolic trig identity | **P0** | Small–Med | Bug | 1 |
-| 4 | Functions/Graphing rebuild (derivative-based extrema, root-based intercepts, domain + asymptotes) — **correctness, not a feature** | **P0** | Medium | Engine | 2 |
-| 5 | Quadratic insights (axis of symmetry, opens up/down) — fold into #4 | P1 | Small | Feature | 2 |
+| 4 | ~~Functions/Graphing rebuild~~ ✅ Done v1.5.0 (`functionsSolver.js`: f′-based extrema, verified intercepts, domain + asymptotes; all 10 eval rows pass) | **P0** | Medium | Engine | 2 |
+| 5 | ~~Quadratic insights (axis of symmetry, opens up/down)~~ ✅ Done v1.5.0 (folded into #4) | P1 | Small | Feature | 2 |
 | 6 | KaTeX math rendering | P1 | Medium | Feature | 3 |
 | 7 | Graph annotations (limit point, extrema, asymptotes) — pairs with #4 | P2 | Medium | Feature | 3 |
 | 8 | Definite integrals — *refuses clearly as of v1.4.0*; building actual `defint` support is the remaining feature | P2 | Medium | Feature | — |
