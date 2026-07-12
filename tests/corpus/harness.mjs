@@ -38,6 +38,11 @@ const TOPIC = {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CSV = path.resolve(__dirname, '../../docs/evaluations/2026-07/mastermath_evaluation.csv');
 
+// Post-evaluation acceptance rows: bugs found after the original evaluation
+// (production audits, user reports) land here, citing their source in the
+// Classification column — the original evaluation artifact stays pristine.
+const ADDITIONS = path.resolve(__dirname, 'additions.csv');
+
 // Documented errors in the external evaluation corpus itself — cases where the
 // solver is right and the CSV's "expected" is wrong. We correct the expected
 // here (with the reason) rather than editing the external artifact or, worse,
@@ -335,6 +340,16 @@ async function grade(category, problem, expected) {
 
   if (cat === 'algebra') {
     const cleaned = input;
+    // Statement answers (identity / no-solution rows): the expected value is
+    // a claim about the solution set, not a number — grade the claim. These
+    // run before the refusal check because "No solution" IS the answer here,
+    // not a refusal.
+    if (/all real|identity/i.test(expected)) {
+      return { verdict: /all real|identity/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
+    }
+    if (/^no solution/i.test(String(expected).trim())) {
+      return { verdict: /no (?:real )?solution/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
+    }
     if (isRefusal(ans) || /unsolved|no factorization/i.test(ans)) return { verdict: 'REFUSED', got: ans };
 
     // equation with a solution set?
@@ -368,6 +383,11 @@ async function grade(category, problem, expected) {
 const showWrongOnly = process.argv.includes('--wrong');
 const rows = parseCSV(fs.readFileSync(CSV, 'utf8'));
 const header = rows.shift(); // Category,Problem,Expected,Solver,Classification
+if (fs.existsSync(ADDITIONS)) {
+  const extra = parseCSV(fs.readFileSync(ADDITIONS, 'utf8'));
+  extra.shift(); // same header shape
+  rows.push(...extra);
+}
 
 const tally = { CORRECT: 0, WRONG: 0, REFUSED: 0, SKIP: 0 };
 const wrong = [];

@@ -140,6 +140,11 @@ async function solveWithAlgebriteRoots(equation, variable) {
     if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) {
       const numericRoots = rootsViaPolynomialRoot(Algebrite, polynomial, variable);
       if (numericRoots) return numericRoots;
+      // polynomialRoot caps at cubics. For higher degrees (x^4 - 16), evaluate
+      // each symbolic root numerically instead — mathjs handles the complex
+      // arithmetic — so students see ±2, ±2i, not (-1)^(1/4) soup.
+      const evaluated = rootsViaComplexEvaluate(rootsRaw, polynomial, variable);
+      if (evaluated) return evaluated;
     }
 
     const roots = parseRootsList(rootsRaw);
@@ -219,6 +224,53 @@ function rootsViaPolynomialRoot(Algebrite, polynomial, variable) {
   }
 }
 
+/**
+ * Clean up mangled symbolic roots beyond polynomialRoot's cubic ceiling by
+ * evaluating each root expression numerically (mathjs handles the complex
+ * arithmetic: (-1)^(1/4) → 0.7071 + 0.7071i). Every root must back-substitute
+ * into the polynomial with a tiny residual, or the whole cleanup is rejected
+ * and the caller falls through — never a prettier-but-unverified answer.
+ */
+function rootsViaComplexEvaluate(rootsRaw, polynomial, variable) {
+  try {
+    const parts = splitRootsList(rootsRaw);
+    if (parts.length === 0) return null;
+
+    const roots = [];
+    for (const part of parts) {
+      let value;
+      try {
+        value = math.evaluate(part.trim());
+      } catch {
+        return null;
+      }
+      const isComplex = value && typeof value === 'object' && Number.isFinite(value.re);
+      if (typeof value !== 'number' && !isComplex) return null;
+
+      const residual = math.abs(math.evaluate(polynomial, { [variable]: value }));
+      if (!(residual < 1e-6)) return null;
+
+      roots.push(formatComplexRoot(typeof value === 'number' ? value : { re: value.re, im: value.im }));
+    }
+
+    roots.sort((a, b) => {
+      if (a.isReal !== b.isReal) return a.isReal ? -1 : 1;
+      return a.numeric - b.numeric || a.im - b.im;
+    });
+
+    const answer = roots.map((r) => `${variable} = ${r.display}`).join('  or  ');
+    const steps = [
+      `Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`,
+      `Find all ${roots.length} roots and verify each by substituting it back.`,
+      `Solution: ${answer}`,
+    ];
+
+    return { steps, answer, solutions: roots.filter((r) => r.isReal).map((r) => r.numeric) };
+  } catch {
+    return null;
+  }
+}
+
 // Snap a number to the nearest integer when within rounding noise, else round
 // to 4 decimals. Keeps 2.0000000004 -> 2 and 1.7320508 -> 1.7321.
 function cleanNumber(n) {
@@ -252,11 +304,12 @@ function formatComplexRoot(root) {
 }
 
 
-function parseRootsList(raw) {
+// Split an Algebrite roots list ("[a, b, c]") into its entries, respecting
+// commas inside parentheses.
+function splitRootsList(raw) {
   const trimmed = String(raw).trim().replace(/^\[|\]$/g, '');
   if (!trimmed) return [];
 
-  // Split on commas that are not inside parentheses.
   const parts = [];
   let depth = 0;
   let current = '';
@@ -271,8 +324,11 @@ function parseRootsList(raw) {
     }
   }
   if (current) parts.push(current);
+  return parts;
+}
 
-  return parts.map((part) => {
+function parseRootsList(raw) {
+  return splitRootsList(raw).map((part) => {
     const display = beautify(part.trim());
     let numeric = NaN;
     try {
@@ -340,47 +396,127 @@ function extractNumbers(str) {
 }
 
 // Brute-force numeric root finding, used only when symbolic methods fail.
+//
+// Hardened after the July 2026 production audit, which caught this path
+// confidently reporting scan artifacts as solutions (sqrt(x) = 5 → five
+// values near -100). Three rules keep it honest now:
+//   1. Non-real values (Complex from sqrt/log of negatives) are out-of-domain
+//      points, never operands of a sign comparison — NaN sign-"changes" were
+//      the artifact factory.
+//   2. A constant difference is recognized before scanning: identically 0 is
+//      an identity (all real numbers), a nonzero constant is a contradiction
+//      (no solution) — not five grid points / not "none found in range".
+//   3. Every candidate root must survive back-substitution (|f(root)| small)
+//      or it is silently dropped; if none survive, refuse honestly.
 function solveNumerically(equation, variable) {
   const [left, right = '0'] = equation.split('=');
   const expression = right.trim() === '0' ? left.trim() : `(${left.trim()}) - (${right.trim()})`;
 
-  const roots = [];
-  let prev = null;
-  for (let x = -100; x <= 100; x += 0.5) {
-    let value;
+  // Real-valued evaluation: Complex results (sqrt of a negative) count as
+  // "not defined here", exactly like a thrown evaluation error.
+  const evalReal = (x) => {
     try {
-      value = math.evaluate(expression, { [variable]: x });
+      const v = math.evaluate(expression, { [variable]: x });
+      return typeof v === 'number' ? v : NaN;
     } catch {
+      return NaN;
+    }
+  };
+
+  const constant = detectConstantDifference(evalReal);
+  if (constant !== null) {
+    if (Math.abs(constant) < 1e-9) {
+      return {
+        steps: [
+          `Rewrite as ${beautify(expression)} = 0`,
+          `The ${variable} terms cancel — the two sides are identical for every value of ${variable}.`,
+          'This is an identity: every real number is a solution.',
+        ],
+        answer: `All real numbers (identity — true for every ${variable})`,
+        solutions: [],
+      };
+    }
+    return {
+      steps: [
+        `Rewrite as ${beautify(expression)} = 0`,
+        `The ${variable} terms cancel — the difference between the sides is always ${formatNumber(constant)}, never 0.`,
+        'The two sides can never be equal, so this equation has no solution.',
+      ],
+      answer: 'No solution (the two sides are never equal)',
+      solutions: [],
+    };
+  }
+
+  const roots = [];
+  const seen = (root) => roots.some((r) => Math.abs(r - root) < 0.01);
+  let prev = null;
+  let prevX = null;
+  for (let x = -100; x <= 100; x += 0.5) {
+    const value = evalReal(x);
+    if (Number.isNaN(value)) {
       prev = null;
       continue;
     }
-    if (prev !== null && Math.sign(prev) !== Math.sign(value)) {
-      const root = refineRoot(expression, variable, x - 0.5, x);
-      if (root !== null && !roots.some((r) => Math.abs(r - root) < 0.01)) roots.push(root);
+    if (prev !== null && Math.sign(prev) !== Math.sign(value) && prev !== 0 && value !== 0) {
+      const root = refineRoot(expression, variable, prevX, x);
+      if (root !== null && !seen(root)) roots.push(root);
     }
-    if (Math.abs(value) < 1e-3 && !roots.some((r) => Math.abs(r - x) < 0.01)) roots.push(x);
+    if (Math.abs(value) < 1e-3 && !seen(x)) roots.push(x);
     prev = value;
+    prevX = x;
   }
 
-  const solutions = roots.slice(0, 5);
-  if (solutions.length === 0) {
+  // Back-substitution gate: a candidate only counts if it actually satisfies
+  // the equation. This is what turns a scanner bug into "no answer" instead
+  // of a wrong answer.
+  const verified = roots.filter((r) => {
+    const residual = evalReal(r);
+    return Number.isFinite(residual) && Math.abs(residual) <= 1e-3;
+  });
+
+  if (verified.length === 0) {
     return {
-      steps: [`Solve ${beautify(expression)} = 0`, 'No real solution was found in the searched range.'],
+      steps: [
+        `Rewrite as ${beautify(expression)} = 0`,
+        `No real value of ${variable} in the searched range (-100 to 100) satisfies the equation.`,
+      ],
       answer: 'No real solution found',
       solutions: [],
     };
   }
 
+  // Show at most five roots, preferring the ones nearest zero (a periodic
+  // equation can have dozens in range; x = 0, ±π beats x = -100, -99.5, …).
+  const solutions = verified
+    .sort((a, b) => Math.abs(a) - Math.abs(b))
+    .slice(0, 5)
+    .sort((a, b) => a - b);
+
+  const steps = [
+    `Rewrite as ${beautify(expression)} = 0`,
+    'Search for values where the expression crosses zero, then verify each candidate by substituting it back.',
+  ];
+  if (verified.length > solutions.length) {
+    steps.push(`The equation has more solutions in range; showing the ${solutions.length} closest to zero.`);
+  }
   const answer = solutions.map((s) => `${variable} = ${formatNumber(s)}`).join('  or  ');
-  return {
-    steps: [
-      `Rewrite as ${beautify(expression)} = 0`,
-      'Search for values where the expression crosses zero.',
-      `Solution: ${answer}`,
-    ],
-    answer,
-    solutions,
-  };
+  steps.push(`Solution: ${answer}`);
+
+  return { steps, answer, solutions };
+}
+
+// Probe the rewritten expression at spread-out points. If it is defined at
+// most of them and takes the same value everywhere, the equation's two sides
+// differ by a constant. Returns that constant, or null when not constant.
+const CONSTANT_PROBE_POINTS = [-9.7, -4.3, -1.1, 0.6, 2.9, 7.4, 23.7];
+
+function detectConstantDifference(evalReal) {
+  const values = CONSTANT_PROBE_POINTS.map(evalReal).filter(Number.isFinite);
+  if (values.length < 5) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (max - min > 1e-9 * (1 + Math.abs(max))) return null;
+  return (min + max) / 2;
 }
 
 function refineRoot(expression, variable, a, b) {
@@ -396,6 +532,10 @@ function refineRoot(expression, variable, a, b) {
     } catch {
       return null;
     }
+    // A Complex or non-finite value means the bracket left the real domain —
+    // bisecting on NaN comparisons would converge to a meaningless endpoint.
+    if (typeof value !== 'number' || typeof leftValue !== 'number') return null;
+    if (!Number.isFinite(value) || !Number.isFinite(leftValue)) return null;
     if (Math.abs(value) < 1e-6) return mid;
     if (Math.sign(leftValue) === Math.sign(value)) left = mid;
     else right = mid;

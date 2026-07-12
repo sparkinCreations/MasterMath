@@ -373,3 +373,67 @@ test('regression: numeric trig still evaluates after the symbolic split', async 
   const r = await solveProblem('sin(pi/6)', 'trigonometry');
   assert.match(r.answer, /^0\.5/);
 });
+
+// ---------------------------------------------------------------------------
+// July 2026 production audit (v1.8.0) — the numeric equation fallback
+// The last symbolic-failure path in the algebra solver reported confident
+// wrong answers: sqrt(x) = 5 → five scan artifacts starting at x = -100
+// (Complex values made every NaN sign comparison read as a sign change),
+// identities → the same five grid points, |x-3| = 5 → "No real solution
+// found" (pipes never parsed). Fixed with complex-safe scanning, constant
+// detection, a back-substitution gate, and pipe→abs() translation.
+// ---------------------------------------------------------------------------
+
+test('regression: audit — sqrt(x) = 5 yields x = 25, not scan artifacts', async () => {
+  const r = await solveProblem('sqrt(x) = 5', 'algebra');
+  assert.equal(r.answer, 'x = 25');
+  assert.doesNotMatch(r.answer, /-100|-99|-98/);
+});
+
+test('regression: audit — an identity reports all real numbers', async () => {
+  const r = await solveProblem('2(x+3) = 2x+6', 'algebra');
+  assert.match(r.answer, /All real numbers/);
+  assert.ok(r.steps.some((s) => /identity/i.test(s)));
+});
+
+test('regression: audit — |x-3| = 5 solves via pipe→abs translation', async () => {
+  const r = await solveProblem('|x-3| = 5', 'algebra');
+  assert.match(r.answer, /x = -2/);
+  assert.match(r.answer, /x = 8/);
+});
+
+test('regression: audit — a contradiction says "no solution" without hedging', async () => {
+  const r = await solveProblem('5x-7 = 5x+2', 'algebra');
+  assert.match(r.answer, /^No solution/);
+  assert.doesNotMatch(r.answer, /searched range/i);
+  assert.ok(r.steps.some((s) => /never be equal|never 0/i.test(s)));
+});
+
+test('regression: audit — x^4 = 16 shows clean roots, not (-1)^(1/4) forms', async () => {
+  const r = await solveProblem('x^4 - 16 = 0', 'algebra');
+  assert.match(r.answer, /x = -2 {2}or/);
+  assert.match(r.answer, /x = 2i/);
+  assert.doesNotMatch(r.answer, /\(-1\)\^/);
+});
+
+test('regression: audit — no-solution radical equations stay honest', async () => {
+  // sqrt(x) = -2 genuinely has no real solution; the scanner must say so
+  // rather than inventing roots (the back-substitution gate at work).
+  const r = await solveProblem('sqrt(x) = -2', 'algebra');
+  assert.match(r.answer, /No real solution found/);
+});
+
+test('regression: audit — the scanner still finds genuine fallback roots', async () => {
+  // A control: radical equations the symbolic engines cannot do must keep
+  // working through the hardened numeric path.
+  const r = await solveProblem('sqrt(x) = 3', 'algebra');
+  assert.equal(r.answer, 'x = 9');
+});
+
+test('regression: audit — periodic equations prefer roots nearest zero', async () => {
+  // sin(x) = 0 has ~63 roots in the scan range; the five shown must be the
+  // ones a student expects (around 0), not x = -100, -99.5, …
+  const r = await solveProblem('sin(x) = 0', 'algebra');
+  assert.ok(r.answer.includes('x = 0'));
+  assert.doesNotMatch(r.answer, /-100/);
+});

@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.7.0
+**Version referenced:** 1.8.1
 **By:** sparkinCreations™
 **Last Updated:** July 12, 2026
 
@@ -327,6 +327,13 @@ Honest constraints to keep in mind when triaging bug reports:
   until P3 lands.
 - **The parser is regex-based.** It's decent, but it's the most likely
   source of confident-wrong-answer bugs — see the P2 corpus item.
+- **The numeric equation fallback was hardened in v1.8.1** after a
+  production audit caught it reporting scan artifacts as roots
+  ([`../evaluations/2026-07/PRODUCTION-AUDIT-v1.8.md`](../evaluations/2026-07/PRODUCTION-AUDIT-v1.8.md)):
+  non-real values are out-of-domain (not NaN sign flips), constant
+  differences resolve to identity/no-solution, and every candidate root must
+  survive back-substitution. It was the last solver path without a
+  verification gate.
 
 ---
 

@@ -1,0 +1,7 @@
+Category,Problem,Expected,Solver,Classification
+Algebra,sqrt(x) = 5,x = 25,five scan artifacts starting at x = -100,Incorrect (July 2026 production audit of v1.8.0)
+Algebra,2(x+3) = 2x+6,All real numbers,five scan artifacts starting at x = -100,Incorrect (July 2026 production audit of v1.8.0)
+Algebra,|x-3| = 5,x = -2 or x = 8,No real solution found,Incorrect (July 2026 production audit of v1.8.0)
+Algebra,5x-7 = 5x+2,No solution,No real solution found (hedged wording),Partial (July 2026 production audit of v1.8.0)
+Algebra,x^4 - 16 = 0,x = -2 or x = 2 or x = -2i or x = 2i,unreadable principal-root forms,Partial (July 2026 production audit of v1.8.0)
+Algebra,sqrt(x) = -2,No solution,—,Guard row: truly has no real solution — must refuse or say no solution and never invent roots

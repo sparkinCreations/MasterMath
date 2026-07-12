@@ -14,6 +14,12 @@ export function parseMathExpression(input) {
   cleaned = cleaned.replace(/[.?]+$/, '').trim();
   cleaned = cleaned.replace(/(?<![\d)])!+$/, '').trim();
 
+  // Absolute-value bars → abs(): |x-3| becomes abs(x-3). mathjs cannot parse
+  // bar notation, so without this an equation like |x-3| = 5 fails to
+  // evaluate at every point and reads as having no solution. Bars cannot
+  // nest, so pairing innermost non-bar runs is unambiguous.
+  cleaned = cleaned.replace(/\|([^|]+)\|/g, 'abs($1)');
+
   // Combinatorics notation → mathjs built-ins: C(5,2) -> combinations(5,2),
   // P(5,2) -> permutations(5,2), and the nCr / nPr infix forms.
   cleaned = cleaned
