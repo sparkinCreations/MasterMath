@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-08
+
+### Added
+- **KaTeX math rendering** — solution steps and final answers now display
+  typeset math (real fractions, exponents, integral and root signs) instead
+  of ASCII like `x^2`. Fully offline (KaTeX is bundled); any fragment KaTeX
+  can't render falls back to plain text
+- **Graph annotations** — graphs now mark what the solution talks about:
+  extrema dots labeled max/min, x- and y-intercept dots, dashed vertical
+  asymptote lines, and for limits a guideline at the approach point with a
+  hollow marker at (a, L)
+- **Graph height controls** — make the chart taller or shorter (5 sizes)
+- **Four-way panning** — pan up/down as well as left/right; panning is
+  clamped to a reasonable extent (the solvers now sample x ∈ ±40, and the
+  vertical window can't wander more than one screen past the data)
+- Limit graphs open centered on the approach point
+
+### Changed
+- Sample cap raised so polynomial growth isn't dropped from the pannable
+  range (only true blow-ups are excluded); Reset restores view and height
+
+### Fixed
+- Graph height changes apply instantly (removed a transition that could
+  leave the chart stuck at its old size)
+
 ## [1.5.0] - 2026-07-08
 
 ### Added

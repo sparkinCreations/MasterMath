@@ -121,7 +121,16 @@ Each solver module exports a solve function that returns a consistent solution o
   graph: {                      // Optional graph data
     points: [{x, y}, ...],
     title: string,
-    description: string
+    description: string,
+    annotations: {              // Optional markers rendered by GraphViewer
+      extrema: [{x, y, kind}],  // kind: "max" | "min"
+      intercepts: [{x, y: 0}],
+      yIntercept: {x: 0, y},
+      verticalAsymptotes: [x],
+      guideline: {x, label},    // limits: the approach point
+      limitPoint: {x, y}        // limits: hollow marker at (a, L)
+    },
+    initialWindow: {xMin, xMax} // optional non-default starting view
   }
 }
 ```
