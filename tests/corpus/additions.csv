@@ -14,3 +14,7 @@ Algebra,x + y = 5; x - y = 1,"x=3, y=2",—,2x2 system support added v1.10.0
 Algebra,3a + 2b = 12; a - b = 1,"a=2.8, b=1.8",—,2x2 system in non-xy variables v1.10.0
 Algebra,2x + y = 5; 4x + 2y = 10,infinitely many,—,Dependent system (same line) v1.10.0
 Algebra,x + y = 2; x + y = 5,no solution,—,Inconsistent system (parallel lines) v1.10.0
+Algebra,x^2 - 4 > 0,x < -2 or x > 2,—,Quadratic inequality (sign chart) v1.11.0
+Algebra,2x + 3 < 7,x < 2,—,Linear inequality v1.11.0
+Algebra,x^2 - 4 <= 0,-2 <= x <= 2,—,Non-strict quadratic inequality includes roots v1.11.0
+Algebra,(x-1)/(x+2) >= 0,x < -2 or x >= 1,—,Rational inequality: pole open, zero closed v1.11.0

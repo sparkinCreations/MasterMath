@@ -130,7 +130,8 @@ Each solver module exports a solve function that returns a consistent solution o
       guideline: {x, label},    // limits: the approach point
       limitPoint: {x, y},       // limits: hollow marker at (a, L)
       shaded: {from, to, fromLabel, toLabel},  // definite integrals: shaded area over [a,b]
-      intersection: {x, y, label}  // systems: the solution point where two lines cross
+      intersection: {x, y, label},  // systems: the solution point where two lines cross
+      shadedRegions: [{from, to}]  // inequalities: x-ranges where it holds (±Infinity clamped to the window)
     },
     initialWindow: {xMin, xMax} // optional non-default starting view
   }
@@ -140,6 +141,7 @@ Each solver module exports a solve function that returns a consistent solution o
 **Available Solvers:**
 - `algebraSolver.js`: Equations, simplification, factoring (using mathsteps, algebrite)
 - `systemsSolver.js`: Systems of two linear equations in two unknowns — Cramer's rule in exact rational arithmetic (18/5, not 3.6), worked substitution steps, and the unique / no-solution (parallel) / infinitely-many (same line) trichotomy. The solution is substituted back into both equations before it is reported. Receives the raw problem text (routed from api.js when it detects two `=` signs) so the first equation isn't mangled by single-expression extraction.
+- `inequalitiesSolver.js`: Single-variable inequalities (`<`, `>`, `≤`, `≥`) by the sign-chart method — move to one side, find zeros (numerator roots) and breaks (denominator roots), test the sign on each interval, and read off the solution with correct open/closed endpoints (roots closed for ≤/≥, poles always open). Handles linear, polynomial, and rational inequalities; reports all-reals / no-solution / single-point cases; refuses compound inequalities. Routed from api.js when the raw text contains a comparison operator.
 - `derivativesSolver.js`: Differentiation (using algebrite)
 - `integralsSolver.js`: Integration (using algebrite) — indefinite antiderivatives and definite integrals (`∫_a^b f dx` via the Fundamental Theorem of Calculus, exact value cross-checked by Simpson's-rule quadrature; improper integrals across a discontinuity are refused, not mis-answered). Receives the raw problem text (like limits) so it can read definite-integral bounds before notation is normalized.
 - `arithmeticSolver.js`: Basic arithmetic operations (using mathjs)

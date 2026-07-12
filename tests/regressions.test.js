@@ -606,3 +606,61 @@ test('regression: single equations are unaffected by the system router', async (
   const r = await solveProblem('2x + 5 = 11', 'algebra');
   assert.match(r.answer, /x = 3/);
 });
+
+// ---------------------------------------------------------------------------
+// Inequalities (v1.11.0) — roadmap item 10. Sign-chart method: move to one
+// side, find zeros (numerator) and breaks (denominator), test each interval.
+// Was echoed back unsolved ("x^2 - 4>0"); now solved with correct endpoints.
+// ---------------------------------------------------------------------------
+
+test('regression: linear inequality solves', async () => {
+  const r = await solveProblem('2x + 3 < 7', 'algebra');
+  assert.equal(r.answer, 'x < 2');
+  assert.equal(r.verified, true);
+});
+
+test('regression: quadratic inequality gives two rays (strict, open ends)', async () => {
+  const r = await solveProblem('x^2 - 4 > 0', 'algebra');
+  assert.equal(r.answer, 'x < -2  or  x > 2');
+});
+
+test('regression: non-strict quadratic includes the roots', async () => {
+  const r = await solveProblem('x^2 - 4 <= 0', 'algebra');
+  assert.equal(r.answer, '-2 ≤ x ≤ 2');
+});
+
+test('regression: rational inequality excludes the pole, includes the zero', async () => {
+  // (x-1)/(x+2) >= 0: zero at 1 (closed), pole at -2 (always open).
+  const r = await solveProblem('(x-1)/(x+2) >= 0', 'algebra');
+  assert.equal(r.answer, 'x < -2  or  x ≥ 1');
+});
+
+test('regression: cubic inequality reads the full sign chart', async () => {
+  const r = await solveProblem('x^3 - x < 0', 'algebra');
+  assert.equal(r.answer, 'x < -1  or  0 < x < 1');
+});
+
+test('regression: always-true inequality reports all real numbers', async () => {
+  const r = await solveProblem('x^2 + 1 > 0', 'algebra');
+  assert.match(r.answer, /[Aa]ll real numbers/);
+});
+
+test('regression: never-true inequality reports no solution', async () => {
+  const r = await solveProblem('x^2 + 1 < 0', 'algebra');
+  assert.match(r.answer, /[Nn]o solution/);
+});
+
+test('regression: a single-point solution reads x = c', async () => {
+  const r = await solveProblem('x^2 <= 0', 'algebra');
+  assert.equal(r.answer, 'x = 0');
+});
+
+test('regression: compound inequality is refused (out of scope)', async () => {
+  const r = await solveProblem('-2 < x < 3', 'algebra');
+  assert.match(r.answer, /unable to solve this inequality/i);
+});
+
+test('regression: an equation is not misrouted to the inequality solver', async () => {
+  const r = await solveProblem('2x + 5 = 11', 'algebra');
+  assert.match(r.answer, /x = 3/);
+});

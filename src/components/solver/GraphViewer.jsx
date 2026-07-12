@@ -244,6 +244,18 @@ export default function GraphViewer({ functionData }) {
               <ReferenceLine x={0} stroke={axisLineColor} strokeWidth={2} />
               <ReferenceLine y={0} stroke={axisLineColor} strokeWidth={2} />
 
+              {/* Inequality solution regions: shade each x-range that holds */}
+              {(ann.shadedRegions || []).map((rg, i) => (
+                <ReferenceArea
+                  key={`sr-${i}`}
+                  x1={Math.max(rg.from, range.xMin)}
+                  x2={Math.min(rg.to, range.xMax)}
+                  fill={interceptColor}
+                  fillOpacity={0.14}
+                  stroke="none"
+                />
+              ))}
+
               {/* Definite-integral region: shade [a, b] and mark the bounds */}
               {ann.shaded && (
                 <ReferenceArea

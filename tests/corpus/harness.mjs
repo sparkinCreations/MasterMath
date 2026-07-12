@@ -366,6 +366,16 @@ async function grade(category, problem, expected) {
   if (cat === 'algebra') {
     const cleaned = input;
 
+    // Inequalities (<, >, ≤, ≥): compare the solution set as a normalized
+    // string (≤→<=, drop spaces), or grade the all-reals / no-solution claim.
+    if (/[<>≤≥]/.test(cleaned)) {
+      if (isRefusal(ans)) return { verdict: 'REFUSED', got: ans };
+      if (/all real/i.test(expected)) return { verdict: /all real/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
+      if (/no solution/i.test(expected)) return { verdict: /no solution/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
+      const norm = (s) => String(s).replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/\s+/g, '').toLowerCase();
+      return { verdict: norm(ans) === norm(expected) ? 'CORRECT' : 'WRONG', got: ans };
+    }
+
     // Systems of equations (two or more '='): grade each variable's value.
     if ((cleaned.match(/=/g) || []).length >= 2) {
       if (/infinitely many/i.test(expected)) {

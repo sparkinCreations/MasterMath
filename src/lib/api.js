@@ -106,6 +106,11 @@ function looksLikeSystem(problem) {
   return equalsCount >= 2;
 }
 
+// An inequality carries a <, >, ≤, or ≥ relation.
+function looksLikeInequality(problem) {
+  return /[<>≤≥]/.test(String(problem));
+}
+
 // Shared result validation — every solver's output passes through here.
 function finalizeResult(result) {
   if (!result || typeof result !== 'object') {
@@ -139,6 +144,14 @@ export async function solveProblem(problem, topic) {
     }
 
     let result;
+
+    // Inequalities: a <, >, ≤, or ≥ operator. Routed from the raw text so the
+    // operator and both sides stay intact for the sign-chart solver.
+    if (topic === 'algebra' && looksLikeInequality(problem)) {
+      const { solveInequality } = await import('./solvers/inequalitiesSolver.js');
+      result = await solveInequality(problem);
+      return finalizeResult(result);
+    }
 
     // Systems of equations: two or more equations. Detected from the RAW
     // problem (before the single-expression extractor mangles the first

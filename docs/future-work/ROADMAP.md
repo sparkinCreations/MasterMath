@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.10.0
+**Version referenced:** 1.11.0
 **By:** sparkinCreations™
 **Last Updated:** July 12, 2026
 
@@ -74,7 +74,7 @@ job. Do them in Wave order; treat the P0s as one severity class.
 | 7 | ~~Graph annotations~~ ✅ Done v1.6.0 (extrema, intercepts, asymptotes, limit guideline + L marker; plus height controls and clamped 4-way pan) | P2 | Medium | Feature | 3 |
 | 8 | ~~Definite integrals~~ ✅ Done v1.9.0 (`defint` via FTC, worked steps, Simpson cross-check + improper-integral guard, shaded-area graph) | P2 | Medium | Feature | — |
 | 9 | ~~Systems of equations~~ ✅ Done v1.10.0 (`systemsSolver.js`: 2×2 linear via Cramer's rule in exact fractions, substitution steps, unique/parallel/dependent trichotomy, intersection graph) | P3 | Medium | Feature | — |
-| 10 | Inequalities (roots + sign chart) | P3 | Medium | Feature | — |
+| 10 | ~~Inequalities (roots + sign chart)~~ ✅ Done v1.11.0 (`inequalitiesSolver.js`: linear/polynomial/rational, sign chart with correct open/closed endpoints, shaded-region graph) | P3 | Medium | Feature | — |
 | 11 | Integration by parts walkthrough | P3 | Large | Engine | — |
 | 12 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine | — |
 | 13 | ~~Tutor mode (reveal-one-at-a-time steps)~~ ✅ Done v1.8.0 — "Show all / Step through" toggle; answer/tips/mistakes gated until every step is revealed | P4 | Medium | UX | — |
