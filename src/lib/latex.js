@@ -12,8 +12,8 @@ const FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'asin',
 
 // Words allowed to appear inside a "math" fragment without making it prose.
 const MATH_WORDS = new Set([
-  ...FUNCTIONS, 'sqrt', 'abs', 'lim', 'pi', 'dx', 'dy', 'dt', 'du', 'dd',
-  'or', 'and', 'C', 'DNE', 'e', 'i', 'd', 'f', 'F', 'x', 'y', 't', 'u', 'n', 'a', 'b', 'c',
+  ...FUNCTIONS, 'sqrt', 'abs', 'lim', 'pi', 'dx', 'dy', 'dt', 'du', 'dv', 'dd',
+  'or', 'and', 'C', 'DNE', 'e', 'i', 'd', 'f', 'F', 'x', 'y', 't', 'u', 'v', 'n', 'a', 'b', 'c',
 ]);
 
 /**

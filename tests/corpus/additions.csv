@@ -18,3 +18,8 @@ Algebra,x^2 - 4 > 0,x < -2 or x > 2,—,Quadratic inequality (sign chart) v1.11.
 Algebra,2x + 3 < 7,x < 2,—,Linear inequality v1.11.0
 Algebra,x^2 - 4 <= 0,-2 <= x <= 2,—,Non-strict quadratic inequality includes roots v1.11.0
 Algebra,(x-1)/(x+2) >= 0,x < -2 or x >= 1,—,Rational inequality: pole open, zero closed v1.11.0
+Integrals,x*cos(x),cos(x) + x*sin(x),—,Integration by parts walkthrough v1.12.0
+Integrals,x^3*sin(x),-x^3*cos(x)+3*x^2*sin(x)+6*x*cos(x)-6*sin(x),—,Repeated by-parts (Algebrite fails it) v1.12.0
+Integrals,x^2*e^x,exp(x)*(x^2-2*x+2),—,Repeated by-parts v1.12.0
+Integrals,e^x*sin(x),1/2*exp(x)*(sin(x)-cos(x)),—,Cyclic by-parts v1.12.0
+Integrals,arctan(x),x*arctan(x)-1/2*log(x^2+1),—,By-parts with dv=dx v1.12.0

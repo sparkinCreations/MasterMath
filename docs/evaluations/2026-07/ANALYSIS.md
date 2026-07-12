@@ -152,11 +152,11 @@ graphs. Pairs with the existing "Graph annotations" roadmap item.
 
 ### Wave 3 — new capabilities (roadmap items, by demand)
 
-All the correctness-adjacent capabilities have now shipped: definite integrals
-(v1.9.0), the 2×2 systems solver (v1.10.0), inequalities (v1.11.0), and the
-Wave 1 quality tail — one-sided limits, the factor verb, exact radicals,
-symbolic trig identities, B2–B5 (v1.7.0). The only remaining roadmap item is
-the integration-by-parts walkthrough (Large engine work).
+Every roadmap capability has now shipped: definite integrals (v1.9.0), the
+2×2 systems solver (v1.10.0), inequalities (v1.11.0), the integration-by-parts
+walkthrough (v1.12.0), and the Wave 1 quality tail — one-sided limits, the
+factor verb, exact radicals, symbolic trig identities, B2–B5 (v1.7.0). The
+roadmap's build list is complete; what remains is optional polish.
 
 ---
 

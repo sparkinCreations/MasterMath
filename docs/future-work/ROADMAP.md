@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.11.0
+**Version referenced:** 1.12.0
 **By:** sparkinCreations™
 **Last Updated:** July 12, 2026
 
@@ -75,7 +75,7 @@ job. Do them in Wave order; treat the P0s as one severity class.
 | 8 | ~~Definite integrals~~ ✅ Done v1.9.0 (`defint` via FTC, worked steps, Simpson cross-check + improper-integral guard, shaded-area graph) | P2 | Medium | Feature | — |
 | 9 | ~~Systems of equations~~ ✅ Done v1.10.0 (`systemsSolver.js`: 2×2 linear via Cramer's rule in exact fractions, substitution steps, unique/parallel/dependent trichotomy, intersection graph) | P3 | Medium | Feature | — |
 | 10 | ~~Inequalities (roots + sign chart)~~ ✅ Done v1.11.0 (`inequalitiesSolver.js`: linear/polynomial/rational, sign chart with correct open/closed endpoints, shaded-region graph) | P3 | Medium | Feature | — |
-| 11 | Integration by parts walkthrough | P3 | Large | Engine | — |
+| 11 | ~~Integration by parts walkthrough~~ ✅ Done v1.12.0 (`byPartsSolver.js`: LIATE-driven ∫u dv = uv − ∫v du, repeated + cyclic by-parts, per-term walkthroughs, differentiate-back verification) | P3 | Large | Engine | — |
 | 12 | ~~Technique-aware limit explanations~~ ✅ Largely done July 2026 (symbolic ladder: simplify → Taylor → L'Hôpital; squeeze/rationalize narration still open) | P3 | Large | Engine | — |
 | 13 | ~~Tutor mode (reveal-one-at-a-time steps)~~ ✅ Done v1.8.0 — "Show all / Step through" toggle; answer/tips/mistakes gated until every step is revealed | P4 | Medium | UX | — |
 
@@ -229,16 +229,26 @@ run with false alarms until everyone ignores it. So the harness needs a
 
 ---
 
-## P3 — Integration by Parts Walkthrough
+## P3 — Integration by Parts Walkthrough — ✅ Done v1.12.0
 
-**Current behavior (verified):**
+> **Shipped July 2026** as `byPartsSolver.js`. The walkthrough below is exactly
+> what the app now produces: LIATE-chosen u/dv, each round shown, repeated
+> by-parts recursed to a direct base case, and cyclic by-parts solved
+> algebraically when the integral reappears. Built on a linear accumulator
+> (`I = boundary + coeff·∫current`) so one loop handles both the terminating and
+> cyclic cases; every antiderivative is differentiated back and checked before
+> it is shown. Runs per additive term, so a by-parts term inside a sum gets its
+> own labelled walkthrough. The section below is kept for the design rationale.
 
-- Single-pass by-parts integrands (`x·cos(x)`, `x·eˣ`) — Algebrite computes
-  the antiderivative and the step generator correctly labels it
-  "Integration by parts" with the LIATE hint. Good.
-- Repeated by-parts (`x³·sin(x)`) — **Algebrite fails outright** and the app
-  returns "Unable to compute integral." The external review described this
-  as "simplified rather than fully shown," but the reality is a hard failure.
+**Original behavior (verified before the build):**
+
+- Single-pass by-parts integrands (`x·cos(x)`, `x·eˣ`) — Algebrite computed
+  the antiderivative and the step generator labelled it "Integration by parts"
+  with a LIATE hint, but never *showed* the u/dv derivation.
+- Repeated by-parts (`x³·sin(x)`) — **Algebrite failed outright** and the app
+  returned "Unable to compute integral." Now computed via the recursion.
+- Cyclic by-parts (`eˣ·sin(x)`) — Algebrite also failed; now solved by
+  detecting the reappearing integral and closing the linear equation for `I`.
 
 **The vision** (from the review, and it's the right one):
 

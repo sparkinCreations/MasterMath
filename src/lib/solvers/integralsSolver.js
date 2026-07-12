@@ -7,8 +7,10 @@ import {
   sampleFunction,
   hasVariable,
   rewriteReciprocalTrig,
+  expressionsNumericallyEqual,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
+import { integrateByParts, needsByParts } from './byPartsSolver.js';
 
 // The integral solver receives the RAW problem text (see api.js), because a
 // definite integral's bounds live in the notation and must be read before
@@ -32,24 +34,54 @@ async function solveIndefiniteIntegral(expression) {
     const Algebrite = await loadAlgebrite();
     const variable = extractVariable(expression);
 
-    // Algebrite throws "Unsupported function sec" on sec/csc/cot; rewrite into
-    // sin/cos first so these integrate (or degrade gracefully) instead.
-    const forAlgebrite = rewriteReciprocalTrig(expression);
+    // Integrate term by term so an integration-by-parts term can get its own
+    // worked walkthrough (and so a single hard term doesn't sink the whole
+    // integral the way Algebrite.integral of the full expression would).
+    const terms = splitTerms(expression);
+    const perTerm = [];
+    let anyByParts = false;
+    for (const { signed } of terms) {
+      const res = await integrateTerm(signed, variable, Algebrite);
+      if (!res) { perTerm.length = 0; break; }
+      if (res.method === 'byparts') anyByParts = true;
+      perTerm.push(res);
+    }
 
-    // Authoritative antiderivative for the whole expression.
-    const integral = Algebrite.integral(forAlgebrite, variable).toString();
+    let integral;
+    let steps;
+    if (perTerm.length === terms.length && perTerm.length > 0) {
+      integral = simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) ||
+        perTerm.map((r) => r.antideriv).join(' + ');
+      steps = buildPerTermSteps(expression, terms, perTerm, variable, integral);
+    } else {
+      // Fallback: authoritative antiderivative for the whole expression.
+      const forAlgebrite = rewriteReciprocalTrig(expression);
+      integral = Algebrite.integral(forAlgebrite, variable).toString();
+      steps = generateIntegralSteps(expression, integral, variable, Algebrite);
+    }
 
-    const steps = generateIntegralSteps(expression, integral, variable, Algebrite);
+    // Trust gate: the derivative of the antiderivative must equal the integrand.
+    const dCheck = safeRunLocal(Algebrite, `d(${integral}, ${variable})`);
+    if (!dCheck || !expressionsNumericallyEqual(dCheck, rewriteReciprocalTrig(expression), variable)) {
+      // The per-term path failed verification — fall back to whole-Algebrite.
+      const forAlgebrite = rewriteReciprocalTrig(expression);
+      integral = Algebrite.integral(forAlgebrite, variable).toString();
+      steps = generateIntegralSteps(expression, integral, variable, Algebrite);
+    }
 
     const tips = [
-      `Power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C  (n ≠ -1)`,
+      anyByParts
+        ? 'Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).'
+        : `Power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C  (n ≠ -1)`,
       'Always add the constant of integration (+C) for an indefinite integral.',
       'Constant factors pull out front: ∫c·f dx = c·∫f dx.',
     ];
 
     const common_mistakes = [
       'Forgetting the constant of integration (+C).',
-      'Mishandling the (n+1) denominator in the power rule.',
+      anyByParts
+        ? 'Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.'
+        : 'Mishandling the (n+1) denominator in the power rule.',
       'Applying the power rule to 1/x — that integrates to ln|x|, not x⁰/0.',
     ];
 
@@ -82,6 +114,61 @@ async function solveIndefiniteIntegral(expression) {
 // to the integrand.
 function lnify(integralResult) {
   return beautify(integralResult).replace(/\blog\(([^()]+)\)/g, 'ln|$1|');
+}
+
+function safeRunLocal(Algebrite, code) {
+  try {
+    const out = String(Algebrite.run(code)).trim();
+    return /stop|error|nil/i.test(out) ? null : out;
+  } catch {
+    return null;
+  }
+}
+
+function simplifyRun(Algebrite, expr) {
+  return safeRunLocal(Algebrite, `simplify(${expr})`);
+}
+
+/**
+ * Integrate one additive term. A by-parts term returns its full walkthrough;
+ * everything else is integrated directly by Algebrite. Returns
+ * { antideriv, steps, method, term } or null when the term can't be integrated.
+ */
+async function integrateTerm(term, variable, Algebrite) {
+  if (needsByParts(term, variable)) {
+    const bp = await integrateByParts(term, variable);
+    if (bp) {
+      return { antideriv: bp.antiderivative, steps: bp.steps, method: 'byparts', term, cyclic: bp.cyclic };
+    }
+    // fall through to a direct attempt if by-parts declined
+  }
+
+  const anti = safeRunLocal(Algebrite, `integral(${rewriteReciprocalTrig(term)}, ${variable})`);
+  if (anti === null) return null;
+
+  const { label, hint } = classifyIntegralRule(term, variable);
+  const steps = [`∫(${beautify(term)}) d${variable} = ${lnify(anti)}${hint ? `  (${label})` : ''}.`];
+  return { antideriv: anti, steps, method: 'direct', term };
+}
+
+// Assemble the worked steps from the per-term results. Multi-term integrals get
+// a header per term; a single term shows its steps directly. The closing line
+// states the combined antiderivative with +C.
+function buildPerTermSteps(expression, terms, perTerm, variable, total) {
+  const steps = [`Identify the function to integrate: ∫(${beautify(expression)}) d${variable}.`];
+  const multi = terms.length > 1;
+  if (multi) steps.push('Apply the sum rule: integrate each term separately, then add the results.');
+
+  perTerm.forEach((res, i) => {
+    if (multi) {
+      const suffix = res.method === 'byparts' ? ' by parts' : '';
+      steps.push(`Term ${i + 1} — ∫(${beautify(res.term)}) d${variable}${suffix}:`);
+    }
+    steps.push(...res.steps);
+  });
+
+  steps.push(`Add the constant of integration: ∫(${beautify(expression)}) d${variable} = ${lnify(total)} + C.`);
+  return steps;
 }
 
 // ---------------------------------------------------------------------------

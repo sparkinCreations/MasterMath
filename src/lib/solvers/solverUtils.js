@@ -12,7 +12,16 @@ export const math = create(all);
 // mathjs names the natural log `log`; students (and Algebrite) write `ln`.
 // Alias it so every numeric evaluation — graphs, sampling, arithmetic —
 // understands `ln(x)` instead of throwing "Undefined function ln".
-math.import({ ln: (x) => math.log(x) }, { override: true });
+//
+// Likewise, mathjs names the inverse trig functions `asin`/`acos`/`atan`, but
+// students and Algebrite write `arcsin`/`arccos`/`arctan`. Alias those too, so
+// numeric checks and graphs of e.g. arctan(x) don't silently fail to evaluate.
+math.import({
+  ln: (x) => math.log(x),
+  arcsin: (x) => math.asin(x),
+  arccos: (x) => math.acos(x),
+  arctan: (x) => math.atan(x),
+}, { override: true });
 
 // Algebrite is large and only needed for symbolic work, so it is imported
 // lazily and memoized. Every solver shares this single promise.

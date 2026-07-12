@@ -664,3 +664,82 @@ test('regression: an equation is not misrouted to the inequality solver', async 
   const r = await solveProblem('2x + 5 = 11', 'algebra');
   assert.match(r.answer, /x = 3/);
 });
+
+// ---------------------------------------------------------------------------
+// Integration by parts walkthrough (v1.12.0) — roadmap item 11.
+// A linear-accumulator engine drives ∫u dv = uv − ∫v du on Algebrite's
+// single-step primitives: it SHOWS the derivation, and computes the two
+// families Algebrite fails outright — repeated (x^3 sin x) and cyclic
+// (e^x sin x) by-parts. Every result is differentiated back before trusting.
+// ---------------------------------------------------------------------------
+
+// Helper: the numeric derivative of the reported antiderivative must equal the
+// integrand at sample points (finite difference — goes through math.evaluate,
+// which understands the ln/arctan aliases that math.derivative does not).
+async function antiderivMatches(problem, integrand) {
+  const { math } = await import('../src/lib/solvers/solverUtils.js');
+  const r = await solveProblem(problem, 'integrals');
+  const F = String(r.answer)
+    .replace(/^.*=\s*/, '')
+    .replace(/\s*\+\s*C\s*$/, '')
+    .replace(/ln\|([^|]+)\|/g, 'log($1)'); // display ln|…| → evaluable log(…)
+  const f = (x) => Number(math.evaluate(F, { x }));
+  const g = (x) => Number(math.evaluate(integrand, { x }));
+  let ok = 0;
+  for (const x of [0.3, 0.8, 1.4, 2.2]) {
+    const dNum = (f(x + 1e-6) - f(x - 1e-6)) / 2e-6;
+    const want = g(x);
+    if (!Number.isFinite(dNum) || !Number.isFinite(want)) continue;
+    if (Math.abs(dNum - want) < 1e-3 * (1 + Math.abs(want))) ok += 1;
+  }
+  return ok >= 3;
+}
+
+test('regression: repeated by-parts — x^3 sin(x) now computes (Algebrite fails it)', async () => {
+  const r = await solveProblem('x^3*sin(x)', 'integrals');
+  assert.doesNotMatch(r.answer, /Unable/i);
+  assert.ok(await antiderivMatches('x^3*sin(x)', 'x^3*sin(x)'));
+  assert.ok(r.steps.some((s) => /round 3/i.test(s)), 'shows the third by-parts round');
+});
+
+test('regression: cyclic by-parts — e^x sin(x) solves algebraically', async () => {
+  const r = await solveProblem('e^x*sin(x)', 'integrals');
+  assert.doesNotMatch(r.answer, /Unable/i);
+  assert.ok(await antiderivMatches('e^x*sin(x)', 'exp(x)*sin(x)'));
+  assert.ok(r.steps.some((s) => /reappears/i.test(s)), 'shows the cyclic algebra step');
+});
+
+test('regression: e^x cos(x) (cyclic) also solves', async () => {
+  assert.ok(await antiderivMatches('e^x*cos(x)', 'exp(x)*cos(x)'));
+});
+
+test('regression: single-pass by-parts shows the walkthrough (x cos x)', async () => {
+  const r = await solveProblem('x*cos(x)', 'integrals');
+  assert.ok(await antiderivMatches('x*cos(x)', 'x*cos(x)'));
+  assert.ok(r.steps.some((s) => /integration by parts/i.test(s)));
+  assert.ok(r.steps.some((s) => /Choose the parts/i.test(s)));
+});
+
+test('regression: ln(x) and arctan(x) integrate by parts (dv = dx)', async () => {
+  assert.ok(await antiderivMatches('ln(x)', 'log(x)'));
+  assert.ok(await antiderivMatches('arctan(x)', 'atan(x)'));
+});
+
+test('regression: a by-parts term inside a sum still integrates', async () => {
+  const r = await solveProblem('x^3*sin(x) + x^2', 'integrals');
+  assert.doesNotMatch(r.answer, /Unable/i);
+  assert.ok(await antiderivMatches('x^3*sin(x) + x^2', 'x^3*sin(x) + x^2'));
+});
+
+test('regression: plain integrals are unaffected by the by-parts path', async () => {
+  const poly = await solveProblem('x^2', 'integrals');
+  assert.match(poly.answer, /1\/3\*x\^3 \+ C$/);
+  const trig = await solveProblem('sin(x)', 'integrals');
+  assert.match(trig.answer, /-cos\(x\) \+ C$/);
+});
+
+test('regression: a non-elementary integrand is still refused, not faked', async () => {
+  // x*sin(x^2) is u-substitution, not by-parts; Algebrite can't do it either.
+  const r = await solveProblem('x*sin(x^2)', 'integrals');
+  assert.match(r.answer, /Unable to compute/i);
+});
