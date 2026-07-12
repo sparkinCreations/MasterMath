@@ -21,25 +21,26 @@ import { solveProblem } from '../src/lib/api.js';
 // ---------------------------------------------------------------------------
 
 test('regression: (1-cos(x))/x^2 at 0 is 0.5, not 0', async () => {
+  // As of v1.9.1 removable limits report the exact fraction (1/2), not 0.5.
   const r = await solveLimit('lim x->0 (1-cos(x))/x^2');
-  assert.match(r.answer, /=\s*0\.5$/);
+  assert.match(r.answer, /=\s*1\/2$/);
   assert.equal(r.verified, true);
 });
 
 test('regression: (sin(x)-x)/x^3 at 0 is -1/6, not 0', async () => {
   const r = await solveLimit('lim x->0 (sin(x)-x)/x^3');
-  assert.match(r.answer, /=\s*-0\.1667$/);
+  assert.match(r.answer, /=\s*-1\/6$/); // exact form (was shown as -0.1667)
   assert.equal(r.verified, true);
 });
 
-test('regression: (tan(x)-sin(x))/x^3 at 0 is 0.5', async () => {
+test('regression: (tan(x)-sin(x))/x^3 at 0 is 1/2', async () => {
   const r = await solveLimit('lim x->0 (tan(x)-sin(x))/x^3');
-  assert.match(r.answer, /=\s*0\.5$/);
+  assert.match(r.answer, /=\s*1\/2$/);
 });
 
-test('regression: (sqrt(1+x)-1)/x at 0 is 0.5 (rationalization family)', async () => {
+test('regression: (sqrt(1+x)-1)/x at 0 is 1/2 (rationalization family)', async () => {
   const r = await solveLimit('lim x->0 (sqrt(1+x)-1)/x');
-  assert.match(r.answer, /=\s*0\.5$/);
+  assert.match(r.answer, /=\s*1\/2$/);
 });
 
 test('regression: log(x)/(x-1) at 1 is 1', async () => {
@@ -492,4 +493,60 @@ test('regression: indefinite integrals still work after the definite split', asy
 test('regression: swapped bounds negate (∫_2^0 x^2 = -8/3)', async () => {
   const r = await solveProblem('∫_2^0 x^2 dx', 'integrals');
   assert.match(r.answer, /=\s*-8\/3/);
+});
+
+// ---------------------------------------------------------------------------
+// Cosmetic polish from the July 2026 production audit (v1.9.1)
+// Three presentation nits, each with a correctness-preserving fix.
+// ---------------------------------------------------------------------------
+
+// Nit 1 — removable limits report the exact fraction, not a rounded decimal.
+test('regression: audit polish — removable limits show exact fractions', async () => {
+  const a = await solveProblem('lim x->0 (sin(x)-x)/x^3', 'limits');
+  assert.match(a.answer, /=\s*-1\/6$/);
+  const b = await solveProblem('lim x->0 (1-cos(x))/x^2', 'limits');
+  assert.match(b.answer, /=\s*1\/2$/);
+  // A clean integer limit stays an integer (no gratuitous fraction).
+  const c = await solveProblem('lim x->1 (x^2-1)/(x-1)', 'limits');
+  assert.match(c.answer, /=\s*2$/);
+});
+
+// Nit 2 — an oscillating limit says it oscillates; a jump says the sides
+// disagree. The two DNE reasons must not be conflated.
+test('regression: audit polish — sin(1/x) DNE is attributed to oscillation', async () => {
+  const r = await solveProblem('lim x->0 sin(1/x)', 'limits');
+  assert.match(r.answer, /Does not exist$/);
+  assert.ok(r.steps.some((s) => /oscillat/i.test(s)));
+  assert.ok(!r.steps.some((s) => /one-sided limits disagree/i.test(s)));
+});
+
+test('regression: audit polish — a jump limit still reads "sides disagree", not oscillation', async () => {
+  const r = await solveProblem('lim x->0 abs(x)/x', 'limits');
+  assert.match(r.answer, /Does not exist$/);
+  assert.ok(r.steps.some((s) => /disagree/i.test(s)));
+  assert.ok(!r.steps.some((s) => /oscillat/i.test(s)));
+});
+
+// Nit 3 — a simplification is never longer than the input. mathsteps split
+// (x^2-9)/(x+3) into x^2/(x+3) - 9/(x+3); Algebrite cancels it to x-3.
+test('regression: audit polish — (x^2-9)/(x+3) simplifies to x - 3, not a split fraction', async () => {
+  const r = await solveProblem('(x^2-9)/(x+3)', 'algebra');
+  assert.equal(r.answer, 'x - 3');
+});
+
+test('regression: audit polish — rational simplifications cancel fully', async () => {
+  assert.equal((await solveProblem('(x^2-1)/(x-1)', 'algebra')).answer, 'x + 1');
+  assert.equal((await solveProblem('(2x^2-8)/(x-2)', 'algebra')).answer, '2(x + 2)');
+});
+
+test('regression: audit polish — mathsteps keeps its steps when it is the best form', async () => {
+  const r = await solveProblem('2x + 3x', 'algebra');
+  assert.equal(r.answer, '5x');
+  assert.ok(r.steps.length >= 1);
+});
+
+test('regression: audit polish — an already-simple expression is left alone', async () => {
+  const r = await solveProblem('x^2 + 2x + 1', 'algebra');
+  assert.match(r.answer, /x\^2 \+ 2x \+ 1/);
+  assert.ok(r.steps.some((s) => /already in simplest form/i.test(s)));
 });

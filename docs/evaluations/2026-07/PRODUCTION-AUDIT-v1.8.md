@@ -31,10 +31,13 @@ them because it *thought* it succeeded.** The numeric fallback was the last
 solver path without a verification gate; as of v1.8.1 every path that can
 emit an answer verifies it first.
 
-Remaining accepted nits (not fixed, tracked): exact values sometimes render
-as decimals (−0.1667 for −1/6); `sin(1/x)`'s DNE is attributed to
-side-disagreement rather than oscillation; mathsteps can "simplify"
-`(x²−9)/(x+3)` into a *less* simplified split form.
+Cosmetic nits — ✅ all three fixed in v1.9.1: removable limits now show the
+exact fraction (−1/6, not −0.1667); `sin(1/x)`'s DNE is attributed to
+oscillation (a jump like `|x|/x` still reads "sides disagree"); and
+`(x²−9)/(x+3)` simplifies to `x−3` — the solver now picks the shortest
+verified-equivalent form, so a "simplification" is never longer than the
+input. Each fix preserves the correctness discipline: the exact fraction and
+the simplified form are numerically re-checked before display.
 
 ---
 

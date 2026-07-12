@@ -637,36 +637,67 @@ async function simplifyExpression(expression) {
   const exact = await exactRadicalForm(expression);
   if (exact) return exact;
 
-  let steps = [];
-  let answer = '';
+  const variable = extractVariable(expression);
+  const inputLen = complexity(expression);
 
+  // Gather candidate simplifications and keep only those that are genuinely
+  // equal to the input. mathsteps carries nice steps but sometimes "simplifies"
+  // (x^2-9)/(x+3) into the LONGER split form x^2/(x+3) - 9/(x+3); Algebrite
+  // cancels it to x-3. We pick the SHORTEST verified-equivalent candidate, so a
+  // result is never longer than what the student typed.
+  let mathstepsResult = null;
   try {
     const parsed = stepsFromMathstepsResult(mathsteps.simplifyExpression(expression));
-    if (parsed && parsed.steps.length > 0) {
-      steps = parsed.steps;
-      answer = beautify(parsed.answer || expression);
+    if (parsed && parsed.steps.length > 0 && parsed.answer) {
+      mathstepsResult = { answer: beautify(parsed.answer), steps: parsed.steps };
     }
-  } catch (e) {
+  } catch {
     // fall through
   }
 
-  if (!answer) {
-    try {
-      const simplified = beautify(math.simplify(expression).toString());
-      if (simplified !== beautify(expression)) {
-        steps = [
-          `Original expression: ${beautify(expression)}`,
-          'Combine like terms and simplify.',
-          `Simplified form: ${simplified}`,
-        ];
-      } else {
-        steps = [`The expression ${beautify(expression)} is already in simplest form.`];
-      }
-      answer = simplified;
-    } catch {
-      steps = [`Expression: ${beautify(expression)}`];
-      answer = beautify(expression);
+  const candidates = [];
+  if (mathstepsResult && equivalentOrConstant(expression, mathstepsResult.answer, variable)) {
+    candidates.push({ source: 'mathsteps', answer: mathstepsResult.answer });
+  }
+  const algebrite = await algebriteSimplify(expression, variable);
+  if (algebrite) candidates.push({ source: 'algebrite', answer: algebrite });
+  try {
+    const mjs = beautify(math.simplify(expression).toString());
+    if (mjs && equivalentOrConstant(expression, mjs, variable)) {
+      candidates.push({ source: 'mathjs', answer: mjs });
     }
+  } catch {
+    // fall through
+  }
+
+  // Best = shortest; on a tie prefer mathsteps for its worked steps.
+  candidates.sort((a, b) => {
+    const d = complexity(a.answer) - complexity(b.answer);
+    if (d !== 0) return d;
+    return (a.source === 'mathsteps' ? -1 : 0) - (b.source === 'mathsteps' ? -1 : 0);
+  });
+  const best = candidates[0];
+
+  let steps;
+  let answer;
+  if (best && complexity(best.answer) < inputLen) {
+    // A real simplification. Keep mathsteps' steps only when they actually lead
+    // to the chosen (best) form; otherwise present a clean three-line derivation.
+    answer = best.answer;
+    if (best.source === 'mathsteps' && mathstepsResult) {
+      steps = mathstepsResult.steps;
+    } else {
+      steps = [
+        `Original expression: ${beautify(expression)}`,
+        /\//.test(expression)
+          ? 'Factor and cancel the common factor(s).'
+          : 'Combine like terms and simplify.',
+        `Simplified form: ${answer}`,
+      ];
+    }
+  } else {
+    answer = beautify(expression);
+    steps = [`The expression ${beautify(expression)} is already in simplest form.`];
   }
 
   return {
@@ -676,6 +707,40 @@ async function simplifyExpression(expression) {
     common_mistakes: COMMON_MISTAKES,
     graph: generateAlgebraGraph(expression),
   };
+}
+
+// Normalized size of an expression for "is this actually simpler?" comparisons.
+// Strips spaces and explicit '*' so 2*(x+2) and 2(x+2) compare equal.
+function complexity(expr) {
+  return String(expr).replace(/[\s*]/g, '').length;
+}
+
+// Algebrite simplify, beautified, or null if it errors / doesn't change / no
+// longer matches the input numerically.
+async function algebriteSimplify(expression, variable) {
+  try {
+    const Algebrite = await loadAlgebrite();
+    const out = String(Algebrite.run(`simplify(${expression})`)).trim();
+    if (!out || /nil|error|stop/i.test(out)) return null;
+    const pretty = beautify(out);
+    if (!equivalentOrConstant(expression, pretty, variable)) return null;
+    return pretty;
+  } catch {
+    return null;
+  }
+}
+
+// expressionsNumericallyEqual, but tolerant of constant (variable-free)
+// expressions, where the sampler has nothing to vary.
+function equivalentOrConstant(a, b, variable) {
+  if (expressionsNumericallyEqual(a, b, variable)) return true;
+  try {
+    const va = Number(math.evaluate(String(a)));
+    const vb = Number(math.evaluate(String(b)));
+    return Number.isFinite(va) && Number.isFinite(vb) && Math.abs(va - vb) < 1e-9 * (1 + Math.abs(va));
+  } catch {
+    return false;
+  }
 }
 
 const RADICAL_TIPS = [

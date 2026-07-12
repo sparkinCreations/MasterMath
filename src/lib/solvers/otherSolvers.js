@@ -271,6 +271,47 @@ function algebriteNumber(Algebrite, expr, variable, at) {
   }
 }
 
+// The exact (non-float) value of an expression at a point, as a clean display
+// string, or null. This is what lets a removable limit read -1/6 instead of
+// the rounded -0.1667: Algebrite computes the rational directly.
+function algebriteExactAt(Algebrite, expr, variable, at) {
+  try {
+    const raw = String(Algebrite.run(`simplify(subst(${at}, ${variable}, ${expr}))`)).trim();
+    if (!raw || /stop|error|nil/i.test(raw)) return null;
+    if (new RegExp(`\\b${variable}\\b`).test(raw)) return null; // unresolved
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+// Prefer a clean exact form (a fraction or a symbolic constant like π/2 or
+// √2) over the decimal, but only when it is genuinely exact and compact —
+// never dress a rounded decimal up as if it were exact. Falls back to the
+// numeric value otherwise. The numeric value is still what gets verified.
+function formatLimitAnswer(numeric, exactRaw) {
+  if (exactRaw) {
+    const pretty = beautify(exactRaw).replace(/\bpi\b/g, 'π').replace(/\s+/g, ' ').trim();
+    const isPlainInt = /^-?\d+$/.test(pretty);
+    const isDecimal = /^-?\d+\.\d+$/.test(pretty);
+    // Use exact only when it carries structure a decimal can't: a fraction,
+    // a root, or a symbolic constant. A bare integer/decimal adds nothing.
+    if (!isPlainInt && !isDecimal && pretty.length <= 16 && /[/a-zπ√^]/i.test(pretty)) {
+      // Confirm the exact form actually matches the verified numeric value,
+      // so a mis-simplification can never masquerade as a tidy fraction.
+      try {
+        const check = Number(math.evaluate(pretty.replace(/π/g, 'pi')));
+        if (Number.isFinite(check) && Math.abs(check - numeric) < 1e-6 * (1 + Math.abs(numeric))) {
+          return pretty;
+        }
+      } catch {
+        // fall through to the numeric form
+      }
+    }
+  }
+  return formatNumber(numeric);
+}
+
 function tryAlgebriteSimplify(Algebrite, func, variable, target) {
   try {
     const simplified = String(Algebrite.run(`simplify(${func})`)).trim();
@@ -279,14 +320,15 @@ function tryAlgebriteSimplify(Algebrite, func, variable, target) {
     // Re-substitute into the simplified form.
     const value = algebriteNumber(Algebrite, `(${simplified})`, variable, target);
     if (value === null) return null;
+    const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `(${simplified})`, variable, target));
 
     return {
       steps: [
         `Direct substitution gives an indeterminate form, so simplify first.`,
         `Simplify the expression: ${beautify(simplified)}.`,
-        `Now substitute ${variable} = ${formatNumber(target)}: the limit is ${formatNumber(value)}.`,
+        `Now substitute ${variable} = ${formatNumber(target)}: the limit is ${shown}.`,
       ],
-      answer: formatNumber(value),
+      answer: shown,
       verified: verifyLimitNumerically(func, variable, target, value),
     };
   } catch {
@@ -327,14 +369,15 @@ function trySeriesLimit(Algebrite, func, variable, target) {
       value = algebriteNumber(Algebrite, `simplify(simplify((${numExp})/(${denExp})))`, variable, target);
     }
     if (value === null) return null;
+    const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target));
 
     return {
       steps: [
         `Direct substitution gives 0/0, so expand the numerator and denominator as Taylor series about ${variable} = ${formatNumber(target)}.`,
         `Numerator ≈ ${beautify(numExp)}; denominator ≈ ${beautify(denExp)}.`,
-        `Divide the series and cancel the common factor; the limit is ${formatNumber(value)}.`,
+        `Divide the series and cancel the common factor; the limit is ${shown}.`,
       ],
-      answer: formatNumber(value),
+      answer: shown,
       verified: verifyLimitNumerically(func, variable, target, value),
     };
   }
@@ -344,14 +387,15 @@ function trySeriesLimit(Algebrite, func, variable, target) {
   if (!expanded) return null;
   const value = algebriteNumber(Algebrite, `(${expanded})`, variable, target);
   if (value === null) return null;
+  const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `(${expanded})`, variable, target));
 
   return {
     steps: [
       `Expand as a Taylor series about ${variable} = ${formatNumber(target)}.`,
       `Series: ${beautify(expanded)}.`,
-      `Evaluating the leading behaviour gives ${formatNumber(value)}.`,
+      `Evaluating the leading behaviour gives ${shown}.`,
     ],
-    answer: formatNumber(value),
+    answer: shown,
     verified: verifyLimitNumerically(func, variable, target, value),
   };
 }
@@ -379,10 +423,11 @@ function tryLHopital(Algebrite, func, variable, target) {
       if (symbolicFailure) return null;
       if (dAtTarget === 0) return null; // n/0 with n≠0: not a finite limit here
       const value = nAtTarget / dAtTarget;
-      steps.push(`After ${i} differentiation${i === 1 ? '' : 's'}, substitution gives ${formatNumber(value)}.`);
+      const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `(${num})/(${den})`, variable, target));
+      steps.push(`After ${i} differentiation${i === 1 ? '' : 's'}, substitution gives ${shown}.`);
       return {
         steps,
-        answer: formatNumber(value),
+        answer: shown,
         verified: verifyLimitNumerically(func, variable, target, value),
       };
     }
@@ -483,6 +528,16 @@ function estimateFiniteLimitNumeric(func, variable, target) {
     steps.push(`Direct substitution at ${variable} = ${formatNumber(target)} blows up instead of settling on a value, so approach from both sides.`);
   }
 
+  // Oscillation: if a side never settles — the values keep swinging across a
+  // wide range no matter how close we get — the limit fails to exist *because
+  // the function oscillates*, which is a different reason than two one-sided
+  // values disagreeing. Say so specifically (sin(1/x) is the classic case).
+  if (sideOscillates(func, variable, target, 1) || sideOscillates(func, variable, target, -1)) {
+    steps.push(`Sampling ever closer to ${variable} = ${formatNumber(target)}, the values keep swinging between roughly the same high and low values instead of settling toward any number.`);
+    steps.push('The function oscillates infinitely often near this point, so the limit does not exist.');
+    return { steps, answer: 'Does not exist' };
+  }
+
   const left = sampleSide(func, variable, target, -1);
   const right = sampleSide(func, variable, target, 1);
   steps.push(`From the left (${variable} → ${formatNumber(target)}⁻): ${describeSide(left)}`);
@@ -507,6 +562,34 @@ function estimateFiniteLimitNumeric(func, variable, target) {
 
   steps.push('The one-sided limits disagree, so the limit does not exist.');
   return { steps, answer: 'Does not exist' };
+}
+
+// Does the function oscillate as it approaches the point from one side?
+// Sample a geometric ladder of shrinking offsets; the tell-tale of oscillation
+// (vs. convergence or a plain jump) is that the *innermost* samples still span
+// a wide range and the sequence keeps reversing direction. A converging side
+// collapses to a point; a jump side settles too — only oscillation stays wide.
+function sideOscillates(func, variable, target, direction) {
+  const offsets = [1e-2, 3e-3, 1e-3, 3e-4, 1e-4, 3e-5, 1e-5, 3e-6, 1e-6, 3e-7, 1e-7, 3e-8, 1e-8];
+  const values = [];
+  for (const o of offsets) {
+    const y = evalAt(func, variable, target + direction * o);
+    if (Number.isFinite(y)) values.push(y);
+  }
+  if (values.length < 8) return false;
+
+  const inner = values.slice(Math.floor(values.length / 2));
+  const innerSpread = Math.max(...inner) - Math.min(...inner);
+
+  let reversals = 0;
+  for (let i = 2; i < values.length; i += 1) {
+    const d1 = values[i - 1] - values[i - 2];
+    const d2 = values[i] - values[i - 1];
+    if (d1 !== 0 && d2 !== 0 && Math.sign(d1) !== Math.sign(d2)) reversals += 1;
+  }
+
+  // Wide, still-swinging behaviour close in — not settling to a value.
+  return innerSpread > 0.3 && reversals >= 3;
 }
 
 // Probe one side of a limit at two distances from the point. A closer sample
