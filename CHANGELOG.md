@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-07-12
+
+Fixes every defect from the July 2026 production audit of v1.8.0
+(`docs/evaluations/2026-07/PRODUCTION-AUDIT-v1.8.md`). All three confident-
+wrong answers lived in one place — the algebra solver's numeric fallback,
+the last path without a verification gate.
+
+### Fixed
+- **Radical equations** — `sqrt(x) = 5` answers x = 25 instead of five scan
+  artifacts near −100. The scanner treats non-real values (√ of a negative)
+  as out-of-domain instead of feeding NaN sign comparisons, and every
+  candidate root must survive back-substitution before it is reported
+- **Identities** — `2(x+3) = 2x+6` answers "All real numbers" instead of
+  five arbitrary grid points
+- **Contradictions** — `5x−7 = 5x+2` states "No solution (the two sides are
+  never equal)" confidently instead of hedging about the searched range
+- **Absolute-value bars** — `|x−3| = 5` now parses (`|…|` → `abs(…)`) and
+  solves: x = −2 or x = 8 (was "No real solution found")
+- **Quartic roots** — `x⁴ − 16 = 0` displays x = ±2, ±2i instead of raw
+  `(−1)^(1/4)` principal-root notation (each root verified by
+  back-substitution)
+- Periodic fallback equations (`sin(x) = 0`) show the five roots nearest
+  zero, not the five nearest −100
+
+### Added
+- `tests/corpus/additions.csv` — post-evaluation acceptance rows (the audit
+  failures plus a never-invent-roots guard), loaded by the corpus harness
+  alongside the original 91-row evaluation (97 rows, 100%, zero
+  confident-wrong)
+
 ## [1.8.0] - 2026-07-12
 
 ### Added
