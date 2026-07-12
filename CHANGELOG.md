@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-07-12
+
+The Wave 1 "quality tail" from the July 2026 evaluation (items B2–B5 in
+`docs/evaluations/2026-07/ANALYSIS.md`) — the last four known partial
+behaviours. The evaluation corpus now scores 88 correct + 3 clear refusals
+of 91, with zero confident-wrong answers.
+
+### Added
+- **One-sided limits** — `lim x→0+ 1/x`, `x->0^-`, and "as x approaches 0
+  from the right" all evaluate the requested side (∞ here) instead of
+  silently answering the two-sided limit. Handles domain boundaries
+  (`lim x→0⁻ √x` does not exist), slow divergence (`lim x→0⁺ ln(x) = −∞`),
+  and marks the side on the graph guideline (`x → 0⁺`)
+- **Factoring** — "factor x² − 9" now factors: `(x − 3)(x + 3)`, with
+  difference-of-squares narration and a check-by-expanding step. Results are
+  verified numerically before being shown; irreducible inputs say so honestly
+- **Exact radicals** — `sqrt(50)` answers `5√2 (≈ 7.0711)` with the
+  perfect-square walkthrough instead of a bare decimal; radical sums combine
+  exactly (`√8 + √2 = 3√2`)
+- **Symbolic trig identities** — `sin(x)² + cos(x)² = 1` (was "Unable to
+  evaluate"); simplifications are verified numerically before being claimed,
+  and expressions with no simpler form say so instead of guessing
+
+### Changed
+- One-sided limit markers typeset as proper superscripts in KaTeX (`0⁺`)
+
 ## [1.6.0] - 2026-07-08
 
 ### Added
