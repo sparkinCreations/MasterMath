@@ -8,8 +8,10 @@ import {
   hasVariable,
   rewriteReciprocalTrig,
   expressionsNumericallyEqual,
+  parsesAsMath,
 } from './solverUtils.js';
 import { getSettings } from '../settings.js';
+import { parseError } from '../solutionEnvelope.js';
 
 // ---------------------------------------------------------------------------
 // Limits
@@ -78,6 +80,18 @@ export async function solveLimit(expression) {
     const sideMark = side === 1 ? '⁺' : side === -1 ? '⁻' : '';
     const displayTarget = formatApproach(approachToken, target) + sideMark;
 
+    // Unreadable input must fail here: sampling an unparseable function
+    // returns NaN everywhere, which the machinery below would misreport as
+    // "the one-sided limits disagree" — a false statement about a function
+    // that doesn't exist.
+    if (!parsesAsMath(func)) {
+      return parseError({
+        input: expression,
+        hint: `"${func}" could not be read as a function of ${variable}.`,
+        tips: ['Write limits like: lim x->0 (sin(x)/x), or (x^2-1)/(x-1) as x approaches 1.'],
+      });
+    }
+
     // A constant sub-expression can sit exactly on a trig asymptote (e.g. the
     // user typed tan(pi/2) under the Limits topic). The expression is
     // undefined no matter what the variable does, so say that instead of
@@ -142,13 +156,11 @@ export async function solveLimit(expression) {
     };
   } catch (error) {
     console.error('Limit solver error:', error);
-    return {
-      steps: ['Identify the limit expression', 'Approach the value from both sides', 'Evaluate the limit'],
-      answer: 'Unable to evaluate limit',
-      tips: ['Check the formatting of your limit expression.'],
-      common_mistakes: ['Using incorrect notation'],
-      graph: null,
-    };
+    return parseError({
+      input: expression,
+      hint: error.message,
+      tips: ['Write limits like: lim x->0 (sin(x)/x), or (x^2-1)/(x-1) as x approaches 1.'],
+    });
   }
 }
 
@@ -988,17 +1000,11 @@ export async function solveTrigonometry(expression, settingsOverride) {
     };
   } catch (error) {
     console.error('Trigonometry solver error:', error);
-    return {
-      steps: [
-        `Parse trigonometric expression: ${expression}`,
-        'Unable to evaluate — check the formatting.',
-        'Try: sin(pi/4), or cos(60 * pi / 180) for degrees.',
-      ],
-      answer: 'Unable to evaluate',
-      tips: ['Use pi for π', 'For degrees, multiply by pi/180.'],
-      common_mistakes: ['Using incorrect notation'],
-      graph: null,
-    };
+    return parseError({
+      input: expression,
+      hint: error.message,
+      tips: ['Use pi for π (e.g., sin(pi/4)).', 'For degrees, write sin(30 degrees) or multiply by pi/180.'],
+    });
   }
 }
 
@@ -1064,16 +1070,11 @@ async function simplifyTrigExpression(expression, variable) {
     };
   } catch (error) {
     console.error('Symbolic trig simplification error:', error);
-    return {
-      steps: [
-        `Simplify the trigonometric expression: ${display}`,
-        'Unable to simplify — check the formatting.',
-      ],
-      answer: 'Unable to simplify',
+    return parseError({
+      input: display,
+      hint: error.message,
       tips,
-      common_mistakes: ['Using incorrect notation'],
-      graph: null,
-    };
+    });
   }
 }
 

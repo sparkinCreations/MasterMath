@@ -35,6 +35,22 @@ export function loadAlgebrite() {
 }
 
 /**
+ * Whether the input is at least readable as a mathematical expression.
+ * Solvers' catch blocks use this to pick an honest failure status: input
+ * that parses but couldn't be solved is `unsupported` (an engine limit),
+ * input that doesn't parse is a `parse_error` — the message must never
+ * blame the user's formatting when the input was valid.
+ */
+export function parsesAsMath(expression) {
+  try {
+    math.parse(String(expression));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Format a number for display: collapse floating-point noise to a clean
  * integer when appropriate, otherwise show up to `decimals` decimals with
  * trailing zeros trimmed. The default precision comes from user settings

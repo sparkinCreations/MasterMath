@@ -7,7 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.12.0] - 2026-07-12
+## [1.13.0] - 2026-07-21
+
+Phase 1 of the mathematical state semantics architecture
+(`docs/future-work/MATH-STATE-SEMANTICS.md`): every solver result now
+carries a typed status, and the UI tells the truth about outcomes.
+
+### Added
+
+- Solution envelope (`src/lib/solutionEnvelope.js`): every result carries a
+  `status` — `solved`, `parse_error`, `unsupported`, `undefined`,
+  `indeterminate`, or `overflow` — enforced by the result gate in `api.js`.
+- Status badge on the solution card, with status-matched styling: green is
+  reserved for real solves, amber for honest non-answers (unsupported /
+  undefined / indeterminate / overflow), red for unreadable input with a
+  "What went wrong" card.
+- Non-elementary integrals are now told the truth: ∫sin(x²)dx reports the
+  Fresnel S function instead of blaming the input's formatting; e^(−x²)
+  reports erf. Failure messages never suggest a formatting fix when the
+  input parsed correctly.
+- Parse guards in the Functions and Limits solvers: unreadable input fails
+  loudly instead of being sampled into a fabricated analysis ("f(x)=x^^2"
+  echoed as a success; a false "one-sided limits disagree" claim).
+- Contract test suite (`tests/envelope.test.js`) turning the July 2026
+  black-box review's failure cases (D7, I5, I7, T10, F7, M1, M2) into
+  permanent regressions.
+
+### Changed
+
+- The success toast fires only for actual solves; parse errors toast red,
+  engine limitations toast amber ("Problem solved successfully!" no longer
+  appears on failures — the worst-scored finding in the July 2026 review).
+- Failed parses are no longer saved to problem history, and history entries
+  record the real outcome instead of a hardcoded "Solved successfully".
+- Solver failure messages carry the specific cause (from the math engine)
+  instead of five generic syntax tips; systems/inequalities/definite-
+  integral refusals state their reason as the answer.
+- Exports label non-solved results with their status; a failed solve's PDF
+  no longer reads like an answer.
 
 ### Added
 - **Integration by parts walkthrough** — `∫x·cos(x) dx`, `∫x³·sin(x) dx`,

@@ -3,6 +3,7 @@ import ProblemInput from "@/components/solver/ProblemInput";
 import SolutionDisplay from "@/components/solver/SolutionDisplay";
 import GraphViewer from "@/components/solver/GraphViewer";
 import { solveProblem, createProblemHistory } from "@/lib/api";
+import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
 import { useToast } from "@/components/ui/toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -36,15 +37,27 @@ export default function Solver() {
       });
       setHistoryIndex(-1);
 
-      // Save to problem history
-      await createProblemHistory({
-        problem,
-        topic,
-        solution: result,
-        feedback: "Solved successfully"
-      });
+      // Save to problem history — except parse errors: a typo is not a
+      // solved problem, and saving it would pollute the Progress stats.
+      if (result.status !== STATUS.PARSE_ERROR) {
+        await createProblemHistory({
+          problem,
+          topic,
+          solution: result,
+          feedback: statusLabel(result.status)
+        });
+      }
 
-      toast.success("Problem solved successfully!");
+      // The toast tells the truth about the outcome: green only for a real
+      // solve, red for unreadable input, amber for honest non-answers
+      // (unsupported, undefined, indeterminate, overflow).
+      if (result.status === STATUS.SOLVED) {
+        toast.success("Problem solved!");
+      } else if (result.status === STATUS.PARSE_ERROR) {
+        toast.error("Couldn't read that input — see the notes below");
+      } else {
+        toast.warning(statusLabel(result.status));
+      }
     } catch (error) {
       console.error("Error solving problem:", error);
       toast.error("Failed to solve problem. Please try again.");

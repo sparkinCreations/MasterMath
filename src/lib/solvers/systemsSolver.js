@@ -13,6 +13,7 @@
 
 import { math, sampleFunction } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
+import { parseError, unsupported } from '../solutionEnvelope.js';
 
 const FUNCTION_NAMES = /\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sinh|cosh|tanh|asin|acos|atan|sqrt|log|ln|exp|abs|pi)\b/gi;
 
@@ -23,6 +24,7 @@ export async function solveSystem(rawText) {
       return refuse(
         `I found ${equations.length} equation${equations.length === 1 ? '' : 's'} here.`,
         'MasterMath solves systems of exactly two linear equations in two unknowns (e.g. 2x + 3y = 6; x − y = 4).',
+        'unsupported',
       );
     }
 
@@ -31,6 +33,7 @@ export async function solveSystem(rawText) {
       return refuse(
         `This system has ${variables.length} variable${variables.length === 1 ? '' : 's'} (${variables.join(', ') || 'none'}).`,
         'I currently solve 2×2 systems — two equations in exactly two variables.',
+        'unsupported',
       );
     }
 
@@ -45,6 +48,7 @@ export async function solveSystem(rawText) {
         return refuse(
           'At least one equation is not linear in the two variables.',
           'I handle linear systems (each variable to the first power, no products like x·y).',
+          'unsupported',
         );
       }
       rows.push(row);
@@ -112,7 +116,7 @@ export async function solveSystem(rawText) {
     const ok1 = residualIsZero(r1, v1, v2, num(x), num(y));
     const ok2 = residualIsZero(r2, v1, v2, num(x), num(y));
     if (!ok1 || !ok2) {
-      return refuse('I could not verify a consistent solution for this system.', 'Please double-check the equations.');
+      return refuse('I could not verify a consistent solution for this system.', 'Please double-check the equations.', 'unsupported');
     }
 
     const steps = buildSubstitutionSteps({ a1, b1, c1, a2, b2, c2, x, y, v1, v2, eq1Disp, eq2Disp });
@@ -341,12 +345,14 @@ function round(n) {
   return Math.abs(n - Math.round(n)) < 1e-9 ? String(Math.round(n)) : String(Math.round(n * 1000) / 1000);
 }
 
-function refuse(reason, hint) {
-  return {
+// kind 'parse' = the text couldn't be read as a 2×2 system; 'unsupported' =
+// a readable system outside what this solver handles (wrong size, non-linear).
+function refuse(reason, hint, kind = 'parse') {
+  const fields = {
     steps: ['Read the input as a system of equations.', reason, hint],
-    answer: 'Unable to solve this system',
+    answer: reason,
     tips: ['A 2×2 linear system looks like: 2x + 3y = 6; x − y = 4.'],
     common_mistakes: ['Mixing more than two equations or variables.', 'Non-linear terms like x·y or x².'],
-    graph: null,
   };
+  return kind === 'parse' ? parseError(fields) : unsupported(fields);
 }

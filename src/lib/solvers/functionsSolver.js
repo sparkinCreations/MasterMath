@@ -26,8 +26,10 @@ import {
   formatNumber,
   sampleFunction,
   rewriteReciprocalTrig,
+  parsesAsMath,
 } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
+import { parseError, unsupported } from '../solutionEnvelope.js';
 
 const WINDOW = { min: -10, max: 10 };
 const FINE_STEP = 0.05;
@@ -41,6 +43,16 @@ export async function solveFunctions(expression) {
     const functionMatch = expression.match(/f\(.\)\s*=\s*(.+)/i);
     if (functionMatch) {
       func = parseMathExpression(functionMatch[1]);
+    }
+
+    // Unreadable input must fail here, loudly — sampling would otherwise
+    // "analyze" a function that doesn't exist and echo it back as a success.
+    if (!parsesAsMath(func)) {
+      return parseError({
+        input: expression,
+        hint: 'This could not be read as a function of one variable.',
+        tips: ['Write the function in terms of x, e.g. x^2 - 4*x + 3 or 1/(x-2).'],
+      });
     }
 
     let Algebrite = null;
@@ -81,13 +93,17 @@ export async function solveFunctions(expression) {
     };
   } catch (error) {
     console.error('Functions solver error:', error);
-    return {
-      steps: ['Parse the function', 'Identify the key features', 'Generate the graph'],
-      answer: 'Unable to analyze function',
-      tips: ['Check your function notation.'],
-      common_mistakes: ['Using incorrect syntax'],
-      graph: null,
-    };
+    if (parsesAsMath(expression)) {
+      return unsupported({
+        input: expression,
+        reason: 'Analyzing this function is beyond what this engine can do.',
+      });
+    }
+    return parseError({
+      input: expression,
+      hint: error.message,
+      tips: ['Write the function in terms of x, e.g. x^2 - 4*x + 3 or 1/(x-2).'],
+    });
   }
 }
 

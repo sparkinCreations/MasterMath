@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, Eye, Footprints } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, Eye, Footprints } from "lucide-react";
 import { motion } from "framer-motion";
 import MathText from "@/components/MathText";
+import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
 import { exportSolutionAsMarkdown, exportSolutionAsJSON, exportSolutionAsPDF } from "@/lib/exportUtils";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -21,6 +22,45 @@ const TOPIC_LABELS = {
   trigonometry: "Trigonometry",
   algebra: "Algebra",
   other: "Arithmetic"
+};
+
+// Visual treatment per envelope status. Green is reserved for a real solve;
+// parse errors read as errors; the honest non-answers (unsupported,
+// undefined, indeterminate, overflow) share an amber "heads-up" treatment.
+// Results without a status (legacy history) render as solved, as before.
+const AMBER_THEME = {
+  Icon: AlertTriangle,
+  headerIcon: "text-amber-600 dark:text-amber-400",
+  badge: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700",
+  card: "bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/30 border-2 border-amber-300 dark:border-amber-700",
+  cardIcon: "text-amber-600 dark:text-amber-400",
+  cardText: "text-gray-800 dark:text-amber-50",
+  heading: "Result:",
+};
+
+const STATUS_THEMES = {
+  [STATUS.SOLVED]: {
+    Icon: CheckCircle2,
+    headerIcon: "text-green-600 dark:text-green-400",
+    badge: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-200 dark:border-green-700",
+    card: "bg-gradient-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700",
+    cardIcon: "text-green-600 dark:text-green-400",
+    cardText: "text-gray-800 dark:text-emerald-50",
+    heading: "Final Answer:",
+  },
+  [STATUS.PARSE_ERROR]: {
+    Icon: AlertCircle,
+    headerIcon: "text-red-600 dark:text-red-400",
+    badge: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-200 dark:border-red-700",
+    card: "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/30 border-2 border-red-300 dark:border-red-800",
+    cardIcon: "text-red-600 dark:text-red-400",
+    cardText: "text-gray-800 dark:text-red-50",
+    heading: "What went wrong:",
+  },
+  [STATUS.UNSUPPORTED]: AMBER_THEME,
+  [STATUS.UNDEFINED]: AMBER_THEME,
+  [STATUS.INDETERMINATE]: AMBER_THEME,
+  [STATUS.OVERFLOW]: AMBER_THEME,
 };
 
 export default function SolutionDisplay({ solution, problem, topic }) {
@@ -83,6 +123,10 @@ export default function SolutionDisplay({ solution, problem, topic }) {
     );
   }
 
+  const status = solution.status;
+  const theme = STATUS_THEMES[status] || STATUS_THEMES[STATUS.SOLVED];
+  const StatusIcon = theme.Icon;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -93,8 +137,13 @@ export default function SolutionDisplay({ solution, problem, topic }) {
         <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
-              <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <StatusIcon className={`w-6 h-6 ${theme.headerIcon}`} />
               Solution & Explanation
+              {status && (
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${theme.badge}`}>
+                  {statusLabel(status)}
+                </span>
+              )}
             </CardTitle>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -212,12 +261,22 @@ export default function SolutionDisplay({ solution, problem, topic }) {
           )}
 
           {solution.answer && allRevealed && (
-            <div className="p-5 rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700">
+            <div className={`p-5 rounded-xl ${theme.card}`}>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+                <StatusIcon className={`w-6 h-6 ${theme.cardIcon} flex-shrink-0 mt-1`} />
                 <div>
-                  <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-2">Final Answer:</h3>
-                  <p className="text-gray-800 dark:text-emerald-50 text-xl font-semibold"><MathText text={solution.answer} /></p>
+                  <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-2">{theme.heading}</h3>
+                  <p className={`${theme.cardText} text-xl font-semibold`}><MathText text={solution.answer} /></p>
+                  {solution.warnings && solution.warnings.length > 0 && (
+                    <ul className="mt-3 space-y-1">
+                      {solution.warnings.map((warning, idx) => (
+                        <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-1.5">
+                          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                          <span>{warning}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             </div>

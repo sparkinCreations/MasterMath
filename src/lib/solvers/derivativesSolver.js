@@ -5,8 +5,10 @@ import {
   sampleFunction,
   hasVariable,
   rewriteReciprocalTrig,
+  parsesAsMath,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
+import { parseError, unsupported } from '../solutionEnvelope.js';
 
 export async function solveDerivative(expression) {
   try {
@@ -43,17 +45,17 @@ export async function solveDerivative(expression) {
     };
   } catch (error) {
     console.error('Derivative solver error:', error);
-    return {
-      steps: [
-        `Identify the function to differentiate: f(x) = ${expression}`,
-        'Apply differentiation rules to each term',
-        'Simplify the result',
-      ],
-      answer: 'Unable to compute derivative',
-      tips: ['Check that your function is properly formatted (e.g., use ^ for powers and * for products).'],
-      common_mistakes: ['Using incorrect notation'],
-      graph: null,
-    };
+    if (parsesAsMath(expression)) {
+      return unsupported({
+        input: expression,
+        reason: 'This derivative is beyond what this engine can compute.',
+      });
+    }
+    return parseError({
+      input: expression,
+      hint: error.message,
+      tips: ['Use ^ for powers and * for products (e.g., x^2 * sin(x)).'],
+    });
   }
 }
 

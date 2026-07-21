@@ -1,11 +1,24 @@
 // Export utilities for MasterMath
 import jsPDF from 'jspdf';
+import { statusLabel, isFailureStatus } from './solutionEnvelope.js';
 
 // Helper to extract solution text
 function getSolutionText(solution) {
   if (!solution) return '';
   if (typeof solution === 'string') return solution;
   return solution.answer || '';
+}
+
+// A failed solve must not export looking like an answer: label it with its
+// status and drop the "Final Answer" framing.
+function exportStatus(solution) {
+  // Legacy results (stored before statuses existed) have no status field and
+  // keep the old solved presentation.
+  const failed = Boolean(solution?.status && isFailureStatus(solution.status));
+  return {
+    label: failed ? statusLabel(solution.status) : null,
+    answerHeading: failed ? 'Result (not solved)' : 'Final Answer',
+  };
 }
 
 // Export progress history as CSV
@@ -63,8 +76,12 @@ export function exportAsMarkdown(problems, topicLabels) {
 
 // Export individual solution as Markdown
 export function exportSolutionAsMarkdown(problem, topic, solution, topicLabels) {
+  const status = exportStatus(solution);
   let markdown = `# ${topicLabels[topic] || topic} Problem\n\n`;
   markdown += `**Problem:** ${problem}\n\n`;
+  if (status.label) {
+    markdown += `**Status:** ${status.label}\n\n`;
+  }
 
   if (solution.steps && solution.steps.length > 0) {
     markdown += `## Step-by-Step Solution\n\n`;
@@ -75,7 +92,7 @@ export function exportSolutionAsMarkdown(problem, topic, solution, topicLabels) 
   }
 
   if (solution.answer) {
-    markdown += `## Final Answer\n\n${solution.answer}\n\n`;
+    markdown += `## ${status.answerHeading}\n\n${solution.answer}\n\n`;
   }
 
   if (solution.tips && solution.tips.length > 0) {
@@ -166,6 +183,7 @@ export function exportAsPDF(problems, topicLabels) {
 
 // Export individual solution as PDF
 export function exportSolutionAsPDF(problem, topic, solution, topicLabels) {
+  const status = exportStatus(solution);
   const doc = new jsPDF();
   const margin = 20;
   let yPos = 20;
@@ -186,6 +204,14 @@ export function exportSolutionAsPDF(problem, topic, solution, topicLabels) {
   const problemLines = doc.splitTextToSize(problem, 170);
   doc.text(problemLines, margin, yPos);
   yPos += problemLines.length * 7 + 10;
+
+  // Status (only shown when the solve did not succeed)
+  if (status.label) {
+    doc.setFont(undefined, 'bold');
+    doc.text(`Status: ${status.label}`, margin, yPos);
+    doc.setFont(undefined, 'normal');
+    yPos += 10;
+  }
 
   // Steps
   if (solution.steps && solution.steps.length > 0) {
@@ -220,7 +246,7 @@ export function exportSolutionAsPDF(problem, topic, solution, topicLabels) {
 
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text('Final Answer:', margin, yPos);
+    doc.text(`${status.answerHeading}:`, margin, yPos);
     yPos += 8;
 
     doc.setFont(undefined, 'normal');

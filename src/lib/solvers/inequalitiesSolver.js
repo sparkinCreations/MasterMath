@@ -11,6 +11,7 @@
 
 import { math, beautify, formatNumber, sampleFunction, loadAlgebrite } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
+import { parseError, unsupported } from '../solutionEnvelope.js';
 
 const OPERATORS = ['<=', '>=', '<', '>'];
 
@@ -135,7 +136,7 @@ export async function solveInequality(rawText) {
     };
   } catch (error) {
     console.error('Inequality solver error:', error);
-    return refuse('I was unable to solve this inequality.', 'Try a form like x^2 - 4 > 0.');
+    return refuse('I was unable to solve this inequality.', 'Try a form like x^2 - 4 > 0.', 'unsupported');
   }
 }
 
@@ -385,12 +386,14 @@ function clean(n) {
   return Math.round(n * 1e6) / 1e6;
 }
 
-function refuse(reason, hint) {
-  return {
+// kind 'parse' = the text couldn't be read as an inequality; 'unsupported' =
+// a readable inequality this solver can't handle.
+function refuse(reason, hint, kind = 'parse') {
+  const fields = {
     steps: ['Read the input as an inequality.', reason, hint].filter(Boolean),
-    answer: 'Unable to solve this inequality',
+    answer: reason,
     tips: ['An inequality uses <, >, ≤, or ≥, e.g. x^2 - 4 > 0.'],
     common_mistakes: ['Compound inequalities (a < x < b) are not supported yet — split them into two.'],
-    graph: null,
   };
+  return kind === 'parse' ? parseError(fields) : unsupported(fields);
 }

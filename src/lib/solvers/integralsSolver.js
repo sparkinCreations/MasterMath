@@ -8,9 +8,30 @@ import {
   hasVariable,
   rewriteReciprocalTrig,
   expressionsNumericallyEqual,
+  parsesAsMath,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
+import { parseError, unsupported } from '../solutionEnvelope.js';
+
+// Famous non-elementary integrands, so "the engine can't do this" comes with
+// the honest reason: the antiderivative exists but isn't elementary. The
+// patterns are anchored to the WHOLE integrand — a substring match would
+// wrongly flag elementary neighbors like x*sin(x^2) (plain u-substitution).
+const NON_ELEMENTARY_NOTES = [
+  [/^sin\([a-z]\^2\)$/i, 'its antiderivative is the Fresnel S function, which is not expressible in elementary functions'],
+  [/^cos\([a-z]\^2\)$/i, 'its antiderivative is the Fresnel C function, which is not expressible in elementary functions'],
+  [/^(?:e\^\(?-[a-z]\^2\)?|exp\(-[a-z]\^2\))$/i, 'its antiderivative is related to the error function erf(x), which is not elementary'],
+  [/^sin\([a-z]\)\/[a-z]$/i, 'its antiderivative is the sine integral Si(x), which is not elementary'],
+];
+
+function nonElementaryNote(expression) {
+  const normalized = String(expression).replace(/\s+/g, '');
+  for (const [pattern, note] of NON_ELEMENTARY_NOTES) {
+    if (pattern.test(normalized)) return note;
+  }
+  return null;
+}
 
 // The integral solver receives the RAW problem text (see api.js), because a
 // definite integral's bounds live in the notation and must be read before
@@ -94,17 +115,24 @@ async function solveIndefiniteIntegral(expression) {
     };
   } catch (error) {
     console.error('Integral solver error:', error);
-    return {
-      steps: [
-        `Identify the function to integrate: ∫(${expression}) dx`,
-        'Integrate each term, applying the appropriate rule',
-        'Add the constant of integration (+C)',
-      ],
-      answer: 'Unable to compute integral',
-      tips: ['Check that your function is properly formatted.'],
-      common_mistakes: ['Using incorrect notation'],
-      graph: null,
-    };
+    if (parsesAsMath(expression)) {
+      const note = nonElementaryNote(expression);
+      return unsupported({
+        input: `∫(${expression}) dx`,
+        reason: note
+          ? `This integral is non-elementary — ${note}.`
+          : 'This integral has no elementary closed form, or is beyond this engine — the input itself is valid.',
+        tips: [
+          'The input is valid — not every elementary function has an elementary antiderivative.',
+          'A definite version can still be computed numerically, e.g. ∫_0^1 of the same integrand.',
+        ],
+      });
+    }
+    return parseError({
+      input: expression,
+      hint: error.message,
+      tips: ['Use ^ for powers and * for products (e.g., x^2 * sin(x)).'],
+    });
   }
 }
 
@@ -254,6 +282,7 @@ async function solveDefiniteIntegral(parsed) {
     return refuseDefinite(
       'This looks like a definite integral, but I could not read its bounds.',
       'Try the form ∫_0^1 x^2 dx, or "x^2 from 0 to 1".',
+      'parse',
     );
   }
 
@@ -265,7 +294,7 @@ async function solveDefiniteIntegral(parsed) {
     const a = Number(math.evaluate(lowerRaw));
     const b = Number(math.evaluate(upperRaw));
     if (!Number.isFinite(a) || !Number.isFinite(b)) {
-      return refuseDefinite('I could not read the integration bounds as numbers.', notation);
+      return refuseDefinite('I could not read the integration bounds as numbers.', notation, 'parse');
     }
 
     const Algebrite = await loadAlgebrite();
@@ -431,22 +460,24 @@ function formatExactValue(raw) {
   return s;
 }
 
-function refuseDefinite(reason, notation) {
+// kind 'parse' = the bounds/notation couldn't be read; 'unsupported' = the
+// notation was fine but the value couldn't be computed trustworthily.
+function refuseDefinite(reason, notation, kind = 'unsupported') {
   const steps = [];
   if (notation) steps.push(`Evaluate the definite integral ${notation}.`);
   steps.push(reason);
   steps.push('Tip: check the bounds and the integrand, or find the antiderivative F and compute F(upper) − F(lower).');
-  return {
+  const fields = {
     steps,
-    answer: 'Unable to compute this definite integral',
+    answer: reason,
     tips: ['A definite integral needs a lower and an upper bound, e.g. ∫_0^1 x^2 dx.'],
     common_mistakes: ['Bounds that cannot be parsed as numbers.', 'An integrand with no elementary antiderivative.'],
-    graph: null,
   };
+  return kind === 'parse' ? parseError(fields) : unsupported(fields);
 }
 
 function refuseImproper(notation, variable) {
-  return {
+  return unsupported({
     steps: [
       `Evaluate the definite integral ${notation}.`,
       `The integrand is discontinuous somewhere between the bounds (it has a vertical asymptote in the interval).`,
@@ -460,8 +491,7 @@ function refuseImproper(notation, variable) {
     common_mistakes: [
       'Blindly applying F(b) − F(a) across a vertical asymptote — that gives a confident but meaningless number.',
     ],
-    graph: null,
-  };
+  });
 }
 
 // Graph f(x) with the integration interval [a, b] shaded — the definite

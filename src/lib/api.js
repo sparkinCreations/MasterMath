@@ -2,6 +2,7 @@
 import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './indexedDB.js';
 import { validateProblemHistory } from './validation.js';
 import { extractFunctionFromProblem } from './mathParser.js';
+import { STATUS, isValidStatus, parseError } from './solutionEnvelope.js';
 
 // Fetch all problem history from local IndexedDB
 export async function fetchProblemHistory() {
@@ -112,6 +113,10 @@ function looksLikeInequality(problem) {
 }
 
 // Shared result validation — every solver's output passes through here.
+// This is the envelope contract gate: a result must carry a valid `status`
+// (see solutionEnvelope.js). The legacy shim below infers one for solvers
+// not yet migrated; it is deleted at the end of the migration (Phase 2 of
+// docs/future-work/MATH-STATE-SEMANTICS.md).
 function finalizeResult(result) {
   if (!result || typeof result !== 'object') {
     throw new Error('Invalid solver result');
@@ -127,6 +132,18 @@ function finalizeResult(result) {
   }
   if (!result.common_mistakes || !Array.isArray(result.common_mistakes)) {
     result.common_mistakes = [];
+  }
+  if (!isValidStatus(result.status)) {
+    // Legacy shim: the pre-envelope failure convention was an answer string
+    // starting with "Unable to". Anything else counts as solved. Only an
+    // inferred failure gets a warning — it means a failure path somewhere
+    // still isn't using the envelope constructors.
+    if (/^unable to/i.test(String(result.answer))) {
+      result.status = STATUS.PARSE_ERROR;
+      console.warn(`Solver failure path returned no status — inferred "${result.status}" for answer: ${result.answer}`);
+    } else {
+      result.status = STATUS.SOLVED;
+    }
   }
   return result;
 }
@@ -202,31 +219,17 @@ export async function solveProblem(problem, topic) {
   } catch (error) {
     console.error('Solver error:', error);
 
-    // Create a more helpful error message
-    const errorMessage = error.message || 'An unexpected error occurred';
-
-    // Fallback response if all solvers fail
-    return {
-      steps: [
-        `Error: ${errorMessage}`,
-        'Please check your input and try again'
-      ],
-      answer: 'Unable to solve this problem',
+    // Last-resort fallback: an error escaped every solver's own handling, so
+    // the specific cause is unknown — the error message is the best hint we
+    // have. Solver-level failures carry more specific envelopes than this.
+    return parseError({
+      input: problem,
+      hint: error.message || 'An unexpected error occurred',
       tips: [
-        'Make sure your expression uses standard mathematical notation',
         'Use * for multiplication (e.g., 2*x instead of 2x)',
         'Use ^ for exponents (e.g., x^2 instead of x²)',
-        'Ensure all parentheses are balanced',
-        'Check for typos in function names (sin, cos, tan, sqrt, etc.)'
+        'Check that all parentheses are balanced and function names are spelled out (sin, cos, sqrt, ...)',
       ],
-      common_mistakes: [
-        'Using ambiguous notation',
-        'Missing operators between terms',
-        'Incorrectly formatted functions',
-        'Unbalanced parentheses',
-        'Invalid characters in expressions'
-      ],
-      graph: null
-    };
+    });
   }
 }

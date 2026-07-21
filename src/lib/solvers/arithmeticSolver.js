@@ -1,4 +1,5 @@
 import { math, formatNumber } from './solverUtils.js';
+import { parseError } from '../solutionEnvelope.js';
 
 export function solveArithmetic(expression) {
   try {
@@ -49,22 +50,14 @@ export function solveArithmetic(expression) {
     };
   } catch (error) {
     console.error('Arithmetic solver error:', error);
-    return {
-      steps: [
-        `Parse the arithmetic expression: ${expression}`,
-        'Apply PEMDAS/BODMAS order of operations.',
-        'Calculate the result.',
-      ],
-      answer: 'Unable to evaluate',
-      tips: [
-        'Use * for multiplication (e.g., 5*3).',
-        'Use / for division (e.g., 10/2).',
-        'Use ^ for exponents (e.g., 2^3).',
-        'Use parentheses to group operations: (2+3)*4.',
-      ],
-      common_mistakes: ['Missing operators between numbers', 'Incorrect order of operations'],
-      graph: null,
-    };
+    // mathjs error messages are specific ("Parenthesis ) expected (char 4)",
+    // "Undefined symbol abc") — pass them through rather than generic tips.
+    return parseError({
+      input: expression,
+      hint: error.message,
+      tips: ['Use * for multiplication, / for division, and ^ for exponents (e.g., (2+3)*4^2).'],
+      common_mistakes: ['Missing operators between numbers', 'Unbalanced parentheses'],
+    });
   }
 }
 

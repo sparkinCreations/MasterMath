@@ -594,12 +594,14 @@ test('regression: inconsistent system reports no solution (parallel)', async () 
 
 test('regression: a 3-variable system is refused, not mis-solved', async () => {
   const r = await solveProblem('x + y + z = 1; x - y = 2', 'algebra');
-  assert.match(r.answer, /unable to solve this system/i);
+  assert.equal(r.status, 'unsupported');
+  assert.match(r.answer, /3 variables/i);
 });
 
 test('regression: a nonlinear system is refused', async () => {
   const r = await solveProblem('x^2 + y = 1; x - y = 0', 'algebra');
-  assert.match(r.answer, /unable to solve this system/i);
+  assert.equal(r.status, 'unsupported');
+  assert.match(r.answer, /not linear/i);
 });
 
 test('regression: single equations are unaffected by the system router', async () => {
@@ -657,7 +659,8 @@ test('regression: a single-point solution reads x = c', async () => {
 
 test('regression: compound inequality is refused (out of scope)', async () => {
   const r = await solveProblem('-2 < x < 3', 'algebra');
-  assert.match(r.answer, /unable to solve this inequality/i);
+  assert.equal(r.status, 'parse_error');
+  assert.match(r.answer, /could not read this as a single inequality/i);
 });
 
 test('regression: an equation is not misrouted to the inequality solver', async () => {
@@ -740,6 +743,9 @@ test('regression: plain integrals are unaffected by the by-parts path', async ()
 
 test('regression: a non-elementary integrand is still refused, not faked', async () => {
   // x*sin(x^2) is u-substitution, not by-parts; Algebrite can't do it either.
+  // (The integrand is valid math, so the refusal is `unsupported` — and must
+  // never claim a fake antiderivative.)
   const r = await solveProblem('x*sin(x^2)', 'integrals');
-  assert.match(r.answer, /Unable to compute/i);
+  assert.equal(r.status, 'unsupported');
+  assert.ok(!/\+ C$/.test(r.answer), 'must not present a fabricated antiderivative');
 });
