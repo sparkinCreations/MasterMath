@@ -1,0 +1,79 @@
+Category,Problem,Expected,Solver,Classification
+Integrals,∫_0^1 x^2 dx,1/3,1/3 (≈0.3333),Correct
+Integrals,∫_0^pi sin(x) dx,2,2,Correct
+Integrals,∫_-1^1 1/x dx,divergent — must refuse,Improper integral (discontinuous on the interval) — not supported,Honest Refusal
+Integrals,∫_0^2 (x^3 - x) dx,2,2,Correct
+Integrals,∫_1^e 1/x dx,1,1,Correct
+Integrals,∫_1^0 x^2 dx (swapped bounds),-1/3,-1/3 (≈-0.3333),Correct
+Integrals,∫_0^1 (x^2 + e^x) dx,e - 2/3,e - 2/3 (≈2.0516),Correct
+Integrals,x^2,x^3/3 + C,(1/3)·x^3 + C,Correct
+Integrals,sin(x),-cos(x) + C,-cos(x) + C,Correct
+Integrals,1/x,ln|x| + C,ln|x| + C,Correct
+Integrals,e^x,e^x + C,exp(x) + C,Equivalent
+Integrals,sec(x)^2,tan(x) + C,tan(x) + C,Correct
+Integrals,x*cos(x),x·sin(x) + cos(x) + C,cos(x) + x·sin(x) + C (full u/dv walkthrough),Correct
+Integrals,x^3*sin(x),-x^3·cos(x) + 3x^2·sin(x) + 6x·cos(x) - 6sin(x) + C,same (three by-parts rounds shown),Correct
+Integrals,e^x*sin(x),e^x(sin(x) - cos(x))/2 + C,(1/2)·exp(x)·(-cos(x)+sin(x)) + C (cyclic resolution shown),Correct
+Integrals,ln(x),x·ln(x) - x + C,x·(ln|x| - 1) + C,Correct
+Integrals,arctan(x),x·arctan(x) - ln(1+x^2)/2 + C,x·arctan(x) - (1/2)·ln(x^2+1) + C,Correct
+Integrals,x*e^x,(x-1)·e^x + C,exp(x)·(x-1) + C,Correct
+Integrals,x^2*ln(x),x^3/3·ln(x) - x^3/9 + C,(1/3)·x^3·(ln|x| - 1/3) + C,Correct
+Derivatives,x^3,3x^2,3x^2,Correct
+Derivatives,sin(x)*cos(x),cos(2x),cos(x)^2 - sin(x)^2,Equivalent
+Derivatives,ln(x)/x,(1 - ln(x))/x^2,1/x^2 - log(x)/x^2,Equivalent
+Derivatives,e^(2x),2e^(2x),2exp(2x),Correct
+Derivatives,sqrt(x),1/(2√x),1/(2x^(1/2)),Correct
+Derivatives,tan(x),sec(x)^2,1/(cos(x)^2),Equivalent
+Derivatives,1/(x^2+1),-2x/(x^2+1)^2,-2x/((x^2+1)^2),Correct
+Derivatives,x^x,x^x(ln(x)+1),x^x + x^x·log(x),Correct
+Derivatives,find the derivative of x^2 + 3x,2x+3,2x+3,Correct
+Limits,lim x->0 (sin(x)/x),1,1,Correct
+Limits,lim x->0+ 1/x,+∞,∞,Correct
+Limits,lim x->0 sin(1/x),DNE (oscillation),Does not exist — oscillates infinitely often,Correct
+Limits,lim x->0 (1-cos(x))/x^2,1/2,1/2 (exact fraction),Correct
+Limits,lim x->2 (x^2-4)/(x-2),4,4,Correct
+Limits,lim x->infinity (3x^2+1)/(x^2-5),3,3,Correct
+Limits,lim x->0 1/x,DNE (-∞ vs +∞),Does not exist (left -∞ right +∞),Correct
+Limits,lim x->infinity (1+1/x)^x,e (exact),2.7183 (rounded decimal presented as the limit),Partial
+Limits,lim x->0 abs(x)/x,DNE (-1 vs 1),Does not exist (left -1 right 1),Correct
+Algebra,2x + 5 = 13,x = 4,x = 4,Correct
+Algebra,x^2 - 5x + 6 = 0,x = 2 or x = 3,x = 2 or x = 3,Correct
+Algebra,factor x^2 - 9,(x-3)(x+3),(x - 3)(x + 3),Correct
+Algebra,simplify (x^2-1)/(x-1),x + 1,x + 1,Correct
+Algebra,x^2 + 1 = 0,x = ±i (no real solutions),x = -i or x = i,Correct
+Algebra,expand (x+2)^2,x^2 + 4x + 4,"""The expression (x + 2)^2 is already in simplest form"" — expand verb ignored",Partial
+Algebra,x^2 - 2x + 1 = 0,x = 1 (double root),x = 1 or x = 1 (duplicate root displayed),Equivalent
+Systems,2x + 3y = 6; x - y = 4,"x = 18/5, y = -2/5","x = 18/5, y = -2/5 (exact, back-substitution check shown)",Correct
+Systems,x + y = 2; x + y = 5,no solution (parallel),No solution — the two lines are parallel,Correct
+Systems,2x + y = 5; 4x + 2y = 10,infinitely many (same line),Infinitely many solutions — same line,Correct
+Systems,3x + 2y = 12; x + y = 5,"x = 2, y = 3","x = 2, y = 3",Correct
+Systems,x - 2y = 1; 2x + y = 7,"x = 3, y = 1","x = 3, y = 1",Correct
+Inequalities,x^2 - 4 > 0,x < -2 or x > 2 (open),(−∞,−2)∪(2,∞) — roots excluded,Correct
+Inequalities,x^2 - 4 <= 0,-2 ≤ x ≤ 2 (closed),"[-2, 2] — roots included",Correct
+Inequalities,(x-1)/(x+2) >= 0,x < -2 or x ≥ 1 (pole open; root closed),(−∞,−2)∪[1,∞) — pole open and root closed,Correct
+Inequalities,x^2 + 1 > 0,all real numbers,All real numbers satisfy the inequality,Correct
+Inequalities,2x + 3 < 7,x < 2,x < 2,Correct
+Inequalities,x^2 < 0,no solution,No solution — no value satisfies the inequality,Correct
+Inequalities,(x+1)^2 <= 0,x = -1 only,"x = -1 (interval [-1, -1])",Correct
+Inequalities,x/(x-3) < 0,0 < x < 3,0 < x < 3,Correct
+Trigonometry,tan(pi/2),undefined,Undefined — cos(pi/2) = 0 vertical asymptote explanation,Correct
+Trigonometry,sin(x)^2 + cos(x)^2,1,1 (Pythagorean identity cited),Correct
+Trigonometry,sin(pi/6),1/2,0.5 (or 1/2),Correct
+Trigonometry,cos(pi),-1,-1,Correct
+Trigonometry,sin(pi/4),√2/2,0.7071 (or √2/2),Correct
+Functions,x^3 - 3x,"roots 0, ±√3; max (-1,2); min (1,-2); inflection x=0","x-intercepts -√3, 0, √3; local max (-1, 2); local min (1, -2); inflection x = 0",Correct
+Functions,e^x,"y-int (0,1); no x-intercepts; no extrema","y-intercept (0, 1); no x-intercepts; no extrema; strictly increasing (horizontal asymptote y=0 not mentioned)",Correct
+Functions,1/(x-2),"VA x=2; HA y=0; y-int (0,-1/2); no x-int","undefined at x = 2; vertical asymptote x = 2; horizontal asymptote y = 0; y-intercept (0, -0.5); no x-intercepts",Correct
+Functions,x^2 - 4,"vertex min (0,-4); roots ±2","vertex (0, -4) minimum; x-intercepts -2, 2; axis x = 0",Correct
+Arithmetic,(5 + 3) * 4 - 2^3,24,24,Correct
+Arithmetic,7*8 + 12/4,59,59,Correct
+Arithmetic,2^10,1024,1024,Correct
+Arithmetic,sqrt(50),5√2 ≈ 7.0711,7.0711,Equivalent
+Arithmetic,1/2 + 1/3,5/6,0.8333,Equivalent
+Arithmetic,15% of 80,12,Unable to evaluate,Honest Refusal
+Arithmetic,1/0,undefined,∞,Incorrect (confidently wrong — real division by zero is undefined)
+Arithmetic,0/0,undefined / indeterminate,NaN (0/0),Partial
+Adversarial,solve it pls,clear refusal,"""The expression itpls is already in simplest form. Final Answer: itpls""",Incorrect (confident nonsense — no refusal)
+Adversarial,2*(x+3 = 10,clear refusal (mismatched parens),"""Rewrite as (2(x+3) - (10) = 0 … No real solution found"" — but x = 2 solves the displayed rewrite",Incorrect (confidently wrong)
+Adversarial,asdfghjkl,clear refusal,"""Final Answer: asdfghjkl""",Incorrect (confident nonsense — no refusal)
+Adversarial,x^2 + = 5,clear refusal (malformed),"""No real solution found"" — x^2 = 5 has x = ±√5",Incorrect (confidently wrong)
