@@ -3,11 +3,16 @@ import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
+// Monotonic counter rather than Date.now(): two toasts raised in the same
+// millisecond (a status message plus a save warning, say) would otherwise
+// share an id, colliding as React keys and dismissing each other.
+let nextToastId = 0;
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
   const addToast = useCallback((message, type = 'info', duration = 3000) => {
-    const id = Date.now();
+    const id = nextToastId++;
     setToasts(prev => [...prev, { id, message, type, duration }]);
 
     if (duration > 0) {

@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-08-15
+
+### Changed
+
+- Initial page load is ~10× smaller: 81 KB of JavaScript (gzipped) instead of
+  860 KB. Every visitor — including one who only opened the landing page or a
+  policy page — used to download mathjs, Algebrite, Recharts and jsPDF
+  (~2.4 MB raw) before anything rendered.
+  - Routes are split with `React.lazy`, so a page's code is fetched when it is
+    opened. `Home` stays eager, since deferring the landing page would only
+    add a round trip.
+  - The graph panel loads Recharts the first time a solution actually has a
+    graph to draw, rather than on every visit to the solver.
+  - jsPDF is imported on demand inside the PDF export functions, so only users
+    who choose "Export as PDF" pay for it. CSV, JSON and Markdown exports are
+    unaffected.
+  - `manualChunks` now names every module the entry chunk shares — React,
+    Vite's preload helper, Rollup's CommonJS interop shims and the small
+    styling/icon helpers. Previously these were folded into whichever chunk
+    Rollup found convenient (React ended up inside `charts`, the preload
+    helper inside `pdf`), which forced the entry chunk to statically import
+    those bundles and made Vite preload them from `index.html`.
+
+### Fixed
+
+- A failure to save a solved problem to history is no longer reported as a
+  failed solve. Storage can fail for reasons unrelated to the mathematics
+  (quota exceeded, private browsing, an evicted database); the solution stays
+  on screen and the message now says the history save failed, instead of the
+  misleading "Failed to solve problem. Please try again."
+- Toasts raised in the same millisecond no longer collide. Ids came from
+  `Date.now()`, so two simultaneous notifications shared a React key and
+  dismissed each other.
+
 ## [1.13.0] - 2026-07-21
 
 Phase 1 of the mathematical state semantics architecture

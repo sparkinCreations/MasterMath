@@ -1,6 +1,19 @@
 // Export utilities for MasterMath
-import jsPDF from 'jspdf';
 import { statusLabel, isFailureStatus } from './solutionEnvelope.js';
+
+// jsPDF (plus its html2canvas/dompurify dependencies) is ~600 kB — larger than
+// the rest of the app combined. Importing it at module scope pulled it into
+// every page load, because both export menus are rendered eagerly. Loading it
+// on demand means only users who actually click "Export as PDF" pay for it.
+// The promise is memoized so a second export doesn't refetch.
+let jsPDFPromise = null;
+
+function loadJsPDF() {
+  if (!jsPDFPromise) {
+    jsPDFPromise = import('jspdf').then((module) => module.default);
+  }
+  return jsPDFPromise;
+}
 
 // Helper to extract solution text
 function getSolutionText(solution) {
@@ -131,7 +144,8 @@ export function exportSolutionAsJSON(problem, topic, solution) {
 }
 
 // Export progress history as PDF
-export function exportAsPDF(problems, topicLabels) {
+export async function exportAsPDF(problems, topicLabels) {
+  const jsPDF = await loadJsPDF();
   const doc = new jsPDF();
 
   // Title
@@ -182,7 +196,8 @@ export function exportAsPDF(problems, topicLabels) {
 }
 
 // Export individual solution as PDF
-export function exportSolutionAsPDF(problem, topic, solution, topicLabels) {
+export async function exportSolutionAsPDF(problem, topic, solution, topicLabels) {
+  const jsPDF = await loadJsPDF();
   const status = exportStatus(solution);
   const doc = new jsPDF();
   const margin = 20;

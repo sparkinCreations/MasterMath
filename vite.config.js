@@ -59,7 +59,51 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Chunking has two jobs here, and they pull in opposite directions.
+        //
+        // 1. Keep the heavy libraries in their own chunks so a lazy route pays
+        //    for them only when it is opened.
+        // 2. Keep them off the entry chunk's *static* import graph. Vite emits
+        //    a <link rel="modulepreload"> for everything the entry statically
+        //    imports, so a single stray reference makes the landing page
+        //    download the whole thing.
+        //
+        // Job 2 is the subtle one. A module this function leaves unnamed can be
+        // folded by Rollup into whichever chunk is convenient — and when a
+        // module shared with the entry (React, Vite's preload helper, `clsx`)
+        // lands inside a heavy chunk, the entry must statically import that
+        // chunk to reach it. That is how the landing page came to preload
+        // Recharts, jsPDF, mathjs and Algebrite (~2.4 MB raw) for a few kB of
+        // shared code. So every module the entry shares is named explicitly.
+        //
+        // Note there is deliberately no catch-all: transitive dependencies of
+        // the heavy libraries (decimal.js under mathjs, lodash under Recharts)
+        // must stay unnamed so Rollup can co-locate them with the library that
+        // uses them. Sweeping them into `vendor` would put them back on the
+        // landing page's critical path.
         manualChunks(id) {
+          // Shared by the entry and by lazily-loaded chunks alike.
+          if (id.includes('vite/preload-helper')) {
+            return 'vendor';
+          }
+          // Rollup's CommonJS interop shims (getDefaultExportFromCjs and
+          // friends). Several dependencies are CJS, so these are shared very
+          // widely — left unnamed they were folded into the Algebrite chunk,
+          // which then had to be preloaded for its three helper functions.
+          if (id.includes('commonjsHelpers')) {
+            return 'vendor';
+          }
+          if (id.includes('node_modules/react') ||        // react, react-dom, react-router*
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/clsx') ||
+              id.includes('node_modules/tailwind-merge') ||
+              id.includes('node_modules/class-variance-authority') ||
+              id.includes('node_modules/lucide-react')) {
+            return 'vendor';
+          }
+
+          // Heavy libraries, each reachable only from a lazy route or a lazily
+          // imported solver.
           if (id.includes('node_modules/algebrite')) {
             return 'algebrite';
           }

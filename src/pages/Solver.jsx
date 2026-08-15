@@ -1,11 +1,16 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, lazy, Suspense } from "react";
 import ProblemInput from "@/components/solver/ProblemInput";
 import SolutionDisplay from "@/components/solver/SolutionDisplay";
-import GraphViewer from "@/components/solver/GraphViewer";
+import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { solveProblem, createProblemHistory } from "@/lib/api";
 import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
 import { useToast } from "@/components/ui/toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
+
+// Recharts is ~150 kB gzipped and only a subset of solutions produce a graph,
+// so the chart component is fetched the first time one actually does. Until
+// then the panel shows the lightweight placeholder.
+const GraphViewer = lazy(() => import("@/components/solver/GraphViewer"));
 
 const MAX_HISTORY = 20;
 
@@ -39,13 +44,25 @@ export default function Solver() {
 
       // Save to problem history — except parse errors: a typo is not a
       // solved problem, and saving it would pollute the Progress stats.
+      //
+      // Persisting is a separate concern from solving, and it fails for
+      // reasons that have nothing to do with the maths (storage quota,
+      // private browsing, an evicted database). The solution is already on
+      // screen and still correct at this point, so a save failure gets its
+      // own message instead of being reported as a failed solve.
+      let saved = true;
       if (result.status !== STATUS.PARSE_ERROR) {
-        await createProblemHistory({
-          problem,
-          topic,
-          solution: result,
-          feedback: statusLabel(result.status)
-        });
+        try {
+          await createProblemHistory({
+            problem,
+            topic,
+            solution: result,
+            feedback: statusLabel(result.status)
+          });
+        } catch (saveError) {
+          saved = false;
+          console.error("Error saving problem to history:", saveError);
+        }
       }
 
       // The toast tells the truth about the outcome: green only for a real
@@ -57,6 +74,10 @@ export default function Solver() {
         toast.error("Couldn't read that input — see the notes below");
       } else {
         toast.warning(statusLabel(result.status));
+      }
+
+      if (!saved) {
+        toast.warning("Couldn't save this to your history");
       }
     } catch (error) {
       console.error("Error solving problem:", error);
@@ -118,7 +139,13 @@ export default function Solver() {
             />
           </div>
 
-          <GraphViewer functionData={graphData} />
+          {graphData?.points ? (
+            <Suspense fallback={<GraphEmptyState message="Drawing your graph..." />}>
+              <GraphViewer functionData={graphData} />
+            </Suspense>
+          ) : (
+            <GraphEmptyState />
+          )}
         </div>
 
         <div>
