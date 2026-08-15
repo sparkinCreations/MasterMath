@@ -50,25 +50,47 @@ function totalsLine(problems) {
     : `Total Problems: ${problems.length} (solved: ${solved})`;
 }
 
-// Export progress history as CSV
-export function exportAsCSV(problems, topicLabels) {
+// Spreadsheet applications treat a cell beginning with '=', '+', '-', '@' or
+// a control character as a formula. A maths app is unusually likely to produce
+// such cells honestly ("-3 < x < 5") and, since problems are free text, it can
+// be made to produce them deliberately — so opening an exported file could run
+// whatever the cell contained. Prefixing with an apostrophe marks the cell as
+// literal text, which is the standard mitigation for CSV injection.
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+
+function csvCell(value) {
+  const text = String(value ?? '');
+  const guarded = FORMULA_TRIGGER.test(text) ? `'${text}` : text;
+  // Every field is quoted, not just the free-text ones: a locale whose date
+  // format contains a comma would otherwise shift the columns.
+  return `"${guarded.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Build the progress-history CSV. Separate from the download so the escaping
+ * can be tested directly.
+ */
+export function buildProgressCSV(problems, topicLabels = {}) {
   // Status is a column of its own: without it a saved "unsupported" or
   // "indeterminate" result reads in a spreadsheet exactly like a real answer.
   const headers = ['Date', 'Topic', 'Problem', 'Status', 'Solution'];
   const rows = problems.map(p => [
     new Date(p.createdAt).toLocaleDateString(),
     topicLabels[p.topic] || p.topic,
-    `"${p.problem.replace(/"/g, '""')}"`, // Escape quotes
-    `"${(exportStatus(p.solution).label || 'Solved').replace(/"/g, '""')}"`,
-    `"${getSolutionText(p.solution).replace(/"/g, '""')}"`
-  ]);
+    p.problem,
+    exportStatus(p.solution).label || 'Solved',
+    getSolutionText(p.solution),
+  ].map(csvCell));
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
+  return [
+    headers.map(csvCell).join(','),
+    ...rows.map(row => row.join(',')),
   ].join('\n');
+}
 
-  downloadFile(csvContent, 'mastermath-progress.csv', 'text/csv');
+// Export progress history as CSV
+export function exportAsCSV(problems, topicLabels) {
+  downloadFile(buildProgressCSV(problems, topicLabels), 'mastermath-progress.csv', 'text/csv');
 }
 
 // Export progress history as JSON

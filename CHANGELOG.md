@@ -39,6 +39,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - "Total Problems Solved: N" becomes "Total Problems: N", with a
     "(solved: M)" breakdown whenever the two differ.
 
+### Security
+
+- Exported CSVs no longer let a saved problem be run as a spreadsheet formula.
+  Cells beginning with `=`, `+`, `-`, `@`, tab or carriage return are prefixed
+  with an apostrophe so the spreadsheet treats them as literal text. A maths
+  app produces such cells routinely — "-3*x + 6 = 0" is a formula to Excel —
+  and problems are free text, so they can also be crafted deliberately. Every
+  field is now quoted as well, so a locale whose date format contains a comma
+  cannot shift the columns.
+
 ### Fixed
 
 - `validateMathInput` no longer rejects legitimate mathematics. Its
@@ -56,6 +66,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the live contents of the problem box and topic picker, so editing either
   after solving produced a file whose problem statement did not match its
   answer.
+- The storage helpers in `api.js` no longer discard the reason a call failed.
+  A validation failure is reported as itself ("Invalid topic selected")
+  instead of being flattened into "Failed to save problem. Please try again.",
+  and genuine storage failures still show that generic message but now carry
+  the original error as `cause`.
 
 - A failure to save a solved problem to history is no longer reported as a
   failed solve. Storage can fail for reasons unrelated to the mathematics
