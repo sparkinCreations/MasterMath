@@ -29,8 +29,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Rollup found convenient (React ended up inside `charts`, the preload
     helper inside `pdf`), which forced the entry chunk to statically import
     those bundles and made Vite preload them from `index.html`.
+- History exports tell the truth about outcomes, matching the solution card.
+  History holds every outcome except parse errors, so it contains results the
+  solver could not solve; the CSV, Markdown and PDF exports presented all of
+  them as answers.
+  - The CSV gains a `Status` column, and the Markdown and PDF exports label
+    any entry that was not solved and head its text "Result" rather than
+    "Solution".
+  - "Total Problems Solved: N" becomes "Total Problems: N", with a
+    "(solved: M)" breakdown whenever the two differ.
 
 ### Fixed
+
+- `validateMathInput` no longer rejects legitimate mathematics. Its
+  "dangerous content" patterns blocked nothing reachable — React escapes what
+  it renders, KaTeX runs with `trust: false` over solver output, and the
+  exports are plain text — but the event-handler pattern `/on\w+\s*=/i`
+  matched the "on" inside "constant", so "constant = 5" was refused as
+  "Invalid input detected" with no explanation.
+- The solver is now given the same string that was validated. `ProblemInput`
+  sanitized the input, validated the sanitized copy, then solved the raw text,
+  so the two could differ. Sanitizing no longer strips `<...>` spans either:
+  that pass deleted everything between a `<` and a later `>`, quietly turning
+  "x < 5 and x > 1" into "x  1".
+- Exporting a solution now describes the solution on screen. The export used
+  the live contents of the problem box and topic picker, so editing either
+  after solving produced a file whose problem statement did not match its
+  answer.
 
 - A failure to save a solved problem to history is no longer reported as a
   failed solve. Storage can fail for reasons unrelated to the mathematics

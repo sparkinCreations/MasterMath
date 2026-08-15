@@ -34,13 +34,32 @@ function exportStatus(solution) {
   };
 }
 
+// History holds every outcome except parse errors, so it contains entries the
+// solver could not actually solve (unsupported, undefined, indeterminate,
+// overflow). Counting them all as "solved" overstated what the user had done.
+function solvedCount(problems) {
+  return problems.filter(p => !p.solution?.status || !isFailureStatus(p.solution.status)).length;
+}
+
+// Summary line shared by the Markdown and PDF history exports. The breakdown
+// only appears when there is something to break down.
+function totalsLine(problems) {
+  const solved = solvedCount(problems);
+  return solved === problems.length
+    ? `Total Problems: ${problems.length}`
+    : `Total Problems: ${problems.length} (solved: ${solved})`;
+}
+
 // Export progress history as CSV
 export function exportAsCSV(problems, topicLabels) {
-  const headers = ['Date', 'Topic', 'Problem', 'Solution'];
+  // Status is a column of its own: without it a saved "unsupported" or
+  // "indeterminate" result reads in a spreadsheet exactly like a real answer.
+  const headers = ['Date', 'Topic', 'Problem', 'Status', 'Solution'];
   const rows = problems.map(p => [
     new Date(p.createdAt).toLocaleDateString(),
     topicLabels[p.topic] || p.topic,
     `"${p.problem.replace(/"/g, '""')}"`, // Escape quotes
+    `"${(exportStatus(p.solution).label || 'Solved').replace(/"/g, '""')}"`,
     `"${getSolutionText(p.solution).replace(/"/g, '""')}"`
   ]);
 
@@ -61,7 +80,7 @@ export function exportAsJSON(problems) {
 // Export progress history as Markdown
 export function exportAsMarkdown(problems, topicLabels) {
   let markdown = '# MasterMath Progress\n\n';
-  markdown += `**Total Problems Solved:** ${problems.length}\n\n`;
+  markdown += `**${totalsLine(problems)}**\n\n`;
 
   // Group by topic
   const byTopic = {};
@@ -76,9 +95,13 @@ export function exportAsMarkdown(problems, topicLabels) {
     probs.forEach(p => {
       markdown += `### ${new Date(p.createdAt).toLocaleDateString()}\n`;
       markdown += `**Problem:** ${p.problem}\n\n`;
+      const entryStatus = exportStatus(p.solution);
+      if (entryStatus.label) {
+        markdown += `**Status:** ${entryStatus.label}\n\n`;
+      }
       const solutionText = getSolutionText(p.solution);
       if (solutionText) {
-        markdown += `**Solution:** ${solutionText}\n\n`;
+        markdown += `**${entryStatus.label ? 'Result' : 'Solution'}:** ${solutionText}\n\n`;
       }
       markdown += '---\n\n';
     });
@@ -153,7 +176,7 @@ export async function exportAsPDF(problems, topicLabels) {
   doc.text('MasterMath Progress', 20, 20);
 
   doc.setFontSize(12);
-  doc.text(`Total Problems Solved: ${problems.length}`, 20, 35);
+  doc.text(totalsLine(problems), 20, 35);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
 
   let yPos = 60;
@@ -182,9 +205,16 @@ export async function exportAsPDF(problems, topicLabels) {
     doc.text(problemLines, margin + 5, yPos);
     yPos += problemLines.length * 5;
 
+    const entryStatus = exportStatus(p.solution);
+    if (entryStatus.label) {
+      doc.text(`Status: ${entryStatus.label}`, margin + 5, yPos);
+      yPos += 7;
+    }
+
     const solutionText = getSolutionText(p.solution);
     if (solutionText) {
-      const solutionLines = doc.splitTextToSize(`Solution: ${solutionText}`, 170);
+      const heading = entryStatus.label ? 'Result' : 'Solution';
+      const solutionLines = doc.splitTextToSize(`${heading}: ${solutionText}`, 170);
       doc.text(solutionLines, margin + 5, yPos);
       yPos += solutionLines.length * 5;
     }

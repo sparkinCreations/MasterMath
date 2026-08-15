@@ -91,7 +91,9 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
     }
 
     setValidationError(null);
-    onSolve();
+    // Hand the solver the same string that was just validated. Validating the
+    // sanitized text and then solving the raw text meant the two could differ.
+    onSolve(sanitized);
   };
 
   // Get the display label for the selected topic

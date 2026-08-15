@@ -19,23 +19,32 @@ export default function Solver() {
   const [problem, setProblem] = useState("");
   const [topic, setTopic] = useState("");
   const [solution, setSolution] = useState(null);
+  // What the displayed solution was actually produced from. Kept separate from
+  // the live `problem`/`topic` state so the exports describe the solution on
+  // screen rather than whatever has since been typed into the form.
+  const [solvedInput, setSolvedInput] = useState({ problem: "", topic: "" });
   const [graphData, setGraphData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [inputHistory, setInputHistory] = useState([]);   // recent inputs
   const [historyIndex, setHistoryIndex] = useState(-1);   // -1 = current input
   const toast = useToast();
 
-  const handleSolve = async () => {
+  // `problemText` is the sanitized string ProblemInput validated, which may
+  // differ from the raw textarea contents (collapsed whitespace). Everything
+  // downstream — the solve, the recall history, the saved record — uses that
+  // one string, so what was validated is what gets solved and stored.
+  const handleSolve = async (problemText = problem) => {
     setIsLoading(true);
     try {
-      const result = await solveProblem(problem, topic);
+      const result = await solveProblem(problemText, topic);
       setSolution(result);
+      setSolvedInput({ problem: problemText, topic });
       setGraphData(result.graph);
 
       // Add to input history (avoid duplicates of the last entry)
       setInputHistory(prev => {
-        const entry = { problem, topic };
-        if (prev.length > 0 && prev[0].problem === problem && prev[0].topic === topic) {
+        const entry = { problem: problemText, topic };
+        if (prev.length > 0 && prev[0].problem === problemText && prev[0].topic === topic) {
           return prev;
         }
         return [entry, ...prev].slice(0, MAX_HISTORY);
@@ -54,7 +63,7 @@ export default function Solver() {
       if (result.status !== STATUS.PARSE_ERROR) {
         try {
           await createProblemHistory({
-            problem,
+            problem: problemText,
             topic,
             solution: result,
             feedback: statusLabel(result.status)
@@ -149,7 +158,7 @@ export default function Solver() {
         </div>
 
         <div>
-          <SolutionDisplay solution={solution} problem={problem} topic={topic} />
+          <SolutionDisplay solution={solution} problem={solvedInput.problem} topic={solvedInput.topic} />
         </div>
       </div>
     </div>
