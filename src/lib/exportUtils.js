@@ -1,6 +1,19 @@
 // Export utilities for MasterMath
-import jsPDF from 'jspdf';
 import { statusLabel, isFailureStatus } from './solutionEnvelope.js';
+
+// jsPDF (plus its html2canvas/dompurify dependencies) is ~600 kB — larger than
+// the rest of the app combined. Importing it at module scope pulled it into
+// every page load, because both export menus are rendered eagerly. Loading it
+// on demand means only users who actually click "Export as PDF" pay for it.
+// The promise is memoized so a second export doesn't refetch.
+let jsPDFPromise = null;
+
+function loadJsPDF() {
+  if (!jsPDFPromise) {
+    jsPDFPromise = import('jspdf').then((module) => module.default);
+  }
+  return jsPDFPromise;
+}
 
 // Helper to extract solution text
 function getSolutionText(solution) {
@@ -21,22 +34,63 @@ function exportStatus(solution) {
   };
 }
 
-// Export progress history as CSV
-export function exportAsCSV(problems, topicLabels) {
-  const headers = ['Date', 'Topic', 'Problem', 'Solution'];
+// History holds every outcome except parse errors, so it contains entries the
+// solver could not actually solve (unsupported, undefined, indeterminate,
+// overflow). Counting them all as "solved" overstated what the user had done.
+function solvedCount(problems) {
+  return problems.filter(p => !p.solution?.status || !isFailureStatus(p.solution.status)).length;
+}
+
+// Summary line shared by the Markdown and PDF history exports. The breakdown
+// only appears when there is something to break down.
+function totalsLine(problems) {
+  const solved = solvedCount(problems);
+  return solved === problems.length
+    ? `Total Problems: ${problems.length}`
+    : `Total Problems: ${problems.length} (solved: ${solved})`;
+}
+
+// Spreadsheet applications treat a cell beginning with '=', '+', '-', '@' or
+// a control character as a formula. A maths app is unusually likely to produce
+// such cells honestly ("-3 < x < 5") and, since problems are free text, it can
+// be made to produce them deliberately — so opening an exported file could run
+// whatever the cell contained. Prefixing with an apostrophe marks the cell as
+// literal text, which is the standard mitigation for CSV injection.
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+
+function csvCell(value) {
+  const text = String(value ?? '');
+  const guarded = FORMULA_TRIGGER.test(text) ? `'${text}` : text;
+  // Every field is quoted, not just the free-text ones: a locale whose date
+  // format contains a comma would otherwise shift the columns.
+  return `"${guarded.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Build the progress-history CSV. Separate from the download so the escaping
+ * can be tested directly.
+ */
+export function buildProgressCSV(problems, topicLabels = {}) {
+  // Status is a column of its own: without it a saved "unsupported" or
+  // "indeterminate" result reads in a spreadsheet exactly like a real answer.
+  const headers = ['Date', 'Topic', 'Problem', 'Status', 'Solution'];
   const rows = problems.map(p => [
     new Date(p.createdAt).toLocaleDateString(),
     topicLabels[p.topic] || p.topic,
-    `"${p.problem.replace(/"/g, '""')}"`, // Escape quotes
-    `"${getSolutionText(p.solution).replace(/"/g, '""')}"`
-  ]);
+    p.problem,
+    exportStatus(p.solution).label || 'Solved',
+    getSolutionText(p.solution),
+  ].map(csvCell));
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
+  return [
+    headers.map(csvCell).join(','),
+    ...rows.map(row => row.join(',')),
   ].join('\n');
+}
 
-  downloadFile(csvContent, 'mastermath-progress.csv', 'text/csv');
+// Export progress history as CSV
+export function exportAsCSV(problems, topicLabels) {
+  downloadFile(buildProgressCSV(problems, topicLabels), 'mastermath-progress.csv', 'text/csv');
 }
 
 // Export progress history as JSON
@@ -48,7 +102,7 @@ export function exportAsJSON(problems) {
 // Export progress history as Markdown
 export function exportAsMarkdown(problems, topicLabels) {
   let markdown = '# MasterMath Progress\n\n';
-  markdown += `**Total Problems Solved:** ${problems.length}\n\n`;
+  markdown += `**${totalsLine(problems)}**\n\n`;
 
   // Group by topic
   const byTopic = {};
@@ -63,9 +117,13 @@ export function exportAsMarkdown(problems, topicLabels) {
     probs.forEach(p => {
       markdown += `### ${new Date(p.createdAt).toLocaleDateString()}\n`;
       markdown += `**Problem:** ${p.problem}\n\n`;
+      const entryStatus = exportStatus(p.solution);
+      if (entryStatus.label) {
+        markdown += `**Status:** ${entryStatus.label}\n\n`;
+      }
       const solutionText = getSolutionText(p.solution);
       if (solutionText) {
-        markdown += `**Solution:** ${solutionText}\n\n`;
+        markdown += `**${entryStatus.label ? 'Result' : 'Solution'}:** ${solutionText}\n\n`;
       }
       markdown += '---\n\n';
     });
@@ -131,7 +189,8 @@ export function exportSolutionAsJSON(problem, topic, solution) {
 }
 
 // Export progress history as PDF
-export function exportAsPDF(problems, topicLabels) {
+export async function exportAsPDF(problems, topicLabels) {
+  const jsPDF = await loadJsPDF();
   const doc = new jsPDF();
 
   // Title
@@ -139,7 +198,7 @@ export function exportAsPDF(problems, topicLabels) {
   doc.text('MasterMath Progress', 20, 20);
 
   doc.setFontSize(12);
-  doc.text(`Total Problems Solved: ${problems.length}`, 20, 35);
+  doc.text(totalsLine(problems), 20, 35);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
 
   let yPos = 60;
@@ -168,9 +227,16 @@ export function exportAsPDF(problems, topicLabels) {
     doc.text(problemLines, margin + 5, yPos);
     yPos += problemLines.length * 5;
 
+    const entryStatus = exportStatus(p.solution);
+    if (entryStatus.label) {
+      doc.text(`Status: ${entryStatus.label}`, margin + 5, yPos);
+      yPos += 7;
+    }
+
     const solutionText = getSolutionText(p.solution);
     if (solutionText) {
-      const solutionLines = doc.splitTextToSize(`Solution: ${solutionText}`, 170);
+      const heading = entryStatus.label ? 'Result' : 'Solution';
+      const solutionLines = doc.splitTextToSize(`${heading}: ${solutionText}`, 170);
       doc.text(solutionLines, margin + 5, yPos);
       yPos += solutionLines.length * 5;
     }
@@ -182,7 +248,8 @@ export function exportAsPDF(problems, topicLabels) {
 }
 
 // Export individual solution as PDF
-export function exportSolutionAsPDF(problem, topic, solution, topicLabels) {
+export async function exportSolutionAsPDF(problem, topic, solution, topicLabels) {
+  const jsPDF = await loadJsPDF();
   const status = exportStatus(solution);
   const doc = new jsPDF();
   const margin = 20;

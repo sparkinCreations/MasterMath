@@ -7,6 +7,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-08-15
+
+### Changed
+
+- Initial page load is ~10× smaller: 81 KB of JavaScript (gzipped) instead of
+  860 KB. Every visitor — including one who only opened the landing page or a
+  policy page — used to download mathjs, Algebrite, Recharts and jsPDF
+  (~2.4 MB raw) before anything rendered.
+  - Routes are split with `React.lazy`, so a page's code is fetched when it is
+    opened. `Home` stays eager, since deferring the landing page would only
+    add a round trip.
+  - The graph panel loads Recharts the first time a solution actually has a
+    graph to draw, rather than on every visit to the solver.
+  - jsPDF is imported on demand inside the PDF export functions, so only users
+    who choose "Export as PDF" pay for it. CSV, JSON and Markdown exports are
+    unaffected.
+  - `manualChunks` now names every module the entry chunk shares — React,
+    Vite's preload helper, Rollup's CommonJS interop shims and the small
+    styling/icon helpers. Previously these were folded into whichever chunk
+    Rollup found convenient (React ended up inside `charts`, the preload
+    helper inside `pdf`), which forced the entry chunk to statically import
+    those bundles and made Vite preload them from `index.html`.
+- History exports tell the truth about outcomes, matching the solution card.
+  History holds every outcome except parse errors, so it contains results the
+  solver could not solve; the CSV, Markdown and PDF exports presented all of
+  them as answers.
+  - The CSV gains a `Status` column, and the Markdown and PDF exports label
+    any entry that was not solved and head its text "Result" rather than
+    "Solution".
+  - "Total Problems Solved: N" becomes "Total Problems: N", with a
+    "(solved: M)" breakdown whenever the two differ.
+
+### Security
+
+- Exported CSVs no longer let a saved problem be run as a spreadsheet formula.
+  Cells beginning with `=`, `+`, `-`, `@`, tab or carriage return are prefixed
+  with an apostrophe so the spreadsheet treats them as literal text. A maths
+  app produces such cells routinely — "-3*x + 6 = 0" is a formula to Excel —
+  and problems are free text, so they can also be crafted deliberately. Every
+  field is now quoted as well, so a locale whose date format contains a comma
+  cannot shift the columns.
+
+### Fixed
+
+- `validateMathInput` no longer rejects legitimate mathematics. Its
+  "dangerous content" patterns blocked nothing reachable — React escapes what
+  it renders, KaTeX runs with `trust: false` over solver output, and the
+  exports are plain text — but the event-handler pattern `/on\w+\s*=/i`
+  matched the "on" inside "constant", so "constant = 5" was refused as
+  "Invalid input detected" with no explanation.
+- The solver is now given the same string that was validated. `ProblemInput`
+  sanitized the input, validated the sanitized copy, then solved the raw text,
+  so the two could differ. Sanitizing no longer strips `<...>` spans either:
+  that pass deleted everything between a `<` and a later `>`, quietly turning
+  "x < 5 and x > 1" into "x  1".
+- Exporting a solution now describes the solution on screen. The export used
+  the live contents of the problem box and topic picker, so editing either
+  after solving produced a file whose problem statement did not match its
+  answer.
+- The storage helpers in `api.js` no longer discard the reason a call failed.
+  A validation failure is reported as itself ("Invalid topic selected")
+  instead of being flattened into "Failed to save problem. Please try again.",
+  and genuine storage failures still show that generic message but now carry
+  the original error as `cause`.
+
+- A failure to save a solved problem to history is no longer reported as a
+  failed solve. Storage can fail for reasons unrelated to the mathematics
+  (quota exceeded, private browsing, an evicted database); the solution stays
+  on screen and the message now says the history save failed, instead of the
+  misleading "Failed to solve problem. Please try again."
+- Toasts raised in the same millisecond no longer collide. Ids came from
+  `Date.now()`, so two simultaneous notifications shared a React key and
+  dismissed each other.
+
 ## [1.13.0] - 2026-07-21
 
 Phase 1 of the mathematical state semantics architecture

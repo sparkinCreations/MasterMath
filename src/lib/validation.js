@@ -22,19 +22,14 @@ export function validateMathInput(input) {
     return { isValid: false, error: 'Input is too long (maximum 1000 characters)' };
   }
 
-  // Check for potentially dangerous content
-  const dangerousPatterns = [
-    /<script/i,
-    /javascript:/i,
-    /on\w+\s*=/i, // event handlers
-    /<iframe/i,
-  ];
-
-  for (const pattern of dangerousPatterns) {
-    if (pattern.test(trimmed)) {
-      return { isValid: false, error: 'Invalid input detected' };
-    }
-  }
+  // There is deliberately no HTML/script pattern check here.
+  //
+  // It blocked nothing reachable: React escapes every value it renders, the
+  // one HTML sink in the app (KaTeX, via MathText) runs with `trust: false`
+  // over solver output rather than raw input, and the exports are plain text.
+  // What it did do was reject legitimate maths — the event-handler pattern
+  // `/on\w+\s*=/i` matched the "on" inside "constant", so "constant = 5" came
+  // back as "Invalid input detected" with no hint as to why.
 
   // Check if input contains at least one mathematical character or word
   const hasMathContent = /[0-9+\-*/^()=.xyzabc]|sin|cos|tan|log|ln|sqrt|derivative|integral|limit|solve/i.test(trimmed);
@@ -74,7 +69,17 @@ export function validateTopic(topic) {
 }
 
 /**
- * Sanitizes user input by removing potentially harmful content
+ * Normalizes user input into the form the solvers are given: no null bytes,
+ * single-spaced, trimmed. This is the string that actually gets solved and
+ * saved, so it must never change the meaning of the maths.
+ *
+ * HTML tags are deliberately not stripped. The old `<[^>]*>` pass was
+ * unnecessary for the reasons given in validateMathInput above, and it was
+ * actively harmful here: it deleted everything between a `<` and a later `>`,
+ * silently turning the inequality "x < 5 and x > 1" into "x  1". Quietly
+ * rewriting one valid problem into a different valid problem is a worse
+ * outcome than any tag it removed.
+ *
  * @param {string} input - The input to sanitize
  * @returns {string} Sanitized input
  */
@@ -83,19 +88,14 @@ export function sanitizeInput(input) {
     return '';
   }
 
-  // Remove HTML tags
-  let sanitized = input.replace(/<[^>]*>/g, '');
-
-  // Remove null bytes
-  sanitized = sanitized.replace(/\0/g, '');
-
-  // Normalize multiple spaces to single space (preserve spacing)
-  sanitized = sanitized.replace(/\s+/g, ' ');
-
-  // Only trim leading/trailing whitespace, preserve internal spaces
-  sanitized = sanitized.trim();
-
-  return sanitized;
+  return input
+    // Null bytes can truncate strings in downstream consumers (file exports,
+    // IndexedDB values).
+    .replace(/\0/g, '')
+    // Collapse runs of whitespace, including newlines, to a single space so
+    // the solvers see a predictable expression.
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**

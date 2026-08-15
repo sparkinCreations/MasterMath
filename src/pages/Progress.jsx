@@ -67,7 +67,7 @@ export default function Progress() {
     }
   };
 
-  const handleExport = (format) => {
+  const handleExport = async (format) => {
     try {
       switch (format) {
         case 'csv':
@@ -83,7 +83,9 @@ export default function Progress() {
           toast.success("Exported as Markdown successfully");
           break;
         case 'pdf':
-          exportAsPDF(problems, topicLabels);
+          // Awaited: the PDF writer is fetched on demand, so a failure to load
+          // it must surface as an export error rather than a silent no-op.
+          await exportAsPDF(problems, topicLabels);
           toast.success("Exported as PDF successfully");
           break;
       }

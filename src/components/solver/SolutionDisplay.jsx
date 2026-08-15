@@ -77,13 +77,15 @@ export default function SolutionDisplay({ solution, problem, topic }) {
 
   const allRevealed = !stepThrough || revealed >= steps.length;
 
-  const handleExportSolution = (format) => {
+  const handleExportSolution = async (format) => {
     if (!solution || !problem || !topic) return;
 
     try {
       switch (format) {
         case 'pdf':
-          exportSolutionAsPDF(problem, topic, solution, TOPIC_LABELS);
+          // Awaited: the PDF writer is fetched on demand, so a failure to load
+          // it must surface as an export error rather than a silent no-op.
+          await exportSolutionAsPDF(problem, topic, solution, TOPIC_LABELS);
           toast.success("Solution exported as PDF");
           break;
         case 'markdown':
