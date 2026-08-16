@@ -54,6 +54,32 @@ export function useServiceWorker() {
         window.location.reload();
       }
     });
+
+    // The worker reports a stale shell when a script or stylesheet URL comes
+    // back as HTML — the page was built from an index.html that predates a
+    // deploy, and its chunks are gone. A reload fetches the current shell
+    // (navigations are network-first). Once per page load, so a persistent
+    // server problem can never turn into a reload loop.
+    const STALE_KEY = 'mastermath:stale-shell-reloaded';
+    // Reaching this code means the shell and entry chunk loaded, so the page
+    // is healthy; after a grace period, allow a future stale-shell recovery
+    // (e.g. after the next deploy) instead of leaving the guard set forever.
+    const clearGuard = setTimeout(() => sessionStorage.removeItem(STALE_KEY), 15000);
+    const onMessage = (event) => {
+      if (event.data?.type !== 'STALE_SHELL') return;
+      if (sessionStorage.getItem(STALE_KEY)) {
+        console.warn('[MasterMath] Stale shell reported again after reload; not reloading twice.');
+        return;
+      }
+      sessionStorage.setItem(STALE_KEY, '1');
+      console.warn('[MasterMath] Stale shell detected, reloading for the current version');
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => {
+      clearTimeout(clearGuard);
+      navigator.serviceWorker.removeEventListener('message', onMessage);
+    };
   }, []);
 
   // Call this to apply the waiting update

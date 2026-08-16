@@ -89,6 +89,20 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => {
+        // Re-fetch the shell now. This worker's install may have run
+        // before a later deploy (it waits for the user's Update click or
+        // for all tabs to close), so the index.html it cached at install
+        // can already be out of date by the time it takes over. Best
+        // effort: if offline, keep whatever is cached.
+        return caches.open(CACHE_NAME).then((cache) =>
+          fetch('/index.html', { cache: 'no-store' })
+            .then((response) => {
+              if (response && response.ok) return cache.put('/index.html', response);
+            })
+            .catch(() => {})
+        );
+      })
+      .then(() => {
         // Take control of all open tabs immediately
         return self.clients.claim();
       })
@@ -96,12 +110,21 @@ self.addEventListener('activate', (event) => {
 });
 
 // ─── FETCH ──────────────────────────────────────────────────
-// Strategy: Cache-first with network fallback and background update.
+// Strategy:
+//   Navigations (the HTML shell)  → NETWORK-FIRST, cached copy when offline.
+//   Static assets (hashed JS/CSS) → cache-first, network fallback.
 //
-// 1. Check cache first (fast, works offline)
-// 2. If cached: return it AND fetch fresh copy in background (stale-while-revalidate)
-// 3. If not cached: fetch from network, cache the response, return it
-// 4. If both fail: show offline fallback for navigation requests
+// Why the shell is network-first: index.html is a few KB, and it is the one
+// file that must agree with what's on the server. Every deploy replaces the
+// hashed chunk filenames, and Netlify removes the old ones. A cached shell
+// that outlives a deploy therefore points at chunks that no longer exist,
+// and — because netlify.toml rewrites every unknown path to index.html with
+// a 200 — a request for a vanished chunk comes back as HTML. The browser
+// refuses to run HTML as a module script and the page renders blank, with
+// nothing red in the console. Serving the shell cache-first is what let that
+// happen (and the "background revalidation" never refreshed the entry that
+// navigations actually read). Network-first makes the shell always match the
+// chunks that exist; the cache is only for genuinely offline use.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -115,20 +138,33 @@ self.addEventListener('fetch', (event) => {
   // Don't cache anything in the never-cache list
   if (NEVER_CACHE.some((pattern) => pattern.test(url.pathname))) return;
 
-  // Navigation requests (page loads) — serve index.html from cache
-  // This makes client-side routing work offline (/solver, /progress, etc.)
+  // Navigation requests (page loads): network-first.
+  // Every route serves the same shell (client-side routing), so the fresh
+  // copy is stored under the single '/index.html' key that offline
+  // fallbacks read — regardless of which URL was navigated to.
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html')
-        .then((cached) => {
-          if (cached) {
-            // Revalidate in background
-            fetchAndCache(request);
-            return cached;
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => cache.put('/index.html', copy))
+              .catch(() => {});
           }
-          return fetchAndCache(request);
+          return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(() =>
+          caches.match('/index.html').then(
+            (cached) =>
+              cached ||
+              new Response('You appear to be offline and MasterMath has not been cached yet.', {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+              })
+          )
+        )
     );
     return;
   }
@@ -175,12 +211,46 @@ function isHashedAsset(pathname) {
          /assets\/.*-[a-zA-Z0-9]+\.(js|css)$/.test(pathname);
 }
 
+// The body type each asset kind must come back with. Netlify's SPA rewrite
+// answers any unknown path with index.html and a 200, so a request for a
+// chunk that no longer exists on the server "succeeds" with an HTML body.
+// Caching that would poison the entry for that URL for the life of the
+// worker (hashed assets are never revalidated). A response whose body type
+// doesn't match its filename is never trusted.
+const EXPECTED_TYPES = [
+  { pattern: /\.m?js$/, type: /javascript|ecmascript/i },
+  { pattern: /\.css$/, type: /text\/css/i },
+  { pattern: /\.(png|jpe?g|svg|ico|woff2?|ttf)$/, type: /image|font|octet-stream|svg/i },
+  { pattern: /manifest\.json$/, type: /json/i },
+];
+
+function bodyMatchesPath(pathname, response) {
+  const rule = EXPECTED_TYPES.find((r) => r.pattern.test(pathname));
+  if (!rule) return true;
+  const type = response.headers.get('content-type') || '';
+  return rule.type.test(type);
+}
+
 // Fetch from network and store in cache
 function fetchAndCache(request) {
   return fetch(request)
     .then((response) => {
       // Only cache valid responses
       if (!response || response.status !== 200 || response.type === 'opaque') {
+        return response;
+      }
+
+      const pathname = new URL(request.url).pathname;
+      if (!bodyMatchesPath(pathname, response)) {
+        // A script or stylesheet URL answered with the HTML shell means the
+        // shell that requested it is stale (it predates a deploy). Don't
+        // cache it, and tell open tabs to reload: with network-first
+        // navigation the reload fetches the current shell, whose chunks
+        // exist. Guarded against loops on the client side.
+        if (/\.(m?js|css)$/.test(pathname)) {
+          console.warn('[MasterMath SW] Stale shell detected — asset came back as', response.headers.get('content-type'), pathname);
+          notifyClients({ type: 'STALE_SHELL', asset: pathname });
+        }
         return response;
       }
 
@@ -197,6 +267,12 @@ function fetchAndCache(request) {
 
       return response;
     });
+}
+
+function notifyClients(message) {
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then((clients) => clients.forEach((client) => client.postMessage(message)))
+    .catch(() => {});
 }
 
 // ─── UPDATE NOTIFICATION ────────────────────────────────────

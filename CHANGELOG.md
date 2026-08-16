@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-08-16
+
+### Fixed
+
+- **Blank page for returning visitors after a deploy.** Two service-worker
+  defects compounded. (1) Navigations were served cache-first from an
+  `index.html` frozen at the worker's install time — the "background
+  revalidation" wrote its fresh copy under the request URL, never under the
+  `/index.html` key that navigations read — so a worker that activated after
+  a later deploy served a shell pointing at hashed chunks that no longer
+  existed. (2) Netlify's SPA rewrite answers any unknown path with
+  `index.html` and a **200**, so a request for a vanished chunk came back as
+  HTML; the browser refuses to run HTML as a module script (blank page, no
+  console error), and `fetchAndCache` — which trusted any 200 — stored that
+  HTML under the `.js` URL, poisoning the entry for the life of the worker.
+  Three deploys in quick succession on 2026-08-16 widened the window and
+  surfaced it.
+
+  Now: navigations are **network-first** (the shell is a few KB and is the
+  one file that must agree with the server), with the cached copy used only
+  when offline; a response whose body type doesn't match its filename
+  (HTML for `.js`/`.css`) is never cached and, for scripts and stylesheets,
+  is reported to open tabs as a stale shell, which reload **once** (guarded
+  via `sessionStorage`) to pick up the current version; and the worker
+  re-fetches `/index.html` on activation, so a worker installed before a
+  deploy does not carry a dead shell into service. Verified end to end
+  against a local SPA-fallback server: a deploy under a live worker with a
+  populated cache now renders the new build on a plain reload, HTML-for-JS
+  is refused by the cache and triggers exactly one recovery reload, and the
+  offline shell fallback still works.
+
+  Users already stuck on the blank page: a hard reload (⌘⇧R) loads the
+  current version, and the update banner then installs this worker.
+
 ## [1.14.0] - 2026-08-16
 
 Third accessibility pass. The graph gets a text alternative — a new
