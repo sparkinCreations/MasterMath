@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-16
+
+### Added
+
+- **The whole app is available offline after one visit.** The service
+  worker now precaches every hashed asset the build produced — all route
+  chunks, the lazily loaded solver modules, mathjs / Algebrite / Recharts /
+  jsPDF, both stylesheets, and the KaTeX fonts — at install time. Before,
+  assets were cached only when first fetched, so a route you had not opened
+  while online (the routes are code-split) had nothing to load from and hit
+  the error boundary. Verified with the server stopped: the Solver, never
+  opened online in that session, rendered and solved a derivative and a
+  definite integral, with typeset maths and a graph, entirely from cache.
+  - The manifest is generated at build time by `stampServiceWorker` in
+    `vite.config.js` (the filenames carry content hashes) — 50 assets,
+    ~3.7 MB raw, ~1 MB over the wire, fetched once in the background.
+  - Unchanged assets are **reused from the previous worker's cache** rather
+    than re-downloaded, so a release that doesn't touch mathjs doesn't cost
+    every user 1 MB again. Verified by deleting the mathjs chunk from the
+    server and installing a new worker: the new cache still held the real
+    script, copied across.
+  - Precaching is best-effort: assets are fetched individually and a miss
+    never fails the install; the fetch handler still caches anything absent
+    the first time it is requested online.
+
+### Fixed
+
+- Cache lookups ignore the `Vary` header. Some servers send `Vary: Origin`
+  on static files, and Vite's module preloads carry an `Origin` header while
+  the worker's precache fetches do not, so a strict match refused entries the
+  precache had just stored and an offline route load returned 503 with the
+  file sitting in the cache. Everything cached is content-addressed or the
+  single app shell, so the same bytes are correct for every requester.
+  (Netlify does not currently send `Vary` on assets; this hardens against a
+  hosting change and matched what was observed under `vite preview`.)
+
 ## [1.14.1] - 2026-08-16
 
 ### Fixed

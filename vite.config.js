@@ -32,14 +32,34 @@ function stampServiceWorker() {
         }
       }
 
+      // Every hashed asset the build emitted, for the worker to precache at
+      // install. JS and CSS are the code-split routes, solver modules and
+      // libraries; woff2 are the KaTeX fonts (the woff/ttf siblings are
+      // fallbacks no supported browser will request). Sorted for a stable
+      // sw.js across identical builds.
+      const assetsDir = path.resolve(__dirname, 'dist', 'assets')
+      const precache = fs.existsSync(assetsDir)
+        ? fs
+            .readdirSync(assetsDir)
+            .filter((f) => /\.(js|css|woff2)$/.test(f))
+            .sort()
+            .map((f) => `/assets/${f}`)
+        : []
+
       const stamped = fs
         .readFileSync(swPath, 'utf8')
         .replace(
           /const CACHE_NAME = '[^']*'/,
           `const CACHE_NAME = 'mastermath-v${pkg.version}-${commit}'`
         )
+        .replace(
+          /const PRECACHE_ASSETS = \[[^\]]*\];/,
+          `const PRECACHE_ASSETS = ${JSON.stringify(precache)};`
+        )
       fs.writeFileSync(swPath, stamped)
+      const bytes = precache.reduce((n, f) => n + fs.statSync(path.join(assetsDir, path.basename(f))).size, 0)
       console.log(`[stamp-service-worker] CACHE_NAME → mastermath-v${pkg.version}-${commit}`)
+      console.log(`[stamp-service-worker] precache manifest → ${precache.length} assets, ${(bytes / 1024 / 1024).toFixed(1)} MB raw`)
     },
   }
 }

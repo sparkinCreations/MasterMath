@@ -14,9 +14,8 @@
 // only ever served if the file somehow ships unbuilt.
 const CACHE_NAME = 'mastermath-v0-unstamped';
 
-// Core app shell — these are cached on install
-// Vite hashes JS/CSS filenames on build, so we cache them dynamically
-// via the fetch handler. These are the known static assets.
+// Core app shell — these are cached on install. These are the known,
+// unhashed static files.
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -24,6 +23,25 @@ const APP_SHELL = [
   '/favicon.png',
   '/favicon.svg',
 ];
+
+// Every hashed asset the build produced — route chunks, the lazily loaded
+// solver modules and maths libraries, stylesheets, and the KaTeX fonts.
+// Filled in at build time by stampServiceWorker (vite.config.js), because
+// the filenames carry content hashes and are only known once Vite has run.
+// Precaching all of it is what makes "works offline" true for every route:
+// the routes are code-split, so a route you had not yet opened while online
+// would otherwise have nothing to load from. The placeholder below is what
+// ships if sw.js is somehow served unbuilt; it degrades to caching on fetch.
+const PRECACHE_ASSETS = [/* __PRECACHE_ASSETS__ */];
+
+// Cache lookups ignore the Vary header. Servers commonly send `Vary: Origin`
+// on static files, and Vite's <link rel="modulepreload"> requests carry an
+// Origin header while the worker's own precache fetches do not — so a strict
+// match would refuse the very entries the precache just stored, and an
+// offline route load would 503 with the file sitting right there in the
+// cache. Everything cached here is either content-addressed (hashed assets)
+// or the single app shell; the same bytes are correct for every requester.
+const MATCH_OPTS = { ignoreVary: true };
 
 // Patterns for assets we should cache when fetched
 const CACHEABLE_PATTERNS = [
@@ -57,8 +75,11 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[MasterMath SW] Caching app shell');
-        return cache.addAll(APP_SHELL);
+        // The shell is required: if it can't be cached, install fails and
+        // the browser retries later, which is the right outcome.
+        return cache.addAll(APP_SHELL).then(() => cache);
       })
+      .then((cache) => precacheAssets(cache))
       // Note: no self.skipWaiting() here. The new worker stays in the
       // "waiting" state so the app can show its update banner; it only
       // activates when the user clicks Update (the SKIP_WAITING message
@@ -66,9 +87,56 @@ self.addEventListener('install', (event) => {
       // trigger the controllerchange auto-reload mid-session.
       .catch((error) => {
         console.error('[MasterMath SW] Install failed:', error);
+        throw error;
       })
   );
 });
+
+// Fill the new cache with the build's hashed assets.
+//
+// Two deliberate choices:
+//  - Assets are fetched individually and failures are tolerated. Precaching
+//    is best-effort — a single miss (a deploy racing this install, a flaky
+//    connection) must not brick the whole install; the fetch handler still
+//    caches anything missing the first time it is requested online.
+//  - Unchanged assets are copied from the previous worker's cache instead
+//    of re-downloaded. Hashed filenames are content-addressed, so a name
+//    that already exists in an older cache is byte-identical. mathjs,
+//    Algebrite and Recharts rarely change between releases; without this,
+//    every deploy would cost every user a fresh ~1 MB download.
+function precacheAssets(cache) {
+  if (!PRECACHE_ASSETS.length) return;
+  console.log('[MasterMath SW] Precaching', PRECACHE_ASSETS.length, 'assets');
+
+  let reused = 0;
+  let fetched = 0;
+  let failed = 0;
+
+  return Promise.all(
+    PRECACHE_ASSETS.map((url) =>
+      caches.match(url, MATCH_OPTS)
+        .then((existing) => {
+          if (existing && bodyMatchesPath(url, existing)) {
+            reused += 1;
+            return cache.put(url, existing);
+          }
+          return fetch(url).then((response) => {
+            if (!response || response.status !== 200 || !bodyMatchesPath(url, response)) {
+              failed += 1;
+              return;
+            }
+            fetched += 1;
+            return cache.put(url, response);
+          });
+        })
+        .catch(() => {
+          failed += 1;
+        })
+    )
+  ).then(() => {
+    console.log(`[MasterMath SW] Precache done — ${fetched} fetched, ${reused} reused, ${failed} skipped`);
+  });
+}
 
 // ─── ACTIVATE ───────────────────────────────────────────────
 // Clean up old caches from previous versions.
@@ -155,7 +223,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() =>
-          caches.match('/index.html').then(
+          caches.match('/index.html', MATCH_OPTS).then(
             (cached) =>
               cached ||
               new Response('You appear to be offline and MasterMath has not been cached yet.', {
@@ -172,7 +240,7 @@ self.addEventListener('fetch', (event) => {
   // Static assets — cache-first with background revalidation
   if (isCacheable(url.pathname)) {
     event.respondWith(
-      caches.match(request)
+      caches.match(request, MATCH_OPTS)
         .then((cached) => {
           if (cached) {
             // Return cached version immediately
