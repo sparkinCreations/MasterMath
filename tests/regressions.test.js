@@ -752,11 +752,18 @@ test('regression: plain integrals are unaffected by the by-parts path', async ()
   assert.match(trig.answer, /-cos\(x\) \+ C$/);
 });
 
-test('regression: a non-elementary integrand is still refused, not faked', async () => {
-  // x*sin(x^2) is u-substitution, not by-parts; Algebrite can't do it either.
-  // (The integrand is valid math, so the refusal is `unsupported` — and must
-  // never claim a fake antiderivative.)
+test('regression: an integrand the engine cannot do is refused, never faked', async () => {
+  // x*sin(x^2) is u-substitution. When this test was written neither
+  // Algebrite nor the solver could do it, and the point was that the answer
+  // must not be a fabricated antiderivative. The solver now has substitution
+  // (v1.18.0): the same point holds — anything reported must differentiate
+  // back to the integrand — and the answer is the real one, -½cos(x²).
   const r = await solveProblem('x*sin(x^2)', 'integrals');
-  assert.equal(r.status, 'unsupported');
-  assert.ok(!/\+ C$/.test(r.answer), 'must not present a fabricated antiderivative');
+  assert.equal(r.status, 'solved');
+  assert.match(r.answer, /-1\/2\*cos\(x\^2\) \+ C$/);
+
+  // The refusal contract itself, on something still beyond the engine:
+  const refused = await solveProblem('sin(x^2)', 'integrals');
+  assert.equal(refused.status, 'unsupported');
+  assert.ok(!/\+ C$/.test(refused.answer), 'must not present a fabricated antiderivative');
 });

@@ -9,6 +9,7 @@ import {
   rewriteReciprocalTrig,
   expressionsNumericallyEqual,
   parsesAsMath,
+  isAlgebriteFailure,
 } from './solverUtils.js';
 import { getSettings } from '../settings.js';
 import { parseError } from '../solutionEnvelope.js';
@@ -274,7 +275,7 @@ function algebriteNumber(Algebrite, expr, variable, at) {
   try {
     const wrapped = at === undefined ? expr : `subst(${at}, ${variable}, ${expr})`;
     const raw = String(Algebrite.run(`float(${wrapped})`)).trim();
-    if (/stop|error|nil/i.test(raw)) return null;
+    if (isAlgebriteFailure(raw)) return null;
     if (new RegExp(`\\b${variable}\\b`).test(raw)) return null;
     const n = Number(raw);
     return Number.isFinite(n) && Math.abs(n) < EXPLODED_MAGNITUDE ? n : null;
@@ -289,7 +290,7 @@ function algebriteNumber(Algebrite, expr, variable, at) {
 function algebriteExactAt(Algebrite, expr, variable, at) {
   try {
     const raw = String(Algebrite.run(`simplify(subst(${at}, ${variable}, ${expr}))`)).trim();
-    if (!raw || /stop|error|nil/i.test(raw)) return null;
+    if (isAlgebriteFailure(raw)) return null;
     if (new RegExp(`\\b${variable}\\b`).test(raw)) return null; // unresolved
     return raw;
   } catch {

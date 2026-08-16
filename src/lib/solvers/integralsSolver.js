@@ -10,9 +10,11 @@ import {
   expressionsNumericallyEqual,
   parsesAsMath,
   isUnevaluatedOperator,
+  isAlgebriteFailure,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
+import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerically } from './substitutionSolver.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 
 // Famous non-elementary integrands, so "the engine can't do this" comes with
@@ -62,10 +64,14 @@ async function solveIndefiniteIntegral(expression) {
     const terms = splitTerms(expression);
     const perTerm = [];
     let anyByParts = false;
+    let anySubstitution = false;
+    let anyAbs = false;
     for (const { signed } of terms) {
       const res = await integrateTerm(signed, variable, Algebrite);
       if (!res) { perTerm.length = 0; break; }
       if (res.method === 'byparts') anyByParts = true;
+      if (res.method === 'substitution') anySubstitution = true;
+      if (res.method === 'abs') anyAbs = true;
       perTerm.push(res);
     }
 
@@ -83,8 +89,16 @@ async function solveIndefiniteIntegral(expression) {
     }
 
     // Trust gate: the derivative of the antiderivative must equal the integrand.
-    const dCheck = safeRunLocal(Algebrite, `d(${integral}, ${variable})`);
-    if (!dCheck || !expressionsNumericallyEqual(dCheck, rewriteReciprocalTrig(expression), variable)) {
+    // Algebrite differentiates the result when it can; when it can't (it has
+    // no abs), a numeric derivative check decides instead of failing closed.
+    const dRaw = safeRunLocal(Algebrite, `d(${integral}, ${variable})`);
+    // An unevaluated d(...) inside the derivative (Algebrite met abs) is not
+    // a derivative it could take — fall through to the numeric check.
+    const dCheck = dRaw && !isUnevaluatedOperator(dRaw) ? dRaw : null;
+    const trusted = dCheck
+      ? expressionsNumericallyEqual(dCheck, rewriteReciprocalTrig(expression), variable)
+      : derivativeMatchesNumerically(integral, expression, variable);
+    if (!trusted) {
       // The per-term path failed verification — fall back to whole-Algebrite.
       const forAlgebrite = rewriteReciprocalTrig(expression);
       integral = Algebrite.integral(forAlgebrite, variable).toString();
@@ -102,7 +116,11 @@ async function solveIndefiniteIntegral(expression) {
     const tips = [
       anyByParts
         ? 'Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).'
-        : `Power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C  (n ≠ -1)`,
+        : anySubstitution
+          ? 'u-substitution: look for an inner function whose derivative appears as a factor — ∫g′(x)·h(g(x)) dx = ∫h(u) du with u = g(x).'
+          : anyAbs
+            ? '∫|ax + b| dx = (ax + b)·|ax + b| / (2a) + C — split at the corner, integrate each piece, and the two pieces match up into one formula.'
+            : `Power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C  (n ≠ -1)`,
       'Always add the constant of integration (+C) for an indefinite integral.',
       'Constant factors pull out front: ∫c·f dx = c·∫f dx.',
     ];
@@ -111,7 +129,11 @@ async function solveIndefiniteIntegral(expression) {
       'Forgetting the constant of integration (+C).',
       anyByParts
         ? 'Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.'
-        : 'Mishandling the (n+1) denominator in the power rule.',
+        : anySubstitution
+          ? 'Forgetting to divide by g′(x) when changing to du — the constant from du = g′(x) dx must be carried.'
+          : anyAbs
+            ? 'Integrating |x| as if it were x, giving x²/2 — that is only right for x ≥ 0.'
+            : 'Mishandling the (n+1) denominator in the power rule.',
       'Applying the power rule to 1/x — that integrates to ln|x|, not x⁰/0.',
     ];
 
@@ -156,7 +178,7 @@ function lnify(integralResult) {
 function safeRunLocal(Algebrite, code) {
   try {
     const out = String(Algebrite.run(code)).trim();
-    return /stop|error|nil/i.test(out) ? null : out;
+    return isAlgebriteFailure(out) ? null : out;
   } catch {
     return null;
   }
@@ -173,6 +195,14 @@ function simplifyRun(Algebrite, expr) {
  */
 async function integrateTerm(term, variable, Algebrite) {
   if (needsByParts(term, variable)) {
+    // A product can be a substitution in disguise — x·e^(x²) is g′·h(g), not
+    // a by-parts problem (by parts drags in erf(ix) and only recovers by
+    // luck). Try substitution first for products; it is verified, so a wrong
+    // guess simply declines and by parts proceeds as before.
+    const sub = integrateBySubstitution(rewriteReciprocalTrig(term), variable, Algebrite);
+    if (sub) {
+      return { antideriv: sub.antiderivative, steps: sub.steps, method: 'substitution', term };
+    }
     const bp = await integrateByParts(term, variable);
     if (bp) {
       return { antideriv: bp.antiderivative, steps: bp.steps, method: 'byparts', term, cyclic: bp.cyclic };
@@ -181,11 +211,26 @@ async function integrateTerm(term, variable, Algebrite) {
   }
 
   const anti = safeRunLocal(Algebrite, `integral(${rewriteReciprocalTrig(term)}, ${variable})`);
-  if (anti === null) return null;
+  if (anti !== null && !isUnevaluatedOperator(anti)) {
+    const { label, hint } = classifyIntegralRule(term, variable);
+    const steps = [`∫(${beautify(term)}) d${variable} = ${lnify(anti)}${hint ? `  (${label})` : ''}.`];
+    return { antideriv: anti, steps, method: 'direct', term };
+  }
 
-  const { label, hint } = classifyIntegralRule(term, variable);
-  const steps = [`∫(${beautify(term)}) d${variable} = ${lnify(anti)}${hint ? `  (${label})` : ''}.`];
-  return { antideriv: anti, steps, method: 'direct', term };
+  // Algebrite has no substitution step: it gives up on x·cos(x²). Try the
+  // g′(x)·h(g(x)) pattern ourselves (verified by differentiation).
+  const sub = integrateBySubstitution(rewriteReciprocalTrig(term), variable, Algebrite);
+  if (sub) {
+    return { antideriv: sub.antiderivative, steps: sub.steps, method: 'substitution', term };
+  }
+
+  // Algebrite has no abs either: |a·x + b| and constant multiples of it.
+  const abs = integrateAbsLinear(term, variable);
+  if (abs) {
+    return { antideriv: abs.antiderivative, steps: abs.steps, method: 'abs', term };
+  }
+
+  return null;
 }
 
 // Assemble the worked steps from the per-term results. Multi-term integrals get
@@ -198,7 +243,7 @@ function buildPerTermSteps(expression, terms, perTerm, variable, total) {
 
   perTerm.forEach((res, i) => {
     if (multi) {
-      const suffix = res.method === 'byparts' ? ' by parts' : '';
+      const suffix = res.method === 'byparts' ? ' by parts' : res.method === 'substitution' ? ' by substitution' : '';
       steps.push(`Term ${i + 1} — ∫(${beautify(res.term)}) d${variable}${suffix}:`);
     }
     steps.push(...res.steps);
@@ -320,7 +365,7 @@ async function solveDefiniteIntegral(parsed) {
     // Reject unresolved, non-real, or still-symbolic results.
     const badExact =
       !exactRaw ||
-      /stop|error|nil|defint/i.test(exactRaw) ||
+      isAlgebriteFailure(exactRaw) || /defint/i.test(exactRaw) ||
       /\bi\b/.test(exactRaw) ||
       new RegExp(`\\b${v}\\b`).test(exactRaw);
 
@@ -361,7 +406,7 @@ async function solveDefiniteIntegral(parsed) {
     } catch {
       F = null;
     }
-    const hasAntideriv = F && !/integral|stop|error|nil/i.test(F);
+    const hasAntideriv = F && !isAlgebriteFailure(F) && !/integral/i.test(F);
 
     const exactDisplay = formatExactValue(exactRaw);
     const isCleanValue = /^-?\d+$/.test(exactRaw.replace(/\s/g, ''));
@@ -412,7 +457,7 @@ async function solveDefiniteIntegral(parsed) {
 function evalAntiderivAt(Algebrite, F, variable, at) {
   try {
     const out = String(Algebrite.run(`simplify(subst(${at}, ${variable}, ${F}))`)).trim();
-    if (!out || /stop|error|nil/i.test(out)) return null;
+    if (isAlgebriteFailure(out)) return null;
     return formatExactValue(out);
   } catch {
     return null;

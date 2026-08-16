@@ -9,7 +9,7 @@
 // Receives the RAW problem text (routed from api.js) so the operator and both
 // sides survive intact.
 
-import { math, beautify, formatNumber, sampleFunction, loadAlgebrite } from './solverUtils.js';
+import { math, beautify, formatNumber, sampleFunction, loadAlgebrite, isAlgebriteFailure } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 
@@ -169,7 +169,7 @@ function parseInequality(raw) {
 function realRoots(Algebrite, poly, variable) {
   if (!new RegExp(`\\b${variable}\\b`).test(String(poly))) return [];
   const raw = safeRun(Algebrite, `roots(${poly})`);
-  if (!raw || /stop|error|nil/i.test(raw)) return numericRoots(poly, variable);
+  if (isAlgebriteFailure(raw)) return numericRoots(poly, variable);
 
   const parts = String(raw).replace(/^\[|\]$/g, '').split(/,(?![^(]*\))/);
   const out = [];
@@ -374,7 +374,7 @@ function buildGraph(fExpr, variable, critical, zeros, poles, solution) {
 function safeRun(Algebrite, code) {
   try {
     const out = String(Algebrite.run(code)).trim();
-    return /stop|error/i.test(out) ? null : out;
+    return isAlgebriteFailure(out) ? null : out;
   } catch {
     return null;
   }

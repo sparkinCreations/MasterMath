@@ -16,11 +16,16 @@ export const math = create(all);
 // Likewise, mathjs names the inverse trig functions `asin`/`acos`/`atan`, but
 // students and Algebrite write `arcsin`/`arccos`/`arctan`. Alias those too, so
 // numeric checks and graphs of e.g. arctan(x) don't silently fail to evaluate.
+//
+// And Algebrite writes the sign function as `sgn` (it appears when it
+// differentiates abs: d/dx|x| = sgn(x)); mathjs calls it `sign`. Alias so
+// Algebrite's derivatives of abs-bearing results can be checked numerically.
 math.import({
   ln: (x) => math.log(x),
   arcsin: (x) => math.asin(x),
   arccos: (x) => math.acos(x),
   arctan: (x) => math.atan(x),
+  sgn: (x) => math.sign(x),
 }, { override: true });
 
 // Algebrite is large and only needed for symbolic work, so it is imported
@@ -140,6 +145,21 @@ export function formatRestriction(region, variable, options = {}) {
   // gap itself, so both modes name the gap.
   const gap = `${fmt(from)} ${fromClosed ? '≤' : '<'} ${variable} ${toClosed ? '≤' : '<'} ${fmt(to)}`;
   return allowed ? `not ${gap}` : gap;
+}
+
+/**
+ * Is this Algebrite output a failure message rather than mathematics?
+ *
+ * Algebrite reports many failures by RETURNING text instead of throwing:
+ * "Stop: integral: sorry, could not find a solution", "Unsupported function
+ * abs", "nil". A guard that only knew "stop|error|nil" let "Unsupported
+ * function abs" through as an antiderivative. Every solver's Algebrite
+ * wrapper routes through this so the vocabulary lives in one place.
+ */
+export function isAlgebriteFailure(output) {
+  const s = String(output ?? '').trim();
+  if (!s) return true;
+  return /\b(stop|error|nil|unsupported|sorry|cannot|can't|undefined|not implemented)\b/i.test(s);
 }
 
 /**

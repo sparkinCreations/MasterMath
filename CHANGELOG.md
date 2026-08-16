@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-08-16
+
+QA report item 5 — the last finding with real mathematical depth — plus a
+guard bug found on the way.
+
+### Added
+
+- **u-substitution.** `x·cos(x²)` was refused as "no elementary closed form,
+  or beyond this engine". Algebrite's integrator has no substitution step; the
+  solver now supplies one (`substitutionSolver.js`): candidate inner
+  functions are the arguments of function calls, the calls themselves
+  (`sin(x)`, `ln(x)`), power bases and `e^(…)` exponents; for each, the
+  integrand is divided by g′(x) and rewritten in u, and if x has vanished it
+  is integrated in u, back-substituted, and **verified by differentiation**
+  before anything is reported. The steps read the way it is taught — choose
+  u, compute du, rewrite, integrate in u, substitute back, check. Now solved:
+  `x·cos(x²) → ½sin(x²)`, `x·sin(x²) → −½cos(x²)`, `2x·e^(x²) → e^(x²)`,
+  `sin²x·cos x → ⅓sin³x`, `cos x / sin x → ln(sin x)`, `ln(x)/x → ½ln²x`,
+  `1/(x·ln x) → ln(ln x)`. Products are tried as substitutions before
+  integration by parts, so `2x·e^(x²)` no longer takes a by-parts detour
+  through `erf(ix)`.
+- **∫|ax + b| dx.** Algebrite has no `abs`, so `∫|x| dx` was refused. Now
+  `∫|x| dx = x·|x|/2 + C` (and `|ax+b|` with constant multiples), with the
+  piecewise reasoning in the steps and an exact fractional coefficient — a
+  float here made Algebrite's simplification of a mixed sum go floating-point
+  (`x^2.0`). Verified numerically; a non-linear `|…|` is not claimed.
+
+### Fixed
+
+- **Algebrite failure text was accepted as a result.** Algebrite reports some
+  failures by *returning* text rather than throwing — `Unsupported function
+  abs`, `Stop: integral: sorry, could not find a solution` — and the wrappers'
+  guard only knew `stop|error|nil`, so "Unsupported function abs" was taken
+  as an antiderivative and then rejected downstream in confusing ways. One
+  shared `isAlgebriteFailure` now backs every solver's Algebrite wrapper.
+- The integral trust gate handles results Algebrite can differentiate only
+  partly (an unevaluated `d(abs(x),x)` inside the derivative) by falling
+  through to a numeric derivative check instead of failing closed; and
+  Algebrite's `sgn` is aliased to mathjs's `sign` so its derivatives of
+  abs-bearing results can be checked numerically.
+
 ## [1.17.0] - 2026-08-16
 
 QA report items 3, 4, 8, 9 and 10: domain bookkeeping and the extrema logic

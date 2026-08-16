@@ -16,7 +16,7 @@
 // One loop handles both "the polynomial fizzles out" and "the integral comes
 // back around." Every result is differentiated and checked before it is trusted.
 
-import { math, beautify, loadAlgebrite, expressionsNumericallyEqual } from './solverUtils.js';
+import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, isAlgebriteFailure } from './solverUtils.js';
 
 const MAX_ROUNDS = 8;
 
@@ -120,7 +120,7 @@ function chooseUDV(term, v) {
 function run(Algebrite, code) {
   try {
     const out = String(Algebrite.run(code)).trim();
-    return /stop|error|nil/i.test(out) ? null : out;
+    return isAlgebriteFailure(out) ? null : out;
   } catch {
     return null;
   }
