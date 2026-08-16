@@ -175,7 +175,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" aria-label="Export solution as">
                 <DropdownMenuItem onClick={() => handleExportSolution('pdf')}>
                   Export as PDF
                 </DropdownMenuItem>

@@ -5,6 +5,7 @@ import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, Chev
 import { Button } from "@/components/ui/button";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
 
 const DEFAULT_RANGE = { xMin: -10, xMax: 10 };
 const HEIGHTS = [240, 320, 400, 480, 560];
@@ -158,9 +159,17 @@ export default function GraphViewer({ functionData }) {
   const inX = (x) => x >= range.xMin && x <= range.xMax;
   const inY = (y) => !yDomain || (y >= yDomain.yMin && y <= yDomain.yMax);
 
-  const ctrl = (onClick, title, Icon) => (
-    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClick} title={title}>
-      <Icon className="w-4 h-4" />
+  // Text alternative for the chart. The SVG itself is opaque to assistive
+  // tech, so the wrapper is exposed as a single image named by a prose
+  // summary, and the same features are listed in a visible panel below.
+  const chartLabel = describeGraph(functionData);
+  const features = describeGraphFeatures(functionData);
+
+  // Controls are icon-only, so aria-label carries the name; title keeps the
+  // hover tooltip for mouse users.
+  const ctrl = (onClick, label, Icon) => (
+    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClick} title={label} aria-label={label}>
+      <Icon className="w-4 h-4" aria-hidden="true" />
     </Button>
   );
 
@@ -172,7 +181,7 @@ export default function GraphViewer({ functionData }) {
             <TrendingUp className="w-6 h-6 text-indigo-600" />
             {functionData.title || "Graph View"}
           </CardTitle>
-          <div className="flex items-center gap-0.5 flex-wrap">
+          <div className="flex items-center gap-0.5 flex-wrap" role="group" aria-label="Graph view controls">
             {ctrl(() => panX(-1), "Pan left", ChevronLeft)}
             {ctrl(() => panX(1), "Pan right", ChevronRight)}
             {ctrl(() => panY(1), "Pan up", ChevronUp)}
@@ -188,8 +197,14 @@ export default function GraphViewer({ functionData }) {
       <CardContent className="p-6">
         {/* Height is passed as an explicit prop (not a resized parent):
             prop changes re-render synchronously, with no dependence on
-            ResizeObserver timing. */}
-        <div>
+            ResizeObserver timing.
+
+            role="img" + aria-label present the whole chart as one described
+            picture. Recharts' internal SVG nodes are then hidden from the
+            accessibility tree, which is what we want: they carry no usable
+            semantics, and the "Key features" panel below is the readable
+            version of the same information. */}
+        <div role="img" aria-label={chartLabel}>
           <ResponsiveContainer width="100%" height={HEIGHTS[heightIdx]}>
             <LineChart data={mergedPoints}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -369,7 +384,7 @@ export default function GraphViewer({ functionData }) {
         </div>
         {/* Legend for dual curves */}
         {hasSecondary && (
-          <div className="flex items-center gap-4 mt-3 text-sm">
+          <div className="flex items-center gap-4 mt-3 text-sm" aria-hidden="true">
             <div className="flex items-center gap-2">
               <div className="w-6 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-600" />
               <span className="text-gray-600 dark:text-gray-400">f(x)</span>
@@ -379,6 +394,23 @@ export default function GraphViewer({ functionData }) {
               <span className="text-gray-600 dark:text-gray-400">{functionData.secondaryLabel || 'Secondary'}</span>
             </div>
           </div>
+        )}
+        {/* The chart's key features in text — the readable equivalent of the
+            markers drawn above, for anyone who can't see them (and a handy
+            recap for anyone who can). Collapsed by default so it doesn't
+            crowd the panel; a native <details> keeps it keyboard-operable
+            with no extra wiring. */}
+        {features.length > 0 && (
+          <details className="mt-3 text-sm rounded-lg border border-indigo-200 dark:border-gray-600 bg-white/60 dark:bg-gray-700/40">
+            <summary className="cursor-pointer select-none px-3 py-2 font-medium text-indigo-700 dark:text-indigo-300 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400">
+              Key features ({features.length})
+            </summary>
+            <ul className="px-3 pb-3 pt-1 space-y-1 list-disc list-inside text-gray-700 dark:text-gray-200">
+              {features.map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ul>
+          </details>
         )}
         {functionData.description && (
           <p className={`mt-3 text-sm text-gray-600 dark:text-gray-400 bg-gradient-to-r ${descBg} dark:bg-gray-700/50 p-3 rounded-lg border ${descBorder}`}>

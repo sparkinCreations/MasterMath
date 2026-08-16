@@ -237,7 +237,7 @@ export default function Settings() {
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
+              <DropdownMenuContent align="start" aria-label="Export history as">
                 <DropdownMenuItem onClick={() => handleExport("pdf")}>Export as PDF</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport("csv")}>Export as CSV</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport("json")}>Export as JSON</DropdownMenuItem>

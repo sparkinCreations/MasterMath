@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-08-16
+
+Third accessibility pass. The graph gets a text alternative — a new
+capability, hence the minor bump — and the last structural gaps from the
+audit are closed: menu semantics, notification timing, and the heading
+outline.
+
+### Added
+
+- **The graph can be read, not just seen.** `src/lib/graphDescription.js`
+  turns the same annotation data the chart is drawn from into prose: the
+  chart wrapper is exposed as one `role="img"` named by a summary ("Graph
+  of f(x) = x² − 4x + 3. Line chart with 3 key features marked: Local
+  minimum at (2, −1). Crosses the x-axis at x = 1 and x = 3. Crosses the
+  y-axis at y = 3."), and a collapsible **Key features** panel beneath the
+  chart lists the same points for everyone. It covers extrema, intercepts,
+  asymptotes, equation solutions, the limit guideline and marker, the
+  definite-integral region, the system intersection point, inequality
+  intervals, and the secondary curve. It describes only what the solver
+  annotated — it never infers features from the sampled points, since a
+  fabricated feature is worse than none. Eleven unit tests pin the wording.
+- The graph's icon-only controls carry `aria-label`s (previously `title`
+  only) and are grouped as "Graph view controls".
+
+### Fixed
+
+- **The export menus are real menus.** The dropdown had no roles at all;
+  the items were reachable only because they happened to be buttons. Now
+  the WAI-ARIA menu-button pattern: `aria-haspopup="menu"` /
+  `aria-expanded` / `aria-controls` on the trigger, `role="menu"` with a
+  name on the popup, `role="menuitem"` on items, focus moves into the menu
+  on open (ArrowDown/Enter/Space → first item, ArrowUp → last), arrow keys
+  rove and wrap, Home/End jump, Escape closes and returns focus to the
+  trigger, and Tab closes on the way out. Items are `tabIndex=-1`, so the
+  menu is one tab stop.
+- **Notifications can be read in time (WCAG 2.2.1).** Every toast used to
+  vanish after 3 seconds with no way to hold it. Errors and warnings now
+  persist until dismissed — they carry something the reader must act on —
+  and are announced assertively (`role="alert"`). Success and info still
+  auto-dismiss, but at 6 seconds, and the countdown pauses while the toast
+  is hovered or focused, resuming from where it left off.
+- **One h1 per page, no skipped levels.** The header and sidebar brand text
+  were `h1`/`h2` on every page, on top of each page's own `h1`; they are
+  now plain text (they are home links, not headings). `CardTitle` defaults
+  to `h2` — a card sits directly under the page title — and takes `as="h3"`
+  on Home, where the cards live under `h2` sections. The FAQ questions
+  jumped `h1 → h3` and the "Why Choose MasterMath?" points jumped
+  `h2 → h4`; both are corrected. Verified: exactly one `h1` and zero level
+  skips on all nine routes.
+
 ## [1.13.3] - 2026-08-16
 
 Second accessibility pass, covering perceivability: contrast, motion

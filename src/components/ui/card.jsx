@@ -19,8 +19,12 @@ const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
 ))
 CardHeader.displayName = "CardHeader"
 
-const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <h3
+// Defaults to h2: a card usually sits directly under the page's h1, and its
+// content headings (SolutionDisplay's "Step-by-Step Solution:", etc.) are h3.
+// Pass `as` when the card is nested under a section heading — Home's feature
+// cards live under h2 sections and use as="h3".
+const CardTitle = React.forwardRef(({ className, as: Tag = "h2", ...props }, ref) => (
+  <Tag
     ref={ref}
     className={cn("text-2xl font-semibold leading-none tracking-tight", className)}
     {...props}

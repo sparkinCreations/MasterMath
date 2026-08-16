@@ -107,7 +107,7 @@ export default function Home() {
           {/* Feature 1 */}
           <Card className="border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
             <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
-              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+              <CardTitle as="h3" className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                 <Calculator className="w-6 h-6" />
                 Multiple Topics
               </CardTitle>
@@ -122,7 +122,7 @@ export default function Home() {
           {/* Feature 2 */}
           <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
-              <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+              <CardTitle as="h3" className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                 <Zap className="w-6 h-6" />
                 Instant Solutions
               </CardTitle>
@@ -137,7 +137,7 @@ export default function Home() {
           {/* Feature 3 */}
           <Card className="border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
             <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
-              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+              <CardTitle as="h3" className="flex items-center gap-2 text-green-700 dark:text-green-400">
                 <TrendingUp className="w-6 h-6" />
                 Track Progress
               </CardTitle>
@@ -152,7 +152,7 @@ export default function Home() {
           {/* Feature 4 */}
           <Card className="border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
             <CardHeader className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-gray-700 dark:to-gray-700">
-              <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <CardTitle as="h3" className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                 <Lightbulb className="w-6 h-6" />
                 Learn Better
               </CardTitle>
@@ -167,7 +167,7 @@ export default function Home() {
           {/* Feature 5 */}
           <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
-              <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+              <CardTitle as="h3" className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                 <BookOpen className="w-6 h-6" />
                 Export & Save
               </CardTitle>
@@ -182,7 +182,7 @@ export default function Home() {
           {/* Feature 6 */}
           <Card className="border-2 border-rose-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
             <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
-              <CardTitle className="flex items-center gap-2 text-rose-700 dark:text-rose-400">
+              <CardTitle as="h3" className="flex items-center gap-2 text-rose-700 dark:text-rose-400">
                 <Target className="w-6 h-6" />
                 100% Private
               </CardTitle>
@@ -270,7 +270,7 @@ export default function Home() {
             <div className="flex items-start gap-2 md:gap-3">
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
-                <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">No Sign-Up Required</h4>
+                <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">No Sign-Up Required</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Start solving immediately without creating an account</p>
               </div>
             </div>
@@ -278,7 +278,7 @@ export default function Home() {
             <div className="flex items-start gap-2 md:gap-3">
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
-                <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Completely Free</h4>
+                <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Completely Free</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">All current features at no cost</p>
               </div>
             </div>
@@ -286,7 +286,7 @@ export default function Home() {
             <div className="flex items-start gap-2 md:gap-3">
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
-                <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Works Offline</h4>
+                <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Works Offline</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Service worker caches the entire app — solve problems anywhere, even without Wi-Fi</p>
               </div>
             </div>
@@ -294,7 +294,7 @@ export default function Home() {
             <div className="flex items-start gap-2 md:gap-3">
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
-                <h4 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Student-Friendly</h4>
+                <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Student-Friendly</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Designed for students by understanding their needs</p>
               </div>
             </div>

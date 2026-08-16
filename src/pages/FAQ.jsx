@@ -128,9 +128,9 @@ export default function FAQ() {
               aria-expanded={openIndex === index}
             >
               <div className="flex justify-between items-start gap-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 pr-4">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 pr-4">
                   {faq.question}
-                </h3>
+                </h2>
                 {openIndex === index ? (
                   <ChevronUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-1" />
                 ) : (

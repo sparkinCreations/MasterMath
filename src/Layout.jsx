@@ -71,10 +71,13 @@ function AppSidebar() {
             alt="MasterMath Logo"
             className="w-12 h-12 rounded-2xl shadow-lg"
           />
+          {/* Brand text is a home link, not a heading — the page's own h1
+              is the document title. Rendered as <p> so screen-reader users
+              get one h1 per page and a clean outline. */}
           <div>
-            <h2 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <p className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               MasterMath
-            </h2>
+            </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Master math with confidence</p>
           </div>
         </Link>
@@ -142,9 +145,11 @@ export default function Layout({ children }) {
                     alt="MasterMath Logo"
                     className="w-8 h-8 rounded-lg shadow-md"
                   />
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {/* Not a heading: the header brand is a home link, and
+                      each page supplies its own h1. */}
+                  <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                     MasterMath <span className="text-sm font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Master math with confidence</span>
-                  </h1>
+                  </p>
                 </Link>
                 <Link to="/" className="flex md:hidden items-center gap-2 hover:opacity-80 transition-opacity">
                   <img
@@ -152,9 +157,9 @@ export default function Layout({ children }) {
                     alt="MasterMath Logo"
                     className="w-6 h-6 rounded-lg shadow-md"
                   />
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                     MasterMath <span className="text-xs font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span>
-                  </h1>
+                  </p>
                 </Link>
                 <button
                   onClick={toggleDarkMode}

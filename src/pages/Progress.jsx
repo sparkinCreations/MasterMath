@@ -162,7 +162,7 @@ export default function Progress() {
                       <ChevronDown className="w-4 h-4 ml-1" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" aria-label="Export history as">
                     <DropdownMenuItem onClick={() => handleExport('pdf')}>
                       Export as PDF
                     </DropdownMenuItem>
