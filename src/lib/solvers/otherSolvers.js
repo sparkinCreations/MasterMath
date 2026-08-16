@@ -831,13 +831,21 @@ function detectTrigAsymptote(expression, result, treatAsDegrees) {
 
 export async function solveTrigonometry(expression, settingsOverride) {
   try {
+    // Equations go to the trig-equation solver and never reach the numeric
+    // evaluator below. That order matters: mathjs reads "sin(x) = 1/2" as a
+    // *definition* of a function named sin and returns the function object,
+    // which — stringified — is minified JavaScript, and that is exactly what
+    // used to be shown as the final answer.
+    const variable = extractVariable(expression);
+    if (isEquation(expression)) {
+      const { solveTrigEquation } = await import('./trigEquationSolver.js');
+      return solveTrigEquation(expression, variable);
+    }
+
     // A free variable means this is a symbolic expression (an identity to
     // simplify), not a value to compute — math.evaluate would just throw
     // "Undefined symbol x". Route it to the Algebrite simplification path.
-    // Equations are excluded: Algebrite reads "=" as assignment, and solving
-    // trig equations is not built yet — the error fallback refuses clearly.
-    const variable = extractVariable(expression);
-    if (!isEquation(expression) && hasVariable(expression, variable)) {
+    if (hasVariable(expression, variable)) {
       return await simplifyTrigExpression(expression, variable);
     }
 

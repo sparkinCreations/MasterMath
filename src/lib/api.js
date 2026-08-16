@@ -2,7 +2,7 @@
 import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './indexedDB.js';
 import { validateProblemHistory } from './validation.js';
 import { extractFunctionFromProblem } from './mathParser.js';
-import { STATUS, isValidStatus, parseError } from './solutionEnvelope.js';
+import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
 
 // The storage wrappers below replace the underlying error with a message fit
 // for a toast. That message is all the user should see, but it is not all a
@@ -125,21 +125,69 @@ function looksLikeInequality(problem) {
   return /[<>≤≥]/.test(String(problem));
 }
 
+// One equation (exactly one '=') that contains a sin/cos/tan call.
+function isSingleTrigEquation(problem) {
+  const text = String(problem);
+  const equalsCount = (text.match(/(?<![><!=])=(?!=)/g) || []).length;
+  return equalsCount === 1 && /\b(sin|cos|tan)\s*\(/i.test(text);
+}
+
+// Text that is program source rather than mathematics. The engines can hand
+// back a live function or object — mathjs parses "sin(x) = 1/2" as a function
+// *definition* and returns the function — and stringifying one yields its
+// (minified) JavaScript. Nothing that matches these belongs in a solution.
+// The shapes are deliberately code-specific (a `function` keyword with a
+// parameter list and body, an arrow with a body, a native/object stringify)
+// so ordinary prose — "return to the original variable", "the arguments of
+// the trig functions" — is never mistaken for a leak.
+const SOURCE_CODE_PATTERN = /\bfunction\b\s*[\w$]*\s*\([^)]*\)\s*\{|\)\s*=>\s*[{(\w]|\[native code\]|\[object \w+\]|\barguments\.length\b/;
+
+// Is this value a legitimate piece of solution text — a string of maths or
+// prose, or a finite/readable number? Anything else (functions, objects,
+// arrays, symbols, code-shaped strings) is an engine internal that leaked.
+export function isPresentable(value) {
+  if (typeof value === 'number') return true; // formatNumber handles NaN/∞ text
+  if (typeof value === 'bigint') return true;
+  if (typeof value !== 'string') return false;
+  return !SOURCE_CODE_PATTERN.test(value);
+}
+
 // Shared result validation — every solver's output passes through here.
 // This is the envelope contract gate: a result must carry a valid `status`
 // (see solutionEnvelope.js). The legacy shim below infers one for solvers
 // not yet migrated; it is deleted at the end of the migration (Phase 2 of
 // docs/future-work/MATH-STATE-SEMANTICS.md).
-function finalizeResult(result) {
+//
+// It is also the last line of defence against engine internals reaching the
+// screen: an answer or step that is not presentable text is replaced with an
+// honest "unsupported" envelope, never rendered — and never marked solved.
+export function finalizeResult(result, input) {
   if (!result || typeof result !== 'object') {
     throw new Error('Invalid solver result');
   }
   if (!result.steps || !Array.isArray(result.steps)) {
     result.steps = ['Solution computed'];
   }
-  if (!result.answer) {
+  if (result.answer === undefined || result.answer === null || result.answer === '') {
     throw new Error('No solution found');
   }
+
+  const leaked = [result.answer, ...result.steps].find((v) => !isPresentable(v));
+  if (leaked !== undefined) {
+    console.error('Solver returned a non-presentable value; refusing to render it:', typeof leaked, String(leaked).slice(0, 120));
+    return unsupported({
+      input,
+      reason: 'The maths engine returned an internal value instead of a result for this input. This is a limitation of the solver, not your notation.',
+      answer: 'This problem is beyond what this solver can compute',
+      tips: [
+        'If this is an equation, try the Algebra topic — the Trigonometry topic evaluates and simplifies expressions.',
+        'The input itself was read correctly; nothing needs reformatting.',
+      ],
+    });
+  }
+  // Numbers are fine as answers, but the UI and exports expect a string.
+  if (typeof result.answer !== 'string') result.answer = String(result.answer);
+  result.steps = result.steps.map((s) => (typeof s === 'string' ? s : String(s)));
   if (!result.tips || !Array.isArray(result.tips)) {
     result.tips = [];
   }
@@ -180,7 +228,7 @@ export async function solveProblem(problem, topic) {
     if (topic === 'algebra' && looksLikeInequality(problem)) {
       const { solveInequality } = await import('./solvers/inequalitiesSolver.js');
       result = await solveInequality(problem);
-      return finalizeResult(result);
+      return finalizeResult(result, problem);
     }
 
     // Systems of equations: two or more equations. Detected from the RAW
@@ -189,7 +237,19 @@ export async function solveProblem(problem, topic) {
     if (topic === 'algebra' && looksLikeSystem(problem)) {
       const { solveSystem } = await import('./solvers/systemsSolver.js');
       result = await solveSystem(problem);
-      return finalizeResult(result);
+      return finalizeResult(result, problem);
+    }
+
+    // A single trig equation typed under Algebra (sin(x) = 1/2) gets the same
+    // exact treatment as under Trigonometry — general solution and special
+    // angles — instead of the algebra solver's numeric root scan. Only the
+    // supported family is taken; anything else falls through to algebra.
+    if (topic === 'algebra' && isSingleTrigEquation(problem)) {
+      const { solveTrigEquation } = await import('./solvers/trigEquationSolver.js');
+      const trig = solveTrigEquation(extractFunctionFromProblem(problem));
+      if (trig.status !== STATUS.UNSUPPORTED) {
+        return finalizeResult(trig, problem);
+      }
     }
 
     const solver = await resolveSolver(problem, topic);
@@ -227,7 +287,7 @@ export async function solveProblem(problem, topic) {
       }
     }
 
-    return finalizeResult(result);
+    return finalizeResult(result, problem);
 
   } catch (error) {
     console.error('Solver error:', error);

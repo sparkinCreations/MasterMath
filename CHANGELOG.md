@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-16
+
+The first fixes from the external QA report on v1.13.0 (98 problems, seven
+topics): its one critical finding, plus the capability that finding was
+missing.
+
+### Fixed
+
+- **`sin(x) = 1/2` under Trigonometry displayed minified JavaScript as the
+  final answer — under a green "Solved" badge, and saved to history as a
+  solved problem.** An equation skipped the simplifier and reached
+  `math.evaluate`, which reads `sin(x) = 1/2` as a *definition* of a function
+  named `sin` and hands back the function object; stringifying it produced
+  the source of mathjs's `typed-function` wrapper. Two fixes, both needed:
+  - Equations are routed to the new trig-equation solver before anything can
+    reach the evaluator (below).
+  - `finalizeResult` in `api.js` — the gate every solver's output already
+    passes through — now refuses any answer or step that is not presentable
+    text: a function, object or array, or a string shaped like source code
+    (`function name(...) {`, an arrow with a body, `[object Object]`,
+    `[native code]`). Such a result is replaced with an honest *unsupported*
+    envelope and never marked solved. The pattern is deliberately
+    code-specific, so prose such as "return to the original variable" or "the
+    arguments of the trig functions" is never mistaken for a leak. Verified
+    across all seven topics: zero false refusals.
+
+### Added
+
+- **Trigonometric equations.** `A·f(kx) + B = C` for f ∈ {sin, cos, tan}
+  — `sin(x) = 1/2`, `2cos(x) − 1 = 0`, `tan(2x) = 1`, `√3 = 2sin(x)`,
+  `tan(x/2) = √3` — with the trig term isolated first, the reference angle
+  given exactly for special values (π/6, 2π/3, √3/2 …), the full general
+  solution (`x = π/6 + 2πn or x = 5π/6 + 2πn`, `x = πn`, `x = π/2 + πn`),
+  the solutions on [0, 2π) with the kx argument divided (or multiplied)
+  through, and a graph of the curve against `y = c` with those solutions
+  marked. Every listed solution is substituted back into the original
+  equation before it is reported. `sin(x) = 2` is "no real solution", not an
+  error. Out-of-family equations — `sin²(x) = 1/4`, `sin(x) = cos(x)`,
+  `sin(x²) = 0` — are refused with an explicit "not supported yet", never
+  mis-solved.
+- The same equations typed under **Algebra** get the same exact treatment
+  (previously five decimal roots from a numeric scan); out-of-family
+  equations still fall through to the numeric scan.
+- `sin(x) = 1/2` joins the Trigonometry examples and placeholder.
+
 ## [1.15.0] - 2026-08-16
 
 ### Added

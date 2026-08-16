@@ -21,7 +21,7 @@ const PLACEHOLDERS = {
   integrals: "e.g., 2*x + 1, Integrate x^2, or ∫_0^1 x^2 dx (definite)",
   limits: "e.g., lim x->0 (sin(x)/x) or (x^2 - 4)/(x - 2) as x->2",
   functions: "e.g., x^2 - 4*x + 3 or f(x) = x^3 - x",
-  trigonometry: "e.g., sin(pi/4) or cos(60) or tan(x)",
+  trigonometry: "e.g., sin(pi/4), cos(60), tan(x), or sin(x) = 1/2 (equation)",
   algebra: "e.g., 2*x + 5 = 11, factor x^2 - 4, x^2 - 4 > 0, or 2x + 3y = 6; x - y = 4",
   other: "e.g., 15 + 23, 8 * 7, (5 + 3) * 4, 2^3 + 10/2"
 };
@@ -36,6 +36,7 @@ const EXAMPLE_PROBLEMS = [
   { topic: "algebra", problem: "2x + 3y = 6; x - y = 4" },
   { topic: "algebra", problem: "x^2 - 4 > 0" },
   { topic: "trigonometry", problem: "sin(pi/4)" },
+  { topic: "trigonometry", problem: "sin(x) = 1/2" },
   { topic: "other", problem: "(5 + 3) * 4 - 2^3" }
 ];
 

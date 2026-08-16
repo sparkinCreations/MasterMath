@@ -436,11 +436,22 @@ test('regression: audit — the scanner still finds genuine fallback roots', asy
 });
 
 test('regression: audit — periodic equations prefer roots nearest zero', async () => {
-  // sin(x) = 0 has ~63 roots in the scan range; the five shown must be the
-  // ones a student expects (around 0), not x = -100, -99.5, …
+  // sin(x) = 0 has ~63 roots in the numeric scan range; whatever is shown must
+  // be what a student expects (around 0), never x = -100, -99.5, …
+  //
+  // Since the trig-equation solver, a single trig equation under Algebra is
+  // answered exactly — the general solution x = πn plus the [0, 2π) list —
+  // rather than by the numeric scan, so the roots near zero appear as 0 and π.
   const r = await solveProblem('sin(x) = 0', 'algebra');
-  assert.ok(r.answer.includes('x = 0'));
+  assert.match(r.answer, /x = πn/);
+  assert.match(r.answer, /on \[0, 2π\): 0, π/);
   assert.doesNotMatch(r.answer, /-100/);
+
+  // Out-of-family trig equations still go through the numeric scan, and that
+  // scan must still prefer the roots nearest zero.
+  const scan = await solveProblem('sin(x) = cos(x)', 'algebra');
+  assert.ok(scan.answer.includes('x = 0.7854'));
+  assert.doesNotMatch(scan.answer, /-100/);
 });
 
 // ---------------------------------------------------------------------------
