@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.3] - 2026-08-16
+
+Second accessibility pass, covering perceivability: contrast, motion
+sensitivity, and focus visibility. Follows the operability fixes in 1.13.2.
+
+### Fixed
+
+- Text contrast now meets WCAG AA everywhere. The problem-input placeholder
+  was 2.54:1 against white — and it is where the input-format examples live,
+  so the readers who most need the hint could least read it. Now 4.83:1. The
+  step-through counter ("Step 3 of 7") was 2.54:1 in light and 3.04:1 in
+  dark; now 4.83:1 and 5.78:1. The graph placeholder had no dark-mode colour
+  at all, leaving it at 3.04:1 on the dark card; now 5.78:1. The Feedback
+  email field, which relied on the browser's default placeholder colour, now
+  matches the rest of the app. Verified across seven routes in both themes:
+  zero remaining AA text failures.
+- The focus ring is visible again. `Button` asked for `ring-ring` and
+  `ring-offset-background` — shadcn tokens this project never defined in its
+  Tailwind config, so they compiled to nothing and every button silently fell
+  back to Tailwind's default translucent blue, all but invisible on the blue
+  and indigo gradient buttons. Replaced with explicit indigo ring colours and
+  a theme-aware offset.
+
+### Added
+
+- `prefers-reduced-motion: reduce` is honoured (WCAG 2.3.3). Sidebar slides,
+  hover fades and the update banner's bounce collapse to instant state
+  changes. The busy spinner is deliberately exempt — it is the only signal
+  that work is in progress — but slows to 1.5s so it does not draw the eye.
+  Framer Motion sits outside CSS control, so the solution card and its step
+  reveals opt out through `useReducedMotion` in `SolutionDisplay`, which is
+  the only component that uses it; handling it there rather than app-wide
+  keeps Framer Motion inside the lazy solver chunk.
+- `forced-colors: active` support for the gradient headings. They paint
+  their colour into the text's own fill and set the text transparent, which
+  made them vanish outright in Windows High Contrast Mode; they now fall
+  back to a plain system-coloured heading.
+
 ## [1.13.2] - 2026-08-16
 
 Accessibility pass over the app shell and shared controls. Seven defects

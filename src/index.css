@@ -58,6 +58,42 @@
   }
 }
 
+/* Accessibility: honour the OS "reduce motion" setting (WCAG 2.3.3).
+   Every animation and transition in the app is decorative — sidebar slides,
+   hover fades, the update banner's bounce — so they collapse to an instant
+   state change. The busy spinner is the exception: it is the only signal that
+   work is in progress, so it keeps turning, just slowly enough not to draw
+   the eye. Framer Motion is handled separately in SolutionDisplay, which is
+   the only component that uses it. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin {
+    animation-duration: 1.5s !important;
+  }
+}
+
+/* Accessibility: Windows High Contrast / forced-colors mode.
+   The gradient headings paint their colour into the text's own fill and set
+   the text transparent, which makes them vanish outright when the OS forces
+   its palette. Fall back to a plain system-coloured heading. */
+@media (forced-colors: active) {
+  .bg-clip-text {
+    background-image: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    -webkit-text-fill-color: currentColor !important;
+    color: CanvasText !important;
+  }
+}
+
 /* Service worker update banner animation */
 .animate-bounce-in {
   animation: bounceIn 0.4s ease-out;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, Eye, Footprints } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import MathText from "@/components/MathText";
 import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
 import { exportSolutionAsMarkdown, exportSolutionAsJSON, exportSolutionAsPDF } from "@/lib/exportUtils";
@@ -70,6 +70,26 @@ export default function SolutionDisplay({ solution, problem, topic }) {
   const [stepThrough, setStepThrough] = useState(false);
   const [revealed, setRevealed] = useState(0);
 
+  // Framer Motion is not covered by the CSS reduced-motion rules, so the two
+  // slide-ins here opt out explicitly. `initial: false` renders the final
+  // state immediately instead of translating content into place.
+  const reduceMotion = useReducedMotion();
+  const cardMotion = reduceMotion
+    ? { initial: false }
+    : {
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.5 },
+      };
+  const stepMotion = (idx) =>
+    reduceMotion
+      ? { initial: false }
+      : {
+          initial: { opacity: 0, x: -20 },
+          animate: { opacity: 1, x: 0 },
+          transition: { delay: stepThrough ? 0 : idx * 0.1 },
+        };
+
   // Restart the walkthrough whenever a new problem is solved.
   useEffect(() => {
     setRevealed(1);
@@ -130,11 +150,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
   const StatusIcon = theme.Icon;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <motion.div {...cardMotion}>
       <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
         <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
           <div className="flex justify-between items-center">
@@ -219,9 +235,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                 {(stepThrough ? steps.slice(0, revealed) : steps).map((step, idx) => (
                   <motion.div
                     key={idx}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: stepThrough ? 0 : idx * 0.1 }}
+                    {...stepMotion(idx)}
                     className="py-4 first:pt-1"
                   >
                     <div className="flex gap-3">
@@ -254,7 +268,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                       Reveal all
                     </button>
                   </div>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Step {revealed} of {steps.length}
                   </p>
                 </div>

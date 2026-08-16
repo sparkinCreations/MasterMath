@@ -20,7 +20,7 @@ export default function GraphEmptyState({ message = "Enter a function to see its
           <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mb-4">
             <TrendingUp className="w-8 h-8 text-indigo-500" />
           </div>
-          <p className="text-gray-500 text-lg">
+          <p className="text-gray-500 dark:text-gray-400 text-lg">
             {message}
           </p>
         </div>
