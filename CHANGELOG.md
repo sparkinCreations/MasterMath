@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-08-16
+
+QA report items 6 and 7: the two findings that silently produced wrong
+"Solved" answers for inputs students actually type.
+
+### Fixed
+
+- **`asin`, `acos`, `atan` behave exactly like `arcsin`, `arccos`, `arctan`.**
+  Algebrite only knows the long names, so the short aliases came back as the
+  unevaluated operator — `f'(x) = d(asin(x),x)`, marked Solved. The aliases
+  are now normalised once, in `parseMathExpression`, upstream of every
+  solver, which fixes derivatives, integrals, functions and trig alike (the
+  report only tested derivatives; integrals and functions had the same gap).
+  `sin^-1(x)`, `sin^(-1)(x)` and `sin⁻¹(x)` normalise too; `asinh` and `x^-1`
+  are left alone.
+- **An unevaluated derivative or integral is never reported as solved.**
+  When Algebrite cannot differentiate or integrate something it does not
+  throw — it hands the operator back: `d(f, x)`, `integral(f, x)`. Both
+  solvers now detect that (`isUnevaluatedOperator` in `solverUtils.js`) and
+  return an honest *unsupported* envelope. This mattered for integrals in
+  particular: the existing derivative trust gate did not catch it, because
+  `d(integral(f,x),x)` simplifies straight back to `f` and passes.
+- **Unknown function names no longer hijack the variable.** `erf(x)`
+  differentiated as `f'(f) = 0` — the variable extractor took the "f" of
+  "erf" as the variable. Multi-letter names directly before "(" are now
+  excluded as candidates (single letters stay: `x(x+1)` is implicit
+  multiplication). `erf(x)` now gives `2e^(−x²)/√π`; a function neither
+  engine knows is refused, not "solved" with respect to one of its letters.
+
 ## [1.16.0] - 2026-08-16
 
 The first fixes from the external QA report on v1.13.0 (98 problems, seven

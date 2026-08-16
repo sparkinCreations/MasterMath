@@ -14,6 +14,15 @@ export function parseMathExpression(input) {
   cleaned = cleaned.replace(/[.?]+$/, '').trim();
   cleaned = cleaned.replace(/(?<![\d)])!+$/, '').trim();
 
+  // Inverse-trig aliases → the canonical names every engine here understands.
+  // Students (and calculators) write asin/acos/atan or sin⁻¹; Algebrite only
+  // differentiates/integrates/simplifies arcsin/arccos/arctan, and would
+  // otherwise hand `d(asin(x),x)` back unevaluated. Normalising once, here,
+  // fixes derivatives, integrals, functions and trig alike.
+  cleaned = cleaned
+    .replace(/\b(sin|cos|tan)\s*(?:\^\s*\(?\s*-\s*1\s*\)?|⁻¹)\s*(?=\()/gi, (_, fn) => `arc${fn.toLowerCase()}`)
+    .replace(/\ba(sin|cos|tan)\b(?!h)/gi, (_, fn) => `arc${fn.toLowerCase()}`);
+
   // Absolute-value bars → abs(): |x-3| becomes abs(x-3). mathjs cannot parse
   // bar notation, so without this an equation like |x-3| = 5 fails to
   // evaluate at every point and reads as having no solution. Bars cannot
@@ -102,6 +111,13 @@ export function extractVariable(expression) {
 
   // Also remove "e" when it looks like Euler's number (standalone, not part of a variable name)
   stripped = stripped.replace(/\be\b/g, '');
+
+  // Any remaining multi-letter word directly followed by "(" is a function
+  // call the list above doesn't know (erf(x), foo(x), gamma(x)). Its letters
+  // are not candidates: taking the "f" of erf as the variable produced
+  // f'(f) = 0. Single letters before "(" are left alone — x(x+1) is implicit
+  // multiplication, and x is the variable.
+  stripped = stripped.replace(/\b[a-z_]\w+\s*(?=\()/gi, '');
 
   // Now find the first remaining letter — that's the variable
   const match = stripped.match(/[a-z]/i);

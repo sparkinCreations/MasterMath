@@ -41,6 +41,22 @@ export function loadAlgebrite() {
  * input that doesn't parse is a `parse_error` — the message must never
  * blame the user's formatting when the input was valid.
  */
+/**
+ * Did Algebrite give up and hand the operator back unevaluated?
+ *
+ * When Algebrite cannot differentiate or integrate something it does not
+ * throw — it returns the expression with the operator still wrapped around
+ * it: `d(foo(x),x)`, `integral(foo(x),x)`, `defint(...)`. Reported as-is,
+ * that is a wrong "Solved" answer (the QA report's `f'(x) = d(asin(x),x)`).
+ * Every solver that reads an Algebrite derivative/integral must check this
+ * and refuse honestly. Note the integral solver's derivative trust-gate does
+ * NOT catch it: d(integral(f,x),x) simplifies straight back to f.
+ */
+export function isUnevaluatedOperator(result) {
+  const s = String(result ?? '');
+  return /\b(?:d|derivative|integral|defint)\s*\(/.test(s);
+}
+
 export function parsesAsMath(expression) {
   try {
     math.parse(String(expression));

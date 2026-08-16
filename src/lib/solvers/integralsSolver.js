@@ -9,6 +9,7 @@ import {
   rewriteReciprocalTrig,
   expressionsNumericallyEqual,
   parsesAsMath,
+  isUnevaluatedOperator,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
@@ -88,6 +89,14 @@ async function solveIndefiniteIntegral(expression) {
       const forAlgebrite = rewriteReciprocalTrig(expression);
       integral = Algebrite.integral(forAlgebrite, variable).toString();
       steps = generateIntegralSteps(expression, integral, variable, Algebrite);
+    }
+
+    // Algebrite doesn't always throw when it can't integrate — it can return
+    // `integral(f, x)` unevaluated. The derivative trust gate above does not
+    // catch that (d(integral(f,x),x) simplifies straight back to f), so check
+    // for the operator directly. Same honest refusal as the throw path.
+    if (isUnevaluatedOperator(integral)) {
+      throw new Error('Algebrite returned the integral unevaluated');
     }
 
     const tips = [

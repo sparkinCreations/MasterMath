@@ -6,6 +6,7 @@ import {
   hasVariable,
   rewriteReciprocalTrig,
   parsesAsMath,
+  isUnevaluatedOperator,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -21,6 +22,20 @@ export async function solveDerivative(expression) {
 
     // Authoritative, fully-simplified derivative.
     const derivative = Algebrite.derivative(forAlgebrite, variable).toString();
+
+    // Algebrite doesn't throw when it can't differentiate something — it
+    // returns `d(f, x)` unevaluated. That is not an answer.
+    if (isUnevaluatedOperator(derivative)) {
+      return unsupported({
+        input: expression,
+        reason: `The engine could not differentiate ${beautify(expression)} — it handed the derivative back unevaluated. This is a limitation of the solver, not your notation.`,
+        answer: 'This derivative is beyond what this engine can compute',
+        tips: [
+          'Check that every function is one the solver knows: sin, cos, tan, sec, csc, cot, arcsin, arccos, arctan, sinh, cosh, tanh, sqrt, ln, log, exp, abs.',
+          'Products, quotients and compositions of those all work — the gap is usually an unrecognised function name.',
+        ],
+      });
+    }
 
     const steps = generateDerivativeSteps(expression, derivative, variable, Algebrite);
 
