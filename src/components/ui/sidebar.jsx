@@ -1,6 +1,8 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
+const SIDEBAR_ID = "app-sidebar"
+
 const SidebarContext = React.createContext({ isOpen: true, setIsOpen: () => {} })
 
 // Read/control the sidebar from any descendant of SidebarProvider —
@@ -20,14 +22,20 @@ const SidebarProvider = ({ children, defaultOpen = true }) => {
 const Sidebar = React.forwardRef(({ className, ...props }, ref) => {
   const { isOpen } = React.useContext(SidebarContext)
 
+  // A zero-width sidebar is still in the tab order and the accessibility
+  // tree, so a collapsed menu would strand keyboard users on seven invisible
+  // links before the page content. `inert` (with aria-hidden for older
+  // engines) removes it properly while keeping the width transition.
   return (
     <aside
       ref={ref}
+      id={SIDEBAR_ID}
       className={cn(
         "shrink-0 transition-all duration-300",
         isOpen ? "w-64" : "w-0 overflow-hidden",
         className
       )}
+      {...(isOpen ? {} : { inert: "", "aria-hidden": "true" })}
       {...props}
     />
   )
@@ -114,6 +122,10 @@ const SidebarTrigger = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <button
       ref={ref}
+      type="button"
+      aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+      aria-expanded={isOpen}
+      aria-controls={SIDEBAR_ID}
       className={cn("p-2 transition-transform duration-300", className)}
       onClick={() => setIsOpen(prev => !prev)}
       {...props}
@@ -128,6 +140,8 @@ const SidebarTrigger = React.forwardRef(({ className, ...props }, ref) => {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
         className={cn("transition-transform duration-300", isOpen ? "" : "rotate-180")}
       >
         <path d="M18 15l-6-6-6 6" transform="rotate(-90 12 12)" />

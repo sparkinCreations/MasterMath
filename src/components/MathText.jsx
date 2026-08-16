@@ -7,6 +7,11 @@ import { segmentMathText, toLatex } from "@/lib/latex";
 // Fallback discipline: if conversion or KaTeX rendering fails for a segment,
 // that segment renders as the original plain text — output is never worse
 // than the pre-KaTeX presentation.
+//
+// Accessibility: the output mode must stay "htmlAndMathml" (KaTeX's default).
+// The visual `katex-html` span is marked aria-hidden by KaTeX itself, so an
+// html-only render would leave every expression silent to screen readers —
+// in a math app, that is the entire content.
 export default function MathText({ text, block = false }) {
   const segments = useMemo(() => {
     const segs = segmentMathText(text);
@@ -16,7 +21,7 @@ export default function MathText({ text, block = false }) {
         const html = katex.renderToString(toLatex(seg.value), {
           throwOnError: true,
           displayMode: false,
-          output: "html",
+          output: "htmlAndMathml",
         });
         return { type: "katex", html };
       } catch {

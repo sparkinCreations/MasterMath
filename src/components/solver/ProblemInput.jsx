@@ -102,11 +102,14 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="topic" className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+        <Label id="topic-label" htmlFor="topic" className="text-lg font-semibold text-gray-700 dark:text-gray-200">
           What are you working on?
         </Label>
-        <Select value={topic} onValueChange={setTopic}>
-          <SelectTrigger className="h-12 text-lg border-2 border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500 rounded-xl">
+        <Select id="topic" value={topic} onValueChange={setTopic}>
+          <SelectTrigger
+            aria-labelledby="topic-label topic"
+            className="h-12 text-lg border-2 border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500 rounded-xl"
+          >
             <SelectValue placeholder="Select a topic">
               {selectedLabel}
             </SelectValue>

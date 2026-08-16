@@ -2,12 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Accessibility: Skip to main content link */
+/* Accessibility: Skip to main content link.
+   Off-screen until focused, then pinned to the top-left. Both states must be
+   defined here — an inline style on the anchor would win over :focus. */
+.skip-to-main {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 999;
+  padding: 1em;
+  background: #4338ca;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
 .skip-to-main:focus {
   position: fixed;
   top: 0;
   left: 0;
   z-index: 9999;
+  outline: 3px solid #fbbf24;
+  outline-offset: 2px;
 }
 
 @layer base {

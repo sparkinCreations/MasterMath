@@ -84,10 +84,10 @@
     </script>
   </head>
   <body>
-    <!-- Skip to main content link for keyboard navigation -->
-    <a href="#main-content" class="skip-to-main" style="position: absolute; left: -9999px; z-index: 999; padding: 1em; background: #9333EA; color: white; text-decoration: none;">
-      Skip to main content
-    </a>
+    <!-- Skip to main content link for keyboard navigation.
+         Styling lives in index.css: inline styles would outrank the :focus
+         rule and the link could never become visible. -->
+    <a href="#main-content" class="skip-to-main">Skip to main content</a>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

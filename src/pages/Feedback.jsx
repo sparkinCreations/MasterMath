@@ -156,11 +156,11 @@ Technical Information:
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Feedback Type */}
             <div>
-              <Label htmlFor="feedback-type" className="text-sm font-medium mb-2 block dark:text-gray-200">
+              <Label id="feedback-type-label" htmlFor="feedback-type" className="text-sm font-medium mb-2 block dark:text-gray-200">
                 Feedback Type *
               </Label>
-              <Select value={feedbackType} onValueChange={setFeedbackType} required>
-                <SelectTrigger>
+              <Select id="feedback-type" value={feedbackType} onValueChange={setFeedbackType} required>
+                <SelectTrigger aria-labelledby="feedback-type-label feedback-type">
                   <SelectValue placeholder="Select feedback type..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,11 +179,11 @@ Technical Information:
             {/* Math Topic */}
             {feedbackType && (
               <div>
-                <Label htmlFor="math-topic" className="text-sm font-medium mb-2 block dark:text-gray-200">
+                <Label id="math-topic-label" htmlFor="math-topic" className="text-sm font-medium mb-2 block dark:text-gray-200">
                   Math Topic {isAccuracyIssue ? "*" : "(Optional)"}
                 </Label>
-                <Select value={mathTopic} onValueChange={setMathTopic} required={isAccuracyIssue}>
-                  <SelectTrigger>
+                <Select id="math-topic" value={mathTopic} onValueChange={setMathTopic} required={isAccuracyIssue}>
+                  <SelectTrigger aria-labelledby="math-topic-label math-topic">
                     <SelectValue placeholder="Select math topic..." />
                   </SelectTrigger>
                   <SelectContent>

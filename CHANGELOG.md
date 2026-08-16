@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.2] - 2026-08-16
+
+Accessibility pass over the app shell and shared controls. Seven defects
+that made the app unusable — or in places silent — for keyboard and screen
+reader users.
+
+### Fixed
+
+- **Math is no longer silent to screen readers.** `MathText` rendered KaTeX
+  with `output: "html"`, which emits only the visual span that KaTeX itself
+  marks `aria-hidden`. Every expression in every step and final answer was
+  announced as nothing. Restored to KaTeX's default `htmlAndMathml`, so the
+  MathML copy carries the content.
+- **The topic picker is keyboard-operable.** Options were `<div>`s with a
+  click handler — not focusable, no roles — so the required topic could not
+  be chosen without a mouse. Rebuilt on the ARIA combobox/listbox pattern:
+  `role="combobox"` with `aria-expanded`/`aria-haspopup`/`aria-controls`,
+  `role="option"` with `aria-selected`, arrow keys, Home/End, Enter/Space to
+  choose, and Escape to dismiss, tracked via `aria-activedescendant`.
+- **Form labels point at real elements.** The `<label for>` on the Solver
+  topic select and both Feedback selects referenced ids that existed nowhere
+  in the DOM. `Select` now accepts an `id` for its trigger, and the trigger
+  is named via `aria-labelledby`.
+- **The sidebar toggle has an accessible name** — previously a bare button
+  wrapping an SVG, announced only as "button". Now labelled, with
+  `aria-expanded` and `aria-controls`.
+- **A collapsed sidebar leaves the tab order.** It was hidden with `w-0
+  overflow-hidden`, which hides nothing from assistive tech, so keyboard
+  users tabbed through seven invisible links before reaching the page. Now
+  marked `inert` (plus `aria-hidden`) when closed.
+- **The skip link works.** Its off-screen position was an inline style, which
+  outranks any stylesheet rule, so the `:focus` rule could never bring it
+  back on screen — it had never been visible. Both states now live in
+  `index.css`, and `<main>` takes `tabIndex={-1}` so activating it moves
+  focus rather than just scrolling.
+- **The confirm dialog is a real dialog.** No role, no name, no focus
+  management — Tab walked straight behind the backdrop, and this is the
+  gate on "clear all history". Now `role="dialog"` + `aria-modal` with
+  `aria-labelledby`/`aria-describedby`, initial focus on Cancel, a Tab trap,
+  Escape to cancel, and focus restored to whatever opened it.
+
 ## [1.13.1] - 2026-08-15
 
 ### Changed
@@ -80,7 +121,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Toasts raised in the same millisecond no longer collide. Ids came from
   `Date.now()`, so two simultaneous notifications shared a React key and
   dismissed each other.
-
 ## [1.13.0] - 2026-07-21
 
 Phase 1 of the mathematical state semantics architecture

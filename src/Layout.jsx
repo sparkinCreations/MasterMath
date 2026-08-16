@@ -130,7 +130,9 @@ export default function Layout({ children }) {
         <div className="flex flex-1">
           <AppSidebar />
 
-          <main id="main-content" className="flex-1 flex flex-col" role="main">
+          {/* tabIndex={-1} so the skip link actually moves focus here, not
+              just the scroll position. */}
+          <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none" role="main">
             <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-sm" role="banner">
               <div className="flex items-center justify-between">
                 <SidebarTrigger className="hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
