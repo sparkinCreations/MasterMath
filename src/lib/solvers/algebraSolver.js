@@ -8,6 +8,8 @@ import {
   formatNumber,
   sampleFunction,
   expressionsNumericallyEqual,
+  findUndefinedRegions,
+  formatRestriction,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -427,13 +429,31 @@ function solveNumerically(equation, variable) {
   const constant = detectConstantDifference(evalReal);
   if (constant !== null) {
     if (Math.abs(constant) < 1e-9) {
+      // An identity holds wherever BOTH sides are defined. Simplifying
+      // 1/(x-1) = 1/(x-1) to 0 = 0 loses that x = 1 was never allowed, so the
+      // domain is read off the original sides, not the simplified difference.
+      const restrictions = domainRestrictionsOf([left, right], variable);
+      if (restrictions.length === 0) {
+        return {
+          steps: [
+            `Rewrite as ${beautify(expression)} = 0`,
+            `The ${variable} terms cancel — the two sides are identical for every value of ${variable}.`,
+            'This is an identity: every real number is a solution.',
+          ],
+          answer: `All real numbers (identity — true for every ${variable})`,
+          solutions: [],
+        };
+      }
+      const undefinedFor = restrictions.map((r) => formatRestriction(r, variable)).join(' and for ');
+      const allowed = restrictions.map((r) => formatRestriction(r, variable, { allowed: true })).join(' and ');
       return {
         steps: [
+          `Before simplifying, note where the original equation is defined: it is undefined for ${undefinedFor}.`,
           `Rewrite as ${beautify(expression)} = 0`,
-          `The ${variable} terms cancel — the two sides are identical for every value of ${variable}.`,
-          'This is an identity: every real number is a solution.',
+          `The ${variable} terms cancel — the two sides are identical wherever they are both defined.`,
+          `This is an identity on its domain: every real number with ${allowed} is a solution. Values where the original expression is undefined are not solutions, even though the simplified form 0 = 0 would allow them.`,
         ],
-        answer: `All real numbers (identity — true for every ${variable})`,
+        answer: `All real numbers with ${allowed} (identity on its domain)`,
         solutions: [],
       };
     }
@@ -511,9 +531,39 @@ function solveNumerically(equation, variable) {
 // differ by a constant. Returns that constant, or null when not constant.
 const CONSTANT_PROBE_POINTS = [-9.7, -4.3, -1.1, 0.6, 2.9, 7.4, 23.7];
 
+// Where either side of an equation is undefined over the reals — poles,
+// negative radicands, non-positive log arguments — merged and de-duplicated.
+// The identity branch above needs this so the domain isn't lost in the
+// simplification; both sides are checked because x = 1 must be excluded from
+// "x = 1/(x-1)·(x-1)" whichever side the trouble sits on.
+function domainRestrictionsOf(sides, variable) {
+  const regions = [];
+  for (const side of sides) {
+    for (const r of findUndefinedRegions(side.trim(), variable)) {
+      // Same edge means equal infinities or values within tolerance —
+      // (-∞) − (-∞) is NaN, so a plain difference test would never dedupe.
+      const sameEdge = (a, b) => a === b || Math.abs(a - b) < 1e-6;
+      const dup = regions.some((q) => sameEdge(q.from, r.from) && sameEdge(q.to, r.to));
+      if (!dup) regions.push(r);
+    }
+  }
+  return regions.sort((a, b) => (a.from ?? -Infinity) - (b.from ?? -Infinity));
+}
+
 function detectConstantDifference(evalReal) {
-  const values = CONSTANT_PROBE_POINTS.map(evalReal).filter(Number.isFinite);
-  if (values.length < 5) return null;
+  let values = CONSTANT_PROBE_POINTS.map(evalReal).filter(Number.isFinite);
+  // A restricted domain (sqrt, ln) can leave too few of the fixed probes
+  // defined. Before giving up, probe a denser sweep so an identity that
+  // holds on, say, x ≥ 2 is still recognised as constant where it exists —
+  // otherwise the scan below reports five grid points as "solutions".
+  if (values.length < 5) {
+    values = [];
+    for (let x = -50; x <= 50; x += 0.37) {
+      const v = evalReal(x);
+      if (Number.isFinite(v)) values.push(v);
+    }
+    if (values.length < 5) return null;
+  }
   const min = Math.min(...values);
   const max = Math.max(...values);
   if (max - min > 1e-9 * (1 + Math.abs(max))) return null;

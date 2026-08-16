@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-08-16
+
+QA report items 3, 4, 8, 9 and 10: domain bookkeeping and the extrema logic
+— the findings that gave mathematically wrong or incomplete analyses.
+
+### Fixed
+
+- **Identities keep their domain.** `1/(x-1) = 1/(x-1)` returned "All real
+  numbers", including x = 1 where the original equation is undefined. The
+  restrictions are now read off the *original* sides before anything is
+  simplified: "All real numbers with x ≠ 1 (identity on its domain)", with a
+  step that names where the equation is undefined and why the simplified
+  0 = 0 doesn't get to reinstate it. Works for poles, radicands and logs —
+  `sqrt(x-2) = sqrt(x-2)` gives x ≥ 2, `ln(x) = ln(x)` gives x > 0 — and a
+  plain identity like `2x+3 = 2x+3` still reads "All real numbers".
+- **Identities on restricted domains no longer report grid points as
+  solutions.** `sqrt(x-2) = sqrt(x-2)` used to answer "x = 2 or x = 2.5 or
+  x = 3 …": the constant-difference probe needed five defined samples and
+  most of its fixed probe points sat where sqrt is undefined, so the identity
+  went unrecognised and the numeric scan called every point a root. The
+  probe now sweeps densely before giving up.
+- **Cusps are named as cusps.** `abs(x)`'s minimum at (0, 0) was attributed
+  to f′(x) = 0; the derivative does not exist there. Each extremum now
+  records how it arises — stationary (f′ = 0) or corner/cusp (one-sided
+  slopes disagree) — and the step says explicitly that a cusp minimum is a
+  critical point but *not* a stationary point.
+- **Domain endpoints are extrema too.** `sqrt(x-2)` said "No local extrema",
+  missing (2, 0). Finite domain edges where f is defined are now checked and
+  reported in their own words — "Absolute minimum at the domain endpoint
+  (2, 0): … this is where the graph begins — and since f is increasing from
+  there, no other value is lower" — rather than folded into the local-extrema
+  list, since they are not two-sided local extrema. "Absolute" is claimed only
+  when f is monotonic on its domain; `sqrt(4-x²)` gets its stationary maximum
+  at (0, 2) plus endpoint minima at ±2 with no absolute claim.
+- **`ln(x)`'s domain wording is right.** "undefined for x < 0" omitted 0. Each
+  undefined region now knows whether its edge is itself undefined, so ln(x)
+  reads "undefined for x ≤ 0 — so the domain is x > 0" while sqrt(x-2), which
+  is defined at 2, reads "undefined for x < 2 — so the domain is x ≥ 2".
+- **Removable discontinuities are explained and drawn.** `(x²-1)/(x-1)` said
+  only "undefined for x = 1". It now reports "Hole (removable discontinuity)
+  at (1, 2) … Simplifying, f(x) = x + 1 for every x ≠ 1: a common factor
+  cancels, but the original is still undefined at x = 1", distinguishes it
+  from an asymptote (both one-sided limits exist and agree), draws a hollow
+  marker labelled "hole" on the graph, and includes it in the graph's text
+  description.
+
+### Changed
+
+- The domain/undefined-region finder is now shared (`findUndefinedRegions`
+  and `formatRestriction` in `solverUtils.js`) between the algebra and
+  functions solvers, so both describe restrictions the same way.
+
 ## [1.16.1] - 2026-08-16
 
 QA report items 6 and 7: the two findings that silently produced wrong

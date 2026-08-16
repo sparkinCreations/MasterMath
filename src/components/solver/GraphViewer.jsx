@@ -360,6 +360,22 @@ export default function GraphViewer({ functionData }) {
                 />
               )}
 
+              {/* Holes (removable discontinuities) — hollow: the point is
+                  exactly where the function is NOT defined. Drawn after the
+                  curve so the gap sits on top of the line. */}
+              {(ann.holes || []).filter((h) => inX(h.x) && inY(h.y)).map((h, i) => (
+                <ReferenceDot
+                  key={`hole-${i}`}
+                  x={h.x}
+                  y={h.y}
+                  r={6}
+                  fill={tooltipBg}
+                  stroke={asymptoteColor}
+                  strokeWidth={3}
+                  label={{ value: 'hole', position: 'top', fill: asymptoteColor, fontSize: 12, fontWeight: 'bold' }}
+                />
+              ))}
+
               {/* The limit value marker — hollow: the function need not reach it */}
               {ann.limitPoint && inX(ann.limitPoint.x) && inY(ann.limitPoint.y) && (
                 <ReferenceDot

@@ -42,6 +42,107 @@ export function loadAlgebrite() {
  * blame the user's formatting when the input was valid.
  */
 /**
+ * Where is an expression undefined over the reals?
+ *
+ * Numeric: sample a grid, find the runs where evaluation fails or is
+ * non-real, and bisect each run's edges. Each region reports whether its
+ * edges are themselves undefined (closed) — sqrt(x-2) is defined AT 2 so
+ * its restriction is "x < 2", while ln(x) is undefined AT 0 so its
+ * restriction is "x ≤ 0". Zero-width regions are isolated points (1/(x-1)
+ * at 1). Also snaps edges to clean values (0.9999999 → 1).
+ *
+ * Used by the algebra solver to carry a domain onto identity answers and by
+ * the functions solver for its domain step.
+ */
+export function findUndefinedRegions(expression, variable, options = {}) {
+  const { min = -20, max = 20, step = 0.05 } = options;
+  const definedAt = (x) => {
+    try {
+      const v = math.evaluate(expression, { [variable]: x });
+      return typeof v === 'number' && Number.isFinite(v);
+    } catch {
+      return false;
+    }
+  };
+  const snap = (x) => {
+    for (const d of [1, 2, 3, 4, 5, 6, 8, 10, 12]) {
+      const n = x * d;
+      if (Math.abs(n - Math.round(n)) < 1e-6) return Math.round(n) / d;
+    }
+    return Math.round(x * 1e6) / 1e6;
+  };
+  const refine = (definedX, undefinedX) => {
+    let lo = definedX;
+    let hi = undefinedX;
+    for (let i = 0; i < 50; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (definedAt(mid)) lo = mid; else hi = mid;
+    }
+    return snap((lo + hi) / 2);
+  };
+
+  const n = Math.round((max - min) / step);
+  const grid = [];
+  for (let i = 0; i <= n; i += 1) {
+    const x = Math.round((min + i * step) * 1e6) / 1e6;
+    grid.push({ x, ok: definedAt(x) });
+  }
+
+  const regions = [];
+  let runStart = null;
+  const close = (endIdx) => {
+    // run is grid[runStart .. endIdx-1] undefined; endIdx defined (or past end)
+    const from = runStart === 0 ? -Infinity : refine(grid[runStart - 1].x, grid[runStart].x);
+    const to = endIdx >= grid.length ? Infinity : refine(grid[endIdx].x, grid[endIdx - 1].x);
+    regions.push({
+      from,
+      to,
+      fromClosed: Number.isFinite(from) ? !definedAt(from) : false,
+      toClosed: Number.isFinite(to) ? !definedAt(to) : false,
+    });
+    runStart = null;
+  };
+  for (let i = 0; i < grid.length; i += 1) {
+    if (!grid[i].ok && runStart === null) runStart = i;
+    if (grid[i].ok && runStart !== null) close(i);
+  }
+  if (runStart !== null) close(grid.length);
+
+  // Grid points are exact multiples of `step` (rounded), so isolated poles at
+  // clean values (1/(x-1) at 1) are hit directly. A pole at an off-grid value
+  // (1/(3x-1) at 1/3) can be stepped over; callers with Algebrite to hand
+  // supplement this with the denominator's roots.
+  return regions;
+}
+
+// Format an undefined region either as the set where the expression is
+// UNDEFINED ("x = 1", "x ≤ 0", "x < 2", "2 ≤ x < 3") or, with
+// { allowed: true }, as the restriction a student writes on the domain
+// ("x ≠ 1", "x > 0", "x ≥ 2").
+export function formatRestriction(region, variable, options = {}) {
+  const { allowed = false, fmt = formatNumber } = options;
+  const { from, to, fromClosed, toClosed } = region;
+  const point = Number.isFinite(from) && Number.isFinite(to) && Math.abs(to - from) < 1e-9;
+  if (point) return `${variable} ${allowed ? '≠' : '='} ${fmt(from)}`;
+  if (!Number.isFinite(from) && !Number.isFinite(to)) return allowed ? 'no real numbers' : 'all real numbers';
+  if (!Number.isFinite(from)) {
+    // undefined on (-∞, to) or (-∞, to]
+    return allowed
+      ? `${variable} ${toClosed ? '>' : '≥'} ${fmt(to)}`
+      : `${variable} ${toClosed ? '≤' : '<'} ${fmt(to)}`;
+  }
+  if (!Number.isFinite(to)) {
+    return allowed
+      ? `${variable} ${fromClosed ? '<' : '≤'} ${fmt(from)}`
+      : `${variable} ${fromClosed ? '≥' : '>'} ${fmt(from)}`;
+  }
+  // A bounded gap: the allowed form is a union, which reads worse than the
+  // gap itself, so both modes name the gap.
+  const gap = `${fmt(from)} ${fromClosed ? '≤' : '<'} ${variable} ${toClosed ? '≤' : '<'} ${fmt(to)}`;
+  return allowed ? `not ${gap}` : gap;
+}
+
+/**
  * Did Algebrite give up and hand the operator back unevaluated?
  *
  * When Algebrite cannot differentiate or integrate something it does not

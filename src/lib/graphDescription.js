@@ -63,6 +63,12 @@ export function describeGraphFeatures(functionData) {
     features.push(`Crosses the y-axis at y = ${fmt(ann.yIntercept.y)}.`);
   }
 
+  // Holes (removable discontinuities)
+  const holes = Array.isArray(ann.holes) ? ann.holes.filter((h) => Number.isFinite(h?.x) && Number.isFinite(h?.y)) : [];
+  if (holes.length) {
+    features.push(`${plural(holes.length, "A hole", "Holes")} at ${list(holes.map((h) => point(h.x, h.y)))} — the function is undefined there but does not blow up.`);
+  }
+
   // Asymptotes
   const vas = Array.isArray(ann.verticalAsymptotes) ? ann.verticalAsymptotes.filter(Number.isFinite) : [];
   if (vas.length) {

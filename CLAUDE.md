@@ -127,6 +127,7 @@ Each solver module exports a solve function that returns a consistent solution o
       intercepts: [{x, y: 0}],
       yIntercept: {x: 0, y},
       verticalAsymptotes: [x],
+      holes: [{x, y}],          // removable discontinuities: hollow marker labelled "hole"
       guideline: {x, label},    // limits: the approach point
       limitPoint: {x, y},       // limits: hollow marker at (a, L)
       shaded: {from, to, fromLabel, toLabel},  // definite integrals: shaded area over [a,b]

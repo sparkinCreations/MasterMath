@@ -27,6 +27,8 @@ import {
   sampleFunction,
   rewriteReciprocalTrig,
   parsesAsMath,
+  findUndefinedRegions,
+  formatRestriction,
 } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -83,10 +85,16 @@ export async function solveFunctions(expression) {
         description: describeGraph(features, variable),
         // Computed features rendered as markers by GraphViewer.
         annotations: {
-          extrema: features.extrema.map((e) => ({ x: e.x, y: e.y, kind: e.kind })),
+          extrema: [
+            ...features.extrema.map((e) => ({ x: e.x, y: e.y, kind: e.kind })),
+            // Endpoint extrema are drawn like the others; the step text carries
+            // the distinction, the marker just shows where the value is.
+            ...features.endpointExtrema.map((e) => ({ x: e.x, y: e.y, kind: e.kind })),
+          ],
           intercepts: features.xIntercepts.list.map((r) => ({ x: r.numeric, y: 0 })),
           yIntercept: features.yIntercept,
           verticalAsymptotes: features.verticalAsymptotes,
+          holes: features.holes.map((h) => ({ x: h.x, y: h.y })),
         },
       } : null,
       features,
@@ -182,25 +190,32 @@ function analyzeFunction(func, variable, Algebrite) {
     grid.push({ x, y: evalAt(func, variable, x) });
   }
 
-  const domain = findDomain(func, variable, grid);
+  const domain = findDomain(func, variable);
   const verticalAsymptotes = findVerticalAsymptotes(func, variable, grid, Algebrite);
+  const holes = findHoles(func, variable, domain, verticalAsymptotes, Algebrite);
   const xIntercepts = findXIntercepts(func, variable, grid, Algebrite, isPeriodic);
   const yIntercept = Number.isFinite(evalAt(func, variable, 0))
     ? { x: 0, y: snap(evalAt(func, variable, 0)) }
     : null;
   let { extrema, monotonic } = findExtrema(func, variable, grid, Algebrite, isPeriodic);
+  // Monotonic on the part of the window where f is defined — kept for the
+  // endpoint reasoning below even when the global claim has to be dropped.
+  const monotonicOnDomain = monotonic;
   // A global monotonicity claim is only honest on an unbroken domain — 1/(x-2)
   // decreases on each side of its asymptote but is not "decreasing on ℝ".
   if (domain.length > 0 || verticalAsymptotes.length > 0) monotonic = null;
+  const endpointExtrema = findEndpointExtrema(func, variable, domain, extrema, monotonicOnDomain);
   const inflections = findInflections(func, variable, Algebrite);
   const horizontalAsymptote = findHorizontalAsymptote(func, variable);
   const quadratic = analyzeQuadratic(func, variable, Algebrite);
 
   return {
     domain,
+    holes,
     xIntercepts,
     yIntercept,
     extrema,
+    endpointExtrema,
     monotonic,
     inflections,
     verticalAsymptotes,
@@ -210,38 +225,79 @@ function analyzeFunction(func, variable, Algebrite) {
   };
 }
 
-// Defined/undefined intervals from the fine grid, boundaries bisection-refined.
-function findDomain(func, variable, grid) {
-  const restrictions = [];
-  let runStart = null; // start x of current undefined run
-
-  const refineBoundary = (definedX, undefinedX) => {
-    // Bisect on definedness to locate the domain edge.
-    let lo = definedX;
-    let hi = undefinedX;
-    for (let i = 0; i < 40; i += 1) {
-      const mid = (lo + hi) / 2;
-      if (Number.isFinite(evalAt(func, variable, mid))) lo = mid; else hi = mid;
-    }
-    return snap((lo + hi) / 2);
-  };
-
-  for (let i = 0; i < grid.length; i += 1) {
-    const undef = !Number.isFinite(grid[i].y);
-    if (undef && runStart === null) runStart = i;
-    if (!undef && runStart !== null) {
-      const from = runStart === 0 ? -Infinity : refineBoundary(grid[runStart - 1].x, grid[runStart].x);
-      const to = refineBoundary(grid[i].x, grid[i - 1].x);
-      restrictions.push({ from, to });
-      runStart = null;
+// An extremum sitting on the edge of the domain. sqrt(x-2) has no stationary
+// point, but (2, 0) is where the function starts and it is the lowest value
+// f ever takes — a student who answers "no extrema" has missed the minimum.
+// These are NOT local extrema in the strict two-sided sense (there is no
+// left neighbourhood), so they are reported separately and named for what
+// they are: minimum/maximum at the domain endpoint. When f is monotonic on
+// its domain the endpoint value is also the absolute extremum, and we say so;
+// otherwise we don't claim it.
+function findEndpointExtrema(func, variable, domain, extrema, monotonicOnDomain) {
+  const found = [];
+  for (const r of domain) {
+    // Each finite edge of an undefined region is a domain endpoint. The
+    // function must be defined AT the edge (sqrt(x-2) at 2 — yes; ln(x) at 0
+    // — no, that's an asymptote, not an endpoint value).
+    for (const [edge, side] of [[r.to, +1], [r.from, -1]]) {
+      if (!Number.isFinite(edge)) continue;
+      const y = evalAt(func, variable, edge);
+      if (!Number.isFinite(y)) continue;
+      // Compare with the interior: side = +1 means the domain continues to
+      // the right of `edge` (undefined region ends here), -1 to the left.
+      const inner = evalAt(func, variable, edge + side * 1e-3);
+      const inner2 = evalAt(func, variable, edge + side * 1e-2);
+      if (!Number.isFinite(inner) || !Number.isFinite(inner2)) continue;
+      let kind = null;
+      if (inner > y && inner2 > y) kind = 'min';
+      if (inner < y && inner2 < y) kind = 'max';
+      if (!kind) continue;
+      if (extrema.some((e) => Math.abs(e.x - edge) < 1e-6)) continue;
+      const absolute =
+        (kind === 'min' && monotonicOnDomain === 'increasing' && side === +1) ||
+        (kind === 'max' && monotonicOnDomain === 'decreasing' && side === +1) ||
+        (kind === 'min' && monotonicOnDomain === 'decreasing' && side === -1) ||
+        (kind === 'max' && monotonicOnDomain === 'increasing' && side === -1);
+      found.push({ x: snap(edge), y: snap(y), kind, absolute, side });
     }
   }
-  if (runStart !== null) {
-    const from = runStart === 0 ? -Infinity : refineBoundary(grid[runStart - 1].x, grid[runStart].x);
-    restrictions.push({ from, to: Infinity });
-  }
+  return found;
+}
 
-  return restrictions; // empty array = defined everywhere in the window
+// A removable discontinuity: an isolated undefined point where f does not
+// blow up — both one-sided limits exist and agree. (x^2-1)/(x-1) at x = 1 is
+// the classic: the factor (x-1) cancels, so f is x+1 everywhere except that
+// one point, and the graph has a hole at (1, 2). Reported with the
+// simplified form when Algebrite can produce one, so the "why" is visible.
+function findHoles(func, variable, domain, verticalAsymptotes, Algebrite) {
+  const holes = [];
+  for (const r of domain) {
+    if (!Number.isFinite(r.from) || !Number.isFinite(r.to)) continue;
+    if (Math.abs(r.to - r.from) > 1e-6) continue; // not an isolated point
+    const c = r.from;
+    if (verticalAsymptotes.some((a) => Math.abs(a - c) < 1e-6)) continue;
+    const l = evalAt(func, variable, c - 1e-6);
+    const rr = evalAt(func, variable, c + 1e-6);
+    if (!Number.isFinite(l) || !Number.isFinite(rr)) continue;
+    if (Math.abs(l - rr) > 1e-4 * (1 + Math.abs(l))) continue; // a jump, not a hole
+    const y = snap((l + rr) / 2);
+    let simplified = null;
+    if (Algebrite) {
+      try {
+        const s = String(Algebrite.run(`simplify(${rewriteReciprocalTrig(func)})`)).trim();
+        if (s && !/nil|stop|error/i.test(s) && s.replace(/\s/g, '') !== func.replace(/\s/g, '')) simplified = s;
+      } catch { /* optional */ }
+    }
+    holes.push({ x: snap(c), y, simplified });
+  }
+  return holes;
+}
+
+// Undefined intervals across the analysis window, edges bisection-refined,
+// each edge flagged closed (undefined at the edge itself: ln(x) at 0) or open
+// (defined at the edge: sqrt(x-2) at 2). Shared with the algebra solver.
+function findDomain(func, variable) {
+  return findUndefinedRegions(func, variable, { min: WINDOW.min, max: WINDOW.max, step: FINE_STEP });
 }
 
 function findVerticalAsymptotes(func, variable, grid, Algebrite) {
@@ -260,7 +316,7 @@ function findVerticalAsymptotes(func, variable, grid, Algebrite) {
   }
 
   // Numeric: domain-restriction boundaries and isolated undefined points.
-  for (const r of findDomain(func, variable, grid)) {
+  for (const r of findDomain(func, variable)) {
     if (Number.isFinite(r.from)) candidates.add(r.from);
     if (Number.isFinite(r.to)) candidates.add(r.to);
   }
@@ -321,7 +377,7 @@ function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
   // Domain-boundary roots: a function can start exactly ON the axis, like
   // sqrt(x-3) at (3, 0) — invisible to sign changes (no left neighbor) and to
   // polynomial root-finding. Check each finite domain edge directly.
-  for (const r of findDomain(func, variable, grid)) {
+  for (const r of findDomain(func, variable)) {
     for (const edge of [r.from, r.to]) {
       if (Number.isFinite(edge)) push(edge);
     }
@@ -329,6 +385,28 @@ function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
 
   found.sort((p, q) => p.numeric - q.numeric);
   return { list: found.slice(0, isPeriodic ? 8 : 6), truncated: found.length > (isPeriodic ? 8 : 6) };
+}
+
+// How an extremum arises. The step text used to say "(from f′(x) = 0)" for
+// every extremum, which is false at a corner: abs(x) has its minimum at 0
+// where f′ does not exist. So each extremum records its origin:
+//   'stationary' — f′(x) = 0 there (the textbook critical point);
+//   'cusp'       — f is not differentiable there (a corner or cusp), yet it
+//                  is still an extremum; also a critical point, but not from
+//                  f′ = 0.
+// Domain-endpoint extrema are found separately (findEndpointExtrema) and
+// carry origin 'endpoint'.
+function extremumOrigin(func, variable, x) {
+  const h = 1e-5;
+  const y = evalAt(func, variable, x);
+  const left = (y - evalAt(func, variable, x - h)) / h;
+  const right = (evalAt(func, variable, x + h) - y) / h;
+  if (!Number.isFinite(left) || !Number.isFinite(right)) return 'stationary';
+  // Both one-sided slopes vanish: a genuine stationary point.
+  if (Math.abs(left) < 1e-3 && Math.abs(right) < 1e-3) return 'stationary';
+  // One-sided slopes disagree by a clear margin: a corner/cusp.
+  if (Math.abs(left - right) > 1e-2) return 'cusp';
+  return 'stationary';
 }
 
 function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
@@ -344,7 +422,7 @@ function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
     if (y <= l && y <= r && (y < l || y < r)) kind = 'min';
     if (!kind) return; // saddle / not an extremum — do not report
     if (extrema.some((e) => Math.abs(e.x - x) < 1e-5)) return;
-    extrema.push({ x: snap(x), y: snap(y), kind });
+    extrema.push({ x: snap(x), y: snap(y), kind, origin: extremumOrigin(func, variable, x) });
   };
 
   let derivativeStr = null;
@@ -455,13 +533,6 @@ function analyzeQuadratic(func, variable, Algebrite) {
 
 // --- presentation -------------------------------------------------------------
 
-function fmtInterval(r, variable) {
-  if (!Number.isFinite(r.from) && Number.isFinite(r.to)) return `${variable} < ${formatNumber(r.to)}`;
-  if (Number.isFinite(r.from) && !Number.isFinite(r.to)) return `${variable} > ${formatNumber(r.from)}`;
-  if (Math.abs(r.to - r.from) < 1e-6) return `${variable} = ${formatNumber(r.from)}`;
-  return `${formatNumber(r.from)} < ${variable} < ${formatNumber(r.to)}`;
-}
-
 function buildSteps(func, variable, f) {
   const steps = [];
   steps.push(`Analyze the function: f(${variable}) = ${beautify(func)}`);
@@ -470,8 +541,20 @@ function buildSteps(func, variable, f) {
   if (f.domain.length === 0) {
     steps.push(`Domain: all real numbers (defined everywhere in the analyzed window ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}).`);
   } else {
-    const parts = f.domain.map((r) => fmtInterval(r, variable));
-    steps.push(`Domain restriction: f is undefined for ${parts.join(' and for ')}.`);
+    // "undefined for x ≤ 0" (ln: the edge itself is undefined) vs
+    // "undefined for x < 2" (sqrt: defined at the edge) — the closed/open
+    // flag on each region is what makes that distinction honest.
+    const undefinedFor = f.domain.map((r) => formatRestriction(r, variable)).join(' and for ');
+    const allowed = f.domain.map((r) => formatRestriction(r, variable, { allowed: true })).join(' and ');
+    steps.push(`Domain restriction: f is undefined for ${undefinedFor} — so the domain is ${allowed}.`);
+  }
+
+  // Holes (removable discontinuities) — explained, not just "undefined at".
+  for (const h of f.holes) {
+    const why = h.simplified
+      ? ` Simplifying, f(${variable}) = ${beautify(h.simplified)} for every ${variable} ≠ ${formatNumber(h.x)}: a common factor cancels, but the original is still undefined at ${variable} = ${formatNumber(h.x)}.`
+      : '';
+    steps.push(`Hole (removable discontinuity) at (${formatNumber(h.x)}, ${formatNumber(h.y)}): the function is undefined at ${variable} = ${formatNumber(h.x)}, but it does not blow up there — the graph is a single point short of continuous.${why}`);
   }
 
   // Quadratic-specific insights (exact)
@@ -496,12 +579,29 @@ function buildSteps(func, variable, f) {
   if (!f.quadratic) {
     if (f.extrema.length > 0) {
       for (const e of f.extrema) {
-        steps.push(`Local ${e.kind === 'max' ? 'maximum' : 'minimum'} at (${formatNumber(e.x)}, ${formatNumber(e.y)}) (from f′(${variable}) = 0).`);
+        const name = e.kind === 'max' ? 'maximum' : 'minimum';
+        if (e.origin === 'cusp') {
+          steps.push(`Local ${name} at (${formatNumber(e.x)}, ${formatNumber(e.y)}) — at a corner/cusp: f′(${variable}) does not exist there (the slopes on either side disagree), yet it is still a critical point and an extremum. Not a stationary point: this does NOT come from f′(${variable}) = 0.`);
+        } else {
+          steps.push(`Local ${name} at (${formatNumber(e.x)}, ${formatNumber(e.y)}) (from f′(${variable}) = 0).`);
+        }
       }
     } else if (f.monotonic) {
       steps.push(`No local extrema — the function is strictly ${f.monotonic} across the window.`);
-    } else if (!f.isPeriodic) {
+    } else if (f.endpointExtrema.length === 0 && !f.isPeriodic) {
       steps.push('No local extrema found in the analyzed window.');
+    }
+    // Endpoint extrema are reported in their own words: they are where the
+    // function starts or stops, not two-sided local extrema.
+    for (const e of f.endpointExtrema) {
+      const name = e.kind === 'max' ? 'maximum' : 'minimum';
+      const which = e.absolute ? `absolute ${name}` : name;
+      const begins = e.side === +1;
+      // min where the graph begins ⇒ f increases from it; max where it
+      // begins ⇒ decreases from it; min where it ends ⇒ f decreases toward
+      // it; max where it ends ⇒ increases toward it.
+      const dir = (e.kind === 'min') === begins ? 'increasing' : 'decreasing';
+      steps.push(`${which.charAt(0).toUpperCase() + which.slice(1)} at the domain endpoint (${formatNumber(e.x)}, ${formatNumber(e.y)}): f is undefined ${begins ? 'to the left' : 'to the right'}, so this is where the graph ${begins ? 'begins' : 'ends'}${e.absolute ? ` — and since f is ${dir} ${begins ? 'from' : 'toward'} there, no other value is ${e.kind === 'min' ? 'lower' : 'higher'}` : ''}. There is no stationary point here (f′ ≠ 0); the extremum comes from the edge of the domain.`);
     }
   }
 
@@ -549,6 +649,8 @@ function describeGraph(f, variable) {
   if (f.verticalAsymptotes.length > 0) bits.push(`vertical asymptote at ${variable} = ${f.verticalAsymptotes.map(formatNumber).join(', ')}`);
   if (f.quadratic) bits.push(`vertex at (${formatNumber(f.quadratic.vertex.x)}, ${formatNumber(f.quadratic.vertex.y)})`);
   else if (f.extrema.length > 0) bits.push(`${f.extrema.length} local extrem${f.extrema.length > 1 ? 'a' : 'um'}`);
+  if (f.endpointExtrema.length > 0) bits.push(f.endpointExtrema.map((e) => `${e.absolute ? 'absolute ' : ''}${e.kind === 'min' ? 'minimum' : 'maximum'} at the domain endpoint (${formatNumber(e.x)}, ${formatNumber(e.y)})`).join('; '));
+  if (f.holes.length > 0) bits.push(`hole at ${f.holes.map((h) => `(${formatNumber(h.x)}, ${formatNumber(h.y)})`).join(', ')}`);
   if (f.xIntercepts.list.length > 0) bits.push(`x-intercepts at ${f.xIntercepts.list.slice(0, 3).map((r) => r.display).join(', ')}`);
   return bits.length ? `Key features: ${bits.join('; ')}.` : `The function over ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}`;
 }
