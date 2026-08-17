@@ -44,7 +44,11 @@ export function describeGraphFeatures(functionData) {
   }
 
   // Extrema
-  const extrema = Array.isArray(ann.extrema) ? ann.extrema.filter((e) => Number.isFinite(e?.x) && Number.isFinite(e?.y)) : [];
+  const allExtrema = Array.isArray(ann.extrema) ? ann.extrema.filter((e) => Number.isFinite(e?.x) && Number.isFinite(e?.y)) : [];
+  // Endpoint extrema are not two-sided local extrema; say what they are,
+  // matching the solver's own step wording.
+  const extrema = allExtrema.filter((e) => !e.endpoint);
+  const endpoints = allExtrema.filter((e) => e.endpoint);
   const maxima = extrema.filter((e) => e.kind === "max");
   const minima = extrema.filter((e) => e.kind === "min");
   if (maxima.length) {
@@ -52,6 +56,10 @@ export function describeGraphFeatures(functionData) {
   }
   if (minima.length) {
     features.push(`Local ${plural(minima.length, "minimum", "minima")} at ${list(minima.map((e) => point(e.x, e.y)))}.`);
+  }
+  for (const e of endpoints) {
+    const name = e.kind === "max" ? "maximum" : "minimum";
+    features.push(`${e.absolute ? `Absolute ${name}` : name.charAt(0).toUpperCase() + name.slice(1)} at the domain endpoint ${point(e.x, e.y)}.`);
   }
 
   // Intercepts

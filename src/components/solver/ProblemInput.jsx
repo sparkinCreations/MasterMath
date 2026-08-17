@@ -189,7 +189,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
               onClick={() => loadExample(ex)}
               className="text-left p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm"
             >
-              <span className="font-medium text-indigo-700 dark:text-indigo-300 capitalize">{ex.topic}:</span>{" "}
+              <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
               <span className="text-gray-700 dark:text-gray-300">{ex.problem}</span>
             </button>
           ))}

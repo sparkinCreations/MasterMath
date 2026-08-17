@@ -135,7 +135,7 @@ export default function Layout({ children }) {
 
           {/* tabIndex={-1} so the skip link actually moves focus here, not
               just the scroll position. */}
-          <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none" role="main">
+          <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 flex flex-col focus:outline-none" role="main">
             <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-sm" role="banner">
               <div className="flex items-center justify-between">
                 <SidebarTrigger className="hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
@@ -157,8 +157,9 @@ export default function Layout({ children }) {
                     alt="MasterMath Logo"
                     className="w-6 h-6 rounded-lg shadow-md"
                   />
-                  <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    MasterMath <span className="text-xs font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span>
+                  <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
+                    MasterMath
+                    <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">by sparkinCreations™</span>
                   </p>
                 </Link>
                 <button

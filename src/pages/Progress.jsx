@@ -147,7 +147,7 @@ export default function Progress() {
 
       <Card className="border-2 border-indigo-200 dark:border-gray-700 dark:bg-gray-800 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 border-b border-indigo-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-2">
             <CardTitle className="text-xl dark:text-gray-100">Problem History</CardTitle>
             {problems.length > 0 && (
               <div className="flex gap-2">

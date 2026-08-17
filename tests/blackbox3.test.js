@@ -117,3 +117,24 @@ test('odd roots are real for negative x in function analysis; cusp vs slow-stati
   // even roots keep their restricted domain
   assert.match((await solveProblem('x^(1/2)', 'functions')).answer, /domain: x ≥ 0/);
 });
+
+// ── UI-path pass.
+test('graph description names endpoint extrema as such, matching the steps', async () => {
+  const { describeGraphFeatures } = await import('../src/lib/graphDescription.js');
+  const r = await solveProblem('sqrt(x-2)', 'functions');
+  const f = describeGraphFeatures(r.graph);
+  assert.equal(f[0], 'Absolute minimum at the domain endpoint (2, 0).');
+  assert.ok(!f.some((x) => /Local minimum/.test(x)));
+  const s = await solveProblem('sqrt(9-x^2)', 'functions');
+  const g = describeGraphFeatures(s.graph);
+  assert.ok(g.includes('Local maximum at (0, 3).'));
+  assert.ok(g.includes('Minimum at the domain endpoint (-3, 0).'));
+});
+
+test('functions graph description complements the Key features panel instead of repeating it', async () => {
+  const q = await solveProblem('x^2-4*x+3', 'functions');
+  assert.match(q.graph.description, /^A parabola opening upward\./);
+  assert.doesNotMatch(q.graph.description, /Key features:/);
+  const e = await solveProblem('e^x', 'functions');
+  assert.match(e.graph.description, /^Strictly increasing/);
+});

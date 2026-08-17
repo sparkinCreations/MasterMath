@@ -15,6 +15,30 @@ function loadJsPDF() {
   return jsPDFPromise;
 }
 
+// jsPDF's built-in fonts (Helvetica) cover Latin-1 only. Anything else — and
+// solver output is full of ∫ π √ ≈ ≠ ≤ ≥ ′ θ ∈ ℤ → − · ² ✓ — is emitted as
+// garbage glyphs, silently. Rather than embed a 300 kB Unicode font in the
+// PDF chunk, PDF text is transliterated to readable ASCII/Latin-1 at the
+// boundary: π → pi, √ → sqrt, ≤ → <=, − → -, and so on. Markdown, JSON and
+// CSV exports are unaffected (they are UTF-8).
+const PDF_TRANSLITERATIONS = [
+  ['∫', 'integral '], ['π', 'pi'], ['√', 'sqrt'], ['≈', '~='], ['≠', '!='], ['≤', '<='], ['≥', '>='],
+  ['′', "'"], ['″', "''"], ['θ', 'theta'], ['∈', 'in'], ['ℤ', 'Z'], ['ℝ', 'R'], ['→', '->'], ['←', '<-'],
+  ['−', '-'], ['–', '-'], ['—', ' - '], ['·', '*'], ['×', 'x'], ['÷', '/'], ['∞', 'infinity'], ['✓', '(checked)'],
+  ['⁻¹', '^-1'], ['²', '^2'], ['³', '^3'], ['⁴', '^4'], ['⁵', '^5'], ['⁶', '^6'], ['⁷', '^7'], ['⁸', '^8'], ['⁹', '^9'],
+  ['⁰', '^0'], ['¹', '^1'], ['⁻', '^-'], ['⁺', '+'], ['½', '1/2'], ['⅓', '1/3'], ['¼', '1/4'], ['¾', '3/4'],
+  ['₀', '_0'], ['₁', '_1'], ['₂', '_2'], ['α', 'alpha'], ['β', 'beta'], ['Δ', 'Delta'], ['δ', 'delta'], ['ε', 'epsilon'],
+  ['λ', 'lambda'], ['μ', 'mu'], ['σ', 'sigma'], ['φ', 'phi'], ['ω', 'omega'], ['°', ' deg'], ['≡', '=='], ['±', '+/-'],
+  ['…', '...'], ['‘', "'"], ['’', "'"], ['“', '"'], ['”', '"'], ['•', '-'], ['⋅', '*'], ['∀', 'for all'], ['∃', 'there exists'],
+];
+export function pdfSafe(text) {
+  let out = String(text ?? '');
+  for (const [from, to] of PDF_TRANSLITERATIONS) out = out.split(from).join(to);
+  // Anything still outside Latin-1 becomes '?', which is at least honest and
+  // visible — never a silent wrong glyph.
+  return out.replace(/[^\x00-\xFF]/g, '?');
+}
+
 // Helper to extract solution text
 function getSolutionText(solution) {
   if (!solution) return '';
@@ -198,7 +222,7 @@ export async function exportAsPDF(problems, topicLabels) {
   doc.text('MasterMath Progress', 20, 20);
 
   doc.setFontSize(12);
-  doc.text(totalsLine(problems), 20, 35);
+  doc.text(pdfSafe(totalsLine(problems)), 20, 35);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
 
   let yPos = 60;
@@ -223,7 +247,7 @@ export async function exportAsPDF(problems, topicLabels) {
     yPos += 7;
 
     // Problem text with word wrap
-    const problemLines = doc.splitTextToSize(`Problem: ${p.problem}`, 170);
+    const problemLines = doc.splitTextToSize(pdfSafe(`Problem: ${p.problem}`), 170);
     doc.text(problemLines, margin + 5, yPos);
     yPos += problemLines.length * 5;
 
@@ -236,7 +260,7 @@ export async function exportAsPDF(problems, topicLabels) {
     const solutionText = getSolutionText(p.solution);
     if (solutionText) {
       const heading = entryStatus.label ? 'Result' : 'Solution';
-      const solutionLines = doc.splitTextToSize(`${heading}: ${solutionText}`, 170);
+      const solutionLines = doc.splitTextToSize(pdfSafe(`${heading}: ${solutionText}`), 170);
       doc.text(solutionLines, margin + 5, yPos);
       yPos += solutionLines.length * 5;
     }
@@ -257,7 +281,7 @@ export async function exportSolutionAsPDF(problem, topic, solution, topicLabels)
 
   // Title
   doc.setFontSize(18);
-  doc.text(`${topicLabels[topic] || topic} Problem`, margin, yPos);
+  doc.text(pdfSafe(`${topicLabels[topic] || topic} Problem`), margin, yPos);
   yPos += 15;
 
   // Problem
@@ -268,14 +292,14 @@ export async function exportSolutionAsPDF(problem, topic, solution, topicLabels)
 
   doc.setFont(undefined, 'normal');
   doc.setFontSize(11);
-  const problemLines = doc.splitTextToSize(problem, 170);
+  const problemLines = doc.splitTextToSize(pdfSafe(problem), 170);
   doc.text(problemLines, margin, yPos);
   yPos += problemLines.length * 7 + 10;
 
   // Status (only shown when the solve did not succeed)
   if (status.label) {
     doc.setFont(undefined, 'bold');
-    doc.text(`Status: ${status.label}`, margin, yPos);
+    doc.text(pdfSafe(`Status: ${status.label}`), margin, yPos);
     doc.setFont(undefined, 'normal');
     yPos += 10;
   }
@@ -290,7 +314,7 @@ export async function exportSolutionAsPDF(problem, topic, solution, topicLabels)
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     solution.steps.forEach((step, idx) => {
-      const stepLines = doc.splitTextToSize(`${idx + 1}. ${step}`, 165);
+      const stepLines = doc.splitTextToSize(pdfSafe(`${idx + 1}. ${step}`), 165);
 
       // Check page break
       if (yPos + stepLines.length * 6 > doc.internal.pageSize.height - 20) {
@@ -318,7 +342,7 @@ export async function exportSolutionAsPDF(problem, topic, solution, topicLabels)
 
     doc.setFont(undefined, 'normal');
     doc.setFontSize(11);
-    const answerLines = doc.splitTextToSize(solution.answer, 170);
+    const answerLines = doc.splitTextToSize(pdfSafe(solution.answer), 170);
     doc.text(answerLines, margin, yPos);
     yPos += answerLines.length * 7 + 10;
   }
@@ -338,7 +362,7 @@ export async function exportSolutionAsPDF(problem, topic, solution, topicLabels)
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     solution.tips.forEach(tip => {
-      const tipLines = doc.splitTextToSize(`• ${tip}`, 165);
+      const tipLines = doc.splitTextToSize(pdfSafe(`• ${tip}`), 165);
 
       if (yPos + tipLines.length * 6 > doc.internal.pageSize.height - 20) {
         doc.addPage();
@@ -366,7 +390,7 @@ export async function exportSolutionAsPDF(problem, topic, solution, topicLabels)
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     solution.common_mistakes.forEach(mistake => {
-      const mistakeLines = doc.splitTextToSize(`• ${mistake}`, 165);
+      const mistakeLines = doc.splitTextToSize(pdfSafe(`• ${mistake}`), 165);
 
       if (yPos + mistakeLines.length * 6 > doc.internal.pageSize.height - 20) {
         doc.addPage();

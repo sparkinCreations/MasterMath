@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.21.2] - 2026-08-16
+
+A pass over the UI around the solver, which had not been re-checked since
+the solver output changed shape (hole markers, endpoint extrema, extraneous-
+root steps, ln|…| forms, π/√/≈ everywhere).
+
+### Fixed
+
+- **PDF export was garbled for essentially every current answer.** jsPDF's
+  built-in Helvetica covers Latin-1 only, and anything else — `∫ π √ ≈ ≠ ≤
+  ≥ ′ θ ∈ ℤ → − · ² ✓`, all of which today's solver output contains — was
+  emitted as garbage glyphs, silently. Every string handed to jsPDF now
+  passes through a transliteration to readable Latin-1 (`π → pi`,
+  `√ → sqrt`, `≤ → <=`, `− → -`, `∫ → integral`, `′ → '`, `≈ → ~=`, …); a
+  character with no mapping becomes a visible `?`, never a wrong glyph.
+  Verified against the actual PDF content stream: no UTF-16 fallback runs.
+  Markdown, JSON and CSV exports are UTF-8 and were already fine.
+- **The Progress page scrolled sideways on a phone.** The history card's
+  title / Export / Clear row could not wrap and forced the page 5 px wider
+  than the viewport. The row wraps, and `<main>` takes `min-w-0` so no
+  descendant can push the layout past the viewport again.
+- The mobile header brand wrapped with an orphaned "by"; the byline is now
+  its own line under the name.
+- The examples list labelled the arithmetic example **"Other:"** (the raw
+  topic key); it now uses the topic's display label, "Arithmetic".
+- The functions graph's description panel repeated the Key features list in
+  different words ("x-intercepts at −1" vs "Crosses the x-axis at x = −1")
+  and omitted things the panel had. It now says what the panel does not —
+  the overall shape ("A parabola opening upward", "Strictly increasing",
+  "The curve breaks at its vertical asymptote") and the analysis window.
+- The graph's Key features panel called `√(x−2)`'s endpoint minimum a
+  "Local minimum" while the steps called it an endpoint minimum. Endpoint
+  extrema now carry that distinction into the graph annotations and read
+  "Absolute minimum at the domain endpoint (2, 0)".
+
 ## [1.21.1] - 2026-08-16
 
 The Low tail from the third black-box pass, plus one classification bug

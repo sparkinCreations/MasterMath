@@ -90,7 +90,7 @@ export async function solveFunctions(expression) {
             ...features.extrema.map((e) => ({ x: e.x, y: e.y, kind: e.kind })),
             // Endpoint extrema are drawn like the others; the step text carries
             // the distinction, the marker just shows where the value is.
-            ...features.endpointExtrema.map((e) => ({ x: e.x, y: e.y, kind: e.kind })),
+            ...features.endpointExtrema.map((e) => ({ x: e.x, y: e.y, kind: e.kind, endpoint: true, absolute: e.absolute })),
           ],
           intercepts: features.xIntercepts.list.map((r) => ({ x: r.numeric, y: 0 })),
           yIntercept: features.yIntercept,
@@ -764,12 +764,19 @@ function summarizeAnalysis(func, variable, f) {
 }
 
 function describeGraph(f, variable) {
-  const bits = [];
-  if (f.verticalAsymptotes.length > 0) bits.push(`vertical asymptote at ${variable} = ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}`);
-  if (f.quadratic) bits.push(`vertex at (${formatNumber(f.quadratic.vertex.x)}, ${formatNumber(f.quadratic.vertex.y)})`);
-  else if (f.extrema.length > 0) bits.push(`${f.extrema.length} local extrem${f.extrema.length > 1 ? 'a' : 'um'}`);
-  if (f.endpointExtrema.length > 0) bits.push(f.endpointExtrema.map((e) => `${e.absolute ? 'absolute ' : ''}${e.kind === 'min' ? 'minimum' : 'maximum'} at the domain endpoint (${formatNumber(e.x)}, ${formatNumber(e.y)})`).join('; '));
-  if (f.holes.length > 0) bits.push(`hole at ${f.holes.map((h) => `(${formatNumber(h.x)}, ${formatNumber(h.y)})`).join(', ')}`);
-  if (f.xIntercepts.list.length > 0) bits.push(`x-intercepts at ${f.xIntercepts.list.slice(0, 3).map((r) => r.display).join(', ')}`);
-  return bits.length ? `Key features: ${bits.join('; ')}.` : `The function over ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}`;
+  // The marked features themselves are listed (and read aloud) from the
+  // graph's own "Key features" panel, generated from the annotations. This
+  // line is what that panel does NOT say: the overall shape, and where it
+  // was analysed. Repeating the feature list here in different words made
+  // the two panels contradict each other in wording.
+  const shape = f.quadratic
+    ? `A parabola opening ${f.quadratic.opensUpward ? 'upward' : 'downward'}.`
+    : f.isPeriodic
+      ? 'A periodic curve — the pattern repeats beyond the window.'
+      : f.monotonic
+        ? `Strictly ${f.monotonic} across the window.`
+        : f.verticalAsymptotes.length > 0
+          ? 'The curve breaks at its vertical asymptote' + (f.verticalAsymptotes.length > 1 ? 's' : '') + '.'
+          : '';
+  return `${shape ? shape + ' ' : ''}Analysed over ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}; use the pan and zoom controls to see more.`.trim();
 }
