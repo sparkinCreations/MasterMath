@@ -321,6 +321,21 @@ function findVerticalAsymptotes(func, variable, grid, Algebrite) {
     if (Number.isFinite(r.to)) candidates.add(r.to);
   }
 
+  // Poles the grid steps over. tan(x) blows up at π/2, which no 0.05 grid
+  // point hits — every sample is finite, so there is no undefined region and
+  // no denominator root to find. The signature is a sign change between
+  // adjacent samples with |f| large on BOTH sides; the pole is where 1/f
+  // crosses zero, so bisect on 1/f.
+  for (let i = 1; i < grid.length; i += 1) {
+    const a = grid[i - 1];
+    const b = grid[i];
+    if (!Number.isFinite(a.y) || !Number.isFinite(b.y)) continue;
+    if (Math.sign(a.y) !== Math.sign(b.y) && Math.min(Math.abs(a.y), Math.abs(b.y)) > 5) {
+      const pole = bisect((x) => 1 / evalAt(func, variable, x), a.x, b.x);
+      if (pole !== null) candidates.add(pole);
+    }
+  }
+
   // Verify divergence: |f| must keep GROWING as we approach the candidate.
   // A plain magnitude threshold misses slow divergence — log(x^2) at 0 only
   // reaches |f| ≈ 28 at a 1e-6 offset — so require monotone growth across
@@ -336,9 +351,14 @@ function findVerticalAsymptotes(func, variable, grid, Algebrite) {
   const asymptotes = [];
   for (const c of candidates) {
     if (c < WINDOW.min || c > WINDOW.max) continue;
-    if (divergesOnSide(c, -1) || divergesOnSide(c, +1)) asymptotes.push(snap(c));
+    if (!(divergesOnSide(c, -1) || divergesOnSide(c, +1))) continue;
+    // The same pole can arrive from two sources (denominator root 1/3 and
+    // the numeric 1/f bisection at 0.33333…): dedupe by tolerance, keeping
+    // the first (symbolic candidates are added first, and are exact).
+    if (asymptotes.some((a) => Math.abs(a - c) < 1e-6)) continue;
+    asymptotes.push(snap(c));
   }
-  return [...new Set(asymptotes)].sort((a, b) => a - b);
+  return asymptotes.sort((a, b) => a - b);
 }
 
 function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
@@ -362,12 +382,27 @@ function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
 
   // Numeric: sign changes on the fine grid, bisection-refined. Touch-roots
   // (even multiplicity, like abs(x) at 0) never change sign, so near-zero
-  // samples are pushed too — push() verifies |f(root)| ≈ 0 either way.
+  // samples are considered too — but only when they are a local minimum of
+  // |f|. A decaying tail (e^(-x²) is 4e-44 at x = 10) is tiny at every point
+  // and would otherwise be reported as an intercept at every grid step; it is
+  // never a local minimum of |f|, so this test rejects it. push() still
+  // verifies |f(root)| ≈ 0 either way.
   for (let i = 1; i < grid.length; i += 1) {
     const a = grid[i - 1];
     const b = grid[i];
     if (!Number.isFinite(a.y) || !Number.isFinite(b.y)) continue;
-    if (Math.abs(a.y) < 1e-9) push(a.x);
+    if (Math.abs(a.y) < 1e-9 && i >= 2) {
+      const before = grid[i - 2];
+      if (Number.isFinite(before.y) && Math.abs(a.y) <= Math.abs(before.y) && Math.abs(a.y) <= Math.abs(b.y)
+          && (Math.abs(before.y) > 1e-9 || Math.abs(b.y) > 1e-9)) {
+        push(a.x);
+      }
+    }
+    // A sample that is exactly 0 is the root itself (handled above / by
+    // push's own verification); treating it as a sign change against both
+    // neighbours would bisect twice into the flat region around it and report
+    // x³'s single root as -0.0001, 0, 0.0001.
+    if (a.y === 0 || b.y === 0) continue;
     if (Math.sign(a.y) !== Math.sign(b.y)) {
       const root = bisect((x) => evalAt(func, variable, x), a.x, b.x);
       if (root !== null) push(root);
@@ -538,14 +573,18 @@ function buildSteps(func, variable, f) {
   steps.push(`Analyze the function: f(${variable}) = ${beautify(func)}`);
 
   // Domain
-  if (f.domain.length === 0) {
+  if (f.domain.length === 0 && f.verticalAsymptotes.length > 0) {
+    // The grid never landed on the poles (tan at π/2), so no undefined
+    // region was measured — but the asymptotes ARE excluded from the domain.
+    steps.push(`Domain: all real numbers except where the function blows up — ${variable} ≠ ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')} (in the analyzed window ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}${f.isPeriodic ? '; the pattern repeats' : ''}).`);
+  } else if (f.domain.length === 0) {
     steps.push(`Domain: all real numbers (defined everywhere in the analyzed window ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}).`);
   } else {
     // "undefined for x ≤ 0" (ln: the edge itself is undefined) vs
     // "undefined for x < 2" (sqrt: defined at the edge) — the closed/open
     // flag on each region is what makes that distinction honest.
     const undefinedFor = f.domain.map((r) => formatRestriction(r, variable)).join(' and for ');
-    const allowed = f.domain.map((r) => formatRestriction(r, variable, { allowed: true })).join(' and ');
+    const allowed = formatDomain(f.domain, variable);
     steps.push(`Domain restriction: f is undefined for ${undefinedFor} — so the domain is ${allowed}.`);
   }
 
@@ -644,6 +683,22 @@ function buildTips(f) {
   return tips.slice(0, 3);
 }
 
+// Allowed-set wording for a list of undefined regions. Two one-sided
+// restrictions that bound an interval read as one: "-3 ≤ x ≤ 3", not
+// "x ≥ -3 and x ≤ 3".
+function formatDomain(domain, variable) {
+  const left = domain.find((r) => !Number.isFinite(r.from) && Number.isFinite(r.to));
+  const right = domain.find((r) => Number.isFinite(r.from) && !Number.isFinite(r.to));
+  const others = domain.filter((r) => r !== left && r !== right);
+  const parts = [];
+  if (left && right && others.length === 0) {
+    parts.push(`${formatNumber(left.to)} ${left.toClosed ? '<' : '≤'} ${variable} ${right.fromClosed ? '<' : '≤'} ${formatNumber(right.from)}`);
+  } else {
+    for (const r of domain) parts.push(formatRestriction(r, variable, { allowed: true }));
+  }
+  return parts.join(' and ');
+}
+
 // The "Final Answer" of a function analysis is the analysis, not the input
 // echoed back. One line, the useful findings in reading order: domain, then
 // intercepts, then the shape (vertex / extrema / holes / asymptotes). Only
@@ -652,8 +707,9 @@ function summarizeAnalysis(func, variable, f) {
   const parts = [];
   const pt = (x, y) => `(${formatNumber(x)}, ${formatNumber(y)})`;
 
-  if (f.domain.length === 0) parts.push('domain: all real numbers');
-  else parts.push(`domain: ${f.domain.map((r) => formatRestriction(r, variable, { allowed: true })).join(' and ')}`);
+  if (f.domain.length === 0 && f.verticalAsymptotes.length > 0) parts.push(`domain: all real numbers except ${variable} = ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}${f.isPeriodic ? ' (repeating)' : ''}`);
+  else if (f.domain.length === 0) parts.push('domain: all real numbers');
+  else parts.push(`domain: ${formatDomain(f.domain, variable)}`);
 
   if (f.yIntercept) parts.push(`y-intercept ${pt(0, f.yIntercept.y)}`);
   if (f.xIntercepts.list.length > 0) {
@@ -686,7 +742,7 @@ function summarizeAnalysis(func, variable, f) {
 
 function describeGraph(f, variable) {
   const bits = [];
-  if (f.verticalAsymptotes.length > 0) bits.push(`vertical asymptote at ${variable} = ${f.verticalAsymptotes.map(formatNumber).join(', ')}`);
+  if (f.verticalAsymptotes.length > 0) bits.push(`vertical asymptote at ${variable} = ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}`);
   if (f.quadratic) bits.push(`vertex at (${formatNumber(f.quadratic.vertex.x)}, ${formatNumber(f.quadratic.vertex.y)})`);
   else if (f.extrema.length > 0) bits.push(`${f.extrema.length} local extrem${f.extrema.length > 1 ? 'a' : 'um'}`);
   if (f.endpointExtrema.length > 0) bits.push(f.endpointExtrema.map((e) => `${e.absolute ? 'absolute ' : ''}${e.kind === 'min' ? 'minimum' : 'maximum'} at the domain endpoint (${formatNumber(e.x)}, ${formatNumber(e.y)})`).join('; '));

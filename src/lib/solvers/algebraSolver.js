@@ -390,7 +390,14 @@ function formatSolutions(roots, variable) {
     }
     return r.display;
   });
-  return displays.map((d) => `${variable} = ${d}`).join('  or  ');
+  // A repeated root (x² = 0 → [0, 0]) is one solution, not two. Say once,
+  // and note the multiplicity so the information isn't lost.
+  const counts = new Map();
+  for (const d of displays) counts.set(d, (counts.get(d) || 0) + 1);
+  const unique = [...counts.keys()];
+  return unique
+    .map((d) => `${variable} = ${d}${counts.get(d) > 1 ? ` (repeated root, multiplicity ${counts.get(d)})` : ''}`)
+    .join('  or  ');
 }
 
 function extractNumbers(str) {
@@ -420,7 +427,8 @@ function solveNumerically(equation, variable) {
   const evalReal = (x) => {
     try {
       const v = math.evaluate(expression, { [variable]: x });
-      return typeof v === 'number' ? v : NaN;
+      // ±Infinity (1/0 at a pole) is "not defined here", same as NaN/Complex.
+      return typeof v === 'number' && Number.isFinite(v) ? v : NaN;
     } catch {
       return NaN;
     }
@@ -470,29 +478,69 @@ function solveNumerically(equation, variable) {
 
   const roots = [];
   const seen = (root) => roots.some((r) => Math.abs(r - root) < 0.01);
-  let prev = null;
-  let prevX = null;
-  for (let x = -100; x <= 100; x += 0.5) {
-    const value = evalReal(x);
-    if (Number.isNaN(value)) {
-      prev = null;
-      continue;
-    }
-    if (prev !== null && Math.sign(prev) !== Math.sign(value) && prev !== 0 && value !== 0) {
-      const root = refineRoot(expression, variable, prevX, x);
+
+  // A value that is merely small is not a root. e^x = 0 has none, yet e^-9 is
+  // 1.2e-4 and a loose "|f| < 1e-3" test called -9, -8.5, … solutions. A
+  // candidate that does NOT come from a sign change must be a genuine touch
+  // root: |f| tiny AND a local minimum of |f| (a decaying tail keeps getting
+  // smaller, so it never is).
+  const isTouchRoot = (x) => {
+    const v = evalReal(x);
+    if (!Number.isFinite(v) || Math.abs(v) > 1e-9) return false;
+    const l = Math.abs(evalReal(x - 1e-3));
+    const r = Math.abs(evalReal(x + 1e-3));
+    return Number.isFinite(l) && Number.isFinite(r) && Math.abs(v) <= l && Math.abs(v) <= r;
+  };
+
+  // Sign changes are located on a coarse grid, then refined. A gap that
+  // contains an undefined point (a pole) is re-scanned finely so a root that
+  // sits between the pole and the next grid point — 1/x + 1/(x+1) = 1 has one
+  // at -0.618, between the poles at -1 and 0 — is not stepped over: the
+  // coarse step saw only ∞ on one side and lost the bracket.
+  const considerBracket = (a, b) => {
+    const fa = evalReal(a);
+    const fb = evalReal(b);
+    if (!Number.isFinite(fa) || !Number.isFinite(fb)) return;
+    if (Math.sign(fa) !== Math.sign(fb) && fa !== 0 && fb !== 0) {
+      const root = refineRoot(expression, variable, a, b);
       if (root !== null && !seen(root)) roots.push(root);
     }
-    if (Math.abs(value) < 1e-3 && !seen(x)) roots.push(x);
-    prev = value;
+  };
+  const fineScan = (a, b) => {
+    const step = (b - a) / 50;
+    let px = a;
+    for (let x = a + step; x <= b + 1e-12; x += step) {
+      considerBracket(px, x);
+      px = x;
+    }
+  };
+
+  let prevX = null;
+  let prevDefined = false;
+  let lastDefinedX = null;
+  for (let x = -100; x <= 100; x += 0.5) {
+    const value = evalReal(x);
+    const defined = Number.isFinite(value);
+    if (defined) {
+      if (prevDefined) considerBracket(prevX, x);
+      else if (lastDefinedX !== null) fineScan(lastDefinedX, x); // gap held a pole
+      if (isTouchRoot(x) && !seen(x)) roots.push(x);
+      lastDefinedX = x;
+    } else if (prevDefined && prevX !== null) {
+      // Entering a pole from the left: look for a root just before it.
+      fineScan(prevX, x);
+    }
+    prevDefined = defined;
     prevX = x;
   }
 
   // Back-substitution gate: a candidate only counts if it actually satisfies
   // the equation. This is what turns a scanner bug into "no answer" instead
-  // of a wrong answer.
+  // of a wrong answer. Tight tolerance: bisection lands within 1e-6 easily,
+  // and anything looser lets asymptotic tails through.
   const verified = roots.filter((r) => {
     const residual = evalReal(r);
-    return Number.isFinite(residual) && Math.abs(residual) <= 1e-3;
+    return Number.isFinite(residual) && Math.abs(residual) <= 1e-6;
   });
 
   if (verified.length === 0) {

@@ -25,6 +25,7 @@ const NON_ELEMENTARY_NOTES = [
   [/^sin\([a-z]\^2\)$/i, 'its antiderivative is the Fresnel S function, which is not expressible in elementary functions'],
   [/^cos\([a-z]\^2\)$/i, 'its antiderivative is the Fresnel C function, which is not expressible in elementary functions'],
   [/^(?:e\^\(?-[a-z]\^2\)?|exp\(-[a-z]\^2\))$/i, 'its antiderivative is related to the error function erf(x), which is not elementary'],
+  [/^(?:e\^\(?[a-z]\^2\)?|exp\([a-z]\^2\))$/i, 'its antiderivative is related to the imaginary error function erfi(x), which is not elementary'],
   [/^sin\([a-z]\)\/[a-z]$/i, 'its antiderivative is the sine integral Si(x), which is not elementary'],
 ];
 
@@ -112,6 +113,13 @@ async function solveIndefiniteIntegral(expression) {
     if (isUnevaluatedOperator(integral)) {
       throw new Error('Algebrite returned the integral unevaluated');
     }
+    // A complex-valued antiderivative for a real integrand — Algebrite writes
+    // ∫e^(x²) as -½·i·√π·erf(i·x) — is technically right (it is erfi) but not
+    // a real-calculus answer. Refuse it the same way; the non-elementary note
+    // for e^(x²) explains why.
+    if (/\bi\b/.test(integral)) {
+      throw new Error('Algebrite returned a complex-valued antiderivative');
+    }
 
     const tips = [
       anyByParts
@@ -182,7 +190,11 @@ async function solveIndefiniteIntegral(expression) {
 // present integral RESULTS with that convention. Only applied to outputs, never
 // to the integrand.
 function lnify(integralResult) {
-  return beautify(integralResult).replace(/\blog\(([^()]+)\)/g, 'ln|$1|');
+  return beautify(integralResult)
+    // outermost log(...) (one nesting level inside) → ln|...|
+    .replace(/\blog\(((?:[^()]|\([^()]*\))+)\)/g, 'ln|$1|')
+    // a log(...) left inside those bars → ln(...) (bars within bars read badly)
+    .replace(/\blog\(([^()]+)\)/g, 'ln($1)');
 }
 
 function safeRunLocal(Algebrite, code) {
@@ -341,6 +353,37 @@ function prettifyBound(label) {
   return String(label).replace(/\bpi\b/gi, 'π').replace(/\*/g, '');
 }
 
+// The indefinite path's per-term antiderivative (direct / substitution /
+// by-parts / abs), verified by differentiation. Returns F or null.
+async function antiderivativeViaTerms(expression, variable, Algebrite) {
+  try {
+    const terms = splitTerms(expression);
+    const parts = [];
+    for (const { signed } of terms) {
+      const res = await integrateTerm(signed, variable, Algebrite);
+      if (!res) return null;
+      parts.push(res.antideriv);
+    }
+    if (parts.length === 0) return null;
+    const F = simplifyRun(Algebrite, parts.map((p) => `(${p})`).join(' + ')) || parts.join(' + ');
+    if (isUnevaluatedOperator(F) || /\bi\b/.test(F)) return null;
+    return derivativeMatchesNumerically(F, expression, variable) ? F : null;
+  } catch {
+    return null;
+  }
+}
+
+// A numeric FTC value as display text: a small exact fraction when it is one
+// (1, 1/2, 3/4), otherwise the decimal.
+function exactValueToRaw(value) {
+  if (Number.isInteger(value)) return String(value);
+  for (let den = 2; den <= 64; den += 1) {
+    const num = value * den;
+    if (Math.abs(num - Math.round(num)) < 1e-9) return `${Math.round(num)}/${den}`;
+  }
+  return formatNumber(value);
+}
+
 async function solveDefiniteIntegral(parsed) {
   if (parsed.error) {
     return refuseDefinite(
@@ -396,10 +439,41 @@ async function solveDefiniteIntegral(parsed) {
       return refuseImproper(notation, v);
     }
 
+    // Algebrite's defint has no abs and no substitution step. When it fails,
+    // the per-term antiderivative machinery the indefinite path uses (which
+    // has both) supplies F, and the FTC — F(b) − F(a) — supplies the value.
+    // Still cross-checked against Simpson below, and still refused if the two
+    // disagree.
+    let ftcF = null;
+    if (badExact || !Number.isFinite(exactValue)) {
+      ftcF = await antiderivativeViaTerms(integrand, v, Algebrite);
+      if (ftcF) {
+        const Fb = evalAntiderivNumeric(ftcF, v, b);
+        const Fa = evalAntiderivNumeric(ftcF, v, a);
+        if (Number.isFinite(Fb) && Number.isFinite(Fa)) {
+          exactValue = Fb - Fa;
+          // Prefer an exact symbolic value when Algebrite can form one from F
+          // (½·sin(1) rather than 0.4207); it must agree with the numeric FTC.
+          let symbolic = null;
+          try {
+            const out = String(Algebrite.run(`simplify(subst(${upperRaw}, ${v}, ${ftcF}) - subst(${lowerRaw}, ${v}, ${ftcF}))`)).trim();
+            if (!isAlgebriteFailure(out) && !/\bi\b/.test(out) && !new RegExp(`\\b${v}\\b`).test(out)) {
+              const n = Number(math.evaluate(out));
+              if (Number.isFinite(n) && Math.abs(n - exactValue) < 1e-9 * (1 + Math.abs(n))) symbolic = out;
+            }
+          } catch { /* fall back to the numeric form */ }
+          exactRaw = symbolic || exactValueToRaw(exactValue);
+        } else {
+          ftcF = null;
+        }
+      }
+    }
+    const exactUsable = Number.isFinite(exactValue) && (!badExact || ftcF);
+
     // If Algebrite's exact value is unusable, or the two methods disagree,
     // refuse rather than present a number we don't trust.
     const tol = Math.max(1e-2, Math.abs(Number.isFinite(exactValue) ? exactValue : numeric) * 1e-2);
-    if (badExact || !Number.isFinite(exactValue) || !Number.isFinite(numeric) || Math.abs(numeric - exactValue) > tol) {
+    if (!exactUsable || !Number.isFinite(numeric) || Math.abs(numeric - exactValue) > tol) {
       // A confirmed-finite numeric with no trustworthy exact still gets refused
       // here: without the symbolic value we can't show honest FTC steps, and a
       // bare decimal from quadrature isn't what this solver promises.
@@ -410,17 +484,20 @@ async function solveDefiniteIntegral(parsed) {
     }
 
     // Antiderivative for the worked FTC steps.
-    let F = null;
-    try {
-      F = Algebrite.integral(forAlgebrite, v).toString();
-    } catch {
-      F = null;
+    let F = ftcF;
+    if (!F) {
+      try {
+        F = Algebrite.integral(forAlgebrite, v).toString();
+      } catch {
+        F = null;
+      }
     }
     const hasAntideriv = F && !isAlgebriteFailure(F) && !/integral/i.test(F);
 
     const exactDisplay = formatExactValue(exactRaw);
     const isCleanValue = /^-?\d+$/.test(exactRaw.replace(/\s/g, ''));
-    const valueText = isCleanValue ? exactDisplay : `${exactDisplay} (≈ ${formatNumber(exactValue)})`;
+    const approx = formatNumber(exactValue);
+    const valueText = isCleanValue || exactDisplay === approx ? exactDisplay : `${exactDisplay} (≈ ${approx})`;
 
     const steps = [`Evaluate the definite integral ${notation}.`];
     if (hasAntideriv) {
@@ -464,6 +541,16 @@ async function solveDefiniteIntegral(parsed) {
 }
 
 // Evaluate an antiderivative at a bound, returning a clean exact string or null.
+// Numeric F(at) via mathjs (which, unlike Algebrite, evaluates abs and sgn).
+function evalAntiderivNumeric(F, variable, at) {
+  try {
+    const v = math.evaluate(F, { [variable]: at });
+    return typeof v === 'number' && Number.isFinite(v) ? v : NaN;
+  } catch {
+    return NaN;
+  }
+}
+
 function evalAntiderivAt(Algebrite, F, variable, at) {
   try {
     const out = String(Algebrite.run(`simplify(subst(${at}, ${variable}, ${F}))`)).trim();

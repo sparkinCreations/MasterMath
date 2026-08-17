@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-08-16
+
+Fixes from a second black-box pass (117 fresh problems against v1.19.0):
+its four High findings, both Mediums, and two small ones. All four Highs
+were pre-existing — fresh inputs reached them, today's changes did not
+introduce them — and three share one root cause.
+
+### Fixed
+
+- **A value that is merely small is not a root.** `e^x = 0` answered
+  "x = −9 or x = −8.5 or … −7" (e⁻⁹ ≈ 1e⁻⁴ passed a loose |f| < 1e⁻³
+  test), and `e^(−x²)` under Functions listed "x-intercepts at x = −10,
+  −9.95, −9.9, …" — a fabricated feature. In both the algebra scan and the
+  functions intercept-finder, a candidate that does not come from a sign
+  change must now be a genuine touch root: |f| tiny *and* a local minimum
+  of |f| (a decaying tail keeps getting smaller, so it never is). The
+  back-substitution gate is 1e⁻⁶, not 1e⁻³. `e^x = 0`, `e^(−x) = 0`,
+  `1/x = 0` → "No real solution"; `e^(−x²)` → "no x-intercepts";
+  `|x − 1| = 0` still finds 1.
+- **A root between two poles was stepped over.** `1/x + 1/(x+1) = 1`
+  returned only x = 1.618; the second root, −0.618, sits between the poles
+  at −1 and 0, and the 0.5-step scan saw only ∞ on one side of it. A gap
+  that contains an undefined point is now re-scanned finely, and ±∞ is
+  treated as undefined rather than as a huge finite value.
+- **`tan(x)` claimed "domain: all real numbers" with no asymptotes.** No
+  0.05 grid point lands on π/2 + kπ (irrational), so every sample was
+  finite and nothing was ever undefined. Poles the grid steps over are now
+  found from their signature — a sign change between adjacent samples with
+  |f| large on both sides — and located by bisecting 1/f. tan, sec, cot,
+  csc and off-grid rational poles like 1/(3x−1) all report their
+  asymptotes, deduplicated across the symbolic and numeric sources, and the
+  domain reads "all real numbers except x = …".
+- **`∫_{−1}^{1} |x| dx` was refused** ("could not compute exactly"): the
+  definite path only asked Algebrite's `defint`, which has no `abs`. When
+  that fails it now falls back to the same per-term antiderivative machinery
+  the indefinite path uses (abs, substitution, by parts) and applies the
+  FTC itself, still cross-checked against Simpson and still preferring an
+  exact symbolic value when Algebrite can form one from F —
+  `∫₀¹ x·cos(x²) dx = ½·sin(1) (≈ 0.4207)`.
+- **Denominators are substitution candidates.** `∫(2x+3)/(x²+3x+5) dx` and
+  `∫eˣ/(1+eˣ) dx` were refused; u = the denominator gives `ln|x²+3x+5|`
+  and `ln|1+eˣ|`.
+- **No imaginary unit in a real integral.** `∫e^(x²) dx` returned
+  `−½·i·√π·erf(i·x) + C` marked Solved — right via erfi, wrong to show. It
+  is now refused as non-elementary ("involves the imaginary error function
+  erfi"), and any complex-valued antiderivative is refused the same way.
+- `x² = 0` answered "x = 0 or x = 0"; a repeated root is stated once, with
+  its multiplicity.
+- `.map(formatNumber)` passed the array index as the decimals argument, so a
+  list of asymptotes printed as "−8, −4.7, −1.57, 1.571, …". Every value now
+  prints at the same precision.
+- An exact-zero sample was treated as a sign change against both
+  neighbours, so `x³` reported "x-intercepts at x = −0.0001, 0, 0.0001".
+- `sqrt(9−x²)`'s domain reads "−3 ≤ x ≤ 3", not "x ≥ −3 and x ≤ 3".
+- `ln|…|` display now handles a nested log argument: `ln|1 + exp(x)|`,
+  `ln|ln(x)|`.
+
 ## [1.19.0] - 2026-08-16
 
 The presentation sweep — every remaining item from the QA report on v1.13.0.

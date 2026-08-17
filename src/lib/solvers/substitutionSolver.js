@@ -94,8 +94,30 @@ function candidateInner(term, variable) {
     const inner = e.slice(3, -1);
     if (hasVar(inner) && inner.trim() !== variable) found.add(inner.trim());
   }
+  // The denominator of a top-level fraction: (2x+3)/(x²+3x+5) and
+  // e^x/(1+e^x) are u = denominator, giving ln|u|.
+  const parts = splitTopLevel(term, '/');
+  if (parts.length === 2) {
+    let den = parts[1].trim();
+    if (den.startsWith('(') && readGroup(den, 0) === den.slice(1, -1)) den = den.slice(1, -1).trim();
+    if (hasVar(den) && den !== variable) found.add(den);
+  }
   // Longer (more nested) candidates first; a shorter one is often a factor of it.
   return [...found].sort((a, b) => b.length - a.length);
+}
+
+// Split on a delimiter that appears only at parenthesis depth 0.
+function splitTopLevel(str, delimiter) {
+  const out = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of str) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    if (ch === delimiter && depth === 0) { out.push(cur); cur = ''; } else cur += ch;
+  }
+  out.push(cur);
+  return out;
 }
 
 /**

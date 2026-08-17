@@ -26,9 +26,9 @@ test('u-substitution family: inner arguments, trig calls, logs, roots', async ()
   const cases = [
     ['2*x*e^(x^2)', 'exp(x^2)'],
     ['sin(x)^2*cos(x)', '1/3*sin(x)^3'],
-    ['cos(x)/sin(x)', 'log(sin(x))'],
+    ['cos(x)/sin(x)', 'ln|sin(x)|'],
     ['ln(x)/x', '1/2*ln|x|^2'],
-    ['1/(x*ln(x))', 'log(ln|x|)'],
+    ['1/(x*ln(x))', 'ln|ln(x)|'],
   ];
   for (const [input, expected] of cases) {
     const r = await solveProblem(input, 'integrals');
