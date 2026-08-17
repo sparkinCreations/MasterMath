@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-08-16
+
+Fourth black-box pass: what happens when a problem is typed under the
+"wrong" topic, natural-language wrappers, degenerate input, and the
+solve → export → history round-trip. The round-trip was clean (Markdown,
+JSON, CSV and history validation all faithful for the new content). The
+routing side had a systemic problem: the topic dropdown was trusted
+absolutely and the input's own intent was ignored.
+
+### Changed
+
+- **The input's intent wins over the dropdown.** Derivative notation
+  (`d/dx`, "derivative of", `dy/dx`), integral notation (`∫`, "integrate")
+  and limit notation (`lim`, `->`, "approaches") route to that solver under
+  *any* topic; a single equation in one unknown routes to Algebra from any
+  topic that doesn't own equations (trig equations stay in Trigonometry,
+  `f(x) = …` / `y = …` stay in Functions); a variable expression under
+  Arithmetic goes to Algebra. A routed result's first step says so: "Solved
+  as Derivatives (you chose Algebra): the input uses derivative notation."
+  Before: `d/dx x³` under Algebra "simplified" to `x³` (Solved); `x² = 4`
+  under Integrals gave `∫(x²=4) dx = nil·x + C`; under Derivatives, `f′(x) =
+  0`; `x²−4=0` under Trigonometry was "not a supported trig equation".
+
+### Fixed
+
+- **`d/dx sin(x)` lost its closing parenthesis** ("sin(x") — the extractor's
+  optional trailing `\)?` ate it. Outer parentheses are now stripped only
+  when they wrap the whole expression: `d/dx (x³) → x³`, `d/dx sin(x)·cos(x)`
+  intact.
+- **`2x + 3y = 6` answered "6".** The `y = …` extractor pattern grabbed
+  "3y = 6" from inside the equation. It now requires a standalone `y`. And
+  one equation in two unknowns is solved for one in terms of the other, with
+  the explanation: `x = −3/2·y + 3` — "infinitely many solutions, one for
+  every value of y, so we solve for x in terms of y". `solve for y: …` picks
+  the variable; radicals are shown in real form (`x = ±(25 − y²)^(1/2)`, not
+  `±i·(y² − 25)^(1/2)`).
+- **`What is x if 2x + 5 = 11?` answered `x = 6/xif2`.** "What is x if / find
+  y when / solve for x given" wrappers are read; a trailing "(solve for y)"
+  is treated as an instruction, not part of the expression. "What is the
+  limit of … as x approaches 0" (was `limitof…`) is read too.
+- **A limit with no approach point silently assumed x → 0** (`x² + 1` under
+  Limits → "lim (x→0) … = 1"). It now asks: "No approach point was given —
+  a limit needs one (where does x go?)". A constant such as `tan(π/2)` still
+  reports Undefined; a bare `lim` is a parse error.
+- **A constant under Functions** (`sin(π/4)`, `5`) was analysed as "periodic"
+  with a "horizontal asymptote". It is described as a constant function.
+- **`=`, `x =`, `= 5`** answered "No real solution found"; they are parse
+  errors ("An equation needs an expression on both sides"). `∫` alone: "There
+  is nothing to integrate". `9999999999^9999` is an *overflow*, not ∞.
+- `expand (x+1)²` was echoed back; it expands to `x² + 2x + 1`.
+- The examples list labelled the arithmetic example "Other:" (from 1.21.2).
+
 ## [1.21.2] - 2026-08-16
 
 A pass over the UI around the solver, which had not been re-checked since

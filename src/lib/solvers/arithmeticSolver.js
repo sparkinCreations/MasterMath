@@ -1,6 +1,6 @@
 import { create, all } from 'mathjs';
 import { math, formatNumber, beautify } from './solverUtils.js';
-import { parseError } from '../solutionEnvelope.js';
+import { parseError, overflow } from '../solutionEnvelope.js';
 
 // A second mathjs instance that computes in exact rational arithmetic. Where
 // the whole expression is rational (1/3 + 1/6), it yields the exact fraction;
@@ -26,6 +26,13 @@ export function solveArithmetic(expression) {
     const cleaned = rewritePercent(original).replace(/(\d|\))\s*x\s*(\d|\()/gi, '$1*$2');
 
     const result = math.evaluate(cleaned);
+
+    // A finite calculation that overflows to ±∞ (9999999999^9999) is an
+    // overflow, not a value of infinity. Division by zero (1/0) is a real
+    // undefined/infinite value and keeps its own presentation.
+    if (typeof result === 'number' && !Number.isFinite(result) && !Number.isNaN(result) && !/\/\s*0(?![.\d])/.test(cleaned)) {
+      return overflow({ input: original });
+    }
     const steps = [`Evaluate: ${original}`];
     if (/%/.test(original) && cleaned !== original) {
       steps.push(`Percent means "per hundred": rewrite ${original} as ${cleaned}.`);

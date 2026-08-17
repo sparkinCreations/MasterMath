@@ -1,6 +1,7 @@
 import mathsteps from 'mathsteps';
 import { isEquation, extractVariable } from '../mathParser.js';
 import { stepsFromMathstepsResult } from '../mathstepsUtils.js';
+import { parseError, unsupported } from '../solutionEnvelope.js';
 import {
   math,
   loadAlgebrite,
@@ -53,9 +54,13 @@ export async function solveAlgebra(expression, options = {}) {
       const factored = await factorExpression(expression);
       if (factored) return factored;
     }
+    if (options.intent === 'expand' && !isEquation(expression)) {
+      const expanded = await expandExpression(expression);
+      if (expanded) return expanded;
+    }
 
     if (isEquation(expression)) {
-      return await solveEquation(expression);
+      return await solveEquation(expression, options);
     }
     return await simplifyExpression(expression);
   } catch (error) {
@@ -73,11 +78,59 @@ export async function solveAlgebra(expression, options = {}) {
   }
 }
 
-async function solveEquation(expression) {
+async function solveEquation(expression, options = {}) {
   const variable = extractVariable(expression);
   let steps = [];
   let answer = '';
   let solutions = [];
+
+  // An "=" with nothing on one side is not an equation ("=", "x =", "= 5"):
+  // say so, rather than "No real solution found" from scanning () - () = 0.
+  const [lhsRaw = '', rhsRaw = ''] = expression.split('=');
+  if (!lhsRaw.trim() || !rhsRaw.trim()) {
+    return parseError({
+      input: expression,
+      hint: 'An equation needs an expression on both sides of "=".',
+      tips: ['For example: 2x + 5 = 11, or x^2 - 4 = 0.'],
+    });
+  }
+
+  // One equation in two (or more) unknowns — "2x + 3y = 6", "y - 3 = 2x
+  // (solve for y)" — describes a relationship, not a number. Solve for the
+  // requested unknown (or the first one) IN TERMS OF the others, and say so.
+  // The old path took the first letter as "the" variable and, via the y=…
+  // extractor, once answered "6".
+  const letters = new Set(
+    (expression.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sqrt|abs|log|ln|exp|pi|e)\b/gi, '')
+      .match(/[a-z]/gi) || []).map((c) => c.toLowerCase())
+  );
+  if (letters.size >= 2) {
+    const requested = options.solveFor && letters.has(options.solveFor) ? options.solveFor : (letters.has('y') && !options.solveFor && !letters.has('x') ? 'y' : variable);
+    const others = [...letters].filter((v) => v !== requested).sort();
+    const rel = await solveForVariable(expression, requested);
+    if (rel) {
+      return {
+        steps: [
+          `This is one equation in ${letters.size} unknowns (${[...letters].sort().join(', ')}) — it has infinitely many solutions, one for every value of ${others.join(' and ')}. So we solve for ${requested} in terms of ${others.join(' and ')}.`,
+          `Rewrite as an equation set to zero: ${beautify(`(${lhsRaw.trim()}) - (${rhsRaw.trim()})`)} = 0`,
+          `Isolate ${requested}: ${rel}`,
+        ],
+        answer: rel,
+        tips: [
+          `To pin down a single value you need a second equation — enter both as a system, e.g. "${expression.trim()}; ${requested} - ${others[0]} = 1".`,
+          'An equation in two unknowns is a curve (here a line if it is linear); solving for one variable gives the rule for that curve.',
+        ],
+        common_mistakes: ['Expecting a single number from an equation with more unknowns than equations.'],
+        graph: null,
+      };
+    }
+    return unsupported({
+      input: expression,
+      reason: `This is one equation in ${letters.size} unknowns (${[...letters].sort().join(', ')}) and it could not be rearranged for ${requested} symbolically.`,
+      answer: `Infinitely many solutions — one equation cannot fix ${letters.size} unknowns`,
+      tips: [`Add a second equation and enter both as a system: "${expression.trim()}; ${[...letters].sort()[0]} - ${[...letters].sort()[1]} = 1".`],
+    });
+  }
 
   // 1. mathsteps — gives the nicest linear/simple-quadratic walkthroughs.
   // Only accept it if it actually isolated the variable; mathsteps sometimes
@@ -679,6 +732,56 @@ function refineRoot(expression, variable, a, b) {
 // claimed after two independent checks: a numeric equivalence sweep and a
 // symbolic re-expansion (which doubles as the "check your work" step). If
 // anything fails, return null so the caller falls back to the simplify path.
+// Solve an equation for one variable in terms of the others: Algebrite's
+// roots() accepts symbolic coefficients, so roots(y - 3 - 2x, y) → [2x+3].
+// Returns "y = 2x + 3" (or "y = a  or  y = b"), or null.
+async function solveForVariable(equation, target) {
+  try {
+    const Algebrite = await loadAlgebrite();
+    const [l, r] = equation.split('=');
+    const raw = String(Algebrite.roots(`(${l.trim()}) - (${r.trim()})`, target)).trim();
+    if (!raw || /stop|error|nil|roots/i.test(raw)) return null;
+    let parts = parseRootsList(raw).map((rt) => rt.display).filter(Boolean);
+    if (parts.length === 0) return null;
+    // Algebrite writes x² + y² = 25 as x = ±i·(y² − 25)^(1/2). Over the reals
+    // that is ±(25 − y²)^(1/2): rewrite i·(A)^(1/2) → (−A)^(1/2), simplifying
+    // the negated radicand, so the answer reads as real algebra.
+    parts = parts.map((d) => d.replace(/i\*\(([^()]*)\)\^\(1\/2\)/g, (m, inner) => {
+      try {
+        const neg = String(Algebrite.run(`simplify(-(${inner}))`)).trim();
+        return neg && !/stop|error|nil/i.test(neg) ? `(${neg})^(1/2)` : m;
+      } catch { return m; }
+    }));
+    // Dedupe "+a or -a" style pairs into ± where both survive.
+    return parts.map((d) => `${target} = ${d}`).join('  or  ');
+  } catch {
+    return null;
+  }
+}
+
+// "expand (x+1)^2" → x^2 + 2x + 1. Algebrite's expand, verified numerically.
+async function expandExpression(expression) {
+  try {
+    const Algebrite = await loadAlgebrite();
+    const expanded = String(Algebrite.run(`expand(${expression})`)).trim();
+    if (!expanded || /stop|error|nil/i.test(expanded)) return null;
+    if (!expressionsNumericallyEqual(expression, expanded, extractVariable(expression))) return null;
+    return {
+      steps: [
+        `Expand: ${beautify(expression)}`,
+        'Multiply out every product of sums, then collect like terms.',
+        `Result: ${beautify(expanded)} (confirmed numerically at several values).`,
+      ],
+      answer: beautify(expanded),
+      tips: ['Expanding is the reverse of factoring; each term of one bracket multiplies each term of the other.', '(a + b)² = a² + 2ab + b² — the middle term is the one students drop.'],
+      common_mistakes: ['Writing (a + b)² as a² + b².', 'Losing a sign when a bracket is subtracted.'],
+      graph: generateAlgebraGraph(expression),
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function factorExpression(expression) {
   try {
     const Algebrite = await loadAlgebrite();

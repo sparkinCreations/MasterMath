@@ -53,6 +53,13 @@ export async function solveIntegral(rawInput) {
     .replace(/^\s*∫\s*/, '')
     .replace(/\s*\bd([a-z])\s*$/i, '');
   const expression = extractFunctionFromProblem(bare);
+  if (!expression || !expression.trim()) {
+    return parseError({
+      input: rawInput,
+      hint: 'There is nothing to integrate — the integrand is empty.',
+      tips: ['Write the function after the integral sign, e.g. ∫ x^2 dx, or just x^2.'],
+    });
+  }
   return solveIndefiniteIntegral(expression);
 }
 

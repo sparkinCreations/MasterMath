@@ -21,7 +21,7 @@ import { parseError } from '../solutionEnvelope.js';
 export async function solveLimit(expression) {
   try {
     let cleaned = expression.trim().replace(/[.?!]+$/, '').trim();
-    cleaned = cleaned.replace(/^(?:(?:find|evaluate|calculate|compute|determine)\s+)?(?:the\s+)?lim(?:it)?\s+of\s+/i, '');
+    cleaned = cleaned.replace(/^(?:(?:what(?:'s| is)|find|evaluate|calculate|compute|determine)\s+)?(?:the\s+)?lim(?:it)?\s+of\s+/i, '');
 
     // One-sided limits, phrasing form: "… as x approaches 0 from the right".
     // The phrase is stripped here, before the notation regexes run, so it can
@@ -57,8 +57,29 @@ export async function solveLimit(expression) {
       variable = limitMatch3[2];
       approachValue = limitMatch3[3].trim();
     } else {
+      // No approach point anywhere in the input ("lim sin(x)/x", or a bare
+      // expression). Quietly assuming x → 0 gave confident answers to
+      // questions that were never asked; ask for the point instead.
       func = parseMathExpression(cleaned.replace(/^(?:lim(?:it)?)\s*/i, ''));
       variable = extractVariable(func);
+      // A constant expression (tan(pi/2)) has no approach point to miss —
+      // fall through and let the constant/asymptote handling speak. An
+      // EMPTY one ("lim") is not a constant.
+      if (!func.trim()) {
+        return parseError({
+          input: expression,
+          hint: 'There is no expression to take the limit of.',
+          tips: ['Write limits like: lim x->0 (sin(x)/x).'],
+        });
+      }
+      if (hasVariable(func, variable)) {
+        return parseError({
+          input: expression,
+          hint: `No approach point was given — a limit needs one (where does ${variable} go?).`,
+          tips: ['Write limits like: lim x->0 (sin(x)/x), or (x^2-1)/(x-1) as x approaches 1, or lim x->infinity 1/x.'],
+          common_mistakes: ['Leaving out the "x → a" part — the same expression has different limits at different points.'],
+        });
+      }
     }
 
     // One-sided limits, suffix form: a trailing +/- (or ⁺/⁻, or ^+/^-) on the

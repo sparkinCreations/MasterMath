@@ -40,12 +40,18 @@ const BIG = 1e6;
 
 export async function solveFunctions(expression) {
   try {
-    const variable = extractVariable(expression);
+    let variable = extractVariable(expression);
 
     let func = expression;
-    const functionMatch = expression.match(/f\(.\)\s*=\s*(.+)/i);
+    // Accept "f(x) = …" and "y = …" as definitions of the function to analyse
+    // (the y must be standalone — "2x + 3y = 6" is an equation, not a
+    // definition, and never reaches here).
+    const functionMatch = expression.match(/f\(.\)\s*=\s*(.+)/i) || expression.match(/(?:^|[^a-z0-9])y\s*=\s*(.+)/i);
     if (functionMatch) {
       func = parseMathExpression(functionMatch[1]);
+      // The variable lives in the body ("y = 2x + 1" is a function of x, not
+      // of y): re-derive it from the body, not the definition.
+      variable = extractVariable(func);
     }
 
     // Unreadable input must fail here, loudly — sampling would otherwise
@@ -56,6 +62,29 @@ export async function solveFunctions(expression) {
         hint: 'This could not be read as a function of one variable.',
         tips: ['Write the function in terms of x, e.g. x^2 - 4*x + 3 or 1/(x-2).'],
       });
+    }
+
+    // No variable at all (sin(pi/4), 5): a constant function. The general
+    // analysis would call sin(pi/4) "periodic" (it sees a sin) and give it a
+    // "horizontal asymptote" (it IS its own value everywhere) — both silly.
+    if (!new RegExp(`\\b${variable}\\b`).test(func.replace(/\b(?:e|pi)\b/g, ''))) {
+      let value;
+      try { value = math.evaluate(func); } catch { value = NaN; }
+      const shown = typeof value === 'number' && Number.isFinite(value) ? formatNumber(value) : beautify(func);
+      const points = sampleFunction(func, variable, { min: -40, max: 40, step: 0.5 });
+      return {
+        steps: [
+          `Analyze the function: f(${variable}) = ${beautify(func)}`,
+          `${beautify(func)} does not depend on ${variable} — this is a constant function${typeof value === 'number' && Number.isFinite(value) ? `, f(${variable}) = ${shown} for every ${variable}` : ''}.`,
+          'Domain: all real numbers. Its graph is a horizontal line.',
+          `y-intercept: (0, ${shown}). ${typeof value === 'number' && Math.abs(value) < 1e-12 ? 'It IS the x-axis, so every point is an x-intercept.' : 'It never crosses the x-axis, so there are no x-intercepts.'}`,
+          'No extrema in the usual sense (every point is both a maximum and a minimum), no asymptotes, no periodicity — a constant is the same everywhere.',
+        ],
+        answer: `f(${variable}) = ${beautify(func)}: a constant function, equal to ${shown} for every ${variable}; its graph is the horizontal line y = ${shown}.`,
+        tips: ['A constant function has derivative 0 — its graph has slope zero everywhere.', 'For a constant c, ∫c dx = c·x + C.'],
+        common_mistakes: ['Looking for x-intercepts or turning points on a horizontal line.'],
+        graph: points.length > 0 ? { points, title: `Graph of f(${variable}) = ${beautify(func)}`, description: `A horizontal line at y = ${shown}.`, annotations: { yIntercept: typeof value === 'number' ? { x: 0, y: value } : null } } : null,
+      };
     }
 
     let Algebrite = null;

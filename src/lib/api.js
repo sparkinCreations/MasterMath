@@ -125,6 +125,51 @@ function looksLikeInequality(problem) {
   return /[<>≤≥]/.test(String(problem));
 }
 
+// What the INPUT says it is, regardless of the topic picked in the dropdown.
+// A student who types "d/dx x^3" under Algebra means a derivative; the old
+// behaviour stripped the "d/dx" and "simplified" x^3 to x^3, marked Solved.
+// Returns 'derivatives' | 'integrals' | 'limits' | null.
+function detectCalculusIntent(problem) {
+  const t = String(problem);
+  if (/\bd\/d[a-z]\b|\bderivative\b|\bdifferentiate\b|\bdy\/dx\b/i.test(t)) return 'derivatives';
+  if (/∫|\bintegra(?:l|te)\b|\bantiderivative\b/i.test(t)) return 'integrals';
+  if (/\blim(?:it)?\b|→|->|\bapproaches\b/i.test(t)) return 'limits';
+  return null;
+}
+
+// One equation in one unknown, with no calculus intent, is an algebra
+// problem whatever topic it was typed under — except where the topic has
+// its own equation semantics: a trig equation under Trigonometry, and the
+// f(x) = … / y = … definitions under Functions.
+function isPlainEquationForAlgebra(problem, topic) {
+  const t = String(problem);
+  const equalsCount = (t.match(/(?<![><!=])=(?!=)/g) || []).length;
+  if (equalsCount !== 1) return false;
+  if (!/[a-z]/i.test(t.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sqrt|abs|log|ln|exp|pi|e)\b/gi, ''))) return false;
+  if (topic === 'algebra') return false;
+  if (topic === 'trigonometry' && /\b(?:sin|cos|tan|sec|csc|cot)\s*\(/i.test(t)) return false;
+  if (topic === 'functions' && /(?<![a-z0-9])(?:f\(.\)|y)\s*=/i.test(t)) return false;
+  return true;
+}
+
+// A variable expression typed under Arithmetic ("x^2 + 3x") is algebra —
+// arithmetic has no unknowns, and mathjs would just say "Undefined symbol x".
+function isAlgebraUnderArithmetic(problem, topic) {
+  if (topic !== 'other') return false;
+  const t = String(problem).replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sqrt|abs|log|ln|exp|pi|e|mod|choose)\b/gi, '').replace(/\d+(?:\.\d+)?[eE][+-]?\d+/g, '');
+  return /(?<![a-z])[a-df-z](?![a-z])/i.test(t) && !/^\s*\d+(?:\.\d+)?\s*x\s*\d/i.test(String(problem)); // "2 x 3" is multiplication
+}
+
+const TOPIC_NAMES = { derivatives: 'Derivatives', integrals: 'Integrals', limits: 'Limits', functions: 'Functions', trigonometry: 'Trigonometry', algebra: 'Algebra', other: 'Arithmetic' };
+
+// A solved result that was routed away from the chosen topic says so, first.
+function noteRouting(result, from, to, why) {
+  if (result && Array.isArray(result.steps) && from !== to) {
+    result.steps = [`Solved as ${TOPIC_NAMES[to]} (you chose ${TOPIC_NAMES[from]}): ${why}.`, ...result.steps];
+  }
+  return result;
+}
+
 // One equation (exactly one '=') that contains a sin/cos/tan call.
 function isSingleTrigEquation(problem) {
   const text = String(problem);
@@ -223,6 +268,23 @@ export async function solveProblem(problem, topic) {
 
     let result;
 
+    // The input's own intent wins over the dropdown. Calculus notation under
+    // any topic goes to that solver; a plain equation in one unknown under a
+    // non-algebra topic goes to Algebra. Each is labelled as routed.
+    const calculus = detectCalculusIntent(problem);
+    if (calculus && calculus !== topic) {
+      const routed = await solveProblem(problem, calculus);
+      return noteRouting(routed, topic, calculus, `the input uses ${calculus === 'limits' ? 'limit' : calculus === 'integrals' ? 'integral' : 'derivative'} notation`);
+    }
+    if (!calculus && isPlainEquationForAlgebra(problem, topic)) {
+      const routed = await solveProblem(problem, 'algebra');
+      return noteRouting(routed, topic, 'algebra', 'the input is an equation to solve');
+    }
+    if (!calculus && isAlgebraUnderArithmetic(problem, topic)) {
+      const routed = await solveProblem(problem, 'algebra');
+      return noteRouting(routed, topic, 'algebra', 'the input contains a variable, and arithmetic has none');
+    }
+
     // Inequalities: a <, >, ≤, or ≥ operator. Routed from the raw text so the
     // operator and both sides stay intact for the sign-chart solver.
     if (topic === 'algebra' && looksLikeInequality(problem)) {
@@ -280,6 +342,11 @@ export async function solveProblem(problem, topic) {
         // factoring path instead of the (no-op) simplify path.
         if (topic === 'algebra' && /\b(?:factor|factorize|factorise)\b/i.test(problem)) {
           result = await solver(expression, { intent: 'factor' });
+        } else if (topic === 'algebra' && /\b(?:expand|multiply out|distribute)\b/i.test(problem)) {
+          result = await solver(expression, { intent: 'expand' });
+        } else if (topic === 'algebra' && /\bsolve\s+for\s+([a-z])\b/i.test(problem)) {
+          // "solve for y" — matters when the equation has two unknowns.
+          result = await solver(expression, { solveFor: problem.match(/\bsolve\s+for\s+([a-z])\b/i)[1].toLowerCase() });
         } else {
           result = await solver(expression);
         }

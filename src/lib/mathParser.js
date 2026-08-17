@@ -160,6 +160,9 @@ export function extractFunctionFromProblem(problemText) {
   // Clean up trailing sentence punctuation, but keep a factorial `!`.
   let text = problemText.trim().replace(/[.?]+$/, '').trim();
   text = text.replace(/(?<![\d)])!+$/, '').trim();
+  // A trailing parenthetical instruction — "(solve for y)", "(find x)" — is
+  // routing information, not part of the expression.
+  text = text.replace(/\s*\(\s*(?:solve|find|for|in terms of)\b[^)]*\)\s*$/i, '').trim();
 
   // Patterns are ordered from most specific to least specific.
   // More specific patterns (like "find the derivative of") must come before
@@ -167,7 +170,7 @@ export function extractFunctionFromProblem(problemText) {
   const patterns = [
     // Derivative patterns
     /(?:find the derivative of|take the derivative of|derivative of|differentiate)\s+(.+)/i,
-    /d\/d([a-z])\s*\(?(.+?)\)?$/i, // d/dx(expr) or d/dx expr — captures variable + expression
+    /d\/d([a-z])\s*(.+)$/i, // d/dx(expr) or d/dx expr — captures variable + expression (outer parens stripped below)
     /dy\/dx\s*(?:of|for|=)?\s*(.+)/i, // dy/dx of expr
 
     // Integral patterns
@@ -176,6 +179,8 @@ export function extractFunctionFromProblem(problemText) {
     // Limit patterns
     /(?:find the limit|evaluate the limit|limit|lim)\s+(?:of\s+)?(.+)/i,
 
+    // "What is x if 2x + 5 = 11?", "find y when 3y - 1 = 5", "solve for x given …"
+    /(?:what is|what's|find|solve for)\s+[a-z]\s+(?:if|when|given|such that|where)\s+(.+)/i,
     // Solve/find patterns (with "the ... of" constructs handled above, these are for general use)
     /(?:solve for [a-z] in|solve for [a-z]:?)\s+(.+)/i,
     /(?:solve|find the (?:value|solution|root|zero)s? (?:of|for))\s+(.+)/i,
@@ -191,9 +196,11 @@ export function extractFunctionFromProblem(problemText) {
     // Graphing patterns
     /(?:graph|plot|draw|sketch)\s+(.+)/i,
 
-    // f(x) = ... notation
+    // f(x) = ... notation, and "y = …" as a function definition — only a
+    // standalone y, not the y in "2x + 3y = 6" (that is an equation, and
+    // grabbing "= 6" out of it turned a two-unknown equation into "6").
     /f\(.\)\s*=\s*(.+)/i,
-    /y\s*=\s*(.+)/i,
+    /(?<![a-z0-9])y\s*=\s*(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -201,7 +208,20 @@ export function extractFunctionFromProblem(problemText) {
     if (match) {
       // Special handling for d/dx pattern which captures both variable and expression
       if (pattern.source.startsWith('d\\/d')) {
-        return parseMathExpression(match[2]);
+        // Strip ONE pair of outer parentheses only when they wrap the whole
+        // expression: d/dx (x^3) → x^3, but d/dx sin(x) keeps its ")".
+        let inner = match[2].trim();
+        if (inner.startsWith('(') && inner.endsWith(')')) {
+          let depth = 0;
+          let wraps = true;
+          for (let i = 0; i < inner.length; i += 1) {
+            if (inner[i] === '(') depth += 1;
+            else if (inner[i] === ')') depth -= 1;
+            if (depth === 0 && i < inner.length - 1) { wraps = false; break; }
+          }
+          if (wraps) inner = inner.slice(1, -1);
+        }
+        return parseMathExpression(inner);
       }
       return parseMathExpression(match[1]);
     }
