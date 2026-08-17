@@ -147,7 +147,8 @@ function isPlainEquationForAlgebra(problem, topic) {
   if (equalsCount !== 1) return false;
   if (!/[a-z]/i.test(t.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sqrt|abs|log|ln|exp|pi|e)\b/gi, ''))) return false;
   if (topic === 'algebra') return false;
-  if (topic === 'trigonometry' && /\b(?:sin|cos|tan|sec|csc|cot)\s*\(/i.test(t)) return false;
+  // (?<![a-z]) not \b: "2cos(x) - 1 = 0" has no word boundary before "cos".
+  if (topic === 'trigonometry' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*\(/i.test(t)) return false;
   if (topic === 'functions' && /(?<![a-z0-9])(?:f\(.\)|y)\s*=/i.test(t)) return false;
   return true;
 }
@@ -160,12 +161,28 @@ function isAlgebraUnderArithmetic(problem, topic) {
   return /(?<![a-z])[a-df-z](?![a-z])/i.test(t) && !/^\s*\d+(?:\.\d+)?\s*x\s*\d/i.test(String(problem)); // "2 x 3" is multiplication
 }
 
+// "… at x = 2" / "… when x = π/4": an evaluation point tacked onto the end
+// of a problem. Read on the raw text before any routing, because the "=" in
+// it would otherwise make "x^2 at x = 1.5" look like an equation (in the
+// unknowns a, t and x). Returns { rest, variable, valueText } or null.
+function extractEvalPoint(problem) {
+  const m = String(problem).match(/^(.*?)[\s,]+(?:at|when|where|for)\s+([a-z])\s*=\s*(-?[0-9a-z.\/*+^() π√]+?)\s*[.?!]?\s*$/i);
+  if (!m || !m[1].trim()) return null;
+  // The value must be a number, not another expression in the variable.
+  const variable = m[2].toLowerCase();
+  if (new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'i').test(m[3].replace(/\b(?:pi|sqrt|e)\b/gi, ''))) return null;
+  return { rest: m[1].trim(), variable, valueText: m[3].trim() };
+}
+
 const TOPIC_NAMES = { derivatives: 'Derivatives', integrals: 'Integrals', limits: 'Limits', functions: 'Functions', trigonometry: 'Trigonometry', algebra: 'Algebra', other: 'Arithmetic' };
 
 // A solved result that was routed away from the chosen topic says so, first.
 function noteRouting(result, from, to, why) {
   if (result && Array.isArray(result.steps) && from !== to) {
     result.steps = [`Solved as ${TOPIC_NAMES[to]} (you chose ${TOPIC_NAMES[from]}): ${why}.`, ...result.steps];
+    // The topic the problem was actually solved under — history and the
+    // Progress stats file it there, not under the dropdown's guess.
+    result.routedTopic = to;
   }
   return result;
 }
@@ -174,7 +191,7 @@ function noteRouting(result, from, to, why) {
 function isSingleTrigEquation(problem) {
   const text = String(problem);
   const equalsCount = (text.match(/(?<![><!=])=(?!=)/g) || []).length;
-  return equalsCount === 1 && /\b(sin|cos|tan)\s*\(/i.test(text);
+  return equalsCount === 1 && /(?<![a-z])(sin|cos|tan)\s*\(/i.test(text);
 }
 
 // Text that is program source rather than mathematics. The engines can hand
@@ -255,6 +272,29 @@ export function finalizeResult(result, input) {
 }
 
 // Real math solver using local libraries
+// "x^2 + 1 at x = 3": substitute the value and evaluate as arithmetic, with
+// the substitution shown as a step.
+async function evaluateAtPoint({ rest, variable, valueText }) {
+  const { parseMathExpression } = await import('./mathParser.js');
+  const expression = parseMathExpression(extractFunctionFromProblem(rest));
+  const substituted = expression.replace(new RegExp(`(?<![a-z])${variable}(?![a-z(])`, 'gi'), `(${valueText})`);
+  const { solveArithmetic } = await import('./solvers/arithmeticSolver.js');
+  const result = await solveArithmetic(substituted);
+  if (result.status && result.status !== STATUS.SOLVED) return result;
+  const shownExpr = beautifyText(expression);
+  return {
+    ...result,
+    steps: [
+      `Evaluate f(${variable}) = ${shownExpr} at ${variable} = ${valueText}.`,
+      `Substitute ${variable} = ${valueText}: ${beautifyText(substituted)}`,
+      ...(result.steps || []),
+    ],
+    answer: `f(${valueText}) = ${result.answer}`,
+  };
+}
+
+const beautifyText = (s) => String(s).replace(/\*/g, '·').replace(/\^2\b/g, '²').replace(/\^3\b/g, '³');
+
 export async function solveProblem(problem, topic) {
   try {
     // Validate inputs
@@ -267,6 +307,22 @@ export async function solveProblem(problem, topic) {
     }
 
     let result;
+
+    // "f at x = a": strip the evaluation point first so the "=" in it is not
+    // mistaken for an equation, then hand it to the solver as an option.
+    const evalAt = extractEvalPoint(problem);
+    if (evalAt) {
+      const calculusRaw = detectCalculusIntent(problem);
+      if (calculusRaw === 'derivatives' || (!calculusRaw && topic === 'derivatives')) {
+        const { solveDerivative } = await import('./solvers/derivativesSolver.js');
+        const expression = extractFunctionFromProblem(evalAt.rest);
+        result = await solveDerivative(expression, { evalAt });
+        return finalizeResult(topic === 'derivatives' ? result : noteRouting(result, topic, 'derivatives', 'the input uses derivative notation'), problem);
+      }
+      if (!calculusRaw && ['algebra', 'functions', 'other', 'trigonometry'].includes(topic) && !looksLikeInequality(evalAt.rest) && !/=/.test(evalAt.rest)) {
+        return finalizeResult(await evaluateAtPoint(evalAt), problem);
+      }
+    }
 
     // The input's own intent wins over the dropdown. Calculus notation under
     // any topic goes to that solver; a plain equation in one unknown under a

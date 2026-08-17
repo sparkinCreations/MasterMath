@@ -861,7 +861,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
     const variable = extractVariable(expression);
     if (isEquation(expression)) {
       const { solveTrigEquation } = await import('./trigEquationSolver.js');
-      return solveTrigEquation(expression, variable);
+      return solveTrigEquation(expression, variable, settingsOverride);
     }
 
     // A free variable means this is a symbolic expression (an identity to
@@ -881,10 +881,16 @@ export async function solveTrigonometry(expression, settingsOverride) {
     const hasRadians = expression.includes('pi') || expression.includes('PI');
     const hasDegreeSymbol = expression.includes('°');
 
-    const degreeArgMatch = expression.match(/(?:sin|cos|tan|sec|csc|cot)\s*\(\s*(\d+)\s*\)/i);
-    const argValue = degreeArgMatch ? parseInt(degreeArgMatch[1], 10) : null;
+    // The angle inside a direct trig call: sin(30), cos(0.5), tan(-45). Not
+    // arcsin(0.3) — the (?<![a-z]) keeps "sin(" inside "arcsin(" from
+    // matching, whose argument is a ratio, not an angle.
+    const degreeArgMatch = expression.match(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*\(\s*(-?\d+(?:\.\d+)?)\s*°?\s*\)/i);
+    const argValue = degreeArgMatch ? parseFloat(degreeArgMatch[1]) : null;
+    // The whole expression is one inverse-trig call: its VALUE is an angle,
+    // so the angle unit applies to the output, not the input.
+    const inverseWhole = /^\s*(?:arcsin|arccos|arctan|asin|acos|atan)\s*\((?:[^()]|\([^()]*\))*\)\s*$/i.test(expression);
 
-    const autoDegrees = !hasRadians && argValue !== null && COMMON_DEGREE_VALUES.includes(argValue);
+    const autoDegrees = !hasRadians && argValue !== null && Number.isInteger(argValue) && COMMON_DEGREE_VALUES.includes(argValue);
     let looksLikeDegrees;
     if (angleUnit === 'degrees') {
       // An explicit pi in the input still means radians, even with the
@@ -898,7 +904,9 @@ export async function solveTrigonometry(expression, settingsOverride) {
 
     let result;
     let degreeResult = null;
-    const radianResult = math.evaluate(expression);
+    // mathjs has no ° token; the symbol is handled by the degree rewrite
+    // below, so it is dropped here for the "if you meant radians" cross-check.
+    const radianResult = math.evaluate(expression.replace(/°/g, ''));
 
     // A complex value here means an inverse trig function was asked for an
     // argument outside [-1, 1] (arcsin(2)). That is undefined over the reals,
@@ -929,10 +937,13 @@ export async function solveTrigonometry(expression, settingsOverride) {
     if (looksLikeDegrees || hasDegreeSymbol || (angleUnit === 'radians' && autoDegrees)) {
       // Convert ONLY the angle inside each trig call. Rewriting every integer
       // turned sin(45)^2 into sin(45°)^(2°) = 0.988.
-      const degExpr = expression.replace(
-        /\b(sin|cos|tan|sec|csc|cot)\s*\(\s*(-?\d+(?:\.\d+)?)\s*°?\s*\)/gi,
-        (_, fn, deg) => `${fn}((${deg} * pi / 180))`
-      );
+      const degExpr = hasDegreeSymbol
+        // sin(30°), sin(2*30°), 90° - 30°: every N° is an angle in degrees.
+        ? expression.replace(/(-?\d+(?:\.\d+)?)\s*°/g, (_, deg) => `((${deg}) * pi / 180)`)
+        : expression.replace(
+          /(?<![a-z])(sin|cos|tan|sec|csc|cot)\s*\(\s*(-?\d+(?:\.\d+)?)\s*\)/gi,
+          (_, fn, deg) => `${fn}((${deg} * pi / 180))`
+        );
       try {
         degreeResult = math.evaluate(degExpr);
       } catch {
@@ -959,7 +970,13 @@ export async function solveTrigonometry(expression, settingsOverride) {
     }
 
     const lower = expression.toLowerCase();
-    if (lower.includes('sin')) {
+    if (/\b(?:arcsin|asin)\b/.test(lower)) {
+      steps.push('Using the inverse sine (arcsin): the angle whose sine is the given value.');
+    } else if (/\b(?:arccos|acos)\b/.test(lower)) {
+      steps.push('Using the inverse cosine (arccos): the angle whose cosine is the given value.');
+    } else if (/\b(?:arctan|atan)\b/.test(lower)) {
+      steps.push('Using the inverse tangent (arctan): the angle whose tangent is the given value.');
+    } else if (lower.includes('sin')) {
       steps.push('Using the sine function (opposite / hypotenuse in a right triangle).');
     } else if (lower.includes('cos')) {
       steps.push('Using the cosine function (adjacent / hypotenuse in a right triangle).');
@@ -1028,7 +1045,22 @@ export async function solveTrigonometry(expression, settingsOverride) {
       };
     }
 
-    const formattedResult = formatTrigResult(result, expression);
+    let formattedResult = formatTrigResult(result, expression);
+
+    // Inverse trig returns an angle. Report it in the unit the student
+    // chose: degrees when the angle unit is set to degrees, radians
+    // otherwise — with the other unit as a note either way.
+    if (inverseWhole && typeof result === 'number' && Number.isFinite(result)) {
+      const degrees = result * 180 / Math.PI;
+      const degShown = `${formatNumber(degrees)}°`;
+      if (angleUnit === 'degrees') {
+        steps.push(`The result is an angle. Angle unit is set to degrees (Settings): ${formatNumber(result)} rad × 180/π = ${degShown}`);
+        steps.push(`Note: in radians the result would be ${formattedResult}.`);
+        formattedResult = degShown;
+      } else {
+        steps.push(`The result is an angle, in radians: ${formattedResult} (= ${degShown}).`);
+      }
+    }
 
     if (looksLikeDegrees && radianResult !== null && degreeResult !== null) {
       steps.push(`Result (treating input as degrees): ${formattedResult}`);

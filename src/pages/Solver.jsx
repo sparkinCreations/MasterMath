@@ -64,7 +64,9 @@ export default function Solver() {
         try {
           await createProblemHistory({
             problem: problemText,
-            topic,
+            // File it under the topic it was solved as (the router may have
+            // overridden the dropdown: "d/dx x^3" under Algebra is a derivative).
+            topic: result.routedTopic || topic,
             solution: result,
             feedback: statusLabel(result.status)
           });

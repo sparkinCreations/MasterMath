@@ -41,8 +41,8 @@ const TOPIC_LABELS = {
 
 const ANGLE_UNIT_OPTIONS = [
   { value: "auto", label: "Auto-detect", description: "sin(30) reads as degrees, sin(pi/6) as radians" },
-  { value: "degrees", label: "Degrees", description: "Plain numbers are always degrees" },
-  { value: "radians", label: "Radians", description: "Plain numbers are always radians" },
+  { value: "degrees", label: "Degrees", description: "Plain numbers are degrees; angle results (arcsin, trig equations) are reported in degrees" },
+  { value: "radians", label: "Radians", description: "Plain numbers are radians; angle results are reported in radians" },
 ];
 
 const DECIMAL_OPTIONS = [2, 3, 4, 5, 6];
@@ -170,7 +170,7 @@ export default function Settings() {
           <div>
             <p className="font-medium text-gray-800 dark:text-gray-200 mb-1">Angle unit</p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              How trigonometry inputs like sin(30) are interpreted. Explicit notation (pi, °) always wins.
+              How angles are read and reported in Trigonometry — sin(30), arcsin(0.5), sin(x) = 1/2. Explicit notation (pi, °) always wins; calculus always works in radians.
             </p>
             <div className="flex flex-wrap gap-3">
               {ANGLE_UNIT_OPTIONS.map((opt) => (

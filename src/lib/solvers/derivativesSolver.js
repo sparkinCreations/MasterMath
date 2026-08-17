@@ -7,14 +7,17 @@ import {
   rewriteReciprocalTrig,
   parsesAsMath,
   isUnevaluatedOperator,
+  isAlgebriteFailure,
+  math,
+  formatNumber,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 
-export async function solveDerivative(expression) {
+export async function solveDerivative(expression, options = {}) {
   try {
     const Algebrite = await loadAlgebrite();
-    const variable = extractVariable(expression);
+    const variable = options.evalAt?.variable || extractVariable(expression);
 
     // Algebrite has no sec/csc/cot; rewrite them into sin/cos before handing
     // off so those derivatives evaluate instead of coming back unevaluated.
@@ -39,6 +42,37 @@ export async function solveDerivative(expression) {
 
     const steps = generateDerivativeSteps(expression, derivative, variable, Algebrite);
 
+    // "at x = a": evaluate the derivative there — the slope of the tangent
+    // line at that point. Exact via Algebrite substitution, decimal alongside.
+    let answer = `f'(${variable}) = ${beautify(derivative)}`;
+    let evalPoint = null;
+    if (options.evalAt) {
+      const { valueText } = options.evalAt;
+      const value = math.evaluate(String(valueText).replace(/π/g, 'pi').replace(/√/g, 'sqrt'));
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return parseError({ input: expression, hint: `The evaluation point ${variable} = ${valueText} is not a number.` });
+      }
+      let exact = '';
+      try {
+        exact = Algebrite.run(`simplify(subst(${String(valueText).replace(/π/g, 'pi').replace(/√/g, 'sqrt')}, ${variable}, ${rewriteReciprocalTrig(derivative)}))`).toString();
+        if (isAlgebriteFailure(exact) || isUnevaluatedOperator(exact) || /Stop|nil/.test(exact)) exact = '';
+        // Algebrite writes e^n as exp(n); students read 1/e, e^2.
+        exact = exact.replace(/exp\(-1\)/g, '1/e').replace(/exp\(1\)/g, 'e').replace(/exp\(-(\d+)\)/g, '1/e^$1').replace(/exp\((\d+)\)/g, 'e^$1');
+      } catch { exact = ''; }
+      const numeric = math.evaluate(rewriteReciprocalTrig(derivative), { [variable]: value });
+      if (typeof numeric !== 'number' || !Number.isFinite(numeric)) {
+        steps.push(`Evaluate at ${variable} = ${valueText}: f'(${valueText}) is undefined there.`);
+        answer = `f'(${valueText}) is undefined`;
+      } else {
+        const dec = formatNumber(numeric);
+        const exactShown = exact && !/^-?\d+(?:\.\d+)?$/.test(exact) && beautify(exact) !== dec ? `${beautify(exact)} ≈ ${dec}` : (exact && /^-?\d+$/.test(exact) ? exact : dec);
+        steps.push(`Evaluate at ${variable} = ${valueText}: f'(${valueText}) = ${exactShown}`);
+        steps.push(`That is the slope of the tangent line to f at ${variable} = ${valueText}.`);
+        answer = `f'(${valueText}) = ${exactShown}`;
+        evalPoint = { x: value, y: numeric };
+      }
+    }
+
     const tips = [
       `Power rule: d/d${variable}(${variable}^n) = n·${variable}^(n-1)`,
       'The derivative of a constant is 0, and constant factors carry straight through.',
@@ -51,9 +85,11 @@ export async function solveDerivative(expression) {
       'Sign slips when differentiating negative or subtracted terms.',
     ];
 
+    if (evalPoint) tips.unshift(`f'(a) is a number — the slope at one point — while f'(${variable}) is a function giving the slope everywhere.`);
+
     return {
       steps,
-      answer: `f'(${variable}) = ${beautify(derivative)}`,
+      answer,
       tips,
       common_mistakes,
       graph: generateDerivativeGraph(expression, derivative, variable),

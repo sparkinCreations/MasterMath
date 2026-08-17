@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-08-16
+
+Fifth black-box pass: Settings (angle unit, decimal places) across every
+solver, the update banner and offline flows in a real browser against a
+production build, and the Progress bookkeeping. Decimal places were honoured
+everywhere. The angle unit was only half-honoured, and the update banner
+could be lost.
+
+### Added
+
+- **Angle results in degrees.** With the angle unit set to degrees,
+  `arcsin(0.3)` answers `17.4576°` (was `0.3047` — radians, whatever the
+  setting), `arcsin(1/2)` → `30°`, and trig equations are solved *in
+  degrees* end to end: `sin(x) = 1/2` → `x = 30° + 360°n or x = 150° +
+  360°n; on [0°, 360°): 30°, 150°`, with the reference angle, period and
+  graph x-axis all in degrees. In radians mode the degree value is still
+  noted (`π/6 (= 30°)`).
+- **"Derivative of f at x = a"** evaluates the derivative at the point:
+  `derivative of sin(x) at x = 1` → `f'(1) = cos(1) ≈ 0.5403`, `d/dx ln(x)
+  at x = e` → `f'(e) = 1/e ≈ 0.3679`, `1/x at x = 0` → `f'(0) is undefined`.
+  Before, `derivative of sin(x) at x=1` answered `f'(x) = 0` — the "at x=1"
+  was read as `a·t·x = 1` — and `x^2 at x=1.5` under Derivatives claimed
+  "infinitely many solutions — one equation cannot fix 3 unknowns".
+- **"Expression at x = a"** under Algebra / Functions / Arithmetic
+  substitutes and evaluates: `x^2 + 1 at x = 3` → `f(3) = 10`.
+- The update banner has a **Later** button (updating reloads the page, so a
+  student mid-problem can put it off) and is announced to screen readers.
+
+### Fixed
+
+- **`sin(30°)` was a syntax error** ("Syntax error in part °)") — mathjs has
+  no degree token and the symbol reached it before the degree rewrite. Any
+  `N°` in the input is now an angle in degrees: `sin(2*30°)`, `sin(30°) +
+  cos(60°)`.
+- **Angle unit = degrees ignored decimal arguments.** `sin(0.5)` and
+  `tan(1.5)` were evaluated in radians under the degrees setting because the
+  detector only recognised integer angles. Now `sin(0.5)` → `sin(0.5°)`.
+- **`2cos(x) − 1 = 0` under Trigonometry fell to the numeric root scan**
+  (five decimal roots, "more solutions in range") instead of the exact
+  general solution — a regression from 1.22.0's routing: the trig-equation
+  guard used a word boundary that `2cos(` does not have. Same fix for the
+  Algebra-topic detector.
+- **The update banner could be lost.** If a new version was installed and
+  waiting and the page was reloaded instead of clicking Update, the banner
+  never came back (`updatefound` does not fire for an already-installed
+  worker) — the old version stayed until the next deploy. An already-waiting
+  update is now offered on every load.
+- **History filed routed problems under the dropdown's topic**: `d/dx x³`
+  typed under Algebra was saved — and counted in Topics Covered — as
+  Algebra. It is saved as what it was solved as.
+- Inverse-trig steps said "Using the sine function (opposite / hypotenuse)"
+  for `arcsin`; they now say inverse sine.
+- Settings copy describes what the angle unit actually governs (reading and
+  reporting angles in Trigonometry; calculus always uses radians).
+
+### Verified (no change needed)
+
+- Decimal places flow through every solver's numeric output (arithmetic,
+  algebra roots and inequalities, definite integrals, limits, function
+  analysis, trig).
+- Offline: with the server stopped, the shell, every route, and a full solve
+  (Algebrite, mathjs, KaTeX, charts) load from the precache — all 51 built
+  assets are in the manifest.
+
 ## [1.22.0] - 2026-08-16
 
 Fourth black-box pass: what happens when a problem is typed under the

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './Layout';
 import Home from './pages/Home';
@@ -35,17 +35,30 @@ function RouteFallback() {
 }
 
 function UpdateBanner({ updateAvailable, applyUpdate }) {
-  if (!updateAvailable) return null;
+  const [dismissed, setDismissed] = useState(false);
+  if (!updateAvailable || dismissed) return null;
 
+  // Updating reloads the page, so a student mid-problem can put it off; the
+  // waiting version is offered again on the next page load.
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce-in">
-      <RefreshCw className="w-5 h-5 flex-shrink-0" />
-      <span className="text-sm font-medium">A new version of MasterMath is available!</span>
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-2rem)] bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl flex flex-wrap items-center justify-center gap-3 animate-bounce-in"
+    >
+      <RefreshCw className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+      <span className="text-sm font-medium">A new version of MasterMath is available. Updating reloads the page.</span>
       <button
         onClick={applyUpdate}
         className="bg-white text-indigo-700 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-indigo-50 transition-colors"
       >
-        Update
+        Update now
+      </button>
+      <button
+        onClick={() => setDismissed(true)}
+        className="px-3 py-1 rounded-lg text-sm font-semibold text-white/90 hover:bg-white/15 transition-colors"
+      >
+        Later
       </button>
     </div>
   );

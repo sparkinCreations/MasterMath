@@ -15,8 +15,19 @@
 import { math, formatNumber, beautify } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
 import { unsupported, undefinedValue } from '../solutionEnvelope.js';
+import { getSettings } from '../settings.js';
 
 const TWO_PI = 2 * Math.PI;
+
+// Display unit for angles. Solving is always done in radians; when the
+// Settings angle unit is degrees, every angle shown — reference angle,
+// general solution, the one-period listing, the graph's x-axis — is
+// converted on the way out. Set per call by solveTrigEquation (the solver
+// is synchronous, so a module flag is safe).
+let DEGREES = false;
+const PERIOD_FULL = () => (DEGREES ? '360°' : '2π');
+const PERIOD_HALF = () => (DEGREES ? '180°' : 'π');
+const RANGE_TEXT = () => (DEGREES ? '[0°, 360°)' : '[0, 2π)');
 
 // Special values, exact strings first. Matched by tolerance so that both
 // "1/2" and "0.5" and "sqrt(3)/2" resolve to the same angle.
@@ -78,7 +89,7 @@ function mergeFamilies(families) {
 
 // "base + period·n" as text, with the trivial cases tidied.
 function familyText(variable, base, period) {
-  const per = near(period, TWO_PI) ? '2π' : near(period, Math.PI) ? 'π' : fmtRad(period);
+  const per = near(period, TWO_PI) ? PERIOD_FULL() : near(period, Math.PI) ? PERIOD_HALF() : fmtRad(period);
   const b = fmtRad(base);
   if (b === '0') return `${variable} = ${per}n`;
   return `${variable} = ${b} + ${per}n`;
@@ -90,24 +101,29 @@ function principalAngle(fn, c) {
   const hit = SPECIAL[fn].find((s) => near(s.value, abs));
   if (fn === 'sin' || fn === 'tan') {
     // odd functions: negative value → negative angle
-    if (hit) return { exact: c < 0 && hit.rad !== 0 ? `-${hit.angle}` : hit.angle, rad: c < 0 ? -hit.rad : hit.rad, isExact: true };
+    if (hit) return { exact: fmtRad(c < 0 ? -hit.rad : hit.rad), rad: c < 0 ? -hit.rad : hit.rad, isExact: true };
     const rad = fn === 'sin' ? Math.asin(c) : Math.atan(c);
-    return { exact: formatNumber(rad), rad, isExact: false };
+    return { exact: fmtRad(rad), rad, isExact: false };
   }
   // cos: arccos(-v) = π - arccos(v)
   if (hit) {
-    if (c >= 0 || hit.rad === Math.PI / 2) return { exact: hit.angle, rad: hit.rad, isExact: true };
+    if (c >= 0 || hit.rad === Math.PI / 2) return { exact: fmtRad(hit.rad), rad: hit.rad, isExact: true };
     const rad = Math.PI - hit.rad;
-    const exactMap = { 'π/6': '5π/6', 'π/4': '3π/4', 'π/3': '2π/3', '0': 'π' };
-    return { exact: exactMap[hit.angle] || formatNumber(rad), rad, isExact: true };
+    return { exact: fmtRad(rad), rad, isExact: true };
   }
   const rad = Math.acos(c);
-  return { exact: formatNumber(rad), rad, isExact: false };
+  return { exact: fmtRad(rad), rad, isExact: false };
 }
 
-// Format an angle in radians as an exact multiple of π when it is one, or as
-// a decimal. Used for the [0, 2π) listing.
+// Format an angle (held in radians) for display: in degrees mode as N°; in
+// radians mode as an exact multiple of π when it is one, else a decimal.
 function fmtRad(rad) {
+  if (DEGREES) {
+    const deg = rad * 180 / Math.PI;
+    // Snap the special angles so π/6 reads 30°, not 29.9999°.
+    const snapped = Math.abs(deg - Math.round(deg)) < 1e-6 ? Math.round(deg) : deg;
+    return `${formatNumber(snapped)}°`;
+  }
   const ratio = rad / Math.PI;
   // Denominators that arise from halving/thirding standard angles: tan(2x)=1
   // has solutions at π/8; sin(3x)=½ at π/18. Ordered so the simplest form wins.
@@ -171,7 +187,8 @@ function parseTrigEquation(equation, variable) {
   return { fn, arg, k, c, a, b: g0 };
 }
 
-export function solveTrigEquation(rawEquation, variable = 'x') {
+export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride) {
+  DEGREES = (settingsOverride?.angleUnit ?? getSettings().angleUnit) === 'degrees';
   const equation = parseMathExpression(rawEquation);
   const parsed = parseTrigEquation(equation, variable);
   const shown = beautify(rawEquation).replace(/\s*=\s*/, ' = ');
@@ -193,6 +210,7 @@ export function solveTrigEquation(rawEquation, variable = 'x') {
   const argShown = arg.replace(/\*/g, '');
   const steps = [];
   steps.push(`Solve the equation: ${shown}`);
+  if (DEGREES) steps.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
   // Only narrate isolation when there was something to isolate: a coefficient
   // other than 1, a constant term, or the trig term on the right-hand side.
   const [lhsRaw] = equation.split('=');
@@ -222,23 +240,23 @@ export function solveTrigEquation(rawEquation, variable = 'x') {
   // General solution, first for θ = kx (or directly for x when k = 1).
   let general; // [{ base (rad), period (rad) }] for θ
   if (fn === 'sin') {
-    steps.push(`Take the inverse sine: the reference angle is arcsin(${cShown}) = ${p.exact}${p.isExact ? '' : ' rad'}.`);
+    steps.push(`Take the inverse sine: the reference angle is arcsin(${cShown}) = ${p.exact}${p.isExact || DEGREES ? '' : ' rad'}.`);
     const second = fmtRad(Math.PI - p.rad);
-    steps.push(`Sine takes each value twice per period (quadrants I and II for positive values, III and IV for negative), so within one period: ${theta} = ${p.exact} and ${theta} = π − (${p.exact}) = ${second}.`);
+    steps.push(`Sine takes each value twice per period (quadrants I and II for positive values, III and IV for negative), so within one period: ${theta} = ${p.exact} and ${theta} = ${PERIOD_HALF()} − (${p.exact}) = ${second}.`);
     general = [
       { base: p.rad, period: TWO_PI },
       { base: Math.PI - p.rad, period: TWO_PI },
     ];
   } else if (fn === 'cos') {
-    steps.push(`Take the inverse cosine: the reference angle is arccos(${cShown}) = ${p.exact}${p.isExact ? '' : ' rad'}.`);
+    steps.push(`Take the inverse cosine: the reference angle is arccos(${cShown}) = ${p.exact}${p.isExact || DEGREES ? '' : ' rad'}.`);
     steps.push(`Cosine is even, so ${theta} = ±${p.exact} both work within one period.`);
     general = [
       { base: p.rad, period: TWO_PI },
       { base: -p.rad, period: TWO_PI },
     ];
   } else {
-    steps.push(`Take the inverse tangent: the reference angle is arctan(${cShown}) = ${p.exact}${p.isExact ? '' : ' rad'}.`);
-    steps.push('Tangent repeats every π (not 2π), so one solution per period suffices.');
+    steps.push(`Take the inverse tangent: the reference angle is arctan(${cShown}) = ${p.exact}${p.isExact || DEGREES ? '' : ' rad'}.`);
+    steps.push(`Tangent repeats every ${PERIOD_HALF()} (not ${PERIOD_FULL()}), so one solution per period suffices.`);
     general = [{ base: p.rad, period: Math.PI }];
   }
   general = mergeFamilies(general);
@@ -290,7 +308,7 @@ export function solveTrigEquation(rawEquation, variable = 'x') {
   }
   list.sort((a, b) => a - b);
   const listed = list.map((x) => `${variable} = ${fmtRad(x)}`);
-  steps.push(`On [0, 2π): ${listed.join(',  ')}`);
+  steps.push(`On ${RANGE_TEXT()}: ${listed.join(',  ')}`);
 
   // Verify each listed solution against the original equation.
   const scopeCheck = (x) => {
@@ -313,30 +331,32 @@ export function solveTrigEquation(rawEquation, variable = 'x') {
   let graph = null;
   try {
     const curve = `${fn}(${k === 1 ? variable : `${formatNumber(k)}*${variable}`})`;
+    // In degrees mode the x-axis is in degrees: sample in radians, plot in degrees.
+    const toShown = (x) => (DEGREES ? x * 180 / Math.PI : x);
     const pts = [];
     for (let x = -TWO_PI; x <= TWO_PI + 1e-9; x += 0.05) {
       let y;
       try { y = math.evaluate(curve, { [variable]: x }); } catch { y = NaN; }
-      if (Number.isFinite(y) && Math.abs(y) <= 6) pts.push({ x: Math.round(x * 1e6) / 1e6, y });
+      if (Number.isFinite(y) && Math.abs(y) <= 6) pts.push({ x: Math.round(toShown(x) * 1e6) / 1e6, y });
     }
     const line = pts.map((pt) => ({ x: pt.x, y: c }));
     graph = {
       points: pts,
       secondaryPoints: line,
       secondaryLabel: `y = ${cShown}`,
-      title: `Graph of y = ${curve} and y = ${cShown}`,
-      description: `Solutions are where the curve meets the horizontal line y = ${cShown}. Marked: the solutions on [0, 2π).`,
-      solutions: list,
-      initialWindow: { xMin: -TWO_PI, xMax: TWO_PI },
+      title: `Graph of y = ${curve} and y = ${cShown}${DEGREES ? ` (${variable} in degrees)` : ''}`,
+      description: `Solutions are where the curve meets the horizontal line y = ${cShown}. Marked: the solutions on ${RANGE_TEXT()}.`,
+      solutions: list.map(toShown),
+      initialWindow: { xMin: toShown(-TWO_PI), xMax: toShown(TWO_PI) },
     };
   } catch { /* graph is optional */ }
 
   return {
     steps,
-    answer: `${generalText} (${nSym} ∈ ℤ);  on [0, 2π): ${list.map(fmtRad).join(', ')}`,
+    answer: `${generalText} (${nSym} ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
     tips: [
-      'A trig equation has infinitely many solutions because the functions repeat — the general solution captures all of them; the [0, 2π) list is one period\'s worth.',
-      fn === 'tan' ? 'tan has period π, so its general solution steps by πn rather than 2πn.' : `Remember both quadrants where ${fn} takes the value ${cShown} — a calculator\'s inverse function only returns one of them.`,
+      `A trig equation has infinitely many solutions because the functions repeat — the general solution captures all of them; the ${RANGE_TEXT()} list is one period's worth.`,
+      fn === 'tan' ? `tan has period ${PERIOD_HALF()}, so its general solution steps by ${PERIOD_HALF()}n rather than ${PERIOD_FULL()}n.` : `Remember both quadrants where ${fn} takes the value ${cShown} — a calculator\'s inverse function only returns one of them.`,
     ],
     common_mistakes: [
       'Reporting only the calculator\'s principal value (e.g. arcsin(1/2) = π/6) and missing the second solution in the period.',

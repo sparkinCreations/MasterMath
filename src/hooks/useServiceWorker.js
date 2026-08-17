@@ -21,6 +21,15 @@ export function useServiceWorker() {
         console.log('[MasterMath] Service worker registered');
         setRegistration(reg);
 
+        // A new version may already be installed and waiting from an earlier
+        // page load — the user saw the banner, reloaded instead of clicking
+        // it, and 'updatefound' will not fire again for a worker that is
+        // already installed. Offer it again.
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          console.log('[MasterMath] New version already waiting');
+          setUpdateAvailable(true);
+        }
+
         // Check for updates periodically (every 30 minutes)
         const interval = setInterval(() => {
           reg.update().catch(() => {});
