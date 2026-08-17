@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-08-16
+
+Fixes from a third black-box pass (131 fresh problems against v1.20.1): all
+four High findings and all six Mediums. Two of the Highs were regressions
+from the previous release — called out as such below.
+
+### Fixed
+
+- **`e^(−x²) = 0` answered "x = −28.5, −28, …" — a regression from 1.20.0.**
+  That release required a touch root to be a local minimum of |f|, but for
+  |x| ≳ 27 `e^(−x²)` underflows to exactly 0 in floating point, so
+  "0 ≤ 0 ≤ 0" passed. Both neighbours must now be *strictly* greater. Applied
+  in the algebra scan and the functions intercept finder; genuine touch roots
+  (`|x−1| = 0`, `x·eˣ = 0`, `(x−1)²`) still count.
+- **`sin(45)^2` answered 0.988.** The degrees converter rewrote *every*
+  integer in the expression, so the exponent became 2° too. Only the number
+  inside each trig call is converted now: `sin(45)^2 → 1/2`, `2·sin(30) → 1`.
+- **Extraneous roots were reported.** `x²/(x−1) = 1/(x−1) + 1` gave "x = 0 or
+  x = 1"; x = 1 zeroes both denominators. Every solution is now substituted
+  into the *original* sides, and any that leaves a side undefined is dropped
+  with the reason: "x = 1 makes a denominator zero, so it is extraneous —
+  introduced when the equation was multiplied through". `x/(x−2) = 2/(x−2)`
+  → "No solution (every candidate makes the original equation undefined)".
+- **`2X + 4 = 10` answered "No real solution found".** mathjs is
+  case-sensitive, so the uppercase X was undefined at every sample. A lone
+  uppercase letter is now read as its lowercase variable — after the
+  combinatorics rewrite (`5C2` stays nCr), excluding E and any letter that
+  is part of a name (`PI`) or a function (`C(5,2)`).
+- **`∫x dx` was a parse error** ("∫ ? xdx"): with no bounds the integral sign
+  and trailing `dx` reached the expression extractor. Both are stripped first.
+- **"limit of (1+x)^(1/x) as x approaches 0" fused into `limitof(1+x)…`** and
+  reported "does not exist". The `(find/evaluate/…) (the) limit of` prefixes
+  are stripped; the answer is e.
+- **`arcsin(2)` printed a raw complex number** (`1.5707963267948966 −
+  1.3169578969248166i`). Inverse trig outside [−1, 1] is now "Undefined for
+  real numbers — arcsin is only defined on [−1, 1]", status *undefined*.
+- **`∫₀¹ 1/x dx` said "could not compute exactly (the antiderivative may have
+  no elementary form)".** The antiderivative is ln|x|; the integral
+  *diverges*. When F is unbounded at an endpoint where the integrand blows
+  up, the answer is now "Diverges — the integral has no finite value
+  (unbounded at x = 0)", with the improper-integral reasoning. Convergent
+  endpoint singularities are computed: `∫₀¹ 1/√x dx = 2`,
+  `∫₀⁴ 1/√(4−x) dx = 4` — Simpson's rule now uses a mesh graded toward a
+  singular endpoint (x = a + (b−a)t³), which is what lets the exact FTC value
+  pass the numeric cross-check there.
+- **`1/sin(x)`'s domain line said "x ≠ 0"** while the asymptote line listed
+  ±π, ±2π, …: the domain only knew the poles the grid hit exactly. Asymptote
+  points now join the exclusion list, and isolated points read as one sorted
+  list — "x ≠ −9.4248, −6.2832, −3.1416, 0, 3.1416, 6.2832, 9.4248" — rather
+  than a chain of "and x ≠".
+- **`∫(x+1)/(x²+2x) dx` was refused.** The denominator candidate was tried,
+  but Algebrite normalised the ratio to `1/(2x²+4x)` in which `x²+2x` no
+  longer appears literally for `subst`. For a denominator candidate D with
+  numerator N the classic case is checked directly — N/D′ free of x ⇒
+  k·ln|D| — giving `½·ln|x²+2x|`, `⅓·ln|x³+1|`, `ln|x³+2x|`.
+
 ## [1.20.1] - 2026-08-16
 
 The last four (Low) items from the second black-box pass. With this

@@ -116,6 +116,36 @@ async function solveEquation(expression) {
     solutions = numeric.solutions;
   }
 
+  // Extraneous roots. Multiplying through by a denominator (mathsteps) or
+  // clearing it symbolically (Algebrite roots) can manufacture a "solution"
+  // at which the ORIGINAL equation is undefined: x²/(x−1) = 1/(x−1) + 1
+  // yields x = 0 or x = 1, and x = 1 makes both denominators zero. Every
+  // real solution is substituted into the original sides; any that leaves a
+  // side undefined is dropped, and the step says why.
+  if (solutions.length > 0 && isEquation(expression)) {
+    const [lhs, rhs] = expression.split('=');
+    const definedAt = (side, x) => {
+      try {
+        const v = math.evaluate(side, { [variable]: x });
+        return typeof v === 'number' && Number.isFinite(v);
+      } catch {
+        return false;
+      }
+    };
+    const extraneous = solutions.filter((x) => Number.isFinite(x) && (!definedAt(lhs, x) || !definedAt(rhs, x)));
+    if (extraneous.length > 0) {
+      const keep = solutions.filter((x) => !extraneous.includes(x));
+      const kept = keep.map((x) => `${variable} = ${formatNumber(x)}`);
+      steps = [
+        ...steps,
+        `Check each candidate in the ORIGINAL equation: ${extraneous.map((x) => `${variable} = ${formatNumber(x)}`).join(', ')} make${extraneous.length === 1 ? 's' : ''} a denominator zero, so ${extraneous.length === 1 ? 'it is' : 'they are'} extraneous — introduced when the equation was multiplied through — and ${extraneous.length === 1 ? 'is' : 'are'} rejected.`,
+        keep.length > 0 ? `Solution: ${kept.join('  or  ')}` : 'No solution: every candidate is extraneous.',
+      ];
+      answer = keep.length > 0 ? kept.join('  or  ') : 'No solution (every candidate makes the original equation undefined)';
+      solutions = keep;
+    }
+  }
+
   return {
     steps: steps.length > 0 ? steps : [`Solve ${beautify(expression)}`, `Result: ${answer}`],
     answer,
@@ -484,12 +514,15 @@ function solveNumerically(equation, variable) {
   // candidate that does NOT come from a sign change must be a genuine touch
   // root: |f| tiny AND a local minimum of |f| (a decaying tail keeps getting
   // smaller, so it never is).
+  // STRICT on both sides: e^(-x²) underflows to exactly 0 for |x| ≳ 27, and
+  // "0 ≤ 0 ≤ 0" would call every point out there a root. A genuine touch
+  // root rises on both sides.
   const isTouchRoot = (x) => {
     const v = evalReal(x);
     if (!Number.isFinite(v) || Math.abs(v) > 1e-9) return false;
     const l = Math.abs(evalReal(x - 1e-3));
     const r = Math.abs(evalReal(x + 1e-3));
-    return Number.isFinite(l) && Number.isFinite(r) && Math.abs(v) <= l && Math.abs(v) <= r;
+    return Number.isFinite(l) && Number.isFinite(r) && l > Math.abs(v) && r > Math.abs(v);
   };
 
   // Sign changes are located on a coarse grid, then refined. A gap that

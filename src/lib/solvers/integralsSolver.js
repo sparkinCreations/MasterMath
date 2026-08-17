@@ -46,7 +46,13 @@ export async function solveIntegral(rawInput) {
     return solveDefiniteIntegral(definite);
   }
 
-  const expression = extractFunctionFromProblem(rawInput);
+  // A bare integral sign with no bounds — "∫x dx", "∫ sin(x) dx" — is the
+  // most natural notation there is; strip the sign and the trailing d<var>
+  // before the expression extractor sees it, or "∫xdx" is a parse error.
+  const bare = String(rawInput)
+    .replace(/^\s*∫\s*/, '')
+    .replace(/\s*\bd([a-z])\s*$/i, '');
+  const expression = extractFunctionFromProblem(bare);
   return solveIndefiniteIntegral(expression);
 }
 
@@ -499,6 +505,19 @@ async function solveDefiniteIntegral(parsed) {
       if (ftcF) {
         const Fb = evalAntiderivNumeric(ftcF, v, b);
         const Fa = evalAntiderivNumeric(ftcF, v, a);
+        // F unbounded at an endpoint (∫₀¹ 1/x: F = ln|x| → −∞ at 0) means the
+        // integral DIVERGES there — say so, instead of "could not compute".
+        // An integrable endpoint singularity (1/√x: F = 2√x, finite at 0)
+        // passes straight through.
+        if (!Number.isFinite(Fb) || !Number.isFinite(Fa)) {
+          const at = !Number.isFinite(Fa) ? lowerLabel : upperLabel;
+          const bigNear = (x0) => { const y = evalAntiderivNumeric(integrand, v, x0); return !Number.isFinite(y) || Math.abs(y) > 1e6; };
+          const edge = !Number.isFinite(Fa) ? a : b;
+          if (bigNear(edge) || bigNear(edge + (edge === a ? 1e-9 : -1e-9))) {
+            return refuseImproperAt(notation, v, at, integrand);
+          }
+          ftcF = null;
+        }
         if (Number.isFinite(Fb) && Number.isFinite(Fa)) {
           exactValue = Fb - Fa;
           // Prefer an exact symbolic value when Algebrite can form one from F
@@ -628,6 +647,35 @@ function numericIntegral(integrand, variable, a, b, N = 2000) {
     }
   };
 
+  // An integrable singularity AT an endpoint (1/√x at 0) makes uniform
+  // Simpson converge too slowly to pass the exact-vs-numeric cross-check.
+  // Substitute x = lo + (hi−lo)·t³ (or the mirror image at hi): the mesh is
+  // graded toward the singular end and the transformed integrand,
+  // f(x(t))·3(hi−lo)t², is tame. Interior poles are still reported IMPROPER.
+  const singularLo = !Number.isFinite(fx(lo)) && Number.isFinite(fx(lo + h / 997));
+  const singularHi = !Number.isFinite(fx(hi)) && Number.isFinite(fx(hi - h / 997));
+  if (singularLo !== singularHi) {
+    const L = hi - lo;
+    const g = (t) => {
+      const x = singularLo ? lo + L * t * t * t : hi - L * t * t * t;
+      const y = fx(x);
+      return Number.isFinite(y) ? y * 3 * L * t * t : NaN;
+    };
+    let tsum = 0;
+    const th = 1 / N;
+    for (let i = 0; i <= N; i += 1) {
+      let y = g(i * th);
+      if (!Number.isFinite(y)) {
+        if (i !== 0 && i !== N) return 'IMPROPER';
+        y = 0; // t = 0 maps to the singular endpoint; the weight t² kills it
+      }
+      if (i !== 0 && i !== N && Math.abs(y) > 1e9) return 'IMPROPER';
+      tsum += (i === 0 || i === N ? 1 : i % 2 ? 4 : 2) * y;
+    }
+    const value = (tsum * th) / 3;
+    return b < a ? -value : value;
+  }
+
   let sum = 0;
   for (let i = 0; i <= N; i += 1) {
     const interior = i !== 0 && i !== N;
@@ -674,6 +722,26 @@ function refuseDefinite(reason, notation, kind = 'unsupported') {
     common_mistakes: ['Bounds that cannot be parsed as numbers.', 'An integrand with no elementary antiderivative.'],
   };
   return kind === 'parse' ? parseError(fields) : unsupported(fields);
+}
+
+// The integrand is unbounded at an endpoint and the antiderivative has no
+// finite limit there: the improper integral diverges.
+function refuseImproperAt(notation, variable, at, integrand) {
+  return unsupported({
+    input: notation,
+    reason: `The integrand ${beautify(integrand)} is unbounded as ${variable} → ${at}, and its antiderivative has no finite value there — this improper integral diverges (it has no finite value).`,
+    answer: `Diverges — the integral has no finite value (unbounded at ${variable} = ${at})`,
+    steps: [
+      `Evaluate the definite integral ${notation}.`,
+      `The integrand blows up at the endpoint ${variable} = ${at}, so this is an improper integral: it means lim (t→${at}) of the integral over the rest of the interval.`,
+      'That limit does not exist as a finite number — the area grows without bound — so the integral diverges.',
+    ],
+    tips: [
+      'An improper integral converges only if the limit toward the singular endpoint is finite: ∫₀¹ 1/√x dx = 2 converges, ∫₀¹ 1/x dx diverges.',
+      'Compare with a p-integral: ∫₀¹ 1/xᵖ dx converges for p < 1 and diverges for p ≥ 1.',
+    ],
+    common_mistakes: ['Applying F(b) − F(a) at a point where F is not defined.'],
+  });
 }
 
 function refuseImproper(notation, variable) {

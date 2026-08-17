@@ -21,7 +21,7 @@ import { parseError } from '../solutionEnvelope.js';
 export async function solveLimit(expression) {
   try {
     let cleaned = expression.trim().replace(/[.?!]+$/, '').trim();
-    cleaned = cleaned.replace(/^(?:find the limit|evaluate the limit|calculate the limit)\s+(?:of\s+)?/i, '');
+    cleaned = cleaned.replace(/^(?:(?:find|evaluate|calculate|compute|determine)\s+)?(?:the\s+)?lim(?:it)?\s+of\s+/i, '');
 
     // One-sided limits, phrasing form: "… as x approaches 0 from the right".
     // The phrase is stripped here, before the notation regexes run, so it can
@@ -879,10 +879,39 @@ export async function solveTrigonometry(expression, settingsOverride) {
     let degreeResult = null;
     const radianResult = math.evaluate(expression);
 
+    // A complex value here means an inverse trig function was asked for an
+    // argument outside [-1, 1] (arcsin(2)). That is undefined over the reals,
+    // and a raw "1.5707963267948966 - 1.3169578969248166i" is not an answer a
+    // trigonometry student can use — say what happened.
+    if (radianResult && typeof radianResult === 'object' && 'im' in radianResult && Math.abs(radianResult.im) > 1e-12) {
+      const inv = expression.match(/\b(arcsin|arccos)\s*\(([^()]*)\)/i);
+      const fn = inv ? inv[1].toLowerCase() : 'this function';
+      const arg = inv ? inv[2] : '';
+      steps.push(inv
+        ? `${fn}(${arg}) asks for an angle whose ${fn === 'arcsin' ? 'sine' : 'cosine'} is ${arg} — but ${fn === 'arcsin' ? 'sine' : 'cosine'} only takes values between −1 and 1, so no real angle works.`
+        : 'The expression has no real value.');
+      return {
+        steps,
+        answer: `Undefined for real numbers${inv ? ` — ${fn} is only defined on [−1, 1]` : ''}`,
+        status: 'undefined',
+        tips: [
+          'The inverse trig functions arcsin and arccos accept inputs from −1 to 1 only; arctan accepts any real number.',
+          'A calculator that reports a complex value here has left the real numbers — that is not the angle you were looking for.',
+        ],
+        common_mistakes: ['Asking for arcsin or arccos of a value outside [−1, 1] and reading the complex result as an angle.'],
+        graph: null,
+      };
+    }
+
     // Also computed in radians mode when the input *looks* like degrees, so
     // we can offer the "if you meant degrees" cross-check note below.
     if (looksLikeDegrees || hasDegreeSymbol || (angleUnit === 'radians' && autoDegrees)) {
-      const degExpr = expression.replace(/(\d+)\s*°?/g, '($1 * pi / 180)');
+      // Convert ONLY the angle inside each trig call. Rewriting every integer
+      // turned sin(45)^2 into sin(45°)^(2°) = 0.988.
+      const degExpr = expression.replace(
+        /\b(sin|cos|tan|sec|csc|cot)\s*\(\s*(-?\d+(?:\.\d+)?)\s*°?\s*\)/gi,
+        (_, fn, deg) => `${fn}((${deg} * pi / 180))`
+      );
       try {
         degreeResult = math.evaluate(degExpr);
       } catch {

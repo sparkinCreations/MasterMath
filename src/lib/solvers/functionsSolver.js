@@ -393,8 +393,9 @@ function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
     if (!Number.isFinite(a.y) || !Number.isFinite(b.y)) continue;
     if (Math.abs(a.y) < 1e-9 && i >= 2) {
       const before = grid[i - 2];
-      if (Number.isFinite(before.y) && Math.abs(a.y) <= Math.abs(before.y) && Math.abs(a.y) <= Math.abs(b.y)
-          && (Math.abs(before.y) > 1e-9 || Math.abs(b.y) > 1e-9)) {
+      // Strictly below both neighbours: an underflowed-to-zero tail is 0 on
+      // every side and must not count.
+      if (Number.isFinite(before.y) && Math.abs(before.y) > Math.abs(a.y) && Math.abs(b.y) > Math.abs(a.y)) {
         push(a.x);
       }
     }
@@ -582,10 +583,14 @@ function buildSteps(func, variable, f) {
   } else {
     // "undefined for x ≤ 0" (ln: the edge itself is undefined) vs
     // "undefined for x < 2" (sqrt: defined at the edge) — the closed/open
-    // flag on each region is what makes that distinction honest.
+    // flag on each region is what makes that distinction honest. Poles the
+    // grid stepped over (1/sin(x) at ±π) are excluded too, from the
+    // asymptote finder, so the domain line and the asymptote line agree.
     const undefinedFor = f.domain.map((r) => formatRestriction(r, variable)).join(' and for ');
-    const allowed = formatDomain(f.domain, variable);
-    steps.push(`Domain restriction: f is undefined for ${undefinedFor} — so the domain is ${allowed}.`);
+    const extraPoles = f.verticalAsymptotes.filter((a) => !f.domain.some((r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.from - a) < 1e-6));
+    const allowed = formatDomain(f.domain, variable, extraPoles);
+    const undefinedAll = undefinedFor + (extraPoles.length ? ` and for ${extraPoles.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')}` : '');
+    steps.push(`Domain restriction: f is undefined for ${undefinedAll} — so the domain is ${allowed}.`);
   }
 
   // Holes (removable discontinuities) — explained, not just "undefined at".
@@ -686,16 +691,22 @@ function buildTips(f) {
 // Allowed-set wording for a list of undefined regions. Two one-sided
 // restrictions that bound an interval read as one: "-3 ≤ x ≤ 3", not
 // "x ≥ -3 and x ≤ 3".
-function formatDomain(domain, variable) {
+function formatDomain(domain, variable, extraPoints = []) {
+  const isPoint = (r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.to - r.from) < 1e-9;
   const left = domain.find((r) => !Number.isFinite(r.from) && Number.isFinite(r.to));
   const right = domain.find((r) => Number.isFinite(r.from) && !Number.isFinite(r.to));
-  const others = domain.filter((r) => r !== left && r !== right);
+  const points = [...domain.filter(isPoint).map((r) => r.from), ...extraPoints]
+    .filter((v, i, arr) => arr.findIndex((w) => Math.abs(w - v) < 1e-6) === i)
+    .sort((a, b) => a - b);
+  const others = domain.filter((r) => r !== left && r !== right && !isPoint(r));
   const parts = [];
   if (left && right && others.length === 0) {
     parts.push(`${formatNumber(left.to)} ${left.toClosed ? '<' : '≤'} ${variable} ${right.fromClosed ? '<' : '≤'} ${formatNumber(right.from)}`);
   } else {
-    for (const r of domain) parts.push(formatRestriction(r, variable, { allowed: true }));
+    for (const r of domain) if (!isPoint(r)) parts.push(formatRestriction(r, variable, { allowed: true }));
   }
+  // Excluded points read as one list: "x ≠ -π, 0, π", not a chain of "and".
+  if (points.length) parts.push(`${variable} ≠ ${points.map((v) => formatNumber(v)).join(', ')}`);
   return parts.join(' and ');
 }
 
@@ -709,7 +720,10 @@ function summarizeAnalysis(func, variable, f) {
 
   if (f.domain.length === 0 && f.verticalAsymptotes.length > 0) parts.push(`domain: all real numbers except ${variable} = ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}${f.isPeriodic ? ' (repeating)' : ''}`);
   else if (f.domain.length === 0) parts.push('domain: all real numbers');
-  else parts.push(`domain: ${formatDomain(f.domain, variable)}`);
+  else {
+    const extraPoles = f.verticalAsymptotes.filter((a) => !f.domain.some((r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.from - a) < 1e-6));
+    parts.push(`domain: ${formatDomain(f.domain, variable, extraPoles)}`);
+  }
 
   if (f.yIntercept) parts.push(`y-intercept ${pt(0, f.yIntercept.y)}`);
   if (f.xIntercepts.list.length > 0) {

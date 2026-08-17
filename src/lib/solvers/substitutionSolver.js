@@ -137,7 +137,23 @@ export function integrateBySubstitution(term, variable, Algebrite) {
     // h(x) = term / g'(x); then rewrite g(x) → u. If x survives, wrong u.
     const ratio = run(A, `simplify((${term}) / (${du}))`);
     if (!ratio) continue;
-    const inU = run(A, `simplify(subst(u, ${u}, ${ratio}))`);
+    let inU = run(A, `simplify(subst(u, ${u}, ${ratio}))`);
+    // Algebrite may have normalised the ratio into a form where u no longer
+    // appears literally: (x+1)/(x²+2x) ÷ (2x+2) simplifies to 1/(2x²+4x), in
+    // which "x²+2x" cannot be substituted. For a denominator candidate the
+    // classic case is N/D with N a constant multiple of D′ — check that
+    // directly: k = N/D′ free of x  ⇒  ∫ = k·ln|D|.
+    if ((!inU || varRe.test(inU)) && term.includes('/')) {
+      const parts = splitTopLevel(term, '/');
+      if (parts.length === 2) {
+        let den = parts[1].trim();
+        if (den.startsWith('(') && readGroup(den, 0) === den.slice(1, -1)) den = den.slice(1, -1).trim();
+        if (den === u) {
+          const k = run(A, `simplify((${parts[0]}) / (${du}))`);
+          if (k && !varRe.test(k)) inU = `${k}/u`;
+        }
+      }
+    }
     if (!inU || varRe.test(inU)) continue;
 
     const H = run(A, `integral(${inU}, u)`);

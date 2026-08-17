@@ -39,6 +39,14 @@ export function parseMathExpression(input) {
     .replace(/(\d+)\s*P\s*(\d+)/g, 'permutations($1,$2)')
     .replace(/(\d+)\s+choose\s+(\d+)/gi, 'combinations($1,$2)');
 
+  // A lone uppercase letter is the same variable as its lowercase form —
+  // "2X + 4 = 10" is a keyboard habit, not a second unknown. mathjs is
+  // case-sensitive, so left alone the X was undefined at every sample and
+  // the equation "had no solution". Applied after the combinatorics rewrite
+  // (5C2 must stay nCr); E is excluded (Euler's constant), as is any letter
+  // that is part of a longer name (PI) or followed by "(" (a function).
+  cleaned = cleaned.replace(/(?<![A-Za-z_])([A-DF-Z])(?![A-Za-z_]|\s*\()/g, (m) => m.toLowerCase());
+
   // Word operator "mod". Every space is stripped further down, which would
   // fuse "7 mod 3" into the symbol "7mod3"; rewrite the numeric infix form
   // to mathjs's function form first.
