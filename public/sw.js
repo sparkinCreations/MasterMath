@@ -79,18 +79,133 @@ self.addEventListener('install', (event) => {
         // the browser retries later, which is the right outcome.
         return cache.addAll(APP_SHELL).then(() => cache);
       })
-      .then((cache) => precacheAssets(cache))
-      // Note: no self.skipWaiting() here. The new worker stays in the
-      // "waiting" state so the app can show its update banner; it only
+      .then((cache) => Promise.resolve(precacheAssets(cache)).then(() => cache))
+      // Normally there is no self.skipWaiting() here. The new worker stays in
+      // the "waiting" state so the app can show its update banner; it only
       // activates when the user clicks Update (the SKIP_WAITING message
       // below) or when every tab is closed. Activating immediately would
       // trigger the controllerchange auto-reload mid-session.
+      //
+      // The one exception is a predecessor we can prove is already serving a
+      // broken app (see needsRecovery). That user cannot click the update
+      // banner, because the banner is drawn by a bundle that never loads —
+      // so waiting for a click that can never come just keeps them stuck on a
+      // blank page until they close every tab. For them, and only for them,
+      // we take over immediately and reload their windows from activate.
+      .then((cache) =>
+        needsRecovery().then((broken) => {
+          if (!broken) return;
+          console.warn('[MasterMath SW] Broken predecessor detected — activating immediately');
+          // Recorded in the cache rather than a variable: the browser may
+          // terminate and restart this worker between install and activate,
+          // which would lose module scope.
+          return cache
+            .put(RECOVERY_MARKER, new Response('1'))
+            .then(() => self.skipWaiting());
+        })
+      )
       .catch((error) => {
         console.error('[MasterMath SW] Install failed:', error);
         throw error;
       })
   );
 });
+
+// Internal key, never requested by a page (no file extension, so isCacheable
+// is false and the fetch handler never intercepts it).
+const RECOVERY_MARKER = '/__mastermath_recovery__';
+
+// Should this worker take over without waiting for an Update click?
+//
+// Only when the *predecessor* is provably serving a broken app. Getting this
+// wrong in the permissive direction would reload healthy users mid-session —
+// exactly what staying in "waiting" exists to prevent — so both signals below
+// are fingerprints of the pre-1.14.1 worker specifically, not of a stale cache
+// in general. Every deploy leaves a stale cache behind; that is normal and
+// harmless, because 1.14.1+ serves navigations network-first and never reads
+// the old shell.
+//
+//  - Poison: an entry whose body type contradicts its filename. Only a worker
+//    without the bodyMatchesPath guard could have written it, and it is served
+//    to the page as HTML-for-a-module-script.
+//  - A route URL used as a cache key (`/solver`, `/faq`). The old worker
+//    background-revalidated navigations through fetchAndCache, which stores
+//    under the *navigated* URL; 1.14.1+ only ever writes '/index.html'. On its
+//    own this is harmless, so it counts only together with a shell that points
+//    at chunks this build does not have — that worker serves that shell
+//    cache-first, so it is about to ask for chunks the server deleted.
+function needsRecovery() {
+  if (!PRECACHE_ASSETS.length) return Promise.resolve(false);
+  const current = new Set(PRECACHE_ASSETS);
+
+  return caches.keys()
+    .then((names) => {
+      const older = names.filter((n) => n.startsWith('mastermath-') && n !== CACHE_NAME);
+      // Sequential and short-circuiting: this runs during install, and one
+      // hit is enough.
+      return older.reduce(
+        (chain, name) => chain.then((broken) => (broken ? true : inspectCache(name, current))),
+        Promise.resolve(false)
+      );
+    })
+    .catch(() => false);
+}
+
+function inspectCache(name, current) {
+  return caches.open(name)
+    .then((cache) =>
+      Promise.all([cache.keys(), readShell(cache)]).then(([keys, html]) => {
+        const paths = keys.map((req) => new URL(req.url).pathname);
+        const routeKeys = paths.filter(looksLikeRouteEntry);
+        const refs = html ? shellAssetRefs(html) : [];
+        const shellIsStale = refs.length > 0 && refs.some((ref) => !current.has(ref));
+
+        if (routeKeys.length && shellIsStale) return true;
+
+        // Poison check last: it costs a match() per candidate.
+        const candidates = paths.filter((p) => /\.(m?js|css)$/.test(p));
+        return candidates.reduce(
+          (chain, p) =>
+            chain.then((bad) =>
+              bad
+                ? true
+                : cache
+                    .match(p, MATCH_OPTS)
+                    .then((res) => !!res && !bodyMatchesPath(p, res))
+                    .catch(() => false)
+            ),
+          Promise.resolve(false)
+        );
+      })
+    )
+    .catch(() => false);
+}
+
+function readShell(cache) {
+  return cache
+    .match('/index.html', MATCH_OPTS)
+    .then((res) => res || cache.match('/', MATCH_OPTS))
+    .then((res) => (res ? res.text() : null))
+    .catch(() => null);
+}
+
+// The hashed chunks a cached shell will ask for: the module entry plus its
+// modulepreloads.
+function shellAssetRefs(html) {
+  const refs = [];
+  const pattern = /(?:src|href)="(\/assets\/[^"]+\.js)"/g;
+  let match;
+  while ((match = pattern.exec(html)) !== null) refs.push(match[1]);
+  return refs;
+}
+
+// A cache key that is a route rather than a file — no extension on the last
+// segment, and not one of the shell's own entries.
+function looksLikeRouteEntry(pathname) {
+  if (APP_SHELL.indexOf(pathname) !== -1) return false;
+  const last = pathname.split('/').pop();
+  return last !== '' && last.indexOf('.') === -1;
+}
 
 // Fill the new cache with the build's hashed assets.
 //
@@ -145,37 +260,80 @@ self.addEventListener('activate', (event) => {
   console.log('[MasterMath SW] Activating...');
 
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name.startsWith('mastermath-') && name !== CACHE_NAME)
-            .map((name) => {
-              console.log('[MasterMath SW] Deleting old cache:', name);
-              return caches.delete(name);
-            })
-        );
-      })
-      .then(() => {
-        // Re-fetch the shell now. This worker's install may have run
-        // before a later deploy (it waits for the user's Update click or
-        // for all tabs to close), so the index.html it cached at install
-        // can already be out of date by the time it takes over. Best
-        // effort: if offline, keep whatever is cached.
-        return caches.open(CACHE_NAME).then((cache) =>
-          fetch('/index.html', { cache: 'no-store' })
-            .then((response) => {
-              if (response && response.ok) return cache.put('/index.html', response);
-            })
-            .catch(() => {})
-        );
-      })
-      .then(() => {
-        // Take control of all open tabs immediately
-        return self.clients.claim();
-      })
+    // Read the install-time verdict before the caches it was based on go away.
+    takeRecoveryMarker().then((recovering) =>
+      caches.keys()
+        .then((cacheNames) => {
+          return Promise.all(
+            cacheNames
+              .filter((name) => name.startsWith('mastermath-') && name !== CACHE_NAME)
+              .map((name) => {
+                console.log('[MasterMath SW] Deleting old cache:', name);
+                return caches.delete(name);
+              })
+          );
+        })
+        .then(() => {
+          // Re-fetch the shell now. This worker's install may have run
+          // before a later deploy (it waits for the user's Update click or
+          // for all tabs to close), so the index.html it cached at install
+          // can already be out of date by the time it takes over. Best
+          // effort: if offline, keep whatever is cached.
+          return caches.open(CACHE_NAME).then((cache) =>
+            fetch('/index.html', { cache: 'no-store' })
+              .then((response) => {
+                if (response && response.ok) return cache.put('/index.html', response);
+              })
+              .catch(() => {})
+          );
+        })
+        .then(() => {
+          // Take control of all open tabs immediately
+          return self.clients.claim();
+        })
+        .then(() => (recovering ? reloadStuckWindows() : undefined))
+    )
   );
 });
+
+// Read and consume the install-time recovery verdict.
+function takeRecoveryMarker() {
+  return caches.open(CACHE_NAME)
+    .then((cache) =>
+      cache.match(RECOVERY_MARKER).then((hit) => {
+        if (!hit) return false;
+        return cache.delete(RECOVERY_MARKER).then(() => true);
+      })
+    )
+    .catch(() => false);
+}
+
+// Reload the windows we just claimed.
+//
+// Only reached when install proved the predecessor was serving a broken app.
+// Claiming alone is not enough to fix those tabs: the page is blank precisely
+// because no script of ours is running in it, so there is nothing left to
+// notice the controller change and reload itself. navigate() is the only way
+// back for a window whose JavaScript never started.
+//
+// This reloads every window, not just the blank ones. A tab that still looks
+// healthy is running on the same doomed shell — its chunks are already gone
+// from the server — so it would break at the next lazy route anyway. There is
+// no reliable way to ask a page whether it is alive: a healthy tab on the old
+// shell runs the *old* bundle, which has no listener to answer with.
+function reloadStuckWindows() {
+  return self.clients.matchAll({ type: 'window' })
+    .then((clients) =>
+      Promise.all(
+        clients.map((client) => {
+          if (typeof client.navigate !== 'function') return undefined;
+          console.warn('[MasterMath SW] Reloading stuck window:', client.url);
+          return Promise.resolve(client.navigate(client.url)).catch(() => {});
+        })
+      )
+    )
+    .catch(() => {});
+}
 
 // ─── FETCH ──────────────────────────────────────────────────
 // Strategy:
@@ -223,7 +381,9 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() =>
-          caches.match('/index.html', MATCH_OPTS).then(
+          // Own cache only — an older worker's cache may hold a shell whose
+          // chunks the server deleted several deploys ago.
+          caches.open(CACHE_NAME).then((cache) => cache.match('/index.html', MATCH_OPTS)).then(
             (cached) =>
               cached ||
               new Response('You appear to be offline and MasterMath has not been cached yet.', {
@@ -237,11 +397,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets — cache-first with background revalidation
+  // Static assets — cache-first with background revalidation.
+  //
+  // Two guards here, both learned the hard way:
+  //
+  //  - Read from *this worker's* cache, not the global CacheStorage. A bare
+  //    caches.match() searches every cache in the origin, oldest first, so a
+  //    cache left by a worker that predates the bodyMatchesPath guard (≤1.14.0
+  //    happily stored Netlify's HTML rewrite under a .js URL) could answer a
+  //    request that this worker's own cache had no entry for — a precache miss
+  //    is enough, since precacheAssets tolerates failures.
+  //  - Validate on read, not only on write. A cached entry whose body type
+  //    contradicts its filename is poison inherited from such a worker: drop
+  //    it, tell the tabs, and go to the network. Without this the page is
+  //    handed HTML for a module script and renders blank with a silent
+  //    console, because nothing on the cache-hit path ever checked.
   if (isCacheable(url.pathname)) {
     event.respondWith(
-      caches.match(request, MATCH_OPTS)
+      caches.open(CACHE_NAME)
+        .then((cache) => cache.match(request, MATCH_OPTS))
         .then((cached) => {
+          if (cached && !bodyMatchesPath(url.pathname, cached)) {
+            console.warn('[MasterMath SW] Poisoned cache entry —', cached.headers.get('content-type'), 'for', url.pathname);
+            caches.open(CACHE_NAME)
+              .then((cache) => cache.delete(request, MATCH_OPTS))
+              .catch(() => {});
+            if (/\.(m?js|css)$/.test(url.pathname)) {
+              notifyClients({ type: 'STALE_SHELL', asset: url.pathname });
+            }
+            return fetchAndCache(request);
+          }
           if (cached) {
             // Return cached version immediately
             // Revalidate hashed assets less aggressively (they're immutable)

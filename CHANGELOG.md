@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.23.1] - 2026-08-17
+
+Blank-screen recovery. A review reported every route rendering an empty
+React root after a service-worker update, with nothing useful in the
+console — and, because clearing site data would have destroyed saved
+problem history, no way to recover from inside the browser. Two separate
+defects, both on the upgrade path from a worker installed before 1.14.1.
+
+### Fixed
+
+- **Poisoned cache entries were validated on write but not on read.** The
+  worker refuses to *store* a response whose body type contradicts its
+  filename (Netlify answers a deleted chunk with `200 text/html` via the SPA
+  rewrite), but the cache-first read path returned whatever it found without
+  checking. Worse, it searched the *global* CacheStorage: a bare
+  `caches.match()` walks every cache in the origin oldest-first, so a cache
+  left by a pre-1.14.1 worker — which had no such guard and stored the HTML
+  rewrite under `.js` URLs — could answer a request this worker's own cache
+  had no entry for. A precache miss was enough to expose it, since
+  `precacheAssets` tolerates failures by design. The page was then handed
+  HTML for a module script and rendered blank, silently: the `STALE_SHELL`
+  notification lived only on the network path, so a cache hit warned nobody.
+  Reads now come from this worker's own cache and are type-checked; a
+  mismatched entry is deleted, reported, and refetched.
+- **The recovery code shipped inside the bundle it was meant to recover.**
+  The `STALE_SHELL` listener and the update banner are registered by
+  `useServiceWorker`, called from `App.jsx` — the entry chunk, which is
+  exactly what fails when the shell is stale. React never mounted, so the
+  listener never registered and the banner never rendered; the waiting
+  worker could not be activated because the Update button was part of the
+  dead bundle, leaving a white screen that only closing every tab would
+  clear. `index.html` now carries a small inline watchdog outside the
+  bundle: it listens for `STALE_SHELL`, and if the root is still empty after
+  a failed script load (or 12s), it clears the service workers and the
+  `mastermath-*` caches once and reloads. **IndexedDB is never touched, so
+  saved problem history survives recovery.** If the app still will not start,
+  it replaces the blank page with an explanation and a reload button instead
+  of looping.
+- **Users stuck on a pre-1.14.1 worker could not be reached at all.** That
+  worker serves navigations cache-first from `/index.html`, and its background
+  revalidation writes under the *navigated* URL instead, so `/index.html` is
+  never refreshed — those users keep getting their old shell forever and never
+  receive the watchdog above, or any other HTML we ship. The only channel left
+  is `sw.js`, which the browser fetches from the network. The new worker now
+  checks, at install, whether its predecessor is provably serving a broken app;
+  if so it skips waiting, claims the windows, and reloads them with
+  `client.navigate()` (claiming alone fixes nothing — a blank page has no
+  script left running to notice the controller change). Otherwise nothing
+  changes: it waits, and the update banner works exactly as before, so the
+  Update button is not traded away.
+  Detection is deliberately narrow, because a false positive would reload
+  healthy users mid-session. Every deploy leaves a stale cache behind and that
+  is harmless, so a stale shell alone does not count. It takes either an entry
+  whose body type contradicts its filename (only a worker without the
+  `bodyMatchesPath` guard could have written one) or a route URL used as a
+  cache key — the old worker's signature, since 1.14.1+ only ever writes
+  `/index.html` — *together with* a shell pointing at chunks this build does
+  not contain. `tests/serviceWorkerRecovery.test.js` pins the boundary, an
+  ordinary upgrade included.
+- **Homepage call-to-action buttons were `<button>` elements inside `<a>`.**
+  Invalid HTML, and the two elements disagree about which one is the control:
+  the accessible name is computed from the inner button while activation
+  belongs to the outer link, and Enter and Space can land on different
+  targets. "Start Solving", "Learn How It Works" and "Start Solving Now" are
+  now links wearing the button styling, so each is a single element that
+  announces as a link and behaves like one. `Button` already accepted an
+  `asChild` prop and silently ignored it; it now renders its styling onto the
+  child, which is how shadcn spells this — implemented by cloning the child
+  rather than adding a Radix dependency the project does not otherwise carry.
+
 ## [1.23.0] - 2026-08-16
 
 Fifth black-box pass: Settings (angle unit, decimal places) across every
