@@ -29,6 +29,7 @@ import {
   parsesAsMath,
   findUndefinedRegions,
   formatRestriction,
+  realOddRoots,
 } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -119,7 +120,7 @@ export async function solveFunctions(expression) {
 
 function evalAt(func, variable, x) {
   try {
-    const y = math.evaluate(func, { [variable]: x });
+    const y = math.evaluate(realOddRoots(func), { [variable]: x });
     const n = typeof y === 'number' ? y : Number(y);
     return Number.isFinite(n) ? n : NaN;
   } catch {
@@ -433,15 +434,23 @@ function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
 // Domain-endpoint extrema are found separately (findEndpointExtrema) and
 // carry origin 'endpoint'.
 function extremumOrigin(func, variable, x) {
-  const h = 1e-5;
-  const y = evalAt(func, variable, x);
-  const left = (y - evalAt(func, variable, x - h)) / h;
-  const right = (evalAt(func, variable, x + h) - y) / h;
-  if (!Number.isFinite(left) || !Number.isFinite(right)) return 'stationary';
+  const slopes = (h) => {
+    const y = evalAt(func, variable, x);
+    return [(y - evalAt(func, variable, x - h)) / h, (evalAt(func, variable, x + h) - y) / h];
+  };
+  const [l1, r1] = slopes(1e-4);
+  const [l2, r2] = slopes(1e-6);
+  if (![l1, r1, l2, r2].every(Number.isFinite)) return 'stationary';
   // Both one-sided slopes vanish: a genuine stationary point.
-  if (Math.abs(left) < 1e-3 && Math.abs(right) < 1e-3) return 'stationary';
+  if (Math.abs(l2) < 1e-3 && Math.abs(r2) < 1e-3) return 'stationary';
+  // Slopes that disagree at one h but SHRINK as h → 0 are converging to a
+  // common 0 — x^(4/3) at 0 has f′ = (4/3)x^(1/3), zero but slowly. A corner
+  // (|x|: ±1 forever) or cusp (x^(2/3): slopes grow) does not shrink.
+  const mag1 = Math.max(Math.abs(l1), Math.abs(r1));
+  const mag2 = Math.max(Math.abs(l2), Math.abs(r2));
+  if (mag2 < mag1 * 0.5) return 'stationary';
   // One-sided slopes disagree by a clear margin: a corner/cusp.
-  if (Math.abs(left - right) > 1e-2) return 'cusp';
+  if (Math.abs(l2 - r2) > 1e-2) return 'cusp';
   return 'stationary';
 }
 

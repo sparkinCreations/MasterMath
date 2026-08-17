@@ -86,3 +86,34 @@ test('u = denominator works when Algebrite normalises the ratio', async () => {
   assert.match((await solveProblem('(x+1)/(x^2+2x)', 'integrals')).answer, /1\/2\*ln\|x\^2 \+ 2x\| \+ C$/);
   assert.match((await solveProblem('x^2/(x^3+1)', 'integrals')).answer, /1\/3\*ln\|x\^3 \+ 1\| \+ C$/);
 });
+
+// ── Low tail from the same pass.
+test('trig-equation solutions at π/8, π/18 display exactly', async () => {
+  const r = await solveProblem('tan(2x) = 1', 'trigonometry');
+  assert.match(r.answer, /on \[0, 2π\): π\/8, 5π\/8, 9π\/8, 13π\/8/);
+  const s = await solveProblem('sin(3x) = 1/2', 'trigonometry');
+  assert.match(s.answer, /π\/18, 5π\/18/);
+});
+
+test('sin(2x)/sin(x) → 2cos(x); scientific notation; "2 x 3"', async () => {
+  assert.equal((await solveProblem('sin(2x)/sin(x)', 'trigonometry')).answer, '2cos(x)');
+  assert.equal((await solveProblem('1e3 + 1', 'other')).answer, '1001');
+  assert.equal((await solveProblem('2.5e-2 * 4', 'other')).answer, '0.1');
+  assert.equal((await solveProblem('2 x 3', 'other')).answer, '6');
+  // e as a constant is untouched
+  assert.equal((await solveProblem('e^2', 'other')).answer, 'e^2 ≈ 7.3891');
+});
+
+test('odd roots are real for negative x in function analysis; cusp vs slow-stationary', async () => {
+  const c = await solveProblem('x^(1/3)', 'functions');
+  assert.match(c.answer, /domain: all real numbers/);
+  const t = await solveProblem('x^(2/3)', 'functions');
+  assert.match(t.answer, /domain: all real numbers/);
+  assert.match(t.answer, /local minimum \(0, 0\) \(cusp\)/);
+  // x^(4/3) IS differentiable at 0 (f' = (4/3)x^(1/3) → 0): not a cusp
+  const f = await solveProblem('x^(4/3)', 'functions');
+  assert.match(f.answer, /local minimum \(0, 0\)\./);
+  assert.doesNotMatch(f.answer, /cusp/);
+  // even roots keep their restricted domain
+  assert.match((await solveProblem('x^(1/2)', 'functions')).answer, /domain: x ≥ 0/);
+});

@@ -109,7 +109,9 @@ function principalAngle(fn, c) {
 // a decimal. Used for the [0, 2π) listing.
 function fmtRad(rad) {
   const ratio = rad / Math.PI;
-  const dens = [1, 2, 3, 4, 6, 12];
+  // Denominators that arise from halving/thirding standard angles: tan(2x)=1
+  // has solutions at π/8; sin(3x)=½ at π/18. Ordered so the simplest form wins.
+  const dens = [1, 2, 3, 4, 6, 8, 12, 5, 10, 9, 18, 16, 24];
   for (const d of dens) {
     const n = ratio * d;
     if (near(n, Math.round(n))) {

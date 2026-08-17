@@ -56,6 +56,15 @@ export function parseMathExpression(input) {
   const protectedTerms = [];
   let placeholder = 0;
 
+  // Scientific notation (1e3, 2.5e-4) must be protected as a single number
+  // before the constant e is protected, or "1e3" splits into 1·e·3.
+  cleaned = cleaned.replace(/\b(\d+(?:\.\d+)?)[eE]([+-]?\d+)\b/g, (m, mant, exp) => {
+    const token = `__PROTECTED_${placeholder}__`;
+    protectedTerms.push({ token, value: `${mant}e${exp}` });
+    placeholder++;
+    return token;
+  });
+
   // Protect trig functions and constants (must be done before implicit multiplication)
   const allProtected = [...MATH_FUNCTIONS, ...MATH_CONSTANTS, 'e', 'E'];
   allProtected.forEach(term => {

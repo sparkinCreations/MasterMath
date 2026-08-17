@@ -40,12 +40,23 @@ export function loadAlgebrite() {
 }
 
 /**
- * Whether the input is at least readable as a mathematical expression.
- * Solvers' catch blocks use this to pick an honest failure status: input
- * that parses but couldn't be solved is `unsupported` (an engine limit),
- * input that doesn't parse is a `parse_error` — the message must never
- * blame the user's formatting when the input was valid.
+ * Rewrite odd roots so they evaluate as REAL functions: x^(1/3) → nthRoot(x, 3),
+ * x^(2/3) → nthRoot(x, 3)^2.
+ *
+ * mathjs's pow takes the principal (complex) value for a negative base and a
+ * fractional exponent, so x^(1/3) "was undefined for x < 0" and its graph
+ * stopped at the origin. Students mean the real cube root. Applied only to
+ * numeric evaluation for graphs and analysis — Algebrite (derivatives,
+ * integrals) keeps the power form it understands. Bases handled: a bare
+ * variable, a number, or one parenthesised group; odd n up to 9.
  */
+export function realOddRoots(expression) {
+  return String(expression).replace(
+    /(\([^()]*\)|\b[a-z]\b|\d+(?:\.\d+)?)\^\((\d+)\/([3579])\)/g,
+    (_, base, k, n) => (k === '1' ? `nthRoot(${base}, ${n})` : `nthRoot(${base}, ${n})^${k}`)
+  );
+}
+
 /**
  * Where is an expression undefined over the reals?
  *
@@ -61,9 +72,10 @@ export function loadAlgebrite() {
  */
 export function findUndefinedRegions(expression, variable, options = {}) {
   const { min = -20, max = 20, step = 0.05 } = options;
+  const realExpr = realOddRoots(expression);
   const definedAt = (x) => {
     try {
-      const v = math.evaluate(expression, { [variable]: x });
+      const v = math.evaluate(realExpr, { [variable]: x });
       return typeof v === 'number' && Number.isFinite(v);
     } catch {
       return false;
@@ -178,6 +190,13 @@ export function isUnevaluatedOperator(result) {
   return /\b(?:d|derivative|integral|defint)\s*\(/.test(s);
 }
 
+/**
+ * Whether the input is at least readable as a mathematical expression.
+ * Solvers' catch blocks use this to pick an honest failure status: input
+ * that parses but couldn't be solved is `unsupported` (an engine limit),
+ * input that doesn't parse is a `parse_error` — the message must never
+ * blame the user's formatting when the input was valid.
+ */
 export function parsesAsMath(expression) {
   try {
     math.parse(String(expression));
@@ -425,10 +444,11 @@ export function sampleFunction(expression, variable, options = {}) {
   const { min = -40, max = 40, step = 0.5, cap = 1e5 } = options;
   const points = [];
 
+  const realExpr = realOddRoots(expression);
   for (let x = min; x <= max + 1e-9; x += step) {
     const scope = { [variable]: x };
     try {
-      const y = math.evaluate(expression, scope);
+      const y = math.evaluate(realExpr, scope);
       if (Number.isFinite(y) && Math.abs(y) <= cap) {
         // Round x to avoid floating-point drift in labels (…, 0.4999999).
         points.push({ x: Math.round(x * 1e6) / 1e6, y });

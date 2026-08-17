@@ -1085,6 +1085,8 @@ async function simplifyTrigExpression(expression, variable) {
       [`csc(${v})^2`, 'Pythagorean identity 1 + cot²(θ) = csc²(θ)'],
       [`tan(${v})`, 'quotient identity tan(θ) = sin(θ)/cos(θ)'],
       [`cot(${v})`, 'quotient identity cot(θ) = cos(θ)/sin(θ)'],
+      [`2*cos(${v})`, 'double-angle identity sin(2θ) = 2·sin(θ)·cos(θ)'],
+      [`2*sin(${v})`, 'double-angle identity sin(2θ) = 2·sin(θ)·cos(θ)'],
       [`sin(${v})`, 'trigonometric identities'],
       [`cos(${v})`, 'trigonometric identities'],
       ['1', 'Pythagorean identity sin²(θ) + cos²(θ) = 1'],
@@ -1193,7 +1195,7 @@ function formatTrigResult(result, expression = '') {
   // Inverse trig: the answer is an ANGLE, so look for a clean multiple of π.
   if (/\b(?:arcsin|arccos|arctan|asin|acos|atan)\s*\(/i.test(expression)) {
     const ratio = result / Math.PI;
-    for (const d of [1, 2, 3, 4, 6, 12]) {
+    for (const d of [1, 2, 3, 4, 6, 8, 12, 5, 10, 9, 18, 16, 24]) {
       const n = ratio * d;
       if (Math.abs(n - Math.round(n)) < 1e-6) {
         const k = Math.round(n);

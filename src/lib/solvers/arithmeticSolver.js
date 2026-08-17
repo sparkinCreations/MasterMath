@@ -20,12 +20,17 @@ function rewritePercent(text) {
 export function solveArithmetic(expression) {
   try {
     const original = expression.trim();
-    const cleaned = rewritePercent(original);
+    // Under Arithmetic there are no variables, so an "x" between two numbers
+    // is the multiplication sign a student reached for: "2 x 3" → 2*3.
+    // (parseMathExpression will have removed the spaces already: "2x3".)
+    const cleaned = rewritePercent(original).replace(/(\d|\))\s*x\s*(\d|\()/gi, '$1*$2');
 
     const result = math.evaluate(cleaned);
     const steps = [`Evaluate: ${original}`];
-    if (cleaned !== original) {
+    if (/%/.test(original) && cleaned !== original) {
       steps.push(`Percent means "per hundred": rewrite ${original} as ${cleaned}.`);
+    } else if (cleaned !== original) {
+      steps.push(`Reading "x" between numbers as multiplication: ${cleaned}.`);
     }
 
     // Show the real reduction by collapsing the innermost parentheses one at a

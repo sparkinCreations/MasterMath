@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.21.1] - 2026-08-17
+
+The Low tail from the third black-box pass, plus one classification bug
+found while fixing it.
+
+### Fixed
+
+- Trig-equation solutions at π/8, π/18 and similar are shown exactly
+  (`tan(2x) = 1 → π/8, 5π/8, 9π/8, 13π/8`; `sin(3x) = ½ → π/18, 5π/18, …`);
+  the exact-angle formatter's denominators now cover halves and thirds of
+  the standard angles. Same for inverse-trig results.
+- `sin(2x)/sin(x)` → `2cos(x)` (identity table gains `2cos x`, `2sin x`).
+- Scientific notation (`1e3`, `2.5e-2`) is read as one number; the constant
+  `e` protector no longer splits it.
+- Under Arithmetic, `2 x 3` reads the `x` between numbers as multiplication,
+  with a step saying so (there are no variables in arithmetic).
+- **Odd roots are real.** `x^(1/3)` and `x^(2/3)` under Functions claimed
+  "domain: x ≥ 0" — mathjs's `pow` takes the complex principal value for a
+  negative base — so the graph stopped at the origin. Numeric evaluation for
+  graphs and analysis now rewrites `x^(k/n)` (odd n) to `nthRoot(x, n)^k`;
+  the domain is all reals and the graph is the full curve. Even roots keep
+  their restriction; Algebrite (derivatives, integrals) still sees the power
+  form it understands.
+- **`x^(4/3)` at 0 was called a cusp.** It is differentiable there
+  (f′ = (4/3)·x^(1/3) → 0, just slowly), and the one-sided slopes at
+  h = 1e⁻⁵ (±0.02) tripped the "slopes disagree" test. The classifier now
+  checks whether the slopes *shrink* as h → 0 (stationary) or hold/grow
+  (corner/cusp): `|x|` and `x^(2/3)` stay cusps, `x^(4/3)` and `x⁴` are
+  stationary, `|x²−4|` gets cusps at ±2 and a smooth maximum at 0.
+
 ## [1.21.0] - 2026-08-16
 
 Fixes from a third black-box pass (131 fresh problems against v1.20.1): all
