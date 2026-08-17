@@ -41,26 +41,28 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 mb-6 md:mb-8 px-2">
-          <Link to={createPageUrl("Solver")} className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold text-white bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
+          <Button
+            asChild
+            size="lg"
+            className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold text-white bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <Link to={createPageUrl("Solver")}>
               <Calculator className="w-5 h-5 mr-2" />
               Start Solving
               <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
-          <Link to={createPageUrl("UserManual")} className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold border-2 border-indigo-200 hover:bg-indigo-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
-            >
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold border-2 border-indigo-200 hover:bg-indigo-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
+          >
+            <Link to={createPageUrl("UserManual")}>
               <BookOpen className="w-5 h-5 mr-2" />
               Learn How It Works
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         {/* GitHub Link */}
@@ -311,16 +313,19 @@ export default function Home() {
           <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-6 md:mb-8">
             Start solving for free — no account, no tracking, all on your device
           </p>
-          <Link to={createPageUrl("Solver")} className="inline-block w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-white text-indigo-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
+          <Button
+            asChild
+            size="lg"
+            className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-white text-indigo-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            {/* The wrapper's `inline-block` is gone on purpose: the button base
+                class supplies `inline-flex`, which is what centres the icons. */}
+            <Link to={createPageUrl("Solver")}>
               <Calculator className="w-5 h-5 mr-2" />
               Start Solving Now
               <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
 

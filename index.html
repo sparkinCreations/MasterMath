@@ -89,6 +89,102 @@
          rule and the link could never become visible. -->
     <a href="#main-content" class="skip-to-main">Skip to main content</a>
     <div id="root"></div>
+
+    <!-- Boot watchdog. Deliberately inline, classic, and outside the bundle.
+         Every other recovery path (the STALE_SHELL listener and the update
+         banner) lives in App.jsx — inside the entry chunk, which is precisely
+         the file that fails in the case they exist to handle: a shell that
+         outlived a deploy asks for a chunk the server no longer has, Netlify's
+         SPA rewrite answers it 200 text/html, the browser refuses to run HTML
+         as a module, React never mounts. The page is blank, the console says
+         nothing obviously wrong, and the waiting worker can't be activated
+         because the Update button is part of the dead bundle.
+         This script runs either way. It clears service workers and the
+         mastermath-* caches only — IndexedDB is untouched, so saved problem
+         history survives recovery. -->
+    <script>
+      (function () {
+        var RELOADED = 'mastermath:stale-shell-reloaded';
+        var PURGED = 'mastermath:recovery-purged';
+
+        function flag(key) {
+          try {
+            if (sessionStorage.getItem(key)) return false;
+            sessionStorage.setItem(key, '1');
+          } catch (e) { /* private mode: proceed, the reload is still once-per-load */ }
+          return true;
+        }
+
+        function booted() {
+          var root = document.getElementById('root');
+          return !!(root && root.children.length);
+        }
+
+        // The worker reports a script/stylesheet that came back as HTML.
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.addEventListener('message', function (event) {
+            if (!event.data || event.data.type !== 'STALE_SHELL') return;
+            if (flag(RELOADED)) location.reload();
+          });
+        }
+
+        // Drop the service worker and its caches, then reload. Last resort:
+        // only ever runs when the app has failed to mount at all.
+        function recover() {
+          if (booted()) return;
+          if (!flag(PURGED)) return explain();
+
+          var jobs = [];
+          if (window.caches) {
+            jobs.push(caches.keys().then(function (names) {
+              return Promise.all(names
+                .filter(function (n) { return n.indexOf('mastermath-') === 0; })
+                .map(function (n) { return caches.delete(n); }));
+            }));
+          }
+          if ('serviceWorker' in navigator) {
+            jobs.push(navigator.serviceWorker.getRegistrations().then(function (regs) {
+              return Promise.all(regs.map(function (r) { return r.unregister(); }));
+            }));
+          }
+          Promise.all(jobs)['catch'](function () {})
+            .then(function () { location.reload(); });
+        }
+
+        // Recovery already ran this session and the app still won't start —
+        // stop reloading and tell the user something, rather than leaving a
+        // white screen with no explanation.
+        function explain() {
+          var root = document.getElementById('root');
+          if (!root || booted()) return;
+          root.innerHTML =
+            '<div role="alert" style="max-width:34rem;margin:15vh auto;padding:2rem 1.5rem;' +
+            'background:#fff;border-radius:.75rem;' +
+            'font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif;color:#1f2937;text-align:center">' +
+            '<h1 style="font-size:1.5rem;margin:0 0 .75rem">MasterMath could not finish loading</h1>' +
+            '<p style="margin:0 0 1.25rem">This is usually a stale copy of the app left over from an ' +
+            'earlier version. Your saved problem history is stored separately and has not been touched.</p>' +
+            '<button type="button" style="font:inherit;padding:.6rem 1.25rem;border:0;border-radius:.5rem;' +
+            'background:#9333EA;color:#fff;cursor:pointer">Reload MasterMath</button>' +
+            '<p style="margin:1.25rem 0 0;font-size:.875rem;color:#6b7280">If it keeps failing, close every ' +
+            'MasterMath tab and open the app again.</p></div>';
+          root.querySelector('button').onclick = function () { location.reload(); };
+        }
+
+        // A module script that 404s or is served the HTML shell fires `error`
+        // on the element. Fastest reliable signal that the bundle is dead.
+        window.addEventListener('error', function (e) {
+          var el = e.target;
+          if (!el || el === window || el.tagName !== 'SCRIPT' || !el.src) return;
+          setTimeout(recover, 300);
+        }, true);
+
+        // Backstop for failures that produce no error event. Generous, so a
+        // slow connection still finishes loading normally first.
+        setTimeout(recover, 12000);
+      })();
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
