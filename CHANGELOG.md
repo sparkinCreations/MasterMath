@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.1] - 2026-08-16
+
+The last four (Low) items from the second black-box pass. With this
+release every finding from both passes is closed.
+
+### Fixed
+
+- **Double-angle identities are recognised.** `2·sin(x)·cos(x)` was "already
+  in simplest terms"; Algebrite's simplify knows the Pythagorean identity
+  but not the double-angle family. A small table of canonical forms
+  (`sin(2x)`, `cos(2x)`, `tan(2x)`, `sin²x`, `cos²x`, `sec²x`, `csc²x`, …) is
+  now tried and the shortest one that is *numerically equal* to the input is
+  used, with the identity named in the step. `cos²x − sin²x`,
+  `1 − 2sin²x`, `2cos²x − 1` → `cos(2x)`; `1 + tan²x` → `sec²x`. Nothing is
+  claimed where no shorter equal form exists (`sin x + cos x` stays).
+- **Partial-fraction logs display in textbook form.** `∫1/(x²−1) dx` showed
+  `½·ln|−1/(−x−1) + x/(−x−1)|`; the argument of every `log(…)` is now
+  rationalized and, since it sits under `|…|` where a sign flip is exact,
+  shown with the fewest minus signs: `½·ln|(x−1)/(x+1)|`,
+  `¼·ln|(x−2)/(x+2)|`. Display only; every candidate is checked numerically
+  equal in absolute value before it replaces the original.
+- `7 mod 3` failed ("Undefined symbol mod3") because the parser strips every
+  space, fusing the word operator; the numeric infix form is rewritten to
+  `mod(a, b)` first. `12 choose 3` is recognised alongside `C(12,3)`/`12C3`.
+
 ## [1.20.0] - 2026-08-16
 
 Fixes from a second black-box pass (117 fresh problems against v1.19.0):

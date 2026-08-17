@@ -30,12 +30,19 @@ export function parseMathExpression(input) {
   cleaned = cleaned.replace(/\|([^|]+)\|/g, 'abs($1)');
 
   // Combinatorics notation → mathjs built-ins: C(5,2) -> combinations(5,2),
-  // P(5,2) -> permutations(5,2), and the nCr / nPr infix forms.
+  // P(5,2) -> permutations(5,2), the nCr / nPr infix forms, and the spoken
+  // "12 choose 3".
   cleaned = cleaned
     .replace(/\bC\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/g, 'combinations($1,$2)')
     .replace(/\bP\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/g, 'permutations($1,$2)')
     .replace(/(\d+)\s*C\s*(\d+)/g, 'combinations($1,$2)')
-    .replace(/(\d+)\s*P\s*(\d+)/g, 'permutations($1,$2)');
+    .replace(/(\d+)\s*P\s*(\d+)/g, 'permutations($1,$2)')
+    .replace(/(\d+)\s+choose\s+(\d+)/gi, 'combinations($1,$2)');
+
+  // Word operator "mod". Every space is stripped further down, which would
+  // fuse "7 mod 3" into the symbol "7mod3"; rewrite the numeric infix form
+  // to mathjs's function form first.
+  cleaned = cleaned.replace(/(\d+(?:\.\d+)?)\s+mod\s+(\d+(?:\.\d+)?)/gi, 'mod($1,$2)');
 
   // First, protect mathematical constants and functions by replacing them with placeholders
   const protectedTerms = [];

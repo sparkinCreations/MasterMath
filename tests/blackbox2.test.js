@@ -116,3 +116,36 @@ test('a repeated root is stated once, with its multiplicity', async () => {
   const r = await solveProblem('x^2 = 0', 'algebra');
   assert.equal(r.answer, 'x = 0 (repeated root, multiplicity 2)');
 });
+
+// ── Low items from the same pass.
+
+test('double-angle and Pythagorean rewrites are found and named', async () => {
+  const cases = [
+    ['2*sin(x)*cos(x)', 'sin(2x)', /double-angle/],
+    ['cos(x)^2-sin(x)^2', 'cos(2x)', /double-angle/],
+    ['1-2*sin(x)^2', 'cos(2x)', /double-angle/],
+    ['1+tan(x)^2', 'sec(x)^2', /Pythagorean/],
+    ['sin(x)/cos(x)', 'tan(x)', /quotient/],
+  ];
+  for (const [input, expected, identity] of cases) {
+    const r = await solveProblem(input, 'trigonometry');
+    assert.equal(r.answer, expected, input);
+    assert.match(r.steps.join('\n'), identity, input);
+  }
+  // and nothing is claimed where no shorter form exists
+  const none = await solveProblem('sin(x)+cos(x)', 'trigonometry');
+  assert.match(none.steps.join('\n'), /already in simplest terms/);
+});
+
+test('partial-fraction logs display in textbook form', async () => {
+  const a = await solveProblem('1/(x^2-1)', 'integrals');
+  assert.match(a.answer, /1\/2\*ln\|\(x - 1\)\/\(x \+ 1\)\| \+ C$/);
+  const b = await solveProblem('1/(x^2-4)', 'integrals');
+  assert.match(b.answer, /1\/4\*ln\|\(x - 2\)\/\(x \+ 2\)\| \+ C$/);
+});
+
+test('"a mod b" and "n choose k" notation', async () => {
+  assert.equal((await solveProblem('7 mod 3', 'other')).answer, '1');
+  assert.equal((await solveProblem('10 mod 4 + 1', 'other')).answer, '3');
+  assert.equal((await solveProblem('12 choose 3', 'other')).answer, '220');
+});

@@ -81,11 +81,14 @@ async function solveIndefiniteIntegral(expression) {
     if (perTerm.length === terms.length && perTerm.length > 0) {
       integral = simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) ||
         perTerm.map((r) => r.antideriv).join(' + ');
+      // Algebrite's simplify re-expands log arguments into partial fractions;
+      // polish after combining, not before.
+      integral = polishLogArguments(Algebrite, integral);
       steps = buildPerTermSteps(expression, terms, perTerm, variable, integral);
     } else {
       // Fallback: authoritative antiderivative for the whole expression.
       const forAlgebrite = rewriteReciprocalTrig(expression);
-      integral = Algebrite.integral(forAlgebrite, variable).toString();
+      integral = polishLogArguments(Algebrite, Algebrite.integral(forAlgebrite, variable).toString());
       steps = generateIntegralSteps(expression, integral, variable, Algebrite);
     }
 
@@ -102,7 +105,7 @@ async function solveIndefiniteIntegral(expression) {
     if (!trusted) {
       // The per-term path failed verification — fall back to whole-Algebrite.
       const forAlgebrite = rewriteReciprocalTrig(expression);
-      integral = Algebrite.integral(forAlgebrite, variable).toString();
+      integral = polishLogArguments(Algebrite, Algebrite.integral(forAlgebrite, variable).toString());
       steps = generateIntegralSteps(expression, integral, variable, Algebrite);
     }
 
@@ -210,6 +213,51 @@ function simplifyRun(Algebrite, expr) {
   return safeRunLocal(Algebrite, `simplify(${expr})`);
 }
 
+// Tidy the argument of every log(...) in an antiderivative for display.
+// Algebrite's partial fractions leave ∫1/(x²−1) as
+// ½·log(−1/(−x−1) + x/(−x−1)); rationalized that is (x−1)/(−x−1), and since
+// the result is shown as ln|…| a sign flip of the argument is exact, so the
+// form with fewer minus signs is chosen: ½·ln|(x−1)/(x+1)|. Display only —
+// the value is unchanged (checked below by numeric equality of |arg|).
+function polishLogArguments(Algebrite, expr) {
+  const src = String(expr);
+  return src.replace(/\blog\(((?:[^()]|\([^()]*\))+)\)/g, (whole, arg) => {
+    if (!/[+\-*/]/.test(arg)) return whole; // already a bare factor
+    let best = arg;
+    const candidates = [];
+    const rat = safeRunLocal(Algebrite, `rationalize(${arg})`);
+    if (rat) {
+      candidates.push(rat);
+      // For a quotient, also try flipping the signs of numerator and
+      // denominator together: (x−1)/(−x−1) → (1−x)/(x+1) → shown as
+      // (x−1)/(x+1) since it sits under |…|. Each is a candidate; the
+      // numeric check below decides.
+      const parts = splitTopLevel(rat, '/');
+      if (parts.length === 2) {
+        const num = safeRunLocal(Algebrite, `simplify(-(${parts[0]}))`);
+        const den = safeRunLocal(Algebrite, `simplify(-(${parts[1]}))`);
+        if (num && den) {
+          const wrap = (t) => (/[+\-]/.test(t.replace(/^-/, '')) ? `(${t})` : t);
+          candidates.push(`${wrap(num)}/${wrap(den)}`);
+          candidates.push(`${wrap(parts[0].trim())}/${wrap(den)}`); // |A/−B| = |A/B|
+          candidates.push(`${wrap(num)}/${wrap(parts[1].trim())}`);
+        }
+      }
+    }
+    const neg = safeRunLocal(Algebrite, `rationalize(-(${arg}))`);
+    if (neg) candidates.push(neg);
+    for (const c of candidates) {
+      // |candidate| must equal |arg| numerically before it may replace it.
+      const same = expressionsNumericallyEqual(`abs(${c})`, `abs(${arg})`, 'x');
+      if (!same) continue;
+      const minuses = (c.match(/-/g) || []).length;
+      const bestMinuses = (best.match(/-/g) || []).length;
+      if (minuses < bestMinuses || (minuses === bestMinuses && c.length < best.length)) best = c;
+    }
+    return `log(${best})`;
+  });
+}
+
 /**
  * Integrate one additive term. A by-parts term returns its full walkthrough;
  * everything else is integrated directly by Algebrite. Returns
@@ -232,8 +280,9 @@ async function integrateTerm(term, variable, Algebrite) {
     // fall through to a direct attempt if by-parts declined
   }
 
-  const anti = safeRunLocal(Algebrite, `integral(${rewriteReciprocalTrig(term)}, ${variable})`);
+  let anti = safeRunLocal(Algebrite, `integral(${rewriteReciprocalTrig(term)}, ${variable})`);
   if (anti !== null && !isUnevaluatedOperator(anti)) {
+    anti = polishLogArguments(Algebrite, anti);
     const { label, hint } = classifyIntegralRule(term, variable);
     const steps = [`∫(${beautify(term)}) d${variable} = ${lnify(anti)}${hint ? `  (${label})` : ''}.`];
     return { antideriv: anti, steps, method: 'direct', term };

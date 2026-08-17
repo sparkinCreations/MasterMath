@@ -1036,9 +1036,43 @@ async function simplifyTrigExpression(expression, variable) {
   try {
     const Algebrite = await loadAlgebrite();
     const rewritten = rewriteReciprocalTrig(expression);
-    const simplified = String(Algebrite.run(`simplify(${rewritten})`)).trim();
+    let simplified = String(Algebrite.run(`simplify(${rewritten})`)).trim();
+    let identityUsed = null;
 
-    const usable = Boolean(simplified) && !/nil|error|stop/i.test(simplified);
+    // Algebrite's simplify knows the Pythagorean identity but not the
+    // double-angle family — it leaves 2·sin(x)·cos(x) alone. Try the standard
+    // compact forms and keep the shortest one that is NUMERICALLY equal to
+    // the input; each is verified before it is claimed, never assumed.
+    const v = variable;
+    const targets = [
+      [`sin(2*${v})`, 'double-angle identity sin(2θ) = 2·sin(θ)·cos(θ)'],
+      [`-sin(2*${v})`, 'double-angle identity sin(2θ) = 2·sin(θ)·cos(θ)'],
+      [`cos(2*${v})`, 'double-angle identity cos(2θ) = cos²(θ) − sin²(θ) = 1 − 2sin²(θ) = 2cos²(θ) − 1'],
+      [`-cos(2*${v})`, 'double-angle identity cos(2θ) = cos²(θ) − sin²(θ)'],
+      [`tan(2*${v})`, 'double-angle identity tan(2θ) = 2tan(θ)/(1 − tan²(θ))'],
+      [`sin(${v})^2`, 'Pythagorean identity sin²(θ) = 1 − cos²(θ)'],
+      [`cos(${v})^2`, 'Pythagorean identity cos²(θ) = 1 − sin²(θ)'],
+      [`sec(${v})^2`, 'Pythagorean identity 1 + tan²(θ) = sec²(θ)'],
+      [`csc(${v})^2`, 'Pythagorean identity 1 + cot²(θ) = csc²(θ)'],
+      [`tan(${v})`, 'quotient identity tan(θ) = sin(θ)/cos(θ)'],
+      [`cot(${v})`, 'quotient identity cot(θ) = cos(θ)/sin(θ)'],
+      [`sin(${v})`, 'trigonometric identities'],
+      [`cos(${v})`, 'trigonometric identities'],
+      ['1', 'Pythagorean identity sin²(θ) + cos²(θ) = 1'],
+      ['0', 'trigonometric identities'],
+    ];
+    const len = (e) => normalizeForCompare(e).length;
+    for (const [candidate, name] of targets) {
+      if (len(candidate) >= len(expression)) continue;
+      if (simplified && !isAlgebriteFailure(simplified) && len(candidate) >= len(simplified)) continue;
+      if (expressionsNumericallyEqual(expression, candidate, v)) {
+        simplified = candidate;
+        identityUsed = name;
+        break;
+      }
+    }
+
+    const usable = Boolean(simplified) && !isAlgebriteFailure(simplified);
     const verified = usable && expressionsNumericallyEqual(expression, simplified, variable);
     // "Changed" requires a strictly shorter form — a mere reordering of terms
     // is not a simplification worth presenting as one.
@@ -1048,7 +1082,9 @@ async function simplifyTrigExpression(expression, variable) {
 
     if (usable && verified && changed) {
       const steps = [`Simplify the trigonometric expression: ${display}`];
-      if (simplified === '1' && isPythagoreanIdentity(expression)) {
+      if (identityUsed) {
+        steps.push(`Apply the ${identityUsed}.`);
+      } else if (simplified === '1' && isPythagoreanIdentity(expression)) {
         steps.push('Apply the Pythagorean identity: sin²(θ) + cos²(θ) = 1 for every angle θ.');
       } else {
         steps.push('Apply trigonometric identities and combine terms.');
