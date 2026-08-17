@@ -72,7 +72,7 @@ export async function solveFunctions(expression) {
 
     return {
       steps,
-      answer: `f(${variable}) = ${beautify(func)}`,
+      answer: summarizeAnalysis(func, variable, features),
       tips: buildTips(features),
       common_mistakes: [
         'Assuming every function has a vertex — only some (like parabolas) do.',
@@ -642,6 +642,46 @@ function buildTips(f) {
   }
   if (tips.length < 3) tips.push('Check symmetry: even functions mirror across the y-axis, odd ones through the origin.');
   return tips.slice(0, 3);
+}
+
+// The "Final Answer" of a function analysis is the analysis, not the input
+// echoed back. One line, the useful findings in reading order: domain, then
+// intercepts, then the shape (vertex / extrema / holes / asymptotes). Only
+// features that were actually established appear — nothing is padded in.
+function summarizeAnalysis(func, variable, f) {
+  const parts = [];
+  const pt = (x, y) => `(${formatNumber(x)}, ${formatNumber(y)})`;
+
+  if (f.domain.length === 0) parts.push('domain: all real numbers');
+  else parts.push(`domain: ${f.domain.map((r) => formatRestriction(r, variable, { allowed: true })).join(' and ')}`);
+
+  if (f.yIntercept) parts.push(`y-intercept ${pt(0, f.yIntercept.y)}`);
+  if (f.xIntercepts.list.length > 0) {
+    const xs = f.xIntercepts.list.map((r) => r.display).join(', ');
+    parts.push(`x-intercept${f.xIntercepts.list.length > 1 ? 's' : ''} at ${variable} = ${xs}${f.xIntercepts.truncated ? ', …' : ''}`);
+  } else if (!f.isPeriodic) {
+    parts.push('no x-intercepts');
+  }
+
+  if (f.quadratic) {
+    parts.push(`vertex ${pt(f.quadratic.vertex.x, f.quadratic.vertex.y)} (${f.quadratic.opensUpward ? 'minimum' : 'maximum'}), axis ${variable} = ${formatNumber(f.quadratic.axis)}`);
+  } else {
+    for (const e of f.extrema) {
+      parts.push(`local ${e.kind === 'max' ? 'maximum' : 'minimum'} ${pt(e.x, e.y)}${e.origin === 'cusp' ? ' (cusp)' : ''}`);
+    }
+    for (const e of f.endpointExtrema) {
+      parts.push(`${e.absolute ? 'absolute ' : ''}${e.kind === 'max' ? 'maximum' : 'minimum'} ${pt(e.x, e.y)} at the domain endpoint`);
+    }
+    if (f.extrema.length === 0 && f.endpointExtrema.length === 0 && f.monotonic) parts.push(`strictly ${f.monotonic}, no extrema`);
+  }
+
+  for (const h of f.holes) parts.push(`hole at ${pt(h.x, h.y)}`);
+  if (f.verticalAsymptotes.length > 0) parts.push(`vertical asymptote${f.verticalAsymptotes.length > 1 ? 's' : ''} ${f.verticalAsymptotes.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')}`);
+  if (typeof f.horizontalAsymptote === 'number') parts.push(`horizontal asymptote y = ${formatNumber(f.horizontalAsymptote)}`);
+  if (f.inflections.length > 0) parts.push(`inflection at ${variable} = ${f.inflections.map((i) => i.display).join(', ')}`);
+  if (f.isPeriodic) parts.push('periodic');
+
+  return `f(${variable}) = ${beautify(func)}: ${parts.join('; ')}.`;
 }
 
 function describeGraph(f, variable) {

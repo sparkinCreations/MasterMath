@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-08-16
+
+The presentation sweep — every remaining item from the QA report on v1.13.0.
+With this release all 20 findings are closed.
+
+### Changed
+
+- **Exact-first numbers.** Rational arithmetic shows the fraction with the
+  decimal alongside — `1/3 + 1/6 → 1/2 (= 0.5)`, `0.1 + 0.2 → 3/10 (= 0.3)`;
+  constant expressions in e and π keep their exact form — `e^2 ≈ 7.3891`,
+  `π/4 ≈ 0.7854`, `2π ≈ 6.2832` (only when the expression is built from
+  e, π, digits and operators — `sin(π/6)` still gives its own value, `0.5`);
+  integers and irrationals are unchanged. Trigonometry shows the special
+  value first — `sin(π/4) → √2/2 (≈ 0.7071)`, `tan(π/3) → √3 (≈ 1.7321)` —
+  and an inverse-trig result that lands on a multiple of π says so:
+  `arcsin(1/2) → π/6 (≈ 0.5236)`, `arctan(−1) → −π/4 (≈ −0.7854)`.
+- **Function analysis has a real "Final Answer".** It summarised nothing —
+  it echoed the input. It now states the findings in reading order, only
+  those actually established: `f(x) = x² − 4x + 3: domain: all real numbers;
+  y-intercept (0, 3); x-intercepts at x = 1, 3; vertex (2, −1) (minimum), axis
+  x = 2.` Cusps, endpoint extrema, holes, asymptotes and inflections all
+  appear when present.
+- **The integration fallback distinguishes two different claims.** "No
+  elementary closed form, or beyond this engine" bundled a theorem with a
+  shrug. Non-elementarity is now asserted only for the integrands in the
+  known list (Fresnel, erf, Si); everything else says "MasterMath could not
+  solve this integral symbolically" and that this is a limitation of the
+  solver, not a statement about the mathematics.
+- The Solver page no longer says "Enter *any* precalculus or calculus
+  problem" — it now reads "Choose a topic and enter a supported math problem
+  — from arithmetic and algebra through precalculus and calculus".
+- The homepage's export line no longer claims CSV for individual solutions:
+  solutions export as PDF, Markdown or JSON; the whole history as CSV too.
+
+### Added
+
+- **Percent notation.** `50% of 80 → 40` and a bare `25% → 1/4 (= 0.25)`, with
+  a step explaining "per hundred". This is notation, not natural language —
+  the app still does not parse sentences, and says so in its placeholders.
+
+### Fixed
+
+- The Progress page showed authoritative-looking `0` totals while history
+  was still loading. The three stat cards now show `—` (with `aria-busy`)
+  until the local history has loaded.
+
 ## [1.18.0] - 2026-08-16
 
 QA report item 5 — the last finding with real mathematical depth — plus a

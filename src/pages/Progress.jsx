@@ -122,7 +122,7 @@ export default function Progress() {
             <CardTitle className="text-indigo-700 dark:text-indigo-300 text-lg">Total Problems</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-5xl font-bold text-indigo-600 dark:text-indigo-200">{totalProblems}</p>
+            <p className="text-5xl font-bold text-indigo-600 dark:text-indigo-200" aria-busy={loading}>{loading ? '—' : totalProblems}</p>
           </CardContent>
         </Card>
 
@@ -131,7 +131,7 @@ export default function Progress() {
             <CardTitle className="text-green-700 dark:text-green-300 text-lg">This Week</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-5xl font-bold text-green-600 dark:text-green-200">{thisWeek}</p>
+            <p className="text-5xl font-bold text-green-600 dark:text-green-200" aria-busy={loading}>{loading ? '—' : thisWeek}</p>
           </CardContent>
         </Card>
 
@@ -140,7 +140,7 @@ export default function Progress() {
             <CardTitle className="text-orange-700 dark:text-orange-300 text-lg">Topics Covered</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-5xl font-bold text-orange-600 dark:text-orange-200">{topicsCovered}</p>
+            <p className="text-5xl font-bold text-orange-600 dark:text-orange-200" aria-busy={loading}>{loading ? '—' : topicsCovered}</p>
           </CardContent>
         </Card>
       </div>

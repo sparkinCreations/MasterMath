@@ -147,16 +147,26 @@ async function solveIndefiniteIntegral(expression) {
   } catch (error) {
     console.error('Integral solver error:', error);
     if (parsesAsMath(expression)) {
+      // Two different claims, kept apart: "non-elementary" is asserted only
+      // for the integrands in the known list; everything else is an engine
+      // limitation, and is said to be — never dressed up as a theorem.
       const note = nonElementaryNote(expression);
       return unsupported({
         input: `∫(${expression}) dx`,
         reason: note
           ? `This integral is non-elementary — ${note}.`
-          : 'This integral has no elementary closed form, or is beyond this engine — the input itself is valid.',
-        tips: [
-          'The input is valid — not every elementary function has an elementary antiderivative.',
-          'A definite version can still be computed numerically, e.g. ∫_0^1 of the same integrand.',
-        ],
+          : 'MasterMath could not find this antiderivative symbolically. The input is valid; the integral may well have an elementary answer that this engine\'s methods (direct rules, u-substitution, integration by parts) do not reach.',
+        answer: note ? undefined : 'MasterMath could not solve this integral symbolically',
+        tips: note
+          ? [
+              'The input is valid — not every elementary function has an elementary antiderivative.',
+              'A definite version can still be computed numerically, e.g. ∫_0^1 of the same integrand.',
+            ]
+          : [
+              'This is a limitation of the solver, not a statement about the mathematics.',
+              'A definite version can still be computed numerically, e.g. ∫_0^1 of the same integrand.',
+              'Try rewriting the integrand (expand, split a fraction, use an identity) — a different form may be one the engine handles.',
+            ],
       });
     }
     return parseError({

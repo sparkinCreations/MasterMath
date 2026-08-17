@@ -376,7 +376,9 @@ test('regression: symbolic trig that cannot simplify says so honestly', async ()
 
 test('regression: numeric trig still evaluates after the symbolic split', async () => {
   const r = await solveProblem('sin(pi/6)', 'trigonometry');
-  assert.match(r.answer, /^0\.5/);
+  // Exact-first since v1.19.0: "1/2 (≈ 0.5)". The point of this regression is
+  // that the value is computed at all — assert the value, in either form.
+  assert.match(r.answer, /^(?:1\/2 \(≈ 0\.5\)|0\.5)/);
 });
 
 // ---------------------------------------------------------------------------

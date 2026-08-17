@@ -48,7 +48,7 @@ test('saveSettings sanitizes bad values and merges with defaults', () => {
 test('angle unit preference changes how bare numbers are interpreted', async () => {
   // auto (default): common angles read as degrees
   const auto = await solveTrigonometry('sin(30)');
-  assert.match(auto.answer, /^0\.5/);
+  assert.match(auto.answer, /^1\/2 \(≈ 0\.5\)/); // exact-first (v1.19.0); value is 0.5
 
   // radians: sin(30) is 30 radians, with a cross-check note offered
   const rad = await solveTrigonometry('sin(30)', { angleUnit: 'radians' });

@@ -129,7 +129,7 @@ export default function Solver() {
           Let's Master Some Math!
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">
-          Enter any precalculus or calculus problem and I'll guide you through it step-by-step
+          Choose a topic and enter a supported math problem — from arithmetic and algebra through precalculus and calculus — and you'll get a step-by-step solution
         </p>
       </div>
 

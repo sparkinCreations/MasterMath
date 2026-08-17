@@ -97,9 +97,10 @@ function toNumber(raw) {
   let s = String(raw).trim();
   if (!s) return null;
   s = s.replace(/^≈\s*/, '').replace(/\.\.\.$/, '');
-  // Exact-form answers carry the decimal alongside: "5√2 (≈ 7.0711)".
-  // Grade the exact part.
-  s = s.replace(/\s*\(≈[^)]*\)\s*$/, '');
+  // Exact-form answers carry the decimal alongside: "5√2 (≈ 7.0711)",
+  // "1/2 (= 0.5)", "e^2 ≈ 7.3891". Grade the exact part.
+  s = s.replace(/\s*\((?:≈|=)[^)]*\)\s*$/, '');
+  s = s.replace(/\s*≈\s*[-\d.]+\s*$/, '');
   s = s.replace(/√/g, 'sqrt').replace(/π/g, 'pi');
   s = s.replace(/sqrt(\d+)/g, 'sqrt($1)');
   // strip a leading "x=" style label

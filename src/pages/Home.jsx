@@ -174,7 +174,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="p-6">
               <p className="text-gray-700 dark:text-gray-300">
-                Export solutions as PDF, CSV, Markdown, or JSON for offline study and assignment submissions.
+                Export any solution as PDF, Markdown, or JSON — and your whole history as CSV too — for offline study and assignment submissions.
               </p>
             </CardContent>
           </Card>

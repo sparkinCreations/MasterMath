@@ -978,7 +978,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
       };
     }
 
-    const formattedResult = formatTrigResult(result);
+    const formattedResult = formatTrigResult(result, expression);
 
     if (looksLikeDegrees && radianResult !== null && degreeResult !== null) {
       steps.push(`Result (treating input as degrees): ${formattedResult}`);
@@ -1117,8 +1117,30 @@ function generateSymbolicTrigGraph(expression, variable, simplifiedDisplay) {
   }
 }
 
-function formatTrigResult(result) {
+// Exact-first display. A special value is shown exactly with the decimal
+// alongside ("√2/2 (≈ 0.7071)"); the result of an inverse trig function that
+// lands on a multiple of π is shown as that multiple ("π/6 (≈ 0.5236)");
+// anything else is the plain decimal.
+function formatTrigResult(result, expression = '') {
   if (typeof result !== 'number') return String(result);
+  const dec = formatNumber(result);
+
+  // Inverse trig: the answer is an ANGLE, so look for a clean multiple of π.
+  if (/\b(?:arcsin|arccos|arctan|asin|acos|atan)\s*\(/i.test(expression)) {
+    const ratio = result / Math.PI;
+    for (const d of [1, 2, 3, 4, 6, 12]) {
+      const n = ratio * d;
+      if (Math.abs(n - Math.round(n)) < 1e-6) {
+        const k = Math.round(n);
+        if (k === 0) return '0';
+        const num = Math.abs(k) === 1 ? '' : String(Math.abs(k));
+        const sign = k < 0 ? '-' : '';
+        const exactAngle = d === 1 ? `${sign}${num}π` : `${sign}${num}π/${d}`;
+        return `${exactAngle} (≈ ${dec})`;
+      }
+    }
+    return dec;
+  }
 
   const exact = [
     [0.5, '1/2'],
@@ -1128,14 +1150,18 @@ function formatTrigResult(result) {
     [Math.sqrt(3) / 2, '√3/2'],
     [-Math.sqrt(3) / 2, '-√3/2'],
     [Math.sqrt(3), '√3'],
-    [1 / Math.sqrt(3), '1/√3'],
+    [-Math.sqrt(3), '-√3'],
+    [1 / Math.sqrt(3), '√3/3'],
+    [-1 / Math.sqrt(3), '-√3/3'],
+    [Math.sqrt(2), '√2'],
+    [2 / Math.sqrt(3), '2√3/3'],
   ];
   for (const [value, label] of exact) {
     if (Math.abs(result - value) < 1e-4) {
-      return `${formatNumber(result)} (or ${label})`;
+      return `${label} (≈ ${dec})`;
     }
   }
-  return formatNumber(result);
+  return dec;
 }
 
 function generateTrigGraph(expression) {

@@ -1,12 +1,32 @@
-import { math, formatNumber } from './solverUtils.js';
+import { create, all } from 'mathjs';
+import { math, formatNumber, beautify } from './solverUtils.js';
 import { parseError } from '../solutionEnvelope.js';
+
+// A second mathjs instance that computes in exact rational arithmetic. Where
+// the whole expression is rational (1/3 + 1/6), it yields the exact fraction;
+// where it isn't (sqrt(2), e^2, factorials) it throws, and the float result
+// stands. Used only for display: the float `math` result remains the value.
+const exact = create(all, { number: 'Fraction' });
+
+// Percent notation, the narrow forms students actually type: "50% of 80" and
+// a bare "N%". This is notation, not natural language — "of" here is the
+// arithmetic operator it always is in percentage work.
+function rewritePercent(text) {
+  return text
+    .replace(/(\d+(?:\.\d+)?)\s*%\s*of\s*/gi, '($1/100)*')
+    .replace(/(\d+(?:\.\d+)?)\s*%(?![\w(])/g, '($1/100)');
+}
 
 export function solveArithmetic(expression) {
   try {
-    const cleaned = expression.trim();
+    const original = expression.trim();
+    const cleaned = rewritePercent(original);
 
     const result = math.evaluate(cleaned);
-    const steps = [`Evaluate: ${cleaned}`];
+    const steps = [`Evaluate: ${original}`];
+    if (cleaned !== original) {
+      steps.push(`Percent means "per hundred": rewrite ${original} as ${cleaned}.`);
+    }
 
     // Show the real reduction by collapsing the innermost parentheses one at a
     // time — this is genuine intermediate work, not a canned reminder.
@@ -74,15 +94,39 @@ function describeOrder(expr, steps) {
   if (hasAddSub) steps.push('Add and subtract from left to right.');
 }
 
+// Exact-first display. A rational result is shown as the fraction with the
+// decimal alongside ("1/2 (= 0.5)"); a constant expression in e or π keeps
+// its exact form with the approximation alongside ("e^2 ≈ 7.3891"); anything
+// else is the plain number. Integers stay integers.
 function formatArithmeticResult(result, cleaned) {
   const formatted = formatNumber(result);
+  if (typeof result !== 'number') return formatted;
 
-  // For a single division, also show the fractional form for context.
-  if (typeof result === 'number' && /^[^/]+\/[^/]+$/.test(cleaned) && !/[-+*×÷]/.test(cleaned.replace(/^-/, ''))) {
-    const [num, den] = cleaned.split('/').map((p) => p.trim());
-    if (num && den && !Number.isNaN(Number(num)) && !Number.isNaN(Number(den))) {
-      return `${formatted} (${num}/${den})`;
+  // Non-finite (1/0, 0/0): keep the offending quotient visible for context.
+  if (!Number.isFinite(result)) {
+    if (/^[^/]+\/[^/]+$/.test(cleaned) && !/[-+*×÷]/.test(cleaned.replace(/^-/, ''))) {
+      return `${formatted} (${cleaned.replace(/\s+/g, '')})`;
     }
+    return formatted;
+  }
+  if (Number.isInteger(result)) return formatted;
+
+  // Exact rational?
+  try {
+    const r = exact.evaluate(cleaned);
+    if (exact.typeOf(r) === 'Fraction' && r.d > 1 && r.d <= 10000) {
+      const sign = r.s < 0 ? '-' : '';
+      return `${sign}${r.n}/${r.d} (= ${formatted})`;
+    }
+  } catch {
+    // not rational — fall through
+  }
+
+  // Constant expression built only from e, π, digits and operators (no
+  // function calls — sin(π/6) has its own exact value, not "sin(π/6) ≈"):
+  // keep the exact form, approximate alongside.
+  if (/\b(?:e|pi)\b/.test(cleaned) && /^[\d\s+\-*/^().]*(?:\b(?:e|pi)\b[\d\s+\-*/^().]*)+$/.test(cleaned)) {
+    return `${beautify(cleaned).replace(/pi/g, "π")} ≈ ${formatted}`;
   }
 
   return formatted;
