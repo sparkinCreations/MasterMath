@@ -6,6 +6,55 @@
 const MATH_FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'sqrt', 'log', 'ln', 'exp', 'abs', 'combinations', 'permutations'];
 const MATH_CONSTANTS = ['pi', 'PI'];
 
+// Functions that carry textbook power notation: sin^2(x), log^2(x), cos^3 t.
+// Longer names first so `arcsin` is not matched as `sin`.
+const POWER_NOTATION_FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'ln', 'log'];
+
+// Index of the ")" that closes the "(" at `open`, or -1 if it is unbalanced.
+function matchingParen(text, open) {
+  let depth = 0;
+  for (let i = open; i < text.length; i += 1) {
+    if (text[i] === '(') depth += 1;
+    else if (text[i] === ')') {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+// sin^2(x) -> (sin(x))^2, cos^3 t -> (cos(t))^3. The argument is taken by
+// paren matching, so a nested call — sin^2(f(x)) — survives intact. Only a
+// parenthesised argument or a single variable letter counts as one; anything
+// else (sin^2 + 3) is left exactly as written for the caller to reject.
+function rewriteFunctionPowers(text) {
+  // (?<![a-z]) rather than \b: in "2sin^3(2x)" there is no word boundary
+  // between the digit and the "s", and that form has to be caught too.
+  const pattern = new RegExp(`(?<![a-z])(${POWER_NOTATION_FUNCTIONS.join('|')})\\s*\\^\\s*(\\d+)\\s*(\\(|[a-z](?![a-z]))`, 'i');
+  let out = text;
+  // Each rewrite wraps the name in parens, so the same spot cannot match
+  // twice; the cap is belt-and-braces against a pathological input.
+  for (let guard = 0; guard < 50; guard += 1) {
+    const m = pattern.exec(out);
+    if (!m) break;
+    const [full, fn, power, opener] = m;
+    let argument;
+    let end;
+    if (opener === '(') {
+      const open = m.index + full.length - 1;
+      const close = matchingParen(out, open);
+      if (close === -1) break; // unbalanced — leave the text as the user typed it
+      argument = out.slice(open + 1, close);
+      end = close + 1;
+    } else {
+      argument = opener;
+      end = m.index + full.length;
+    }
+    out = `${out.slice(0, m.index)}(${fn}(${argument}))^${power}${out.slice(end)}`;
+  }
+  return out;
+}
+
 export function parseMathExpression(input) {
   let cleaned = input.trim();
 
@@ -22,6 +71,16 @@ export function parseMathExpression(input) {
   cleaned = cleaned
     .replace(/\b(sin|cos|tan)\s*(?:\^\s*\(?\s*-\s*1\s*\)?|⁻¹)\s*(?=\()/gi, (_, fn) => `arc${fn.toLowerCase()}`)
     .replace(/\ba(sin|cos|tan)\b(?!h)/gi, (_, fn) => `arc${fn.toLowerCase()}`);
+
+  // Textbook power notation on a function: sin^2(x) means (sin(x))^2, never
+  // "sin squared, times x". Left alone, the implicit-multiplication rules
+  // below turned it into `sin^2*(x)` — a BARE function name, which Algebrite
+  // evaluates against its *previous* result. "sin^2(x) = 1/2" was answered
+  // "x = 1/(2sin([-2,2])^2)", carrying the last problem's roots and growing
+  // one level deeper on every solve. Rewritten here, before anything else
+  // reads the string. (The ^-1 inverse form is handled just above and never
+  // reaches this rule.)
+  cleaned = rewriteFunctionPowers(cleaned);
 
   // Absolute-value bars → abs(): |x-3| becomes abs(x-3). mathjs cannot parse
   // bar notation, so without this an equation like |x-3| = 5 fails to

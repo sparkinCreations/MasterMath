@@ -1,6 +1,6 @@
 import { create, all } from 'mathjs';
 import { math, formatNumber, beautify } from './solverUtils.js';
-import { parseError, overflow } from '../solutionEnvelope.js';
+import { parseError, overflow, undefinedValue, indeterminate } from '../solutionEnvelope.js';
 
 // A second mathjs instance that computes in exact rational arithmetic. Where
 // the whole expression is rational (1/3 + 1/6), it yields the exact fraction;
@@ -27,11 +27,51 @@ export function solveArithmetic(expression) {
 
     const result = math.evaluate(cleaned);
 
-    // A finite calculation that overflows to ±∞ (9999999999^9999) is an
-    // overflow, not a value of infinity. Division by zero (1/0) is a real
-    // undefined/infinite value and keeps its own presentation.
-    if (typeof result === 'number' && !Number.isFinite(result) && !Number.isNaN(result) && !/\/\s*0(?![.\d])/.test(cleaned)) {
-      return overflow({ input: original });
+    // mathjs defines mod(a, 0) = a; in arithmetic a mod 0 has no value.
+    if (typeof result === 'number' && Number.isFinite(result) && modsByZero(cleaned)) {
+      return undefinedValue({
+        input: original,
+        reason: 'the modulus is zero',
+        steps: [`Evaluate: ${original}`, 'a mod b asks for the remainder after dividing by b — and dividing by 0 has no value, so neither does the remainder.'],
+        tips: ['A remainder only makes sense for a nonzero divisor.'],
+        common_mistakes: ['Reading a mod 0 as a (some calculators return the dividend unchanged).'],
+      });
+    }
+
+    // A non-finite result is never an answer. Which failure it is depends on
+    // why: dividing by zero has no defined value (0/0 has no value even in
+    // principle), while a finite calculation that runs off the end of
+    // double precision (9999999999^9999) is an overflow.
+    //
+    // Division by zero used to be reported as the number ∞ — so
+    // "(5+3)*4 - 2^3/0" was answered "-∞", marked Solved. In real arithmetic
+    // 8/0 is undefined; ∞ is a statement about a limit, not a value.
+    if (typeof result === 'number' && !Number.isFinite(result)) {
+      if (dividesByZero(cleaned)) {
+        if (Number.isNaN(result)) {
+          return indeterminate({
+            input: original,
+            form: '0/0',
+            note: '0/0 is not a number: every number times 0 gives 0, so no single value fits. In calculus it is an indeterminate form — a limit can settle it, plain arithmetic cannot.',
+          });
+        }
+        return undefinedValue({
+          input: original,
+          reason: 'division by zero',
+          steps: [
+            `Evaluate: ${original}`,
+            'This expression divides by zero. No number multiplied by 0 gives a nonzero result, so the quotient has no value.',
+          ],
+          tips: [
+            'A limit may grow without bound — 1/x → ∞ as x → 0⁺ — but the arithmetic expression 1/0 has no value at all.',
+            'Check for a denominator that works out to zero, such as 8/(3-3).',
+          ],
+          common_mistakes: ['Reading 1/0 as ∞. Infinity describes how a limit behaves, not the result of a division.'],
+        });
+      }
+      if (!Number.isNaN(result)) {
+        return overflow({ input: original });
+      }
     }
     const steps = [`Evaluate: ${original}`];
     if (/%/.test(original) && cleaned !== original) {
@@ -90,6 +130,45 @@ export function solveArithmetic(expression) {
       tips: ['Use * for multiplication, / for division, and ^ for exponents (e.g., (2+3)*4^2).'],
       common_mistakes: ['Missing operators between numbers', 'Unbalanced parentheses'],
     });
+  }
+}
+
+// a mod 0 anywhere in the expression (mathjs quietly returns a).
+function modsByZero(expr) {
+  try {
+    let found = false;
+    math.parse(expr).traverse((node) => {
+      if (found) return;
+      const isMod = (node.type === 'OperatorNode' && node.fn === 'mod') || (node.type === 'FunctionNode' && node.fn?.name === 'mod');
+      if (!isMod) return;
+      try {
+        if (node.args[1].evaluate() === 0) found = true;
+      } catch { /* needs a scope: not a constant zero */ }
+    });
+    return found;
+  } catch {
+    return false;
+  }
+}
+
+// Does this expression divide by something that works out to zero? Read off
+// the parse tree rather than by pattern-matching "/0", so 8/(3-3) is
+// recognised as division by zero instead of being reported as an overflow.
+function dividesByZero(expr) {
+  try {
+    let found = false;
+    math.parse(expr).traverse((node) => {
+      if (found || node.type !== 'OperatorNode') return;
+      if (node.fn !== 'divide' && node.fn !== 'mod') return;
+      try {
+        if (node.args[1].evaluate() === 0) found = true;
+      } catch {
+        // a denominator that needs a scope isn't a constant zero
+      }
+    });
+    return found;
+  } catch {
+    return false;
   }
 }
 

@@ -161,6 +161,19 @@ function isAlgebraUnderArithmetic(problem, topic) {
   return /(?<![a-z])[a-df-z](?![a-z])/i.test(t) && !/^\s*\d+(?:\.\d+)?\s*x\s*\d/i.test(String(problem)); // "2 x 3" is multiplication
 }
 
+// An expression of pure numbers under Trigonometry — "(5+3)*4 - 2^3" — is
+// arithmetic: there is no angle, no function call, nothing trigonometric to
+// say about it. It used to be evaluated by the trig path and served with trig
+// tips ("Remember: sin(30°) = 1/2") attached to a PEMDAS problem.
+// Deliberately narrow: any letter at all (sin, pi, sqrt, e, x) means the
+// topic may still have a legitimate claim on the input.
+function isArithmeticUnderTrigonometry(problem, topic) {
+  if (topic !== 'trigonometry') return false;
+  const t = String(problem);
+  if (/[a-z=<>≤≥]/i.test(t)) return false;
+  return /\d/.test(t);
+}
+
 // "… at x = 2" / "… when x = π/4": an evaluation point tacked onto the end
 // of a problem. Read on the raw text before any routing, because the "=" in
 // it would otherwise make "x^2 at x = 1.5" look like an equation (in the
@@ -332,6 +345,21 @@ export async function solveProblem(problem, topic) {
       const routed = await solveProblem(problem, calculus);
       return noteRouting(routed, topic, calculus, `the input uses ${calculus === 'limits' ? 'limit' : calculus === 'integrals' ? 'integral' : 'derivative'} notation`);
     }
+    // An inequality is an algebra problem under any topic. Under Derivatives
+    // "x^2 - 4 > 0" was refused outright ("beyond this engine") when the
+    // sign-chart solver had the answer all along.
+    if (!calculus && topic !== 'algebra' && looksLikeInequality(problem)) {
+      const routed = await solveProblem(problem, 'algebra');
+      return noteRouting(routed, topic, 'algebra', 'the input is an inequality');
+    }
+    // A system of equations is an algebra problem under any topic. Without
+    // this, "2x + 3y = 6; x - y = 4" typed under Derivatives was fed to the
+    // single-expression extractor, which kept the "6" of the first equation
+    // and answered "f(x) = 4, f'(x) = 0" — silently, and marked Solved.
+    if (!calculus && topic !== 'algebra' && looksLikeSystem(problem)) {
+      const routed = await solveProblem(problem, 'algebra');
+      return noteRouting(routed, topic, 'algebra', 'the input is a system of equations');
+    }
     if (!calculus && isPlainEquationForAlgebra(problem, topic)) {
       const routed = await solveProblem(problem, 'algebra');
       return noteRouting(routed, topic, 'algebra', 'the input is an equation to solve');
@@ -339,6 +367,10 @@ export async function solveProblem(problem, topic) {
     if (!calculus && isAlgebraUnderArithmetic(problem, topic)) {
       const routed = await solveProblem(problem, 'algebra');
       return noteRouting(routed, topic, 'algebra', 'the input contains a variable, and arithmetic has none');
+    }
+    if (!calculus && isArithmeticUnderTrigonometry(problem, topic)) {
+      const routed = await solveProblem(problem, 'other');
+      return noteRouting(routed, topic, 'other', 'the input is a numeric expression, with no angle or trig function in it');
     }
 
     // Inequalities: a <, >, ≤, or ≥ operator. Routed from the raw text so the

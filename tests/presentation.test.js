@@ -24,9 +24,26 @@ test('arithmetic: constant expressions in e and π keep the exact form', async (
   assert.equal((await solveProblem('sin(pi/6)', 'other')).answer, '0.5');
 });
 
-test('arithmetic: division by zero keeps its quotient for context', async () => {
-  assert.equal((await solveProblem('1/0', 'other')).answer, '∞ (1/0)');
-  assert.equal((await solveProblem('0/0', 'other')).answer, 'NaN (0/0)');
+test('arithmetic: division by zero is undefined, not ∞', async () => {
+  // Was "∞ (1/0)" / "NaN (0/0)" through v1.23.1 — a number where there is
+  // none. ∞ describes how a limit behaves; it is not the value of 1/0, and
+  // "-∞" was being handed back as the answer to (5+3)*4 - 2^3/0.
+  const byZero = await solveProblem('1/0', 'other');
+  assert.equal(byZero.status, 'undefined');
+  assert.equal(byZero.answer, 'Undefined — division by zero');
+
+  const zeroOverZero = await solveProblem('0/0', 'other');
+  assert.equal(zeroOverZero.status, 'indeterminate');
+  assert.equal(zeroOverZero.answer, 'Indeterminate (0/0)');
+
+  // Buried in a larger expression, and behind a denominator that works out
+  // to zero rather than being written as one.
+  assert.equal((await solveProblem('(5 + 3) * 4 - 2^3 / 0', 'other')).status, 'undefined');
+  assert.equal((await solveProblem('8/(3-3)', 'other')).status, 'undefined');
+
+  // Overflow is still its own thing, and ordinary division is untouched.
+  assert.equal((await solveProblem('9999999999^9999', 'other')).status, 'overflow');
+  assert.equal((await solveProblem('1/0.5', 'other')).answer, '2');
 });
 
 test('trigonometry: special values exact-first, inverse trig as multiples of π', async () => {

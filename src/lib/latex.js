@@ -80,8 +80,14 @@ export function toLatex(ascii) {
   // Explicit multiplication that survived beautify: a*b → a \cdot b
   s = s.replace(/\*/g, ' \\cdot ');
 
-  // " or " between solutions → text
+  // Connecting words inside a math fragment are text, not a product of
+  // variables. Without this, "F(1) = 0 and F(0) = -1" typeset as
+  // "F(1)=0andF(0)=−1" — the letters a, n, d run together in italic with no
+  // spacing on either side. Every word the fragment test lets through
+  // (MATH_WORDS) has to be handled here.
   s = s.replace(/\s+or\s+/g, ' \\;\\text{or}\\; ');
+  s = s.replace(/\s+and\s+/g, ' \\;\\text{and}\\; ');
+  s = s.replace(/\bDNE\b/g, '\\text{DNE}');
   // ", " listing stays as commas (KaTeX fine)
 
   // + C at the end stays; DNE-style words shouldn't reach here (prose filter)

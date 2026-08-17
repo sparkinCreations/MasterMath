@@ -11,6 +11,8 @@ import { solveDerivative } from '../src/lib/solvers/derivativesSolver.js';
 import { solveIntegral } from '../src/lib/solvers/integralsSolver.js';
 import { solveAlgebra } from '../src/lib/solvers/algebraSolver.js';
 import { solveProblem } from '../src/lib/api.js';
+import { parseMathExpression } from '../src/lib/mathParser.js';
+import { toLatex } from '../src/lib/latex.js';
 
 // ---------------------------------------------------------------------------
 // Limits: cancellation-prone 0/0 forms (fixed July 2026, v1.3.1)
@@ -768,4 +770,139 @@ test('regression: an integrand the engine cannot do is refused, never faked', as
   const refused = await solveProblem('sin(x^2)', 'integrals');
   assert.equal(refused.status, 'unsupported');
   assert.ok(!/\+ C$/.test(refused.answer), 'must not present a fabricated antiderivative');
+});
+
+// ---------------------------------------------------------------------------
+// sin^2(x): textbook power notation on a function (fixed Aug 2026, v1.24.0)
+//
+// `sin^2(x) = 1/2` was read as "sin squared, times x": the implicit-
+// multiplication rules produced `sin^2*(x)`, leaving `sin` as a BARE name.
+// Algebrite applies a bare function name to its PREVIOUS result, so the
+// equation was "solved" as x = 1/(2sin([-2,2])^2) — carrying the last
+// problem's roots — and each further solve nested one level deeper. On a
+// cold engine the same input was answered "No real solution found", which is
+// wrong the other way: it has infinitely many.
+// ---------------------------------------------------------------------------
+
+test('regression: sin^2(x) means (sin(x))^2, not sin^2 times x', () => {
+  assert.equal(parseMathExpression('sin^2(x) = 1/2'), '(sin(x))^2=1/2');
+  assert.equal(parseMathExpression('sin^2 x'), '(sin(x))^2');
+  assert.equal(parseMathExpression('2sin^3(2x)'), '2*(sin(2*x))^3');
+  assert.equal(parseMathExpression('cos^2(x)+sin^2(x)'), '(cos(x))^2+(sin(x))^2');
+  // The inverse form still wins; sin^-1 is arcsin, not (sin x)^-1.
+  assert.equal(parseMathExpression('sin^-1(x)'), 'arcsin(x)');
+  // A name that merely ends in "sin" is not the sin function.
+  assert.equal(parseMathExpression('arcsin^2(x)'), '(arcsin(x))^2');
+});
+
+test('regression: sin^2(x) = 1/2 gives real solutions, not "no real solution"', async () => {
+  const r = await solveProblem('sin^2(x) = 1/2', 'algebra');
+  assert.equal(r.status, 'solved');
+  // ±π/4 and ±3π/4 are the solutions nearest zero.
+  assert.match(r.answer, /0\.7854/);
+  assert.match(r.answer, /2\.356/);
+  assert.doesNotMatch(r.answer, /No real solution/i);
+});
+
+test('regression: a previous answer never leaks into the next solve', async () => {
+  // The inequality leaves [-2,2] as Algebrite's last result. Before the fix
+  // that list appeared inside the NEXT answer, and grew on every repeat.
+  await solveProblem('x^2 - 4 > 0', 'algebra');
+  const first = await solveProblem('sin^2(x) = 1/2', 'algebra');
+  const second = await solveProblem('sin^2(x) = 1/2', 'algebra');
+  assert.doesNotMatch(first.answer, /[[\]]/, 'a bracketed list is a leaked previous result');
+  assert.equal(second.answer, first.answer, 'the same input must give the same answer every time');
+});
+
+test('regression: an equation that cannot be evaluated is refused, not called unsolvable', async () => {
+  // "sin^2 = 1/2" has no argument at all — unreadable, not solution-free.
+  const r = await solveProblem('sin^2 = 1/2', 'algebra');
+  assert.equal(r.status, 'unsupported');
+  assert.doesNotMatch(r.answer, /No real solution/i);
+
+  // The genuinely solution-free cases must still say so.
+  const none = await solveProblem('x + 1 = x + 2', 'algebra');
+  assert.match(none.answer, /No solution/i);
+  const negRoot = await solveProblem('sqrt(x) = -5', 'algebra');
+  assert.match(negRoot.answer, /No real solution/i);
+});
+
+// ---------------------------------------------------------------------------
+// Systems routed by intent (fixed Aug 2026, v1.24.0)
+//
+// Two equations typed under any non-Algebra topic went to that topic's
+// solver, which extracts ONE expression: "2x + 3y = 6; x - y = 4" under
+// Derivatives kept the "6" and answered "f(x) = 4, f'(x) = 0" — marked
+// Solved. Systems detection now sits in the intent router, like calculus
+// notation and single equations.
+// ---------------------------------------------------------------------------
+
+test('regression: a system routes to the systems solver from any topic', async () => {
+  for (const topic of ['derivatives', 'integrals', 'limits', 'functions', 'trigonometry', 'other']) {
+    const r = await solveProblem('2x + 3y = 6; x - y = 4', topic);
+    assert.equal(r.status, 'solved', `${topic}: expected a solved system`);
+    assert.match(r.answer, /x = 18\/5/, `${topic}: wrong x`);
+    assert.match(r.answer, /y = -2\/5/, `${topic}: wrong y`);
+    assert.match(r.steps[0], /Solved as Algebra/, `${topic}: routing must be stated`);
+    assert.equal(r.routedTopic, 'algebra', `${topic}: history must file it under Algebra`);
+  }
+
+  // Under Algebra it is unchanged — solved directly, with no routing note.
+  const direct = await solveProblem('2x + 3y = 6; x - y = 4', 'algebra');
+  assert.match(direct.answer, /x = 18\/5/);
+  assert.doesNotMatch(direct.steps[0], /Solved as/);
+});
+
+// ---------------------------------------------------------------------------
+// Inequalities routed by intent (fixed Aug 2026, v1.24.0)
+// "x^2 - 4 > 0" under Derivatives was refused as beyond the engine, while the
+// sign-chart solver had the answer the whole time — the operator just never
+// reached it from a non-Algebra topic.
+// ---------------------------------------------------------------------------
+
+test('regression: an inequality routes to the sign-chart solver from any topic', async () => {
+  for (const topic of ['derivatives', 'integrals', 'limits', 'functions', 'trigonometry', 'other']) {
+    const r = await solveProblem('x^2 - 4 > 0', topic);
+    assert.equal(r.status, 'solved', `${topic}: expected the inequality to be solved`);
+    assert.match(r.answer, /x < -2\s+or\s+x > 2/, `${topic}: wrong solution set`);
+    assert.match(r.steps[0], /Solved as Algebra/, `${topic}: routing must be stated`);
+    assert.equal(r.routedTopic, 'algebra', `${topic}: history must file it under Algebra`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Arithmetic under Trigonometry (fixed Aug 2026, v1.24.0)
+// A pure-number expression was evaluated by the trig path, which described it
+// as "the trigonometric expression" and attached sin/cos tips to a PEMDAS
+// problem.
+// ---------------------------------------------------------------------------
+
+test('regression: a pure-number expression under Trigonometry is arithmetic', async () => {
+  const r = await solveProblem('(5 + 3) * 4 - 2^3', 'trigonometry');
+  assert.equal(r.answer, '24');
+  assert.equal(r.routedTopic, 'other');
+  assert.match(r.steps[0], /Solved as Arithmetic \(you chose Trigonometry\)/);
+  assert.ok(r.tips.some((t) => /PEMDAS/i.test(t)), 'should carry arithmetic tips');
+  assert.ok(!r.tips.some((t) => /sin\(30/.test(t)), 'must not carry trig tips');
+
+  // Anything with an actual angle or function stays in Trigonometry.
+  const trig = await solveProblem('sin(pi/4)', 'trigonometry');
+  assert.equal(trig.answer, '√2/2 (≈ 0.7071)');
+  assert.equal(trig.routedTopic, undefined);
+});
+
+// ---------------------------------------------------------------------------
+// Words inside a math fragment (fixed Aug 2026, v1.24.0)
+// "F(1) = 0 and F(0) = -1" typeset as "F(1)=0andF(0)=−1": the whole fragment
+// went to KaTeX, and "and" came out as three italic variables jammed against
+// the equations on both sides.
+// ---------------------------------------------------------------------------
+
+test('regression: "and" inside a math fragment is text, not a product of variables', () => {
+  assert.match(toLatex('F(1) = 0 and F(0) = -1'), /\\;\\text\{and\}\\;/);
+  assert.match(toLatex('x = 30° and x = 150°'), /30\^\{\\circ\} \\;\\text\{and\}\\; x/);
+  assert.match(toLatex('x = -2 or x = 2'), /\\;\\text\{or\}\\;/); // unchanged
+  assert.match(toLatex('lim (x→0) 1/x = DNE'), /\\text\{DNE\}/);
+  // A variable whose name merely contains the letters is untouched.
+  assert.doesNotMatch(toLatex('band = 2'), /\\text\{and\}/);
 });

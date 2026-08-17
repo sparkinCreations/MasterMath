@@ -19,6 +19,10 @@ const TIPS = [
   'Look for common factors, and check your answer by substituting it back in.',
 ];
 
+// A known function name that is NOT followed by an argument list — "sin^2*x",
+// "ln + 3". Always a mis-read, never mathematics a solver should act on.
+const BARE_FUNCTION_NAME = /(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp)(?![a-z])\s*(?!\()/i;
+
 const COMMON_MISTAKES = [
   'Forgetting to distribute a factor across every term in the parentheses.',
   'Combining unlike terms (e.g., adding x and x²).',
@@ -164,6 +168,9 @@ async function solveEquation(expression, options = {}) {
   // 3. Numeric root-finding — last resort.
   if (!answer) {
     const numeric = solveNumerically(expression, variable);
+    // An expression that could not be evaluated anywhere is a refusal, not a
+    // result; it is returned as its own envelope rather than an answer.
+    if (numeric.envelope) return numeric.envelope;
     steps = numeric.steps;
     answer = numeric.answer;
     solutions = numeric.solutions;
@@ -216,6 +223,16 @@ async function solveWithAlgebriteRoots(equation, variable) {
 
     // Move everything to one side: (left) - (right) = 0.
     const polynomial = `(${left.trim()}) - (${right.trim()})`;
+
+    // A function name with no argument list is not something Algebrite can be
+    // trusted with: a bare name there is applied to its PREVIOUS result, so
+    // the "roots" of a mis-parsed `sin^2*x - 1/2` came back as
+    // `1/(2*sin([-2,2])^2)` — the last problem's answer, embedded, nesting one
+    // level deeper per solve. Nothing well-formed reaches here in that shape
+    // (the parser rewrites sin^2(x) to (sin(x))^2), so refuse rather than
+    // hand a leaked value to the formatter.
+    if (BARE_FUNCTION_NAME.test(polynomial)) return null;
+
     const rootsRaw = Algebrite.roots(polynomial, variable).toString();
 
     // Algebrite mangles many cubics: rather than a clean real root like x = 2
@@ -590,7 +607,30 @@ function solveNumerically(equation, variable) {
     if (Math.sign(fa) !== Math.sign(fb) && fa !== 0 && fb !== 0) {
       const root = refineRoot(expression, variable, a, b);
       if (root !== null && !seen(root)) roots.push(root);
+      return;
     }
+    // Same sign at both ends: a touch root (a squared factor — sin(3x)^2 = 0
+    // at πn/3) can still sit strictly between two grid points, where |f|
+    // dips to 0 and comes back up without a sign change. If |f| is falling
+    // at a and rising at b there is a local minimum of |f| inside; locate it
+    // by ternary search and keep it only if it really reaches zero.
+    const h = (b - a) * 1e-3;
+    const ga = Math.abs(evalReal(a + h));
+    const gb = Math.abs(evalReal(b - h));
+    if (!Number.isFinite(ga) || !Number.isFinite(gb)) return;
+    if (!(ga < Math.abs(fa) && gb < Math.abs(fb))) return;
+    let lo = a;
+    let hi = b;
+    for (let i = 0; i < 60; i += 1) {
+      const m1 = lo + (hi - lo) / 3;
+      const m2 = hi - (hi - lo) / 3;
+      const f1 = Math.abs(evalReal(m1));
+      const f2 = Math.abs(evalReal(m2));
+      if (!Number.isFinite(f1) || !Number.isFinite(f2)) return;
+      if (f1 < f2) hi = m2; else lo = m1;
+    }
+    const x = (lo + hi) / 2;
+    if (Math.abs(evalReal(x)) < 1e-9 && !seen(x)) roots.push(x);
   };
   const fineScan = (a, b) => {
     const step = (b - a) / 50;
@@ -604,10 +644,12 @@ function solveNumerically(equation, variable) {
   let prevX = null;
   let prevDefined = false;
   let lastDefinedX = null;
+  let definedCount = 0;
   for (let x = -100; x <= 100; x += 0.5) {
     const value = evalReal(x);
     const defined = Number.isFinite(value);
     if (defined) {
+      definedCount += 1;
       if (prevDefined) considerBracket(prevX, x);
       else if (lastDefinedX !== null) fineScan(lastDefinedX, x); // gap held a pole
       if (isTouchRoot(x) && !seen(x)) roots.push(x);
@@ -618,6 +660,25 @@ function solveNumerically(equation, variable) {
     }
     prevDefined = defined;
     prevX = x;
+  }
+
+  // Nothing was defined anywhere in the scan — the equation was never
+  // actually tested, so "no real solution" would be a claim about maths when
+  // the truth is that this solver could not read the expression. `sin^2(x)`
+  // used to arrive here mis-parsed and be answered "No real solution found",
+  // which is flatly wrong: it has infinitely many.
+  if (definedCount === 0) {
+    return {
+      envelope: unsupported({
+        input: expression,
+        reason: `${beautify(expression)} could not be evaluated at any real value of ${variable}, so its solutions cannot be determined here.`,
+        answer: 'This equation is beyond what this solver can compute',
+        tips: [
+          'Check the notation: powers use ^ (x^2), multiplication uses * (2*x), and every function call needs parentheses — sin(x), not sin x.',
+          'This is a limitation of the solver, not necessarily of the equation — it may well have solutions.',
+        ],
+      }),
+    };
   }
 
   // Back-substitution gate: a candidate only counts if it actually satisfies

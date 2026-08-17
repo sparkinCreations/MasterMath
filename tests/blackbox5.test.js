@@ -110,3 +110,20 @@ test('routed results carry the topic they were solved as', async () => {
   const t = await solveProblem('x^2 = 4', 'algebra');
   assert.equal(t.routedTopic, undefined);
 });
+
+test('touch roots between grid points are found (squared factors)', async () => {
+  resetSettings();
+  const r = await solveProblem('sin^2(3x) + 1 = 1', 'algebra');
+  assert.match(r.answer, /x = -1\.0472\s+or\s+x = 0\s+or\s+x = 1\.0472/);
+  const s = await solveProblem('cos(x)^2 = 0', 'algebra');
+  assert.match(s.answer, /x = -1\.5708\s+or\s+x = 1\.5708/);
+  // A decaying tail is still not a root.
+  assert.equal((await solveProblem('e^(-x^2) = 0', 'algebra')).answer, 'No real solution found');
+  assert.equal((await solveProblem('1/(x-2)^2 = 0', 'algebra')).answer, 'No real solution found');
+});
+
+test('a mod 0 is undefined, not the dividend', async () => {
+  const r = await solveProblem('5 mod 0', 'other');
+  assert.equal(r.status, 'undefined');
+  assert.equal((await solveProblem('7 mod 3', 'other')).answer, '1');
+});

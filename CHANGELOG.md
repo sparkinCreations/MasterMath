@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-08-17
+
+Two inputs that came back wrong while looking right — a green "Solved" badge
+over a confident, incorrect step list, which is the one failure a student
+cannot catch. Both were found by walking the deployed app.
+
+### Added
+
+- **Textbook power notation on functions.** `sin^2(x)`, `cos^2 x`,
+  `2sin^3(2x)`, `log^2(x)` are now read the way they are written — as
+  `(sin(x))^2` — including a bare single-variable argument and nested calls
+  (`sin^2(f(x))`). The `sin^-1(x)` inverse form is unchanged: it still means
+  `arcsin(x)`, never `(sin x)^-1`.
+
+### Fixed
+
+- **`sin^2(x) = 1/2` was answered with the previous problem's roots.** The
+  implicit-multiplication rules read it as `sin^2*(x)` — "sin squared, times
+  x" — which left `sin` as a bare name with no argument. Algebrite applies a
+  bare function name to its *previous result*, so the equation was "solved"
+  as `x = 1/(2sin([-2,2])^2)`, carrying the `[-2, 2]` from whatever ran
+  before it, and nesting one level deeper on every repeat. On a freshly
+  loaded page the same input was answered `No real solution found`, wrong in
+  the other direction: it has infinitely many. It now solves, reporting the
+  five solutions nearest zero (±π/4, ±3π/4, −5π/4) and saying there are more.
+  Three separate guards, so the class of bug cannot come back quietly: the
+  parser rewrites the notation, the Algebrite roots path refuses any
+  expression containing a bare function name, and an equation that cannot be
+  evaluated at *any* real value is now `unsupported` — never "no solution",
+  which is a claim about mathematics rather than about the solver.
+- **A system of equations under any non-Algebra topic was silently mangled.**
+  `2x + 3y = 6; x - y = 4` typed under Derivatives went to the derivative
+  solver, whose single-expression extractor kept only the `6` of the first
+  equation — answering `f(x) = 4`, `f'(x) = 0`, marked Solved. Two-equation
+  detection now sits in the intent router alongside calculus notation and
+  single equations, so a system routes to the systems solver from every
+  topic, states that it did, and files in history under Algebra.
+- **Inequalities are routed the same way.** `x^2 - 4 > 0` under Derivatives
+  was refused as beyond the engine while the sign-chart solver had the answer
+  all along; the operator simply never reached it from another topic.
+- **Division by zero was answered `∞`.** `(5+3)*4 - 2^3/0` came back as
+  `-∞`, marked Solved. Infinity describes how a limit behaves — it is not the
+  value of `8/0`, which has none. Division by zero is now `Undefined`, `0/0`
+  is `Indeterminate`, and both explain the difference from a limit. The
+  divisor is checked on the parse tree, so `8/(3-3)` is recognised too rather
+  than being reported as an overflow.
+- **A pure-number expression under Trigonometry is solved as arithmetic.**
+  `(5+3)*4 - 2^3` was evaluated by the trig path, which called it "the
+  trigonometric expression" and offered `sin(30°) = 1/2` as a key insight for
+  a PEMDAS problem. Anything containing an actual angle or function call
+  (`sin(pi/4)`) stays in Trigonometry.
+- **Touch roots between grid points were missed.** `sin^2(3x) + 1 = 1`
+  answered `x = 0` alone; `cos(x)^2 = 0` skipped ±π/2. A squared factor
+  touches zero without a sign change, and the scanner only looked for sign
+  changes on a 0.5 grid. Where |f| is falling into an interval and rising
+  out of it, the minimum is now located and kept only if it really reaches
+  zero — so `e^(−x²) = 0` and `1/(x−2)² = 0` still have no solution.
+- **`5 mod 0` answered `5`** (mathjs returns the dividend). It is Undefined.
+- **Connecting words inside a rendered formula ran together.** "Evaluate at
+  the bounds: F(1) = 0 and F(0) = -1" typeset as `F(1)=0andF(0)=−1` — the
+  fragment went to KaTeX whole, and "and" came out as three italic variables
+  with no spacing on either side. `and`, `or` and `DNE` are now set as text
+  within a formula.
+
 ## [1.23.1] - 2026-08-17
 
 Blank-screen recovery. A review reported every route rendering an empty
