@@ -185,6 +185,16 @@ export function isAlgebriteFailure(output) {
  * and refuse honestly. Note the integral solver's derivative trust-gate does
  * NOT catch it: d(integral(f,x),x) simplifies straight back to f.
  */
+// A known function name with no argument list — "sin^2", "ln + 3", "2sin".
+// Never mathematics a solver should act on: mathjs reads the bare name as a
+// function VALUE (and errors deep inside pow), Algebrite applies it to its
+// previous result. Callers refuse it with a hint instead.
+const BARE_FUNCTION = /(?<![a-z])(arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp)(?![a-z])\s*(?!\()/i;
+export function bareFunctionName(expression) {
+  const m = BARE_FUNCTION.exec(String(expression));
+  return m ? m[1] : null;
+}
+
 export function isUnevaluatedOperator(result) {
   const s = String(result ?? '');
   return /\b(?:d|derivative|integral|defint)\s*\(/.test(s);

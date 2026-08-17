@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.24.1] - 2026-08-17
+
+Presentation sweep on the tail of 1.24.0, plus one wrong answer it exposed.
+
+### Fixed
+
+- **`2 sin(x)` under Derivatives answered `f'(s) = 0`.** With the space
+  removed the text is `2sin(x)`, and the variable finder's word-boundary
+  test no longer saw `sin` as a function name — so it took its `s` as the
+  variable. Function names are now recognised wherever they appear.
+- **`sin x`, `cos 30`, `ln t`** — a function applied to one token with a
+  space instead of parentheses — are read as `sin(x)`, `cos(30)`, `ln(t)`
+  (were the undefined symbols `sinx`, `cos30`). `sin x = 1/2` reaches the
+  trig-equation solver.
+- **A bare function name (`sin^2`, `ln + 3`, `2sin`) is a parse error with a
+  hint** — "sin needs an argument in parentheses — sin(x), sin(2),
+  sin^2(x)" — instead of mathjs's raw "Unexpected type of argument in
+  function pow … actual: function".
+- Derivative results write **`ln` and `e^`** rather than Algebrite's `log`
+  and `exp`: `d/dx ln²(x) = 2ln(x)/x`, `d/dx e^(2x) = 2e^(2x)`, `d/dx erf(x)
+  = 2e^(−x²)/√π`. Inputs are still echoed as typed.
+- Function domains no longer repeat a point an interval already excludes:
+  `log²(x)` reads "domain: x > 0", not "x > 0 and x ≠ 0".
+
 ## [1.24.0] - 2026-08-17
 
 Two inputs that came back wrong while looking right — a green "Solved" badge

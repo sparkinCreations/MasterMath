@@ -3,6 +3,7 @@ import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './i
 import { validateProblemHistory } from './validation.js';
 import { extractFunctionFromProblem } from './mathParser.js';
 import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
+import { bareFunctionName } from './solvers/solverUtils.js';
 
 // The storage wrappers below replace the underlying error with a message fit
 // for a toast. That message is all the user should see, but it is not all a
@@ -148,7 +149,7 @@ function isPlainEquationForAlgebra(problem, topic) {
   if (!/[a-z]/i.test(t.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sqrt|abs|log|ln|exp|pi|e)\b/gi, ''))) return false;
   if (topic === 'algebra') return false;
   // (?<![a-z]) not \b: "2cos(x) - 1 = 0" has no word boundary before "cos".
-  if (topic === 'trigonometry' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*\(/i.test(t)) return false;
+  if (topic === 'trigonometry' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*[(a-z0-9]/i.test(t)) return false;
   if (topic === 'functions' && /(?<![a-z0-9])(?:f\(.\)|y)\s*=/i.test(t)) return false;
   return true;
 }
@@ -204,7 +205,7 @@ function noteRouting(result, from, to, why) {
 function isSingleTrigEquation(problem) {
   const text = String(problem);
   const equalsCount = (text.match(/(?<![><!=])=(?!=)/g) || []).length;
-  return equalsCount === 1 && /(?<![a-z])(sin|cos|tan)\s*\(/i.test(text);
+  return equalsCount === 1 && /(?<![a-z])(sin|cos|tan)\s*[(a-z0-9]/i.test(text);
 }
 
 // Text that is program source rather than mathematics. The engines can hand
@@ -424,6 +425,20 @@ export async function solveProblem(problem, topic) {
         const expression = extractFunctionFromProblem(problem);
         if (!expression || expression.trim().length === 0) {
           throw new Error('Unable to extract mathematical expression from input');
+        }
+        // "sin^2", "ln + 3": a function name with nothing to apply it to.
+        // Refused here with a usable hint; left alone, mathjs fails deep
+        // inside pow ("Unexpected type of argument … actual: function").
+        {
+          const { parseMathExpression } = await import('./mathParser.js');
+          const bare = bareFunctionName(parseMathExpression(expression));
+          if (bare) {
+            return finalizeResult(parseError({
+              input: problem,
+              hint: `${bare} needs an argument in parentheses — ${bare}(x), ${bare}(2), ${bare}^2(x).`,
+              tips: [`Every function call needs parentheses: ${bare}(x), not ${bare} x or ${bare} alone.`],
+            }), problem);
+          }
         }
         // The extractor strips verbs, so intent has to ride alongside the
         // expression: "factor x^2 - 9" routes to the algebra solver's

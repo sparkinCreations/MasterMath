@@ -816,9 +816,12 @@ test('regression: a previous answer never leaks into the next solve', async () =
 
 test('regression: an equation that cannot be evaluated is refused, not called unsolvable', async () => {
   // "sin^2 = 1/2" has no argument at all — unreadable, not solution-free.
+  // A bare function name is now caught at the door as a parse error with a
+  // hint (sin needs an argument); either way it must never be "no solution".
   const r = await solveProblem('sin^2 = 1/2', 'algebra');
-  assert.equal(r.status, 'unsupported');
+  assert.ok(['unsupported', 'parse_error'].includes(r.status), r.status);
   assert.doesNotMatch(r.answer, /No real solution/i);
+  assert.match(r.answer, /sin needs an argument/);
 
   // The genuinely solution-free cases must still say so.
   const none = await solveProblem('x + 1 = x + 2', 'algebra');

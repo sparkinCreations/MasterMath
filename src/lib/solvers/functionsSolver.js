@@ -733,10 +733,18 @@ function formatDomain(domain, variable, extraPoints = []) {
   const isPoint = (r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.to - r.from) < 1e-9;
   const left = domain.find((r) => !Number.isFinite(r.from) && Number.isFinite(r.to));
   const right = domain.find((r) => Number.isFinite(r.from) && !Number.isFinite(r.to));
+  const others = domain.filter((r) => r !== left && r !== right && !isPoint(r));
+  // A point already outside an interval restriction adds nothing: log(x)^2
+  // is undefined for x ≤ 0, and "x > 0 and x ≠ 0" says the same thing twice.
+  const intervals = domain.filter((r) => !isPoint(r));
+  const alreadyExcluded = (p) => intervals.some((r) =>
+    (p > r.from + 1e-9 && p < r.to - 1e-9)
+    || (Math.abs(p - r.from) < 1e-9 && r.fromClosed)
+    || (Math.abs(p - r.to) < 1e-9 && r.toClosed));
   const points = [...domain.filter(isPoint).map((r) => r.from), ...extraPoints]
     .filter((v, i, arr) => arr.findIndex((w) => Math.abs(w - v) < 1e-6) === i)
+    .filter((v) => !alreadyExcluded(v))
     .sort((a, b) => a - b);
-  const others = domain.filter((r) => r !== left && r !== right && !isPoint(r));
   const parts = [];
   if (left && right && others.length === 0) {
     parts.push(`${formatNumber(left.to)} ${left.toClosed ? '<' : '≤'} ${variable} ${right.fromClosed ? '<' : '≤'} ${formatNumber(right.from)}`);

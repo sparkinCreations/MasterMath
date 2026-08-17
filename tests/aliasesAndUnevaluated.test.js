@@ -86,5 +86,5 @@ test('erf(x) differentiates with respect to x (Algebrite knows erf)', async () =
   const r = await solveProblem('erf(x)', 'derivatives');
   assert.equal(r.status, STATUS.SOLVED);
   assert.match(r.answer, /^f'\(x\) =/);
-  assert.match(r.answer, /exp\(-x\^2\)/);
+  assert.match(r.answer, /e\^\(-x\^2\)/);
 });

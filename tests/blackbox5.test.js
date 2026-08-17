@@ -127,3 +127,31 @@ test('a mod 0 is undefined, not the dividend', async () => {
   assert.equal(r.status, 'undefined');
   assert.equal((await solveProblem('7 mod 3', 'other')).answer, '1');
 });
+
+test('a bare function name is a parse error with a hint, not an engine error', async () => {
+  for (const [p, t] of [['sin^2', 'trigonometry'], ['ln + 3', 'functions'], ['2sin', 'derivatives']]) {
+    const r = await solveProblem(p, t);
+    assert.equal(r.status, 'parse_error', p);
+    assert.match(r.answer, /needs an argument in parentheses/, p);
+  }
+});
+
+test('"sin x", "cos 30", "2 sin(x)": spaced function arguments', async () => {
+  assert.equal((await solveProblem('sin 30', 'trigonometry')).answer, '1/2 (≈ 0.5)');
+  assert.match((await solveProblem('sin x = 1/2', 'trigonometry')).answer, /^x = π\/6 \+ 2πn/);
+  assert.equal((await solveProblem('2 sin x', 'derivatives')).answer, "f'(x) = 2cos(x)");
+  assert.equal((await solveProblem('2 sin(x)', 'derivatives')).answer, "f'(x) = 2cos(x)"); // was f'(s) = 0
+});
+
+test('derivative output writes ln and e^ rather than log and exp', async () => {
+  assert.equal((await solveProblem('ln^2(x)', 'derivatives')).answer, "f'(x) = 2ln(x)/x");
+  assert.equal((await solveProblem('e^x', 'derivatives')).answer, "f'(x) = e^x");
+  assert.equal((await solveProblem('e^(2x)', 'derivatives')).answer, "f'(x) = 2e^(2x)");
+});
+
+test('domain wording does not repeat a point an interval already excludes', async () => {
+  const r = await solveProblem('log^2(x)', 'functions');
+  assert.match(r.answer, /domain: x > 0;/);
+  const s = await solveProblem('sqrt(x)/(x-1)', 'functions');
+  assert.match(s.answer, /domain: x ≥ 0 and x ≠ 1/);
+});

@@ -14,6 +14,14 @@ import {
 import { extractVariable } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 
+// Algebrite writes the natural log as log(...); students read ln(...). Applied
+// to RESULTS only — the input is echoed as typed.
+// Likewise exp(x) → e^x. (?<![a-z]) not \b: beautify writes 2*log(x) as 2log(x).
+const lnify = (s) => beautify(s)
+  .replace(/(?<![a-z])log\(/g, 'ln(')
+  .replace(/(?<![a-z])exp\(([a-z]|\d+)\)/g, 'e^$1')
+  .replace(/(?<![a-z])exp\(([^()]+)\)/g, 'e^($1)');
+
 export async function solveDerivative(expression, options = {}) {
   try {
     const Algebrite = await loadAlgebrite();
@@ -44,7 +52,7 @@ export async function solveDerivative(expression, options = {}) {
 
     // "at x = a": evaluate the derivative there — the slope of the tangent
     // line at that point. Exact via Algebrite substitution, decimal alongside.
-    let answer = `f'(${variable}) = ${beautify(derivative)}`;
+    let answer = `f'(${variable}) = ${lnify(derivative)}`;
     let evalPoint = null;
     if (options.evalAt) {
       const { valueText } = options.evalAt;
@@ -65,7 +73,7 @@ export async function solveDerivative(expression, options = {}) {
         answer = `f'(${valueText}) is undefined`;
       } else {
         const dec = formatNumber(numeric);
-        const exactShown = exact && !/^-?\d+(?:\.\d+)?$/.test(exact) && beautify(exact) !== dec ? `${beautify(exact)} ≈ ${dec}` : (exact && /^-?\d+$/.test(exact) ? exact : dec);
+        const exactShown = exact && !/^-?\d+(?:\.\d+)?$/.test(exact) && lnify(exact) !== dec ? `${lnify(exact)} ≈ ${dec}` : (exact && /^-?\d+$/.test(exact) ? exact : dec);
         steps.push(`Evaluate at ${variable} = ${valueText}: f'(${valueText}) = ${exactShown}`);
         steps.push(`That is the slope of the tangent line to f at ${variable} = ${valueText}.`);
         answer = `f'(${valueText}) = ${exactShown}`;
@@ -140,16 +148,16 @@ function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
     }
 
     if (termDerivative !== null) {
-      steps.push(`${ddx}(${beautify(signed)}) = ${beautify(termDerivative)}`);
+      steps.push(`${ddx}(${beautify(signed)}) = ${lnify(termDerivative)}`);
     } else {
       steps.push(`Differentiate ${beautify(signed)} using the ${label.toLowerCase()}.`);
     }
   }
 
   if (terms.length > 1) {
-    steps.push(`Add the term derivatives and simplify: f'(${variable}) = ${beautify(derivative)}`);
+    steps.push(`Add the term derivatives and simplify: f'(${variable}) = ${lnify(derivative)}`);
   } else {
-    steps.push(`So f'(${variable}) = ${beautify(derivative)}`);
+    steps.push(`So f'(${variable}) = ${lnify(derivative)}`);
   }
 
   return steps;
@@ -258,7 +266,7 @@ function generateDerivativeGraph(original, derivative, variable) {
         secondaryPoints: secondaryPoints.length > 0 ? secondaryPoints : null,
         secondaryLabel: `f'(${variable}) = ${beautify(derivative)}`,
         title: `Graph of f(${variable}) = ${beautify(original)}`,
-        description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: f'(${variable}) = ${beautify(derivative)} (slope at each point)`,
+        description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: f'(${variable}) = ${lnify(derivative)} (slope at each point)`,
       };
     }
   } catch (error) {

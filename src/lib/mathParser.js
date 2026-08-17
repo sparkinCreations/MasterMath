@@ -82,6 +82,14 @@ export function parseMathExpression(input) {
   // reaches this rule.)
   cleaned = rewriteFunctionPowers(cleaned);
 
+  // "sin x", "cos 30", "ln t": a function applied to a single token with a
+  // space instead of parentheses. Without this the whitespace collapse below
+  // produced "sinx" — an undefined symbol.
+  cleaned = cleaned.replace(
+    new RegExp(`(?<![a-z])(${POWER_NOTATION_FUNCTIONS.join('|')}|sqrt|exp)\\s+([a-z](?![a-z])|\\d+(?:\\.\\d+)?)(?![a-z(])`, 'gi'),
+    (_, fn, arg) => `${fn}(${arg})`
+  );
+
   // Absolute-value bars → abs(): |x-3| becomes abs(x-3). mathjs cannot parse
   // bar notation, so without this an equation like |x-3| = 5 fails to
   // evaluate at every point and reads as having no solution. Bars cannot
@@ -188,7 +196,10 @@ export function extractVariable(expression) {
   let stripped = expression;
   const allKnown = [...MATH_FUNCTIONS, ...MATH_CONSTANTS, 'lim', 'limit'];
   allKnown.forEach(term => {
-    const regex = new RegExp(`\\b${term}\\b`, 'gi');
+    // (?<![a-z]) rather than \b: "2 sin(x)" arrives here as "2sin(x)", where
+    // there is no word boundary before "sin" — and taking its "s" as the
+    // variable produced f'(s) = 0.
+    const regex = new RegExp(`(?<![a-z])${term}(?![a-z])`, 'gi');
     stripped = stripped.replace(regex, '');
   });
 
@@ -200,7 +211,7 @@ export function extractVariable(expression) {
   // are not candidates: taking the "f" of erf as the variable produced
   // f'(f) = 0. Single letters before "(" are left alone — x(x+1) is implicit
   // multiplication, and x is the variable.
-  stripped = stripped.replace(/\b[a-z_]\w+\s*(?=\()/gi, '');
+  stripped = stripped.replace(/(?<![a-z])[a-z_]\w+\s*(?=\()/gi, '');
 
   // Now find the first remaining letter — that's the variable
   const match = stripped.match(/[a-z]/i);
