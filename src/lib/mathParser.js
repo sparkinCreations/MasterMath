@@ -58,6 +58,21 @@ function rewriteFunctionPowers(text) {
 export function parseMathExpression(input) {
   let cleaned = input.trim();
 
+  // Unicode that students paste or type: π, the middle-dot product, cube
+  // root, vulgar fractions, thousands separators in numbers.
+  cleaned = cleaned
+    .replace(/π/g, 'pi')
+    .replace(/[·⋅]/g, '*')
+    .replace(/∛\s*\(([^()]+)\)/g, 'cbrt($1)')
+    .replace(/∛\s*([\w.]+)/g, 'cbrt($1)')
+    .replace(/½/g, '(1/2)').replace(/⅓/g, '(1/3)').replace(/⅔/g, '(2/3)').replace(/¼/g, '(1/4)').replace(/¾/g, '(3/4)')
+    .replace(/⅕/g, '(1/5)').replace(/⅛/g, '(1/8)').replace(/⅜/g, '(3/8)').replace(/⅝/g, '(5/8)').replace(/⅞/g, '(7/8)')
+    .replace(/(\d),(\d{3})(?=\D|$)/g, '$1$2')
+    .replace(/(\d),(\d{3})(?=\D|$)/g, '$1$2');
+  // "x! = 24": once the spaces go, "x!=24" is a not-equal test. Bracket the
+  // factorial so it stays one.
+  cleaned = cleaned.replace(/([\w)])!\s*=(?!=)/g, '($1!) =');
+
   // Remove trailing sentence punctuation ("What is 5+3?") — but preserve a
   // factorial `!` that follows a number or a closing paren (`7!`, `(x+1)!`).
   cleaned = cleaned.replace(/[.?]+$/, '').trim();
@@ -82,18 +97,45 @@ export function parseMathExpression(input) {
   // reaches this rule.)
   cleaned = rewriteFunctionPowers(cleaned);
 
-  // "sin x", "cos 30", "ln t": a function applied to a single token with a
-  // space instead of parentheses. Without this the whitespace collapse below
-  // produced "sinx" — an undefined symbol.
+  // Logarithms in other bases: log10(x), log2(x), log(x, b) → log(x)/log(b).
+  // mathjs knows log10 and the two-argument log, Algebrite knows neither
+  // (it differentiated log10(x) to "log10"); the quotient form works in both.
+  cleaned = cleaned
+    .replace(/\blog10\s*\(([^()]+)\)/gi, '(log($1)/log(10))')
+    .replace(/\blog2\s*\(([^()]+)\)/gi, '(log($1)/log(2))')
+    .replace(/\blog\s*\(([^(),]+),\s*([^(),]+)\)/gi, '(log($1)/log($2))')
+    .replace(/\blog_(\d+)\s*\(([^()]+)\)/gi, '(log($2)/log($1))');
+
+  // cosec / cotan spellings; sin() with nothing inside is caught later.
+  cleaned = cleaned.replace(/\bcosec\b/gi, 'csc').replace(/\bcotan\b/gi, 'cot');
+
+  // "sin x", "cos 30", "sin 30°", "ln t": a function applied to a single
+  // token with a space instead of parentheses. Without this the whitespace
+  // collapse below produced "sinx" — an undefined symbol.
   cleaned = cleaned.replace(
-    new RegExp(`(?<![a-z])(${POWER_NOTATION_FUNCTIONS.join('|')}|sqrt|exp)\\s+([a-z](?![a-z])|\\d+(?:\\.\\d+)?)(?![a-z(])`, 'gi'),
-    (_, fn, arg) => `${fn}(${arg})`
+    new RegExp(`(?<![a-z])(${POWER_NOTATION_FUNCTIONS.join('|')}|sqrt|exp)\\s+([a-z](?![a-z])|\\d+(?:\\.\\d+)?\\s*°?)(?![a-z(])`, 'gi'),
+    (_, fn, arg) => `${fn}(${arg.replace(/\s+/g, '')})`
+  );
+
+  // A single-letter variable followed by a space and a letter or "(" is a
+  // product: "x e^x", "x sin(x)", "x (x+1)". Left alone, the whitespace
+  // collapse fused "x e^x" into the symbol xe — and ∫ x e^x dx came back
+  // as xe^x/ln|xe| + C.
+  cleaned = cleaned.replace(/(?<![a-z])([a-z])\s+(?=[a-z(])/gi, '$1*');
+  // A closing paren, digit or letter followed by a space and a function
+  // name: "e^x sin(x)", "(x+1) cos(x)".
+  cleaned = cleaned.replace(
+    new RegExp(`([a-z0-9)])\\s+(?=(?:${POWER_NOTATION_FUNCTIONS.join('|')}|sqrt|exp|abs)\\s*\\()`, 'gi'),
+    '$1*'
   );
 
   // Absolute-value bars → abs(): |x-3| becomes abs(x-3). mathjs cannot parse
   // bar notation, so without this an equation like |x-3| = 5 fails to
   // evaluate at every point and reads as having no solution. Bars cannot
   // nest, so pairing innermost non-bar runs is unambiguous.
+  // ln|x|, sin|x|: a function applied straight to bars — the bars are the
+  // argument. Without this it fused into "lnabs(x)".
+  cleaned = cleaned.replace(/\b(ln|log|sqrt|sin|cos|tan|exp|arctan|arcsin|arccos)\s*\|([^|]+)\|/gi, '$1(abs($2))');
   cleaned = cleaned.replace(/\|([^|]+)\|/g, 'abs($1)');
 
   // Combinatorics notation → mathjs built-ins: C(5,2) -> combinations(5,2),

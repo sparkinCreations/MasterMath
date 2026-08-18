@@ -1,5 +1,5 @@
 import mathsteps from 'mathsteps';
-import { isEquation, extractVariable } from '../mathParser.js';
+import { isEquation, extractVariable, parseMathExpression } from '../mathParser.js';
 import { stepsFromMathstepsResult } from '../mathstepsUtils.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 import {
@@ -7,6 +7,7 @@ import {
   loadAlgebrite,
   beautify,
   formatNumber,
+  hasVariable,
   sampleFunction,
   expressionsNumericallyEqual,
   findUndefinedRegions,
@@ -436,7 +437,10 @@ function parseRootsList(raw) {
     let numeric = NaN;
     try {
       const value = math.evaluate(part.trim());
-      numeric = typeof value === 'number' ? value : NaN;
+      // A real root Algebrite wrote in complex form (the ±1 among the roots
+      // of x^100 = 1 come back as cos·cos − i·(…) with the i-terms cancelling).
+      numeric = typeof value === 'number' ? value
+        : (value && typeof value === 'object' && Number.isFinite(value.re) && Math.abs(value.im) < 1e-9) ? value.re : NaN;
     } catch {
       numeric = NaN;
     }
@@ -495,9 +499,24 @@ function formatSolutions(roots, variable) {
   const counts = new Map();
   for (const d of displays) counts.set(d, (counts.get(d) || 0) + 1);
   const unique = [...counts.keys()];
-  return unique
-    .map((d) => `${variable} = ${d}${counts.get(d) > 1 ? ` (repeated root, multiplicity ${counts.get(d)})` : ''}`)
-    .join('  or  ');
+  const line = (d) => `${variable} = ${d}${counts.get(d) > 1 ? ` (repeated root, multiplicity ${counts.get(d)})` : ''}`;
+  // x^100 = 1 has 2 real roots and 98 complex ones; listing all 100 as
+  // trigonometric expressions is not an answer anyone can read. Past a
+  // handful of complex roots, give the real ones and count the rest.
+  const isComplex = (d) => /(?<![a-z])i(?![a-z])/.test(d);
+  const complexOnes = unique.filter(isComplex);
+  if (complexOnes.length > 4 || unique.length > 8) {
+    // Real roots by value (Algebrite writes cos(π/50)… for the roots of
+    // x^100 = 1; the two real ones are ±1), the rest counted.
+    const reals = [];
+    for (const r of roots) {
+      if (Number.isFinite(r.numeric) && !reals.some((v) => Math.abs(v - r.numeric) < 1e-9)) reals.push(r.numeric);
+    }
+    const complexCount = roots.length - reals.length;
+    const realText = reals.length ? reals.sort((a, b) => a - b).map((v) => `${variable} = ${formatNumber(v)}`).join('  or  ') : 'no real solutions';
+    return `${realText};  plus ${complexCount} complex solutions (not listed)`;
+  }
+  return unique.map(line).join('  or  ');
 }
 
 function extractNumbers(str) {
@@ -652,6 +671,10 @@ function solveNumerically(equation, variable) {
       definedCount += 1;
       if (prevDefined) considerBracket(prevX, x);
       else if (lastDefinedX !== null) fineScan(lastDefinedX, x); // gap held a pole
+      // First defined point after an undefined stretch (ln(x) at x = 0.5,
+      // after x ≤ 0): the root of ln(x) = -1 is at 0.37, between the last
+      // undefined grid point and this one — scan that gap too, or it is lost.
+      else if (prevX !== null) fineScan(prevX, x);
       if (isTouchRoot(x) && !seen(x)) roots.push(x);
       lastDefinedX = x;
     } else if (prevDefined && prevX !== null) {
@@ -935,6 +958,19 @@ async function simplifyExpression(expression) {
 
   const variable = extractVariable(expression);
   const inputLen = complexity(expression);
+
+  // A constant expression that nothing above could simplify (sqrt(-4),
+  // (-8)^(1/3)) is still worth a value: evaluate it as arithmetic rather
+  // than echoing the input back as the "simplified" answer.
+  if (!hasVariable(expression, variable)) {
+    try {
+      const { solveArithmetic } = await import('./arithmeticSolver.js');
+      const arith = solveArithmetic(parseMathExpression(expression));
+      if (arith && arith.answer && String(arith.answer).replace(/\s/g, '') !== String(expression).replace(/\s/g, '')) {
+        return arith;
+      }
+    } catch { /* fall through to the symbolic candidates */ }
+  }
 
   // Gather candidate simplifications and keep only those that are genuinely
   // equal to the input. mathsteps carries nice steps but sometimes "simplifies"

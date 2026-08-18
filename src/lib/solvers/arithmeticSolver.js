@@ -27,7 +27,7 @@ export function solveArithmetic(expression) {
 
     const result = math.evaluate(cleaned);
 
-    // mathjs defines mod(a, 0) = a; in arithmetic a mod 0 has no value.
+
     if (typeof result === 'number' && Number.isFinite(result) && modsByZero(cleaned)) {
       return undefinedValue({
         input: original,
@@ -47,6 +47,16 @@ export function solveArithmetic(expression) {
     // "(5+3)*4 - 2^3/0" was answered "-∞", marked Solved. In real arithmetic
     // 8/0 is undefined; ∞ is a statement about a limit, not a value.
     if (typeof result === 'number' && !Number.isFinite(result)) {
+      // ln(0), log(0): undefined — the LIMIT is -∞, the value does not exist.
+      if (logOfZero(cleaned)) {
+        return undefinedValue({
+          input: original,
+          reason: 'the logarithm of 0 is undefined',
+          steps: [`Evaluate: ${original}`, 'ln(0) asks for the power e must be raised to in order to give 0 — and no power of e is 0, so there is no such number.'],
+          tips: ['ln(x) → −∞ as x → 0⁺: the values grow more and more negative, but ln(0) itself has no value.', 'The logarithm is only defined for positive numbers.'],
+          common_mistakes: ['Reading ln(0) as −∞. Infinity describes how the limit behaves, not the value of ln at 0.'],
+        });
+      }
       if (dividesByZero(cleaned)) {
         if (Number.isNaN(result)) {
           return indeterminate({
@@ -74,6 +84,17 @@ export function solveArithmetic(expression) {
       }
     }
     const steps = [`Evaluate: ${original}`];
+    // 0^0 is a convention, not a computation. Say so rather than presenting
+    // "1" as if it were forced.
+    const zeroToZero = raisesZeroToZero(cleaned);
+    if (zeroToZero) {
+      steps.push('0^0 has no single forced value: x^0 = 1 for every other x, but 0^y = 0 for every positive y.');
+      steps.push('This calculator follows the usual convention 0^0 = 1 (it is what makes the binomial theorem and power series work). In a limit, 0^0 is an indeterminate form.');
+    }
+    // A complex result (sqrt(-1), ln(-1)) has no real value; name what is shown.
+    if (result && typeof result === 'object' && 'im' in result && Math.abs(result.im) > 0) {
+      steps.push('There is no real number here — the result is a complex number, written with i = √(−1).');
+    }
     if (/%/.test(original) && cleaned !== original) {
       steps.push(`Percent means "per hundred": rewrite ${original} as ${cleaned}.`);
     } else if (cleaned !== original) {
@@ -85,7 +106,11 @@ export function solveArithmetic(expression) {
     let working = cleaned;
     let guard = 0;
     while (/\([^()]+\)/.test(working) && guard++ < 25) {
-      const match = working.match(/\([^()]+\)/);
+      // The innermost group that has something to work out. A group that is
+      // just a signed number — the (-1) in sqrt(-1) — is left as it is;
+      // "working it out" gave (-1) again, 25 times over.
+      const match = [...working.matchAll(/\([^()]+\)/g)].find((m) => !/^\(\s*-?\d+(?:\.\d+)?\s*\)$/.test(m[0]));
+      if (!match) break;
       let value;
       try {
         value = math.evaluate(match[0]);
@@ -95,6 +120,7 @@ export function solveArithmetic(expression) {
       const shown = formatNumber(value);
       const substitution = Number(value) < 0 ? `(${shown})` : shown;
       const next = working.slice(0, match.index) + substitution + working.slice(match.index + match[0].length);
+      if (next === working) break;
       steps.push(`Work inside the parentheses: ${match[0]} = ${shown}  →  ${next}`);
       working = next;
     }
@@ -103,11 +129,12 @@ export function solveArithmetic(expression) {
     // numbers each step, so we describe the action rather than prefixing "Step N".
     describeOrder(working, steps);
 
-    steps.push(`Final answer: ${formatNumber(result)}`);
+    const shownAnswer = formatArithmeticResult(result, cleaned) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
+    steps.push(`Final answer: ${shownAnswer}`);
 
     return {
       steps,
-      answer: formatArithmeticResult(result, cleaned),
+      answer: shownAnswer,
       tips: [
         'PEMDAS/BODMAS order: Parentheses, Exponents, Multiplication & Division (left to right), Addition & Subtraction (left to right).',
         'Multiplication and division share a tier — resolve them left to right, not multiplication first.',
@@ -130,6 +157,38 @@ export function solveArithmetic(expression) {
       tips: ['Use * for multiplication, / for division, and ^ for exponents (e.g., (2+3)*4^2).'],
       common_mistakes: ['Missing operators between numbers', 'Unbalanced parentheses'],
     });
+  }
+}
+
+// ln(0) / log(0) anywhere in the parse tree.
+function logOfZero(expr) {
+  try {
+    let found = false;
+    math.parse(expr).traverse((node) => {
+      if (found || node.type !== 'FunctionNode' || !['log', 'ln', 'log10', 'log2'].includes(node.fn?.name)) return;
+      try {
+        if (node.args[0].evaluate() === 0) found = true;
+      } catch { /* not constant */ }
+    });
+    return found;
+  } catch {
+    return false;
+  }
+}
+
+// Is there a 0^0 anywhere in the parse tree?
+function raisesZeroToZero(expr) {
+  try {
+    let found = false;
+    math.parse(expr).traverse((node) => {
+      if (found || node.type !== 'OperatorNode' || node.fn !== 'pow') return;
+      try {
+        if (node.args[0].evaluate() === 0 && node.args[1].evaluate() === 0) found = true;
+      } catch { /* not constant */ }
+    });
+    return found;
+  } catch {
+    return false;
   }
 }
 
@@ -159,6 +218,13 @@ function dividesByZero(expr) {
     let found = false;
     math.parse(expr).traverse((node) => {
       if (found || node.type !== 'OperatorNode') return;
+      // 0^(-n) is 1/0^n — division by zero as well.
+      if (node.fn === 'pow') {
+        try {
+          if (node.args[0].evaluate() === 0 && node.args[1].evaluate() < 0) found = true;
+        } catch { /* not constant */ }
+        return;
+      }
       if (node.fn !== 'divide' && node.fn !== 'mod') return;
       try {
         if (node.args[1].evaluate() === 0) found = true;
@@ -190,6 +256,22 @@ function describeOrder(expr, steps) {
 // its exact form with the approximation alongside ("e^2 ≈ 7.3891"); anything
 // else is the plain number. Integers stay integers.
 function formatArithmeticResult(result, cleaned) {
+  // Complex (sqrt(-1), ln(-1)): format each part to the decimal setting,
+  // and write a clean multiple of π as such (ln(-1) = πi, not 3.14159…i).
+  if (result && typeof result === 'object' && 'im' in result && typeof result.re === 'number') {
+    const part = (v) => {
+      const k = v / Math.PI;
+      if (Math.abs(k - Math.round(k)) < 1e-9 && Math.round(k) !== 0) {
+        const n = Math.round(k);
+        return `${n === 1 ? '' : n === -1 ? '-' : n}π`;
+      }
+      return formatNumber(v);
+    };
+    const re = Math.abs(result.re) < 1e-12 ? '' : part(result.re);
+    const imAbs = part(Math.abs(result.im));
+    const im = `${result.im < 0 ? '-' : re ? '+' : ''}${imAbs === '1' ? '' : imAbs}i`;
+    return re ? `${re} ${im[0]} ${im.slice(1)}` : im;
+  }
   const formatted = formatNumber(result);
   if (typeof result !== 'number') return formatted;
 

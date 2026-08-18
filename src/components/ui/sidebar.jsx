@@ -20,24 +20,47 @@ const SidebarProvider = ({ children, defaultOpen = true }) => {
 }
 
 const Sidebar = React.forwardRef(({ className, ...props }, ref) => {
-  const { isOpen } = React.useContext(SidebarContext)
+  const { isOpen, setIsOpen } = React.useContext(SidebarContext)
+
+  // Escape closes an open menu (it is a drawer on small screens).
+  React.useEffect(() => {
+    if (!isOpen) return undefined
+    const onKey = (e) => { if (e.key === "Escape") setIsOpen(false) }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [isOpen, setIsOpen])
 
   // A zero-width sidebar is still in the tab order and the accessibility
   // tree, so a collapsed menu would strand keyboard users on seven invisible
   // links before the page content. `inert` (with aria-hidden for older
   // engines) removes it properly while keeping the width transition.
+  //
+  // On small screens the open menu is an overlay drawer with a backdrop —
+  // pushing a 256px column into a 390px viewport squeezed the page to a
+  // 130px sliver (one word per line) beside it.
   return (
-    <aside
-      ref={ref}
-      id={SIDEBAR_ID}
-      className={cn(
-        "shrink-0 transition-all duration-300",
-        isOpen ? "w-64" : "w-0 overflow-hidden",
-        className
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+          aria-hidden="true"
+          onClick={() => setIsOpen(false)}
+        />
       )}
-      {...(isOpen ? {} : { inert: "", "aria-hidden": "true" })}
-      {...props}
-    />
+      <aside
+        ref={ref}
+        id={SIDEBAR_ID}
+        className={cn(
+          "shrink-0 transition-all duration-300",
+          isOpen
+            ? "w-64 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:max-w-[85vw] max-md:overflow-y-auto max-md:shadow-2xl"
+            : "w-0 overflow-hidden",
+          className
+        )}
+        {...(isOpen ? {} : { inert: "", "aria-hidden": "true" })}
+        {...props}
+      />
+    </>
   )
 })
 Sidebar.displayName = "Sidebar"

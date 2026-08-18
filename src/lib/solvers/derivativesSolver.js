@@ -25,14 +25,34 @@ const lnify = (s) => beautify(s)
 export async function solveDerivative(expression, options = {}) {
   try {
     const Algebrite = await loadAlgebrite();
-    const variable = options.evalAt?.variable || extractVariable(expression);
+    const variable = options.variable || options.evalAt?.variable || extractVariable(expression);
+    const order = Math.max(1, Math.min(4, Number(options.order) || 1));
 
     // Algebrite has no sec/csc/cot; rewrite them into sin/cos before handing
     // off so those derivatives evaluate instead of coming back unevaluated.
-    const forAlgebrite = rewriteReciprocalTrig(expression);
+    // ln|u| differentiates exactly as ln(u) does (u′/u), and Algebrite has no
+    // abs — so drop the bars for differentiation only.
+    const forAlgebrite = rewriteReciprocalTrig(expression).replace(/\b(?:ln|log)\s*\(\s*abs\s*\(([^()]*)\)\s*\)/gi, 'log($1)');
 
     // Authoritative, fully-simplified derivative.
-    const derivative = Algebrite.derivative(forAlgebrite, variable).toString();
+    let derivative = Algebrite.derivative(forAlgebrite, variable).toString();
+    // Higher orders: differentiate the previous result again, showing each.
+    const orderChain = [derivative];
+    for (let k = 2; k <= order; k += 1) {
+      derivative = Algebrite.derivative(derivative, variable).toString();
+      orderChain.push(derivative);
+    }
+    // Algebrite leaves quotient-rule results as a sum of fractions:
+    // (x+1)/(x-1) → -1/(x-1)^2 + 1/(x-1) - x/(x-1)^2. Prefer the simplified
+    // form when it is genuinely shorter and still a real answer.
+    // Only for results of modest size: simplify on the expanded derivative
+    // of (x+1)^50 does not return in any useful time.
+    try {
+      const simplified = derivative.length > 160 ? derivative : Algebrite.simplify(derivative).toString();
+      if (simplified && !isAlgebriteFailure(simplified) && !isUnevaluatedOperator(simplified) && simplified.length < derivative.length) {
+        derivative = simplified;
+      }
+    } catch { /* keep the raw derivative */ }
 
     // Algebrite doesn't throw when it can't differentiate something — it
     // returns `d(f, x)` unevaluated. That is not an answer.
@@ -48,15 +68,33 @@ export async function solveDerivative(expression, options = {}) {
       });
     }
 
-    const steps = generateDerivativeSteps(expression, derivative, variable, Algebrite);
+    const primes = "'".repeat(order);
+    const steps = generateDerivativeSteps(expression, orderChain[0], variable, Algebrite);
+    if (order > 1) {
+      const names = ['', 'first', 'second', 'third', 'fourth'];
+      steps.push(`That is the first derivative. The ${names[order]} derivative differentiates ${order - 1} more time${order > 2 ? 's' : ''}:`);
+      for (let k = 2; k <= order; k += 1) {
+        steps.push(`f${"'".repeat(k)}(${variable}) = d/d${variable}[${lnify(orderChain[k - 2])}] = ${lnify(orderChain[k - 1])}`);
+      }
+    }
 
     // "at x = a": evaluate the derivative there — the slope of the tangent
     // line at that point. Exact via Algebrite substitution, decimal alongside.
-    let answer = `f'(${variable}) = ${lnify(derivative)}`;
+    let answer = `f${primes}(${variable}) = ${lnify(derivative)}`;
     let evalPoint = null;
     if (options.evalAt) {
       const { valueText } = options.evalAt;
-      const value = math.evaluate(String(valueText).replace(/π/g, 'pi').replace(/√/g, 'sqrt'));
+      // A symbolic point ("at x = a"): substitute and leave it symbolic.
+      if (/^[a-df-z]$/i.test(String(valueText).trim()) && String(valueText).trim().toLowerCase() !== variable) {
+        const sym = Algebrite.run(`simplify(subst(${valueText}, ${variable}, ${derivative}))`).toString();
+        if (sym && !isAlgebriteFailure(sym) && !/Stop|nil/.test(sym)) {
+          steps.push(`Evaluate at ${variable} = ${valueText}: f${primes}(${valueText}) = ${lnify(sym)}`);
+          answer = `f${primes}(${valueText}) = ${lnify(sym)}`;
+        }
+        return { steps, answer, tips: [`f${primes}(a) is the slope of the tangent line at ${variable} = a; here a is left as a symbol.`], common_mistakes: [], graph: generateDerivativeGraph(expression, derivative, variable) };
+      }
+      let value;
+      try { value = math.evaluate(String(valueText).replace(/π/g, 'pi').replace(/√/g, 'sqrt')); } catch { value = NaN; }
       if (typeof value !== 'number' || !Number.isFinite(value)) {
         return parseError({ input: expression, hint: `The evaluation point ${variable} = ${valueText} is not a number.` });
       }
@@ -67,16 +105,19 @@ export async function solveDerivative(expression, options = {}) {
         // Algebrite writes e^n as exp(n); students read 1/e, e^2.
         exact = exact.replace(/exp\(-1\)/g, '1/e').replace(/exp\(1\)/g, 'e').replace(/exp\(-(\d+)\)/g, '1/e^$1').replace(/exp\((\d+)\)/g, 'e^$1');
       } catch { exact = ''; }
-      const numeric = math.evaluate(rewriteReciprocalTrig(derivative), { [variable]: value });
-      if (typeof numeric !== 'number' || !Number.isFinite(numeric)) {
-        steps.push(`Evaluate at ${variable} = ${valueText}: f'(${valueText}) is undefined there.`);
-        answer = `f'(${valueText}) is undefined`;
+      let numeric;
+      try { numeric = math.evaluate(rewriteReciprocalTrig(derivative), { [variable]: value }); } catch { numeric = NaN; }
+      // A vertical asymptote of f′ (tan at π/2) evaluates to a huge float,
+      // not ∞ — treat anything beyond 1e12 as undefined there.
+      if (typeof numeric !== 'number' || !Number.isFinite(numeric) || Math.abs(numeric) > 1e12) {
+        steps.push(`Evaluate at ${variable} = ${valueText}: f${primes}(${valueText}) is undefined there${Number.isFinite(numeric) ? ' (the derivative has a vertical asymptote at that point)' : ''}.`);
+        answer = `f${primes}(${valueText}) is undefined`;
       } else {
         const dec = formatNumber(numeric);
         const exactShown = exact && !/^-?\d+(?:\.\d+)?$/.test(exact) && lnify(exact) !== dec ? `${lnify(exact)} ≈ ${dec}` : (exact && /^-?\d+$/.test(exact) ? exact : dec);
-        steps.push(`Evaluate at ${variable} = ${valueText}: f'(${valueText}) = ${exactShown}`);
-        steps.push(`That is the slope of the tangent line to f at ${variable} = ${valueText}.`);
-        answer = `f'(${valueText}) = ${exactShown}`;
+        steps.push(`Evaluate at ${variable} = ${valueText}: f${primes}(${valueText}) = ${exactShown}`);
+        if (order === 1) steps.push(`That is the slope of the tangent line to f at ${variable} = ${valueText}.`);
+        answer = `f${primes}(${valueText}) = ${exactShown}`;
         evalPoint = { x: value, y: numeric };
       }
     }
@@ -192,6 +233,37 @@ function classifyDerivativeRule(term, variable) {
     return { label: 'Product rule', hint: `d/d${v}(u·w) = u′·w + u·w′` };
   }
 
+  // x^x, x^(sin x): the variable in both base and exponent — neither the
+  // power rule nor the exponential rule applies on its own.
+  const powParts = splitTopLevel(inner, '^');
+  if (powParts.length === 2 && hasVariable(powParts[0], v) && hasVariable(powParts[1], v)) {
+    return { label: 'Logarithmic differentiation', hint: `write ${beautify(inner)} = e^(${beautify(powParts[1])}·ln(${beautify(powParts[0])})) and use the chain rule, or take ln of both sides and differentiate implicitly` };
+  }
+  // a^x: constant base, variable exponent.
+  if (powParts.length === 2 && !hasVariable(powParts[0], v) && hasVariable(powParts[1], v) && !/^\(?e\)?$/.test(powParts[0].trim())) {
+    const u = powParts[1].trim().replace(/^\((.*)\)$/, '$1');
+    if (/[+\-*/^]/.test(u)) {
+      return { label: 'Exponential rule with the chain rule', hint: `d/d${v}(a^u) = a^u·ln(a)·u′ with u = ${beautify(u)}` };
+    }
+    return { label: 'Exponential rule', hint: `d/d${v}(a^${v}) = a^${v}·ln(a) — the base is a constant, so this is not the power rule` };
+  }
+  // c/x^n: a constant over a power of the variable — the power rule with a
+  // negative exponent, not the linear rule.
+  const divOnce = splitTopLevel(inner, '/');
+  if (divOnce.length === 2 && !hasVariable(divOnce[0], v) && hasVariable(divOnce[1], v)) {
+    const den = divOnce[1].trim().replace(/^\((.*)\)$/, '$1').trim();
+    const pow = den.match(new RegExp(`^${v}(?:\\^([\\d.]+))?$`));
+    if (pow) {
+      const n = pow[1] || '1';
+      const coef = divOnce[0].trim() === '1' ? '' : `${beautify(divOnce[0])}·`;
+      return { label: 'Power rule (negative exponent)', hint: `rewrite ${beautify(inner)} as ${coef}${v}^(−${n}), then d/d${v}(${v}^n) = n·${v}^(n−1)` };
+    }
+    // c/u for a whole expression u: the reciprocal is u^(−1), chain rule.
+    const c = divOnce[0].trim() === '1' ? '' : `${beautify(divOnce[0])}·`;
+    return { label: 'Chain rule (reciprocal)', hint: `${beautify(inner)} = ${c}(${beautify(den)})^(−1), so the derivative is −${c}u′/u² with u = ${beautify(den)}` };
+  }
+
+
   // Chain: a function applied to a non-trivial inner expression, or (…)^n.
   if (isChain(inner, v)) {
     return { label: 'Chain rule', hint: `d/d${v}[f(g(${v}))] = f′(g(${v}))·g′(${v})` };
@@ -227,6 +299,9 @@ function isProduct(term, variable) {
 function isChain(term, variable) {
   // (expr)^n where expr is more than a bare variable.
   if (/\([^()]*[+\-*/][^()]*\)\s*\^/.test(term)) return true;
+  // e^(expr) or a^(expr) with a non-trivial exponent: e^(x^2), 2^(3x).
+  const expArg = term.match(/\^\s*\(([^()]*)\)/);
+  if (expArg && hasVariable(expArg[1], variable) && /[+\-*/^]/.test(expArg[1])) return true;
   // function( ...variable...with an operator... )
   const fnInner = term.match(/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt)\s*\(([^()]*)\)/i);
   if (fnInner) {

@@ -12,7 +12,7 @@ import {
   isAlgebriteFailure,
 } from './solverUtils.js';
 import { getSettings } from '../settings.js';
-import { parseError } from '../solutionEnvelope.js';
+import { parseError, unsupported } from '../solutionEnvelope.js';
 
 // ---------------------------------------------------------------------------
 // Limits
@@ -138,6 +138,41 @@ export async function solveLimit(expression) {
         ],
         graph: null,
       };
+    }
+
+    // A second symbol in the expression — lim h→0 ((x+h)² − x²)/h — cannot
+    // be sampled numerically (x has no value). Simplify symbolically first;
+    // if the singularity cancels, substitute. Otherwise say why not.
+    const otherSymbol = (func.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sqrt|abs|log|ln|exp|pi|e|infinity)\b/gi, '').match(new RegExp(`(?<![a-z])[a-z](?![a-z])`, 'gi')) || []).find((c) => c.toLowerCase() !== variable);
+    if (otherSymbol) {
+      const Algebrite = await loadAlgebrite();
+      let sym = null;
+      try {
+        const simplified = String(Algebrite.run(`simplify(${func})`));
+        const substituted = Number.isFinite(target) ? String(Algebrite.run(`simplify(subst(${target}, ${variable}, ${simplified}))`)) : '';
+        if (substituted && !isAlgebriteFailure(substituted) && !/\bnil\b|Stop/.test(substituted) && !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(substituted)) {
+          sym = { simplified, substituted };
+        }
+      } catch { sym = null; }
+      if (sym) {
+        return {
+          steps: [
+            `Evaluate lim (${variable}→${displayTarget}) ${beautify(func)}`,
+            `The expression also contains ${otherSymbol}, which stays symbolic — so simplify first: ${beautify(func)} = ${beautify(sym.simplified)}`,
+            `Now substitute ${variable} = ${displayTarget}: ${beautify(sym.substituted)}`,
+          ],
+          answer: `lim (${variable}→${displayTarget}) ${beautify(func)} = ${beautify(sym.substituted)}`,
+          tips: ['When the expression has a parameter, simplify algebraically until the limit variable can be substituted directly.', 'This is exactly the difference-quotient limit that defines the derivative.'],
+          common_mistakes: ['Substituting before simplifying and stopping at 0/0.'],
+          graph: null,
+        };
+      }
+      return unsupported({
+        input: expression,
+        reason: `The expression contains another symbol (${otherSymbol}) as well as ${variable}, and it did not simplify to something ${variable} = ${displayTarget} can be substituted into. Limits with a symbolic parameter are only supported when they simplify algebraically.`,
+        answer: 'This limit is beyond what this solver can compute',
+        tips: ['Give the parameter a value (e.g. replace x with 3) to evaluate the limit numerically.'],
+      });
     }
 
     const result = !Number.isFinite(target)
@@ -589,7 +624,7 @@ function estimateFiniteLimitNumeric(func, variable, target) {
 
   const bothConverge = left.value !== undefined && right.value !== undefined;
   if (bothConverge && Math.abs(left.value - right.value) < 1e-4) {
-    const value = formatNumber((left.value + right.value) / 2);
+    const value = formatLimitConstant((left.value + right.value) / 2);
     steps.push(`Both sides approach ${value}, so the limit exists.`);
     return { steps, answer: value };
   }
@@ -705,8 +740,8 @@ function evaluateOneSidedLimit(func, variable, target, side) {
       steps.push(`The values settle onto the function's own value there: f(${formatNumber(target)}) = ${formatNumber(direct)}.`);
       return { steps, answer: formatNumber(direct), verified: true, verificationMethod: 'direct substitution' };
     }
-    steps.push(`The values settle toward ${formatNumber(last)}, so that is the one-sided limit.`);
-    return { steps, answer: formatNumber(last) };
+    steps.push(`The values settle toward ${formatLimitConstant(last)}, so that is the one-sided limit.`);
+    return { steps, answer: formatLimitConstant(last) };
   }
 
   // Slow, steady divergence (e.g. ln(x) as x → 0⁺): each step keeps the same
@@ -723,9 +758,20 @@ function evaluateOneSidedLimit(func, variable, target, side) {
   return { steps, answer: 'Does not exist' };
 }
 
+// A numeric limit that is a familiar constant is named: e, e², π, π/2.
+function formatLimitConstant(v) {
+  const dec = formatNumber(v);
+  const named = [
+    [Math.E, 'e'], [Math.E ** 2, 'e^2'], [1 / Math.E, '1/e'], [Math.sqrt(Math.E), '√e'],
+    [Math.PI, 'π'], [Math.PI / 2, 'π/2'], [Math.PI / 4, 'π/4'], [2 * Math.PI, '2π'], [Math.SQRT2, '√2'], [Math.LN2, 'ln(2)'],
+  ];
+  const hit = named.find(([c]) => Math.abs(v - c) < 1e-6 * Math.max(1, Math.abs(c)));
+  return hit ? `${hit[1]} (≈ ${dec})` : dec;
+}
+
 function estimateInfiniteLimit(func, variable, target) {
   const sign = target === Infinity ? 1 : -1;
-  const samples = [1e2, 1e3, 1e4, 1e6].map((m) => evalAt(func, variable, sign * m));
+  const samples = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8].map((m) => evalAt(func, variable, sign * m));
   const finite = samples.filter((v) => Number.isFinite(v));
 
   const steps = [`Evaluate the function at increasingly large ${sign > 0 ? 'positive' : 'negative'} values of ${variable}.`];
@@ -741,8 +787,13 @@ function estimateInfiniteLimit(func, variable, target) {
 
   const last = finite[finite.length - 1];
   const prev = finite[finite.length - 2];
-  if (Math.abs(last - prev) < 1e-3) {
-    const value = formatNumber(last);
+  // Converging: the successive differences shrink and the last is small
+  // relative to the value. (1 + 2/x)^x still moves in the third decimal at
+  // x = 10⁴ (7.3876 → 7.3890) yet is plainly settling on e².
+  const diffs = finite.slice(1).map((v, i) => Math.abs(v - finite[i]));
+  const shrinking = diffs.length >= 3 && diffs.slice(-3).every((d, i, arr) => i === 0 || d <= arr[i - 1] * 1.01);
+  if (Math.abs(last - prev) < 1e-3 || (shrinking && Math.abs(last - prev) < 1e-4 * (1 + Math.abs(last)))) {
+    const value = formatLimitConstant(last);
     steps.push(`The values settle toward ${value}, so that is the limit.`);
     return { steps, answer: value };
   }
@@ -890,7 +941,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
     // so the angle unit applies to the output, not the input.
     const inverseWhole = /^\s*(?:arcsin|arccos|arctan|asin|acos|atan)\s*\((?:[^()]|\([^()]*\))*\)\s*$/i.test(expression);
 
-    const autoDegrees = !hasRadians && argValue !== null && Number.isInteger(argValue) && COMMON_DEGREE_VALUES.includes(argValue);
+    const autoDegrees = !hasRadians && argValue !== null && Number.isInteger(argValue) && COMMON_DEGREE_VALUES.includes(Math.abs(argValue));
     let looksLikeDegrees;
     if (angleUnit === 'degrees') {
       // An explicit pi in the input still means radians, even with the

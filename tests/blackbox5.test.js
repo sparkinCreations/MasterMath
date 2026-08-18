@@ -155,3 +155,88 @@ test('domain wording does not repeat a point an interval already excludes', asyn
   const s = await solveProblem('sqrt(x)/(x-1)', 'functions');
   assert.match(s.answer, /domain: x ≥ 0 and x ≠ 1/);
 });
+
+// ── Edge-case sweep on v1.24.1 (pass 6).
+test('edge: parser reads π, ·, ∛, vulgar fractions, thousands separators, log bases', async () => {
+  assert.equal((await solveProblem('2π', 'other')).answer, '2π ≈ 6.2832');
+  assert.equal((await solveProblem('sin(π/2)', 'trigonometry')).answer, '1');
+  assert.equal((await solveProblem('∛27', 'other')).answer, '3');
+  assert.equal((await solveProblem('½ + ¼', 'other')).answer, '3/4 (= 0.75)');
+  assert.equal((await solveProblem('2·3', 'other')).answer, '6');
+  assert.equal((await solveProblem('1,000,000/4', 'other')).answer, '250000');
+  assert.equal((await solveProblem('log10(100)', 'other')).answer, '2');
+  assert.equal((await solveProblem('log(8, 2)', 'other')).answer, '3');
+  assert.equal((await solveProblem('log10(x)', 'derivatives')).answer, "f'(x) = 1/(x*ln(10))");
+});
+
+test('edge: ln(x) = -1 has the root 1/e (was "No real solution")', async () => {
+  assert.equal((await solveProblem('ln(x) = -1', 'algebra')).answer, 'x = 0.3679');
+  assert.equal((await solveProblem('x! = 24', 'algebra')).answer, 'x = 4');
+});
+
+test('edge: arithmetic — ln(0) undefined, 0^-1 undefined, 0^0 by convention, "2 3" refused, complex formatted', async () => {
+  assert.equal((await solveProblem('ln(0)', 'other')).status, 'undefined');
+  assert.equal((await solveProblem('0^-1', 'other')).status, 'undefined');
+  assert.equal((await solveProblem('0^0', 'other')).answer, '1 (by convention)');
+  assert.equal((await solveProblem('2 3', 'other')).status, 'parse_error');
+  assert.equal((await solveProblem('ln(-1)', 'other')).answer, 'πi');
+  assert.equal((await solveProblem('sqrt(-4)', 'other')).answer, '2i');
+  const s = await solveProblem('sqrt(-1)', 'other');
+  assert.ok(s.steps.filter((x) => /Work inside/.test(x)).length <= 1, 'no repeated paren steps');
+});
+
+test('edge: words, unbalanced parens, empty calls are parse errors', async () => {
+  for (const [p, t] of [['hello', 'algebra'], ['help me', 'derivatives'], ['sin(x', 'trigonometry'], ['sin(x))', 'trigonometry'], ['sin()', 'trigonometry']]) {
+    assert.equal((await solveProblem(p, t)).status, 'parse_error', p);
+  }
+  assert.equal((await solveProblem('sqrt(-4)', 'algebra')).answer, '2i');
+  assert.match((await solveProblem('x^100 = 1', 'algebra')).answer, /^x = -1\s+or\s+x = 1;\s+plus 98 complex solutions/);
+});
+
+test('edge: implicit products with spaces — x e^x, e^x sin(x), sin 30°', async () => {
+  assert.equal((await solveProblem('∫ x e^x dx', 'integrals')).answer, '∫(x*e^x) dx = exp(x)*(x - 1) + C');
+  assert.equal((await solveProblem('∫ e^x sin(x) dx', 'integrals')).status, 'solved');
+  assert.match((await solveProblem('sin 30°', 'trigonometry')).answer, /^1\/2/);
+  assert.match((await solveProblem('sin(-30)', 'trigonometry')).answer, /^-1\/2/);
+  assert.equal((await solveProblem('cosec(30)', 'trigonometry')).answer, '2');
+});
+
+test('edge: limits — named constants, converging slowly, and a symbolic parameter', async () => {
+  assert.match((await solveProblem('lim x→∞ (1 + 2/x)^x', 'limits')).answer, /= e\^2 \(≈ 7\.3891\)$/);
+  assert.match((await solveProblem('lim n->infinity (1+1/n)^n', 'limits')).answer, /= e \(≈ 2\.7183\)$/);
+  assert.match((await solveProblem('lim h->0 ((x+h)^2 - x^2)/h', 'limits')).answer, /= 2x$/);
+  assert.equal((await solveProblem('lim h->0 (sin(x+h)-sin(x))/h', 'limits')).status, 'unsupported');
+});
+
+test('edge: derivatives — order, with respect to, ln|x|, asymptote at the point, symbolic point', async () => {
+  assert.equal((await solveProblem('second derivative of x^3', 'derivatives')).answer, "f''(x) = 6x");
+  assert.equal((await solveProblem('d^2/dx^2 x^3', 'derivatives')).answer, "f''(x) = 6x");
+  assert.equal((await solveProblem("f''(x) where f(x) = x^3", 'derivatives')).answer, "f''(x) = 6x");
+  assert.equal((await solveProblem('derivative of x*y with respect to y', 'derivatives')).answer, "f'(y) = x");
+  assert.equal((await solveProblem('ln|x|', 'derivatives')).answer, "f'(x) = 1/x");
+  assert.equal((await solveProblem('tan(x) at x = pi/2', 'derivatives')).answer, "f'(pi/2) is undefined");
+  assert.equal((await solveProblem('x^2 at x = a', 'derivatives')).answer, "f'(a) = 2a");
+  assert.match((await solveProblem('x^x', 'derivatives')).steps[1], /Logarithmic differentiation/);
+  assert.match((await solveProblem('1/x', 'derivatives')).steps[1], /negative exponent/);
+  assert.match((await solveProblem('e^(x^2)', 'derivatives')).steps[1], /Chain rule/);
+});
+
+test('edge: integrals — variable from d<var>, empty integrand is 1', async () => {
+  assert.equal((await solveProblem('integrate x^2 dy', 'integrals')).answer, '∫(x^2) dy = x^2*y + C');
+  assert.equal((await solveProblem('∫ dx', 'integrals')).answer, '∫(1) dx = x + C');
+  assert.equal((await solveProblem('∫_0^1 dx', 'integrals')).answer, '∫_0^1 (1) dx = 1');
+});
+
+test('edge: functions — x^x domain and no phantom intercept at an isolated point', async () => {
+  const r = await solveProblem('x^x', 'functions');
+  assert.match(r.answer, /domain: x ≥ 0 \(plus isolated points/);
+  assert.match(r.answer, /no x-intercepts/);
+});
+
+test('an Algebrite error in one problem does not poison the next (x/0 = 1, then x^3 = 8)', async () => {
+  await solveProblem('x/0 = 1', 'algebra');
+  const r = await solveProblem('x^3 = 8', 'algebra');
+  assert.equal(r.answer, 'x = 2  or  x = -1 - 1.7321i  or  x = -1 + 1.7321i');
+  const s = await solveProblem('x^2 = 2', 'algebra');
+  assert.equal(s.answer, 'x = -2^(1/2)  or  x = 2^(1/2)');
+});

@@ -49,28 +49,33 @@ export async function solveIntegral(rawInput) {
   // A bare integral sign with no bounds — "∫x dx", "∫ sin(x) dx" — is the
   // most natural notation there is; strip the sign and the trailing d<var>
   // before the expression extractor sees it, or "∫xdx" is a parse error.
+  // The trailing d<var> names the variable of integration: "∫ x^2 dy" is
+  // x^2·y + C, not x^3/3 + C.
+  const dvar = String(rawInput).match(/\s*\bd([a-z])\s*$/i);
   const bare = String(rawInput)
     .replace(/^\s*∫\s*/, '')
     .replace(/\s*\bd([a-z])\s*$/i, '');
   const expression = extractFunctionFromProblem(bare);
   if (!expression || !expression.trim()) {
+    // "∫ dx" is ∫ 1 dx.
+    if (dvar) return solveIndefiniteIntegral('1', dvar[1].toLowerCase());
     return parseError({
       input: rawInput,
       hint: 'There is nothing to integrate — the integrand is empty.',
       tips: ['Write the function after the integral sign, e.g. ∫ x^2 dx, or just x^2.'],
     });
   }
-  return solveIndefiniteIntegral(expression);
+  return solveIndefiniteIntegral(expression, dvar ? dvar[1].toLowerCase() : undefined);
 }
 
-async function solveIndefiniteIntegral(expression) {
+async function solveIndefiniteIntegral(expression, variableOverride) {
   try {
     if (!expression || !expression.trim()) {
       throw new Error('empty integrand');
     }
 
     const Algebrite = await loadAlgebrite();
-    const variable = extractVariable(expression);
+    const variable = variableOverride || extractVariable(expression);
 
     // Integrate term by term so an integration-by-parts term can get its own
     // worked walkthrough (and so a single hard term doesn't sink the whole
@@ -399,10 +404,12 @@ function parseDefiniteIntegral(raw) {
     .replace(new RegExp(`\\bd\\s*${variable}\\b`, 'i'), ' ')
     .trim();
 
-  if (!integrand) return { error: true };
+  // "∫_0^1 dx": nothing between the bounds and dx is the integrand 1.
+  const integrandOrOne = integrand || (dm ? '1' : '');
+  if (!integrandOrOne) return { error: true };
 
   return {
-    integrand: parseMathExpression(integrand),
+    integrand: parseMathExpression(integrandOrOne),
     variable,
     lowerRaw: parseMathExpression(lowerRaw.trim()),
     upperRaw: parseMathExpression(upperRaw.trim()),

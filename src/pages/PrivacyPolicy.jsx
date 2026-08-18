@@ -92,8 +92,8 @@ export default function PrivacyPolicy() {
               <li>We do NOT collect any personally identifiable information (name, email, phone number)</li>
               <li>We do NOT track your IP address or location</li>
               <li>We do NOT use cookies for tracking or advertising</li>
-              <li>We do NOT share any data with third parties</li>
-              <li>We do NOT send your data to any external servers</li>
+              <li>We do NOT share any data with third parties — the one exception is the Feedback page, which sends only what you type into it, only when you choose to submit it (see Web3Forms below)</li>
+              <li>We do NOT send your problems, solutions, history or settings to any external server — they never leave your device</li>
             </ul>
           </div>
         </CardContent>

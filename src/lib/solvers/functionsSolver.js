@@ -397,7 +397,13 @@ function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
     // Verify: it must actually be a root, not a small-value sample.
     const y = evalAt(func, variable, numeric);
     if (!Number.isFinite(y) || Math.abs(y) > 1e-6) return;
-    if (found.some((r) => Math.abs(r.numeric - numeric) < 1e-6)) return;
+    // A root has the curve rising away from the axis on at least one side.
+    // An isolated defined point with a tiny value (x^x at x = -10 is 1e-10,
+    // undefined on both sides) is not an intercept.
+    const l = evalAt(func, variable, numeric - 1e-3);
+    const r = evalAt(func, variable, numeric + 1e-3);
+    if (!(Number.isFinite(l) && Math.abs(l) > Math.abs(y)) && !(Number.isFinite(r) && Math.abs(r) > Math.abs(y))) return;
+    if (found.some((r2) => Math.abs(r2.numeric - numeric) < 1e-6)) return;
     found.push({ numeric: snap(numeric), display: display ?? formatNumber(snap(numeric)) });
   };
 
@@ -753,7 +759,14 @@ function formatDomain(domain, variable, extraPoints = []) {
   }
   // Excluded points read as one list: "x ≠ -π, 0, π", not a chain of "and".
   if (points.length) parts.push(`${variable} ≠ ${points.map((v) => formatNumber(v)).join(', ')}`);
-  return parts.join(' and ');
+  const isolated = intervals.flatMap((r) => r.isolated || []);
+  const examples = isolated.slice(-3).reverse().map((v) => formatNumber(v)).join(', ');
+  // (-2)^x: no interval at all, only isolated points.
+  if (intervals.length === 1 && !Number.isFinite(intervals[0].from) && !Number.isFinite(intervals[0].to) && isolated.length) {
+    return `only isolated points (such as ${variable} = ${examples}) — no interval of real numbers`;
+  }
+  const note = isolated.length ? ` (plus isolated points such as ${variable} = ${examples})` : '';
+  return parts.join(' and ') + note;
 }
 
 // The "Final Answer" of a function analysis is the analysis, not the input

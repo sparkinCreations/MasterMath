@@ -175,6 +175,20 @@ function isArithmeticUnderTrigonometry(problem, topic) {
   return /\d/.test(t);
 }
 
+// Words the engines know. Anything else that is two or more letters long is
+// not mathematics this app can read ("hello", "helpme", "xx").
+const KNOWN_WORDS = new Set(['of', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'arcsin', 'arccos', 'arctan', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh', 'sqrt', 'cbrt', 'nthroot', 'abs', 'log', 'ln', 'log10', 'log2', 'exp', 'pi', 'mod', 'choose', 'combinations', 'permutations', 'factorial', 'floor', 'ceil', 'round', 'sign', 'sgn', 'gamma', 'erf', 'infinity', 'inf', 'deg', 'degrees', 'rad']);
+function unknownWord(expression) {
+  const text = String(expression);
+  // Two single letters with only a space between them: "x x".
+  const pair = text.match(/(?<![a-z])([a-z])\s+([a-z])(?![a-z])/i);
+  if (pair) return `${pair[1]} ${pair[2]}`;
+  // A word followed by "(" is a function call; an unknown one (foo(x)) is
+  // the engine's to refuse as unsupported, with its own message.
+  const words = text.match(/[a-z]{2,}(?![a-z]|\s*\()/gi) || [];
+  return words.find((w) => !KNOWN_WORDS.has(w.toLowerCase())) || null;
+}
+
 // "… at x = 2" / "… when x = π/4": an evaluation point tacked onto the end
 // of a problem. Read on the raw text before any routing, because the "=" in
 // it would otherwise make "x^2 at x = 1.5" look like an equation (in the
@@ -322,6 +336,36 @@ export async function solveProblem(problem, topic) {
 
     let result;
 
+    // Higher-order derivatives and "with respect to": read from the raw text
+    // and handed to the derivative solver as options. "second derivative of
+    // x^3" was answering the FIRST derivative; "d^2/dx^2 x^3" was garbage.
+    const derivOpts = {};
+    {
+      const t = String(problem);
+      const ord = t.match(/\b(second|third|fourth|2nd|3rd|4th)\s+derivative\b/i) || t.match(/\bd\s*(?:\^\s*(\d)|([²³])|(\d))\s*\/\s*d[a-z]\s*(?:\^\s*\d|[²³]|\d)/i) || t.match(/\b[a-z]('{2,}|′{2,}|″|‴)\s*\(/);
+      if (ord) {
+        const word = ord[1] || ord[2] || ord[3] || '';
+        derivOpts.order = /^(second|2nd|2|²)$/i.test(word) ? 2 : /^(third|3rd|3|³)$/i.test(word) ? 3 : /^(fourth|4th|4)$/i.test(word) ? 4 : /^(''|′′|″)$/.test(word) ? 2 : /^('''|′′′|‴)$/.test(word) ? 3 : 1;
+      }
+      const wrt = t.match(/\bwith\s+respect\s+to\s+([a-z])\b/i);
+      if (wrt) derivOpts.variable = wrt[1].toLowerCase();
+    }
+    const stripDerivPhrases = (t) => String(t)
+      .replace(/\bwith\s+respect\s+to\s+[a-z]\b/i, '')
+      .replace(/\b(second|third|fourth|2nd|3rd|4th)\s+derivative\b/i, 'derivative')
+      .replace(/\bd\s*(?:\^\s*\d|[²³]|\d)\s*\/\s*d([a-z])\s*(?:\^\s*\d|[²³]|\d)/i, 'd/d$1')
+      .replace(/\b([a-z])(?:'{2,}|′{2,}|″|‴)\s*\(([a-z])\)\s*(?:where|if|when|,)?\s*(?:\1\s*\(\2\)\s*=)?/i, (m, f, v, ) => (/=/.test(m) ? '' : m))
+      .replace(/^\s*[a-z]'*\s*\(\s*[a-z]\s*\)\s*=\s*/i, '');
+    if (derivOpts.order || derivOpts.variable) {
+      const stripped = stripDerivPhrases(problem);
+      const point = extractEvalPoint(stripped);
+      const src = point ? point.rest : stripped;
+      const { solveDerivative } = await import('./solvers/derivativesSolver.js');
+      const expression = extractFunctionFromProblem(/\bderivative\b|d\/d[a-z]/i.test(src) ? src : `derivative of ${src}`);
+      result = await solveDerivative(expression, { ...derivOpts, evalAt: point || undefined });
+      return finalizeResult(topic === 'derivatives' ? result : noteRouting(result, topic, 'derivatives', 'the input asks for a derivative'), problem);
+    }
+
     // "f at x = a": strip the evaluation point first so the "=" in it is not
     // mistaken for an equation, then hand it to the solver as an option.
     const evalAt = extractEvalPoint(problem);
@@ -330,7 +374,7 @@ export async function solveProblem(problem, topic) {
       if (calculusRaw === 'derivatives' || (!calculusRaw && topic === 'derivatives')) {
         const { solveDerivative } = await import('./solvers/derivativesSolver.js');
         const expression = extractFunctionFromProblem(evalAt.rest);
-        result = await solveDerivative(expression, { evalAt });
+        result = await solveDerivative(expression, { ...derivOpts, evalAt });
         return finalizeResult(topic === 'derivatives' ? result : noteRouting(result, topic, 'derivatives', 'the input uses derivative notation'), problem);
       }
       if (!calculusRaw && ['algebra', 'functions', 'other', 'trigonometry'].includes(topic) && !looksLikeInequality(evalAt.rest) && !/=/.test(evalAt.rest)) {
@@ -368,6 +412,14 @@ export async function solveProblem(problem, topic) {
     if (!calculus && isAlgebraUnderArithmetic(problem, topic)) {
       const routed = await solveProblem(problem, 'algebra');
       return noteRouting(routed, topic, 'algebra', 'the input contains a variable, and arithmetic has none');
+    }
+    // "2 3": two numbers with only a space between them would be read as 23.
+    if (topic === 'other' && /\d\s+\d/.test(problem) && !/[a-z=<>]/i.test(problem)) {
+      return finalizeResult(parseError({
+        input: problem,
+        hint: 'Two numbers with a space between them — did you mean to multiply (2*3) or to write one number (23)?',
+        tips: ['Use * for multiplication: 2*3. To write one number, remove the space.'],
+      }), problem);
     }
     if (!calculus && isArithmeticUnderTrigonometry(problem, topic)) {
       const routed = await solveProblem(problem, 'other');
@@ -425,6 +477,42 @@ export async function solveProblem(problem, topic) {
         const expression = extractFunctionFromProblem(problem);
         if (!expression || expression.trim().length === 0) {
           throw new Error('Unable to extract mathematical expression from input');
+        }
+        // "hello", "help me", "x x" (→ "xx"): a word the engines do not know.
+        // Not a variable, not a function — a parse error with a hint, before
+        // Algebrite treats it as a symbol and "solves" or echoes it.
+        if (topic !== 'other') {
+          const word = unknownWord(expression);
+          if (word) {
+            const twoLetters = /^[a-z] [a-z]$/i.test(word) || (word.length === 2 && word[0] === word[1]);
+            return finalizeResult(parseError({
+              input: problem,
+              hint: twoLetters
+                ? `"${word}" — two variables side by side. For a product, write ${word[0]}*${word[word.length - 1]}.`
+                : `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`,
+              tips: ['Type the mathematics itself — an expression or an equation, such as 2x + 5 = 11 or x^2 - 4.'],
+            }), problem);
+          }
+        }
+        // Unbalanced parentheses: "sin(x", "sin(x))". Echoed back as "solved"
+        // before; a parse error with the count is what a student needs.
+        {
+          const opens = (expression.match(/\(/g) || []).length;
+          const closes = (expression.match(/\)/g) || []).length;
+          if (opens !== closes) {
+            return finalizeResult(parseError({
+              input: problem,
+              hint: `Unbalanced parentheses: ${opens} opening "(" and ${closes} closing ")".`,
+              tips: ['Every "(" needs a matching ")": sin(x), (x + 1)^2.'],
+            }), problem);
+          }
+          if (/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sinh|cosh|tanh|sqrt|abs|ln|log|exp)\s*\(\s*\)/i.test(expression)) {
+            const fn = expression.match(/\b(sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sinh|cosh|tanh|sqrt|abs|ln|log|exp)\s*\(\s*\)/i)[1];
+            return finalizeResult(parseError({
+              input: problem,
+              hint: `${fn}() has nothing inside it — ${fn} needs an argument: ${fn}(x), ${fn}(30).`,
+            }), problem);
+          }
         }
         // "sin^2", "ln + 3": a function name with nothing to apply it to.
         // Refused here with a usable hint; left alone, mathjs fails deep

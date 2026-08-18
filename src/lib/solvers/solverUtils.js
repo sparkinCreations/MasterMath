@@ -34,9 +34,39 @@ let algebritePromise = null;
 
 export function loadAlgebrite() {
   if (!algebritePromise) {
-    algebritePromise = import('algebrite').then((module) => module.default);
+    algebritePromise = import('algebrite').then((module) => wrapAlgebrite(module.default));
   }
   return algebritePromise;
+}
+
+// Algebrite is a global CAS with an internal evaluation stack. When one of its
+// direct-API calls (roots, derivative, simplify, …) throws — "Stop: divide by
+// zero" for roots((x/0) - 1, x) — that stack is left unbalanced, and EVERY
+// later direct call fails with "Stop: frame error" until something resets it.
+// In production that meant one x/0 equation silently downgraded every exact
+// solve for the rest of the session to the numeric fallback (x^3 = 8 → "x =
+// 2", the two complex roots gone; x^2 = 2 → ±1.4142 instead of ±√2).
+// Algebrite.run() resets the frame on its own; the wrapper calls it after any
+// throw, then rethrows so the caller's own handling still runs.
+function wrapAlgebrite(A) {
+  const recover = () => {
+    try { A.run('1'); } catch { /* the reset itself may report the frame error once */ }
+    try { A.run('1'); } catch { /* ignore */ }
+  };
+  return new Proxy(A, {
+    get(target, prop) {
+      const value = target[prop];
+      if (typeof value !== 'function') return value;
+      return (...args) => {
+        try {
+          return value.apply(target, args);
+        } catch (error) {
+          recover();
+          throw error;
+        }
+      };
+    },
+  });
 }
 
 /**
@@ -125,11 +155,41 @@ export function findUndefinedRegions(expression, variable, options = {}) {
   }
   if (runStart !== null) close(grid.length);
 
+  // x^x for x < 0 is defined only at isolated points (the integers), so the
+  // scan sees a chain of gaps separated by single defined points. Three or
+  // more such gaps in a row are one region with isolated exceptions — "x ≥ 0
+  // (plus isolated points)" — not "not -10 < x < -9 and not -9 < x < -8 …".
+  const merged = [];
+  for (const r of regions) {
+    const last = merged[merged.length - 1];
+    if (last && Number.isFinite(last.to) && Number.isFinite(r.from) && Math.abs(r.from - last.to) < 1e-6 && !last.toClosed && !r.fromClosed) {
+      last.isolated = [...(last.isolated || []), last.to];
+      last.to = r.to;
+      last.toClosed = r.toClosed;
+      last.chained = (last.chained || 1) + 1;
+    } else {
+      merged.push({ ...r });
+    }
+  }
+  const out = [];
+  for (const m of merged) {
+    if ((m.chained || 1) >= 3) {
+      // A chain reaching the edge of the scan window is, as far as we can
+      // see, unbounded on that side.
+      const from = m.from <= min + step * 1.5 ? -Infinity : m.from;
+      const to = m.to >= max - step * 1.5 ? Infinity : m.to;
+      out.push({ from, to, fromClosed: Number.isFinite(from) && m.fromClosed, toClosed: Number.isFinite(to) && m.toClosed, isolated: m.isolated });
+    } else {
+      // Fewer than three: keep the original gaps as they were.
+      const start = regions.findIndex((r) => r.from === m.from);
+      for (let i = 0; i < (m.chained || 1); i += 1) out.push(regions[start + i]);
+    }
+  }
   // Grid points are exact multiples of `step` (rounded), so isolated poles at
   // clean values (1/(x-1) at 1) are hit directly. A pole at an off-grid value
   // (1/(3x-1) at 1/3) can be stepped over; callers with Algebrite to hand
   // supplement this with the denominator's roots.
-  return regions;
+  return out;
 }
 
 // Format an undefined region either as the set where the expression is
@@ -189,7 +249,7 @@ export function isAlgebriteFailure(output) {
 // Never mathematics a solver should act on: mathjs reads the bare name as a
 // function VALUE (and errors deep inside pow), Algebrite applies it to its
 // previous result. Callers refuse it with a hint instead.
-const BARE_FUNCTION = /(?<![a-z])(arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp)(?![a-z])\s*(?!\()/i;
+const BARE_FUNCTION = /(?<![a-z])(arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp)(?![a-z0-9])\s*(?!\()/i;
 export function bareFunctionName(expression) {
   const m = BARE_FUNCTION.exec(String(expression));
   return m ? m[1] : null;
@@ -407,7 +467,9 @@ function rewriteReciprocalTrigOnce(expr) {
  * (e.g. the "x" in "exp"). Variables here are always single letters.
  */
 export function hasVariable(expression, variable) {
-  return new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'i').test(String(expression));
+  // 1e10 is a number, not a use of the variable e.
+  const text = String(expression).replace(/\d+(?:\.\d+)?[eE][+-]?\d+/g, '0');
+  return new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'i').test(text);
 }
 
 

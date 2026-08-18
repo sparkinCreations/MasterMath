@@ -52,7 +52,7 @@ test('∫x dx and "limit of … as x approaches" are read', async () => {
   assert.match((await solveProblem('∫x dx', 'integrals')).answer, /1\/2\*x\^2 \+ C$/);
   assert.match((await solveProblem('∫ sin(x) dx', 'integrals')).answer, /-cos\(x\) \+ C$/);
   const l = await solveProblem('limit of (1+x)^(1/x) as x approaches 0', 'limits');
-  assert.match(l.answer, /= 2\.7183$/);
+  assert.match(l.answer, /= e \(≈ 2\.7183\)$/); // named constant
   assert.doesNotMatch(l.answer, /limitof/);
 });
 

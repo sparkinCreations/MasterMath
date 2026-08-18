@@ -7,6 +7,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-08-18
+
+Sixth pass: ~300 edge-case inputs across every topic (degenerate and hostile
+input, numeric extremes, unicode notation, algebra/calculus corner cases,
+long inputs), plus the items from the external v1.24.1 review. One finding
+was a session-poisoning bug that had been in production all along.
+
+### Fixed — correctness
+
+- **One bad equation silently degraded every later exact solve.** Algebrite
+  keeps an internal evaluation stack; when a direct call threw ("Stop: divide
+  by zero" for `x/0 = 1`) the stack stayed unbalanced and every later call
+  failed with "frame error" — so for the rest of the session `x^3 = 8` fell
+  to the numeric scan (`x = 2`, complex roots gone) and `x^2 = 2` came back
+  as ±1.4142 instead of ±√2. Every Algebrite call now goes through a wrapper
+  that resets the engine after a throw.
+- **`ln(x) = −1` answered "No real solution found"** (root 1/e ≈ 0.3679). The
+  scanner never looked between the last undefined grid point (x = 0) and the
+  first defined one (x = 0.5). It scans that gap now.
+- **`lim x→∞ (1 + 2/x)^x` answered "Does not exist"** — it is e². The samples
+  were still moving in the third decimal at 10⁴ and the convergence test gave
+  up. It now looks further out and accepts steadily shrinking differences;
+  the value is named when it is a familiar constant (`e (≈ 2.7183)`, `e^2`,
+  `π/2`).
+- **`lim h→0 ((x+h)² − x²)/h` answered "Does not exist"** — with a parameter
+  it could not be sampled. It is simplified symbolically first and answers
+  `2x`; a parameter that does not simplify away is refused as unsupported.
+- **`second derivative of x³` gave the first derivative; `d²/dx² x³` gave
+  garbage** (`f'(d) = 2d·x³/(dx²)`); `f''(x) where f(x) = x³` echoed `x³`.
+  Orders up to four are read (`second/third derivative`, `d^2/dx^2`, `d²/dx²`,
+  `f''`), each differentiation shown. `derivative of x·y with respect to y`
+  → `f'(y) = x` (was `2withrespecttoy·x`).
+- **`∫ x e^x dx` answered `xe^x/ln|xe| + C`** — the space collapsed `x e^x`
+  into the symbol `xe`. A single letter followed by a space and a letter or
+  function is a product now (`x e^x`, `x sin(x)`, `e^x sin(x)`, `(x+1) cos(x)`).
+- **`integrate x² dy` answered x³/3** — the variable of integration is read
+  from `d<var>`: `x²·y + C`. `∫ dx` = x + C, `∫_0^1 dx` = 1 (empty integrand
+  is 1).
+- **`x! = 24` echoed `x!=24`** — the space removal turned it into "not
+  equal". Now `x = 4`.
+- **`sin 30°` evaluated in radians** (the ° detached from the number); `sin(-30)`
+  was radians (negative common angles are degrees under auto); `sin(1e10)`
+  and `arctan(1e9)` were echoed (scientific notation read as the variable e).
+- **`ln|x|` was "beyond this engine"** (it fused into `lnabs(x)`): `f'(x) = 1/x`.
+  `log10(x)`, `log2(x)`, `log(x, 2)`, `log_2(8)` are read as logs in that base
+  everywhere (`d/dx log10(x) = 1/(x·ln 10)`; Algebrite had "differentiated"
+  it to the symbol `log10`).
+- **`x^x` under Functions** listed the domain as "not −10 < x < −9 and not −9
+  < x < −8 …" and claimed an x-intercept at x = −10 (x^x there is 10⁻¹⁰, an
+  isolated defined point). Now "x ≥ 0 (plus isolated points such as x = −1,
+  −2, −3)" and no intercept.
+- `x^100 = 1` listed all 100 roots as trigonometric expressions; now `x = −1
+  or x = 1; plus 98 complex solutions (not listed)`.
+- `tan(x) at x = π/2` answered `f'(π/2) = 2.67e+32`; the derivative has a
+  vertical asymptote there — undefined. `x² at x = a` → `f'(a) = 2a`.
+- `ln(0)` and `log(0)` were "overflow"; they are Undefined (the limit is −∞,
+  the value does not exist). `0^−1` is division by zero.
+
+### Fixed — explanations (from the external review)
+
+- `0^0` is `1 (by convention)`, with why: x⁰ = 1 for every other x, 0ʸ = 0
+  for every positive y; the convention makes the binomial theorem work; in a
+  limit it is indeterminate.
+- `sqrt(−1)` repeated "Work inside the parentheses: (−1) = −1" 25 times. A
+  group that is just a signed number is not worked; a complex result is
+  named ("no real number here — written with i = √(−1)"). `ln(−1)` = `πi`,
+  `sqrt(−4)` = `2i` (was `3.141592653589793i`).
+- `d/dx x^x` explained the power rule; it names logarithmic differentiation.
+  `2^x` — exponential rule (a^x·ln a). `2^(3x)`, `e^(x²)` — with the chain
+  rule. `1/x`, `3/x²` — power rule with a negative exponent, rewritten
+  concretely (`x^(−1)`), not the linear rule. `1/(x+1)` — reciprocal chain
+  rule. Quotient-rule results are simplified: `(x+1)/(x−1)` → `−2/(x−1)²`
+  (was a three-term sum of fractions).
+- **The mobile menu is a drawer** with a backdrop; it no longer pushes the page
+  into a 130-px column beside it. Escape and the backdrop close it.
+- Privacy policy: the "no third parties / no external servers" bullets now
+  carry the Feedback-form exception explicitly.
+
+### Added
+
+- Parse errors with a usable hint for: words the engines don't know
+  (`hello`, `help me` — was `f'(h) = 0`, marked Solved), unbalanced
+  parentheses (`sin(x`, `sin(x))` — were echoed as Solved), empty calls
+  (`sin()`), and two numbers with a space (`2 3` — was 23).
+- Unicode input: `π`, `·`, `∛27`, `½ + ¼`, `1,000,000`; `cosec`/`cotan`.
+- A pure-number expression under Algebra (`sqrt(−4)`, `2^10/4`) is evaluated
+  (was echoed back as its own "simplification").
+
 ## [1.24.1] - 2026-08-17
 
 Presentation sweep on the tail of 1.24.0, plus one wrong answer it exposed.
