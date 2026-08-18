@@ -97,8 +97,11 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     let integral;
     let steps;
     if (perTerm.length === terms.length && perTerm.length > 0) {
-      integral = simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) ||
-        perTerm.map((r) => r.antideriv).join(' + ');
+      // A partial-fraction result is already in its teaching form; Algebrite's
+      // simplify would refactor it (1/3·(…)) and hide the pieces.
+      integral = perTerm.some((r) => r.method === 'partial fractions')
+        ? perTerm.map((r) => r.antideriv).join(' + ')
+        : (simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) || perTerm.map((r) => r.antideriv).join(' + '));
       // Algebrite's simplify re-expands log arguments into partial fractions;
       // polish after combining, not before.
       integral = polishLogArguments(Algebrite, integral);
@@ -316,7 +319,7 @@ async function integrateTerm(term, variable, Algebrite) {
 
   // Rational functions Algebrite gives up on (1/(x²+x)): partial fractions
   // over distinct real linear factors, verified by differentiation.
-  const pf = integrateByPartialFractions(term, variable, Algebrite);
+  const pf = integrateByPartialFractions(term, variable, Algebrite) || integrateByGeneralPartialFractions(term, variable, Algebrite);
   if (pf) {
     return { antideriv: pf.antiderivative, steps: pf.steps, method: 'partial fractions', term };
   }
@@ -388,6 +391,215 @@ function integrateByPartialFractions(term, variable, Algebrite) {
     `Integrate each piece (∫ 1/(${v} − r) d${v} = ln|${v} − r|): ${lnify(antiSimple)}.`,
   ];
   return { antiderivative: antiSimple, steps };
+}
+
+// General partial fractions: repeated linear factors and irreducible
+// quadratics (with completing the square for the arctan pieces). The
+// denominator is factored by Algebrite; the ansatz coefficients are found by
+// solving the linear system N(x) = Σ Aᵢ·(D/dᵢ) at sample points, rationalised
+// and re-verified; every antiderivative piece is a known form; the total is
+// verified by differentiation before it is returned.
+function integrateByGeneralPartialFractions(term, variable, Algebrite) {
+  const v = variable;
+  const parts = splitTopLevelSlash(term);
+  if (!parts) return null;
+  const [num, den] = parts;
+  if (!hasVariable(den, v)) return null;
+  const degOf = (e) => { try { const d = String(Algebrite.run(`deg(${e}, ${v})`)).trim(); return /^\d+$/.test(d) ? Number(d) : null; } catch { return null; } };
+  const degN = degOf(num);
+  const degD = degOf(den);
+  if (degN === null || degD === null || degD < 2 || degN >= degD) return null;
+
+  // Factor and read the factors.
+  let factored;
+  try { factored = String(Algebrite.run(`factor(${den})`)).trim(); } catch { return null; }
+  if (!factored || isAlgebriteFailure(factored)) return null;
+  // A product splits on top-level '*'; a top-level sum (an irreducible
+  // polynomial such as x^2+2*x+5) is a single factor.
+  const rawFactors = hasTopLevelSum(factored) ? [factored] : splitTopLevelStar(factored);
+  const factors = []; // { base, power, kind: 'lin'|'quad', r?, p?, q? }
+  let constant = 1;
+  for (const f0 of rawFactors) {
+    let f = f0.trim();
+    let power = 1;
+    const pm = f.match(/^\((.+)\)\^(\d+)$/) || f.match(/^([a-z])\^(\d+)$/i);
+    if (pm) { f = pm[1]; power = Number(pm[2]); }
+    f = f.replace(/^\((.*)\)$/, '$1');
+    if (!hasVariable(f, v)) { const c = Number(math.evaluate(f)); if (!Number.isFinite(c) || c === 0) return null; constant *= c; continue; }
+    const d = degOf(f);
+    if (d === 1) {
+      // a·x + b → root r = −b/a; normalise to (x − r) and fold a into the constant.
+      const b = math.evaluate(f, { [v]: 0 });
+      const a = math.evaluate(f, { [v]: 1 }) - b;
+      if (!Number.isFinite(a) || a === 0) return null;
+      constant *= a ** power;
+      factors.push({ kind: 'lin', r: -b / a, power });
+    } else if (d === 2) {
+      const c0 = math.evaluate(f, { [v]: 0 });
+      const c1 = math.evaluate(f, { [v]: 1 });
+      const c2 = math.evaluate(f, { [v]: 2 });
+      const a = (c2 - 2 * c1 + c0) / 2;
+      const b = c1 - c0 - a;
+      if (!Number.isFinite(a) || a === 0) return null;
+      const pq = { p: b / a, q: c0 / a };
+      if (pq.p * pq.p - 4 * pq.q >= -1e-12) return null; // reducible: not our case
+      constant *= a ** power;
+      factors.push({ kind: 'quad', ...pq, power });
+    } else {
+      return null;
+    }
+  }
+  if (factors.length === 0) return null;
+  const hasRepeatOrQuad = factors.some((f) => f.power > 1 || f.kind === 'quad');
+  if (!hasRepeatOrQuad) return null; // the distinct-linear routine handles it
+
+  // Ansatz terms.
+  const terms = []; // { kind, r|p,q, j, unknowns: [names] }
+  for (const f of factors) {
+    for (let j = 1; j <= f.power; j += 1) {
+      terms.push(f.kind === 'lin' ? { kind: 'lin', r: f.r, j } : { kind: 'quad', p: f.p, q: f.q, j });
+    }
+  }
+  const nUnknowns = terms.reduce((n, t) => n + (t.kind === 'lin' ? 1 : 2), 0);
+  // Denominator text in normalised form.
+  const linTxt = (r) => (Math.abs(r) < 1e-12 ? v : r < 0 ? `(${v} + ${fmtNum(-r)})` : `(${v} - ${fmtNum(r)})`);
+  const quadTxt = (p, q) => `(${v}^2${p === 0 ? '' : ` ${p < 0 ? '-' : '+'} ${fmtNum(Math.abs(p))}*${v}`}${q === 0 ? '' : ` ${q < 0 ? '-' : '+'} ${fmtNum(Math.abs(q))}`})`;
+  const denomOf = (t) => (t.kind === 'lin' ? `${linTxt(t.r)}${t.j > 1 ? `^${t.j}` : ''}` : `${quadTxt(t.p, t.q)}${t.j > 1 ? `^${t.j}` : ''}`);
+  // The full normalised denominator D0 = Π factors (constant pulled out): N/den = (N/constant)/D0.
+  const D0 = factors.map((f) => (f.kind === 'lin' ? `${linTxt(f.r)}${f.power > 1 ? `^${f.power}` : ''}` : `${quadTxt(f.p, f.q)}${f.power > 1 ? `^${f.power}` : ''}`)).join('*');
+  // Basis functions: for each unknown, the polynomial (D0 / denom_t) × (1 or x).
+  const basis = []; // strings in x
+  for (const t of terms) {
+    const cof = `(${D0})/(${denomOf(t)})`;
+    if (t.kind === 'lin') basis.push(cof);
+    else { basis.push(`(${cof})*${v}`); basis.push(cof); }
+  }
+  // Solve Σ cᵢ·basisᵢ(x) = N(x)/constant at sample points.
+  const xs = Array.from({ length: nUnknowns + 3 }, (_, i) => 0.37 + 0.71 * i);
+  const A = xs.map((x) => basis.map((b) => math.evaluate(b, { [v]: x })));
+  const y = xs.map((x) => math.evaluate(num, { [v]: x }) / constant);
+  let coef;
+  try {
+    // Least squares (over-determined by 3 rows) — exact for a true decomposition.
+    const At = math.transpose(math.matrix(A));
+    coef = math.lusolve(math.multiply(At, math.matrix(A)), math.multiply(At, math.matrix(y))).toArray().map((r) => r[0]);
+  } catch { return null; }
+  if (!coef.every((c) => Number.isFinite(c))) return null;
+  // Rationalise (small denominators) and re-verify exactly enough.
+  const rat = coef.map((c) => { for (let d = 1; d <= 720; d += 1) { const n = c * d; if (Math.abs(n - Math.round(n)) < 1e-7) return { n: Math.round(n), d }; } return null; });
+  if (rat.some((r) => r === null)) return null;
+  const cTxt = rat.map((r) => (r.d === 1 ? String(r.n) : `${r.n}/${r.d}`));
+  const decomposed = (() => { let i = 0; return terms.map((t) => { if (t.kind === 'lin') return `(${cTxt[i++]})/(${denomOf(t)})`; const b = cTxt[i++]; const c = cTxt[i++]; return `((${b})*${v} + (${c}))/(${denomOf(t)})`; }).join(' + '); })();
+  for (const x of [0.11, 1.93, -2.47, 3.6]) {
+    let l; let rr;
+    try { l = math.evaluate(`(${num})/(${den})`, { [v]: x }); rr = math.evaluate(decomposed, { [v]: x }); } catch { return null; }
+    if (Number.isFinite(l) && Number.isFinite(rr) && Math.abs(l - rr) > 1e-7 * (1 + Math.abs(l))) return null;
+  }
+
+  const linNum = (r0, denomText) => { const sgn = r0.n < 0 ? '−' : ''; const an = Math.abs(r0.n); const bare = denomText.replace(/^\((.*)\)$/, '$1'); return r0.d === 1 ? `${sgn}${an}/${/[+\-]/.test(bare) && !/\^/.test(denomText) ? `(${bare})` : denomText}` : `${sgn}${an}/(${r0.d}${denomText})`; };
+  const quadNum = (b0, c0, denomText) => {
+    const partB = b0.n === 0 ? '' : `${b0.n < 0 ? '−' : ''}${Math.abs(b0.n) === 1 && b0.d === 1 ? '' : (b0.d === 1 ? Math.abs(b0.n) : `${Math.abs(b0.n)}/${b0.d}`)}${v}`;
+    const partC = c0.n === 0 ? '' : `${c0.n < 0 ? '−' : partB ? '+' : ''} ${c0.d === 1 ? Math.abs(c0.n) : `${Math.abs(c0.n)}/${c0.d}`}`;
+    return `(${[partB, partC].filter(Boolean).join(' ').trim() || '0'})/${denomText}`;
+  };
+  // Integrate each piece.
+  const pieces = [];
+  const pieceSteps = [];
+  let i = 0;
+  for (const t of terms) {
+    if (t.kind === 'lin') {
+      const c = cTxt[i++];
+      const R = rat[i - 1];
+      const L = linTxt(t.r);
+      const Lbare = L.replace(/^\((.*)\)$/, '$1');
+      const sgn = R.n < 0 ? '−' : '';
+      const an = Math.abs(R.n);
+      const cofLn = an === 1 && R.d === 1 ? '' : `${R.d === 1 ? an : `${an}/${R.d}`}·`;
+      const fracOver = (extra) => `${sgn}${an}/(${R.d === 1 ? '' : `${R.d}`}${extra})`;
+      const cMach = R.d === 1 ? (an === 1 ? (R.n < 0 ? '-' : '') : `${R.n}*`) : `${R.n}/${R.d}*`;
+      if (t.j === 1) { pieces.push(`${cMach}log(${L})`); pieceSteps.push(`∫ ${fracOver(L)} d${v} = ${sgn}${cofLn}ln|${Lbare}|`); }
+      else { const dd = R.d * (t.j - 1); pieces.push(`${R.n < 0 ? '' : '-'}${an}/(${dd === 1 ? '' : `${dd}*`}${L}${t.j - 1 > 1 ? `^${t.j - 1}` : ''})`); pieceSteps.push(`∫ ${fracOver(`${L}^${t.j}`)} d${v} = ${sgn ? '' : '−'}${an}/(${dd === 1 ? '' : dd}${L}${t.j - 1 > 1 ? `^${t.j - 1}` : ''})  (power rule)`); }
+    } else {
+      const B = rat[i++]; const C = rat[i++];
+      const Bv = B.n / B.d; const Cv = C.n / C.d;
+      const h = t.p / 2; const k2 = t.q - h * h; const k = Math.sqrt(k2);
+      const U = h === 0 ? v : `(${v} ${h < 0 ? '-' : '+'} ${fmtNum(Math.abs(h))})`;
+      const Q = quadTxt(t.p, t.q);
+      // Bx + C = B·u + (C − B·h)
+      const K = Cv - Bv * h;
+      const Ktxt = fmtRat(K);
+      const kTxt = Number.isInteger(k) ? String(k) : `sqrt(${fmtRat(k2)})`;
+      const cm = (val) => (val === 1 ? '' : val === -1 ? '-' : `${fmtRat(val)}*`); // machine coefficient
+      const arcArg = k === 1 ? U : `${U}/${kTxt}`;
+      if (t.j === 1) {
+        if (Bv !== 0) { pieces.push(`${cm(Bv / 2)}log(${Q})`); }
+        if (Math.abs(K) > 1e-12) { pieces.push(`${cm(K / k)}arctan(${arcArg})`); }
+        const numTxt = quadNum(B, C, Q).replace(/\/\(.*$/, '');
+        const arcCoef = Math.abs(K / k - 1) < 1e-12 ? '' : Math.abs(K / k + 1) < 1e-12 ? '−' : `${fmtRat(K / k)}·`;
+        pieceSteps.push(`∫ ${numTxt}/${Q} d${v}: ${h !== 0 ? `complete the square, ${Q} = ${U}^2 + ${fmtRat(k2)}; ` : ''}${Bv !== 0 ? `the ${v}-part gives ${fmtRat(Bv / 2)}·ln|${Q.replace(/^\((.*)\)$/, '$1')}|` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${arcCoef}arctan(${U}${k === 1 ? '' : `/${kTxt}`})` : ''}`);
+      } else if (t.j === 2) {
+        if (Bv !== 0) pieces.push(`${cm(-Bv / 2)}1/${Q}`);
+        if (Math.abs(K) > 1e-12) pieces.push(`${cm(K / (2 * k2))}${U}/${Q} + ${cm(K / (2 * k2 * k))}arctan(${arcArg})`);
+        pieceSteps.push(`∫ (${cTxt[i - 2]}${v} + ${cTxt[i - 1]})/${Q}^2 d${v}: with u = ${U}, ${Bv !== 0 ? `∫ ${fmtRat(Bv)}u/(u² + ${fmtRat(k2)})² du = −${fmtRat(Bv / 2)}/(u² + ${fmtRat(k2)})` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ' and ' : ''}${Math.abs(K) > 1e-12 ? `∫ ${Ktxt}/(u² + k²)² du = ${Ktxt}·[u/(2k²(u² + k²)) + arctan(u/k)/(2k³)] with k = ${kTxt}` : ''}`);
+      } else {
+        return null; // (x²+1)^3 and beyond: not attempted
+      }
+    }
+  }
+  const anti = pieces.join(' + ').replace(/\+ -/g, '- ').replace(/\+ \(-/g, '- (');
+  // Verify by numeric differentiation.
+  const dnum = (x) => { try { const hh = 1e-5; return (math.evaluate(anti, { [v]: x + hh }) - math.evaluate(anti, { [v]: x - hh })) / (2 * hh); } catch { return NaN; } };
+  let checked = 0;
+  // Sample to the right of every real root, where log(x − r) is real.
+  const maxRoot = Math.max(0, ...factors.filter((f) => f.kind === 'lin').map((f) => f.r));
+  for (const x of [0.37, 1.13, 2.29, 3.71, 5.17].map((d) => maxRoot + d)) {
+    let expected; try { expected = math.evaluate(`(${num})/(${den})`, { [v]: x }); } catch { continue; }
+    const got = dnum(x);
+    if (!Number.isFinite(expected) || !Number.isFinite(got)) continue;
+    if (Math.abs(expected - got) > 1e-4 * (1 + Math.abs(expected))) return null;
+    checked += 1;
+  }
+  if (checked < 3) return null;
+  // Present the sum of pieces as they are (Algebrite's simplify would pull
+  // out a common factor and make it harder to read).
+  const antiSimple = anti;
+  const ansatzTxt = (() => { let k = 0; return terms.map((t) => (t.kind === 'lin' ? linNum(rat[k++], denomOf(t)) : quadNum(rat[k++], rat[k++], denomOf(t)))).join(' + ').replace(/\+ −/g, '− '); })();
+  const steps = [
+    `∫(${beautify(term)}) d${v} — a proper rational function. Factor the denominator: ${beautify(den)} = ${constant !== 1 ? `${fmtNum(constant)}·` : ''}${D0.replace(/\*/g, '')}.`,
+    `Partial fractions (a repeated factor gets one term per power; an irreducible quadratic gets a linear numerator): ${beautify(term)} = ${ansatzTxt}. The coefficients come from clearing denominators and matching both sides.`,
+    ...pieceSteps.map((t) => `  ${t}`),
+    `Add the pieces: ${lnify(antiSimple)}.`,
+  ];
+  return { antiderivative: antiSimple, steps };
+}
+
+const fmtNum = (x) => (Number.isInteger(x) ? String(x) : (() => { for (let d = 2; d <= 720; d += 1) { const n = x * d; if (Math.abs(n - Math.round(n)) < 1e-9) return `${Math.round(n)}/${d}`; } return String(Math.round(x * 1e6) / 1e6); })());
+const fmtRat = fmtNum;
+
+// Does the text have a '+' or binary '-' outside all parentheses?
+function hasTopLevelSum(text) {
+  let depth = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    else if (depth === 0 && (ch === '+' || (ch === '-' && i > 0 && !/[*^(/]/.test(text[i - 1])))) return true;
+  }
+  return false;
+}
+
+// Split on top-level '*'.
+function splitTopLevelStar(text) {
+  const out = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of text) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    if (ch === '*' && depth === 0) { out.push(cur); cur = ''; } else cur += ch;
+  }
+  out.push(cur);
+  return out.filter((t) => t.trim());
 }
 
 // "num/den" split at the single top-level slash, or null.
@@ -514,9 +726,9 @@ const boundSign = (t) => (/^-/.test(String(t).trim()) ? -1 : 1);
 function limitAtInfinity(F, variable, sign) {
   const samples = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8].map((m) => evalAntiderivNumeric(F, variable, sign * m));
   const finite = samples.filter(Number.isFinite);
+  if (finite.length === 0) return { unreadable: true, samples };
   if (finite.length < 3) {
     const last = finite[finite.length - 1];
-    if (last === undefined) return { undefined: true };
     return { diverges: last > 0 ? '∞' : '-∞', samples };
   }
   const last = finite[finite.length - 1];
@@ -559,7 +771,7 @@ function constantRaw(v) {
 // Algebrite's exact F(bound), unformatted, or null.
 function rawSubst(Algebrite, F, variable, at) {
   try {
-    const out = String(Algebrite.run(`simplify(subst(${at}, ${variable}, ${F}))`)).trim();
+    const out = String(Algebrite.run(`simplify(real(subst(${at}, ${variable}, ${F})))`)).trim();
     return isAlgebriteFailure(out) || /nil|Stop/.test(out) ? null : out;
   } catch { return null; }
 }
@@ -623,6 +835,14 @@ async function solveImproperInfinite(parsed, notation) {
     steps.push(`F(${lowerLabel}) = ${exact ?? formatNumber(num)}.`);
   }
 
+  if ([upperPart, lowerPart].some((p) => p.unreadable)) {
+    return unsupported({
+      input: notation,
+      reason: 'The antiderivative could not be evaluated numerically far out, so the limit defining this improper integral cannot be checked here.',
+      answer: 'This improper integral is beyond what this solver can compute',
+      steps,
+    });
+  }
   const divergent = [upperPart, lowerPart].find((p) => p.diverges || p.undefined);
   if (divergent) {
     if (upperPart.diverges && lowerPart.diverges && upperPart.diverges !== lowerPart.diverges) {
@@ -654,8 +874,10 @@ async function solveImproperInfinite(parsed, notation) {
     const lowRaw = lowerPart.raw ?? constantRaw(lowerPart.value);
     if (upRaw !== null && lowRaw !== null) {
       const toAlg = (t) => t.replace(/√π/g, 'sqrt(pi)').replace(/√(\d+)/g, 'sqrt($1)').replace(/π/g, 'pi').replace(/√/g, 'sqrt');
-      const raw = String(Algebrite.run(`simplify((${toAlg(upRaw)}) - (${toAlg(lowRaw)}))`)).trim();
-      if (!isAlgebriteFailure(raw) && !/nil|Stop/.test(raw)) {
+      // real(): the ln|·| convention — log of a negative at a finite bound
+      // contributes an i·π that the absolute value removes.
+      const raw = String(Algebrite.run(`simplify(real((${toAlg(upRaw)}) - (${toAlg(lowRaw)})))`)).trim();
+      if (!isAlgebriteFailure(raw) && !/nil|Stop|\bi\b/.test(raw)) {
         exactText = formatExactValue(raw)
           .replace(/^1\/(\d+)\*(π|e|√π|sqrt\(π\))$/, '$2/$1')
           .replace(/^1\/(\d+)\*π\^\(1\/2\)$/, '√π/$1')
@@ -902,7 +1124,11 @@ async function solveDefiniteIntegral(parsed) {
 // Numeric F(at) via mathjs (which, unlike Algebrite, evaluates abs and sgn).
 function evalAntiderivNumeric(F, variable, at) {
   try {
-    const v = math.evaluate(F, { [variable]: at });
+    // Antiderivatives are shown as ln|·| and must be evaluated that way:
+    // ½·log((x−1)/(x+1)) is real for x > 1 only if log means ln|·|. Without
+    // this, ∫₂^∞ 1/(x²−1) dx sampled F as complex everywhere and was reported
+    // divergent (it converges to ½ ln 3).
+    const v = math.evaluate(F, { [variable]: at, log: (z) => (typeof z === 'number' ? Math.log(Math.abs(z)) : math.log(z)) });
     return typeof v === 'number' && Number.isFinite(v) ? v : NaN;
   } catch {
     return NaN;
@@ -911,7 +1137,7 @@ function evalAntiderivNumeric(F, variable, at) {
 
 function evalAntiderivAt(Algebrite, F, variable, at) {
   try {
-    const out = String(Algebrite.run(`simplify(subst(${at}, ${variable}, ${F}))`)).trim();
+    const out = String(Algebrite.run(`simplify(real(subst(${at}, ${variable}, ${F})))`)).trim();
     if (isAlgebriteFailure(out)) return null;
     return formatExactValue(out);
   } catch {

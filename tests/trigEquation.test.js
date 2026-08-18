@@ -116,7 +116,7 @@ test('out-of-range sin/cos is "no real solution", not an error', () => {
 test('out-of-family equations are refused explicitly, never mis-solved', () => {
   // (sin(x)^2 = 1/4 and sin(x) = cos(x) are reducible now — see below.)
   // (sin(x) = sin(2x) and sin(x) + cos(x) = 1 are solved now — see below.)
-  for (const eq of ['sin(x)*cos(2x)=1/3', 'sin(x^2)=0', 'sin(x)+x=1', 'sec(x)=2']) {
+  for (const eq of ['sin(x)*cos(2x)=1/3', 'sin(x^2)=0', 'sin(x)+x=1', 'sin(x)*tan(x)=1']) {
     const r = solveTrigEquation(eq);
     assert.equal(r.status, STATUS.UNSUPPORTED, eq);
     assert.match(r.answer, /not supported yet/);
@@ -152,4 +152,16 @@ test('auxiliary angle and equal-argument equations', () => {
   assert.match(solveTrigEquation('cos(3x) = cos(x)').answer, /on \[0, 2π\): 0, π\/2, π, 3π\/2/);
   assert.match(solveTrigEquation('sin(2x) = cos(x)').answer, /on \[0, 2π\): π\/6, π\/2, 5π\/6, 3π\/2/);
   assert.equal(solveTrigEquation('sin(x) = sin(x)').answer, 'All real numbers (identity)');
+});
+
+test('reciprocal functions and sin·cos products reduce exactly; the rest fall to the numeric scan under Trigonometry', async () => {
+  assert.equal(solveTrigEquation('sec(x) = 2').answer, 'x = π/3 + 2πn  or  x = 5π/3 + 2πn (n ∈ ℤ);  on [0, 2π): π/3, 5π/3');
+  assert.equal(solveTrigEquation('sec(x) = 1/2').status, STATUS.UNDEFINED);
+  assert.match(solveTrigEquation('sin(x)*cos(x) = 1/4').answer, /on \[0, 2π\): π\/12, 5π\/12, 13π\/12, 17π\/12/);
+  assert.match(solveTrigEquation('sin(x)cos(x) = 0').answer, /^x = \(πn\)\/2/);
+  const { solveProblem } = await import('../src/lib/api.js');
+  const numeric = await solveProblem('sin(x)*cos(2x) = 1/3', 'trigonometry');
+  assert.equal(numeric.status, 'solved');
+  assert.match(numeric.steps[0], /solved numerically/);
+  assert.match(numeric.answer, /x = -0\.9904/);
 });

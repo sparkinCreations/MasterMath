@@ -912,7 +912,22 @@ export async function solveTrigonometry(expression, settingsOverride) {
     const variable = extractVariable(expression);
     if (isEquation(expression)) {
       const { solveTrigEquation } = await import('./trigEquationSolver.js');
-      return solveTrigEquation(expression, variable, settingsOverride);
+      const exact = solveTrigEquation(expression, variable, settingsOverride);
+      if (exact.status !== 'unsupported') return exact;
+      // No exact reduction (sin x·cos 2x = 1/3 is transcendental; sin(x²) = 0
+      // has a non-linear argument): fall back to the algebra solver's
+      // verified numeric root scan rather than refusing outright.
+      const { solveAlgebra } = await import('./algebraSolver.js');
+      const numeric = await solveAlgebra(expression);
+      if (numeric && numeric.answer && !['unsupported', 'parse_error'].includes(numeric.status || '')) {
+        numeric.steps = [
+          'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.',
+          ...(numeric.steps || []),
+        ];
+        numeric.tips = ['Equations that mix trig terms with different arguments or with x itself usually have no closed form — numeric solutions are the honest answer.', ...(numeric.tips || [])].slice(0, 3);
+        return numeric;
+      }
+      return exact;
     }
 
     // A free variable means this is a symbolic expression (an identity to

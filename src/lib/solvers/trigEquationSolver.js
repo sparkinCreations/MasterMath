@@ -225,6 +225,37 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
   const [lhs, rhs] = equation.split('=').map((t) => t.trim());
   if (!lhs || !rhs) return null;
   const expr = `(${lhs}) - (${rhs})`;
+
+  // Reciprocal functions: A·sec(u) + B = C  ⇒  cos(u) = A/(C − B).
+  const recip = [...expr.matchAll(/\b(sec|csc|cot)\s*\(([^()]*)\)/g)];
+  if (recip.length && !/\b(sin|cos|tan|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh)\b/.test(expr)) {
+    const fnR = recip[0][1];
+    const argR = recip[0][2].trim();
+    if (!recip.every((m) => m[1] === fnR && m[2].trim() === argR)) return null;
+    const e = expr.replace(new RegExp(`\\b${fnR}\\s*\\(\\s*${rx(argR)}\\s*\\)`, 'g'), '(U)');
+    if (new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(e)) return null;
+    const g = (u) => { try { const v = math.evaluate(e, { U: u }); return typeof v === 'number' && Number.isFinite(v) ? v : NaN; } catch { return NaN; } };
+    const g0 = g(0), g1 = g(1), g2 = g(2);
+    if (![g0, g1, g2].every(Number.isFinite) || Math.abs((g2 - g1) - (g1 - g0)) > 1e-9 || Math.abs(g1 - g0) < 1e-9) return null;
+    const c = -g0 / (g1 - g0); // fnR(arg) = c
+    const partner = { sec: 'cos', csc: 'sin', cot: 'tan' }[fnR];
+    const argShownR = argR.replace(/\*/g, '');
+    const outer = [`Solve the equation: ${shown}`];
+    if (DEGREES) outer.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
+    outer.push(`Isolate: ${fnR}(${argShownR}) = ${fmtValue(c)}. Since ${fnR}(θ) = 1/${partner}(θ), this is ${partner}(${argShownR}) = ${Math.abs(c) < 1e-12 ? '1/0' : fmtValue(1 / c)}.`);
+    if (Math.abs(c) < 1e-12) {
+      outer.push(`${fnR}(θ) is never 0 (its reciprocal would have to be infinite), so there is no solution.`);
+      const result = undefinedValue({ input: rawEquation, reason: `${fnR}(θ) = 0 has no solution.`, steps: outer });
+      result.answer = 'No real solution';
+      return result;
+    }
+    const inner = solveTrigEquation(`${partner}(${argR}) = ${parseableValue(1 / c)}`, variable, undefined, true);
+    if (inner && inner.status !== 'unsupported' && Array.isArray(inner.steps)) {
+      return { ...inner, steps: [...outer, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t) && !/^Angle unit/.test(t)).map((t) => t.replace(String(1 / c), fmtValue(1 / c)))] };
+    }
+    return inner && inner.status === 'undefined' ? { ...inner, steps: [...outer, ...inner.steps.slice(1)] } : null;
+  }
+
   const calls = [...expr.matchAll(/\b(sin|cos|tan)\s*\(([^()]*)\)/g)];
   if (calls.length === 0) return null;
   if (/\b(sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh)\b/.test(expr)) return null;
@@ -251,6 +282,29 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
     const e = withSymbols({ sin: 'S', cos: 'C' });
     if (new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(e)) return null;
     const f = (S, C) => evalAt(e, { S, C });
+    // ── a·sin·cos + k = 0 → sin(2u) = −2k/a  (double angle).
+    {
+      const k = f(0, 0);
+      const a = f(1, 1) - k;
+      const bilinear = [k, a].every(Number.isFinite) && Math.abs(a) > 1e-9
+        && Math.abs(f(1, 0) - k) < 1e-9 && Math.abs(f(0, 1) - k) < 1e-9
+        && Math.abs((f(2, 3) - k) - 6 * a) < 1e-9 && Math.abs((f(-1, 2) - k) + 2 * a) < 1e-9;
+      if (bilinear) {
+        const km = arg === variable ? 1 : (() => { try { return math.evaluate(arg, { [variable]: 1 }) - math.evaluate(arg, { [variable]: 0 }); } catch { return NaN; } })();
+        const d0 = (() => { try { return math.evaluate(arg, { [variable]: 0 }); } catch { return NaN; } })();
+        if (Number.isFinite(km) && km !== 0 && Math.abs(d0) < 1e-12) {
+          const target = -2 * k / a;
+          const aTxt = Math.abs(a - 1) < 1e-9 ? '' : Math.abs(a + 1) < 1e-9 ? '−' : `${niceNumber(a)}·`;
+          outerSteps.push(`The equation is ${aTxt}sin(${argShown})·cos(${argShown})${Math.abs(k) < 1e-9 ? '' : ` ${k < 0 ? '−' : '+'} ${niceNumber(Math.abs(k))}`} = 0. Use the double-angle identity sin(2θ) = 2 sin θ cos θ: sin(${argShown})·cos(${argShown}) = ½·sin(${km === 1 ? '2' : formatNumber(2 * km)}${variable}).`);
+          outerSteps.push(`So sin(${km === 1 ? '2' : formatNumber(2 * km)}${variable}) = ${fmtValue(target)}.`);
+          const inner = solveTrigEquation(`sin(${2 * km}*${variable}) = ${parseableValue(target)}`, variable, undefined, true);
+          if (inner && inner.status !== 'unsupported' && Array.isArray(inner.steps)) {
+            return { ...inner, steps: [...outerSteps, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t) && !/^Angle unit/.test(t)).map((t) => t.replace(String(target), fmtValue(target)))] };
+          }
+          if (inner && inner.status === 'undefined') return { ...inner, steps: [...outerSteps, ...inner.steps.slice(1)] };
+        }
+      }
+    }
     // Is it linear in C and at most quadratic in S (or vice versa), with S appearing only squared?
     const isQuadIn = (name) => { const g = name === 'S' ? (t) => f(t, 0.3) : (t) => f(0.3, t); const d1 = g(1) - g(0), d2 = g(2) - g(1), d3 = g(3) - g(2); return Math.abs((d2 - d1) - (d3 - d2)) < 1e-9 && Math.abs(d2 - d1) > 1e-9; };
     const isLinIn = (name) => { const g = name === 'S' ? (t) => f(t, 0.3) : (t) => f(0.3, t); const d1 = g(1) - g(0), d2 = g(2) - g(1); return Math.abs(d2 - d1) < 1e-9; };

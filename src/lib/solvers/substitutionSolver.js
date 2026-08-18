@@ -24,7 +24,9 @@ import { math, beautify, isAlgebriteFailure } from './solverUtils.js';
 // three must be testable for a pass.
 export function derivativeMatchesNumerically(F, f, v) {
   let tested = 0;
-  for (const x0 of [-2.3, -1.1, -0.4, 0.37, 0.9, 1.7, 2.6]) {
+  // Spread on both sides, with extra points to the right so an antiderivative
+  // that is only real for x > r (ln|x − r| pieces) still gets three checks.
+  for (const x0 of [-2.3, -1.1, -0.4, 0.37, 0.9, 1.7, 2.6, 3.4, 4.7, 6.1]) {
     try {
       const h = 1e-5;
       const f1 = math.evaluate(F, { [v]: x0 + h });

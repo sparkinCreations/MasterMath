@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-08-18
+
+### Added
+
+- **Partial fractions, general case.** Repeated linear factors and
+  irreducible quadratics (with completing the square): `∫ 1/((x−1)²(x+2)) dx
+  = −1/9 ln|x−1| − 1/(3(x−1)) + 1/9 ln|x+2| + C`; `∫ 1/((x−1)(x²+1)) dx =
+  ½ ln|x−1| − ¼ ln|x²+1| − ½ arctan x + C`; `∫ 1/(x²+2x+5) dx = ½ arctan((x+1)/2)
+  + C`; `∫ 1/(x⁴−1) dx`; `∫ 1/((x²+1)(x²+4)) dx`. The denominator is factored
+  by Algebrite, the ansatz coefficients solved for and rationalised, the
+  decomposition checked numerically and the antiderivative by differentiation.
+  Repeated quadratics up to the square are handled; higher powers are refused.
+- **Trig equations that reduce via reciprocals or the double angle:** `sec x =
+  2` → cos x = ½ → π/3, 5π/3; `csc x = 2`, `cot x = 1`, `sec x = ½` → no real
+  solution; `sin x·cos x = ¼` → sin 2x = ½ → π/12, 5π/12, 13π/12, 17π/12;
+  `sin x cos x = 0`.
+- **Out-of-family trig equations fall back to the numeric scan** under
+  Trigonometry instead of stopping at "not supported": `sin x·cos 2x = ⅓`,
+  `sin(x²) = 0`, `sin x = x/2` get their roots nearest zero, verified, with a
+  step saying why no exact reduction applies.
+
+### Fixed
+
+- **`∫₂^∞ 1/(x²−1) dx` was reported divergent** — it converges to ½ ln 3. The
+  antiderivative ½ ln((x−1)/(x+1)) was being evaluated as a plain log (complex
+  for the sampled points) instead of ln|·|; the improper path now evaluates F
+  with the absolute-value convention and takes the real part of exact bound
+  values, so `∫₋∞^{−2} 1/(x²−1) dx = ½ ln 3` too.
+
 ## [1.27.0] - 2026-08-18
 
 The three shapes left open by 1.26.0.

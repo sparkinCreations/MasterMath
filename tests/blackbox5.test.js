@@ -288,3 +288,18 @@ test('partial fractions over distinct real linear factors', async () => {
   assert.match((await solveProblem('∫ 1/(x^3-x) dx', 'integrals')).answer, /-ln\|x\| \+ 1\/2\*ln\|x - 1\| \+ 1\/2\*ln\|x \+ 1\| \+ C$/);
   assert.match((await solveProblem('∫_1^∞ 1/(x^2+x) dx', 'integrals')).answer, /= ln\(2\) \(≈ 0\.6931\)$/);
 });
+
+test('general partial fractions: repeated linear factors and irreducible quadratics', async () => {
+  assert.equal((await solveProblem('∫ 1/((x-1)^2*(x+2)) dx', 'integrals')).answer, '∫(1/((x - 1)^2*(x + 2))) dx = -1/9*ln|x - 1| - 1/(3(x - 1)) + 1/9*ln|x + 2| + C');
+  assert.equal((await solveProblem('∫ 1/((x-1)*(x^2+1)) dx', 'integrals')).answer, '∫(1/((x - 1)*(x^2 + 1))) dx = 1/2*ln|x - 1| - 1/4*ln|x^2 + 1| - 1/2*arctan(x) + C');
+  assert.equal((await solveProblem('∫ 1/(x^2+2x+5) dx', 'integrals')).answer, '∫(1/(x^2 + 2x + 5)) dx = 1/2*arctan((x + 1)/2) + C');
+  assert.equal((await solveProblem('∫ x/((x-1)*(x^2+4)) dx', 'integrals')).answer, '∫(x/((x - 1)*(x^2 + 4))) dx = 1/5*ln|x - 1| - 1/10*ln|x^2 + 4| + 2/5*arctan(x/2) + C');
+  assert.equal((await solveProblem('∫ 1/((x^2+1)*(x^2+4)) dx', 'integrals')).answer, '∫(1/((x^2 + 1)*(x^2 + 4))) dx = 1/3*arctan(x) - 1/6*arctan(x/2) + C');
+  const r = await solveProblem('∫ 1/(x^4-1) dx', 'integrals');
+  assert.ok(r.steps.some((s) => /1\/\(4\(x - 1\)\) − 1\/\(4\(x \+ 1\)\)/.test(s)), r.steps.join(' | '));
+});
+
+test('improper integrals honour ln|·| at a finite bound (∫₂^∞ 1/(x²−1) dx converges to ½ ln 3)', async () => {
+  assert.match((await solveProblem('∫_2^∞ 1/(x^2-1) dx', 'integrals')).answer, /= 1\/2\*ln\(3\) \(≈ 0\.5493\)$/);
+  assert.match((await solveProblem('∫_0^∞ 1/((x+1)*(x^2+1)) dx', 'integrals')).answer, /= π\/4 \(≈ 0\.7854\)$/);
+});
