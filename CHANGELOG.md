@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-08-18
+
+Four capabilities that were the biggest remaining gaps after the sixth pass.
+
+### Added
+
+- **Worked derivative steps.** The product, quotient and chain rules now show
+  their interior, not just the label and the result: "Let u = x² and
+  w = sin(x). Then u′ = 2x and w′ = cos(x). u′·w + u·w′ = 2x·sin(x) +
+  x²·cos(x)." For the chain rule the inner function is named and both layers
+  differentiated: "Let u = x² (the inside), so the outer function is sin(u).
+  Outer derivative: cos(u). Inner derivative: u′ = 2x. Multiply and put u
+  back: cos(x²) · 2x." Constant factors and leading signs are called out;
+  reciprocals (1/(x+1)), a^u (2^(3x)) and f(x)ⁿ (sin(x)²) are chain cases.
+  Per-term results are simplified like the final answer.
+- **Trig equations beyond the linear family.** A quadratic in one function
+  is solved by substitution — `2sin²x − sin x − 1 = 0`: "Let u = sin(x):
+  2u² − u − 1 = 0 → u = −1/2 or u = 1", each case then solved exactly and
+  the solutions merged (x = π/2, 7π/6, 11π/6 on [0, 2π)); `sin²x = 1/2`,
+  `cos²x = 1`, `tan²x = 3`, `2sin²(2x) = 1`. `sin x = cos x` divides through
+  by cos x (after ruling out cos x = 0) → tan x = 1. A Pythagorean rewrite
+  handles `sin²x + cos x = 1` and `2cos²x + sin x = 1`. Values outside [−1, 1]
+  and negative discriminants say "no real solution".
+- **Improper integrals to ±∞**, evaluated as limits: `∫₀^∞ e^(−x) dx = 1`,
+  `∫₁^∞ 1/x² dx = 1`, `∫₋∞^∞ 1/(1+x²) dx = π`, `∫₀^∞ e^(−x²) dx = √π/2`,
+  `∫₀^∞ x·e^(−x) dx = 1`; and divergence reported for `∫₁^∞ 1/x dx` ("grows
+  without bound — slowly, but steadily") and `∫₀^∞ sin(x) dx` ("does not
+  settle"). Steps: the limit definition, F, the limit of F with samples, the
+  finite end, the subtraction, a quadrature cross-check.
+- **3×3 linear systems** by Gaussian elimination in exact fractions, every
+  row operation shown ("(2) ← (2) − (2)·(1): −3y − z = −9"), back-substitution,
+  the no-solution / infinitely-many cases, and the solution verified against
+  all three original equations before it is reported. Routed from any topic.
+
 ## [1.25.0] - 2026-08-18
 
 Sixth pass: ~300 edge-case inputs across every topic (degenerate and hostile

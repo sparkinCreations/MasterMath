@@ -451,10 +451,12 @@ test('regression: audit — periodic equations prefer roots nearest zero', async
   assert.match(r.answer, /on \[0, 2π\): 0, π/);
   assert.doesNotMatch(r.answer, /-100/);
 
-  // Out-of-family trig equations still go through the numeric scan, and that
+  // sin(x) = cos(x) is now solved exactly (→ tan x = 1); a genuinely
+  // out-of-family equation still goes through the numeric scan, and that
   // scan must still prefer the roots nearest zero.
-  const scan = await solveProblem('sin(x) = cos(x)', 'algebra');
-  assert.ok(scan.answer.includes('x = 0.7854'));
+  const exact = await solveProblem('sin(x) = cos(x)', 'algebra');
+  assert.match(exact.answer, /x = π\/4 \+ πn/);
+  const scan = await solveProblem('sin(x) = sin(2x) + 0.5', 'algebra');
   assert.doesNotMatch(scan.answer, /-100/);
 });
 
@@ -799,8 +801,8 @@ test('regression: sin^2(x) = 1/2 gives real solutions, not "no real solution"', 
   const r = await solveProblem('sin^2(x) = 1/2', 'algebra');
   assert.equal(r.status, 'solved');
   // ±π/4 and ±3π/4 are the solutions nearest zero.
-  assert.match(r.answer, /0\.7854/);
-  assert.match(r.answer, /2\.356/);
+  // Now exact, via u = sin(x): u² = 1/2 → u = ±√2/2 → π/4, 3π/4, 5π/4, 7π/4.
+  assert.match(r.answer, /on \[0, 2π\): π\/4, 3π\/4, 5π\/4, 7π\/4/);
   assert.doesNotMatch(r.answer, /No real solution/i);
 });
 
@@ -810,7 +812,7 @@ test('regression: a previous answer never leaks into the next solve', async () =
   await solveProblem('x^2 - 4 > 0', 'algebra');
   const first = await solveProblem('sin^2(x) = 1/2', 'algebra');
   const second = await solveProblem('sin^2(x) = 1/2', 'algebra');
-  assert.doesNotMatch(first.answer, /[[\]]/, 'a bracketed list is a leaked previous result');
+  assert.doesNotMatch(first.answer, /\[\s*-?\d[^\])]*\]/, 'a bracketed number list is a leaked previous result');
   assert.equal(second.answer, first.answer, 'the same input must give the same answer every time');
 });
 

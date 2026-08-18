@@ -419,7 +419,177 @@ function parseDefiniteIntegral(raw) {
 }
 
 function prettifyBound(label) {
-  return String(label).replace(/\bpi\b/gi, 'π').replace(/\*/g, '');
+  return String(label).replace(/\bpi\b/gi, 'π').replace(/\*/g, '').replace(/^(-?)\s*(?:inf(?:inity)?|oo)$/i, '$1∞');
+}
+
+const isInfiniteBound = (t) => /^-?\s*(?:∞|inf(?:inity)?|oo|Infinity)\s*$/i.test(String(t).trim());
+const boundSign = (t) => (/^-/.test(String(t).trim()) ? -1 : 1);
+
+// lim F(t) as t → ±∞, by sampling. Returns { value } (finite limit),
+// { diverges: '∞' | '-∞' } or { undefined: true } (oscillates / unreadable).
+function limitAtInfinity(F, variable, sign) {
+  const samples = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8].map((m) => evalAntiderivNumeric(F, variable, sign * m));
+  const finite = samples.filter(Number.isFinite);
+  if (finite.length < 3) {
+    const last = finite[finite.length - 1];
+    if (last === undefined) return { undefined: true };
+    return { diverges: last > 0 ? '∞' : '-∞', samples };
+  }
+  const last = finite[finite.length - 1];
+  const prev = finite[finite.length - 2];
+  const diffs = finite.slice(1).map((v, i) => Math.abs(v - finite[i]));
+  const shrinking = diffs.slice(-3).every((d, i, arr) => i === 0 || d <= arr[i - 1] * 1.01);
+  if (Math.abs(last - prev) < 1e-6 * (1 + Math.abs(last)) || (shrinking && Math.abs(last - prev) < 1e-4 * (1 + Math.abs(last)))) {
+    return { value: last, samples };
+  }
+  if (Math.abs(last) > Math.abs(prev) * 2 && Math.abs(last) > 1e3) return { diverges: last > 0 ? '∞' : '-∞', samples };
+  // Slow but steady growth (ln t, √t): every step in the same direction and
+  // the steps not shrinking away — that is divergence, not oscillation.
+  const signedDiffs = finite.slice(1).map((v, i) => v - finite[i]);
+  const sameDir = signedDiffs.every((d) => d > 0) || signedDiffs.every((d) => d < 0);
+  const notShrinking = Math.abs(signedDiffs[signedDiffs.length - 1]) >= 0.5 * Math.abs(signedDiffs[0]);
+  if (sameDir && notShrinking) return { diverges: last > 0 ? '∞' : '-∞', slow: true, samples };
+  return { undefined: true, samples };
+}
+
+// Name a limit value when it is a familiar constant.
+function nameConstant(v) {
+  if (Math.abs(v) < 1e-9) return '0';
+  const named = [[Math.PI, 'π'], [Math.PI / 2, 'π/2'], [Math.PI / 4, 'π/4'], [Math.E, 'e'], [1 / Math.E, '1/e'], [Math.sqrt(Math.PI), '√π'], [Math.sqrt(Math.PI) / 2, '√π/2']];
+  for (const [c, t] of named) {
+    if (Math.abs(v - c) < 1e-6) return t;
+    if (Math.abs(v + c) < 1e-6) return `-${t}`;
+  }
+  return null;
+}
+
+// ∫_a^∞, ∫_-∞^b, ∫_-∞^∞ — as lim_{t→∞} ∫_a^t f, via the antiderivative.
+async function solveImproperInfinite(parsed, notation) {
+  const { integrand, variable: v, lowerRaw, upperRaw, lowerLabel, upperLabel } = parsed;
+  const Algebrite = await loadAlgebrite();
+  const lowerInf = isInfiniteBound(lowerRaw);
+  const upperInf = isInfiniteBound(upperRaw);
+  const steps = [`Evaluate the improper integral ${notation}.`];
+  const which = lowerInf && upperInf ? 'both limits are infinite' : `the ${upperInf ? 'upper' : 'lower'} limit is ${upperInf ? upperLabel : lowerLabel}`;
+  steps.push(`This is an improper integral — ${which}. It is defined as a limit of proper integrals: ${lowerInf && upperInf ? `∫_{-∞}^{∞} f d${v} = lim_{s→-∞} ∫_s^0 f d${v} + lim_{t→∞} ∫_0^t f d${v}` : upperInf ? `∫_${lowerLabel}^∞ f d${v} = lim_{t→∞} ∫_${lowerLabel}^t f d${v}` : `∫_{-∞}^${upperLabel} f d${v} = lim_{s→-∞} ∫_s^${upperLabel} f d${v}`}.`);
+
+  const F = await antiderivativeViaTerms(integrand, v, Algebrite);
+  if (!F) {
+    return unsupported({
+      input: notation,
+      reason: 'The antiderivative could not be found, so the limit defining this improper integral cannot be evaluated here.',
+      answer: 'This improper integral is beyond what this solver can compute',
+      steps,
+    });
+  }
+  const showF = (t) => lnify(t).replace(/\bexp\(([^()]+)\)/g, 'e^($1)');
+  steps.push(`Antiderivative: F(${v}) = ${showF(F)}.`);
+
+  // Each infinite end contributes lim F; each finite end contributes F(bound).
+  const ends = [];
+  const finiteBoundVal = (raw) => Number(math.evaluate(String(raw).replace(/π/g, 'pi')));
+  const describeLimit = (sign, res) => {
+    const arrow = sign > 0 ? 't → ∞' : 's → -∞';
+    const shown = (res.samples || []).slice(0, 4).map((x) => (Number.isFinite(x) ? formatNumber(x) : '±∞')).join(', ');
+    const at = sign > 0 ? '10², 10³, 10⁴, 10⁵' : '-10², -10³, -10⁴, -10⁵';
+    if (res.value !== undefined) steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)} (samples at ${at}: ${shown}).`);
+    else if (res.diverges) steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) grows without bound${res.slow ? ' — slowly, but steadily' : ''} (samples: ${shown}) — the limit is ${res.diverges}.`);
+    else steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) does not settle (samples: ${shown}).`);
+  };
+
+  let upperPart;
+  let lowerPart;
+  if (upperInf) {
+    const res = limitAtInfinity(F, v, boundSign(upperRaw));
+    describeLimit(boundSign(upperRaw), res);
+    upperPart = res;
+  } else {
+    const val = finiteBoundVal(upperRaw);
+    const exact = evalAntiderivAt(Algebrite, F, v, upperRaw);
+    const num = evalAntiderivNumeric(F, v, val);
+    upperPart = { value: num, exact };
+    steps.push(`F(${upperLabel}) = ${exact ?? formatNumber(num)}.`);
+  }
+  if (lowerInf) {
+    const res = limitAtInfinity(F, v, boundSign(lowerRaw));
+    describeLimit(boundSign(lowerRaw), res);
+    lowerPart = res;
+  } else {
+    const val = finiteBoundVal(lowerRaw);
+    const exact = evalAntiderivAt(Algebrite, F, v, lowerRaw);
+    const num = evalAntiderivNumeric(F, v, val);
+    lowerPart = { value: num, exact };
+    steps.push(`F(${lowerLabel}) = ${exact ?? formatNumber(num)}.`);
+  }
+
+  const divergent = [upperPart, lowerPart].find((p) => p.diverges || p.undefined);
+  if (divergent) {
+    if (upperPart.diverges && lowerPart.diverges && upperPart.diverges !== lowerPart.diverges) {
+      steps.push('Both ends run off to infinity in the same direction of F, so the difference is ∞ − ∞ — the integral does not converge.');
+    } else if (divergent.diverges) {
+      steps.push('The limit is infinite, so the integral diverges.');
+    } else {
+      steps.push('The limit does not exist, so the integral does not converge.');
+    }
+    return {
+      steps,
+      answer: `${notation} diverges`,
+      status: 'undefined',
+      tips: ['An improper integral converges only if the limit defining it is a finite number.', 'Compare with ∫₁^∞ 1/x^p dx: it converges for p > 1 and diverges for p ≤ 1.'],
+      common_mistakes: ['Treating ∞ as a number and "plugging it in" — the integral is a limit, and it can fail to exist.', 'Assuming a function that tends to 0 has a convergent integral (1/x → 0 but ∫₁^∞ 1/x dx = ∞).'],
+      graph: generateDefiniteGraph(integrand, v, lowerInf ? -10 : finiteBoundVal(lowerRaw), upperInf ? 10 : finiteBoundVal(upperRaw), lowerLabel, upperLabel, NaN),
+    };
+  }
+
+  const value = upperPart.value - lowerPart.value;
+  // Exact form when the infinite ends contribute a nameable constant.
+  const partText = (p, isUpper) => (p.exact !== undefined && p.exact !== null ? p.exact : (nameConstant(p.value) ?? formatNumber(p.value)));
+  const upText = partText(upperPart, true);
+  const lowText = partText(lowerPart, false);
+  let exactText = null;
+  try {
+    // Ask Algebrite to simplify "upper − lower" when both are exact-able.
+    const upRaw = upperPart.exact !== undefined && upperPart.exact !== null ? exactValueToRaw(upperPart.exact) : (nameConstant(upperPart.value) ?? null);
+    const lowRaw = lowerPart.exact !== undefined && lowerPart.exact !== null ? exactValueToRaw(lowerPart.exact) : (nameConstant(lowerPart.value) ?? null);
+    if (upRaw !== null && lowRaw !== null) {
+      const toAlg = (t) => t.replace(/√π/g, 'sqrt(pi)').replace(/√(\d+)/g, 'sqrt($1)').replace(/π/g, 'pi').replace(/√/g, 'sqrt');
+      const raw = String(Algebrite.run(`simplify((${toAlg(upRaw)}) - (${toAlg(lowRaw)}))`)).trim();
+      if (!isAlgebriteFailure(raw) && !/nil|Stop/.test(raw)) {
+        exactText = formatExactValue(raw)
+          .replace(/^1\/(\d+)\*(π|e|√π|sqrt\(π\))$/, '$2/$1')
+          .replace(/^1\/(\d+)\*π\^\(1\/2\)$/, '√π/$1')
+          .replace(/π\^\(1\/2\)/g, '√π');
+      }
+    }
+  } catch { exactText = null; }
+  const approx = formatNumber(value);
+  const valueText = exactText && exactText !== approx ? `${exactText} (≈ ${approx})` : (exactText || approx);
+  steps.push(`Subtract: ${upText} − (${lowText}) = ${valueText}. The limit is finite, so the integral converges.`);
+
+  // Cross-check by quadrature over a long finite stretch.
+  const lo = lowerInf ? -200 : finiteBoundVal(lowerRaw);
+  const hi = upperInf ? 200 : finiteBoundVal(upperRaw);
+  const check = numericIntegral(integrand, v, lo, hi, 4000);
+  const agrees = typeof check === 'number' && Number.isFinite(check) && Math.abs(check - value) < Math.max(0.05, Math.abs(value) * 0.05);
+  if (typeof check === 'number' && Number.isFinite(check) && !agrees) {
+    // A slowly-decaying tail can make the finite check fall short; only refuse when
+    // the mismatch is gross.
+    if (Math.abs(check - value) > Math.max(0.5, Math.abs(value) * 0.5)) {
+      return refuseDefinite('The limit value and a numeric check disagree, so I am not reporting a value.', notation);
+    }
+  }
+  steps.push(`Check: integrating numerically over a long finite stretch gives ≈ ${typeof check === 'number' ? formatNumber(check) : '—'}, consistent with the limit.`);
+
+  return {
+    steps,
+    answer: `${notation} = ${valueText}`,
+    tips: [
+      'An improper integral is a limit: replace the infinite bound by t, integrate, then let t → ∞.',
+      'It converges when that limit is finite; ∫₁^∞ 1/x^p dx converges exactly when p > 1.',
+    ],
+    common_mistakes: ['Plugging ∞ into F as if it were a number.', 'Forgetting that a limit can fail to exist even when the integrand tends to 0.'],
+    graph: generateDefiniteGraph(integrand, v, lowerInf ? Math.min(-10, hi - 10) : finiteBoundVal(lowerRaw), upperInf ? Math.max(10, lo + 10) : finiteBoundVal(upperRaw), lowerLabel, upperLabel, value),
+  };
 }
 
 // The indefinite path's per-term antiderivative (direct / substitution /
@@ -467,6 +637,11 @@ async function solveDefiniteIntegral(parsed) {
   const notation = `∫_${lowerLabel}^${upperLabel} (${intgDisp}) d${v}`;
 
   try {
+    // Improper integrals to ±∞: defined as a limit of proper ones.
+    if (isInfiniteBound(lowerRaw) || isInfiniteBound(upperRaw)) {
+      return solveImproperInfinite(parsed, notation);
+    }
+
     const a = Number(math.evaluate(lowerRaw));
     const b = Number(math.evaluate(upperRaw));
     if (!Number.isFinite(a) || !Number.isFinite(b)) {

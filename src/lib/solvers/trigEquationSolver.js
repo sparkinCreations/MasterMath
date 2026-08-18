@@ -187,20 +187,200 @@ function parseTrigEquation(equation, variable) {
   return { fn, arg, k, c, a, b: g0 };
 }
 
-export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride) {
-  DEGREES = (settingsOverride?.angleUnit ?? getSettings().angleUnit) === 'degrees';
+// Escape a string for use inside a RegExp.
+const rx = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Beyond the linear family, three shapes reduce to it:
+//   quadratic in one function   2sin²x − sin x − 1 = 0   → u = 1 or u = −1/2
+//   a·sin + b·cos = 0           sin x = cos x           → tan x = 1
+//   Pythagorean rewrite         sin²x + cos x = 1       → 1 − cos²x + cos x = 1
+// Each returns a solved envelope or null (fall through to "unsupported").
+// A clean, parseable spelling of a value for a sub-equation: √2/2 → sqrt(2)/2.
+const PARSEABLE = { '0': '0', '1': '1', '1/2': '1/2', '√2/2': 'sqrt(2)/2', '√3/2': 'sqrt(3)/2', '√3/3': 'sqrt(3)/3', '√3': 'sqrt(3)' };
+function parseableValue(c) {
+  const t = fmtValue(c);
+  const key = t.replace(/^-/, '');
+  if (PARSEABLE[key]) return (t.startsWith('-') ? '-' : '') + PARSEABLE[key];
+  return String(c);
+}
+// "a·u² + b·u + c" with the usual tidying (no 1·, no 0 terms, exact values).
+function niceNumber(v) {
+  const t = fmtValue(v);
+  if (!/^-?\d+\.\d+$/.test(t)) return t;
+  for (let d = 2; d <= 12; d += 1) {
+    const n = v * d;
+    if (Math.abs(n - Math.round(n)) < 1e-9) return `${Math.round(n)}/${d}`;
+  }
+  return t;
+}
+function quadraticText(a, b, c, U) {
+  const coef = (v, tail) => { const t = niceNumber(Math.abs(v)); return `${t === '1' && tail ? '' : t}${tail}`; };
+  let out = `${a < 0 ? '−' : ''}${coef(a, `${U}²`)}`;
+  if (Math.abs(b) > 1e-9) out += ` ${b < 0 ? '−' : '+'} ${coef(b, U)}`;
+  if (Math.abs(c) > 1e-9) out += ` ${c < 0 ? '−' : '+'} ${coef(c, '')}`;
+  return out;
+}
+
+function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite = true) {
+  const [lhs, rhs] = equation.split('=').map((t) => t.trim());
+  if (!lhs || !rhs) return null;
+  const expr = `(${lhs}) - (${rhs})`;
+  const calls = [...expr.matchAll(/\b(sin|cos|tan)\s*\(([^()]*)\)/g)];
+  if (calls.length === 0) return null;
+  if (/\b(sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh)\b/.test(expr)) return null;
+  const arg = calls[0][2].trim();
+  if (!calls.every((c) => c[2].trim() === arg)) return null;
+  const fns = [...new Set(calls.map((c) => c[1]))];
+  const argShown = arg.replace(/\*/g, '');
+  const outerSteps = [`Solve the equation: ${shown}`];
+  if (DEGREES) outerSteps.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
+
+  // Evaluate the expression with each trig call replaced by a symbol.
+  const withSymbols = (map) => {
+    let e = expr;
+    for (const [fn, sym] of Object.entries(map)) e = e.replace(new RegExp(`\\b${fn}\\s*\\(\\s*${rx(arg)}\\s*\\)`, 'g'), `(${sym})`);
+    return e;
+  };
+  const evalAt = (e, scope) => { try { const v = math.evaluate(e, scope); return typeof v === 'number' && Number.isFinite(v) ? v : NaN; } catch { return NaN; } };
+
+  // ── Pythagorean rewrite: sin² alongside a linear cos (or cos² with sin).
+  if (fns.length === 2 && fns.includes('sin') && fns.includes('cos') && allowRewrite) {
+    const e = withSymbols({ sin: 'S', cos: 'C' });
+    if (new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(e)) return null;
+    const f = (S, C) => evalAt(e, { S, C });
+    // Is it linear in C and at most quadratic in S (or vice versa), with S appearing only squared?
+    const isQuadIn = (name) => { const g = name === 'S' ? (t) => f(t, 0.3) : (t) => f(0.3, t); const d1 = g(1) - g(0), d2 = g(2) - g(1), d3 = g(3) - g(2); return Math.abs((d2 - d1) - (d3 - d2)) < 1e-9 && Math.abs(d2 - d1) > 1e-9; };
+    const isLinIn = (name) => { const g = name === 'S' ? (t) => f(t, 0.3) : (t) => f(0.3, t); const d1 = g(1) - g(0), d2 = g(2) - g(1); return Math.abs(d2 - d1) < 1e-9; };
+    const onlySquared = (name) => { const g = name === 'S' ? (t) => f(t, 0.3) : (t) => f(0.3, t); return Math.abs(g(1) - g(-1)) < 1e-9; };
+    let rewritten = null;
+    if (isQuadIn('S') && onlySquared('S') && isLinIn('C')) {
+      rewritten = expr.replace(new RegExp(`(?:\\(\\s*sin\\s*\\(\\s*${rx(arg)}\\s*\\)\\s*\\)|\\bsin\\s*\\(\\s*${rx(arg)}\\s*\\))\\s*\\^\\s*2`, 'g'), `(1 - cos(${arg})^2)`);
+      outerSteps.push(`Use sin²(θ) = 1 − cos²(θ) so only cosine remains: ${beautify(rewritten)} = 0`);
+    } else if (isQuadIn('C') && onlySquared('C') && isLinIn('S')) {
+      rewritten = expr.replace(new RegExp(`(?:\\(\\s*cos\\s*\\(\\s*${rx(arg)}\\s*\\)\\s*\\)|\\bcos\\s*\\(\\s*${rx(arg)}\\s*\\))\\s*\\^\\s*2`, 'g'), `(1 - sin(${arg})^2)`);
+      outerSteps.push(`Use cos²(θ) = 1 − sin²(θ) so only sine remains: ${beautify(rewritten)} = 0`);
+    }
+    if (rewritten && !new RegExp(`\\b(?:sin|cos)\\s*\\(\\s*${rx(arg)}\\s*\\)`).test(rewritten.replace(new RegExp(`\\b(?:${isQuadIn('S') && onlySquared('S') ? 'cos' : 'sin'})\\s*\\(\\s*${rx(arg)}\\s*\\)`, 'g'), 'Q'))) {
+      const inner = solveTrigEquation(`${rewritten} = 0`, variable, undefined, true);
+      if (inner && inner.status !== 'unsupported' && Array.isArray(inner.steps)) {
+        return { ...inner, steps: [...outerSteps, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t))] };
+      }
+      return null;
+    }
+    // ── a·sin + b·cos = 0 → tan = −a/b.
+    const isLinBoth = isLinIn('S') && isLinIn('C');
+    if (isLinBoth && Math.abs(f(0, 0)) < 1e-9) {
+      const a = f(1, 0) - f(0, 0);
+      const b = f(0, 1) - f(0, 0);
+      if (Math.abs(b) > 1e-9 && Math.abs(a) > 1e-9) {
+        const ratio = -a / b;
+        const cf = (v) => (Math.abs(Math.abs(v) - 1) < 1e-9 ? (v < 0 ? '−' : '') : `${fmtValue(v)}·`);
+        outerSteps.push(`Both sine and cosine appear, each to the first power and with no constant term: ${cf(a)}sin(${argShown}) ${b < 0 ? '−' : '+'} ${cf(Math.abs(b))}cos(${argShown}) = 0.`);
+        outerSteps.push(`cos(${argShown}) = 0 would force sin(${argShown}) = 0 too, which is impossible — so divide through by cos(${argShown}): ${Math.abs(Math.abs(a) - 1) < 1e-9 ? '' : `${cf(a)}tan(${argShown}) = ${fmtValue(-b)}, i.e. `}tan(${argShown}) = ${fmtValue(ratio)}.`);
+        const inner = solveTrigEquation(`tan(${arg}) = ${parseableValue(ratio)}`, variable, undefined, true);
+        if (inner && inner.status !== 'unsupported' && Array.isArray(inner.steps)) {
+          return { ...inner, steps: [...outerSteps, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t)).map((t) => t.replace(String(ratio), fmtValue(ratio)))] };
+        }
+      }
+    }
+    return null;
+  }
+
+  // ── Quadratic in a single function: a·u² + b·u + c = 0 with u = f(arg).
+  if (fns.length !== 1) return null;
+  const fn = fns[0];
+  const e = withSymbols({ [fn]: 'U' });
+  if (new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(e)) return null;
+  const g = (u) => evalAt(e, { U: u });
+  const [g0, g1, g2, g3] = [g(0), g(1), g(2), g(3)];
+  if (![g0, g1, g2, g3].every(Number.isFinite)) return null;
+  const d1 = g1 - g0, d2 = g2 - g1, d3 = g3 - g2;
+  const second = d2 - d1;
+  if (Math.abs((d3 - d2) - second) > 1e-9 || Math.abs(second) < 1e-9) return null; // not quadratic
+  const a = second / 2;
+  const b = d1 - a;
+  const c = g0;
+  const disc = b * b - 4 * a * c;
+  const U = variable === 'u' ? 'v' : 'u';
+  outerSteps.push(`The equation is quadratic in ${fn}(${argShown}). Let ${U} = ${fn}(${argShown}): ${quadraticText(a, b, c, U)} = 0.`);
+  if (disc < -1e-9) {
+    outerSteps.push(`The discriminant b² − 4ac = ${formatNumber(disc)} is negative, so there is no real value of ${U} — and no solution.`);
+    const result = undefinedValue({ input: rawEquation, reason: `No real value of ${fn}(${argShown}) satisfies the quadratic, so the equation has no real solution.`, steps: outerSteps });
+    result.answer = 'No real solution';
+    return result;
+  }
+  const r1 = (-b - Math.sqrt(Math.max(0, disc))) / (2 * a);
+  const r2 = (-b + Math.sqrt(Math.max(0, disc))) / (2 * a);
+  const rootsU = Math.abs(r1 - r2) < 1e-9 ? [r1] : [r1, r2].sort((x, y) => x - y);
+  outerSteps.push(`Solve the quadratic (factor or use the quadratic formula): ${rootsU.map((r) => `${U} = ${fmtValue(r)}`).join('  or  ')}.`);
+  const parts = [];
+  const allSolutions = [];
+  const familyTexts = [];
+  for (const r of rootsU) {
+    if ((fn === 'sin' || fn === 'cos') && Math.abs(r) > 1 + 1e-9) {
+      outerSteps.push(`${fn}(${argShown}) = ${fmtValue(r)} is impossible — ${fn} never leaves [−1, 1] — so this value gives nothing.`);
+      continue;
+    }
+    const inner = solveTrigEquation(`${fn}(${arg}) = ${parseableValue(r)}`, variable, undefined, true);
+    if (!inner || inner.status === 'unsupported' || !Array.isArray(inner.steps)) return null;
+    if (inner.status === 'undefined') { outerSteps.push(...inner.steps.filter((t) => !/^Solve the equation:/.test(t))); continue; }
+    outerSteps.push(`Case ${fn}(${argShown}) = ${fmtValue(r)}:`);
+    outerSteps.push(...inner.steps.filter((t) => !/^Solve the equation:/.test(t) && !/^Angle unit/.test(t)).map((t) => `  ${t.replace(String(r), fmtValue(r))}`));
+    parts.push(inner);
+    familyTexts.push(inner.answer.split(' (n ∈ ℤ)')[0]);
+    for (const x of inner.graph?.solutions ?? []) allSolutions.push(x);
+  }
+  if (parts.length === 0) {
+    const result = undefinedValue({ input: rawEquation, reason: `No value of ${fn}(${argShown}) from the quadratic lies in its range, so the equation has no real solution.`, steps: outerSteps });
+    result.answer = 'No real solution';
+    return result;
+  }
+  const merged = [...new Set(allSolutions.map((x) => Math.round(x * 1e8) / 1e8))].sort((x, y) => x - y);
+  const toRad = (x) => (DEGREES ? x * Math.PI / 180 : x);
+  const listText = merged.map((x) => fmtRad(toRad(x))).join(', ');
+  outerSteps.push(`Combine the cases. On ${RANGE_TEXT()}: ${merged.map((x) => `${variable} = ${fmtRad(toRad(x))}`).join(',  ')}`);
+  const base = parts[0];
+  const graph = base.graph ? {
+    ...base.graph,
+    secondaryPoints: rootsU.length === 1 ? base.graph.secondaryPoints : undefined,
+    secondaryLabel: rootsU.length === 1 ? base.graph.secondaryLabel : undefined,
+    title: `Graph of y = ${fn}(${argShown}) with the solutions of ${shown} marked`,
+    description: `The solutions on ${RANGE_TEXT()} are marked: where ${fn}(${argShown}) equals ${rootsU.map(fmtValue).join(' or ')}.`,
+    solutions: merged,
+  } : null;
+  return {
+    steps: outerSteps,
+    answer: `${familyTexts.join('  or  ')} (n ∈ ℤ);  on ${RANGE_TEXT()}: ${listText}`,
+    tips: [
+      `A quadratic in ${fn} is solved like any quadratic — substitute ${U} = ${fn}(${argShown}), solve for ${U}, then solve each ${fn}(${argShown}) = value separately.`,
+      `Discard any ${U} outside [−1, 1] for sine and cosine before looking for angles.`,
+    ],
+    common_mistakes: [
+      `Dividing both sides by ${fn}(${argShown}) and losing the ${fn}(${argShown}) = 0 solutions.`,
+      'Solving for u and reporting u as the answer — the angle still has to be found.',
+    ],
+    graph,
+  };
+}
+
+export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride, nested = false) {
+  if (!nested) DEGREES = (settingsOverride?.angleUnit ?? getSettings().angleUnit) === 'degrees';
   const equation = parseMathExpression(rawEquation);
   const parsed = parseTrigEquation(equation, variable);
   const shown = beautify(rawEquation).replace(/\s*=\s*/, ' = ');
 
   if (!parsed) {
+    try {
+      const reduced = solveReducibleTrig(rawEquation, equation, variable, shown, !nested);
+      if (reduced) return reduced;
+    } catch { /* fall through to unsupported */ }
     return unsupported({
       input: rawEquation,
       reason: 'Trigonometric equations are supported in the form A·sin(kx) + B = C (likewise cos and tan). Equations with two different trig functions, squared trig terms, or non-linear arguments are not solved yet.',
       answer: 'This trig equation is not supported yet',
       tips: [
-        'Supported: sin(x) = 1/2, 2cos(x) − 1 = 0, tan(2x) = 1, √3 = 2sin(x).',
-        'Not yet: sin²(x) = 1/4, sin(x) = cos(x), sin(x²) = 0.',
+        'Supported: sin(x) = 1/2, 2cos(x) − 1 = 0, tan(2x) = 1, √3 = 2sin(x); quadratics like 2sin²(x) − sin(x) − 1 = 0; sin(x) = cos(x); sin²(x) + cos(x) = 1.',
+        'Not yet: sin(x) + cos(x) = 1, sin(x²) = 0, sin(x) = sin(2x).',
       ],
     });
   }

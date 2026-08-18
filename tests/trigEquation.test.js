@@ -114,7 +114,8 @@ test('out-of-range sin/cos is "no real solution", not an error', () => {
 });
 
 test('out-of-family equations are refused explicitly, never mis-solved', () => {
-  for (const eq of ['sin(x)^2=1/4', 'sin(x)=cos(x)', 'sin(x^2)=0', 'sin(x)+x=1', 'sec(x)=2']) {
+  // (sin(x)^2 = 1/4 and sin(x) = cos(x) are reducible now — see below.)
+  for (const eq of ['sin(x)=sin(2x)', 'sin(x)+cos(x)=1', 'sin(x^2)=0', 'sin(x)+x=1', 'sec(x)=2']) {
     const r = solveTrigEquation(eq);
     assert.equal(r.status, STATUS.UNSUPPORTED, eq);
     assert.match(r.answer, /not supported yet/);
@@ -127,4 +128,17 @@ test('the graph marks the [0, 2π) solutions and overlays y = c', () => {
   assert.equal(r.graph.solutions.length, 2);
   assert.ok(Math.abs(r.graph.solutions[0] - Math.PI / 6) < 1e-9);
   assert.equal(r.graph.secondaryLabel, 'y = 1/2');
+});
+
+test('reducible equations: quadratic in one function, sin = cos, Pythagorean rewrite', () => {
+  const q = solveTrigEquation('2sin(x)^2 - sin(x) - 1 = 0');
+  assert.equal(q.answer, 'x = 7π/6 + 2πn  or  x = 11π/6 + 2πn  or  x = π/2 + 2πn (n ∈ ℤ);  on [0, 2π): π/2, 7π/6, 11π/6');
+  assert.ok(q.steps.some((s) => /Let u = sin\(x\): 2u² − u − 1 = 0/.test(s)));
+  assert.equal(solveTrigEquation('sin(x)^2 = 1/4').answer.split('on [0, 2π): ')[1], 'π/6, 5π/6, 7π/6, 11π/6');
+  assert.match(solveTrigEquation('tan(x)^2 = 3').answer, /on \[0, 2π\): π\/3, 2π\/3, 4π\/3, 5π\/3/);
+  assert.match(solveTrigEquation('sin(x) = cos(x)').answer, /^x = π\/4 \+ πn/);
+  assert.match(solveTrigEquation('sin(x)^2 + cos(x) = 1').answer, /on \[0, 2π\): 0, π\/2, 3π\/2/);
+  assert.match(solveTrigEquation('2cos(x)^2 + sin(x) = 1').answer, /on \[0, 2π\): π\/2, 7π\/6, 11π\/6/);
+  assert.equal(solveTrigEquation('sin(x)^2 = 2').status, STATUS.UNDEFINED);
+  assert.match(solveTrigEquation('2sin(2x)^2 = 1').answer, /on \[0, 2π\): π\/8, 3π\/8, 5π\/8, 7π\/8, 9π\/8, 11π\/8, 13π\/8, 15π\/8/);
 });

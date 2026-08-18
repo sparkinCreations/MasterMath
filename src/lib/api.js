@@ -149,7 +149,7 @@ function isPlainEquationForAlgebra(problem, topic) {
   if (!/[a-z]/i.test(t.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sqrt|abs|log|ln|exp|pi|e)\b/gi, ''))) return false;
   if (topic === 'algebra') return false;
   // (?<![a-z]) not \b: "2cos(x) - 1 = 0" has no word boundary before "cos".
-  if (topic === 'trigonometry' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*[(a-z0-9]/i.test(t)) return false;
+  if (topic === 'trigonometry' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*[(^a-z0-9]/i.test(t)) return false;
   if (topic === 'functions' && /(?<![a-z0-9])(?:f\(.\)|y)\s*=/i.test(t)) return false;
   return true;
 }
@@ -219,7 +219,7 @@ function noteRouting(result, from, to, why) {
 function isSingleTrigEquation(problem) {
   const text = String(problem);
   const equalsCount = (text.match(/(?<![><!=])=(?!=)/g) || []).length;
-  return equalsCount === 1 && /(?<![a-z])(sin|cos|tan)\s*[(a-z0-9]/i.test(text);
+  return equalsCount === 1 && /(?<![a-z])(sin|cos|tan)\s*[(^a-z0-9]/i.test(text);
 }
 
 // Text that is program source rather than mathematics. The engines can hand

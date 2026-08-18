@@ -113,10 +113,13 @@ test('routed results carry the topic they were solved as', async () => {
 
 test('touch roots between grid points are found (squared factors)', async () => {
   resetSettings();
+  // These two are now solved exactly by the trig-equation solver; the
+  // between-grid touch-root scan is exercised by a non-trig squared factor.
   const r = await solveProblem('sin^2(3x) + 1 = 1', 'algebra');
-  assert.match(r.answer, /x = -1\.0472\s+or\s+x = 0\s+or\s+x = 1\.0472/);
-  const s = await solveProblem('cos(x)^2 = 0', 'algebra');
-  assert.match(s.answer, /x = -1\.5708\s+or\s+x = 1\.5708/);
+  assert.match(r.answer, /x = \(πn\)\/3/);
+  const s = await solveProblem('(x - 0.3)^2 * (x + 1.7)^2 = 0', 'algebra');
+  assert.match(s.answer, /x = -1\.7/);
+  assert.match(s.answer, /x = 0\.3/);
   // A decaying tail is still not a root.
   assert.equal((await solveProblem('e^(-x^2) = 0', 'algebra')).answer, 'No real solution found');
   assert.equal((await solveProblem('1/(x-2)^2 = 0', 'algebra')).answer, 'No real solution found');
@@ -239,4 +242,42 @@ test('an Algebrite error in one problem does not poison the next (x/0 = 1, then 
   assert.equal(r.answer, 'x = 2  or  x = -1 - 1.7321i  or  x = -1 + 1.7321i');
   const s = await solveProblem('x^2 = 2', 'algebra');
   assert.equal(s.answer, 'x = -2^(1/2)  or  x = 2^(1/2)');
+});
+
+// ── Pass 7 features: worked rules, reducible trig equations, improper integrals, 3×3.
+test('worked derivative steps name u/w (product, quotient) and the inner u (chain)', async () => {
+  const p = await solveProblem('x^2*sin(x)', 'derivatives');
+  assert.ok(p.steps.some((s) => s === 'Let u = x^2 and w = sin(x).'), p.steps.join(' | '));
+  assert.ok(p.steps.some((s) => /Then u′ = 2x and w′ = cos\(x\)/.test(s)));
+  const q = await solveProblem('(x+1)/(x-1)', 'derivatives');
+  assert.ok(q.steps.some((s) => /Let u = x \+ 1 \(numerator\) and w = x - 1 \(denominator\)/.test(s)));
+  assert.equal(q.answer, "f'(x) = -2/((x - 1)^2)");
+  const c = await solveProblem('sin(x^2)', 'derivatives');
+  assert.ok(c.steps.some((s) => /Let u = x\^2 \(the inside\), so the outer function is sin\(u\)/.test(s)));
+  assert.ok(c.steps.some((s) => /put u = x\^2 back: cos\(x\^2\) · 2x/.test(s)));
+  const e = await solveProblem('3*cos(2x)', 'derivatives');
+  assert.ok(e.steps.some((s) => /The constant factor 3 carries through/.test(s)));
+});
+
+test('improper integrals to ±∞ are evaluated as limits, or reported divergent', async () => {
+  assert.equal((await solveProblem('∫_0^∞ e^(-x) dx', 'integrals')).answer, '∫_0^∞ (e^(-x)) dx = 1');
+  assert.equal((await solveProblem('∫_1^∞ 1/x^2 dx', 'integrals')).answer, '∫_1^∞ (1/x^2) dx = 1');
+  assert.match((await solveProblem('∫_-∞^∞ 1/(1+x^2) dx', 'integrals')).answer, /= π \(≈ 3\.1416\)$/);
+  assert.match((await solveProblem('∫_0^∞ e^(-x^2) dx', 'integrals')).answer, /= √π\/2 \(≈ 0\.8862\)$/);
+  const d = await solveProblem('∫_1^∞ 1/x dx', 'integrals');
+  assert.equal(d.status, 'undefined');
+  assert.match(d.answer, /diverges$/);
+  assert.equal((await solveProblem('∫_0^∞ sin(x) dx', 'integrals')).status, 'undefined');
+  assert.match((await solveProblem('integral of e^(-2x) from 0 to infinity', 'integrals')).answer, /= 1\/2 \(≈ 0\.5\)$/);
+});
+
+test('3×3 linear systems by elimination, exact, with the trichotomy', async () => {
+  const r = await solveProblem('x + y + z = 6; 2x - y + z = 3; x + 2y - z = 2', 'algebra');
+  assert.equal(r.answer, 'x = 1,  y = 2,  z = 3');
+  assert.ok(r.steps.some((s) => /\(2\) ← \(2\) − \(2\)·\(1\):/.test(s)));
+  assert.equal((await solveProblem('2a + 3b - c = 5; a - b + 2c = 4; 3a + b + c = 7', 'algebra')).answer, 'a = 4/5,  b = 2,  c = 13/5');
+  assert.match((await solveProblem('x + y + z = 1; x + y + z = 2; x - y = 0', 'algebra')).answer, /^No solution/);
+  assert.match((await solveProblem('x + y + z = 1; 2x + 2y + 2z = 2; x - y = 0', 'algebra')).answer, /^Infinitely many solutions/);
+  // Under any topic.
+  assert.equal((await solveProblem('y + z = 1; x + z = 2; x + y = 3', 'derivatives')).answer, 'x = 2,  y = 1,  z = 0');
 });
