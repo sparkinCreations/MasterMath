@@ -213,9 +213,10 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
 function lnify(integralResult) {
   return beautify(integralResult)
     // outermost log(...) (one nesting level inside) → ln|...|
-    .replace(/\blog\(((?:[^()]|\([^()]*\))+)\)/g, 'ln|$1|')
+    // (?<![a-z]) not \b: beautify writes 4*log(x) as 4log(x).
+    .replace(/(?<![a-z])log\(((?:[^()]|\([^()]*\))+)\)/g, 'ln|$1|')
     // a log(...) left inside those bars → ln(...) (bars within bars read badly)
-    .replace(/\blog\(([^()]+)\)/g, 'ln($1)');
+    .replace(/(?<![a-z])log\(([^()]+)\)/g, 'ln($1)');
 }
 
 function safeRunLocal(Algebrite, code) {
@@ -313,6 +314,13 @@ async function integrateTerm(term, variable, Algebrite) {
     return { antideriv: sub.antiderivative, steps: sub.steps, method: 'substitution', term };
   }
 
+  // Rational functions Algebrite gives up on (1/(x²+x)): partial fractions
+  // over distinct real linear factors, verified by differentiation.
+  const pf = integrateByPartialFractions(term, variable, Algebrite);
+  if (pf) {
+    return { antideriv: pf.antiderivative, steps: pf.steps, method: 'partial fractions', term };
+  }
+
   // Algebrite has no abs either: |a·x + b| and constant multiples of it.
   const abs = integrateAbsLinear(term, variable);
   if (abs) {
@@ -320,6 +328,82 @@ async function integrateTerm(term, variable, Algebrite) {
   }
 
   return null;
+}
+
+// N(x)/D(x) with deg N < deg D and D having distinct real roots r₁…rₖ:
+//   N/D = Σ Aᵢ/(x − rᵢ),  Aᵢ = N(rᵢ)/D′(rᵢ)   (Heaviside cover-up)
+// so ∫ = Σ Aᵢ·ln|x − rᵢ|. Repeated or complex roots are left to the caller
+// (null). Everything is checked: the decomposition numerically, the
+// antiderivative by differentiation.
+function integrateByPartialFractions(term, variable, Algebrite) {
+  const v = variable;
+  const parts = splitTopLevelSlash(term);
+  if (!parts) return null;
+  const [num, den] = parts;
+  if (!hasVariable(den, v)) return null;
+  const isPoly = (e) => { try { const d = String(Algebrite.run(`deg(${e}, ${v})`)).trim(); return /^\d+$/.test(d) ? Number(d) : null; } catch { return null; } };
+  const degN = isPoly(num);
+  const degD = isPoly(den);
+  if (degN === null || degD === null || degD < 2 || degN >= degD) return null;
+  // Real, distinct roots of the denominator.
+  let rootsRaw;
+  try { rootsRaw = String(Algebrite.run(`roots(${den}, ${v})`)).trim(); } catch { return null; }
+  if (!rootsRaw || isAlgebriteFailure(rootsRaw) || /\bi\b/.test(rootsRaw)) return null;
+  const rootList = rootsRaw.replace(/^\[|\]$/g, '').split(',').map((r) => r.trim()).filter(Boolean);
+  if (rootList.length !== degD) return null; // repeated or missing roots
+  const rootVals = rootList.map((r) => { try { return math.evaluate(r); } catch { return NaN; } });
+  if (!rootVals.every((x) => typeof x === 'number' && Number.isFinite(x))) return null;
+  for (let i = 0; i < rootVals.length; i += 1) for (let j = i + 1; j < rootVals.length; j += 1) if (Math.abs(rootVals[i] - rootVals[j]) < 1e-9) return null;
+  // Aᵢ = N(rᵢ)/D′(rᵢ), exact via Algebrite.
+  const dDen = String(Algebrite.run(`d(${den}, ${v})`)).trim();
+  const coefs = rootList.map((r) => {
+    try { return String(Algebrite.run(`simplify(subst(${r}, ${v}, ${num}) / subst(${r}, ${v}, ${dDen}))`)).trim(); } catch { return null; }
+  });
+  if (coefs.some((c) => !c || isAlgebriteFailure(c) || /nil|Stop|\bi\b/.test(c))) return null;
+  // Verify the decomposition numerically at a few points.
+  const decomposed = rootList.map((r, i) => `(${coefs[i]})/(${v} - (${r}))`).join(' + ');
+  for (const x of [0.37, 1.91, -2.63, 4.2]) {
+    let lhs; let rhs;
+    try { lhs = math.evaluate(`(${num})/(${den})`, { [v]: x }); rhs = math.evaluate(decomposed, { [v]: x }); } catch { return null; }
+    if (!Number.isFinite(lhs) || !Number.isFinite(rhs)) continue;
+    if (Math.abs(lhs - rhs) > 1e-6 * (1 + Math.abs(lhs))) return null;
+  }
+  const anti = rootList.map((r, i) => `(${coefs[i]})*log(${v} - (${r}))`).join(' + ');
+  let antiSimple;
+  try { antiSimple = String(Algebrite.run(`simplify(${anti})`)).trim(); } catch { antiSimple = anti; }
+  if (!antiSimple || isAlgebriteFailure(antiSimple)) antiSimple = anti;
+  // Verify by differentiation (numerically — log(x - r) vs ln|x - r| differ only by a constant on each side).
+  const back = (x) => { try { const h = 1e-5; return (math.evaluate(anti, { [v]: x + h }) - math.evaluate(anti, { [v]: x - h })) / (2 * h); } catch { return NaN; } };
+  for (const x of [0.37, 1.91, 4.2]) {
+    const expected = math.evaluate(`(${num})/(${den})`, { [v]: x });
+    const got = back(x);
+    if (Number.isFinite(expected) && Number.isFinite(got) && Math.abs(expected - got) > 1e-4 * (1 + Math.abs(expected))) return null;
+  }
+  const factorText = (r) => { const val = math.evaluate(r); const rt = Number.isInteger(val) ? String(val) : beautify(r); return val === 0 ? v : (val < 0 ? `(${v} + ${rt.replace(/^-/, '')})` : `(${v} - ${rt})`); };
+  const fracText = rootList.map((r, i) => { const c = beautify(coefs[i]); return `${c === '1' ? '' : c === '-1' ? '-' : `${c}·`}1/${factorText(r)}`; }).join(' + ').replace(/\+ -/g, '− ');
+  const denFactored = rootList.map(factorText).join('');
+  const steps = [
+    `∫(${beautify(term)}) d${v} — a proper rational function whose denominator factors into distinct linear factors: ${beautify(den)} = ${denFactored}.`,
+    `Partial fractions: ${beautify(term)} = ${fracText}. Each coefficient is N(r)/D′(r) at the root r (the cover-up method).`,
+    `Integrate each piece (∫ 1/(${v} − r) d${v} = ln|${v} − r|): ${lnify(antiSimple)}.`,
+  ];
+  return { antiderivative: antiSimple, steps };
+}
+
+// "num/den" split at the single top-level slash, or null.
+function splitTopLevelSlash(term) {
+  let depth = 0;
+  let idx = -1;
+  for (let i = 0; i < term.length; i += 1) {
+    const ch = term[i];
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    else if (ch === '/' && depth === 0) { if (idx !== -1) return null; idx = i; }
+  }
+  if (idx === -1) return null;
+  const num = term.slice(0, idx).trim().replace(/^\((.*)\)$/, '$1');
+  const den = term.slice(idx + 1).trim().replace(/^\((.*)\)$/, '$1');
+  return [num || '1', den];
 }
 
 // Assemble the worked steps from the per-term results. Multi-term integrals get
@@ -453,14 +537,31 @@ function limitAtInfinity(F, variable, sign) {
 }
 
 // Name a limit value when it is a familiar constant.
+const NAMED_CONSTANTS = [[Math.PI, 'π', 'pi'], [Math.PI / 2, 'π/2', 'pi/2'], [Math.PI / 4, 'π/4', 'pi/4'], [Math.E, 'e', 'exp(1)'], [1 / Math.E, '1/e', 'exp(-1)'], [Math.sqrt(Math.PI), '√π', 'sqrt(pi)'], [Math.sqrt(Math.PI) / 2, '√π/2', 'sqrt(pi)/2'], [Math.LN2, 'ln(2)', 'log(2)']];
 function nameConstant(v) {
   if (Math.abs(v) < 1e-9) return '0';
-  const named = [[Math.PI, 'π'], [Math.PI / 2, 'π/2'], [Math.PI / 4, 'π/4'], [Math.E, 'e'], [1 / Math.E, '1/e'], [Math.sqrt(Math.PI), '√π'], [Math.sqrt(Math.PI) / 2, '√π/2']];
-  for (const [c, t] of named) {
+  for (const [c, t] of NAMED_CONSTANTS) {
     if (Math.abs(v - c) < 1e-6) return t;
     if (Math.abs(v + c) < 1e-6) return `-${t}`;
   }
   return null;
+}
+// The same, spelled for Algebrite; also small rationals.
+function constantRaw(v) {
+  if (Math.abs(v) < 1e-9) return '0';
+  for (const [c, , raw] of NAMED_CONSTANTS) {
+    if (Math.abs(v - c) < 1e-6) return raw;
+    if (Math.abs(v + c) < 1e-6) return `-(${raw})`;
+  }
+  const r = exactValueToRaw(v);
+  return /^-?\d+(?:\/\d+)?$/.test(r) ? r : null;
+}
+// Algebrite's exact F(bound), unformatted, or null.
+function rawSubst(Algebrite, F, variable, at) {
+  try {
+    const out = String(Algebrite.run(`simplify(subst(${at}, ${variable}, ${F}))`)).trim();
+    return isAlgebriteFailure(out) || /nil|Stop/.test(out) ? null : out;
+  } catch { return null; }
 }
 
 // ∫_a^∞, ∫_-∞^b, ∫_-∞^∞ — as lim_{t→∞} ∫_a^t f, via the antiderivative.
@@ -507,7 +608,7 @@ async function solveImproperInfinite(parsed, notation) {
     const val = finiteBoundVal(upperRaw);
     const exact = evalAntiderivAt(Algebrite, F, v, upperRaw);
     const num = evalAntiderivNumeric(F, v, val);
-    upperPart = { value: num, exact };
+    upperPart = { value: num, exact, raw: rawSubst(Algebrite, F, v, upperRaw) };
     steps.push(`F(${upperLabel}) = ${exact ?? formatNumber(num)}.`);
   }
   if (lowerInf) {
@@ -518,7 +619,7 @@ async function solveImproperInfinite(parsed, notation) {
     const val = finiteBoundVal(lowerRaw);
     const exact = evalAntiderivAt(Algebrite, F, v, lowerRaw);
     const num = evalAntiderivNumeric(F, v, val);
-    lowerPart = { value: num, exact };
+    lowerPart = { value: num, exact, raw: rawSubst(Algebrite, F, v, lowerRaw) };
     steps.push(`F(${lowerLabel}) = ${exact ?? formatNumber(num)}.`);
   }
 
@@ -549,8 +650,8 @@ async function solveImproperInfinite(parsed, notation) {
   let exactText = null;
   try {
     // Ask Algebrite to simplify "upper − lower" when both are exact-able.
-    const upRaw = upperPart.exact !== undefined && upperPart.exact !== null ? exactValueToRaw(upperPart.exact) : (nameConstant(upperPart.value) ?? null);
-    const lowRaw = lowerPart.exact !== undefined && lowerPart.exact !== null ? exactValueToRaw(lowerPart.exact) : (nameConstant(lowerPart.value) ?? null);
+    const upRaw = upperPart.raw ?? constantRaw(upperPart.value);
+    const lowRaw = lowerPart.raw ?? constantRaw(lowerPart.value);
     if (upRaw !== null && lowRaw !== null) {
       const toAlg = (t) => t.replace(/√π/g, 'sqrt(pi)').replace(/√(\d+)/g, 'sqrt($1)').replace(/π/g, 'pi').replace(/√/g, 'sqrt');
       const raw = String(Algebrite.run(`simplify((${toAlg(upRaw)}) - (${toAlg(lowRaw)}))`)).trim();

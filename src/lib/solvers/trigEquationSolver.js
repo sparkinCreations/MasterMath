@@ -89,7 +89,7 @@ function mergeFamilies(families) {
 
 // "base + period·n" as text, with the trivial cases tidied.
 function familyText(variable, base, period) {
-  const per = near(period, TWO_PI) ? PERIOD_FULL() : near(period, Math.PI) ? PERIOD_HALF() : fmtRad(period);
+  const per = near(period, TWO_PI) ? PERIOD_FULL() : near(period, Math.PI) ? PERIOD_HALF() : `(${fmtRad(period)})`;
   const b = fmtRad(base);
   if (b === '0') return `${variable} = ${per}n`;
   return `${variable} = ${b} + ${per}n`;
@@ -229,7 +229,10 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
   if (calls.length === 0) return null;
   if (/\b(sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh)\b/.test(expr)) return null;
   const arg = calls[0][2].trim();
-  if (!calls.every((c) => c[2].trim() === arg)) return null;
+  if (!calls.every((c) => c[2].trim() === arg)) {
+    // Two different arguments: sin(x) = sin(2x), cos(3x) = cos(x), sin(2x) = cos(x).
+    return solveEqualArguments(rawEquation, equation, variable, shown, calls);
+  }
   const fns = [...new Set(calls.map((c) => c[1]))];
   const argShown = arg.replace(/\*/g, '');
   const outerSteps = [`Solve the equation: ${shown}`];
@@ -267,6 +270,64 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
       }
       return null;
     }
+    // ── a·sin + b·cos = c (c ≠ 0): R·sin(θ + φ) = c with R = √(a² + b²).
+    const isLinBothC = isLinIn('S') && isLinIn('C');
+    if (isLinBothC && Math.abs(f(0, 0)) >= 1e-9) {
+      const a = f(1, 0) - f(0, 0);
+      const b = f(0, 1) - f(0, 0);
+      const c = -f(0, 0);
+      if (Math.abs(a) > 1e-9 && Math.abs(b) > 1e-9) {
+        const R = Math.hypot(a, b);
+        const phi = Math.atan2(b, a); // a sinθ + b cosθ = R sin(θ + φ)
+        const rShown = fmtValue(R) === formatNumber(R) ? (Math.abs(R - Math.round(R)) < 1e-9 ? String(Math.round(R)) : `√${niceNumber(R * R)}`) : fmtValue(R);
+        const cf = (v) => (Math.abs(Math.abs(v) - 1) < 1e-9 ? '' : `${fmtValue(Math.abs(v))}·`);
+        outerSteps.push(`Sine and cosine both appear to the first power with a nonzero constant: ${a < 0 ? '−' : ''}${cf(a)}sin(${argShown}) ${b < 0 ? '−' : '+'} ${cf(b)}cos(${argShown}) = ${fmtValue(c)}.`);
+        outerSteps.push(`Combine them into one sine: a·sin θ + b·cos θ = R·sin(θ + φ) with R = √(a² + b²) = ${rShown} and φ = arctan(b/a) = ${fmtRad(phi)}.`);
+        if (Math.abs(c) > R + 1e-9) {
+          outerSteps.push(`So ${rShown}·sin(${argShown} ${phi < 0 ? `− ${fmtRad(-phi)}` : `+ ${fmtRad(phi)}`}) = ${fmtValue(c)} would need sin to be ${fmtValue(c / R)}, outside [−1, 1] — no real solution.`);
+          const result = undefinedValue({ input: rawEquation, reason: `|${fmtValue(c)}| exceeds R = ${rShown}, so no angle works.`, steps: outerSteps });
+          result.answer = 'No real solution';
+          return result;
+        }
+        const shift = phi < 0 ? `− ${fmtRad(-phi)}` : `+ ${fmtRad(phi)}`;
+        const ratioText = `${fmtValue(c)}/${rShown}`;
+        outerSteps.push(`So sin(${argShown} ${shift}) = ${ratioText}${ratioText === fmtValue(c / R) ? '' : ` = ${fmtValue(c / R)}`}. Let θ = ${argShown} ${shift}.`);
+        const inner = solveTrigEquation(`sin(t) = ${parseableValue(c / R)}`, 't', undefined, true);
+        if (!inner || inner.status === 'unsupported' || !Array.isArray(inner.graph?.solutions)) return null;
+        // θ solutions on [0, 2π) → subtract φ, then account for k in arg (k·x).
+        const thetaList = inner.graph.solutions.map((t) => (DEGREES ? t * Math.PI / 180 : t));
+        outerSteps.push(`Solve for θ: ${inner.answer.replace(/\bt\b/g, 'θ')}`);
+        // arg = k·x (bare x → k = 1)
+        const km = arg === variable ? 1 : (() => { try { return math.evaluate(arg, { [variable]: 1 }) - math.evaluate(arg, { [variable]: 0 }); } catch { return NaN; } })();
+        if (!Number.isFinite(km) || km === 0) return null;
+        const bases = thetaList.map((t) => ((t - phi) % TWO_PI + TWO_PI) % TWO_PI);
+        const list = [];
+        for (const base of bases) {
+          for (let n = -Math.ceil(Math.abs(km)) - 1; n <= Math.ceil(Math.abs(km)) + 1; n += 1) {
+            const x = (base + TWO_PI * n) / km;
+            if (x >= -EPS && x < TWO_PI - EPS && !list.some((y) => Math.abs(y - x) < 1e-8)) list.push(x);
+          }
+        }
+        list.sort((x, y) => x - y);
+        // Verify against the original.
+        const [L, Rr] = equation.split('=');
+        const ok = list.every((x) => { try { return Math.abs(math.evaluate(L, { [variable]: x }) - math.evaluate(Rr, { [variable]: x })) < 1e-6; } catch { return false; } });
+        if (!ok) return null;
+        const per = TWO_PI / Math.abs(km);
+        const general = bases.map((b0) => familyText(variable, ((b0 / km) % per + per) % per, per)).join('  or  ');
+        outerSteps.push(`Then ${argShown} = θ ${phi < 0 ? `+ ${fmtRad(-phi)}` : `− ${fmtRad(phi)}`}${km !== 1 ? `, and divide by ${formatNumber(km)}` : ''}: ${general}`);
+        outerSteps.push(`On ${RANGE_TEXT()}: ${list.map((x) => `${variable} = ${fmtRad(x)}`).join(',  ')}`);
+        outerSteps.push(`Check: substituting each value back into ${shown} balances both sides.`);
+        return {
+          steps: outerSteps,
+          answer: `${general} (n ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
+          tips: ['a·sin θ + b·cos θ is a single sine wave of amplitude R = √(a² + b²), shifted by φ — combining them turns the equation into the basic form.', 'If |c| > R the equation has no solution: the combined wave never reaches c.'],
+          common_mistakes: ['Squaring both sides to remove the mixed terms — that introduces extraneous solutions.', 'Forgetting to subtract φ after solving for θ.'],
+          graph: null,
+        };
+      }
+    }
+
     // ── a·sin + b·cos = 0 → tan = −a/b.
     const isLinBoth = isLinIn('S') && isLinIn('C');
     if (isLinBoth && Math.abs(f(0, 0)) < 1e-9) {
@@ -294,6 +355,10 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
   const g = (u) => evalAt(e, { U: u });
   const [g0, g1, g2, g3] = [g(0), g(1), g(2), g(3)];
   if (![g0, g1, g2, g3].every(Number.isFinite)) return null;
+  if ([g0, g1, g2, g3].every((t) => Math.abs(t) < 1e-9)) {
+    outerSteps.push('Both sides are the same expression — the equation holds for every value.');
+    return { steps: outerSteps, answer: 'All real numbers (identity)', tips: ['An identity is true for every input; there is nothing to solve.'], common_mistakes: [], graph: null };
+  }
   const d1 = g1 - g0, d2 = g2 - g1, d3 = g3 - g2;
   const second = d2 - d1;
   if (Math.abs((d3 - d2) - second) > 1e-9 || Math.abs(second) < 1e-9) return null; // not quadratic
@@ -360,6 +425,105 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
       'Solving for u and reporting u as the answer — the angle still has to be found.',
     ],
     graph,
+  };
+}
+
+// f(A) = g(B) with linear arguments A = k₁x + d₁, B = k₂x + d₂:
+//   sin A = sin B  ⇔  A = B + 2πn  or  A = π − B + 2πn
+//   cos A = cos B  ⇔  A = ±B + 2πn
+//   tan A = tan B  ⇔  A = B + πn
+//   sin A = cos B  ⇔  sin A = sin(π/2 − B)
+function solveEqualArguments(rawEquation, equation, variable, shown, calls) {
+  const [lhs, rhs] = equation.split('=').map((t) => t.trim());
+  const isCall = (t, m) => new RegExp(`^\\s*${m[1]}\\s*\\(\\s*${rx(m[2].trim())}\\s*\\)\\s*$`).test(t);
+  const lm = calls.find((m) => isCall(lhs, m));
+  const rm = calls.find((m) => isCall(rhs, m));
+  if (!lm || !rm || calls.length !== 2) return null;
+  const linear = (arg) => {
+    try {
+      const d = math.evaluate(arg, { [variable]: 0 });
+      const k = math.evaluate(arg, { [variable]: 1 }) - d;
+      const chk = math.evaluate(arg, { [variable]: 2 }) - d;
+      if (![d, k, chk].every(Number.isFinite) || Math.abs(chk - 2 * k) > 1e-9) return null;
+      return { k, d };
+    } catch { return null; }
+  };
+  const A = linear(lm[2].trim());
+  const B = linear(rm[2].trim());
+  if (!A || !B) return null;
+  let f = lm[1];
+  let g = rm[1];
+  const steps = [`Solve the equation: ${shown}`];
+  if (DEGREES) steps.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
+  const Ash = lm[2].replace(/\*/g, '');
+  let Bsh = rm[2].replace(/\*/g, '');
+  let Bk = B.k;
+  let Bd = B.d;
+  if (f !== g) {
+    // Convert to the same function via the cofunction identity.
+    if (f === 'sin' && g === 'cos') { steps.push(`cos(${Bsh}) = sin(π/2 − (${Bsh})), so the equation is sin(${Ash}) = sin(π/2 − (${Bsh})).`); Bsh = `π/2 − (${Bsh})`; Bk = -B.k; Bd = Math.PI / 2 - B.d; g = 'sin'; }
+    else if (f === 'cos' && g === 'sin') { steps.push(`sin(${Bsh}) = cos(π/2 − (${Bsh})), so the equation is cos(${Ash}) = cos(π/2 − (${Bsh})).`); Bsh = `π/2 − (${Bsh})`; Bk = -B.k; Bd = Math.PI / 2 - B.d; g = 'cos'; }
+    else return null;
+  }
+  const families = []; // {base, period} for x
+  const addFamily = (K, D, per) => {
+    // K·x = D + per·n
+    if (Math.abs(K) < 1e-9) return Math.abs(((D % per) + per) % per) < 1e-9 || Math.abs(((D % per) + per) % per - per) < 1e-9 ? 'identity' : 'none';
+    const p = per / Math.abs(K);
+    families.push({ base: ((D / K) % p + p) % p, period: p });
+    return 'ok';
+  };
+  let identity = false;
+  if (f === 'sin') {
+    steps.push(`Two sines are equal when their angles are equal, or supplementary, up to full turns: ${Ash} = ${Bsh} + 2πn  or  ${Ash} = π − (${Bsh}) + 2πn.`);
+    if (addFamily(A.k - Bk, Bd - A.d, TWO_PI) === 'identity') identity = true;
+    if (addFamily(A.k + Bk, Math.PI - A.d - Bd, TWO_PI) === 'identity') identity = true;
+  } else if (f === 'cos') {
+    steps.push(`Two cosines are equal when their angles are equal or opposite, up to full turns: ${Ash} = ±(${Bsh}) + 2πn.`);
+    if (addFamily(A.k - Bk, Bd - A.d, TWO_PI) === 'identity') identity = true;
+    if (addFamily(A.k + Bk, -A.d - Bd, TWO_PI) === 'identity') identity = true;
+  } else {
+    steps.push(`Two tangents are equal when their angles differ by a multiple of π: ${Ash} = ${Bsh} + πn.`);
+    if (addFamily(A.k - Bk, Bd - A.d, Math.PI) === 'identity') identity = true;
+  }
+  if (identity) {
+    steps.push('One branch holds for every x — the equation is an identity.');
+    return { steps, answer: `All real numbers (identity)`, tips: ['The two sides are the same function.'], common_mistakes: [], graph: null };
+  }
+  if (families.length === 0) {
+    steps.push('Neither branch can hold — no solution.');
+    return { steps, answer: 'No solution', tips: [], common_mistakes: [], graph: null };
+  }
+  // Drop a family whose members are all inside another (πn ⊂ (π/2)n).
+  const dedup = mergeFamilies(families).filter((fm, i, arr) => !arr.some((g, j) => {
+    if (i === j) return false;
+    const ratio = fm.period / g.period;
+    if (Math.abs(ratio - Math.round(ratio)) > 1e-9 || Math.round(ratio) < 1) return false;
+    const off = ((fm.base - g.base) / g.period);
+    return Math.abs(off - Math.round(off)) < 1e-9 && (Math.round(ratio) > 1 || j < i);
+  }));
+  const merged = dedup.sort((p, q) => p.base - q.base);
+  const general = merged.map((fm) => familyText(variable, fm.base, fm.period)).join('  or  ');
+  const list = [];
+  for (const fm of merged) {
+    for (let n = -1; n <= Math.ceil(TWO_PI / fm.period) + 1; n += 1) {
+      const x = fm.base + fm.period * n;
+      if (x >= -EPS && x < TWO_PI - EPS && !list.some((y) => Math.abs(y - x) < 1e-8)) list.push(x);
+    }
+  }
+  list.sort((x, y) => x - y);
+  const [L, Rr] = equation.split('=');
+  const ok = list.every((x) => { try { return Math.abs(math.evaluate(L, { [variable]: x }) - math.evaluate(Rr, { [variable]: x })) < 1e-6; } catch { return false; } });
+  if (!ok) return null;
+  steps.push(`Solve each branch for ${variable}: ${general}`);
+  steps.push(`On ${RANGE_TEXT()}: ${list.map((x) => `${variable} = ${fmtRad(x)}`).join(',  ')}`);
+  steps.push(`Check: substituting each value back into ${shown} balances both sides.`);
+  return {
+    steps,
+    answer: `${general} (n ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
+    tips: ['sin A = sin B has TWO branches (equal or supplementary angles); cos A = cos B has A = ±B; tan A = tan B has one branch with period π.', 'Cofunctions convert: cos B = sin(π/2 − B).'],
+    common_mistakes: ['Cancelling the function on both sides as if it were a factor — sin A = sin B does not mean A = B only.', 'Forgetting the second branch.'],
+    graph: null,
   };
 }
 

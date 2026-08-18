@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-08-18
+
+The three shapes left open by 1.26.0.
+
+### Added
+
+- **Partial fractions.** A proper rational function whose denominator has
+  distinct real linear factors is decomposed by the cover-up method
+  (Aᵢ = N(rᵢ)/D′(rᵢ)) and integrated term by term: `∫ 1/(x²+x) dx =
+  ln|x| − ln|x+1| + C`, `∫ (x+1)/(x²−5x+6) dx = 4ln|x−3| − 3ln|x−2| + C`,
+  `∫ 1/(x³−x) dx`. The decomposition is checked numerically and the
+  antiderivative by differentiation before either is shown. Reaches the
+  improper path too: `∫₁^∞ 1/(x²+x) dx = ln 2`.
+- **`a·sin x + b·cos x = c`** by the auxiliary angle: `sin x + cos x = 1` →
+  "R = √2, φ = π/4, so sin(x + π/4) = √2/2 → θ = π/4 or 3π/4 → x = 0 or π/2";
+  `sin x + √3 cos x = 1` → π/2, 11π/6; `2sin x + 3cos x = 1` (decimal φ);
+  `sin 2x + cos 2x = 1`; and `sin x + cos x = 2` → no real solution (|c| > R).
+- **`f(A) = f(B)` with different arguments**: `sin x = sin 2x` (equal or
+  supplementary angles) → `x = 2πn or π/3 + (2π/3)n`; `cos 3x = cos x` →
+  `(π/2)n`; `tan 2x = tan x` → πn; mixed `sin 2x = cos x` via the cofunction
+  identity cos B = sin(π/2 − B). Identities (`sin x = sin x`) are named.
+
+### Fixed
+
+- Improper integrals with a finite end now keep that end exact: `∫₁^∞
+  1/(x²+x) dx = ln(2) (≈ 0.6931)` (was `0.6931`).
+- Antiderivative display: `4log(x − 3)` → `4ln|x − 3|` (a boundary regex
+  missed a coefficient-prefixed log).
+
 ## [1.26.0] - 2026-08-18
 
 Four capabilities that were the biggest remaining gaps after the sixth pass.

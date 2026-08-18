@@ -281,3 +281,10 @@ test('3×3 linear systems by elimination, exact, with the trichotomy', async () 
   // Under any topic.
   assert.equal((await solveProblem('y + z = 1; x + z = 2; x + y = 3', 'derivatives')).answer, 'x = 2,  y = 1,  z = 0');
 });
+
+test('partial fractions over distinct real linear factors', async () => {
+  assert.equal((await solveProblem('∫ 1/(x^2+x) dx', 'integrals')).answer, '∫(1/(x^2 + x)) dx = ln|x| - ln|x + 1| + C');
+  assert.equal((await solveProblem('∫ (x+1)/(x^2-5x+6) dx', 'integrals')).answer, '∫((x + 1)/(x^2 - 5x + 6)) dx = 4ln|x - 3| - 3ln|x - 2| + C');
+  assert.match((await solveProblem('∫ 1/(x^3-x) dx', 'integrals')).answer, /-ln\|x\| \+ 1\/2\*ln\|x - 1\| \+ 1\/2\*ln\|x \+ 1\| \+ C$/);
+  assert.match((await solveProblem('∫_1^∞ 1/(x^2+x) dx', 'integrals')).answer, /= ln\(2\) \(≈ 0\.6931\)$/);
+});
