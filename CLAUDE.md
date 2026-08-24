@@ -254,4 +254,5 @@ still deploys safely; the bump is for humans (changelog, footer, releases).
 - App name: **MasterMath** (not MathMaster)
 - By: sparkinCreations™
 - Tagline: "Master math with confidence"
+- Positioning: step-by-step local solver (open-source math libraries, not AI) — never "personal math tutor" / AI chatbot framing
 - Links to sparkincreations.com in footer

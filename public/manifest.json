@@ -1,7 +1,7 @@
 {
-  "name": "MasterMath - Master Math with Confidence",
+  "name": "MasterMath - Step-by-step math, solved locally",
   "short_name": "MasterMath",
-  "description": "Free step-by-step math solver for calculus and precalculus. Get instant solutions with detailed explanations, graphs, and learning tips.",
+  "description": "Free step-by-step math solver for calculus and precalculus. Runs in your browser — not AI. Worked solutions with graphs and learning tips.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
