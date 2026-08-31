@@ -1,10 +1,9 @@
 # 📚 MasterMath
 
-> **A privacy-focused educational math solver that helps students master precalculus and calculus concepts through step-by-step solutions.**
+> **A privacy-focused educational math solver that helps students master precalculus and calculus concepts through step-by-step solutions — powered by open-source math libraries, not AI.**
 
 🌐 **Live at [mastermath.app](https://mastermath.app)**
 
-[![Built with AI](https://img.shields.io/badge/Built%20with-AI%20Assistance-blue)](https://github.com/sparkinCreations/MasterMath)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.3.1-blue)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4.5-purple)](https://vitejs.dev/)
@@ -275,7 +274,6 @@ MasterMath is developed by [sparkinCreations™](https://sparkincreations.com), 
 
 - **Math Libraries** - Algebrite, MathJS, and mathsteps communities
 - **UI Framework** - React and Vite teams
-- **AI Assistance** - Claude (Anthropic) for development support
 - **Open Source** - All the amazing libraries that make this possible
 
 ## ⚠️ Important Notice

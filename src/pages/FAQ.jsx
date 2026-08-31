@@ -22,7 +22,11 @@ export default function FAQ() {
     },
     {
       question: "Is my data private and secure?",
-      answer: "Absolutely. MasterMath is 100% client-side - nothing is sent to our servers because we don't have any! All your problems, solutions, and history are stored locally in your browser's IndexedDB. We never see, collect, or transmit your data."
+      answer: "Yes. Solving and your problem history stay on your device in IndexedDB — we never see your math work. The only time anything is sent is if you choose to submit Feedback & Support (via Web3Forms); that is optional and documented in the Privacy Policy."
+    },
+    {
+      question: "Is MasterMath AI?",
+      answer: "No. MasterMath does not use a language model or any cloud AI to solve problems. All calculations run in your browser with open-source math libraries (Algebrite, MathJS, and mathsteps). That is why it works offline, why answers are deterministic, and why unsupported input is refused instead of invented."
     },
     {
       question: "What types of math problems can I solve?",
@@ -30,7 +34,7 @@ export default function FAQ() {
     },
     {
       question: "How accurate are the solutions?",
-      answer: "We use industry-standard math libraries (Algebrite, MathJS, mathsteps) for calculations. However, you should always verify solutions independently. MasterMath is a learning tool, not a replacement for understanding the concepts."
+      answer: "We use industry-standard math libraries (Algebrite, MathJS, mathsteps) for calculations — not AI. However, you should always verify solutions independently. MasterMath is a learning tool, not a replacement for understanding the concepts."
     },
     {
       question: "Can I export my solutions?",
@@ -94,7 +98,7 @@ export default function FAQ() {
     },
     {
       question: "Who created MasterMath?",
-      answer: "MasterMath was created by sparkinCreations™ to make math learning accessible, free, and privacy-focused. It's built with modern web technologies and powered by open-source math libraries."
+      answer: "MasterMath was created by sparkinCreations™ to make math learning accessible, free, and privacy-focused. It's built with modern web technologies and powered by open-source math libraries — not AI."
     }
   ];
 

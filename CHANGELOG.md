@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-08-24
+
+### Changed
+
+- **Product positioning: local solver, not AI.** Home hero, trust row
+  ("Solved locally · Not AI · No account"), feature cards, How It Works,
+  User Manual, FAQ (new "Is MasterMath AI?" plus an accurate Feedback
+  exception on privacy), SEO/meta/manifest, and README no longer frame
+  MasterMath as a "personal math tutor" or advertise AI assistance. The
+  brand tagline "Master math with confidence" stays; the descriptor is
+  now step-by-step symbolic math in the browser.
+
 ## [1.28.0] - 2026-08-18
 
 ### Added

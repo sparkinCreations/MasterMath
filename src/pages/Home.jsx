@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export default function Home() {
-  usePageTitle("Master Math with Confidence - Free Math Solver");
+  usePageTitle("Step-by-step math, solved locally - Free Math Solver");
 
   return (
     <div className="p-4 md:p-6">
@@ -36,11 +36,11 @@ export default function Home() {
             Master math with confidence
           </p>
           <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 px-2">
-            Your personal math tutor for solving common math problems like calculus, algebra, and trigonometry
+            Step-by-step calculus and algebra, solved in your browser — not by AI
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 mb-6 md:mb-8 px-2">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 mb-4 md:mb-6 px-2">
           <Button
             asChild
             size="lg"
@@ -64,6 +64,10 @@ export default function Home() {
             </Link>
           </Button>
         </div>
+
+        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-6 md:mb-8 px-2">
+          Solved locally · Not AI · No account
+        </p>
 
         {/* GitHub Link */}
         <div className="mb-8 md:mb-12 px-2">
@@ -126,12 +130,12 @@ export default function Home() {
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
               <CardTitle as="h3" className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                 <Zap className="w-6 h-6" />
-                Instant Solutions
+                Worked Steps
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <p className="text-gray-700 dark:text-gray-300">
-                Get immediate step-by-step solutions with detailed explanations for every problem.
+                Named methods (power rule, u-sub, by-parts) with every intermediate shown — not a black-box answer.
               </p>
             </CardContent>
           </Card>
@@ -191,7 +195,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="p-6">
               <p className="text-gray-700 dark:text-gray-300">
-                All data stored locally on your device. No servers, no tracking, complete privacy.
+                Solving and history stay on your device. No cloud solve, no tracking — and not AI.
               </p>
             </CardContent>
           </Card>
@@ -232,9 +236,9 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-gray-200 mb-1 md:mb-2">Enter Your Problem</h3>
+                  <h3 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-gray-200 mb-1 md:mb-2">Enter an Expression or Equation</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm md:text-lg">
-                    Type your math problem or choose from example problems to get started quickly.
+                    Type mathematics itself — like d/dx x³, ∫ x² dx, or x² − 5x + 6 = 0 — or pick an example to start.
                   </p>
                 </div>
               </div>
@@ -296,8 +300,8 @@ export default function Home() {
             <div className="flex items-start gap-2 md:gap-3">
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
               <div>
-                <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Student-Friendly</h3>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Designed for students by understanding their needs</p>
+                <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Not AI</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Open-source math libraries (mathjs, Algebrite, mathsteps) — deterministic, not a language model</p>
               </div>
             </div>
           </div>
@@ -332,7 +336,7 @@ export default function Home() {
       {/* Footer */}
       <div className="text-center py-8 md:py-12 text-gray-500 dark:text-gray-400 px-2">
         <p className="text-base md:text-lg">MasterMath by sparkinCreations™</p>
-        <p className="text-xs md:text-sm mt-1">Master math with confidence - Your personal math tutor, anytime, anywhere</p>
+        <p className="text-xs md:text-sm mt-1">Master math with confidence — step-by-step, solved locally, not by AI</p>
         <a
           href="https://github.com/sparkinCreations/MasterMath"
           target="_blank"

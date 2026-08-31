@@ -27,11 +27,12 @@ export default function UserManual() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            MasterMath is your personal math tutor designed to help you understand and solve math
-            problems step-by-step. Whether you're working on derivatives, integrals, limits, algebra,
-            trigonometry, or basic arithmetic, MasterMath guides you through each problem with clear
-            explanations, helpful tips, and warnings about common mistakes. The app works fully offline
-            after your first visit — a service worker caches everything so you can study anywhere.
+            MasterMath is a step-by-step math solver that runs entirely in your browser — powered by
+            open-source math libraries, not AI. Whether you're working on derivatives, integrals, limits,
+            algebra, trigonometry, or basic arithmetic, MasterMath walks through each expression or
+            equation with clear explanations, helpful tips, and warnings about common mistakes. The app
+            works fully offline after your first visit — a service worker caches everything so you can
+            study anywhere.
           </p>
         </CardContent>
       </Card>
@@ -285,7 +286,7 @@ export default function UserManual() {
       {/* Footer */}
       <div className="text-center py-6 text-gray-500 dark:text-gray-400">
         <p>MasterMath by sparkinCreations™</p>
-        <p className="text-sm mt-1">Learn with confidence - Your personal math tutor, anytime, anywhere</p>
+        <p className="text-sm mt-1">Master math with confidence — step-by-step, solved locally, not by AI</p>
       </div>
     </div>
   );
