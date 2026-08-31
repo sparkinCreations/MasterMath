@@ -22,6 +22,15 @@ export default function MathText({ text, block = false }) {
           throwOnError: true,
           displayMode: false,
           output: "htmlAndMathml",
+          // Set explicitly rather than relying on the KaTeX default. This
+          // rendered HTML is injected with dangerouslySetInnerHTML below, and
+          // it is the app's only HTML sink; `trust: false` is what stops the
+          // HTML-extension commands (\href, \htmlClass, \includegraphics)
+          // from emitting live markup. Raw user input does reach here — a
+          // parse error embeds it in the step text — so the guarantee must be
+          // stated in the code, not inherited from a default a future KaTeX
+          // upgrade or config change could move.
+          trust: false,
         });
         return { type: "katex", html };
       } catch {

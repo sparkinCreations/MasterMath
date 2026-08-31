@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.29.1] - 2026-08-31
+
+Follow-up hardening from a CodeRabbit review of PR #1. Both items were gaps
+between what a comment promised and what the code actually did.
+
+### Security
+
+- CSV export now neutralizes a cell beginning with *any* control character,
+  not just tab and carriage return. The trigger read `/^[=+\-@\t\r]/` while
+  its comment claimed every control character was covered, so a value starting
+  with a line feed exported unguarded — and a spreadsheet may strip or
+  reinterpret a leading control character before deciding whether the cell is
+  a formula. `sanitizeInput()` removes these from newly entered problems, but
+  history that was imported, or saved before that existed, is not covered by
+  it.
+- `MathText` now passes `trust: false` to KaTeX explicitly instead of relying
+  on the library default. This is the app's only HTML sink, and raw user input
+  can reach it (a parse error embeds the input in the step text), so the
+  property that blocks KaTeX's HTML-extension commands is stated in the code
+  rather than inherited from a default that a future upgrade could move.
+  Behaviour is unchanged — `false` is already the default.
+
+### Changed
+
+- Corrected the security rationale comment in `validation.js`. It claimed
+  KaTeX sees "solver output rather than raw input", which is not accurate:
+  a parse error embeds the raw input in the step text that `SolutionDisplay`
+  renders through `MathText`. The comment now describes what actually makes
+  that path safe — `latex.js` classifies fragments containing unknown words as
+  text, so tag and script payloads render escaped and never reach the HTML
+  path, and `trust: false` covers anything that does parse as maths.
+
 ## [1.29.0] - 2026-08-24
 
 ### Changed

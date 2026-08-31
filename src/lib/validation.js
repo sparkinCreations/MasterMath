@@ -24,12 +24,19 @@ export function validateMathInput(input) {
 
   // There is deliberately no HTML/script pattern check here.
   //
-  // It blocked nothing reachable: React escapes every value it renders, the
-  // one HTML sink in the app (KaTeX, via MathText) runs with `trust: false`
-  // over solver output rather than raw input, and the exports are plain text.
-  // What it did do was reject legitimate maths — the event-handler pattern
-  // `/on\w+\s*=/i` matched the "on" inside "constant", so "constant = 5" came
-  // back as "Invalid input detected" with no hint as to why.
+  // It blocked nothing reachable. React escapes every value it renders, and
+  // the exports are plain text. The app's one HTML sink is KaTeX via
+  // MathText, and raw input *can* reach it — a parse error embeds the input
+  // in the step text, which SolutionDisplay renders through MathText — but
+  // two things stand between that and live markup: latex.js classifies a
+  // fragment containing unknown words as text, so a tag or script payload
+  // renders as escaped text and never reaches the HTML path at all, and
+  // MathText passes `trust: false` explicitly, which blocks KaTeX's
+  // HTML-extension commands for anything that does parse as maths.
+  //
+  // What the check did do was reject legitimate maths — the event-handler
+  // pattern `/on\w+\s*=/i` matched the "on" inside "constant", so
+  // "constant = 5" came back as "Invalid input detected" with no hint why.
 
   // Check if input contains at least one mathematical character or word
   const hasMathContent = /[0-9+\-*/^()=.xyzabc]|sin|cos|tan|log|ln|sqrt|derivative|integral|limit|solve/i.test(trimmed);
