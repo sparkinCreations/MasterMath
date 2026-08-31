@@ -44,6 +44,23 @@ test('buildProgressCSV neutralizes cells a spreadsheet would run as a formula', 
   assert.equal(values[4], "'@SUM(A1)");
 });
 
+test('buildProgressCSV guards every leading control character', () => {
+  // The trigger once listed only tab and carriage return, so a value starting
+  // with a line feed exported unguarded. A spreadsheet may strip or
+  // reinterpret a leading control character before deciding the cell is a
+  // formula. sanitizeInput() removes these from newly entered problems, but
+  // imported or pre-sanitize history is not covered by it.
+  for (const control of ['\n', '\r', '\t', '\v', '\f', '\u0000', '\u0085']) {
+    const csv = buildProgressCSV([entry({ problem: `${control}=1+1` })], TOPIC_LABELS);
+    const value = cells(csv.split('\n').slice(1).join('\n'))[2];
+    assert.equal(
+      value,
+      `'${control}=1+1`,
+      `leading ${JSON.stringify(control)} should be guarded`
+    );
+  }
+});
+
 test('buildProgressCSV guards a legitimate leading minus too', () => {
   const csv = buildProgressCSV([entry({ problem: '-3 < x < 5' })], TOPIC_LABELS);
   assert.equal(cells(csv.split('\n')[1])[2], "'-3 < x < 5");

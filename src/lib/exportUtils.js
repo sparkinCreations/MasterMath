@@ -80,7 +80,14 @@ function totalsLine(problems) {
 // be made to produce them deliberately — so opening an exported file could run
 // whatever the cell contained. Prefixing with an apostrophe marks the cell as
 // literal text, which is the standard mitigation for CSV injection.
-const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+//
+// \p{Cc} covers every C0/C1 control character, not just the tab and carriage
+// return this once listed: a spreadsheet may strip or reinterpret a leading
+// control character before deciding whether the cell is a formula, so a value
+// starting with a line feed would have slipped through guarded as text.
+// sanitizeInput() strips these from newly entered problems, but history that
+// was imported or saved before that existed is not covered by it.
+const FORMULA_TRIGGER = /^(?:[=+\-@]|\p{Cc})/u;
 
 function csvCell(value) {
   const text = String(value ?? '');
