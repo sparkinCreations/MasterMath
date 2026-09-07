@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.32.0
+**Version referenced:** 1.32.1
 **By:** sparkinCreations™
 **Last Updated:** September 7, 2026
 **Supersedes:** [`ROADMAP-2026-07.md`](ROADMAP-2026-07.md) (13/13 items shipped)
@@ -79,7 +79,7 @@ finds.
 | 3 | ~~Limit techniques named the way a course names them~~ ✅ Done v1.31.0 (standard limits, squeeze at 0 and ∞, conjugate, factor-and-cancel, leading terms at ±∞ — each verified numerically, ladder unchanged as fallback) | P1 | Medium | Engine | 2 |
 | 4 | ~~Nonlinear 2×2 systems~~ ✅ Done v1.32.0 (substitution when one equation is linear in a variable; exact roots; every pair verified; two general conics still refused) | P2 | Medium | Feature | 2 |
 | 5 | ~~Compound inequalities~~ ✅ Done v1.32.0 (chains and and/or, by set intersection/union of the per-part sign-chart solutions) | P2 | Small–Med | Feature | 2 |
-| 6 | First-load payload: mathjs chunk | P2 | Small–Med | Perf | 3 |
+| 6 | ~~First-load payload: mathjs chunk~~ ✅ Done v1.32.1 — 1,132 → 866 kB (gzip 324 → 245 kB) via explicit dependencies; the 500 kB target is structurally out of reach (see section) | P2 | Small–Med | Perf | 3 |
 | 7 | Dependency majors (React 19, Vite 8, Tailwind 4, …) | P3 | Medium | Maint | 3 |
 | 8 | ~~Isolate mathsteps behind one seam~~ ✅ Done v1.30.1 (moved up after it produced a wrong answer; two guarded entry points, kill switch, fallback proven by test) | P3 | Small | Maint | 3 |
 | 9 | ~~Documentation debt~~ ✅ Done v1.29.2 (semantics status header, test renamed, worktree pruned) | P3 | Small | Docs | 1 |
@@ -273,7 +273,7 @@ interval notation with correct open/closed endpoints and extend the
 
 ---
 
-## P2 — First-Load Payload: mathjs Chunk
+## P2 — First-Load Payload: mathjs Chunk — ✅ Done v1.32.1 (partial: floor reached)
 
 **Measured (v1.29.1 build):**
 
@@ -306,6 +306,21 @@ a missing factory throws, it does not mis-answer), measure again.
 
 **Acceptance:** mathjs chunk under 500 KB, zero test changes, no solver
 behavior change.
+
+> **Outcome (v1.32.1):** 1,132 kB → 866 kB raw, 324 kB → 245 kB gzipped,
+> no solver behaviour change, and the one matrix call (a least-squares solve
+> inside partial fractions) replaced by plain Gaussian elimination. The
+> 500 kB target is **not reachable** with this design, and the reason was
+> traced rather than guessed: in mathjs's full entry every function
+> dependency — even `sinDependencies` — transitively includes BigNumber and
+> Matrix through the typed core, and `parseDependencies` includes Unit. The
+> number-only entry (`mathjs/number`) avoids all three but has no Complex,
+> Fraction or polynomialRoot, which Arithmetic (√−4), Systems (exact
+> fractions) and Algebra (cubic roots) rely on. Going below ~860 kB would
+> mean replacing the expression parser, which is a different project.
+> `tests/mathInstance.test.js` evaluates every accepted function and
+> constant through the app instance, so a name missing from the list fails
+> in CI rather than in a browser.
 
 ---
 

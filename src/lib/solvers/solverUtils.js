@@ -4,10 +4,10 @@
 // sampling loop, and ad-hoc number/expression formatting. Those now live here
 // so the individual solvers can focus on the mathematics and the step wording.
 
-import { create, all } from 'mathjs';
+import { createMath } from '../mathInstance.js';
 import { getSettings } from '../settings.js';
 
-export const math = create(all);
+export const math = createMath();
 
 // mathjs names the natural log `log`; students (and Algebrite) write `ln`.
 // Alias it so every numeric evaluation — graphs, sampling, arithmetic —

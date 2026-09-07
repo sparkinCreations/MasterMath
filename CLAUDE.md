@@ -60,7 +60,7 @@ The design features:
 - **shadcn/ui + Tailwind CSS**: UI component library and styling
 
 **Math Libraries:**
-- **mathjs**: Core math operations and expression parsing
+- **mathjs**: Core math operations and expression parsing. Both instances are built in `src/lib/mathInstance.js` from an explicit dependency list (not `create(all)`) so matrices, units and statistics tree-shake out; add a function there AND to the battery in `tests/mathInstance.test.js`. Floor is ~865 kB because every function in the full entry pulls BigNumber and Matrix through the typed core; the number-only entry lacks Complex/Fraction/polynomialRoot.
 - **algebrite**: Symbolic algebra, calculus, and simplification
 - **mathsteps**: Step-by-step algebraic simplification. Unmaintained (v0.2.0) and once confidently wrong, so it is reached only through the two guarded entry points in `mathstepsUtils.js` (`mathstepsSolveEquation`, `mathstepsSimplify`) — never throw, kill switch `setMathstepsEnabled(false)`, every caller has an exact Algebrite fallback; `tests/mathstepsSeam.test.js` enforces the single import and the fallback.
 

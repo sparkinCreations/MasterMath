@@ -478,13 +478,11 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
   const xs = Array.from({ length: nUnknowns + 3 }, (_, i) => 0.37 + 0.71 * i);
   const A = xs.map((x) => basis.map((b) => math.evaluate(b, { [v]: x })));
   const y = xs.map((x) => math.evaluate(num, { [v]: x }) / constant);
-  let coef;
-  try {
-    // Least squares (over-determined by 3 rows) — exact for a true decomposition.
-    const At = math.transpose(math.matrix(A));
-    coef = math.lusolve(math.multiply(At, math.matrix(A)), math.multiply(At, math.matrix(y))).toArray().map((r) => r[0]);
-  } catch { return null; }
-  if (!coef.every((c) => Number.isFinite(c))) return null;
+  // Least squares (over-determined by 3 rows) — exact for a true decomposition.
+  // Solved on plain arrays so the mathjs matrix subsystem is not bundled for
+  // this one call.
+  const coef = solveNormalEquations(A, y);
+  if (!coef || !coef.every((c) => Number.isFinite(c))) return null;
   // Rationalise (small denominators) and re-verify exactly enough.
   const rat = coef.map((c) => { for (let d = 1; d <= 720; d += 1) { const n = c * d; if (Math.abs(n - Math.round(n)) < 1e-7) return { n: Math.round(n), d }; } return null; });
   if (rat.some((r) => r === null)) return null;
@@ -1212,6 +1210,31 @@ function numericIntegral(integrand, variable, a, b, N = 2000) {
 
   const value = (sum * h) / 3;
   return b < a ? -value : value;
+}
+
+// Least-squares solution of A·c = y via the normal equations (AᵀA)c = Aᵀy,
+// by Gaussian elimination with partial pivoting. A is m×n (m ≥ n), small.
+function solveNormalEquations(A, y) {
+  const m = A.length;
+  const n = m ? A[0].length : 0;
+  if (!m || !n) return null;
+  const M = Array.from({ length: n }, (_, i) => Array.from({ length: n + 1 }, (_, j) => {
+    let s = 0;
+    for (let k = 0; k < m; k += 1) s += A[k][i] * (j === n ? y[k] : A[k][j]);
+    return s;
+  }));
+  for (let col = 0; col < n; col += 1) {
+    let pivot = col;
+    for (let r = col + 1; r < n; r += 1) if (Math.abs(M[r][col]) > Math.abs(M[pivot][col])) pivot = r;
+    if (Math.abs(M[pivot][col]) < 1e-12) return null;
+    [M[col], M[pivot]] = [M[pivot], M[col]];
+    for (let r = 0; r < n; r += 1) {
+      if (r === col) continue;
+      const f = M[r][col] / M[col][col];
+      for (let j = col; j <= n; j += 1) M[r][j] -= f * M[col][j];
+    }
+  }
+  return M.map((row, i) => row[n] / row[i]);
 }
 
 // Algebrite exact strings use log/pi/exp; present them the textbook way.

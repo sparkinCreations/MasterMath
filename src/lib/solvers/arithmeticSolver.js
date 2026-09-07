@@ -1,4 +1,4 @@
-import { create, all } from 'mathjs';
+import { createMath } from '../mathInstance.js';
 import { math, formatNumber, beautify } from './solverUtils.js';
 import { parseError, overflow, undefinedValue, indeterminate } from '../solutionEnvelope.js';
 
@@ -6,7 +6,7 @@ import { parseError, overflow, undefinedValue, indeterminate } from '../solution
 // the whole expression is rational (1/3 + 1/6), it yields the exact fraction;
 // where it isn't (sqrt(2), e^2, factorials) it throws, and the float result
 // stands. Used only for display: the float `math` result remains the value.
-const exact = create(all, { number: 'Fraction' });
+const exact = createMath({ number: 'Fraction' });
 
 // Percent notation, the narrow forms students actually type: "50% of 80" and
 // a bare "N%". This is notation, not natural language — "of" here is the

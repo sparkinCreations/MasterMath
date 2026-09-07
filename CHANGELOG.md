@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.1] - 2026-09-07
+
+Roadmap 2026-09 item 6 (Wave 3). No solver behaviour changes.
+
+### Changed
+
+- **First-visit download is smaller.** mathjs was assembled with
+  `create(all)`, which bundled matrices, units, statistics, bitwise ops and
+  more that the app never calls. Both instances are now built in
+  `src/lib/mathInstance.js` from an explicit list of the parser, evaluator,
+  simplify, polynomialRoot, fractions, complex numbers, formatting and the
+  elementary functions and constants students can type. The mathjs chunk
+  drops from 1,132 kB to 866 kB (gzipped 324 kB → 245 kB). The one matrix
+  call in the code, a least-squares solve inside partial fractions, is now
+  plain Gaussian elimination on arrays. A new test evaluates every accepted
+  function and constant through the app's instance, so a name missing from
+  the list fails in CI rather than in a browser. The roadmap's 500 kB
+  target is not reachable with this design — every function in mathjs's
+  full entry pulls BigNumber and Matrix through its typed core — and the
+  roadmap records why.
+
 ## [1.32.0] - 2026-09-07
 
 Roadmap 2026-09 items 4 and 5 — the last two capability items of Wave 2.
