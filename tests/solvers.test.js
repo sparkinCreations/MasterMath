@@ -117,13 +117,13 @@ test('solveLimit reports divergence at a vertical asymptote instead of a huge fl
 test('solveLimit evaluates limits at infinity', async () => {
   const result = await solveLimit('lim x->infinity 1/x');
   assert.match(result.answer, /=\s*0$/);
-  assert.ok(result.steps.some((step) => /large/i.test(step)));
+  assert.ok(result.steps.some((step) => /highest powers|large/i.test(step)));
 });
 
 test('solveLimit reports indeterminate 0/0 forms via both sides', async () => {
   const result = await solveLimit('lim x->2 (x^2 - 4)/(x - 2)');
   assert.match(result.answer, /=\s*4$/);
-  assert.ok(result.steps.some((step) => /indeterminate/i.test(step)));
+  assert.ok(result.steps.some((step) => /0\/0|indeterminate/i.test(step)));
 });
 
 test('solveFunctions returns graphable function analysis', async () => {

@@ -27,3 +27,6 @@ Limits,lim x->infinity (1+3/x)^x,e^3,—,Audit 2026-09 row L08: power of e named
 Trigonometry,sin(pi/12),(sqrt(6)-sqrt(2))/4,—,Audit 2026-09 row V06: half-angle family exact (was 0.2588)
 Arithmetic,(-8)^(1/3),-2,—,Audit 2026-09 row R01: real odd root (was 1 + 1.7321i)
 Integrals,e^(2x)*cos(x),exp(2*x)*(2*cos(x)+sin(x))/5,—,Audit 2026-09: cyclic by-parts with rational coefficients (was 0.4/0.2 floats)
+Limits,lim x->0 sin(3x)/x,3,—,Roadmap 2026-09 item 3: standard limit named (was Taylor narration)
+Limits,lim x->infinity (3x^2+1)/(2x^2-5),3/2,—,Roadmap 2026-09 item 3: leading-term comparison (was numeric sampling)
+Limits,lim x->0 x*sin(1/x),0,—,Roadmap 2026-09 item 3: squeeze theorem with bounds shown

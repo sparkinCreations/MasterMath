@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.30.1
+**Version referenced:** 1.31.0
 **By:** sparkinCreations™
 **Last Updated:** September 7, 2026
 **Supersedes:** [`ROADMAP-2026-07.md`](ROADMAP-2026-07.md) (13/13 items shipped)
@@ -76,7 +76,7 @@ finds.
 |---|------|----------|--------|------|------|
 | 1 | ~~Black-box re-evaluation against v1.29.1~~ ✅ Done 2026-09-07 — 149 fresh rows, SymPy-graded: **93.3% Correct/Equivalent, 0 confident-wrong**; the two envelope failures and the e³ limit fixed in v1.29.3 ([audit](../evaluations/2026-09/PRODUCTION-AUDIT-v1.29.md)) | **P0** | Medium | Quality | 1 |
 | 2 | ~~Stale trig refusal message~~ ✅ Done v1.29.2 (message states the real boundary; contract test checks every cited example) | P1 | Small | Bug | 1 |
-| 3 | Limit techniques named the way a course names them | P1 | Medium | Engine | 2 |
+| 3 | ~~Limit techniques named the way a course names them~~ ✅ Done v1.31.0 (standard limits, squeeze at 0 and ∞, conjugate, factor-and-cancel, leading terms at ±∞ — each verified numerically, ladder unchanged as fallback) | P1 | Medium | Engine | 2 |
 | 4 | Nonlinear 2×2 systems | P2 | Medium | Feature | 2 |
 | 5 | Compound inequalities | P2 | Small–Med | Feature | 2 |
 | 6 | First-load payload: mathjs chunk | P2 | Small–Med | Perf | 3 |
@@ -205,7 +205,7 @@ app's stated contract.
 
 ---
 
-## P1 — Limit Techniques Named the Way a Course Names Them
+## P1 — Limit Techniques Named the Way a Course Names Them — ✅ Done v1.31.0
 
 **Current behavior (verified in `otherSolvers.js`, `evaluateFiniteLimit`):**
 a four-rung ladder — direct substitution → Algebrite `simplify` →

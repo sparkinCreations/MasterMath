@@ -1024,3 +1024,77 @@ test('audit: ∞ in arithmetic is an indeterminate form or "not a number", never
   assert.match(quotient.answer, /∞\/∞/);
   assert.equal((await solveProblem('∞ + 1', 'other')).status, 'undefined');
 });
+
+// ---------------------------------------------------------------------------
+// Roadmap 2026-09 item 3: limits narrate the technique a course would use.
+// The ladder (Taylor / L'Hôpital) still verifies and still catches the rest.
+// ---------------------------------------------------------------------------
+
+test('limits: sin(kx)/x and (1 − cos x)/x² are named standard limits', async () => {
+  const s = await solveLimit('lim x->0 sin(3x)/x');
+  assert.match(s.answer, /=\s*3$/);
+  assert.equal(s.verificationMethod, 'standard limit + numeric check');
+  assert.ok(s.steps.some((t) => /standard limit sin\(u\)\/u → 1/.test(t)), s.steps.join(' | '));
+  const c = await solveLimit('lim x->0 (1-cos(x))/x^2');
+  assert.match(c.answer, /=\s*1\/2$/);
+  assert.ok(c.steps.some((t) => /\(1 − cos u\)\/u² → 1\/2/.test(t)));
+  const t = await solveLimit('lim x->0 tan(2x)/(5x)');
+  assert.match(t.answer, /=\s*2\/5$/);
+});
+
+test('limits: x·sin(1/x) at 0 and sin(x)/x at ∞ use the squeeze theorem with the bounds shown', async () => {
+  const zero = await solveLimit('lim x->0 x*sin(1/x)');
+  assert.match(zero.answer, /=\s*0$/);
+  assert.equal(zero.verified, true);
+  assert.ok(zero.steps.some((t) => /−\|x\| ≤ x·sin\(1\/x\) ≤ \|x\|/.test(t)), zero.steps.join(' | '));
+  assert.ok(zero.steps.some((t) => /squeeze theorem/.test(t)));
+  const inf = await solveLimit('lim x->infinity sin(x)/x');
+  assert.match(inf.answer, /=\s*0$/);
+  assert.ok(inf.steps.some((t) => /squeeze theorem/.test(t)));
+  assert.equal(inf.verificationMethod, 'squeeze theorem + numeric check');
+});
+
+test('limits: a radical difference is rationalized with the conjugate', async () => {
+  const a = await solveLimit('lim x->0 (sqrt(x+1)-1)/x');
+  assert.match(a.answer, /=\s*1\/2$/);
+  assert.equal(a.verificationMethod, 'conjugate + numeric check');
+  assert.ok(a.steps.some((t) => /conjugate, sqrt\(x \+ 1\) \+ 1/.test(t)), a.steps.join(' | '));
+  const b = await solveLimit('lim x->4 (sqrt(x)-2)/(x-4)');
+  assert.match(b.answer, /=\s*1\/4$/);
+  assert.ok(b.steps.some((t) => /conjugate/.test(t)));
+});
+
+test('limits: a removable rational 0/0 is factored and the common factor cancelled', async () => {
+  const r = await solveLimit('lim x->2 (x^2-4)/(x-2)');
+  assert.match(r.answer, /=\s*4$/);
+  assert.equal(r.verificationMethod, 'factor and cancel + numeric check');
+  assert.ok(r.steps.some((t) => /Both contain the factor \(x − 2\)/.test(t)), r.steps.join(' | '));
+  const n = await solveLimit('lim x->-3 (x^2+5x+6)/(x+3)');
+  assert.match(n.answer, /=\s*-1$/);
+  assert.ok(n.steps.some((t) => /factor \(x \+ 3\)/.test(t)));
+});
+
+test('limits at ±∞ of rational functions compare leading terms, exactly and with sign', async () => {
+  const same = await solveLimit('lim x->infinity (3x^2+1)/(2x^2-5)');
+  assert.match(same.answer, /=\s*3\/2 \(≈ 1\.5\)$/);
+  assert.equal(same.verificationMethod, 'leading terms + numeric check');
+  assert.ok(same.steps.some((t) => /leading coefficients 3\/2/.test(t)), same.steps.join(' | '));
+  const lower = await solveLimit('lim x->infinity (x+1)/(x^2+1)');
+  assert.match(lower.answer, /=\s*0$/);
+  assert.ok(lower.steps.some((t) => /denominator grows faster/.test(t)));
+  const higher = await solveLimit('lim x->infinity x^3/(x^2+1)');
+  assert.match(higher.answer, /=\s*∞$/);
+  const negative = await solveLimit('lim x->-infinity x^3/(x^2+1)');
+  assert.match(negative.answer, /=\s*-∞$/);
+  const bare = await solveLimit('lim x->-infinity 2x^3 - x');
+  assert.match(bare.answer, /=\s*-∞$/);
+});
+
+test('limits: non-matching cases still take the ladder unchanged', async () => {
+  const taylor = await solveLimit('lim x->0 (sin(x)-x)/x^3');
+  assert.match(taylor.answer, /=\s*-1\/6$/);
+  const e3 = await solveLimit('lim x->infinity (1+3/x)^x');
+  assert.match(e3.answer, /e\^3/);
+  const direct = await solveLimit('lim x->2 x^2 + 1');
+  assert.equal(direct.verificationMethod, 'direct substitution');
+});

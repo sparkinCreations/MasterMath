@@ -176,7 +176,7 @@ export async function solveLimit(expression) {
     }
 
     const result = !Number.isFinite(target)
-      ? estimateInfiniteLimit(func, variable, target)
+      ? await evaluateInfiniteLimit(func, variable, target)
       : side !== 0
         ? evaluateOneSidedLimit(func, variable, target, side)
         : await evaluateFiniteLimit(func, variable, target);
@@ -288,6 +288,12 @@ async function evaluateFiniteLimit(func, variable, target) {
     Algebrite = null;
   }
 
+  // Rung 1b: the technique a calculus course would name — standard limit,
+  // squeeze, conjugate, factor-and-cancel — each verified numerically. The
+  // general ladder below still catches everything these do not match.
+  const named = tryNamedTechnique(Algebrite, func, variable, target);
+  if (named && named.verified) return named;
+
   if (Algebrite) {
     // A symbolic rung is only trusted if its own numeric cross-check confirms
     // it. This is what stops abs(x)/x from returning a spurious 0: Algebrite's
@@ -379,6 +385,343 @@ function formatLimitAnswer(numeric, exactRaw) {
     }
   }
   return formatNumber(numeric);
+}
+
+// --- Named techniques ---------------------------------------------------------
+// The ladder below (simplify → Taylor → L'Hôpital) gets the right number for
+// sin(3x)/x or (√(x+1) − 1)/x, but narrates a Taylor series where a calculus
+// course says "standard limit" or "multiply by the conjugate". These matchers
+// run first and produce the course's technique; every one is verified
+// numerically exactly like the ladder rungs, and any that does not match or
+// verify simply falls through. (Roadmap 2026-09 item 3.)
+
+const noSpaces = (s) => String(s).replace(/\s+/g, '');
+
+// "3*x" / "3x" / "x" → 3, 1; anything else → null.
+function linearCoefficient(term, variable) {
+  const m = noSpaces(term).match(new RegExp(`^\\(?(-?\\d+(?:\\.\\d+)?)?\\*?${variable}\\)?$`));
+  if (!m) return null;
+  if (m[1] === undefined) return 1;
+  if (m[1] === '-') return -1;
+  return Number(m[1]);
+}
+
+// Exact display for a rational value: "3/2", "-1/4", "3"; null if not a
+// small rational.
+function rationalText(value) {
+  if (Number.isInteger(value)) return String(value);
+  for (let q = 2; q <= 1000; q += 1) {
+    const p = Math.round(value * q);
+    if (Math.abs(value - p / q) < 1e-12) return `${p}/${q}`;
+  }
+  return null;
+}
+
+// The exact text of a whole function call at the start of s ("sqrt(x+1)" from
+// "sqrt(x+1)-1"): returns { arg, end } or null.
+function leadingCall(s, name) {
+  if (!s.startsWith(`${name}(`)) return null;
+  let depth = 0;
+  for (let i = name.length; i < s.length; i += 1) {
+    if (s[i] === '(') depth += 1;
+    else if (s[i] === ')') {
+      depth -= 1;
+      if (depth === 0) return { arg: s.slice(name.length + 1, i), end: i + 1 };
+    }
+  }
+  return null;
+}
+
+const isWholeSqrt = (t) => { const c = leadingCall(noSpaces(t), 'sqrt'); return Boolean(c && c.end === noSpaces(t).length); };
+
+// Split "left ± right" at the top-level sign (never the leading sign of a
+// term, never inside parentheses). Returns { left, sign, right } or null.
+function splitTopLevelSum(expr) {
+  const s = noSpaces(expr);
+  let depth = 0;
+  for (let i = 1; i < s.length; i += 1) {
+    const ch = s[i];
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    else if (depth === 0 && (ch === '+' || ch === '-') && !/[*/^(]/.test(s[i - 1])) {
+      return { left: s.slice(0, i), sign: ch, right: s.slice(i + 1) };
+    }
+  }
+  return null;
+}
+
+function isPolynomial(expr, variable) {
+  const s = noSpaces(expr);
+  return s.length > 0 && new RegExp(`^[0-9${variable}+\\-*^().]+$`).test(s);
+}
+
+function tryNamedTechnique(Algebrite, func, variable, target) {
+  const attempts = [
+    () => tryStandardLimit(func, variable, target),
+    () => trySqueezeAtZero(func, variable, target),
+    () => (Algebrite ? tryConjugate(Algebrite, func, variable, target) : null),
+    () => (Algebrite ? tryFactorAndCancel(Algebrite, func, variable, target) : null),
+  ];
+  for (const attempt of attempts) {
+    try {
+      const r = attempt();
+      if (r && r.verified) return r;
+    } catch { /* next technique */ }
+  }
+  return null;
+}
+
+// sin(kx)/(mx), tan(kx)/(mx) → k/m; (1 − cos(kx))/(mx²) → k²/(2m);
+// (1 − cos(kx))/(mx) → 0. All at x → 0.
+function tryStandardLimit(func, variable, target) {
+  if (target !== 0) return null;
+  const parts = splitQuotient(func);
+  if (!parts) return null;
+  const num = noSpaces(parts.num);
+  const den = noSpaces(parts.den);
+  const v = variable;
+
+  const trig = leadingCall(num, 'sin') || leadingCall(num, 'tan');
+  const fn = num.startsWith('sin(') ? 'sin' : 'tan';
+  if (trig && trig.end === num.length) {
+    const k = linearCoefficient(trig.arg, v);
+    const m = linearCoefficient(den, v);
+    if (k === null || m === null || k === 0 || m === 0) return null;
+    const value = k / m;
+    const shown = formatLimitAnswer(value, rationalText(value));
+    const u = k === 1 ? v : `${formatNumber(k)}${v}`;
+    const steps = [
+      `Direct substitution gives 0/0. This is the standard limit ${fn}(u)/u → 1 as u → 0.`,
+    ];
+    if (k !== 1 || m !== 1) {
+      steps.push(`Rewrite so the argument matches the denominator: ${fn}(${u})/${beautify(den)} = (${rationalText(value) ?? formatNumber(value)}) · ${fn}(${u})/(${u}). With u = ${u}, u → 0 as ${v} → 0.`);
+    }
+    steps.push(`${fn}(${u})/(${u}) → 1, so the limit is ${shown}.`);
+    return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'standard limit + numeric check' };
+  }
+
+  const cosForm = num.match(/^1-cos\((.+)\)$/);
+  if (cosForm) {
+    const k = linearCoefficient(cosForm[1], v);
+    if (k === null || k === 0) return null;
+    const square = den.match(new RegExp(`^\\(?(-?\\d+(?:\\.\\d+)?)?\\*?${v}\\^2\\)?$`));
+    const linear = linearCoefficient(den, v);
+    if (square) {
+      const m = square[1] === undefined ? 1 : Number(square[1]);
+      if (m === 0) return null;
+      const value = (k * k) / (2 * m);
+      const shown = formatLimitAnswer(value, rationalText(value));
+      const u = k === 1 ? v : `${formatNumber(k)}${v}`;
+      const steps = [
+        'Direct substitution gives 0/0. This is the standard limit (1 − cos u)/u² → 1/2 as u → 0.',
+      ];
+      if (k !== 1 || m !== 1) steps.push(`With u = ${u}: (1 − cos(${u}))/${beautify(den)} = (${rationalText((k * k) / m) ?? formatNumber((k * k) / m)}) · (1 − cos(${u}))/(${u})².`);
+      steps.push(`(1 − cos(${u}))/(${u})² → 1/2, so the limit is ${shown}.`);
+      return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'standard limit + numeric check' };
+    }
+    if (linear !== null && linear !== 0) {
+      const u = k === 1 ? v : `${formatNumber(k)}${v}`;
+      const steps = [
+        'Direct substitution gives 0/0. This is the standard limit (1 − cos u)/u → 0 as u → 0.',
+        `With u = ${u}, (1 − cos(${u}))/${beautify(den)} is a constant multiple of (1 − cos(${u}))/(${u}), which → 0. So the limit is 0.`,
+      ];
+      return { steps, answer: '0', verified: verifyLimitNumerically(func, v, target, 0), verificationMethod: 'standard limit + numeric check' };
+    }
+  }
+  return null;
+}
+
+// x^n · sin(1/x) or x^n · cos(1/x) at 0: bounded times something → 0.
+function trySqueezeAtZero(func, variable, target) {
+  if (target !== 0) return null;
+  const s = noSpaces(func);
+  const v = variable;
+  const m = s.match(new RegExp(`^${v}(?:\\^(\\d+))?\\*(sin|cos)\\(1/${v}\\)$`)) || s.match(new RegExp(`^(sin|cos)\\(1/${v}\\)\\*${v}(?:\\^(\\d+))?$`));
+  if (!m) return null;
+  const fn = m[2] && /sin|cos/.test(m[2]) ? m[2] : m[1];
+  const nText = (m[1] && /^\d+$/.test(m[1])) ? m[1] : (m[2] && /^\d+$/.test(m[2]) ? m[2] : '1');
+  const power = nText === '1' ? v : `${v}^${nText}`;
+  const steps = [
+    `${fn}(1/${v}) oscillates faster and faster as ${v} → 0 and has no limit of its own — but it is bounded: −1 ≤ ${fn}(1/${v}) ≤ 1.`,
+    `Multiply through by |${power}|: −|${power}| ≤ ${power}·${fn}(1/${v}) ≤ |${power}|.`,
+    `Both bounds → 0 as ${v} → 0, so by the squeeze theorem the limit is 0.`,
+  ];
+  return { steps, answer: '0', verified: verifyLimitNumerically(func, v, target, 0), verificationMethod: 'squeeze theorem + numeric check' };
+}
+
+// (√A ± B)/C or C/(√A ± B) that is 0/0: multiply by the conjugate.
+function tryConjugate(Algebrite, func, variable, target) {
+  const parts = splitQuotient(func);
+  if (!parts) return null;
+  const v = variable;
+  const numAt = algebriteNumber(Algebrite, `(${parts.num})`, v, target);
+  const denAt = algebriteNumber(Algebrite, `(${parts.den})`, v, target);
+  if (numAt !== 0 || denAt !== 0) return null;
+
+  const attempt = (radicalSide, otherSide, radicalIsNumerator) => {
+    const sum = splitTopLevelSum(radicalSide);
+    if (!sum || !(isWholeSqrt(sum.left) || isWholeSqrt(sum.right))) return null;
+    const conjugate = `${sum.left}${sum.sign === '-' ? '+' : '-'}${sum.right}`;
+    const product = String(Algebrite.run(`simplify((${sum.left})^2-(${sum.right})^2)`)).trim();
+    if (isAlgebriteFailure(product)) return null;
+    const rewritten = radicalIsNumerator
+      ? `(${product})/((${otherSide})*(${conjugate}))`
+      : `((${otherSide})*(${conjugate}))/(${product})`;
+    const simplified = String(Algebrite.run(`simplify(${rewritten})`)).trim();
+    if (isAlgebriteFailure(simplified)) return null;
+    const value = algebriteNumber(Algebrite, `(${simplified})`, v, target);
+    if (value === null) return null;
+    const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `(${simplified})`, v, target));
+    const where = radicalIsNumerator ? 'numerator' : 'denominator';
+    const steps = [
+      `Direct substitution gives 0/0. The ${where} is a difference involving a square root, so multiply top and bottom by its conjugate, ${beautify(conjugate)}.`,
+      `(a − b)(a + b) = a² − b², so the ${where} becomes ${beautify(product)} — the square root is gone.`,
+      `Cancel the common factor: the expression simplifies to ${beautify(simplified)}.`,
+      `Substitute ${v} = ${formatNumber(target)}: the limit is ${shown}.`,
+    ];
+    return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'conjugate + numeric check' };
+  };
+  return attempt(parts.num, parts.den, true) || attempt(parts.den, parts.num, false);
+}
+
+// P(x)/Q(x), both polynomials vanishing at a: factor, cancel (x − a), substitute.
+function tryFactorAndCancel(Algebrite, func, variable, target) {
+  const parts = splitQuotient(func);
+  if (!parts) return null;
+  const v = variable;
+  if (!isPolynomial(parts.num, v) || !isPolynomial(parts.den, v)) return null;
+  const numAt = algebriteNumber(Algebrite, `(${parts.num})`, v, target);
+  const denAt = algebriteNumber(Algebrite, `(${parts.den})`, v, target);
+  if (numAt !== 0 || denAt !== 0) return null;
+  const root = rationalText(target);
+  if (root === null) return null;
+
+  const factoredNum = String(Algebrite.run(`factor(${parts.num})`)).trim();
+  const factoredDen = String(Algebrite.run(`factor(${parts.den})`)).trim();
+  if (isAlgebriteFailure(factoredNum) || isAlgebriteFailure(factoredDen)) return null;
+  const factorText = target < 0 ? `${v}+${rationalText(-target)}` : `${v}-${root}`;
+  const has = (t) => noSpaces(t).includes(factorText);
+  if (!has(factoredNum) || !has(factoredDen)) return null;
+
+  const cancelled = String(Algebrite.run(`simplify((${parts.num})/(${parts.den}))`)).trim();
+  if (isAlgebriteFailure(cancelled)) return null;
+  const value = algebriteNumber(Algebrite, `(${cancelled})`, v, target);
+  if (value === null) return null;
+  const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `(${cancelled})`, v, target));
+  const factorShown = target < 0 ? `${v} + ${rationalText(-target)}` : `${v} − ${root}`;
+  const steps = [
+    'Direct substitution gives 0/0, so factor the numerator and the denominator.',
+    `Numerator: ${beautify(factoredNum)}.  Denominator: ${beautify(factoredDen)}.`,
+    `Both contain the factor (${factorShown}), which is what makes the 0/0. Cancel it: ${beautify(cancelled)}.`,
+    `Now substitute ${v} = ${formatNumber(target)}: the limit is ${shown}.`,
+  ];
+  return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'factor and cancel + numeric check' };
+}
+
+// Numeric check for a limit at ±∞: a finite claim must be approached, an
+// infinite claim must be exceeded with the right sign.
+function verifyInfiniteLimit(func, variable, target, claimed) {
+  const sign = target === Infinity ? 1 : -1;
+  const samples = [1e4, 1e6, 1e8].map((m) => evalAt(func, variable, sign * m));
+  if (typeof claimed === 'number') {
+    if (!samples.every(Number.isFinite)) return false;
+    const gaps = samples.map((y) => Math.abs(y - claimed));
+    return gaps[2] < 1e-3 * (1 + Math.abs(claimed)) && gaps[2] <= gaps[1] + 1e-12 && gaps[1] <= gaps[0] + 1e-12;
+  }
+  const want = claimed === '∞' ? 1 : -1;
+  const mags = samples.map((y) => (Number.isFinite(y) ? Math.abs(y) : Infinity));
+  const signs = samples.map((y) => (Number.isFinite(y) ? Math.sign(y) : want));
+  return mags[2] > 1e6 && mags[2] >= mags[1] && mags[1] >= mags[0] && signs.every((s) => s === want);
+}
+
+// P(x)/Q(x) (or a bare polynomial) as x → ±∞: compare degrees and leading
+// coefficients — the technique every course teaches for this case.
+function tryLeadingTerms(Algebrite, func, variable, target) {
+  const v = variable;
+  const parts = splitQuotient(func) || (isPolynomial(func, v) ? { num: stripOuterParens(func), den: '1' } : null);
+  if (!parts || !isPolynomial(parts.num, v) || !isPolynomial(parts.den, v)) return null;
+  const degree = (p) => { const d = Number(String(Algebrite.run(`deg(${p}, ${v})`)).trim()); return Number.isInteger(d) && d >= 0 ? d : null; };
+  const lead = (p, d) => String(Algebrite.run(`coeff(${p}, ${v}, ${d})`)).trim();
+  const dn = degree(parts.num);
+  const dd = degree(parts.den);
+  if (dn === null || dd === null || (dn === 0 && dd === 0)) return null;
+  const cn = lead(parts.num, dn);
+  const cd = lead(parts.den, dd);
+  if (isAlgebriteFailure(cn) || isAlgebriteFailure(cd) || Number(math.evaluate(cd)) === 0) return null;
+  const toward = target === Infinity ? '∞' : '−∞';
+  const pow = (d) => (d === 1 ? v : `${v}^${d}`);
+  const method = 'leading terms + numeric check';
+
+  if (dn < dd) {
+    const steps = [
+      `For a limit at ${toward}, only the highest powers matter. The numerator has degree ${dn} and the denominator degree ${dd}.`,
+      `Divide numerator and denominator by ${pow(dd)}: every numerator term becomes a multiple of 1/${v}^k and → 0, while the denominator → ${beautify(cd)}.`,
+      'So the limit is 0 — the denominator grows faster.',
+    ];
+    return { steps, answer: '0', verified: verifyInfiniteLimit(func, v, target, 0), verificationMethod: method };
+  }
+  if (dn === dd) {
+    const ratioRaw = String(Algebrite.run(`simplify((${cn})/(${cd}))`)).trim();
+    const value = Number(math.evaluate(ratioRaw));
+    if (!Number.isFinite(value)) return null;
+    const exact = rationalText(value);
+    const shown = exact && !Number.isInteger(value) ? `${exact} (≈ ${formatNumber(value)})` : formatNumber(value);
+    const steps = [
+      `For a limit at ${toward}, only the highest powers matter. Numerator and denominator both have degree ${dn}.`,
+      `Divide numerator and denominator by ${pow(dn)}: every lower term becomes a multiple of 1/${v}^k and → 0, leaving the leading coefficients ${beautify(cn)}/${beautify(cd)}.`,
+      `So the limit is ${shown}.`,
+    ];
+    return { steps, answer: shown, verified: verifyInfiniteLimit(func, v, target, value), verificationMethod: method };
+  }
+  const ratioSign = Math.sign(Number(math.evaluate(cn)) / Number(math.evaluate(cd)));
+  const parity = (dn - dd) % 2 === 1 && target === -Infinity ? -1 : 1;
+  const answer = ratioSign * parity > 0 ? '∞' : '-∞';
+  const steps = [
+    `For a limit at ${toward}, only the highest powers matter. The numerator has degree ${dn}, the denominator degree ${dd}.`,
+    `Divide numerator and denominator by ${pow(dd)}: the quotient behaves like (${beautify(cn)}/${beautify(cd)})·${pow(dn - dd)}, which grows without bound.`,
+    `As ${v} → ${toward}, that goes to ${answer}, so the limit is ${answer}.`,
+  ];
+  return { steps, answer, verified: verifyInfiniteLimit(func, v, target, answer), verificationMethod: method };
+}
+
+// sin(…)/x^n or cos(…)/x^n as x → ±∞: bounded over unbounded → 0.
+function trySqueezeAtInfinity(func, variable, target) {
+  const parts = splitQuotient(func);
+  if (!parts) return null;
+  const v = variable;
+  const num = noSpaces(parts.num);
+  const fn = num.startsWith('sin(') ? 'sin' : num.startsWith('cos(') ? 'cos' : null;
+  const call = fn ? leadingCall(num, fn) : null;
+  if (!call || call.end !== num.length) return null;
+  const den = noSpaces(parts.den);
+  if (!new RegExp(`^\\(?\\d*\\*?${v}(?:\\^\\d+)?\\)?$`).test(den)) return null;
+  const toward = target === Infinity ? '∞' : '−∞';
+  const steps = [
+    `${fn}(${beautify(call.arg)}) never settles, but it is bounded: −1 ≤ ${fn}(${beautify(call.arg)}) ≤ 1.`,
+    `Divide through by ${beautify(den)}: −1/${beautify(den)} ≤ ${beautify(func)} ≤ 1/${beautify(den)}.`,
+    `Both bounds → 0 as ${v} → ${toward}, so by the squeeze theorem the limit is 0.`,
+  ];
+  return { steps, answer: '0', verified: verifyInfiniteLimit(func, v, target, 0), verificationMethod: 'squeeze theorem + numeric check' };
+}
+
+async function evaluateInfiniteLimit(func, variable, target) {
+  let Algebrite = null;
+  try {
+    Algebrite = await loadAlgebrite();
+  } catch {
+    Algebrite = null;
+  }
+  try {
+    const squeeze = trySqueezeAtInfinity(func, variable, target);
+    if (squeeze && squeeze.verified) return squeeze;
+  } catch { /* fall through */ }
+  if (Algebrite) {
+    try {
+      const leading = tryLeadingTerms(Algebrite, func, variable, target);
+      if (leading && leading.verified) return leading;
+    } catch { /* fall through */ }
+  }
+  return estimateInfiniteLimit(func, variable, target);
 }
 
 function tryAlgebriteSimplify(Algebrite, func, variable, target) {

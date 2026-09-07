@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.31.0] - 2026-09-07
+
+Roadmap 2026-09 item 3. The limit solver already reached the right number
+through its simplify → Taylor → L'Hôpital ladder; it now explains the
+technique a calculus course would actually use, and the ladder remains the
+fallback for everything else. Every technique is verified numerically the
+same way the ladder rungs are, and reports its method.
+
+### Added
+
+- **Standard limits.** `sin(kx)/(mx)`, `tan(kx)/(mx)`, `(1 − cos kx)/x²` and
+  `(1 − cos kx)/x` at 0 are solved by naming the standard limit and rewriting
+  the argument to match (`sin(3x)/x = 3 · sin(3x)/(3x)`), instead of a
+  seventh-order Taylor expansion.
+- **Squeeze theorem**, with the bounds written out: `x·sin(1/x)` at 0
+  (`−|x| ≤ x·sin(1/x) ≤ |x|`) and `sin(x)/x` at ±∞ (`−1/x ≤ sin(x)/x ≤ 1/x`).
+  Both were previously "approach from both sides" numeric answers with no
+  verification; they are now verified.
+- **Conjugate.** A quotient whose numerator or denominator is a difference
+  involving a square root — `(√(x+1) − 1)/x`, `(√x − 2)/(x − 4)` — is
+  rationalized by multiplying through by the conjugate, with the
+  `a² − b²` product and the cancellation shown.
+- **Factor and cancel.** A rational 0/0 whose numerator and denominator
+  share the factor (x − a) — `(x² − 4)/(x − 2)` — shows both factorizations,
+  names the common factor, cancels it and substitutes, instead of "simplify
+  the expression".
+- **Leading terms at ±∞.** A rational function (or a bare polynomial) is
+  handled by comparing degrees and leading coefficients: equal degrees give
+  the exact ratio (`3/2 (≈ 1.5)`, not a sampled `1.5`), a lower numerator
+  degree gives 0 with the reason, a higher one gives ±∞ with the sign worked
+  out from the leading coefficients and the parity of the degree gap at −∞.
+
+### Changed
+
+- Two solver tests that asserted the old wording ("increasingly large
+  values", "indeterminate") now accept the technique wording as well.
+
 ## [1.30.1] - 2026-09-07
 
 Roadmap 2026-09 item 8, moved up after v1.30.0 caught mathsteps producing a
