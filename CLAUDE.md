@@ -62,7 +62,7 @@ The design features:
 **Math Libraries:**
 - **mathjs**: Core math operations and expression parsing
 - **algebrite**: Symbolic algebra, calculus, and simplification
-- **mathsteps**: Step-by-step algebraic simplification
+- **mathsteps**: Step-by-step algebraic simplification. Unmaintained (v0.2.0) and once confidently wrong, so it is reached only through the two guarded entry points in `mathstepsUtils.js` (`mathstepsSolveEquation`, `mathstepsSimplify`) — never throw, kill switch `setMathstepsEnabled(false)`, every caller has an exact Algebrite fallback; `tests/mathstepsSeam.test.js` enforces the single import and the fallback.
 
 **Export & Storage:**
 - **jspdf**: PDF generation for exports

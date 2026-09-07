@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.30.1] - 2026-09-07
+
+Roadmap 2026-09 item 8, moved up after v1.30.0 caught mathsteps producing a
+wrong answer. No answers change in this release.
+
+### Changed
+
+- **mathsteps is behind one seam.** The library is now imported in exactly
+  one file, `mathstepsUtils.js`, and reached only through two guarded entry
+  points (`mathstepsSolveEquation`, `mathstepsSimplify`) that never throw and
+  can be switched off with `setMathstepsEnabled(false)`. Every caller already
+  had an exact Algebrite fallback; a new test file switches mathsteps off and
+  proves linear, quadratic, irrational, fractional, simplification and
+  cancellation inputs all still answer exactly, and asserts that no other
+  file in `src/` imports the library. When mathsteps finally breaks on a
+  dependency upgrade — it is unmaintained at v0.2.0 — the app loses worked
+  steps, not correctness, and the fix is one switch.
+
 ## [1.30.0] - 2026-09-07
 
 Wave 2 of the September 2026 roadmap: the five exact-form items the audit

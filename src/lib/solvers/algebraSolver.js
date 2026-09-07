@@ -1,6 +1,7 @@
-import mathsteps from 'mathsteps';
 import { isEquation, extractVariable, parseMathExpression } from '../mathParser.js';
-import { stepsFromMathstepsResult } from '../mathstepsUtils.js';
+// mathsteps is reached only through these two guarded entry points — see the
+// seam note at the top of mathstepsUtils.js.
+import { mathstepsSolveEquation, mathstepsSimplify } from '../mathstepsUtils.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 import {
   math,
@@ -148,7 +149,7 @@ async function solveEquation(expression, options = {}) {
   // Only accept it if it actually isolated the variable; mathsteps sometimes
   // stops early (e.g. x^2 = -1), which we hand off to Algebrite below.
   try {
-    const parsed = stepsFromMathstepsResult(mathsteps.solveEquation(expression));
+    const parsed = mathstepsSolveEquation(expression);
     if (parsed && parsed.steps.length > 0 && isSolved(parsed.answer, variable)) {
       const normalized = normalizeSolutionAnswer(parsed.answer, variable);
       // mathsteps (unmaintained) can be confidently wrong: it "factors"
@@ -1108,7 +1109,7 @@ async function simplifyExpression(expression) {
   // result is never longer than what the student typed.
   let mathstepsResult = null;
   try {
-    const parsed = stepsFromMathstepsResult(mathsteps.simplifyExpression(expression));
+    const parsed = mathstepsSimplify(expression);
     if (parsed && parsed.steps.length > 0 && parsed.answer) {
       mathstepsResult = { answer: beautify(parsed.answer), steps: parsed.steps };
     }

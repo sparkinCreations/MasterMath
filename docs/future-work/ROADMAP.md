@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.30.0
+**Version referenced:** 1.30.1
 **By:** sparkinCreations™
 **Last Updated:** September 7, 2026
 **Supersedes:** [`ROADMAP-2026-07.md`](ROADMAP-2026-07.md) (13/13 items shipped)
@@ -81,7 +81,7 @@ finds.
 | 5 | Compound inequalities | P2 | Small–Med | Feature | 2 |
 | 6 | First-load payload: mathjs chunk | P2 | Small–Med | Perf | 3 |
 | 7 | Dependency majors (React 19, Vite 8, Tailwind 4, …) | P3 | Medium | Maint | 3 |
-| 8 | Isolate mathsteps behind one seam | P3 | Small | Maint | 3 |
+| 8 | ~~Isolate mathsteps behind one seam~~ ✅ Done v1.30.1 (moved up after it produced a wrong answer; two guarded entry points, kill switch, fallback proven by test) | P3 | Small | Maint | 3 |
 | 9 | ~~Documentation debt~~ ✅ Done v1.29.2 (semantics status header, test renamed, worktree pruned) | P3 | Small | Docs | 1 |
 | 10 | New topic: Sequences & Series | P4 | Large | Engine | — |
 | 11 | Practice mode: "Try a similar problem" | P4 | Medium | UX | — |
@@ -333,7 +333,7 @@ during a feature.
 
 ---
 
-## P3 — Isolate mathsteps Behind One Seam
+## P3 — Isolate mathsteps Behind One Seam — ✅ Done v1.30.1
 
 mathsteps is v0.2.0 and unmaintained (already noted in July). It has 20
 call sites in `algebraSolver.js` plus `mathstepsUtils.js`. Its linear and

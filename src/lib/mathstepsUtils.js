@@ -1,8 +1,53 @@
 /**
- * Helpers for mathsteps — the library returns step arrays directly, not { steps: [] }.
+ * The one seam between MasterMath and mathsteps.
+ *
+ * mathsteps (v0.2.0) is unmaintained and has produced a confidently-wrong
+ * answer — it "factored" x² − 2x − 1 as (x − 1)². Its linear and simple-
+ * quadratic walkthroughs are still the best explanations in the app, so it
+ * stays, but on these terms: `mathstepsSolveEquation` and `mathstepsSimplify`
+ * below are the ONLY calls into the library anywhere in src. They never throw,
+ * return null for anything that is not a usable step list, and can be turned
+ * off with `setMathstepsEnabled(false)`. Every caller has an exact fallback
+ * (Algebrite roots / simplify), so switching mathsteps off costs worked steps,
+ * never answers — tests/mathstepsSeam.test.js proves that on every path.
+ * Callers still verify the answers it returns (algebraSolver substitutes every
+ * solution back into the original equation). Roadmap 2026-09 item 8.
+ *
+ * The rest of this file formats mathsteps' step arrays (it returns arrays
+ * directly, not { steps: [] }).
  */
 
+import mathsteps from 'mathsteps';
 import { beautify } from './solvers/solverUtils.js';
+
+let enabled = true;
+
+export function setMathstepsEnabled(on) {
+  enabled = Boolean(on);
+}
+
+export function isMathstepsEnabled() {
+  return enabled;
+}
+
+function guarded(call) {
+  if (!enabled) return null;
+  try {
+    return stepsFromMathstepsResult(call());
+  } catch {
+    return null;
+  }
+}
+
+// Worked steps for a single-variable equation, or null.
+export function mathstepsSolveEquation(equation) {
+  return guarded(() => mathsteps.solveEquation(equation));
+}
+
+// Worked steps for simplifying an expression, or null.
+export function mathstepsSimplify(expression) {
+  return guarded(() => mathsteps.simplifyExpression(expression));
+}
 
 // mathsteps renders implicit multiplication with a space ("2 x", ") (").
 // Collapse those first, then run the shared beautifier so equations read like
