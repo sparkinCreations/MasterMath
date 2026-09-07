@@ -129,7 +129,7 @@ export default function Settings() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
           Settings
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
@@ -139,7 +139,7 @@ export default function Settings() {
 
       {/* Appearance */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Palette className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Appearance
@@ -160,7 +160,7 @@ export default function Settings() {
 
       {/* Solver preferences */}
       <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <SlidersHorizontal className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             Solver Preferences
@@ -215,7 +215,7 @@ export default function Settings() {
 
       {/* Data & privacy */}
       <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <HardDrive className="w-6 h-6 text-green-600 dark:text-green-400" />
             Data & Privacy
@@ -258,7 +258,7 @@ export default function Settings() {
 
       {/* About */}
       <Card className="mb-6 border-2 border-teal-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-linear-to-r from-teal-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Info className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             About

@@ -44,9 +44,9 @@ function UpdateBanner({ updateAvailable, applyUpdate }) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-2rem)] bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl flex flex-wrap items-center justify-center gap-3 animate-bounce-in"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-2rem)] bg-linear-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl flex flex-wrap items-center justify-center gap-3 animate-bounce-in"
     >
-      <RefreshCw className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+      <RefreshCw className="w-5 h-5 shrink-0" aria-hidden="true" />
       <span className="text-sm font-medium">A new version of MasterMath is available. Updating reloads the page.</span>
       <button
         onClick={applyUpdate}

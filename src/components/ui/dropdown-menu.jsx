@@ -178,7 +178,7 @@ export function DropdownMenuItem({ children, onClick }) {
       // menu counts as one tab stop.
       tabIndex={-1}
       onClick={handleClick}
-      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none transition-colors"
+      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-hidden transition-colors"
     >
       {children}
     </button>

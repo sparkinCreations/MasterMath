@@ -30,7 +30,7 @@ export default function Home() {
             alt="MasterMath Logo"
             className="w-20 h-20 md:w-24 md:h-24 mb-4 md:mb-6"
           />
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3 md:mb-4 px-2">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3 md:mb-4 px-2">
             Welcome to MasterMath
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-2 px-2">
@@ -45,7 +45,7 @@ export default function Home() {
           <Button
             asChild
             size="lg"
-            className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold text-white bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <Link to={createPageUrl("Solver")}>
               <Calculator className="w-5 h-5 mr-2" />
@@ -85,18 +85,18 @@ export default function Home() {
 
         {/* Hero Image/Illustration Placeholder */}
         <div className="relative max-w-4xl mx-auto px-2">
-          <div className="bg-gradient-to-br from-blue-100 via-indigo-100 to-green-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-indigo-200 dark:border-gray-600 shadow-2xl">
+          <div className="bg-linear-to-br from-blue-100 via-indigo-100 to-green-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-indigo-200 dark:border-gray-600 shadow-2xl">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-center">
               <div className="p-2 sm:p-4 md:p-6 flex items-center justify-center gap-3 sm:flex-col sm:gap-0">
-                <Calculator className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex-shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-blue-600 dark:text-blue-400" />
+                <Calculator className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-blue-600 dark:text-blue-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Step-by-Step Solutions</p>
               </div>
               <div className="p-2 sm:p-4 md:p-6 flex items-center justify-center gap-3 sm:flex-col sm:gap-0">
-                <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex-shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-indigo-600 dark:text-indigo-400" />
+                <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-indigo-600 dark:text-indigo-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Visual Graphs</p>
               </div>
               <div className="p-2 sm:p-4 md:p-6 flex items-center justify-center gap-3 sm:flex-col sm:gap-0">
-                <Lightbulb className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex-shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-green-600 dark:text-green-400" />
+                <Lightbulb className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 shrink-0 sm:mx-auto sm:mb-2 md:mb-3 text-green-600 dark:text-green-400" />
                 <p className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">Key Insights</p>
               </div>
             </div>
@@ -106,14 +106,14 @@ export default function Home() {
 
       {/* Features Section */}
       <div className="max-w-6xl mx-auto mb-8 md:mb-16 px-2">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-12">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-12">
           Everything You Need to Master Math
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Feature 1 */}
           <Card className="border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+            <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
               <CardTitle as="h3" className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                 <Calculator className="w-6 h-6" />
                 Multiple Topics
@@ -128,7 +128,7 @@ export default function Home() {
 
           {/* Feature 2 */}
           <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-indigo-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
+            <CardHeader className="bg-linear-to-r from-indigo-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
               <CardTitle as="h3" className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                 <Zap className="w-6 h-6" />
                 Worked Steps
@@ -143,7 +143,7 @@ export default function Home() {
 
           {/* Feature 3 */}
           <Card className="border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+            <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
               <CardTitle as="h3" className="flex items-center gap-2 text-green-700 dark:text-green-400">
                 <TrendingUp className="w-6 h-6" />
                 Track Progress
@@ -158,7 +158,7 @@ export default function Home() {
 
           {/* Feature 4 */}
           <Card className="border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-gray-700 dark:to-gray-700">
+            <CardHeader className="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-gray-700 dark:to-gray-700">
               <CardTitle as="h3" className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                 <Lightbulb className="w-6 h-6" />
                 Learn Better
@@ -173,7 +173,7 @@ export default function Home() {
 
           {/* Feature 5 */}
           <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+            <CardHeader className="bg-linear-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
               <CardTitle as="h3" className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
                 <BookOpen className="w-6 h-6" />
                 Export & Save
@@ -188,7 +188,7 @@ export default function Home() {
 
           {/* Feature 6 */}
           <Card className="border-2 border-rose-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
+            <CardHeader className="bg-linear-to-r from-rose-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
               <CardTitle as="h3" className="flex items-center gap-2 text-rose-700 dark:text-rose-400">
                 <Target className="w-6 h-6" />
                 100% Private
@@ -205,7 +205,7 @@ export default function Home() {
 
       {/* How It Works Section */}
       <div className="max-w-5xl mx-auto mb-8 md:mb-16 px-2">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-12">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-12">
           How It Works
         </h2>
 
@@ -213,8 +213,8 @@ export default function Home() {
           <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <CardContent className="p-4 md:p-8">
               <div className="flex items-start gap-4 md:gap-6">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
+                <div className="shrink-0">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
                     1
                   </div>
                 </div>
@@ -231,8 +231,8 @@ export default function Home() {
           <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <CardContent className="p-4 md:p-8">
               <div className="flex items-start gap-4 md:gap-6">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
+                <div className="shrink-0">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
                     2
                   </div>
                 </div>
@@ -249,8 +249,8 @@ export default function Home() {
           <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <CardContent className="p-4 md:p-8">
               <div className="flex items-start gap-4 md:gap-6">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
+                <div className="shrink-0">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
                     3
                   </div>
                 </div>
@@ -268,14 +268,14 @@ export default function Home() {
 
       {/* Benefits Section */}
       <div className="max-w-5xl mx-auto mb-8 md:mb-16 px-2">
-        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-indigo-200 dark:border-gray-600">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-8">
+        <div className="bg-linear-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl md:rounded-2xl p-6 md:p-12 border-2 border-indigo-200 dark:border-gray-600">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-8">
             Why Choose MasterMath?
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="flex items-start gap-2 md:gap-3">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 shrink-0 mt-1" />
               <div>
                 <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">No Sign-Up Required</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Start solving immediately without creating an account</p>
@@ -283,7 +283,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-start gap-2 md:gap-3">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 shrink-0 mt-1" />
               <div>
                 <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Completely Free</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">All current features at no cost</p>
@@ -291,7 +291,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-start gap-2 md:gap-3">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 shrink-0 mt-1" />
               <div>
                 <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Works Offline</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Service worker caches the entire app — solve problems anywhere, even without Wi-Fi</p>
@@ -299,7 +299,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-start gap-2 md:gap-3">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 shrink-0 mt-1" />
               <div>
                 <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Not AI</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Open-source math libraries (mathjs, Algebrite, mathsteps) — deterministic, not a language model</p>
@@ -311,7 +311,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <div className="max-w-4xl mx-auto text-center px-2">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-2xl">
+        <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-2xl">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">
             Ready to Master Math?
           </h2>

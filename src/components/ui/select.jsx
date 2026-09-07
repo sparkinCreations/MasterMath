@@ -154,7 +154,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
       aria-activedescendant={isOpen && activeIndex >= 0 ? optionId(activeIndex) : undefined}
       onClick={() => setIsOpen(!isOpen)}
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-10 w-full items-center justify-between rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}
@@ -213,7 +213,7 @@ const SelectContent = ({ children }) => {
         id={listboxId}
         role="listbox"
         aria-labelledby={triggerId}
-        className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-none sm:text-sm"
+        className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-white/10 focus:outline-hidden sm:text-sm"
       >
         {React.Children.map(children, (child) => {
           if (React.isValidElement(child) && child.type === SelectItem) {

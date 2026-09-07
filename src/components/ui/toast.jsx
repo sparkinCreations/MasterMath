@@ -136,7 +136,7 @@ function Toast({ message, type, duration, onClose }) {
       onMouseLeave={resume}
       onFocus={pause}
       onBlur={resume}
-      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border-2 shadow-lg backdrop-blur-sm animate-in slide-in-from-right ${styles[type]}`}
+      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border-2 shadow-lg backdrop-blur-xs animate-in slide-in-from-right ${styles[type]}`}
     >
       <div className={iconStyles[type]} aria-hidden="true">
         {icons[type]}
@@ -146,7 +146,7 @@ function Toast({ message, type, duration, onClose }) {
         type="button"
         onClick={onClose}
         aria-label="Close notification"
-        className="ml-2 rounded hover:opacity-70 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
+        className="ml-2 rounded hover:opacity-70 transition-opacity focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-current"
       >
         <X className="w-4 h-4" aria-hidden="true" />
       </button>

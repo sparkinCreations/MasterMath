@@ -175,7 +175,7 @@ export default function GraphViewer({ functionData }) {
 
   return (
     <Card className="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-gray-700 shadow-lg rounded-xl">
-      <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2 text-xl">
             <TrendingUp className="w-6 h-6 text-indigo-600" />
@@ -402,7 +402,7 @@ export default function GraphViewer({ functionData }) {
         {hasSecondary && (
           <div className="flex items-center gap-4 mt-3 text-sm" aria-hidden="true">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-600" />
+              <div className="w-6 h-0.5 bg-linear-to-r from-blue-500 to-indigo-600" />
               <span className="text-gray-600 dark:text-gray-400">f(x)</span>
             </div>
             <div className="flex items-center gap-2">
@@ -418,7 +418,7 @@ export default function GraphViewer({ functionData }) {
             with no extra wiring. */}
         {features.length > 0 && (
           <details className="mt-3 text-sm rounded-lg border border-indigo-200 dark:border-gray-600 bg-white/60 dark:bg-gray-700/40">
-            <summary className="cursor-pointer select-none px-3 py-2 font-medium text-indigo-700 dark:text-indigo-300 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400">
+            <summary className="cursor-pointer select-none px-3 py-2 font-medium text-indigo-700 dark:text-indigo-300 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400">
               Key features ({features.length})
             </summary>
             <ul className="px-3 pb-3 pt-1 space-y-1 list-disc list-inside text-gray-700 dark:text-gray-200">
@@ -429,7 +429,7 @@ export default function GraphViewer({ functionData }) {
           </details>
         )}
         {functionData.description && (
-          <p className={`mt-3 text-sm text-gray-600 dark:text-gray-400 bg-gradient-to-r ${descBg} dark:bg-gray-700/50 p-3 rounded-lg border ${descBorder}`}>
+          <p className={`mt-3 text-sm text-gray-600 dark:text-gray-400 bg-linear-to-r ${descBg} dark:bg-gray-700/50 p-3 rounded-lg border ${descBorder}`}>
             {functionData.description}
           </p>
         )}

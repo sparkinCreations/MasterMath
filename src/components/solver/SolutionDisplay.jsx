@@ -32,7 +32,7 @@ const AMBER_THEME = {
   Icon: AlertTriangle,
   headerIcon: "text-amber-600 dark:text-amber-400",
   badge: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700",
-  card: "bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/30 border-2 border-amber-300 dark:border-amber-700",
+  card: "bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/30 border-2 border-amber-300 dark:border-amber-700",
   cardIcon: "text-amber-600 dark:text-amber-400",
   cardText: "text-gray-800 dark:text-amber-50",
   heading: "Result:",
@@ -43,7 +43,7 @@ const STATUS_THEMES = {
     Icon: CheckCircle2,
     headerIcon: "text-green-600 dark:text-green-400",
     badge: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-200 dark:border-green-700",
-    card: "bg-gradient-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700",
+    card: "bg-linear-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700",
     cardIcon: "text-green-600 dark:text-green-400",
     cardText: "text-gray-800 dark:text-emerald-50",
     heading: "Final Answer:",
@@ -52,7 +52,7 @@ const STATUS_THEMES = {
     Icon: AlertCircle,
     headerIcon: "text-red-600 dark:text-red-400",
     badge: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-200 dark:border-red-700",
-    card: "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/30 border-2 border-red-300 dark:border-red-800",
+    card: "bg-linear-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/30 border-2 border-red-300 dark:border-red-800",
     cardIcon: "text-red-600 dark:text-red-400",
     cardText: "text-gray-800 dark:text-red-50",
     heading: "What went wrong:",
@@ -125,7 +125,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
   if (!solution) {
     return (
       <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
           <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
             <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
             Solution & Feedback
@@ -133,7 +133,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-gray-700 dark:to-gray-700 rounded-full flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-linear-to-br from-green-100 to-emerald-100 dark:from-gray-700 dark:to-gray-700 rounded-full flex items-center justify-center mb-4">
               <BookOpen className="w-8 h-8 text-green-500 dark:text-green-400" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 text-lg">
@@ -152,7 +152,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
   return (
     <motion.div {...cardMotion}>
       <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
               <StatusIcon className={`w-6 h-6 ${theme.headerIcon}`} />
@@ -205,7 +205,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                       aria-pressed={!stepThrough}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                         !stepThrough
-                          ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm"
+                          ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                           : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                       }`}
                     >
@@ -221,7 +221,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                       aria-pressed={stepThrough}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                         stepThrough
-                          ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm"
+                          ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                           : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                       }`}
                     >
@@ -239,7 +239,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                     className="py-4 first:pt-1"
                   >
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                      <div className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
                         {idx + 1}
                       </div>
                       <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
@@ -255,7 +255,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                   <div className="flex items-center gap-4">
                     <Button
                       onClick={() => setRevealed((r) => Math.min(r + 1, steps.length))}
-                      className="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm hover:from-blue-600 hover:to-indigo-700"
+                      className="px-6 py-3 rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-xs hover:from-blue-600 hover:to-indigo-700"
                     >
                       Reveal next step
                       <ArrowRight className="w-4 h-4 ml-2" />
@@ -279,7 +279,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
           {solution.answer && allRevealed && (
             <div className={`p-5 rounded-xl ${theme.card}`}>
               <div className="flex items-start gap-3">
-                <StatusIcon className={`w-6 h-6 ${theme.cardIcon} flex-shrink-0 mt-1`} />
+                <StatusIcon className={`w-6 h-6 ${theme.cardIcon} shrink-0 mt-1`} />
                 <div>
                   <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-2">{theme.heading}</h3>
                   <p className={`${theme.cardText} text-xl font-semibold`}><MathText text={solution.answer} /></p>
@@ -287,7 +287,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                     <ul className="mt-3 space-y-1">
                       {solution.warnings.map((warning, idx) => (
                         <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-1.5">
-                          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                           <span>{warning}</span>
                         </li>
                       ))}
@@ -308,7 +308,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                 {solution.tips.map((tip, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border border-amber-200 dark:border-amber-700/60"
+                    className="p-3 rounded-lg bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border border-amber-200 dark:border-amber-700/60"
                   >
                     <p className="text-gray-700 dark:text-gray-200">{tip}</p>
                   </div>
@@ -327,7 +327,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                 {solution.common_mistakes.map((mistake, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-lg bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border border-red-200 dark:border-red-800/60"
+                    className="p-3 rounded-lg bg-linear-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border border-red-200 dark:border-red-800/60"
                   >
                     <p className="text-gray-700 dark:text-gray-200">{mistake}</p>
                   </div>

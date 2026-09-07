@@ -63,7 +63,7 @@ function AppSidebar() {
   const closeSidebar = () => setIsOpen(false);
 
   return (
-    <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm" role="navigation" aria-label="Main navigation">
+    <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs" role="navigation" aria-label="Main navigation">
       <SidebarHeader className="border-b border-indigo-100 dark:border-gray-700 p-6">
         <Link to="/" onClick={closeSidebar} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <img
@@ -75,7 +75,7 @@ function AppSidebar() {
               is the document title. Rendered as <p> so screen-reader users
               get one h1 per page and a clean outline. */}
           <div>
-            <p className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <p className="font-bold text-xl bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               MasterMath
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Master math with confidence</p>
@@ -91,9 +91,9 @@ function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 rounded-xl mb-2 ${
+                    className={`hover:bg-linear-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 rounded-xl mb-2 ${
                       location.pathname === item.url
-                        ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-gray-600 dark:to-gray-700 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                        ? 'bg-linear-to-r from-blue-100 to-indigo-100 dark:from-gray-600 dark:to-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs'
                         : ''
                     }`}
                   >
@@ -129,14 +129,14 @@ export default function Layout({ children }) {
         }
       `}</style>
       
-      <div className="min-h-screen flex flex-col w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen flex flex-col w-full bg-linear-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="flex flex-1">
           <AppSidebar />
 
           {/* tabIndex={-1} so the skip link actually moves focus here, not
               just the scroll position. */}
-          <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 flex flex-col focus:outline-none" role="main">
-            <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-sm" role="banner">
+          <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 flex flex-col focus:outline-hidden" role="main">
+            <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-xs" role="banner">
               <div className="flex items-center justify-between">
                 <SidebarTrigger className="hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
                 <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">
@@ -147,7 +147,7 @@ export default function Layout({ children }) {
                   />
                   {/* Not a heading: the header brand is a home link, and
                       each page supplies its own h1. */}
-                  <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  <p className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                     MasterMath <span className="text-sm font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Master math with confidence</span>
                   </p>
                 </Link>
@@ -157,7 +157,7 @@ export default function Layout({ children }) {
                     alt="MasterMath Logo"
                     className="w-6 h-6 rounded-lg shadow-md"
                   />
-                  <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
+                  <p className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
                     MasterMath
                     <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">by sparkinCreations™</span>
                   </p>
@@ -183,7 +183,7 @@ export default function Layout({ children }) {
           </main>
         </div>
 
-        <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-indigo-100 dark:border-gray-700 px-6 py-4" role="contentinfo">
+        <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs border-t border-indigo-100 dark:border-gray-700 px-6 py-4" role="contentinfo">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-400 text-center">
             <span>MasterMath by sparkinCreations™ v{pkg.version}</span>
             <span className="hidden sm:inline">|</span>

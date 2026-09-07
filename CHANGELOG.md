@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-09-07
+
+Roadmap 2026-09 item 7, final step — and with it item 7 is complete. A
+minor version because the palette is visibly, if slightly, different.
+
+### Changed
+
+- **Tailwind CSS 3.4 → 4.3.** Migrated with the official upgrade tool:
+  configuration is now CSS-first in `src/index.css` (`@import "tailwindcss"`,
+  `@theme` for the radius scale, `@custom-variant dark` keeping class-based
+  dark mode, and Tailwind's v3 border-colour compatibility layer);
+  `tailwind.config.js` is gone; PostCSS uses `@tailwindcss/postcss` and
+  autoprefixer is dropped because Tailwind 4 prefixes itself. Utilities were
+  renamed across 23 files to their v4 spellings (`bg-gradient-to-r` →
+  `bg-linear-to-r`, `outline-none` → `outline-hidden`, `flex-shrink-0` →
+  `shrink-0`, `shadow`/`rounded`/`blur` size steps), all visually
+  equivalent.
+- **What actually looks different, measured rather than assumed.** A
+  computed-style snapshot of the Home, Solver (with a solved graph),
+  Progress and Settings pages in light and dark was taken on the Tailwind 3
+  build and diffed against the Tailwind 4 build, element by element:
+  - Colours are Tailwind 4's oklch palette — the same hues, a few RGB units
+    more saturated (indigo-600 79,70,229 → 79,57,246; green-700 21,128,61 →
+    0,130,54). This is the intended v4 palette, not drift.
+  - `space-y-*` and `divide-y` now put the gap and the rule on the bottom of
+    each item instead of the top of the next; the rendered spacing and
+    rules are identical, confirmed on the sibling edges.
+  - `rounded-full` is now `calc(infinity * 1px)`; same shape.
+  - One genuine change, for the better: the graph's description box in dark
+    mode used to show the page's grey gradient because Tailwind 3 let
+    gradient-stop variables inherit from an ancestor; Tailwind 4 does not,
+    so the box now shows the solid `dark:bg-gray-700/50` the code always
+    specified.
+
 ## [1.32.7] - 2026-09-07
 
 Roadmap 2026-09 item 7, sixth step.

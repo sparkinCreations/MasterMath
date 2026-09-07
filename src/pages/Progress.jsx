@@ -108,7 +108,7 @@ export default function Progress() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
           Your Learning Journey
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">
@@ -117,7 +117,7 @@ export default function Progress() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/40 dark:to-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-700/60">
+        <Card className="bg-linear-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/40 dark:to-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-700/60">
           <CardHeader>
             <CardTitle className="text-indigo-700 dark:text-indigo-300 text-lg">Total Problems</CardTitle>
           </CardHeader>
@@ -126,7 +126,7 @@ export default function Progress() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-950/40 border-2 border-green-200 dark:border-green-700/60">
+        <Card className="bg-linear-to-br from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-950/40 border-2 border-green-200 dark:border-green-700/60">
           <CardHeader>
             <CardTitle className="text-green-700 dark:text-green-300 text-lg">This Week</CardTitle>
           </CardHeader>
@@ -135,7 +135,7 @@ export default function Progress() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/40 dark:to-orange-950/40 border-2 border-orange-200 dark:border-orange-700/60">
+        <Card className="bg-linear-to-br from-orange-50 to-orange-100 dark:from-orange-950/40 dark:to-orange-950/40 border-2 border-orange-200 dark:border-orange-700/60">
           <CardHeader>
             <CardTitle className="text-orange-700 dark:text-orange-300 text-lg">Topics Covered</CardTitle>
           </CardHeader>
@@ -146,7 +146,7 @@ export default function Progress() {
       </div>
 
       <Card className="border-2 border-indigo-200 dark:border-gray-700 dark:bg-gray-800 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 border-b border-indigo-200 dark:border-gray-700">
+        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 border-b border-indigo-200 dark:border-gray-700">
           <div className="flex flex-wrap justify-between items-center gap-2">
             <CardTitle className="text-xl dark:text-gray-100">Problem History</CardTitle>
             {problems.length > 0 && (
@@ -206,7 +206,7 @@ export default function Progress() {
               {problems.map((p, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-lg border-2 border-indigo-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700/60 dark:to-gray-700/60 hover:shadow-md transition-shadow"
+                  className="p-4 rounded-lg border-2 border-indigo-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700/60 dark:to-gray-700/60 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="px-3 py-1 rounded-full bg-indigo-200 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-sm font-medium">

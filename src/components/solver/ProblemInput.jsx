@@ -154,7 +154,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
 
       {validationError && (
         <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
           <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>
         </div>
       )}
@@ -162,7 +162,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       <Button
         onClick={handleSolve}
         disabled={!problem.trim() || !topic || isLoading}
-        className="w-full h-14 text-lg font-semibold text-white bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+        className="w-full h-14 text-lg font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
       >
         {isLoading ? (
           <>
@@ -187,7 +187,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             <button
               key={idx}
               onClick={() => loadExample(ex)}
-              className="text-left p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm"
+              className="text-left p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm"
             >
               <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
               <span className="text-gray-700 dark:text-gray-300">{ex.problem}</span>

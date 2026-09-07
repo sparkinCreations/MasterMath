@@ -111,7 +111,7 @@ export default function FAQ() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <HelpCircle className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Frequently Asked Questions
           </h1>
         </div>
@@ -128,7 +128,7 @@ export default function FAQ() {
           >
             <button
               onClick={() => toggleFAQ(index)}
-              className="w-full text-left p-6 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-inset"
+              className="w-full text-left p-6 focus:outline-hidden focus:ring-2 focus:ring-indigo-400 focus:ring-inset"
               aria-expanded={openIndex === index}
             >
               <div className="flex justify-between items-start gap-4">
@@ -136,9 +136,9 @@ export default function FAQ() {
                   {faq.question}
                 </h2>
                 {openIndex === index ? (
-                  <ChevronUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-1" />
+                  <ChevronUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-1" />
+                  <ChevronDown className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
                 )}
               </div>
             </button>
@@ -153,7 +153,7 @@ export default function FAQ() {
         ))}
       </div>
 
-      <div className="mt-12 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border-2 border-indigo-200 dark:border-gray-600">
+      <div className="mt-12 p-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border-2 border-indigo-200 dark:border-gray-600">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
           Still have questions?
         </h2>

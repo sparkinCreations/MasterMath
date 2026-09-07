@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 // blue and indigo gradient buttons. The offset is what keeps the ring legible
 // against the button's own fill.
 const BUTTON_CLASS =
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 disabled:pointer-events-none disabled:opacity-50"
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 disabled:pointer-events-none disabled:opacity-50"
 
 // `asChild` renders the button's styling onto the single child element instead
 // of emitting a <button>. It exists for the link-styled-as-a-button case: a

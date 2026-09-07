@@ -57,7 +57,7 @@ The design features:
 - **Recharts**: Data visualization for function graphs
 - **Framer Motion**: Animations for solution display
 - **Lucide React**: Icon library
-- **shadcn/ui + Tailwind CSS**: UI component library and styling
+- **shadcn/ui + Tailwind CSS**: UI component library and styling. Tailwind 4: configuration is CSS-first in `src/index.css` (`@import "tailwindcss"`, `@theme` for the radius scale, `@custom-variant dark` for class-based dark mode, and a v3 border-colour compatibility layer) — there is no `tailwind.config.js`; PostCSS uses `@tailwindcss/postcss`.
 
 **Math Libraries:**
 - **mathjs**: Core math operations and expression parsing. Both instances are built in `src/lib/mathInstance.js` from an explicit dependency list (not `create(all)`) so matrices, units and statistics tree-shake out; add a function there AND to the battery in `tests/mathInstance.test.js`. Floor is ~865 kB because every function in the full entry pulls BigNumber and Matrix through the typed core; the number-only entry lacks Complex/Fraction/polynomialRoot.
@@ -209,7 +209,7 @@ like MUST include, in the same push:**
    release and below `## [Unreleased]`.
 
 App-affecting means changes to `src/`, `public/`, `index.html`,
-`vite.config.js`, `tailwind.config.js`, or dependencies. Docs-only, test-only,
+`vite.config.js`, `postcss.config.js`, or dependencies. Docs-only, test-only,
 or repo-housekeeping pushes do **not** need a version bump.
 
 The version is single-sourced from `package.json`: the footer (`Layout.jsx`),
