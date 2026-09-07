@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.2] - 2026-09-07
+
+Roadmap 2026-09 item 7, first step (dependency majors, lowest risk first).
+
+### Changed
+
+- **KaTeX 0.17 → 0.18.7.** The app's whole KaTeX surface is one
+  `renderToString` call with `trust: false` and the stylesheet import;
+  both are unchanged in 0.18. Verified: the CSS and its 60 font files are
+  still emitted by the build, the rendering and PDF-export tests pass, and
+  the full suite is green.
+
 ## [1.32.1] - 2026-09-07
 
 Roadmap 2026-09 item 6 (Wave 3). No solver behaviour changes.

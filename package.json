@@ -1,7 +1,7 @@
 {
   "name": "mastermath",
   "private": true,
-  "version": "1.32.1",
+  "version": "1.32.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,7 +16,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^11.5.4",
     "jspdf": "^3.0.3",
-    "katex": "^0.17.0",
+    "katex": "^0.18.7",
     "lucide-react": "^0.441.0",
     "mathjs": "^14.8.2",
     "mathsteps": "^0.2.0",
