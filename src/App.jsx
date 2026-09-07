@@ -82,6 +82,9 @@ function AppContent() {
               <Route path="/termsofservice" element={<TermsOfService />} />
               <Route path="/feedback" element={<Feedback />} />
               <Route path="/settings" element={<Settings />} />
+              {/* Anything else — a mistyped or stale URL — goes home rather than
+                  rendering an empty page. */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </Layout>

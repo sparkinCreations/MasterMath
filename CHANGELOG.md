@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.7] - 2026-09-07
+
+Roadmap 2026-09 item 7, sixth step.
+
+### Changed
+
+- **React Router 6.30 → 7.18.** The app uses `BrowserRouter`, `Routes`,
+  `Route`, `Navigate`, `Link` and `useLocation`, all unchanged in 7, and had
+  no future flags to migrate. Verified in the production preview: sidebar
+  navigation between every page and direct deep links. Suite green.
+
+### Fixed
+
+- **An unknown URL rendered an empty page.** There was no catch-all route
+  (the `Navigate` import was unused). `/anything-else` now redirects to the
+  home page.
+
 ## [1.32.6] - 2026-09-07
 
 Roadmap 2026-09 item 7, fifth step: the React bundle.
