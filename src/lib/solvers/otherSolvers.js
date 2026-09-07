@@ -766,7 +766,30 @@ function formatLimitConstant(v) {
     [Math.PI, 'π'], [Math.PI / 2, 'π/2'], [Math.PI / 4, 'π/4'], [2 * Math.PI, '2π'], [Math.SQRT2, '√2'], [Math.LN2, 'ln(2)'],
   ];
   const hit = named.find(([c]) => Math.abs(v - c) < 1e-6 * Math.max(1, Math.abs(c)));
-  return hit ? `${hit[1]} (≈ ${dec})` : dec;
+  if (hit) return `${hit[1]} (≈ ${dec})`;
+  // Beyond the table: any integer power of e ((1 + 3/x)^x → e^3), then a small
+  // rational (2/5 rather than 0.4). Only claim a name when the sampled value
+  // is unambiguously close — a limit estimate is accurate to ~1e-6 at best.
+  const close = (a, b) => Math.abs(a - b) < 1e-6 * Math.max(1, Math.abs(b));
+  if (v > 0) {
+    const n = Math.round(Math.log(v));
+    if (n !== 0 && Math.abs(n) <= 12 && close(v, Math.exp(n))) {
+      return `${n > 0 ? `e^${n}` : `e^(${n})`} (≈ ${dec})`;
+    }
+  }
+  if (!Number.isInteger(v)) {
+    for (let q = 2; q <= 12; q += 1) {
+      const p = Math.round(v * q);
+      if (p !== 0 && Math.abs(p) <= 200 && close(v, p / q) && gcd(Math.abs(p), q) === 1) {
+        return `${p}/${q} (≈ ${dec})`;
+      }
+    }
+  }
+  return dec;
+}
+
+function gcd(a, b) {
+  return b === 0 ? a : gcd(b, a % b);
 }
 
 function estimateInfiniteLimit(func, variable, target) {

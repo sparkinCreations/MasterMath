@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.29.3] - 2026-09-07
+
+Fixes from the September 2026 production audit
+(`docs/evaluations/2026-09/PRODUCTION-AUDIT-v1.29.md`): 149 fresh problems
+graded independently with SymPy — 93.3% Correct/Equivalent, **zero
+confidently-wrong answers**, 100% on every feature shipped since v1.13. The
+three rows below were the only ones that were not a decimal-versus-exact-form
+issue.
+
+### Fixed
+
+- **`x^2 +* 3` under Algebra was "already in simplest form" with a solved
+  status.** When every engine threw on the input, the simplify path echoed
+  it back as the answer — the July F1 class surviving in one path. If no
+  candidate simplification exists and the input does not parse, it is now a
+  parse error carrying mathjs's specific message. (Audit row A02.)
+- **`x^2 = 4;` was refused, and the refusal was labelled solved.** A trailing
+  separator is now stripped, so the equation solves to x = ±2. A genuine
+  multi-equation string still refuses, now through the `parseError` envelope
+  instead of a bare object that the legacy shim stamped "solved". (Row A25.)
+- **`lim x→∞ (1 + 3/x)^x` answered `20.0855`, not `e^3`.** The named-constant
+  table covered e and e² only. Any integer power of e is now recognised, and
+  a limit that is a small rational (`2/5` rather than `0.4`) is named with the
+  decimal alongside. (Row L08.)
+
 ## [1.29.2] - 2026-09-07
 
 First release against the September 2026 roadmap

@@ -911,3 +911,40 @@ test('regression: "and" inside a math fragment is text, not a product of variabl
   // A variable whose name merely contains the letters is untouched.
   assert.doesNotMatch(toLatex('band = 2'), /\\text\{and\}/);
 });
+
+// ---------------------------------------------------------------------------
+// September 2026 production audit (docs/evaluations/2026-09/). Two rows came
+// back with a "solved" status that had not solved anything, and one limit
+// named a decimal where the exact constant was known.
+// ---------------------------------------------------------------------------
+
+test('audit A02: an unreadable operator sequence under Algebra is a parse error, never "simplest form"', async () => {
+  // Was: status solved, answer "x^2 + *3", step "already in simplest form".
+  const r = await solveProblem('x^2 +* 3', 'algebra');
+  assert.equal(r.status, 'parse_error');
+  assert.doesNotMatch(r.answer, /simplest form/);
+  assert.doesNotMatch(r.steps.join('\n'), /simplest form/);
+});
+
+test('audit A25: a trailing semicolon does not turn one equation into a refusal', async () => {
+  // Was: status solved, answer 'Please enter either one equation, or a 2×2 system…'.
+  const r = await solveProblem('x^2 = 4;', 'algebra');
+  assert.equal(r.status, 'solved');
+  assert.match(r.answer, /x = -2/);
+  assert.match(r.answer, /x = 2/);
+  // A genuine multi-equation string still refuses — now with a refusal status.
+  const multi = await solveAlgebra('x = 1; y = 2; z = 3');
+  assert.equal(multi.status, 'parse_error');
+  assert.match(multi.answer, /one equation/);
+});
+
+test('audit L08: a limit at infinity that is a power of e or a small rational is named exactly', async () => {
+  // Was: 20.0855 with no mention of e^3 (e and e^2 were already named).
+  const cube = await solveLimit('lim x->infinity (1+3/x)^x');
+  assert.match(cube.answer, /e\^3 \(≈ 20\.0855\)/);
+  const ratio = await solveLimit('lim x->infinity (2x^2 + 1)/(5x^2 - 3)');
+  assert.match(ratio.answer, /2\/5 \(≈ 0\.4\)/);
+  // A value with no short name stays a plain decimal.
+  const plain = await solveLimit('lim x->infinity (1+1/x)^(x*1.37)');
+  assert.doesNotMatch(plain.answer, /\(≈/);
+});

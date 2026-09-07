@@ -23,3 +23,4 @@ Integrals,x^3*sin(x),-x^3*cos(x)+3*x^2*sin(x)+6*x*cos(x)-6*sin(x),—,Repeated b
 Integrals,x^2*e^x,exp(x)*(x^2-2*x+2),—,Repeated by-parts v1.12.0
 Integrals,e^x*sin(x),1/2*exp(x)*(sin(x)-cos(x)),—,Cyclic by-parts v1.12.0
 Integrals,arctan(x),x*arctan(x)-1/2*log(x^2+1),—,By-parts with dv=dx v1.12.0
+Limits,lim x->infinity (1+3/x)^x,e^3,—,Audit 2026-09 row L08: power of e named exactly (was 20.0855)

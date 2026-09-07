@@ -36,9 +36,17 @@ export async function solveAlgebra(expression, options = {}) {
     // systems solver from the raw text). If a multi-equation string still
     // reaches here — e.g. a stray separator the router didn't count as a
     // system — refuse clearly rather than mangling it into one expression.
+    // A trailing separator ("x^2 = 4;") is a typing habit, not a second
+    // equation: drop it rather than refusing a perfectly good equation.
+    // (September 2026 audit row A25.)
+    expression = expression.replace(/[;\n\s]+$/, '');
     const equalsCount = (expression.match(/(?<![><!=])=(?!=)/g) || []).length;
     if (/[;\n]/.test(expression) || equalsCount >= 2) {
-      return {
+      // A refusal must carry a refusal status. This used to be a bare object,
+      // which finalizeResult's legacy shim stamped "solved".
+      return parseError({
+        input: expression,
+        hint: 'This looks like more than one equation.',
         steps: [
           'This looks like more than one equation.',
           'For a 2×2 system, use two equations separated by a semicolon, e.g. 2x + 3y = 6; x − y = 4.',
@@ -47,8 +55,7 @@ export async function solveAlgebra(expression, options = {}) {
         answer: 'Please enter either one equation, or a 2×2 system as "eq1; eq2"',
         tips: ['A 2×2 system needs exactly two equations in two variables.'],
         common_mistakes: ['A stray semicolon or extra “=” in a single-equation entry.'],
-        graph: null,
-      };
+      });
     }
 
     // "factor x^2 - 9": the expression extractor strips the verb, so the
@@ -1000,6 +1007,22 @@ async function simplifyExpression(expression) {
     }
   } catch {
     // fall through
+  }
+
+  // No engine produced anything. If the input does not even parse, that is a
+  // syntax problem and must be reported as one — echoing "x^2 + *3 is already
+  // in simplest form" under a solved status was the July F1 class surviving in
+  // this one path (September 2026 audit row A02).
+  if (candidates.length === 0) {
+    try {
+      math.parse(expression);
+    } catch (err) {
+      const detail = String(err?.message || '').replace(/\s*\(char \d+\)\s*$/, '');
+      return parseError({
+        input: expression,
+        hint: detail ? `${detail}.` : 'The expression contains an operator sequence that cannot be read.',
+      });
+    }
   }
 
   // Best = shortest; on a tie prefer mathsteps for its worked steps.

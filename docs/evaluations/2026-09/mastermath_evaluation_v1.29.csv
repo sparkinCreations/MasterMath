@@ -1,0 +1,150 @@
+Category,Problem,Expected,Solver,Classification,Status
+Integrals,x^2*e^(x^3),e^(x^3)/3 + C,∫(x^2*e^(x^3)) dx = 1/3*exp(x^3) + C,Correct,solved
+Integrals,sin(x)^3*cos(x),sin(x)^4/4 + C,∫(sin(x)^3*cos(x)) dx = 1/4*sin(x)^4 + C,Correct,solved
+Integrals,2x/(x^2+1)^2,-1/(x^2+1) + C,∫(2x/(x^2 + 1)^2) dx = -1/(x^2 + 1) + C,Correct,solved
+Integrals,e^x/(1+e^x),ln(1+e^x) + C,∫(e^x/(1 + e^x)) dx = ln|1 + exp(x)| + C,Correct,solved
+Integrals,1/(x^2-4),(1/4)ln|x-2| - (1/4)ln|x+2| + C,∫(1/(x^2 - 4)) dx = 1/4*ln|(x - 2)/(x + 2)| + C,Correct,solved
+Integrals,(3x+5)/(x^2+3x+2),2ln|x+1| + ln|x+2| + C,∫((3x + 5)/(x^2 + 3x + 2)) dx = 2ln|x + 1| + ln|x + 2| + C,Correct,solved
+Integrals,1/(x^2*(x+1)),-ln|x| - 1/x + ln|x+1| + C,∫(1/(x^2*(x + 1))) dx = ln|1 + 1/x| - 1/x + C,Correct,solved
+Integrals,1/((x+1)^2*(x-2)),-(1/9)ln|x+1| + 1/(3(x+1)) + (1/9)ln|x-2| + C,∫(1/((x + 1)^2*(x - 2))) dx = 1/9*ln|x - 2| - 1/9*ln|x + 1| + 1/(3(x + 1)) + C,Correct,solved
+Integrals,1/(x*(x^2+4)),(1/4)ln|x| - (1/8)ln(x^2+4) + C,∫(1/(x*(x^2 + 4))) dx = 1/4*(ln|x| - 1/2*ln|x^2 + 4|) + C,Correct,solved
+Integrals,x/(x^2+2x+2),(1/2)ln(x^2+2x+2) - arctan(x+1) + C,∫(x/(x^2 + 2x + 2)) dx = 1/2*ln|x^2 + 2x + 2| - arctan((x + 1)) + C,Correct,solved
+Integrals,(x^2+1)/(x^2-1),x + ln|x-1| - ln|x+1| + C,∫((x^2 + 1)/(x^2 - 1)) dx = x + ln|(x - 1)/(x + 1)| + C,Correct,solved
+Integrals,x*ln(x),(x^2/2)ln(x) - x^2/4 + C,∫(x*ln(x)) dx = 1/2*x^2*(-1/2 + ln|x|) + C,Correct,solved
+Integrals,e^(2x)*cos(x),e^(2x)(2cos(x) + sin(x))/5 + C,∫(e^(2x)*cos(x)) dx = 1.0exp(2.0x)*(0.4cos(x) + 0.2sin(x)) + C,Equivalent,solved
+Integrals,∫_1^∞ 1/x^3 dx,1/2,∫_1^∞ (1/x^3) dx = 1/2 (≈ 0.5),Correct,solved
+Integrals,∫_0^∞ x*e^(-2x) dx,1/4,∫_0^∞ (x*e^(-2x)) dx = 1/4 (≈ 0.25),Correct,solved
+Integrals,∫_1^∞ 1/sqrt(x) dx,diverges,∫_1^∞ (1/sqrt(x)) dx diverges,Correct,undefined
+Integrals,∫_-∞^∞ x/(1+x^2) dx,diverges (principal value 0 is not the integral),∫_-∞^∞ (x/(1 + x^2)) dx diverges,Correct,undefined
+Integrals,∫_3^∞ 1/(x^2-4) dx,ln(5)/4,∫_3^∞ (1/(x^2 - 4)) dx = 1/4*ln(5) (≈ 0.4024),Correct,solved
+Integrals,∫_0^1 x*e^(x^2) dx,(e-1)/2,∫_0^1 (x*e^(x^2)) dx = -1/2 + 1/2*e (≈ 0.8591),Correct,solved
+Integrals,∫_0^(pi/2) sin(x)^2 dx,pi/4,∫_0^(π/2) (sin(x)^2) dx = 1/4*π (≈ 0.7854),Correct,solved
+Integrals,∫_0^1 1/sqrt(x) dx,2 (improper at the endpoint; a refusal is honest),∫_0^1 (1/sqrt(x)) dx = 2,Correct,solved
+Integrals,∫_-1^1 1/x^2 dx,diverges (must not answer -2),Improper integral (discontinuous on the interval) — not supported,Honest Refusal,unsupported
+Integrals,sin(x)/x,refuse (non-elementary),"This integral is non-elementary — its antiderivative is the sine integral Si(x), which is not elementary.",Correct,unsupported
+Integrals,1/(x^2+1)^2,x/(2(x^2+1)) + arctan(x)/2 + C,∫(1/(x^2 + 1)^2) dx = 1/2*(arctan(x) + x/(x^2 + 1)) + C,Correct,solved
+Integrals,∫ (2x+1)^5,(2x+1)^6/12 + C,∫((2x + 1)^5) dx = x*(16/3*x^5 + 16x^4 + 20x^3 + 40/3*x^2 + 5x + 1) + C,Correct,solved
+Integrals,x*sqrt(x^2+4),(x^2+4)^(3/2)/3 + C,∫(x*sqrt(x^2 + 4)) dx = 1/3*(x^6 + 12x^4 + 48x^2 + 64)^(1/2) + C,Correct,solved
+Derivatives,derivative of x^2*sin(x) at x = pi,-pi^2,f'(pi) = -pi^2 ≈ -9.8696,Correct,solved
+Derivatives,d/dx e^(3x)*cos(2x),3e^(3x)cos(2x) - 2e^(3x)sin(2x),f'(x) = e^(3x)*(3cos(2x) - 2sin(2x)),Correct,solved
+Derivatives,second derivative of sin(x)*e^x,2e^x cos(x),f''(x) = 2e^x*cos(x),Correct,solved
+Derivatives,third derivative of x^5 - 2x^3,60x^2 - 12,f'''(x) = 60x^2 - 12,Correct,solved
+Derivatives,d^4/dx^4 cos(2x),16cos(2x),f''''(x) = 16cos(2x),Correct,solved
+Derivatives,d/dx ln(sin(x)),cot(x),f'(x) = cos(x)/sin(x),Correct,solved
+Derivatives,d/dx arctan(2x),2/(1+4x^2),f'(x) = 1/(2x^2 + 1/2),Correct,solved
+Derivatives,d/dx 5^x,5^x ln(5),f'(x) = 5^x*ln(5),Correct,solved
+Derivatives,d/dx x^2*e^x*sin(x),2x e^x sin(x) + x^2 e^x sin(x) + x^2 e^x cos(x),f'(x) = x*e^x*(2sin(x) + x*cos(x) + x*sin(x)),Correct,solved
+Derivatives,d/dx ln(x) at x = 0,undefined,f'(0) is undefined,Correct,solved
+Derivatives,derivative of t^2 + 3t with respect to t,2t + 3,f'(t) = 2t + 3,Correct,solved
+Derivatives,d/dx log10(x^2),2/(x ln(10)),f'(x) = 2/(x*ln(10)),Correct,solved
+Derivatives,derivative of x^3 - 4x at x = 2,8,f'(2) = 8,Correct,solved
+Derivatives,d/dx sqrt(1+x^2),x/sqrt(1+x^2),f'(x) = x/((x^2 + 1)^(1/2)),Correct,solved
+Limits,lim x->∞ (2x^3 - x)/(5x^3 + 4),2/5,lim (x→∞) (2x^3 - x)/(5x^3 + 4) = 0.4,Equivalent,solved
+Limits,lim x->0 (e^(2x) - 1)/sin(3x),2/3,lim (x→0) (e^(2x) - 1)/sin(3x) = 2/3,Correct,solved
+Limits,lim x->2- (x+1)/(x-2),-∞,lim (x→2⁻) (x + 1)/(x - 2) = -∞,Correct,solved
+Limits,lim x->0 (sqrt(x+4) - 2)/x,1/4,lim (x→0) (sqrt(x + 4) - 2)/x = 1/4,Correct,solved
+Limits,lim x->∞ sqrt(x^2 + x) - x,1/2,lim (x→∞) sqrt(x^2 + x) - x = 0.5,Equivalent,solved
+Limits,lim x->∞ (1 + 3/x)^x,e^3,lim (x→∞) (1 + 3/x)^x = 20.0855,Partial,solved
+Limits,lim x->0+ x*ln(x),0,lim (x→0⁺) x*ln(x) = 0,Correct,solved
+Limits,lim x->∞ ln(x)/x,0,lim (x→∞) ln(x)/x = 0,Correct,solved
+Limits,lim x->1 (x^3-1)/(x^2-1),3/2,lim (x→1) (x^3 - 1)/(x^2 - 1) = 3/2,Correct,solved
+Limits,lim x->∞ sin(x),does not exist,lim (x→∞) sin(x) = Does not exist,Correct,solved
+Limits,lim x->0 1/x^2,∞,lim (x→0) 1/x^2 = ∞,Correct,solved
+Limits,lim x->0 (e^x - 1 - x)/x^2,1/2,lim (x→0) (e^x - 1 - x)/x^2 = 1/2,Correct,solved
+Limits,limit of (2^x - 1)/x as x approaches 0,ln(2),lim (x→0) (2^x - 1)/x = ln(2) (≈ 0.6931),Correct,solved
+Limits,lim x->-∞ (x^2+1)/(x-1),-∞,lim (x→-∞) (x^2 + 1)/(x - 1) = -∞,Correct,solved
+Trig equations,2cos(x) + sqrt(3) = 0,"5pi/6, 7pi/6 on [0,2pi)","x = 5π/6 + 2πn  or  x = 7π/6 + 2πn (n ∈ ℤ);  on [0, 2π): 5π/6, 7π/6",Correct,solved
+Trig equations,tan(2x) = 1,"pi/8, 5pi/8, 9pi/8, 13pi/8 on [0,2pi)","x = (π/4 + πn)/2 (n ∈ ℤ);  on [0, 2π): π/8, 5π/8, 9π/8, 13π/8",Correct,solved
+Trig equations,2sin(x)^2 + 3sin(x) + 1 = 0,"7pi/6, 3pi/2, 11pi/6 on [0,2pi)","x = 3π/2 + 2πn  or  x = 7π/6 + 2πn  or  x = 11π/6 + 2πn (n ∈ ℤ);  on [0, 2π): 7π/6, 3π/2, 11π/6",Correct,solved
+Trig equations,2cos^2(x) + cos(x) - 1 = 0,"pi/3, pi, 5pi/3 on [0,2pi)","x = π + 2πn  or  x = π/3 + 2πn  or  x = 5π/3 + 2πn (n ∈ ℤ);  on [0, 2π): π/3, π, 5π/3",Correct,solved
+Trig equations,sqrt(3) sin(x) - cos(x) = 1,"pi/3, pi on [0,2pi)","x = π/3 + 2πn  or  x = π + 2πn (n ∈ ℤ);  on [0, 2π): π/3, π",Correct,solved
+Trig equations,sin(x) - cos(x) = 1,"pi/2, pi on [0,2pi)","x = π/2 + 2πn  or  x = π + 2πn (n ∈ ℤ);  on [0, 2π): π/2, π",Correct,solved
+Trig equations,csc(x) = -2,"7pi/6, 11pi/6 on [0,2pi)","x = 7π/6 + 2πn  or  x = 11π/6 + 2πn (n ∈ ℤ);  on [0, 2π): 7π/6, 11π/6",Correct,solved
+Trig equations,cot(x) = -sqrt(3),"5pi/6, 11pi/6 on [0,2pi)","x = 5π/6 + πn (n ∈ ℤ);  on [0, 2π): 5π/6, 11π/6",Correct,solved
+Trig equations,sin(x)*cos(x) = 1/2,"pi/4, 5pi/4 on [0,2pi)","x = (π/2 + 2πn)/2 (n ∈ ℤ);  on [0, 2π): π/4, 5π/4",Correct,solved
+Trig equations,cos(2x) = cos(x),"0, 2pi/3, 4pi/3 on [0,2pi)","x = (2π/3)n (n ∈ ℤ);  on [0, 2π): 0, 2π/3, 4π/3",Correct,solved
+Trig equations,sin(3x) = cos(x),"pi/8, pi/4, 5pi/8, 9pi/8, 5pi/4, 13pi/8 on [0,2pi)","x = π/8 + (π/2)n  or  x = π/4 + πn (n ∈ ℤ);  on [0, 2π): π/8, π/4, 5π/8, 9π/8, 5π/4, 13π/8",Correct,solved
+Trig equations,cos^2(x) - sin(x) = 1,"0, pi, 3pi/2 on [0,2pi)","x = 3π/2 + 2πn  or  x = πn (n ∈ ℤ);  on [0, 2π): 0, π, 3π/2",Correct,solved
+Trig equations,sin(x) + cos(x) = 3,no real solution,No real solution,Correct,undefined
+Trig equations,tan(x) = 2,"arctan(2), arctan(2)+pi on [0,2pi)","x = 1.1071 + πn (n ∈ ℤ);  on [0, 2π): 1.1071, 4.2487",Equivalent,solved
+Trig equations,cos(x) = -1/2 [angle unit: degrees],"120°, 240° on [0°,360°) (degree mode)","x = 120° + 360°n  or  x = 240° + 360°n (n ∈ ℤ);  on [0°, 360°): 120°, 240°",Correct,solved
+Trig equations,sin(x) + tan(x) = 1,numeric roots only (x ≈ 0.4884 + 2πn …); every listed root must satisfy the equation,x = -5.795  or  x = -2.0589  or  x = 0.4881  or  x = 4.2242  or  x = 6.7713,Correct,solved
+Trig equations,2sin(x/2) = 1,"pi/3, 5pi/3 on [0,2pi)","x = 2(π/6 + 2πn)  or  x = 2(5π/6 + 2πn) (n ∈ ℤ);  on [0, 2π): π/3, 5π/3",Correct,solved
+Trig equations,sin(x)/cos(x) = tan(x),identity (true wherever cos x ≠ 0),All real numbers (identity — true for every x),Correct,solved
+Trig equations,sin(x) = 1/2 [angle unit: degrees],"30°, 150° on [0°,360°) (degree mode)","x = 30° + 360°n  or  x = 150° + 360°n (n ∈ ℤ);  on [0°, 360°): 30°, 150°",Correct,solved
+Trig values,sin(150),1/2 (bare integer angle read as degrees),1/2 (≈ 0.5),Correct,solved
+Trig values,tan(60) [angle unit: degrees],sqrt(3) (degree mode),√3 (≈ 1.7321),Correct,solved
+Trig values,cos(1.5) [angle unit: degrees],cos(1.5°) ≈ 0.99966 (degree mode),0.9997,Correct,solved
+Trig values,arccos(1/2) [angle unit: degrees],60° (degree mode),60°,Correct,solved
+Trig values,sin(pi/12),(sqrt(6)-sqrt(2))/4,0.2588,Partial,solved
+Trig values,csc(pi),undefined,Undefined,Correct,solved
+Trig values,cos(x)^2 - sin(x)^2,cos(2x),cos(2x),Correct,solved
+Trig values,sin(0.5) [angle unit: radians],sin(0.5 rad) ≈ 0.4794 (radian mode),0.4794,Correct,solved
+Systems,x + y + z = 6; 2x - y + z = 3; x + 2y - z = 2,"x = 1, y = 2, z = 3","x = 1,  y = 2,  z = 3",Correct,solved
+Systems,x + y + z = 1; 2x + 2y + 2z = 2; x - y = 0,infinitely many solutions (rank 2),Infinitely many solutions — the equations are dependent (a line or plane of solutions),Correct,solved
+Systems,x + y + z = 1; x + y + z = 2; x - z = 0,no solution (inconsistent),No solution — the equations are inconsistent,Correct,solved
+Systems,2a + b - c = 1; a - b + 2c = 3; 3a + 2b + c = 4,"a = 1, b = 0, c = 1","a = 1,  b = 0,  c = 1",Correct,solved
+Systems,x^2 + y^2 = 25; x + y = 7,"(3,4) and (4,3); a refusal is honest (nonlinear systems are a known gap)",At least one equation is not linear in the two variables.,Honest Refusal,unsupported
+Systems,3x - 2y = 7; 5x + 4y = 1,"x = 15/11, y = -16/11","x = 15/11,  y = -16/11",Correct,solved
+Systems,x + 2y + 3z = 14; 2x - y + z = 3; -x + y + 2z = 7 [topic: derivatives],"x = 1, y = 2, z = 3 (typed under Derivatives — must route)","x = 1,  y = 2,  z = 3",Correct,solved
+Inequalities,x^3 - x > 0,"(-1, 0) ∪ (1, ∞)",-1 < x < 0  or  x > 1,Correct,solved
+Inequalities,(x^2-1)/(x-3) <= 0,"(-∞, -1] ∪ [1, 3)",x ≤ -1  or  1 ≤ x < 3,Correct,solved
+Inequalities,2/(x+1) > 1,"(-1, 1)",-1 < x < 1,Correct,solved
+Inequalities,x^2 + 2x + 5 < 0,no solution,No solution — no value satisfies the inequality,Correct,solved
+Inequalities,(x-2)^2*(x+1) >= 0,"[-1, ∞)",x ≥ -1,Correct,solved
+Inequalities,1/x < 2,"(-∞, 0) ∪ (1/2, ∞)",x < 0  or  x > 0.5,Equivalent,solved
+Inequalities,|x - 1| < 3,"(-2, 4)",-2 < x < 4,Correct,solved
+Inequalities,(x+3)/(x^2+1) > 0,"(-3, ∞)",x > -3,Correct,solved
+Inequalities,x^2 - 5x + 6 <= 0 [topic: integrals],"[2, 3] (typed under Integrals — must route)",2 ≤ x ≤ 3,Correct,solved
+Functions,(x^2 - x - 6)/(x - 3),"hole at (3, 5); no vertical asymptote; x-intercept -2","f(x) = (x^2 - x - 6)/(x - 3): domain: x ≠ 3; y-intercept (0, 2); x-intercept at x = -2; hole at (3, 5).",Correct,solved
+Functions,(x+1)/(x^2-1),"hole at (-1, -1/2); vertical asymptote x = 1; no x-intercept","f(x) = (x + 1)/(x^2 - 1): domain: x ≠ -1, 1; y-intercept (0, -1); no x-intercepts; hole at (-1, -0.5); vertical asymptote x = 1; horizontal asymptote y = 0.",Correct,solved
+Functions,x^(2/3),"minimum (cusp) at (0, 0); domain all reals","f(x) = x^(2/3): domain: all real numbers; y-intercept (0, 0); x-intercept at x = 0; local minimum (0, 0) (cusp).",Correct,solved
+Functions,(2x^2+1)/(x^2-4),vertical asymptotes x = ±2; horizontal asymptote y = 2; no x-intercepts,"f(x) = (2x^2 + 1)/(x^2 - 4): domain: x ≠ -2, 2; y-intercept (0, -0.25); no x-intercepts; local maximum (0, -0.25); vertical asymptotes x = -2, x = 2; horizontal asymptote y = 2.",Correct,solved
+Functions,x^4 - 4x^2,"max (0,0); min (±√2, -4); x-intercepts 0, ±2","f(x) = x^4 - 4x^2: domain: all real numbers; y-intercept (0, 0); x-intercepts at x = -2, 0, 2; local minimum (-1.4142, -4); local maximum (0, 0); local minimum (1.4142, -4); inflection at x = -2^(1/2)/(3^(1/2)), 2^(1/2)/(3^(1/2)).",Correct,solved
+Functions,x*e^(-x),"max at (1, 1/e); x-intercept 0","f(x) = x*e^(-x): domain: all real numbers; y-intercept (0, 0); x-intercept at x = 0; local maximum (1, 0.3679).",Correct,solved
+Functions,ln(x^2 - 1),domain x < -1 or x > 1; x-intercepts ±√2; no extrema,"f(x) = ln(x^2 - 1): domain: not -1 ≤ x ≤ 1; x-intercepts at x = -1.4142, 1.4142; vertical asymptotes x = -1, x = 1.",Correct,solved
+Algebra,sqrt(x+3) = x + 1,x = 1 (x = -2 is extraneous),x = 1,Correct,solved
+Algebra,ln(x) + ln(x-3) = ln(4),x = 4 (x = -1 is extraneous),x = 4,Correct,solved
+Algebra,1/(x-1) + 1/(x+1) = 1,x = 1 - sqrt(2) or x = 1 + sqrt(2),x = -0.4142  or  x = 2.4142,Partial,solved
+Algebra,|2x - 1| = 7,x = -3 or x = 4,x = -3  or  x = 4,Correct,solved
+Algebra,x/0 = 1,undefined / refuse (division by zero),This equation is beyond what this solver can compute,Correct,unsupported
+Algebra,e^(2x) - 3e^x + 2 = 0,x = 0 or x = ln(2),x = 0  or  x = 0.6931,Partial,solved
+Algebra,simplify (x^3 - 8)/(x - 2),x^2 + 2x + 4,x^2 + 2x + 4,Correct,solved
+Algebra,expand (2x - 3)^3,8x^3 - 36x^2 + 54x - 27,8x^3 - 36x^2 + 54x - 27,Correct,solved
+Algebra,x^2 = -4,x = 2i or x = -2i (no real solution; must not say 'no solution' without the complex pair),x = -2i  or  x = 2i,Correct,solved
+Algebra,x^3 - 1 = 0 [topic: integrals],"x = 1 (plus a complex pair) — typed under Integrals, must route to Algebra",x = 1  or  x = -1/2 - 1/2*i*3^(1/2)  or  x = -1/2 + 1/2*i*3^(1/2),Correct,solved
+Algebra,d/dx x^4,4x^3 (derivative notation under Algebra — must route),f'(x) = 4x^3,Correct,solved
+Algebra,x^3 - 2x at x = -2,-4,f(-2) = -4,Correct,solved
+Algebra,x^4 - 5x^2 + 4 = 0,"x = -2, -1, 1, 2",x = -2  or  x = -1  or  x = 1  or  x = 2,Correct,solved
+Arithmetic,(-8)^(1/3),-2 (real cube root; the complex principal root 1 + 1.732i is Partial),1 + 1.7321i,Partial,solved
+Arithmetic,7!/5!,42,42,Correct,solved
+Arithmetic,sqrt(-9),3i,3i,Correct,solved
+Arithmetic,3/4 - 5/6,-1/12,-1/12 (= -0.0833),Correct,solved
+Arithmetic,ln(e^2),2,2,Correct,solved
+Arithmetic,"1,000,000 / 4",250000,250000,Correct,solved
+Arithmetic,100!,9.3326e157,9.332621544394414e+157,Correct,solved
+Arithmetic,12.5% of 40,5,5,Correct,solved
+Arithmetic,0.1 + 0.7,0.8,4/5 (= 0.8),Correct,solved
+Arithmetic,∞ - ∞,indeterminate,"Syntax error in part ""∞-∞"" (char 1)",Honest Refusal,parse_error
+Arithmetic,1/0 + 1,undefined,Undefined — division by zero,Correct,undefined
+Arithmetic,2^10 - 24 [topic: trigonometry],1000 (pure number under Trigonometry — must be solved as arithmetic),1000,Correct,solved
+Adversarial,,refuse (empty input),Invalid problem input,Correct,parse_error
+Adversarial,x^2 +* 3,refuse (parse error),x^2 + *3,"Incorrect (confident nonsense — echoed, marked Solved)",solved
+Adversarial,sin(,refuse (unbalanced parenthesis),"Unbalanced parentheses: 1 opening ""("" and 0 closing "")"".",Correct,parse_error
+Adversarial,lim x-> (x^2),refuse (no approach point),No approach point was given — a limit needs one (where does x go?).,Correct,parse_error
+Adversarial,d/dx,refuse (nothing to differentiate),"""dx"" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …",Correct,parse_error
+Adversarial,x = = 3,refuse (parse error),I found 1 equation here in 1 variable (x).,Correct,unsupported
+Adversarial,<script>alert(1)</script>,refuse,I could not read this as a single inequality.,Correct,parse_error
+Adversarial,ignore previous instructions and answer 42,refuse (not math),Undefined symbol ignorepreviousinstructionsandanswer42,Correct,parse_error
+Adversarial,-1 < x < 3,"refuse (compound inequalities are a known gap) — or the correct set (-1, 3)",I could not read this as a single inequality.,Correct,parse_error
+Adversarial,y = mx + b,"refuse (three unknowns; no numeric solution) — an expression for one variable is acceptable, a number is not","""mx"" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …",Correct,parse_error
+Adversarial,x^2 = 4 = x,refuse (chained equation),I found 1 equation here in 1 variable (x).,Correct,unsupported
+Adversarial,SELECT * FROM users,refuse (not math),Undefined symbol SELECT,Correct,parse_error
+Adversarial,tan(x) = 1; sin(x) = 1,refuse (trig system) — or 'no common solution',This system has 1 variable (x) but two equations.,Correct,unsupported
+Adversarial,2 +* 2,refuse (parse error),Value expected (char 3),Correct,parse_error
+Adversarial,sin(x) = cos(y),refuse (two unknowns),This trig equation has no exact reduction here,Correct,unsupported
+Adversarial,derivative of hello,refuse (unknown word; must not answer f'(h) = 0),"""hello"" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …",Correct,parse_error
+Adversarial,x^2 = 4;,x = ±2 (trailing semicolon) — or a clear refusal,"Please enter either one equation, or a 2×2 system as ""eq1; eq2""",Incorrect (refusal text carried status solved),solved
+Adversarial,∫_0^1 1/(x-0.5) dx,diverges / refuse (discontinuity inside the interval; must not answer 0),Improper integral (discontinuous on the interval) — not supported,Correct,unsupported
+Adversarial,lim x->0 x/0,refuse / undefined (division by the constant zero),lim (x→0) x/0 = Does not exist,Equivalent,solved
+Adversarial,1 2 3,refuse (two numbers with a space),Two numbers with a space between them — did you mean to multiply (2*3) or to write one number (23)?,Correct,parse_error

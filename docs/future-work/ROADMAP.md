@@ -74,7 +74,7 @@ finds.
 
 | # | Item | Priority | Effort | Type | Wave |
 |---|------|----------|--------|------|------|
-| 1 | Black-box re-evaluation against v1.29.1 | **P0** | Medium | Quality | 1 |
+| 1 | ~~Black-box re-evaluation against v1.29.1~~ ✅ Done 2026-09-07 — 149 fresh rows, SymPy-graded: **93.3% Correct/Equivalent, 0 confident-wrong**; the two envelope failures and the e³ limit fixed in v1.29.3 ([audit](../evaluations/2026-09/PRODUCTION-AUDIT-v1.29.md)) | **P0** | Medium | Quality | 1 |
 | 2 | ~~Stale trig refusal message~~ ✅ Done v1.29.2 (message states the real boundary; contract test checks every cited example) | P1 | Small | Bug | 1 |
 | 3 | Limit techniques named the way a course names them | P1 | Medium | Engine | 2 |
 | 4 | Nonlinear 2×2 systems | P2 | Medium | Feature | 2 |
@@ -85,6 +85,11 @@ finds.
 | 9 | ~~Documentation debt~~ ✅ Done v1.29.2 (semantics status header, test renamed, worktree pruned) | P3 | Small | Docs | 1 |
 | 10 | New topic: Sequences & Series | P4 | Large | Engine | — |
 | 11 | Practice mode: "Try a similar problem" | P4 | Medium | UX | — |
+| 12 | Exact-first for the algebra fallback (rational equations, `u = eˣ`) — *from the audit* | P1 | Medium | Engine | 2 |
+| 13 | Half-angle family in exact trig values (`sin(π/12)`) — *from the audit* | P2 | Small | Feature | 2 |
+| 14 | Real cube root of a negative base (`(−8)^(1/3)` → −2) — *from the audit* | P2 | Small | Bug | 2 |
+| 15 | Rational coefficients in cyclic by-parts (`∫e^(2x)cos x`) — *from the audit* | P3 | Small | Bug | 2 |
+| 16 | `∫₋₁¹ 1/x²` should say "diverges", `∞ − ∞` should be Indeterminate — *from the audit* | P2 | Small | Bug | 2 |
 
 "Effort" is relative to this codebase: Small = one sitting, Medium = a few
 sittings, Large = real engine work that needs its own design pass.
@@ -130,6 +135,48 @@ July (`mastermath_evaluation.csv`, `mastermath_evaluation_v1.12.csv`).
 **Acceptance:** ≥ 90% Correct/Equivalent and **zero confident-wrong**. If
 either fails, the failures re-rank this list; the P1 and P2 items below are
 provisional until then.
+
+> **✅ Done 2026-09-07.** Full write-up:
+> [`../evaluations/2026-09/PRODUCTION-AUDIT-v1.29.md`](../evaluations/2026-09/PRODUCTION-AUDIT-v1.29.md).
+> 149 fresh rows (20 adversarial), engine driven in-process at the v1.29.1
+> code, every row graded by SymPy 1.14.
+>
+> | Metric | Result |
+> |---|---|
+> | Correct + Equivalent | 139/149 = 93.3% |
+> | Confidently wrong | **0** |
+> | Incorrect (envelope failures, no wrong number) | 2 → fixed v1.29.3 |
+> | Partial (right value, decimal where exact expected) | 5 |
+> | Every post-v1.13 feature | 100% on its rows |
+>
+> **What it re-ranked.** The acceptance target is met, so items 2–11 stand.
+> The audit's one systemic finding is new: seven of the ten non-Correct
+> well-formed rows are *exact-form* gaps — the algebra numeric fallback
+> prints decimals for `1/(x−1) + 1/(x+1) = 1` (1 ± √2) and
+> `e^(2x) − 3eˣ + 2 = 0` (ln 2); `sin(π/12)` has no exact entry; `(−8)^(1/3)`
+> gives the complex principal root; `∫e^(2x)cos x` comes back with float
+> coefficients. These are items 12–16 below, slotted into Wave 2 ahead of the
+> new-capability items because they touch answers students already get.
+
+---
+
+## P1 — Exact-First for the Algebra Fallback — *audit item 12*
+
+**Current behavior (verified):** v1.25.0 made polynomial equations exact-first
+(`x² = 2` → ±√2). Two equation shapes still reach `solveNumerically` in
+`algebraSolver.js` and print floats:
+
+- `1/(x−1) + 1/(x+1) = 1` → `x = -0.4142 or 2.4142` (should be 1 ± √2).
+  Clear the denominators (Algebrite `rationalize` / `numerator`), run the
+  polynomial path, and keep the existing extraneous-root check.
+- `e^(2x) − 3eˣ + 2 = 0` → `x = 0 or 0.6931` (should be 0 or ln 2). Detect
+  "quadratic in eˣ / ln x / √x", substitute u, solve, back-substitute —
+  `solveReducibleTrig` in `trigEquationSolver.js` is the template.
+
+Items 13–16 are one-sitting fixes named in the audit's Findings section
+(F6, F7, the by-parts presentation note, and the two refused-should-solve
+rows). Each lands with a `tests/corpus/additions.csv` row citing its audit
+row.
 
 ---
 
