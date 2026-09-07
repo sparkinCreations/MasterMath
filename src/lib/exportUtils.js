@@ -10,7 +10,10 @@ let jsPDFPromise = null;
 
 function loadJsPDF() {
   if (!jsPDFPromise) {
-    jsPDFPromise = import('jspdf').then((module) => module.default);
+    // Prefer the named export: in jspdf 4 the node build's `default` is the
+    // whole namespace object, not the constructor (the browser build keeps
+    // both). The named `jsPDF` is the constructor in every build and version.
+    jsPDFPromise = import('jspdf').then((module) => module.jsPDF ?? module.default);
   }
   return jsPDFPromise;
 }

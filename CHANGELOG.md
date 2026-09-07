@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.3] - 2026-09-07
+
+Roadmap 2026-09 item 7, second step.
+
+### Changed
+
+- **jsPDF 3 → 4.2.1.** The export code uses `text`, `setFont`,
+  `setFontSize`, `splitTextToSize`, `addPage`, `setPage`, `internal` and
+  `save`, all unchanged. One real difference was found and handled: in
+  jspdf 4 the *node* build's `default` export is the whole namespace, not
+  the constructor (the browser build the app bundles still exports both).
+  The lazy loader now takes the named `jsPDF` export first, which is the
+  constructor in every build and version. Export tests and the full suite
+  are green; the lazy pdf chunk still builds.
+
 ## [1.32.2] - 2026-09-07
 
 Roadmap 2026-09 item 7, first step (dependency majors, lowest risk first).
