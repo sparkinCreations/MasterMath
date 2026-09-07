@@ -12,9 +12,10 @@ import {
   BookOpen,
   Target,
   ArrowRight,
-  CheckCircle,
-  Github
+  CheckCircle
+
 } from "lucide-react";
+import GithubMark from "@/components/ui/github-mark";
 
 export default function Home() {
   usePageTitle("Step-by-step math, solved locally - Free Math Solver");
@@ -77,7 +78,7 @@ export default function Home() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 text-base md:text-lg font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
           >
-            <Github className="w-5 h-5" />
+            <GithubMark className="w-5 h-5" />
             Star on GitHub
           </a>
         </div>
@@ -343,7 +344,7 @@ export default function Home() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 mt-4 text-sm md:text-base text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
         >
-          <Github className="w-5 h-5" />
+          <GithubMark className="w-5 h-5" />
           View on GitHub
         </a>
       </div>

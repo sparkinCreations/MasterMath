@@ -113,23 +113,29 @@ export default defineConfig({
             {
               name: 'vendor',
               priority: 30,
-              test: /node_modules\/(react|react-dom|react-router|react-router-dom|scheduler|clsx|tailwind-merge|class-variance-authority|lucide-react)\//,
+              // The alternation after the packages is Vite's own module-preload helper
+              // (a virtual module, not under node_modules): every chunk that lazy-loads
+              // imports it, so it must live with the entry — left unowned it lands in
+              // whichever chunk is convenient and drags that chunk onto the landing page.
+              test: /(?:node_modules\/(?:react|react-dom|react-router|react-router-dom|scheduler|clsx|tailwind-merge|class-variance-authority|lucide-react)\/|vite\/preload-helper|commonjsHelpers)/,
               includeDependenciesRecursively: false,
             },
             // Heavy libraries, each reachable only from a lazy route or a
             // lazily imported solver. Own files only.
-            { name: 'algebrite', priority: 20, test: /node_modules\/algebrite\//, includeDependenciesRecursively: false },
-            { name: 'mathjs', priority: 20, test: /node_modules\/mathjs\//, includeDependenciesRecursively: false },
-            { name: 'charts', priority: 20, test: /node_modules\/(recharts|d3-[a-z-]+)\//, includeDependenciesRecursively: false },
-            { name: 'pdf', priority: 20, test: /node_modules\/jspdf\//, includeDependenciesRecursively: false },
+            { name: 'algebrite', priority: 20, test: /node_modules\/algebrite\// },
+            { name: 'mathjs', priority: 20, test: /node_modules\/mathjs\// },
+            { name: 'charts', priority: 20, test: /node_modules\/(recharts|d3-[a-z-]+)\// },
+            { name: 'pdf', priority: 20, test: /node_modules\/jspdf\// },
             // Anything else from node_modules that two or more chunks share goes to
             // its own small chunk:
             // Babel runtime helpers, small utilities. Single-owner dependencies
             // do not match (minShareCount) and stay with their owner.
             {
               name: 'shared',
-              priority: 10,
-              test: /node_modules\//,
+              priority: 25,
+              // Never a heavy library's own file — those belong to their group even when
+              // several solver chunks share them; only the small stuff around them.
+              test: /node_modules\/(?!(?:react|react-dom|react-router|react-router-dom|scheduler|recharts|d3-|mathjs|algebrite|jspdf)(?:\/|-))/,
               minShareCount: 2,
               includeDependenciesRecursively: false,
             },

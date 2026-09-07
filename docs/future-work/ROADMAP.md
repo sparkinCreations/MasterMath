@@ -80,7 +80,7 @@ finds.
 | 4 | ~~Nonlinear 2×2 systems~~ ✅ Done v1.32.0 (substitution when one equation is linear in a variable; exact roots; every pair verified; two general conics still refused) | P2 | Medium | Feature | 2 |
 | 5 | ~~Compound inequalities~~ ✅ Done v1.32.0 (chains and and/or, by set intersection/union of the per-part sign-chart solutions) | P2 | Small–Med | Feature | 2 |
 | 6 | ~~First-load payload: mathjs chunk~~ ✅ Done v1.32.1 — 1,132 → 866 kB (gzip 324 → 245 kB) via explicit dependencies; the 500 kB target is structurally out of reach (see section) | P2 | Small–Med | Perf | 3 |
-| 7 | Dependency majors (React 19, Vite 8, Tailwind 4, …) — **in progress**: KaTeX 0.18 (v1.32.2), jsPDF 4 (v1.32.3), mathjs 15 (v1.32.4), Vite 8 + plugin-react 6 with the chunking rewritten for Rolldown and a preload test (v1.32.5) done; the React 19 bundle, Router 7 and Tailwind 4 remain | P3 | Medium | Maint | 3 |
+| 7 | Dependency majors (React 19, Vite 8, Tailwind 4, …) — **in progress**: KaTeX 0.18 (v1.32.2), jsPDF 4 (v1.32.3), mathjs 15 (v1.32.4), Vite 8 + plugin-react 6 with the chunking rewritten for Rolldown and a preload test (v1.32.5), React 19 + Recharts 3 + framer-motion 13 + lucide 1.x (v1.32.6, which also fixed a chunk-cycle crash in the graph that only the production build showed) done; Router 7 and Tailwind 4 remain | P3 | Medium | Maint | 3 |
 | 8 | ~~Isolate mathsteps behind one seam~~ ✅ Done v1.30.1 (moved up after it produced a wrong answer; two guarded entry points, kill switch, fallback proven by test) | P3 | Small | Maint | 3 |
 | 9 | ~~Documentation debt~~ ✅ Done v1.29.2 (semantics status header, test renamed, worktree pruned) | P3 | Small | Docs | 1 |
 | 10 | New topic: Sequences & Series | P4 | Large | Engine | — |

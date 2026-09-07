@@ -57,7 +57,7 @@ const Sidebar = React.forwardRef(({ className, ...props }, ref) => {
             : "w-0 overflow-hidden",
           className
         )}
-        {...(isOpen ? {} : { inert: "", "aria-hidden": "true" })}
+        {...(isOpen ? {} : { inert: true, "aria-hidden": "true" })}
         {...props}
       />
     </>

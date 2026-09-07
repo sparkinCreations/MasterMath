@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.6] - 2026-09-07
+
+Roadmap 2026-09 item 7, fifth step: the React bundle.
+
+### Changed
+
+- **React 18.3 → 19.2, Recharts 2 → 3.10, framer-motion 11 → 13,
+  lucide-react 0.441 → 1.x.** Checked against the Recharts 3 migration
+  guide: every chart prop the graph viewer uses (`ResponsiveContainer`,
+  number axes with `domain` and `allowDataOverflow`, `Tooltip` formatters,
+  `ReferenceLine`/`ReferenceDot`/`ReferenceArea`, `Line` with `dot={false}`)
+  is unchanged; the removed props (`alwaysShow`, `isFront`) were not in
+  use. framer-motion is two `motion.div`s and `useReducedMotion`, unchanged.
+  React 19's removals (string refs, function `defaultProps`, legacy render)
+  do not appear in the source. Every icon the app imports still exists in
+  lucide 1.x except `Github` — lucide removed its brand icons — which is
+  replaced by an inline GitHub mark component (`ui/github-mark.jsx`) on the
+  home page's two GitHub buttons.
+
+### Fixed
+
+- **The graph crashed in the production build after the Vite 8 upgrade**
+  ("a is not a function" inside the Recharts chunk, caught by the error
+  boundary), while the dev server was fine. Cause: the v1.32.5 chunk groups
+  told the heavy libraries to own only their own files, so Recharts'
+  dependencies were left unowned and Rolldown co-located them in the
+  GraphViewer chunk — a chunk cycle that left a binding undefined at load.
+  The groups now let each heavy library own its single-owner dependencies
+  and rank the `shared` group above them, with the heavy libraries excluded
+  from `shared` so it cannot swallow mathjs. Vite's virtual module-preload
+  helper, which every lazy chunk imports, is pinned to `vendor` by name —
+  unowned, it landed in the pdf chunk and put pdf and `shared` back on the
+  landing page. Verified in the production preview on the crashing case;
+  the preload test now also fails if `shared` is ever preloaded.
+- The collapsed sidebar passed `inert=""`, which React 19 treats as false
+  with a warning; it now passes `inert` as a boolean.
+
 ## [1.32.5] - 2026-09-07
 
 Roadmap 2026-09 item 7, fourth step: the build tool.
