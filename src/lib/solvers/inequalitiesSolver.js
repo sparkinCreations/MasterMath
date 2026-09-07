@@ -15,7 +15,158 @@ import { parseError, unsupported } from '../solutionEnvelope.js';
 
 const OPERATORS = ['<=', '>=', '<', '>'];
 
+// Compound inequalities (roadmap 2026-09 item 5): a chain a < f(x) ≤ b is
+// "a < f(x) AND f(x) ≤ b"; "and" / "or" join two inequalities. Each part is
+// solved by the single-inequality machinery below and the solution sets are
+// intersected (and, chain) or united (or).
 export async function solveInequality(rawText) {
+  const compound = splitCompound(rawText);
+  if (!compound) return strip(await solveSingle(rawText));
+  if (compound.error) return refuse(compound.error, compound.hint, 'unsupported');
+
+  const parts = [];
+  for (const text of compound.parts) {
+    const r = await solveSingle(text);
+    if (!r.pieces) return strip(r); // a refusal from one part is the answer
+    parts.push({ text, result: r });
+  }
+  const variables = [...new Set(parts.map((p) => p.result.variable).filter(Boolean))];
+  if (variables.length > 1) {
+    return refuse(`The parts use different variables (${variables.join(', ')}).`, 'A compound inequality must be about one variable.', 'unsupported');
+  }
+  const variable = variables[0] || 'x';
+  const isAnd = compound.mode === 'and';
+  const combined = isAnd
+    ? parts.reduce((acc, p) => intersectPieces(acc, p.result.pieces), [{ ...ALL_REALS }])
+    : parts.reduce((acc, p) => unionPieces(acc, p.result.pieces), []);
+
+  const answer = combined.length === 0
+    ? (isAnd ? 'No solution — no value satisfies both parts' : 'No solution — no value satisfies either part')
+    : isAllReals(combined)
+      ? 'All real numbers satisfy the inequality'
+      : combined.map((p) => pieceToInequality(p, variable)).join('  or  ');
+
+  const steps = [`Solve the compound inequality ${compound.display}.`];
+  steps.push(compound.chained
+    ? `A chain a ${compound.ops[0]} … ${compound.ops[1]} b means BOTH comparisons must hold at once: solve each, then keep the values common to both (the intersection).`
+    : isAnd
+      ? '"and" means both parts must hold: solve each, then take the intersection of the two solution sets.'
+      : '"or" means either part may hold: solve each, then take the union of the two solution sets.');
+  parts.forEach((p, i) => steps.push(`Part ${i + 1}: ${p.text}  →  ${p.result.answer}.`));
+  if (combined.length === 0) steps.push(isAnd ? 'The two solution sets do not overlap, so there is no solution.' : 'Neither part has any solution.');
+  else if (isAllReals(combined)) steps.push(isAnd ? 'Both parts hold everywhere.' : 'Between them the parts cover every real number.');
+  else {
+    steps.push(`${isAnd ? 'Intersection' : 'Union'}: ${combined.map((p) => pieceToInequality(p, variable)).join('  or  ')}.`);
+    steps.push(`In interval notation: ${combined.map(pieceToInterval).join(' ∪ ')}.`);
+  }
+
+  const chart = parts.find((p) => p.result.chart)?.result.chart;
+  let graph = chart ? buildGraph(chart.fExpr, variable, chart.critical, chart.zeros, chart.poles, combined) : null;
+  if (graph) {
+    graph = {
+      ...graph,
+      title: `Solution set of ${compound.display}`,
+      description: 'Green bands mark where the compound inequality holds (the curve is the first part\'s expression).',
+    };
+  }
+
+  return {
+    steps,
+    answer,
+    verified: true,
+    verificationMethod: 'each part by sign chart, then set intersection/union',
+    tips: [
+      '"and" — or a chain a < x < b — keeps only the values that satisfy every part; "or" keeps the values that satisfy any part.',
+      'Solve each part on its own first, then combine them on a number line.',
+    ],
+    common_mistakes: [
+      'Working on only one side of a chain.',
+      'Taking the union for "and", or the intersection for "or".',
+      'Writing a chain whose inequalities point in different directions (a < x > b) — that is two separate statements, not a chain.',
+    ],
+    graph,
+  };
+}
+
+const ALL_REALS = { lo: -Infinity, hi: Infinity, loC: false, hiC: false };
+
+function strip(result) {
+  if (!result || typeof result !== 'object') return result;
+  const { pieces, variable, chart, ...rest } = result;
+  return rest;
+}
+
+// Returns null for a single inequality; { mode, parts, chained, ops, display }
+// for a compound one; { error, hint } for a compound that cannot be read.
+function splitCompound(rawText) {
+  let s = String(rawText || '').replace(/−/g, '-').replace(/≤/g, '<=').replace(/≥/g, '>=').trim();
+  s = s.replace(/^\s*solve\s+/i, '').trim();
+  const ops = s.match(/<=|>=|<|>/g) || [];
+  const connector = s.match(/\s+(and|or)\s+|&&|\|\||∧|∨/i);
+
+  if (connector) {
+    const both = /\band\b/i.test(s) || /&&|∧/.test(s);
+    const either = /\bor\b/i.test(s) || /\|\||∨/.test(s);
+    if (both && either) return { error: 'This mixes "and" with "or".', hint: 'Enter one compound inequality at a time: a < x < b, x < a and x > b, or x < a or x > b.' };
+    const parts = s.split(/\s+(?:and|or)\s+|&&|\|\||∧|∨/i).map((p) => p.trim()).filter(Boolean);
+    if (parts.length !== 2 || parts.some((p) => (p.match(/<=|>=|<|>/g) || []).length !== 1)) {
+      return { error: 'Each part of an "and"/"or" needs its own complete inequality.', hint: 'For example: x > 1 and x < 4, or x < 2 or x > 5.' };
+    }
+    return { mode: both ? 'and' : 'or', parts, chained: false, ops, display: s.replace(/<=/g, '≤').replace(/>=/g, '≥') };
+  }
+
+  if (ops.length < 2) return null;
+  if (ops.length > 2) return { error: 'More than two comparisons in one chain.', hint: 'A chain has the form a < x < b.' };
+  const sameWay = (/^[<]/.test(ops[0]) && /^[<]/.test(ops[1])) || (/^[>]/.test(ops[0]) && /^[>]/.test(ops[1]));
+  if (!sameWay) return { error: 'The two comparisons point in different directions, so this is not a chain.', hint: 'A chain reads a < x < b (or a > x > b). For separate conditions, join them with "and" or "or".' };
+  const first = s.indexOf(ops[0]);
+  const second = s.indexOf(ops[1], first + ops[0].length);
+  const a = s.slice(0, first).trim();
+  const middle = s.slice(first + ops[0].length, second).trim();
+  const c = s.slice(second + ops[1].length).trim();
+  if (!a || !middle || !c) return { error: 'A chain needs an expression on each side of both comparisons.', hint: 'For example: -1 < 2x + 1 ≤ 5.' };
+  return {
+    mode: 'and',
+    parts: [`${a} ${ops[0]} ${middle}`, `${middle} ${ops[1]} ${c}`],
+    chained: true,
+    ops: ops.map((o) => o.replace('<=', '≤').replace('>=', '≥')),
+    display: s.replace(/<=/g, '≤').replace(/>=/g, '≥'),
+  };
+}
+
+function intersectPieces(a, b) {
+  const out = [];
+  for (const p of a) {
+    for (const q of b) {
+      let lo; let loC;
+      if (p.lo > q.lo) { lo = p.lo; loC = p.loC; } else if (q.lo > p.lo) { lo = q.lo; loC = q.loC; } else { lo = p.lo; loC = p.loC && q.loC; }
+      let hi; let hiC;
+      if (p.hi < q.hi) { hi = p.hi; hiC = p.hiC; } else if (q.hi < p.hi) { hi = q.hi; hiC = q.hiC; } else { hi = p.hi; hiC = p.hiC && q.hiC; }
+      if (lo < hi - 1e-12 || (Number.isFinite(lo) && Math.abs(lo - hi) < 1e-12 && loC && hiC)) out.push({ lo, hi, loC, hiC });
+    }
+  }
+  return coalesce(out);
+}
+
+function unionPieces(a, b) {
+  const all = [...a, ...b].map((p) => ({ ...p })).sort((x, y) => x.lo - y.lo || x.hi - y.hi);
+  const out = [];
+  for (const p of all) {
+    const last = out[out.length - 1];
+    if (last && (p.lo < last.hi - 1e-12 || (Math.abs(p.lo - last.hi) < 1e-12 && (last.hiC || p.loC)))) {
+      if (p.hi > last.hi + 1e-12) { last.hi = p.hi; last.hiC = p.hiC; } else if (Math.abs(p.hi - last.hi) < 1e-12) last.hiC = last.hiC || p.hiC;
+      if (Math.abs(p.lo - last.lo) < 1e-12) last.loC = last.loC || p.loC;
+    } else {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+// One inequality. Returns the usual result object plus `pieces` (the solution
+// set), `variable`, and `chart` (inputs for the graph) for the compound
+// combiner; `strip` removes those before anything reaches the UI.
+async function solveSingle(rawText) {
   try {
     const parsed = parseInequality(rawText);
     if (!parsed) {
@@ -43,6 +194,8 @@ export async function solveInequality(rawText) {
         tips: ['A comparison with no variable is either always true or always false.'],
         common_mistakes: [],
         graph: null,
+        pieces: holds ? [{ ...ALL_REALS }] : [],
+        variable: null,
       };
     }
 
@@ -52,7 +205,7 @@ export async function solveInequality(rawText) {
     // Identically zero: e.g. 2x < 2x. Then f = 0 everywhere.
     if (simplified.replace(/\s/g, '') === '0') {
       const all = op === '<=' || op === '>=';
-      return buildTrivial(all, variable, op);
+      return { ...buildTrivial(all, variable, op), pieces: all ? [{ ...ALL_REALS }] : [], variable };
     }
 
     const numerator = safeRun(Algebrite, `numerator(${simplified})`) || simplified;
@@ -133,6 +286,9 @@ export async function solveInequality(rawText) {
         'Forgetting that ≤ / ≥ include the roots, while < / > exclude them.',
       ],
       graph: buildGraph(fExpr, variable, critical, zeros, poles, solution),
+      pieces: solution,
+      variable,
+      chart: { fExpr, critical, zeros, poles },
     };
   } catch (error) {
     console.error('Inequality solver error:', error);
@@ -393,7 +549,7 @@ function refuse(reason, hint, kind = 'parse') {
     steps: ['Read the input as an inequality.', reason, hint].filter(Boolean),
     answer: reason,
     tips: ['An inequality uses <, >, ≤, or ≥, e.g. x^2 - 4 > 0.'],
-    common_mistakes: ['Compound inequalities (a < x < b) are not supported yet — split them into two.'],
+    common_mistakes: ['A chain must point one way (a < x < b, not a < x > b); separate conditions are joined with "and" or "or".'],
   };
   return kind === 'parse' ? parseError(fields) : unsupported(fields);
 }

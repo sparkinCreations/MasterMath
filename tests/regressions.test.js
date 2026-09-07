@@ -616,10 +616,13 @@ test('regression: an underdetermined system (two equations, three unknowns) is r
   assert.match(r.answer, /3 variables/i);
 });
 
-test('regression: a nonlinear system is refused', async () => {
+test('regression: a nonlinear system with a linear equation is solved by substitution (refused until v1.32.0)', async () => {
   const r = await solveProblem('x^2 + y = 1; x - y = 0', 'algebra');
-  assert.equal(r.status, 'unsupported');
-  assert.match(r.answer, /not linear/i);
+  assert.equal(r.status, 'solved');
+  assert.match(r.answer, /√5/);
+  // Two general conics are still refused, never mis-solved.
+  const conics = await solveProblem('x^2 + y^2 = 1; x^2 + y^2 = 4', 'algebra');
+  assert.equal(conics.status, 'unsupported');
 });
 
 test('regression: single equations are unaffected by the system router', async () => {
@@ -675,10 +678,10 @@ test('regression: a single-point solution reads x = c', async () => {
   assert.equal(r.answer, 'x = 0');
 });
 
-test('regression: compound inequality is refused (out of scope)', async () => {
+test('regression: a chained inequality is solved (refused as out of scope until v1.32.0)', async () => {
   const r = await solveProblem('-2 < x < 3', 'algebra');
-  assert.equal(r.status, 'parse_error');
-  assert.match(r.answer, /could not read this as a single inequality/i);
+  assert.equal(r.status, 'solved');
+  assert.equal(r.answer, '-2 < x < 3');
 });
 
 test('regression: an equation is not misrouted to the inequality solver', async () => {
@@ -1097,4 +1100,88 @@ test('limits: non-matching cases still take the ladder unchanged', async () => {
   assert.match(e3.answer, /e\^3/);
   const direct = await solveLimit('lim x->2 x^2 + 1');
   assert.equal(direct.verificationMethod, 'direct substitution');
+});
+
+// ---------------------------------------------------------------------------
+// Roadmap 2026-09 items 4 and 5: non-linear 2×2 systems by substitution, and
+// compound inequalities by set intersection / union.
+// ---------------------------------------------------------------------------
+
+test('systems: a line and a parabola / circle / hyperbola solve by substitution, every pair verified', async () => {
+  const circle = await solveProblem('x^2 + y^2 = 25; y = x + 1', 'algebra');
+  assert.equal(circle.status, 'solved');
+  assert.match(circle.answer, /\(x, y\) = /);
+  assert.match(circle.answer, /\(3, 4\)/);
+  assert.match(circle.answer, /\(-4, -3\)/);
+  assert.equal(circle.verified, true);
+  assert.ok(circle.steps.some((s) => /solve it for y: y = x \+ 1/.test(s)), circle.steps.join(' | '));
+  assert.ok(circle.steps.some((s) => /Substitute into equation 1/.test(s)));
+
+  const parabola = await solveProblem('y = x^2; y = 2x + 3', 'algebra');
+  assert.match(parabola.answer, /\(3, 9\)/);
+  assert.match(parabola.answer, /\(-1, 1\)/);
+  assert.ok(parabola.graph && parabola.graph.secondaryPoints, 'both curves are functions of x, so both are drawn');
+
+  const hyperbola = await solveProblem('x*y = 6; x + y = 5', 'algebra');
+  assert.match(hyperbola.answer, /\(2, 3\)/);
+  assert.match(hyperbola.answer, /\(3, 2\)/);
+
+  const irrational = await solveProblem('x^2 + y = 1; x - y = 0', 'algebra');
+  assert.match(irrational.answer, /√5/);
+  assert.match(irrational.answer, /  or  /);
+
+  // Not linear in either variable on its own, but explicit in y.
+  const two = await solveProblem('x^2 + y^2 = 1; x^2 - y = 1', 'algebra');
+  assert.match(two.answer, /\(0, -1\)/);
+  assert.match(two.answer, /\(1, 0\)/);
+  assert.match(two.answer, /\(-1, 0\)/);
+});
+
+test('systems: no real intersection is said, two general conics are refused, linear systems are untouched', async () => {
+  const miss = await solveProblem('x^2 + y^2 = 1; y = x + 5', 'algebra');
+  assert.equal(miss.status, 'solved');
+  assert.match(miss.answer, /No real solution/);
+  assert.ok(miss.steps.some((s) => /not real/.test(s)));
+
+  const conics = await solveProblem('x^2 + y^2 = 1; x^2 + y^2 = 4', 'algebra');
+  assert.equal(conics.status, 'unsupported');
+  assert.match(conics.answer, /neither equation can be solved for one variable/);
+
+  const linear = await solveProblem('2x+3y=6; x-y=4', 'algebra');
+  assert.equal(linear.answer, 'x = 18/5,  y = -2/5');
+});
+
+test('inequalities: a chain is solved as the intersection of its two halves', async () => {
+  const chain = await solveProblem('-1 < 2x + 1 <= 5', 'algebra');
+  assert.equal(chain.status, 'solved');
+  assert.equal(chain.answer, '-1 < x ≤ 2');
+  assert.ok(chain.steps.some((s) => /Part 1: -1 < 2x \+ 1/.test(s)), chain.steps.join(' | '));
+  assert.ok(chain.steps.some((s) => /Intersection: -1 < x ≤ 2/.test(s)));
+  assert.ok(chain.steps.some((s) => /\(-1, 2\]/.test(s)));
+  assert.ok(chain.graph && chain.graph.annotations.shadedRegions.length === 1);
+
+  const squares = await solveProblem('1 < x^2 < 9', 'algebra');
+  assert.equal(squares.answer, '-3 < x < -1  or  1 < x < 3');
+
+  const wrongWay = await solveProblem('1 < x > 0', 'algebra');
+  assert.equal(wrongWay.status, 'unsupported');
+  assert.match(wrongWay.answer, /different directions/);
+});
+
+test('inequalities: "and" intersects, "or" unites, and the trivial outcomes are named', async () => {
+  const and = await solveProblem('x > 1 and x < 4', 'algebra');
+  assert.equal(and.answer, '1 < x < 4');
+  const or = await solveProblem('x < 2 or x > 5', 'algebra');
+  assert.equal(or.answer, 'x < 2  or  x > 5');
+  const empty = await solveProblem('x < 2 and x > 5', 'algebra');
+  assert.match(empty.answer, /^No solution/);
+  const all = await solveProblem('x > 1 or x < 4', 'algebra');
+  assert.match(all.answer, /^All real numbers/);
+  const touching = await solveProblem('x <= 2 or x >= 2', 'algebra');
+  assert.match(touching.answer, /^All real numbers/);
+  const gap = await solveProblem('x < 2 or x > 2', 'algebra');
+  assert.equal(gap.answer, 'x < 2  or  x > 2');
+  // A single inequality is exactly as before.
+  const single = await solveProblem('x^2 - 4 > 0', 'algebra');
+  assert.equal(single.answer, 'x < -2  or  x > 2');
 });

@@ -512,7 +512,7 @@ function formatComplexRoot(root) {
 
 // Split an Algebrite roots list ("[a, b, c]") into its entries, respecting
 // commas inside parentheses.
-function splitRootsList(raw) {
+export function splitRootsList(raw) {
   const trimmed = String(raw).trim().replace(/^\[|\]$/g, '');
   if (!trimmed) return [];
 
@@ -533,7 +533,7 @@ function splitRootsList(raw) {
   return parts;
 }
 
-function parseRootsList(raw) {
+export function parseRootsList(raw) {
   return splitRootsList(raw).map((part) => {
     const display = beautify(part.trim());
     let numeric = NaN;
@@ -582,7 +582,7 @@ function satisfiesEquation(equation, variable, x) {
 
 // Algebrite writes √2 as 2^(1/2) and (3 − √5)/2 as 3/2 - 1/2*5^(1/2). Show the
 // textbook form; the value is untouched.
-function prettyRadicals(display) {
+export function prettyRadicals(display) {
   let s = String(display);
   s = s.replace(/(\d+)\^\(1\/2\)/g, '√$1');
   s = s.replace(/\b1\/(\d+)\*√(\d+)/g, '√$2/$1');

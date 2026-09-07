@@ -30,3 +30,5 @@ Integrals,e^(2x)*cos(x),exp(2*x)*(2*cos(x)+sin(x))/5,—,Audit 2026-09: cyclic b
 Limits,lim x->0 sin(3x)/x,3,—,Roadmap 2026-09 item 3: standard limit named (was Taylor narration)
 Limits,lim x->infinity (3x^2+1)/(2x^2-5),3/2,—,Roadmap 2026-09 item 3: leading-term comparison (was numeric sampling)
 Limits,lim x->0 x*sin(1/x),0,—,Roadmap 2026-09 item 3: squeeze theorem with bounds shown
+Algebra,-1 < 2x + 1 <= 5,-1 < x <= 2,—,Roadmap 2026-09 item 5: chained inequality (was refused)
+Algebra,x > 1 and x < 4,1 < x < 4,—,Roadmap 2026-09 item 5: "and" intersection (was refused)

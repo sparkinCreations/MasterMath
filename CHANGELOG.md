@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-09-07
+
+Roadmap 2026-09 items 4 and 5 — the last two capability items of Wave 2.
+Both were clear refusals before; both are now solved, with the previous
+refusal tests flipped to pin the solutions.
+
+### Added
+
+- **Non-linear 2×2 systems by substitution.** When one equation is linear
+  in some variable — a line with a parabola or circle (`x² + y² = 25;
+  y = x + 1`), `xy = 6; x + y = 5`, or `x² + y² = 1; x² − y = 1` — that
+  equation is solved for the variable, substituted into the other, and the
+  resulting single-variable polynomial solved exactly with Algebrite roots.
+  Each root is back-substituted and every pair is verified against BOTH
+  original equations before it is reported: `(x, y) = (3, 4) or (−4, −3)`.
+  Complex roots are named and excluded ("no real intersection"); a
+  substitution that eliminates the variable reports "same curve" or "never
+  meet". Curves that are functions of x are drawn with the first
+  intersection marked. Two general conics (`x² + y² = 1; x² + y² = 4`) are
+  still refused, with the reason.
+- **Compound inequalities.** A chain `−1 < 2x + 1 ≤ 5` is solved as the
+  intersection of its two halves; `x > 1 and x < 4` intersects and
+  `x < 2 or x > 5` unites, each part by the existing sign-chart method. The
+  steps show each part's answer and the combination, with interval
+  notation; the graph shades the combined solution. Empty and all-reals
+  outcomes are named. A chain pointing both ways (`1 < x > 0`), more than
+  two comparisons, or a mix of "and" with "or" is refused with the reason.
+
+### Changed
+
+- `parseRootsList`, `splitRootsList` and `prettyRadicals` are exported from
+  `algebraSolver.js` so the systems solver shares the same root parsing and
+  radical display.
+
 ## [1.31.0] - 2026-09-07
 
 Roadmap 2026-09 item 3. The limit solver already reached the right number

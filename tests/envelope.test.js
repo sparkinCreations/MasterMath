@@ -122,7 +122,11 @@ test('three-equation system refuses as unsupported', async () => {
   assert.equal(result.status, STATUS.UNSUPPORTED);
 });
 
-test('compound inequality refuses with a failure status', async () => {
+test('compound inequality is solved (it refused with a failure status until v1.32.0)', async () => {
   const result = await solveProblem('1 < x < 5', 'algebra');
-  assert.ok(isFailureStatus(result.status), `got status: ${result.status}`);
+  assert.equal(result.status, 'solved');
+  assert.equal(result.answer, '1 < x < 5');
+  // A chain that cannot be a chain still refuses with a failure status.
+  const wrongWay = await solveProblem('1 < x > 5', 'algebra');
+  assert.ok(isFailureStatus(wrongWay.status), `got status: ${wrongWay.status}`);
 });

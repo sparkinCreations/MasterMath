@@ -11,9 +11,10 @@
 // original equations before it is reported — the same "verify before you
 // claim" gate the rest of the solver uses.
 
-import { math, sampleFunction } from './solverUtils.js';
+import { math, sampleFunction, beautify, formatNumber, loadAlgebrite, isAlgebriteFailure } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
+import { splitRootsList, prettyRadicals } from './algebraSolver.js';
 
 const FUNCTION_NAMES = /\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sinh|cosh|tanh|asin|acos|atan|sqrt|log|ln|exp|abs|pi)\b/gi;
 
@@ -50,16 +51,25 @@ export async function solveSystem(rawText) {
     // Extract coefficients a·v1 + b·v2 = c for each equation. A null means the
     // equation isn't linear in these two variables — refuse rather than guess.
     const rows = [];
+    let nonlinear = false;
     for (const eq of equations) {
       const row = linearCoefficients(eq, v1, v2);
       if (!row) {
-        return refuse(
-          'At least one equation is not linear in the two variables.',
-          'I handle linear systems (each variable to the first power, no products like x·y).',
-          'unsupported',
-        );
+        nonlinear = true;
+        break;
       }
       rows.push(row);
+    }
+    if (nonlinear) {
+      // Line ∩ parabola, line ∩ circle, xy = 6 with x + y = 5, …: substitution.
+      // (Roadmap 2026-09 item 4.)
+      const solved = await solveNonlinear2x2(equations, v1, v2);
+      if (solved) return solved;
+      return refuse(
+        'At least one equation is not linear, and neither equation can be solved for one variable to substitute into the other.',
+        'I handle linear systems, and non-linear systems where one equation is linear in some variable (y = x + 1; x² + y² = 25). Two general curves (x² + y² = 1; x² + y² = 4) are not solved here.',
+        'unsupported',
+      );
     }
 
     const [r1, r2] = rows;
@@ -150,6 +160,207 @@ export async function solveSystem(rawText) {
   } catch (error) {
     console.error('Systems solver error:', error);
     return refuse('I was unable to read this as a 2×2 linear system.', 'Try the form: 2x + 3y = 6; x − y = 4.');
+  }
+}
+
+// --- non-linear 2×2 by substitution -------------------------------------------
+// One equation must be linear in some variable (a line, or y = x² − 1, or
+// x + y = 5). Solve it for that variable, substitute into the other equation,
+// solve the resulting single-variable polynomial exactly (Algebrite roots),
+// back-substitute, and verify every pair against BOTH original equations.
+// Anything else — two general conics — returns null and is refused clearly.
+
+function algebrite(Algebrite, code) {
+  try {
+    const out = String(Algebrite.run(code)).trim();
+    return isAlgebriteFailure(out) || /\bnil\b|Stop/.test(out) ? null : out;
+  } catch {
+    return null;
+  }
+}
+
+const isConstant = (s) => s !== null && !/[a-df-z]/i.test(String(s).replace(/\bpi\b/g, ''));
+
+async function solveNonlinear2x2(equations, first, second) {
+  // Report pairs in alphabetical order — (x, y) — whatever order the letters
+  // first appear in ("y = x^2; y = 2x + 3").
+  const [v1, v2] = [first, second].sort();
+  const Algebrite = await loadAlgebrite();
+  const eqs = equations.map((eq) => {
+    const i = eq.indexOf('=');
+    return { lhs: parseMathExpression(eq.slice(0, i)), rhs: parseMathExpression(eq.slice(i + 1)), text: eq.trim() };
+  });
+  const zeroForm = (e) => `(${e.lhs})-(${e.rhs})`;
+
+  // Which equation, and which variable in it, can be isolated?
+  let iso = null;
+  for (let i = 0; i < 2 && !iso; i += 1) {
+    for (const w of [v2, v1]) {
+      const expr = zeroForm(eqs[i]);
+      if (algebrite(Algebrite, `deg(${expr}, ${w})`) !== '1') continue;
+      const c1 = algebrite(Algebrite, `simplify(coeff(${expr}, ${w}, 1))`);
+      if (!isConstant(c1)) continue;
+      const c0 = algebrite(Algebrite, `simplify(subst(0, ${w}, ${expr}))`);
+      if (c0 === null) continue;
+      const isolated = algebrite(Algebrite, `simplify(-(${c0})/(${c1}))`);
+      if (isolated === null || new RegExp(`\\b${w}\\b`).test(isolated)) continue;
+      iso = { i, w, u: w === v1 ? v2 : v1, isolated };
+      break;
+    }
+  }
+  if (!iso) return null;
+
+  const { w, u, isolated } = iso;
+  const other = eqs[1 - iso.i];
+  const rawSubst = algebrite(Algebrite, `subst(${isolated}, ${w}, ${zeroForm(other)})`);
+  const substituted = algebrite(Algebrite, `simplify(subst(${isolated}, ${w}, ${zeroForm(other)}))`);
+  if (!substituted || new RegExp(`\\b${w}\\b`).test(substituted)) return null;
+
+  const systemLine = `Write the system: ${eqs[0].text};  ${eqs[1].text}.`;
+  const isolateLine = `Equation ${iso.i + 1} is linear in ${w}, so solve it for ${w}: ${w} = ${prettyRadicals(beautify(isolated))}.`;
+  const substLine = `Substitute into equation ${2 - iso.i}: ${prettyRadicals(beautify(rawSubst || substituted))} = 0, which simplifies to ${prettyRadicals(beautify(substituted))} = 0.`;
+  const tips = [
+    'Substitution: solve the simpler equation for one variable and put that into the other — what remains is an equation in one variable.',
+    'A line can meet a parabola or a circle at 0, 1 or 2 points; find every root, then the partner value for each.',
+    'Always substitute each pair back into BOTH original equations.',
+  ];
+  const mistakes = [
+    'Finding the x-values and forgetting to compute the matching y for each one.',
+    'Pairing every x with every y instead of the y that belongs to each x.',
+    'Reporting a complex root as an intersection point.',
+  ];
+
+  // The variable disappeared: the curves coincide (0 = 0) or never meet.
+  if (!new RegExp(`\\b${u}\\b`).test(substituted)) {
+    let value = NaN;
+    try { value = Number(math.evaluate(substituted)); } catch { value = NaN; }
+    if (Math.abs(value) < 1e-12) {
+      return {
+        steps: [systemLine, isolateLine, substLine, 'Every value works — the two equations describe the same curve.'],
+        answer: 'Infinitely many solutions — the two equations describe the same curve',
+        tips, common_mistakes: mistakes, graph: null,
+      };
+    }
+    return {
+      steps: [systemLine, isolateLine, substLine, 'A false statement (a nonzero number = 0): no pair satisfies both equations.'],
+      answer: 'No solution — the two curves never meet',
+      tips, common_mistakes: mistakes, graph: null,
+    };
+  }
+
+  const rootsRaw = algebrite(Algebrite, `roots(${substituted}, ${u})`);
+  if (!rootsRaw) return null;
+  const parts = splitRootsList(rootsRaw).map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+
+  const residual = (e, uVal, wVal) => {
+    try {
+      const l = math.evaluate(e.lhs, { [u]: uVal, [w]: wVal });
+      const r = math.evaluate(e.rhs, { [u]: uVal, [w]: wVal });
+      return typeof l === 'number' && typeof r === 'number' && Number.isFinite(l) && Number.isFinite(r)
+        ? Math.abs(l - r) <= 1e-7 * (1 + Math.abs(l) + Math.abs(r)) : false;
+    } catch {
+      return false;
+    }
+  };
+
+  const pairs = [];
+  const complex = [];
+  for (const part of parts) {
+    let uNum;
+    try {
+      const val = math.evaluate(part);
+      uNum = typeof val === 'number' ? val : (val && typeof val === 'object' && Math.abs(val.im) < 1e-9 ? val.re : NaN);
+    } catch {
+      uNum = NaN;
+    }
+    const uShown = prettyRadicals(beautify(part));
+    if (!Number.isFinite(uNum)) {
+      complex.push(uShown);
+      continue;
+    }
+    const wRaw = algebrite(Algebrite, `simplify(subst(${part}, ${u}, ${isolated}))`);
+    let wNum = NaN;
+    try { wNum = wRaw ? Number(math.evaluate(wRaw)) : NaN; } catch { wNum = NaN; }
+    if (!Number.isFinite(wNum)) {
+      try { wNum = Number(math.evaluate(isolated, { [u]: uNum })); } catch { wNum = NaN; }
+    }
+    if (!Number.isFinite(wNum)) continue;
+    if (!residual(eqs[0], uNum, wNum) || !residual(eqs[1], uNum, wNum)) continue;
+    const wShown = wRaw ? prettyRadicals(beautify(wRaw)) : formatNumber(wNum);
+    pairs.push({ uNum, wNum, uShown, wShown });
+  }
+
+  const pairText = (p) => (u === v1 ? `(${p.uShown}, ${p.wShown})` : `(${p.wShown}, ${p.uShown})`);
+  const steps = [systemLine, isolateLine, substLine];
+  const realRoots = pairs.map((p) => `${u} = ${p.uShown}`);
+  if (realRoots.length) steps.push(`Solve for ${u}: ${realRoots.join('  or  ')}.`);
+  if (complex.length) steps.push(`The root${complex.length > 1 ? 's' : ''} ${complex.join(', ')} ${complex.length > 1 ? 'are' : 'is'} not real, so ${complex.length > 1 ? 'they give' : 'it gives'} no real intersection.`);
+  if (pairs.length === 0) {
+    steps.push('No real root survives, so the curves do not meet.');
+    return {
+      steps,
+      answer: 'No real solution — the curves do not intersect',
+      tips, common_mistakes: mistakes, graph: buildCurveGraph(Algebrite, eqs, v1, v2, []),
+    };
+  }
+  steps.push(`Back-substitute into ${w} = ${prettyRadicals(beautify(isolated))}: ${pairs.map((p) => `${u} = ${p.uShown} → ${w} = ${p.wShown}`).join(';  ')}.`);
+  steps.push(`Check: each pair satisfies both original equations. Solutions (${v1}, ${v2}): ${pairs.map(pairText).join('  or  ')}.`);
+
+  return {
+    steps,
+    answer: `(${v1}, ${v2}) = ${pairs.map(pairText).join('  or  ')}`,
+    verified: true,
+    verificationMethod: 'each pair substituted into both equations',
+    tips,
+    common_mistakes: mistakes,
+    graph: buildCurveGraph(Algebrite, eqs, v1, v2, pairs.map((p) => (u === v1 ? { x: p.uNum, y: p.wNum } : { x: p.wNum, y: p.uNum }))),
+  };
+}
+
+// Graph each equation that can be written as v2 = f(v1) (a line or a
+// parabola opening up/down); a circle cannot, and is skipped. Marks the first
+// intersection with the existing annotation; the rest are in the description.
+function buildCurveGraph(Algebrite, eqs, v1, v2, points) {
+  try {
+    const curves = [];
+    for (const e of eqs) {
+      const expr = `(${e.lhs})-(${e.rhs})`;
+      if (algebrite(Algebrite, `deg(${expr}, ${v2})`) !== '1') continue;
+      const c1 = algebrite(Algebrite, `simplify(coeff(${expr}, ${v2}, 1))`);
+      const c0 = algebrite(Algebrite, `simplify(subst(0, ${v2}, ${expr}))`);
+      if (!isConstant(c1) || c0 === null) continue;
+      const f = algebrite(Algebrite, `simplify(-(${c0})/(${c1}))`);
+      if (f) curves.push(f.replace(new RegExp(`\\b${v1}\\b`, 'g'), 'x'));
+    }
+    if (curves.length === 0) return null;
+    const cx = points.length ? points.reduce((s, p) => s + p.x, 0) / points.length : 0;
+    const span = Math.max(8, ...points.map((p) => Math.abs(p.x - cx) * 2 + 4));
+    const min = cx - span;
+    const max = cx + span;
+    const primary = sampleFunction(curves[0], 'x', { min, max, step: (max - min) / 240 });
+    if (primary.length === 0) return null;
+    const graph = {
+      points: primary,
+      title: `Curves for the system in ${v1} and ${v2}`,
+      description: points.length
+        ? `The curves meet at ${points.map((p) => `(${round(p.x)}, ${round(p.y)})`).join(' and ')}.${curves.length < eqs.length ? ' (An equation that is not a function of x is not drawn.)' : ''}`
+        : 'The curves do not meet.',
+    };
+    if (curves[1]) {
+      const secondary = sampleFunction(curves[1], 'x', { min, max, step: (max - min) / 240 });
+      if (secondary.length > 0) {
+        graph.secondaryPoints = secondary;
+        graph.secondaryLabel = `equation 2 (${v2} vs ${v1})`;
+      }
+    }
+    if (points.length) {
+      graph.annotations = { intersection: { x: points[0].x, y: points[0].y, label: `(${round(points[0].x)}, ${round(points[0].y)})` } };
+      graph.initialWindow = { xMin: cx - span / 2, xMax: cx + span / 2 };
+    }
+    return graph;
+  } catch {
+    return null;
   }
 }
 
@@ -513,8 +724,8 @@ function refuse(reason, hint, kind = 'parse') {
   const fields = {
     steps: ['Read the input as a system of equations.', reason, hint],
     answer: reason,
-    tips: ['A 2×2 linear system looks like: 2x + 3y = 6; x − y = 4.'],
-    common_mistakes: ['Mixing more than two equations or variables.', 'Non-linear terms like x·y or x².'],
+    tips: ['A 2×2 linear system looks like: 2x + 3y = 6; x − y = 4. A non-linear one needs an equation that can be solved for a variable: y = x + 1; x² + y² = 25.'],
+    common_mistakes: ['Mixing more than two equations or variables.', 'Two general curves with no equation linear in a variable (x² + y² = 1; x² + y² = 4).'],
   };
   return kind === 'parse' ? parseError(fields) : unsupported(fields);
 }
