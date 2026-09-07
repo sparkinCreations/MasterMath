@@ -1,7 +1,7 @@
 {
   "name": "mastermath",
   "private": true,
-  "version": "1.32.4",
+  "version": "1.32.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,10 +29,10 @@
   "devDependencies": {
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
-    "vite": "^5.4.5"
+    "vite": "^8.2.2"
   }
 }

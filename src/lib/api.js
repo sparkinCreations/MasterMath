@@ -1,7 +1,7 @@
 // Import IndexedDB functions (local storage - no API needed!)
 import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './indexedDB.js';
 import { validateProblemHistory } from './validation.js';
-import { extractFunctionFromProblem } from './mathParser.js';
+import { extractFunctionFromProblem, parseMathExpression } from './mathParser.js';
 import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
 import { bareFunctionName } from './solvers/solverUtils.js';
 
@@ -303,7 +303,7 @@ export function finalizeResult(result, input) {
 // "x^2 + 1 at x = 3": substitute the value and evaluate as arithmetic, with
 // the substitution shown as a step.
 async function evaluateAtPoint({ rest, variable, valueText }) {
-  const { parseMathExpression } = await import('./mathParser.js');
+  // parseMathExpression is imported statically at the top of this file.
   const expression = parseMathExpression(extractFunctionFromProblem(rest));
   const substituted = expression.replace(new RegExp(`(?<![a-z])${variable}(?![a-z(])`, 'gi'), `(${valueText})`);
   const { solveArithmetic } = await import('./solvers/arithmeticSolver.js');
@@ -518,7 +518,7 @@ export async function solveProblem(problem, topic) {
         // Refused here with a usable hint; left alone, mathjs fails deep
         // inside pow ("Unexpected type of argument … actual: function").
         {
-          const { parseMathExpression } = await import('./mathParser.js');
+          // parseMathExpression is imported statically at the top of this file.
           const bare = bareFunctionName(parseMathExpression(expression));
           if (bare) {
             return finalizeResult(parseError({

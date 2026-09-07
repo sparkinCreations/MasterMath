@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.5] - 2026-09-07
+
+Roadmap 2026-09 item 7, fourth step: the build tool.
+
+### Changed
+
+- **Vite 5 → 8.2 and @vitejs/plugin-react 4 → 6.** Vite 8 bundles with
+  Rolldown. The service-worker stamp plugin (`closeBundle`) works unchanged;
+  builds take about 2 s instead of 8 s.
+- **Chunking rewritten for Rolldown, and the landing-page preload regression
+  it caused is fixed and now tested.** On the upgrade, Rolldown co-located a
+  few shared helpers inside the jsPDF, Recharts and mathjs chunks, so the
+  landing page preloaded all three (~1.6 MB) — the same failure the old
+  Rollup `manualChunks` had been hand-tuned to avoid. The config now uses
+  Rolldown's chunk groups to state the policy directly: each heavy library
+  owns only its own files, and anything from node_modules shared by two or
+  more chunks goes to a lazy `shared` chunk. `tests/buildPreload.test.js`
+  runs a real build into a scratch directory and fails if the landing page
+  ever preloads a heavy chunk again. Result: the landing page preloads the
+  same set as before (entry, vendor, two UI components), and mathjs falls
+  further to 712 kB (gzip 182 kB) because its single-owner dependencies
+  are co-located rather than duplicated.
+- **Node 22 pinned** for Netlify (`netlify.toml`) and nvm (`.nvmrc`); Vite 8
+  requires Node ^20.19 or ≥22.12 and Netlify's default was unpinned.
+- `api.js` imports the parser statically instead of both statically and
+  dynamically, which Rolldown flagged as an ineffective split.
+
 ## [1.32.4] - 2026-09-07
 
 Roadmap 2026-09 item 7, third step.

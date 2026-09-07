@@ -7,3 +7,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[build.environment]
+  # Vite 8 requires Node ^20.19 || >=22.12; pin so Netlify never falls back to an older default.
+  NODE_VERSION = "22"

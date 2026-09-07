@@ -77,65 +77,63 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    // Vite 8 bundles with Rolldown; this is Rolldown's chunk-group API.
+    //
+    // Chunking has two jobs here, and they pull in opposite directions.
+    //
+    // 1. Keep the heavy libraries in their own chunks so a lazy route pays
+    //    for them only when it is opened.
+    // 2. Keep them off the entry chunk's *static* import graph. Vite emits
+    //    a <link rel="modulepreload"> for everything the entry statically
+    //    imports, so a single stray reference makes the landing page
+    //    download the whole thing.
+    //
+    // Job 2 is the subtle one. A module no group claims is co-located with
+    // whichever chunk is convenient — and when a module shared with the entry
+    // (a Babel helper under jsPDF, a utility under Recharts) lands inside a
+    // heavy chunk, the entry must statically import that chunk to reach it.
+    // That is how the landing page came to preload Recharts, jsPDF, mathjs and
+    // Algebrite for a few kB of shared code — under Rollup in July 2026, and
+    // again on the Vite 8 upgrade (September 2026), because Rolldown makes
+    // different co-location choices.
+    //
+    // The policy below says it directly, which Rollup's manualChunks could
+    // not: each heavy library owns ONLY its own files (dependencies are not
+    // pulled in recursively), and any node_modules file shared by two or more
+    // chunks goes to `shared`. A dependency used by one library only
+    // (decimal.js under mathjs, lodash under Recharts) matches no group and is
+    // co-located with that library, off the landing page's critical path.
+    // tests/buildPreload.test.js asserts the outcome on the built index.html.
+    rolldownOptions: {
       output: {
-        // Chunking has two jobs here, and they pull in opposite directions.
-        //
-        // 1. Keep the heavy libraries in their own chunks so a lazy route pays
-        //    for them only when it is opened.
-        // 2. Keep them off the entry chunk's *static* import graph. Vite emits
-        //    a <link rel="modulepreload"> for everything the entry statically
-        //    imports, so a single stray reference makes the landing page
-        //    download the whole thing.
-        //
-        // Job 2 is the subtle one. A module this function leaves unnamed can be
-        // folded by Rollup into whichever chunk is convenient — and when a
-        // module shared with the entry (React, Vite's preload helper, `clsx`)
-        // lands inside a heavy chunk, the entry must statically import that
-        // chunk to reach it. That is how the landing page came to preload
-        // Recharts, jsPDF, mathjs and Algebrite (~2.4 MB raw) for a few kB of
-        // shared code. So every module the entry shares is named explicitly.
-        //
-        // Note there is deliberately no catch-all: transitive dependencies of
-        // the heavy libraries (decimal.js under mathjs, lodash under Recharts)
-        // must stay unnamed so Rollup can co-locate them with the library that
-        // uses them. Sweeping them into `vendor` would put them back on the
-        // landing page's critical path.
-        manualChunks(id) {
-          // Shared by the entry and by lazily-loaded chunks alike.
-          if (id.includes('vite/preload-helper')) {
-            return 'vendor';
-          }
-          // Rollup's CommonJS interop shims (getDefaultExportFromCjs and
-          // friends). Several dependencies are CJS, so these are shared very
-          // widely — left unnamed they were folded into the Algebrite chunk,
-          // which then had to be preloaded for its three helper functions.
-          if (id.includes('commonjsHelpers')) {
-            return 'vendor';
-          }
-          if (id.includes('node_modules/react') ||        // react, react-dom, react-router*
-              id.includes('node_modules/scheduler') ||
-              id.includes('node_modules/clsx') ||
-              id.includes('node_modules/tailwind-merge') ||
-              id.includes('node_modules/class-variance-authority') ||
-              id.includes('node_modules/lucide-react')) {
-            return 'vendor';
-          }
-
-          // Heavy libraries, each reachable only from a lazy route or a lazily
-          // imported solver.
-          if (id.includes('node_modules/algebrite')) {
-            return 'algebrite';
-          }
-          if (id.includes('node_modules/mathjs')) {
-            return 'mathjs';
-          }
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-            return 'charts';
-          }
-          if (id.includes('node_modules/jspdf')) {
-            return 'pdf';
-          }
+        codeSplitting: {
+          groups: [
+            // The entry's own framework and UI helpers. Named first so nothing
+            // below can claim React.
+            {
+              name: 'vendor',
+              priority: 30,
+              test: /node_modules\/(react|react-dom|react-router|react-router-dom|scheduler|clsx|tailwind-merge|class-variance-authority|lucide-react)\//,
+              includeDependenciesRecursively: false,
+            },
+            // Heavy libraries, each reachable only from a lazy route or a
+            // lazily imported solver. Own files only.
+            { name: 'algebrite', priority: 20, test: /node_modules\/algebrite\//, includeDependenciesRecursively: false },
+            { name: 'mathjs', priority: 20, test: /node_modules\/mathjs\//, includeDependenciesRecursively: false },
+            { name: 'charts', priority: 20, test: /node_modules\/(recharts|d3-[a-z-]+)\//, includeDependenciesRecursively: false },
+            { name: 'pdf', priority: 20, test: /node_modules\/jspdf\//, includeDependenciesRecursively: false },
+            // Anything else from node_modules that two or more chunks share goes to
+            // its own small chunk:
+            // Babel runtime helpers, small utilities. Single-owner dependencies
+            // do not match (minShareCount) and stay with their owner.
+            {
+              name: 'shared',
+              priority: 10,
+              test: /node_modules\//,
+              minShareCount: 2,
+              includeDependenciesRecursively: false,
+            },
+          ],
         },
       },
     },
