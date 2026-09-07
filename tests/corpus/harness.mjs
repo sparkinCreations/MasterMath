@@ -101,7 +101,7 @@ function toNumber(raw) {
   // "1/2 (= 0.5)", "e^2 ≈ 7.3891". Grade the exact part.
   s = s.replace(/\s*\((?:≈|=)[^)]*\)\s*$/, '');
   s = s.replace(/\s*≈\s*[-\d.]+\s*$/, '');
-  s = s.replace(/√/g, 'sqrt').replace(/π/g, 'pi');
+  s = s.replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/−/g, '-');
   s = s.replace(/sqrt(\d+)/g, 'sqrt($1)');
   // strip a leading "x=" style label
   s = s.replace(/^[a-z]\s*=\s*/i, '');
@@ -139,6 +139,7 @@ function exprEquivalent(a, b, variable = 'x') {
 function prepForEval(s) {
   let out = String(s)
     .replace(/√/g, 'sqrt')
+    .replace(/−/g, '-')            // unicode minus from exact-form answers
     .replace(/π/g, 'pi')
     .replace(/·/g, '*')
     // ln|EXPR| -> log((EXPR))  (do this before stripping bars / generic ln)
@@ -326,7 +327,7 @@ async function grade(category, problem, expected) {
       // Built as of v1.9.0. Grade the numeric value; a refusal is only a pass
       // for a genuinely improper integral (expected value says so).
       if (/improper|diverge|does not exist|dne/i.test(expected)) {
-        return { verdict: isRefusal(ans) || /improper/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
+        return { verdict: isRefusal(ans) || /improper|diverge/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
       }
       if (isRefusal(ans) || /improper/i.test(ans)) return { verdict: 'REFUSED', got: ans };
       const gotNum = toNumber(ans.replace(/^.*=\s*/, ''));

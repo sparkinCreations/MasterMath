@@ -112,7 +112,7 @@ test('regression: x^3 = 8 yields x = 2, not -2*(-1)^(1/3)', async () => {
 test('regression: quadratics still take the exact-radical path', async () => {
   // Guard that the cubic fallback did not hijack the quadratic flow.
   const r = await solveAlgebra('x^2 = 2');
-  assert.match(r.answer, /2\^\(1\/2\)/);
+  assert.match(r.answer, /√2/);
 });
 
 // ---------------------------------------------------------------------------
@@ -497,7 +497,8 @@ test('regression: "from a to b" phrasing works (x^2 from 0 to 3 = 9)', async () 
 
 test('regression: improper integral ∫_{-1}^{1} 1/x is refused, never -i*pi', async () => {
   const r = await solveProblem('∫_{-1}^{1} 1/x dx', 'integrals');
-  assert.match(r.answer, /improper|unable/i);
+  assert.match(r.answer, /improper|unable|diverges/i);
+  assert.equal(r.status, 'unsupported');
   // Must not leak Algebrite's bogus complex value or its float (-3.14159…).
   assert.doesNotMatch(r.answer, /i\s*\*\s*pi|3\.14/i);
 });
@@ -947,4 +948,79 @@ test('audit L08: a limit at infinity that is a power of e or a small rational is
   // A value with no short name stays a plain decimal.
   const plain = await solveLimit('lim x->infinity (1+1/x)^(x*1.37)');
   assert.doesNotMatch(plain.answer, /\(≈/);
+});
+
+// ---------------------------------------------------------------------------
+// Wave 2 of the September 2026 roadmap (items 12–16) plus one confidently-wrong
+// answer found on the way: mathsteps "factored" x² − 2x − 1 as (x − 1)².
+// ---------------------------------------------------------------------------
+
+test('mathsteps output is verified: x^2 - 2x - 1 = 0 is 1 ± √2, never "x = 1, repeated root"', async () => {
+  // Was: "factor perfect square: (x - 1)^2 = 0", answer x = 1 (repeated root).
+  const r = await solveProblem('x^2 - 2x - 1 = 0', 'algebra');
+  assert.match(r.answer, /1 - √2/);
+  assert.match(r.answer, /1 \+ √2/);
+  assert.doesNotMatch(r.answer, /repeated/);
+  // A genuine perfect square still reports its repeated root.
+  const square = await solveProblem('x^2 - 2x + 1 = 0', 'algebra');
+  assert.match(square.answer, /x = 1/);
+  assert.match(square.answer, /repeated root/);
+});
+
+test('audit G06/G09: rational and exponential equations are solved exactly', async () => {
+  const rational = await solveProblem('1/(x-1) + 1/(x+1) = 1', 'algebra');
+  assert.match(rational.answer, /1 - √2/);
+  assert.match(rational.answer, /1 \+ √2/);
+  assert.ok(rational.steps.some((s) => /clear the fractions/i.test(s)));
+  const reciprocal = await solveProblem('x + 1/x = 3', 'algebra');
+  assert.match(reciprocal.answer, /\(3 - √5\)\/2/);
+  assert.match(reciprocal.answer, /\(3 \+ √5\)\/2/);
+  // Clearing denominators can manufacture a root at a pole; it must still be dropped.
+  const hole = await solveProblem('(x^2 - 9)/(x + 3) = 0', 'algebra');
+  assert.match(hole.answer, /x = 3/);
+  assert.doesNotMatch(hole.answer, /x = -3/);
+  const exponential = await solveProblem('e^(2x) - 3e^x + 2 = 0', 'algebra');
+  assert.match(exponential.answer, /x = 0/);
+  assert.match(exponential.answer, /ln\(2\)/);
+  assert.ok(exponential.steps.some((s) => /u = e\^x/.test(s)));
+});
+
+test('audit V06: the half-angle family has exact values', async () => {
+  assert.match((await solveProblem('sin(pi/12)', 'trigonometry')).answer, /\(√6 − √2\)\/4/);
+  assert.match((await solveProblem('tan(pi/8)', 'trigonometry')).answer, /√2 − 1/);
+  assert.match((await solveProblem('cos(5pi/12)', 'trigonometry')).answer, /\(√6 − √2\)\/4/);
+  assert.match((await solveProblem('sin(15°)', 'trigonometry')).answer, /\(√6 − √2\)\/4/);
+});
+
+test('audit R01: a negative base under an odd root gives the real root', async () => {
+  const cube = await solveProblem('(-8)^(1/3)', 'other');
+  assert.equal(cube.answer, '-2');
+  assert.ok(cube.steps.some((s) => /principal complex root/.test(s)));
+  assert.equal((await solveProblem('(-27)^(1/3)', 'algebra')).answer, '-3');
+  assert.equal((await solveProblem('(-8)^(2/3)', 'other')).answer, '4');
+  // An even root of a negative number is still complex.
+  assert.match((await solveProblem('(-4)^(1/2)', 'other')).answer, /i/);
+});
+
+test('audit: cyclic by-parts keeps rational coefficients', async () => {
+  const r = await solveProblem('∫ e^(2x)*cos(x) dx', 'integrals');
+  assert.match(r.answer, /1\/5\*exp\(2x\)\*\(2cos\(x\) \+ sin\(x\)\)/);
+  assert.doesNotMatch(r.answer, /0\.4|0\.2|1\.0/);
+});
+
+test('audit: an interior singularity is reported as divergent, not "not supported"', async () => {
+  for (const [p, at] of [['∫_{-1}^{1} 1/x^2 dx', 'x = 0'], ['∫_0^2 1/(x-1)^2 dx', 'x = 1'], ['∫_{-1}^{1} 1/x dx', 'x = 0']]) {
+    const r = await solveProblem(p, 'integrals');
+    assert.equal(r.status, 'unsupported', p);
+    assert.match(r.answer, /Diverges/, p);
+    assert.match(r.answer, new RegExp(`${at.replace('x = ', 'x = ')} inside the interval`), p);
+  }
+});
+
+test('audit: ∞ in arithmetic is an indeterminate form or "not a number", never a syntax error', async () => {
+  assert.equal((await solveProblem('∞ - ∞', 'other')).status, 'indeterminate');
+  const quotient = await solveProblem('infinity/infinity', 'other');
+  assert.equal(quotient.status, 'indeterminate');
+  assert.match(quotient.answer, /∞\/∞/);
+  assert.equal((await solveProblem('∞ + 1', 'other')).status, 'undefined');
 });

@@ -241,7 +241,7 @@ test('an Algebrite error in one problem does not poison the next (x/0 = 1, then 
   const r = await solveProblem('x^3 = 8', 'algebra');
   assert.equal(r.answer, 'x = 2  or  x = -1 - 1.7321i  or  x = -1 + 1.7321i');
   const s = await solveProblem('x^2 = 2', 'algebra');
-  assert.equal(s.answer, 'x = -2^(1/2)  or  x = 2^(1/2)');
+  assert.equal(s.answer, 'x = -√2  or  x = √2');
 });
 
 // ── Pass 7 features: worked rules, reducible trig equations, improper integrals, 3×3.

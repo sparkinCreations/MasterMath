@@ -1086,10 +1086,29 @@ export async function solveTrigonometry(expression, settingsOverride) {
       'tan(pi/4)': 'tan(45°) = 1',
       'tan(pi/3)': 'tan(60°) = √3',
       'tan(pi/6)': 'tan(30°) = 1/√3',
+      // Half-angle family.
+      'sin(pi/12)': 'sin(15°) = (√6 − √2)/4',
+      'cos(pi/12)': 'cos(15°) = (√6 + √2)/4',
+      'tan(pi/12)': 'tan(15°) = 2 − √3',
+      'sin(5pi/12)': 'sin(75°) = (√6 + √2)/4',
+      'cos(5pi/12)': 'cos(75°) = (√6 − √2)/4',
+      'tan(5pi/12)': 'tan(75°) = 2 + √3',
+      'sin(pi/8)': 'sin(22.5°) = √(2 − √2)/2',
+      'cos(pi/8)': 'cos(22.5°) = √(2 + √2)/2',
+      'tan(pi/8)': 'tan(22.5°) = √2 − 1',
+      'sin(3pi/8)': 'sin(67.5°) = √(2 + √2)/2',
+      'cos(3pi/8)': 'cos(67.5°) = √(2 − √2)/2',
+      'tan(3pi/8)': 'tan(67.5°) = √2 + 1',
     };
+    // "5pi/12" and "5*pi/12" are the same angle; index both spellings.
+    for (const key of Object.keys(commonAngles)) {
+      const starred = key.replace(/(\d)pi/, '$1*pi');
+      if (starred !== key) commonAngles[starred] = commonAngles[key];
+    }
     const degreeToRadianAngles = {
       30: 'pi/6', 45: 'pi/4', 60: 'pi/3', 90: 'pi/2',
       120: '2*pi/3', 135: '3*pi/4', 150: '5*pi/6', 180: 'pi',
+      15: 'pi/12', 75: '5*pi/12', 22.5: 'pi/8', 67.5: '3*pi/8',
     };
 
     const normalized = expression.replace(/\s/g, '').toLowerCase();
@@ -1364,6 +1383,24 @@ function formatTrigResult(result, expression = '') {
     [-1 / Math.sqrt(3), '-√3/3'],
     [Math.sqrt(2), '√2'],
     [2 / Math.sqrt(3), '2√3/3'],
+    // Half-angle family — π/12 (15°), 5π/12 (75°), π/8 (22.5°), 3π/8 (67.5°).
+    // September 2026 audit row V06: sin(π/12) was decimal-only.
+    [(Math.sqrt(6) - Math.sqrt(2)) / 4, '(√6 − √2)/4'],
+    [-(Math.sqrt(6) - Math.sqrt(2)) / 4, '-(√6 − √2)/4'],
+    [(Math.sqrt(6) + Math.sqrt(2)) / 4, '(√6 + √2)/4'],
+    [-(Math.sqrt(6) + Math.sqrt(2)) / 4, '-(√6 + √2)/4'],
+    [2 - Math.sqrt(3), '2 − √3'],
+    [-(2 - Math.sqrt(3)), '-(2 − √3)'],
+    [2 + Math.sqrt(3), '2 + √3'],
+    [-(2 + Math.sqrt(3)), '-(2 + √3)'],
+    [Math.sqrt(2 - Math.SQRT2) / 2, '√(2 − √2)/2'],
+    [-Math.sqrt(2 - Math.SQRT2) / 2, '-√(2 − √2)/2'],
+    [Math.sqrt(2 + Math.SQRT2) / 2, '√(2 + √2)/2'],
+    [-Math.sqrt(2 + Math.SQRT2) / 2, '-√(2 + √2)/2'],
+    [Math.SQRT2 - 1, '√2 − 1'],
+    [-(Math.SQRT2 - 1), '-(√2 − 1)'],
+    [Math.SQRT2 + 1, '√2 + 1'],
+    [-(Math.SQRT2 + 1), '-(√2 + 1)'],
   ];
   for (const [value, label] of exact) {
     if (Math.abs(result - value) < 1e-4) {

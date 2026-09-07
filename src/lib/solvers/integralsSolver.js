@@ -1003,7 +1003,8 @@ async function solveDefiniteIntegral(parsed) {
     // integral detector: a discontinuity inside [a,b] returns IMPROPER.
     const numeric = numericIntegral(integrand, v, a, b);
     if (numeric === 'IMPROPER') {
-      return refuseImproper(notation, v);
+      const split = await integrateAcrossSingularity(integrand, v, a, b, notation, lowerLabel, upperLabel, Algebrite);
+      return split || refuseImproper(notation, v);
     }
 
     // Algebrite's defint has no abs and no substitution step. When it fails,
@@ -1276,6 +1277,116 @@ function refuseImproper(notation, variable) {
       'Blindly applying F(b) − F(a) across a vertical asymptote — that gives a confident but meaningless number.',
     ],
   });
+}
+
+// A pole strictly inside [a, b]. Split there and test each side as a one-sided
+// limit of the antiderivative F: if either limit is unbounded the integral
+// diverges — and says so ("not supported" used to hide that ∫₋₁¹ 1/x² dx has
+// no value at all); if both are finite the two pieces add to the value,
+// cross-checked by quadrature on each side. Returns null to fall back to the
+// generic refusal when the pole cannot be located or F is not trustworthy.
+// (September 2026 audit.)
+async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLabel, upperLabel, Algebrite) {
+  try {
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    const f = (x) => evalAntiderivNumeric(integrand, v, x);
+
+    // Locate the pole: the interior grid point where |f| is largest or undefined.
+    const N = 4000;
+    const h = (hi - lo) / N;
+    let c = null;
+    let worst = 0;
+    for (let i = 1; i < N; i += 1) {
+      const x = lo + i * h;
+      const y = f(x);
+      const size = Number.isFinite(y) ? Math.abs(y) : Infinity;
+      if (size > worst) {
+        worst = size;
+        c = x;
+      }
+    }
+    if (c === null || worst < 1e6) return null;
+    const snapped = Number(c.toFixed(6));
+    const atSnapped = f(snapped);
+    if (!Number.isFinite(atSnapped) || Math.abs(atSnapped) > 1e6) c = snapped;
+    if (Math.abs(c - lo) < 1e-9 || Math.abs(c - hi) < 1e-9) return null;
+
+    let F = await antiderivativeViaTerms(integrand, v, Algebrite);
+    if (!F) {
+      try { F = Algebrite.integral(integrand, v).toString(); } catch { F = null; }
+    }
+    if (!F || isAlgebriteFailure(F) || /integral/i.test(F)) return null;
+
+    const Fat = (x) => evalAntiderivNumeric(F, v, x);
+    const Fa = Fat(lo);
+    const Fb = Fat(hi);
+    // Trouble at an endpoint as well is the existing endpoint paths' business.
+    if (!Number.isFinite(Fa) || !Number.isFinite(Fb)) return null;
+
+    // One-sided limit of F at c along a shrinking ladder; NaN if it does not settle.
+    const limitFrom = (side) => {
+      const vals = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6].map((eps) => Fat(c + side * eps));
+      if (vals.some((y) => !Number.isFinite(y))) return NaN;
+      const [p, q, r] = vals.slice(-3);
+      const settling = Math.abs(r - q) <= Math.abs(q - p) + 1e-9 && Math.abs(r - q) < 1e-3 * (1 + Math.abs(r));
+      return settling ? r : NaN;
+    };
+    const Lminus = limitFrom(-1);
+    const Lplus = limitFrom(1);
+    const cShown = formatNumber(c);
+    const splitText = `∫_{${lowerLabel}}^{${cShown}} + ∫_{${cShown}}^{${upperLabel}}`;
+
+    if (!Number.isFinite(Lminus) || !Number.isFinite(Lplus)) {
+      const side = !Number.isFinite(Lminus) ? '⁻' : '⁺';
+      return unsupported({
+        input: notation,
+        reason: `The integrand ${beautify(integrand)} is unbounded at ${v} = ${cShown}, inside the interval, and its antiderivative has no finite one-sided limit there — this improper integral diverges (it has no finite value).`,
+        answer: `Diverges — the integral has no finite value (unbounded at ${v} = ${cShown} inside the interval)`,
+        steps: [
+          `Evaluate the definite integral ${notation}.`,
+          `The integrand has a vertical asymptote at ${v} = ${cShown}, strictly between the bounds, so this is an improper integral. Split it there, each piece taken as a one-sided limit: ${splitText}.`,
+          `Antiderivative: F(${v}) = ${lnify(F)}.`,
+          `As ${v} → ${cShown}${side}, F(${v}) grows without bound, so that piece has no finite value — and one divergent piece makes the whole integral diverge.`,
+        ],
+        tips: [
+          'An integral across a vertical asymptote is a sum of two one-sided limits; if either fails to exist, the integral diverges.',
+          'Do not apply F(b) − F(a) across the asymptote: for 1/x² on [−1, 1] that gives −2 for a positive integrand.',
+        ],
+        common_mistakes: ['Applying F(b) − F(a) straight across the asymptote and reporting the (meaningless) number.'],
+      });
+    }
+
+    const value = (Lminus - Fa) + (Fb - Lplus);
+    const left = numericIntegral(integrand, v, lo, c);
+    const right = numericIntegral(integrand, v, c, hi);
+    if (!Number.isFinite(left) || !Number.isFinite(right)) return null;
+    const check = left + right;
+    if (Math.abs(check - value) > Math.max(1e-2, Math.abs(value) * 1e-2)) return null;
+    const signed = b < a ? -value : value;
+    const valueText = formatNumber(signed);
+    return {
+      steps: [
+        `Evaluate the definite integral ${notation}.`,
+        `The integrand has a vertical asymptote at ${v} = ${cShown}, strictly between the bounds, so this is an improper integral. Split it there and take one-sided limits: ${splitText}.`,
+        `Antiderivative: F(${v}) = ${lnify(F)}.`,
+        `Both one-sided limits of F exist: F(${v}) → ${formatNumber(Lminus)} as ${v} → ${cShown}⁻ and → ${formatNumber(Lplus)} as ${v} → ${cShown}⁺, so each piece converges.`,
+        `Add the pieces: (${formatNumber(Lminus)} − ${formatNumber(Fa)}) + (${formatNumber(Fb)} − ${formatNumber(Lplus)}) = ${valueText}.`,
+        `Verified numerically (Simpson's rule on each side): ≈ ${formatNumber(check)}.`,
+      ],
+      answer: `${notation} = ${valueText}`,
+      verified: true,
+      verificationMethod: 'one-sided limits of F + numeric quadrature on each side',
+      tips: [
+        'An improper integral across an interior asymptote converges only if both one-sided pieces converge.',
+        'Compare with a p-integral: near the asymptote, |x − c|^(−p) is integrable only for p < 1.',
+      ],
+      common_mistakes: ['Applying F(b) − F(a) across the asymptote without checking the one-sided limits.'],
+      graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, signed),
+    };
+  } catch {
+    return null;
+  }
 }
 
 // Graph f(x) with the integration interval [a, b] shaded — the definite

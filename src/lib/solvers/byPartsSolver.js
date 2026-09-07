@@ -149,7 +149,22 @@ function constantMultiple(current, original, v) {
   if (ratios.length < 3) return null;
   const mean = ratios.reduce((s, r) => s + r, 0) / ratios.length;
   if (ratios.every((r) => Math.abs(r - mean) < 1e-6 * (1 + Math.abs(mean)))) {
-    return Math.abs(mean - Math.round(mean)) < 1e-9 ? Math.round(mean) : mean;
+    // The ratio is handed to Algebrite as text. A JS float there (−0.25)
+    // turns the whole antiderivative into floats — ∫e^(2x)cos x came back as
+    // 1.0exp(2.0x)*(0.4cos(x) + 0.2sin(x)). The ratio is always a small
+    // rational, so give Algebrite the fraction. (September 2026 audit.)
+    return asExactRational(mean);
+  }
+  return null;
+}
+
+// "−0.25" → "-1/4"; an integer stays an integer string; null if the value is
+// not a rational with a small denominator (then it is not a trusted cycle).
+function asExactRational(x) {
+  if (Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
+  for (let q = 2; q <= 1000; q += 1) {
+    const p = Math.round(x * q);
+    if (Math.abs(x - p / q) < 1e-9) return `${p}/${q}`;
   }
   return null;
 }
@@ -253,7 +268,7 @@ function baseStep(current, base, F, v) {
 }
 
 function cyclicStep(current, k, denom, boundary, F, v) {
-  const kStr = k === -1 ? '−I' : k === 1 ? 'I' : `${k}·I`;
+  const kStr = String(k) === '-1' ? '−I' : String(k) === '1' ? 'I' : `${String(k).startsWith('-') ? `(${k})` : k}·I`;
   return [
     `The original integral reappears (I is the integral we want): ∫(${lnify(current)}) d${v} = ${kStr}`,
     `Move it to the left and solve: (${lnify(denom)})·I = ${lnify(boundary)}`,

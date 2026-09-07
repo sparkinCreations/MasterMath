@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-09-07
+
+Wave 2 of the September 2026 roadmap: the five exact-form items the audit
+raised (`docs/future-work/ROADMAP.md` items 12–16), plus one confidently-wrong
+answer found while testing them.
+
+### Fixed
+
+- **`x² − 2x − 1 = 0` answered "x = 1 (repeated root)".** mathsteps, which is
+  unmaintained, "factored" it as the perfect square (x − 1)² and the solver
+  trusted it. Every solution mathsteps offers is now substituted into the
+  original equation first; if any fails to balance, its result is discarded
+  and the exact Algebrite path runs, giving 1 ± √2. This predates every
+  release since v1.0 and was not in either evaluation set.
+- **Rational equations printed decimals.** `1/(x−1) + 1/(x+1) = 1` answered
+  −0.4142 and 2.4142; `x + 1/x = 3` answered 0.382 and 2.618. The denominators
+  are now cleared (Algebrite `rationalize`) before the exact root path, so the
+  answers are 1 ± √2 and (3 ± √5)/2, and the existing extraneous-root check
+  still drops any root that makes an original denominator zero. (Audit G06.)
+- **Polynomials in eˣ printed decimals.** `e^(2x) − 3eˣ + 2 = 0` answered
+  0.6931; it is now solved by the substitution u = eˣ, with the worked
+  back-substitution, giving x = 0 or x = ln 2. (Audit G09.)
+- **`sin(π/12)` and the rest of the half-angle family were decimal-only.**
+  π/12, 5π/12, π/8 and 3π/8 (15°, 75°, 22.5°, 67.5°) now give (√6 − √2)/4,
+  2 ± √3, √(2 ± √2)/2 and √2 ± 1, with the decimal alongside. (Audit V06.)
+- **`(−8)^(1/3)` answered 1 + 1.7321i.** A negative base under an odd root
+  now gives the real root, −2, with a step naming the principal complex root
+  a calculator would show. Even roots of negatives stay complex. (Audit R01.)
+- **`∫e^(2x)cos x dx` came back with float coefficients**
+  (`1.0exp(2.0x)*(0.4cos(x) + 0.2sin(x))`). The cyclic by-parts ratio was
+  handed to Algebrite as a JS float; it is now the exact fraction, so the
+  answer is `1/5·exp(2x)·(2cos(x) + sin(x))`.
+- **`∫₋₁¹ 1/x² dx` was "not supported".** A pole strictly inside the bounds
+  is now located, the integral split there, and the one-sided limits of the
+  antiderivative tested: the answer is "Diverges" with the reason, and a
+  convergent pair of pieces is summed and cross-checked by quadrature on
+  each side. `∫₋₁¹ 1/x dx` is likewise reported divergent, never −iπ.
+- **`∞ − ∞` was a syntax error.** Under Arithmetic, ∞ (or "infinity") is
+  read as a symbol: ∞ − ∞, ∞/∞ and 0·∞ are Indeterminate forms with the
+  reason; ∞ + 1 is refused as "∞ is not a number".
+
+### Changed
+
+- Radicals in algebra answers display in textbook form: `√2` rather than
+  `2^(1/2)`, `(3 − √5)/2` rather than `3/2 - 1/2*5^(1/2)`.
+
 ## [1.29.3] - 2026-09-07
 
 Fixes from the September 2026 production audit

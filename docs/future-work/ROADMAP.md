@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap
 
-**Version referenced:** 1.29.2
+**Version referenced:** 1.30.0
 **By:** sparkinCreations™
 **Last Updated:** September 7, 2026
 **Supersedes:** [`ROADMAP-2026-07.md`](ROADMAP-2026-07.md) (13/13 items shipped)
@@ -85,11 +85,11 @@ finds.
 | 9 | ~~Documentation debt~~ ✅ Done v1.29.2 (semantics status header, test renamed, worktree pruned) | P3 | Small | Docs | 1 |
 | 10 | New topic: Sequences & Series | P4 | Large | Engine | — |
 | 11 | Practice mode: "Try a similar problem" | P4 | Medium | UX | — |
-| 12 | Exact-first for the algebra fallback (rational equations, `u = eˣ`) — *from the audit* | P1 | Medium | Engine | 2 |
-| 13 | Half-angle family in exact trig values (`sin(π/12)`) — *from the audit* | P2 | Small | Feature | 2 |
-| 14 | Real cube root of a negative base (`(−8)^(1/3)` → −2) — *from the audit* | P2 | Small | Bug | 2 |
-| 15 | Rational coefficients in cyclic by-parts (`∫e^(2x)cos x`) — *from the audit* | P3 | Small | Bug | 2 |
-| 16 | `∫₋₁¹ 1/x²` should say "diverges", `∞ − ∞` should be Indeterminate — *from the audit* | P2 | Small | Bug | 2 |
+| 12 | ~~Exact-first for the algebra fallback (rational equations, `u = eˣ`)~~ ✅ Done v1.30.0 — plus mathsteps output is now verified by substitution (it "factored" x² − 2x − 1 as (x − 1)²) | P1 | Medium | Engine | 2 |
+| 13 | ~~Half-angle family in exact trig values (`sin(π/12)`)~~ ✅ Done v1.30.0 | P2 | Small | Feature | 2 |
+| 14 | ~~Real cube root of a negative base (`(−8)^(1/3)` → −2)~~ ✅ Done v1.30.0 | P2 | Small | Bug | 2 |
+| 15 | ~~Rational coefficients in cyclic by-parts (`∫e^(2x)cos x`)~~ ✅ Done v1.30.0 | P3 | Small | Bug | 2 |
+| 16 | ~~`∫₋₁¹ 1/x²` should say "diverges", `∞ − ∞` should be Indeterminate~~ ✅ Done v1.30.0 (interior poles split and tested by one-sided limits; ∞ read as a symbol under Arithmetic) | P2 | Small | Bug | 2 |
 
 "Effort" is relative to this codebase: Small = one sitting, Medium = a few
 sittings, Large = real engine work that needs its own design pass.
@@ -160,7 +160,7 @@ provisional until then.
 
 ---
 
-## P1 — Exact-First for the Algebra Fallback — *audit item 12*
+## P1 — Exact-First for the Algebra Fallback — *audit item 12* — ✅ Done v1.30.0
 
 **Current behavior (verified):** v1.25.0 made polynomial equations exact-first
 (`x² = 2` → ±√2). Two equation shapes still reach `solveNumerically` in

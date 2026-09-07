@@ -24,3 +24,6 @@ Integrals,x^2*e^x,exp(x)*(x^2-2*x+2),—,Repeated by-parts v1.12.0
 Integrals,e^x*sin(x),1/2*exp(x)*(sin(x)-cos(x)),—,Cyclic by-parts v1.12.0
 Integrals,arctan(x),x*arctan(x)-1/2*log(x^2+1),—,By-parts with dv=dx v1.12.0
 Limits,lim x->infinity (1+3/x)^x,e^3,—,Audit 2026-09 row L08: power of e named exactly (was 20.0855)
+Trigonometry,sin(pi/12),(sqrt(6)-sqrt(2))/4,—,Audit 2026-09 row V06: half-angle family exact (was 0.2588)
+Arithmetic,(-8)^(1/3),-2,—,Audit 2026-09 row R01: real odd root (was 1 + 1.7321i)
+Integrals,e^(2x)*cos(x),exp(2*x)*(2*cos(x)+sin(x))/5,—,Audit 2026-09: cyclic by-parts with rational coefficients (was 0.4/0.2 floats)

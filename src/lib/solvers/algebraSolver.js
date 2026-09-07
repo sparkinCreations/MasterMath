@@ -151,17 +151,35 @@ async function solveEquation(expression, options = {}) {
     const parsed = stepsFromMathstepsResult(mathsteps.solveEquation(expression));
     if (parsed && parsed.steps.length > 0 && isSolved(parsed.answer, variable)) {
       const normalized = normalizeSolutionAnswer(parsed.answer, variable);
-      steps = parsed.steps;
-      answer = normalized.answer;
-      solutions = normalized.numericSolutions;
-      // mathsteps can hand back a raw roots array on the last step; make the
-      // final line a clean, readable statement of the solution.
-      if (normalized.rewritten) {
-        steps = [...steps, `Solution: ${answer}`];
+      // mathsteps (unmaintained) can be confidently wrong: it "factors"
+      // x² − 2x − 1 as the perfect square (x − 1)² and answers x = 1. Every
+      // numeric solution it offers is substituted into the ORIGINAL equation
+      // first; if any fails to balance, its whole result is discarded and the
+      // exact Algebrite path runs instead. (Found September 2026.)
+      const balanced = normalized.numericSolutions.every((x) => satisfiesEquation(expression, variable, x));
+      if (balanced) {
+        steps = parsed.steps;
+        answer = normalized.answer;
+        solutions = normalized.numericSolutions;
+        // mathsteps can hand back a raw roots array on the last step; make the
+        // final line a clean, readable statement of the solution.
+        if (normalized.rewritten) {
+          steps = [...steps, `Solution: ${answer}`];
+        }
       }
     }
   } catch (e) {
     // fall through to Algebrite
+  }
+
+  // 1b. A polynomial in e^x — e^(2x) − 3e^x + 2 = 0 — is solved by the
+  // substitution u = e^x, so the answer is ln 2, not 0.6931 from the numeric
+  // scan. (September 2026 audit row G09.)
+  if (!answer) {
+    const viaU = await solveViaExpSubstitution(expression, variable);
+    if (viaU) {
+      ({ steps, answer, solutions } = viaU);
+    }
   }
 
   // 2. Algebrite roots — exact solutions (integers, fractions, radicals, complex)
@@ -241,7 +259,23 @@ async function solveWithAlgebriteRoots(equation, variable) {
     // hand a leaked value to the formatter.
     if (BARE_FUNCTION_NAME.test(polynomial)) return null;
 
-    const rootsRaw = Algebrite.roots(polynomial, variable).toString();
+    // A rational equation — the variable in a denominator, as in
+    // 1/(x−1) + 1/(x+1) = 1 — used to skip straight to the numeric scan and
+    // print −0.4142 for 1 − √2. Clear the denominators first and find the
+    // roots of the numerator; solveEquation's extraneous-root check then
+    // drops any root that makes an original denominator zero.
+    // (September 2026 audit row G06.)
+    let target = polynomial;
+    const clearingSteps = [];
+    if (new RegExp(`/\\s*\\(?[^()]*\\b${variable}\\b`).test(polynomial)) {
+      const numerator = String(Algebrite.run(`numerator(rationalize(${polynomial}))`)).trim();
+      if (numerator && !/stop|error|nil/i.test(numerator) && new RegExp(`\\b${variable}\\b`).test(numerator)) {
+        target = numerator;
+        clearingSteps.push(`Multiply through by the denominators to clear the fractions: ${beautify(numerator)} = 0`);
+      }
+    }
+
+    const rootsRaw = Algebrite.roots(target, variable).toString();
 
     // Algebrite mangles many cubics: rather than a clean real root like x = 2
     // for x^3 - 8, it emits terms like "-2*(-1)^(1/3)", the *principal complex*
@@ -249,12 +283,12 @@ async function solveWithAlgebriteRoots(equation, variable) {
     // solution. Detect that signature and recompute the roots numerically from
     // the polynomial's coefficients, which yields clean, correct values.
     if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) {
-      const numericRoots = rootsViaPolynomialRoot(Algebrite, polynomial, variable);
+      const numericRoots = rootsViaPolynomialRoot(Algebrite, target, variable);
       if (numericRoots) return numericRoots;
       // polynomialRoot caps at cubics. For higher degrees (x^4 - 16), evaluate
       // each symbolic root numerically instead — mathjs handles the complex
       // arithmetic — so students see ±2, ±2i, not (-1)^(1/4) soup.
-      const evaluated = rootsViaComplexEvaluate(rootsRaw, polynomial, variable);
+      const evaluated = rootsViaComplexEvaluate(rootsRaw, target, variable);
       if (evaluated) return evaluated;
     }
 
@@ -268,12 +302,72 @@ async function solveWithAlgebriteRoots(equation, variable) {
 
     const steps = [
       `Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`,
+      ...clearingSteps,
       `Solve for ${variable} by finding the roots.`,
       `Solution: ${answer}`,
     ];
 
     return { steps, answer, solutions: numericSolutions };
   } catch (e) {
+    return null;
+  }
+}
+
+// e^(2x) − 3e^x + 2 = 0: substitute u = e^x, solve the polynomial in u, and
+// back-substitute x = ln u for each positive u. Returns null unless the whole
+// equation is a polynomial in e^x (any other appearance of the variable, or a
+// transcendental function of it, means the substitution does not close).
+async function solveViaExpSubstitution(equation, variable) {
+  const v = variable;
+  const expPower = new RegExp(`\\b(?:e\\s*\\^\\s*\\(\\s*(\\d+)\\s*\\*?\\s*${v}\\s*\\)|exp\\(\\s*(\\d+)\\s*\\*?\\s*${v}\\s*\\))`, 'g');
+  const expPlain = new RegExp(`\\b(?:e\\s*\\^\\s*${v}\\b|e\\s*\\^\\s*\\(\\s*${v}\\s*\\)|exp\\(\\s*${v}\\s*\\))`, 'g');
+  if (!expPower.test(equation) && !expPlain.test(equation)) return null;
+  const [lhs, rhs] = equation.split('=');
+  if (rhs === undefined || !lhs.trim() || !rhs.trim()) return null;
+  const zeroForm = `(${lhs.trim()}) - (${rhs.trim()})`;
+  const inU = zeroForm
+    .replace(expPower, (m, k1, k2) => `u^${k1 || k2}`)
+    .replace(expPlain, 'u');
+  if (new RegExp(`\\b${v}\\b`).test(inU)) return null;
+  if (/\b(?:sin|cos|tan|log|ln|sqrt|abs)\b/.test(inU)) return null;
+  try {
+    const Algebrite = await loadAlgebrite();
+    const rootsRaw = Algebrite.roots(inU, 'u').toString();
+    if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) return null;
+    const roots = parseRootsList(rootsRaw);
+    if (roots.length === 0) return null;
+
+    const lines = [];
+    const shown = [];
+    const numeric = [];
+    for (const r of roots) {
+      const uText = formatSolutions([r], 'u').replace(/^u\s*=\s*/, '');
+      if (!Number.isFinite(r.numeric)) {
+        lines.push(`u = ${uText} is not real, so it gives no real ${v}`);
+        continue;
+      }
+      if (r.numeric <= 0) {
+        lines.push(`u = ${uText}: e^${v} is always positive, so this gives no real ${v}`);
+        continue;
+      }
+      let xText;
+      if (Math.abs(r.numeric - 1) < 1e-12) xText = '0';
+      else if (Math.abs(r.numeric - Math.E) < 1e-12) xText = '1';
+      else xText = `ln(${uText}) (≈ ${formatNumber(Math.log(r.numeric))})`;
+      lines.push(`e^${v} = ${uText} → ${v} = ${xText}`);
+      shown.push(`${v} = ${xText}`);
+      numeric.push(Math.log(r.numeric));
+    }
+    const answer = shown.length > 0 ? shown.join('  or  ') : `No real solution (e^${v} is always positive, so no listed u is reachable)`;
+    const steps = [
+      `Rewrite as an equation set to zero: ${beautify(zeroForm)} = 0`,
+      `Let u = e^${v} (so e^(2${v}) = u², e^(3${v}) = u³): ${beautify(inU)} = 0`,
+      `Solve for u: ${formatSolutions(roots, 'u')}`,
+      `Back-substitute u = e^${v}: ${lines.join('; ')}`,
+      `Solution: ${answer}`,
+    ];
+    return { steps, answer, solutions: numeric };
+  } catch {
     return null;
   }
 }
@@ -470,6 +564,34 @@ function isSolved(answer, variable) {
   return !new RegExp(`\\b${variable}\\b`, 'i').test(rhs);
 }
 
+// Does x balance the equation? A side that cannot be evaluated at x is not a
+// disproof (the extraneous-root check deals with undefined sides); only a
+// finite, clearly unequal pair of sides says "wrong".
+function satisfiesEquation(equation, variable, x) {
+  const [lhs, rhs = '0'] = equation.split('=');
+  try {
+    const l = math.evaluate(lhs, { [variable]: x });
+    const r = math.evaluate(rhs, { [variable]: x });
+    if (typeof l !== 'number' || typeof r !== 'number' || !Number.isFinite(l) || !Number.isFinite(r)) return true;
+    return Math.abs(l - r) <= 1e-6 * (1 + Math.abs(l) + Math.abs(r));
+  } catch {
+    return true;
+  }
+}
+
+// Algebrite writes √2 as 2^(1/2) and (3 − √5)/2 as 3/2 - 1/2*5^(1/2). Show the
+// textbook form; the value is untouched.
+function prettyRadicals(display) {
+  let s = String(display);
+  s = s.replace(/(\d+)\^\(1\/2\)/g, '√$1');
+  s = s.replace(/\b1\/(\d+)\*√(\d+)/g, '√$2/$1');
+  s = s.replace(/\b(\d+)\/(\d+)\*√(\d+)/g, '$1√$3/$2');
+  s = s.replace(/\b(\d+)\*√(\d+)/g, '$1√$2');
+  s = s.replace(/^(-?\d+)\/(\d+) ([+-]) √(\d+)\/\2$/, '($1 $3 √$4)/$2');
+  s = s.replace(/^(-?\d+)\/(\d+) ([+-]) (\d+)√(\d+)\/\2$/, '($1 $3 $4√$5)/$2');
+  return s;
+}
+
 /**
  * Detect a raw roots array in a mathsteps answer ("x = [2, 3]") and rewrite it
  * as a readable "x = 2 or x = 3". Returns numeric solutions for graphing.
@@ -499,7 +621,7 @@ function formatSolutions(roots, variable) {
     if (/^-?\d+(?:\.\d+)?$/.test(r.display)) {
       return formatNumber(r.numeric);
     }
-    return r.display;
+    return prettyRadicals(r.display);
   });
   // A repeated root (x² = 0 → [0, 0]) is one solution, not two. Say once,
   // and note the multiplicity so the information isn't lost.

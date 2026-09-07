@@ -44,8 +44,9 @@ test('an exact-zero sample is one root, not three', async () => {
 test('1/x + 1/(x+1) = 1 has both roots (1 ± √5)/2', async () => {
   // Was: x = 1.618 only; -0.618 sits between the poles at -1 and 0.
   const r = await solveProblem('1/x + 1/(x+1) = 1', 'algebra');
-  assert.match(r.answer, /-0\.618/);
-  assert.match(r.answer, /1\.618/);
+  // Since v1.30.0 the denominators are cleared first, so the roots are exact.
+  assert.match(r.answer, /\(1 - √5\)\/2/);
+  assert.match(r.answer, /\(1 \+ √5\)\/2/);
 });
 
 // ── High: tan(x) claimed "domain: all real numbers" with no asymptotes.

@@ -23,9 +23,54 @@ export function solveArithmetic(expression) {
     // Under Arithmetic there are no variables, so an "x" between two numbers
     // is the multiplication sign a student reached for: "2 x 3" → 2*3.
     // (parseMathExpression will have removed the spaces already: "2x3".)
-    const cleaned = rewritePercent(original).replace(/(\d|\))\s*x\s*(\d|\()/gi, '$1*$2');
+    const cleanedBase = rewritePercent(original).replace(/(\d|\))\s*x\s*(\d|\()/gi, '$1*$2');
+    let cleaned = cleanedBase;
+
+    // ∞ is not a number, but students type it. Read it as mathjs's Infinity
+    // so that ∞ − ∞ can be named an indeterminate form instead of a syntax
+    // error (September 2026 audit).
+    const usesInfinity = /∞|\binf(?:inity)?\b/i.test(cleaned);
+    if (usesInfinity) cleaned = cleaned.replace(/∞|\binf(?:inity)?\b/gi, 'Infinity');
+
+    // (−8)^(1/3): a negative base under an odd root has a real value, −2.
+    // mathjs returns the principal complex root (1 + 1.7321i) — a cube root of
+    // −8, but not the one a student means. Rewrite as −(8^(1/3)) (or
+    // +(8^(2/3)) for an even numerator) and say so. (Audit row R01.)
+    const ODD_ROOT = /\(\s*-\s*(\d+(?:\.\d+)?)\s*\)\s*\^\s*\(\s*(\d+)\s*\/\s*(\d+)\s*\)/g;
+    const rootNotes = [];
+    cleaned = cleaned.replace(ODD_ROOT, (whole, base, p, q) => {
+      if (Number(q) % 2 === 0) return whole;
+      let principal = '';
+      try { principal = math.format(math.evaluate(whole), { precision: 5 }); } catch { /* no note */ }
+      const real = Number(p) % 2 ? `-(${base}^(${p}/${q}))` : `(${base}^(${p}/${q}))`;
+      rootNotes.push(`${whole}: the base is negative and the root is odd (${q}), so it has a real value — rewrite it as ${real}.${principal ? ` (A calculator that answers ${principal} is showing the principal complex root instead.)` : ''}`);
+      return `(${real})`;
+    });
 
     const result = math.evaluate(cleaned);
+
+    if (usesInfinity && typeof result === 'number' && !Number.isFinite(result)) {
+      if (Number.isNaN(result)) {
+        const form = /Infinity\s*\/\s*Infinity/.test(cleaned)
+          ? '∞/∞'
+          : /(?:^|[^\d.])0\s*\*\s*Infinity|Infinity\s*\*\s*0(?![\d.])/.test(cleaned) ? '0·∞' : '∞ − ∞';
+        return indeterminate({
+          input: original,
+          form,
+          note: `${form} is not a number. ∞ is not a value arithmetic can subtract, divide or multiply — it describes a limit that grows without bound, and two such limits can differ by anything. In calculus ${form} is an indeterminate form: a limit can settle it, plain arithmetic cannot.`,
+        });
+      }
+      return undefinedValue({
+        input: original,
+        reason: '∞ is not a number',
+        steps: [
+          `Evaluate: ${original}`,
+          '∞ is not a real number, so it cannot be added to, multiplied or compared in arithmetic. It describes how a limit behaves — growing without bound — not a value.',
+        ],
+        tips: ['In a limit, ∞ + 1, 2·∞ and ∞² all "equal" ∞ — the quantity still grows without bound. As arithmetic, none of them has a value.'],
+        common_mistakes: ['Treating ∞ as a very large number.'],
+      });
+    }
 
 
     if (typeof result === 'number' && Number.isFinite(result) && modsByZero(cleaned)) {
@@ -83,7 +128,7 @@ export function solveArithmetic(expression) {
         return overflow({ input: original });
       }
     }
-    const steps = [`Evaluate: ${original}`];
+    const steps = [`Evaluate: ${original}`, ...rootNotes];
     // 0^0 is a convention, not a computation. Say so rather than presenting
     // "1" as if it were forced.
     const zeroToZero = raisesZeroToZero(cleaned);
@@ -95,10 +140,10 @@ export function solveArithmetic(expression) {
     if (result && typeof result === 'object' && 'im' in result && Math.abs(result.im) > 0) {
       steps.push('There is no real number here — the result is a complex number, written with i = √(−1).');
     }
-    if (/%/.test(original) && cleaned !== original) {
-      steps.push(`Percent means "per hundred": rewrite ${original} as ${cleaned}.`);
-    } else if (cleaned !== original) {
-      steps.push(`Reading "x" between numbers as multiplication: ${cleaned}.`);
+    if (/%/.test(original) && cleanedBase !== original) {
+      steps.push(`Percent means "per hundred": rewrite ${original} as ${cleanedBase}.`);
+    } else if (cleanedBase !== original) {
+      steps.push(`Reading "x" between numbers as multiplication: ${cleanedBase}.`);
     }
 
     // Show the real reduction by collapsing the innermost parentheses one at a

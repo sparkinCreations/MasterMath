@@ -31,7 +31,7 @@ test('solveAlgebra solves a simple linear equation with mathsteps steps', async 
 test('solveAlgebra returns exact roots for quadratics mathsteps cannot finish', async () => {
   const irrational = await solveAlgebra('x^2 = 2');
   // Radical roots are kept exact, not collapsed to decimals.
-  assert.match(irrational.answer, /2\^\(1\/2\)/);
+  assert.match(irrational.answer, /√2/);
 
   const complex = await solveAlgebra('x^2 + 1 = 0');
   assert.match(complex.answer, /\bi\b/);
