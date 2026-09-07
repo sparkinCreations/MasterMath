@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.4] - 2026-09-07
+
+Roadmap 2026-09 item 7, third step.
+
+### Changed
+
+- **mathjs 14.8 → 15.2.** Version 15's breaking changes are the precedence
+  of the unary `%` operator, hex/binary literal delimiting, Kronecker
+  products and matrix `size`/`subset` behaviour. None reaches this app:
+  percent notation is rewritten to `(N/100)` before mathjs ever sees it,
+  and matrices are no longer bundled at all (v1.32.1). All 94 dependency
+  exports the instance is built from still exist in 15; the function
+  battery, the corpus and the full suite are green.
+
 ## [1.32.3] - 2026-09-07
 
 Roadmap 2026-09 item 7, second step.
