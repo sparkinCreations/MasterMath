@@ -609,7 +609,7 @@ test('regression: inconsistent system reports no solution (parallel)', async () 
   assert.match(r.answer, /parallel/i);
 });
 
-test('regression: a 3-variable system is refused, not mis-solved', async () => {
+test('regression: an underdetermined system (two equations, three unknowns) is refused, not mis-solved', async () => {
   const r = await solveProblem('x + y + z = 1; x - y = 2', 'algebra');
   assert.equal(r.status, 'unsupported');
   assert.match(r.answer, /3 variables/i);

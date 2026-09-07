@@ -3,9 +3,12 @@
 // This is deliberately a small, honest solver. It handles the family students
 // actually meet first — sin(x) = 1/2, 2cos(x) - 1 = 0, tan(2x) = 1, √3 = 2sin(x)
 // — with exact special angles, the full general solution, and the solutions
-// on [0, 2π). Anything outside that family (two different trig functions,
-// squared functions, non-linear arguments) is refused with an explicit
-// "not supported yet", never mis-solved.
+// on [0, 2π). solveReducibleTrig and solveEqualArguments extend it to the
+// shapes that reduce to it: quadratics in one function, a·sin + b·cos = c,
+// reciprocals, sin·cos products, and f(A) = f(B) with two linear arguments.
+// Anything else (non-linear arguments, powers above 2, non-trig terms) is
+// refused with an explicit unsupported envelope — never mis-solved — and
+// under Trigonometry the caller then falls back to the numeric root scan.
 //
 // Why a dedicated solver at all: an equation handed to the expression
 // evaluator is a hazard. mathjs reads "sin(x) = 1/2" as a *definition* of a
@@ -592,13 +595,16 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
       const reduced = solveReducibleTrig(rawEquation, equation, variable, shown, !nested);
       if (reduced) return reduced;
     } catch { /* fall through to unsupported */ }
+    // Keep this boundary statement in step with what solveReducibleTrig and
+    // solveEqualArguments actually handle; tests/trigEquation.test.js checks
+    // every example named here against the solver.
     return unsupported({
       input: rawEquation,
-      reason: 'Trigonometric equations are supported in the form A·sin(kx) + B = C (likewise cos and tan). Equations with two different trig functions, squared trig terms, or non-linear arguments are not solved yet.',
-      answer: 'This trig equation is not supported yet',
+      reason: 'Exact solving covers A·f(kx + b) + B = C for sin, cos and tan (sec, csc and cot via their reciprocals); quadratics in one trig function; a·sin(u) + b·cos(u) = c; sin(u)·cos(u) products; and f(A) = f(B) with two linear arguments. This equation is none of those — a non-linear argument, a power above 2, a non-trig term, or a mix of functions that does not reduce — so no exact reduction applies.',
+      answer: 'This trig equation has no exact reduction here',
       tips: [
-        'Supported: sin(x) = 1/2, 2cos(x) − 1 = 0, tan(2x) = 1, √3 = 2sin(x); quadratics like 2sin²(x) − sin(x) − 1 = 0; sin(x) = cos(x); sin²(x) + cos(x) = 1.',
-        'Not yet: sin(x) + cos(x) = 1, sin(x²) = 0, sin(x) = sin(2x).',
+        'Solved exactly: sin(x) = 1/2, 2cos(x) − 1 = 0, tan(2x) = 1, sec(x) = 2, 2sin²(x) − sin(x) − 1 = 0, sin²(x) + cos(x) = 1, sin(x) + cos(x) = 1, sin(x)cos(x) = 1/4, sin(x) = sin(2x), sin(2x) = cos(x).',
+        'No exact reduction (under Trigonometry these are solved numerically instead): sin(x²) = 0, sin(x) + x = 1, sin(x)·cos(2x) = 1/3, sin³(x) = 1/8, sin(x) + cos(2x) = 1.',
       ],
     });
   }
@@ -720,7 +726,7 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
     return unsupported({
       input: rawEquation,
       reason: 'The solutions found did not all verify against the original equation, so nothing is being reported.',
-      answer: 'This trig equation is not supported yet',
+      answer: 'The solutions found could not be verified, so none are reported',
     });
   }
   steps.push(`Check: substituting each value back into ${shown} balances both sides.`);

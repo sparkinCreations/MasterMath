@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.29.2] - 2026-09-07
+
+First release against the September 2026 roadmap
+(`docs/future-work/ROADMAP.md`, items 2 and 9).
+
+### Fixed
+
+- **The trig solver's refusal message described a boundary two releases
+  old.** It said equations "with two different trig functions, squared trig
+  terms, or non-linear arguments are not solved yet", and its tips listed
+  `sin(x) + cos(x) = 1` and `sin(x) = sin(2x)` under "Not yet" — all of which
+  have solved exactly since v1.26.0–v1.27.0. The message now states what
+  `solveReducibleTrig` and `solveEqualArguments` actually cover and names the
+  shapes that still have no exact reduction (`sin(x²) = 0`, `sin(x) + x = 1`,
+  `sin³(x) = 1/8`, `sin(x) + cos(2x) = 1`). A new test checks every example
+  the message cites against the solver, so the text cannot drift again.
+  Under Trigonometry these shapes were already solved numerically (v1.28.0)
+  and that step text was accurate; the stale text was the solver's own
+  `unsupported` envelope.
+- The trig solver's verification-failure guard answered "not supported yet"
+  when what happened was that a candidate did not balance the original
+  equation. It now says so.
+
+### Changed
+
+- `docs/future-work/ROADMAP.md` is a new roadmap pinned to v1.29.1; the
+  completed July roadmap moved to `ROADMAP-2026-07.md`.
+  `MATH-STATE-SEMANTICS.md` carries a status header mapping each of its
+  phases to the release that shipped it. A regression test named "a
+  3-variable system is refused" now says what it feeds: two equations in
+  three unknowns. A stale July worktree registration was pruned.
+
 ## [1.29.1] - 2026-08-31
 
 Follow-up hardening from a CodeRabbit review of PR #1. Both items were gaps

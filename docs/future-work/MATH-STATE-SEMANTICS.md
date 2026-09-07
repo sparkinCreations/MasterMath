@@ -5,6 +5,21 @@
 **Last Updated:** July 21, 2026
 **Fixes findings from:** [`mastermath-black-box-review.md`](../evaluations/2026-07/mastermath-black-box-review.md) and [`PRODUCTION-AUDIT-v1.12.md`](../evaluations/2026-07/PRODUCTION-AUDIT-v1.12.md)
 
+> **Status: Implemented** (marked 2026-09-07). The design below shipped in
+> full; the phase numbering drifted from the version plan because v1.13.0
+> went to integration by parts. Where each phase landed:
+>
+> | Phase | Component | Shipped in |
+> |---|---|---|
+> | 1 | Solution envelope, `finalizeResult` gate, status-branched UI | v1.16.1 ("an unevaluated derivative or integral is never reported as solved"; "Algebrite failure text was accepted as a result", v1.18.0) |
+> | 2 | Input validation & interpretation transparency | v1.13.1–v1.14.x (validation gate), v1.23.0 (angle unit shown beside the answer) |
+> | 3 | Numeric semantics (`1/0`, `0/0`, `NaN`, overflow) | v1.24.0 ("Division by zero was answered ∞", `5 mod 0`) |
+> | 4 | Domain & continuity (holes, cusps, `ln\|x\|`, asymptotes) | v1.17.0 (cusps, removable discontinuities drawn), v1.20.0 (`tan(x)` asymptotes), v1.21.1 (odd roots, `x^(4/3)`) |
+> | 5 | Evidence-scoped claims | v1.19.0 ("the integration fallback distinguishes two different claims"), v1.20.0 ("a value that is merely small is not a root") |
+>
+> The body is kept as the design record. Nothing below is open work; see
+> [`ROADMAP.md`](ROADMAP.md) for what is.
+
 ---
 
 ## Table of Contents

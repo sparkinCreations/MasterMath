@@ -119,7 +119,30 @@ test('out-of-family equations are refused explicitly, never mis-solved', () => {
   for (const eq of ['sin(x)*cos(2x)=1/3', 'sin(x^2)=0', 'sin(x)+x=1', 'sin(x)*tan(x)=1']) {
     const r = solveTrigEquation(eq);
     assert.equal(r.status, STATUS.UNSUPPORTED, eq);
-    assert.match(r.answer, /not supported yet/);
+    assert.match(r.answer, /no exact reduction/);
+  }
+});
+
+// The refusal message is the solver's stated contract. Roadmap 2026-09 item 2:
+// it once claimed squared trig terms and two-function equations were unsolved
+// long after both shipped. Every example the message cites is checked here,
+// so the text cannot drift from the solver again.
+test('the refusal message names only shapes the solver really does or does not reduce', () => {
+  const refusal = solveTrigEquation('sin(x^2) = 0');
+  const text = [refusal.reason, ...refusal.tips].join('\n');
+  assert.doesNotMatch(text, /not solved yet|not supported yet/);
+
+  const solvedExactly = ['sin(x) = 1/2', '2cos(x) - 1 = 0', 'tan(2x) = 1', 'sec(x) = 2', '2sin(x)^2 - sin(x) - 1 = 0',
+    'sin(x)^2 + cos(x) = 1', 'sin(x) + cos(x) = 1', 'sin(x)cos(x) = 1/4', 'sin(x) = sin(2x)', 'sin(2x) = cos(x)'];
+  for (const eq of solvedExactly) {
+    const r = solveTrigEquation(eq);
+    assert.notEqual(r.status, STATUS.UNSUPPORTED, `${eq} is cited as solved exactly but was refused`);
+    assert.ok(Array.isArray(r.steps) && r.steps.length > 1, `${eq} produced no worked steps`);
+  }
+
+  const noReduction = ['sin(x^2) = 0', 'sin(x) + x = 1', 'sin(x)*cos(2x) = 1/3', 'sin(x)^3 = 1/8', 'sin(x) + cos(2x) = 1'];
+  for (const eq of noReduction) {
+    assert.equal(solveTrigEquation(eq).status, STATUS.UNSUPPORTED, `${eq} is cited as unreduced but was solved`);
   }
 });
 
