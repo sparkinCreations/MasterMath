@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-09-08
+
+### Added
+
+- **The Solver page follows the action.** On a phone the page stacks input,
+  graph, then solution, so pressing Solve left the user looking at the
+  button, and tapping an example (the list sits below the textarea) left
+  the filled-in textarea off-screen above. Now Solve brings the solution
+  into view and gives it keyboard focus (so a screen reader announces it),
+  and an example brings the textarea back with the caret in it. The move
+  happens only when the target is not already near the top of the screen —
+  on a desktop the solution is beside the input, so nothing shifts — and it
+  is instant rather than smooth when the system prefers reduced motion.
+  (`revealElement` in `src/lib/reveal.js`, with its decision logic unit
+  tested.)
+
 ## [1.33.1] - 2026-09-08
 
 ### Fixed

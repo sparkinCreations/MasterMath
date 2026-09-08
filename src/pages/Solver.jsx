@@ -1,4 +1,5 @@
-import React, { useState, useCallback, lazy, Suspense } from "react";
+import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { revealElement } from "@/lib/reveal";
 import ProblemInput from "@/components/solver/ProblemInput";
 import SolutionDisplay from "@/components/solver/SolutionDisplay";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
@@ -28,6 +29,15 @@ export default function Solver() {
   const [inputHistory, setInputHistory] = useState([]);   // recent inputs
   const [historyIndex, setHistoryIndex] = useState(-1);   // -1 = current input
   const toast = useToast();
+
+  // After a solve, bring the solution into view and give it focus. On a phone
+  // it sits below the input (the user is looking at the button they pressed);
+  // on a desktop it is already beside the input and revealElement leaves the
+  // page alone. Focus lets screen readers announce the result as well.
+  const solutionRef = useRef(null);
+  useEffect(() => {
+    if (solution) revealElement(solutionRef.current, { focus: true });
+  }, [solution]);
 
   // `problemText` is the sanitized string ProblemInput validated, which may
   // differ from the raw textarea contents (collapsed whitespace). Everything
@@ -160,7 +170,7 @@ export default function Solver() {
           )}
         </div>
 
-        <div>
+        <div ref={solutionRef} tabIndex={-1} aria-label="Solution" className="outline-hidden">
           <SolutionDisplay solution={solution} problem={solvedInput.problem} topic={solvedInput.topic} />
         </div>
       </div>

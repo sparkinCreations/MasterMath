@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { revealElement } from "@/lib/reveal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,11 +43,15 @@ const EXAMPLE_PROBLEMS = [
 
 export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, isLoading, onNavigateHistory, hasHistory }) {
   const [validationError, setValidationError] = useState(null);
+  const textareaRef = useRef(null);
 
   const loadExample = (exampleProblem) => {
     setProblem(exampleProblem.problem);
     setTopic(exampleProblem.topic);
     setValidationError(null);
+    // The examples sit below the textarea; on a phone the filled-in textarea
+    // is now off-screen above. Bring it back and put the caret in it.
+    revealElement(textareaRef.current, { focus: true });
   };
 
   const handleProblemChange = (e) => {
@@ -130,6 +135,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           Enter your problem
         </Label>
         <Textarea
+          ref={textareaRef}
           id="problem"
           value={problem}
           onChange={handleProblemChange}
