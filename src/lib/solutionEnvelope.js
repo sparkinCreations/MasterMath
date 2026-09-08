@@ -39,6 +39,23 @@ export function isFailureStatus(status) {
   return status !== STATUS.SOLVED;
 }
 
+// Outcomes worth keeping in the Progress history: a solve, and the two honest
+// mathematical non-values — 1/0 is undefined, 0/0 is an indeterminate form —
+// which are answers about the problem. Not kept: input that could not be
+// read, work the engine could not do, and overflow. Those are facts about the
+// tool or the typing, not about the student's maths, and until September 2026
+// every one of them was saved and shown in Progress as if it were a solution.
+export function shouldSaveToHistory(status) {
+  return status === STATUS.SOLVED || status === STATUS.UNDEFINED || status === STATUS.INDETERMINATE;
+}
+
+// A history entry that counts as a solved problem in the statistics. Entries
+// saved before statuses existed have no status and count as solved.
+export function countsAsSolved(entry) {
+  const status = entry?.solution?.status;
+  return !status || status === STATUS.SOLVED;
+}
+
 function baseResult(status, { steps, answer, tips, common_mistakes, graph, interpretation, warnings }) {
   const result = {
     status,

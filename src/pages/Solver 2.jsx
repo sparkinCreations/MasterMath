@@ -3,7 +3,7 @@ import ProblemInput from "@/components/solver/ProblemInput";
 import SolutionDisplay from "@/components/solver/SolutionDisplay";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { solveProblem, createProblemHistory } from "@/lib/api";
-import { STATUS, statusLabel, shouldSaveToHistory } from "@/lib/solutionEnvelope";
+import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
 import { useToast } from "@/components/ui/toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -51,9 +51,8 @@ export default function Solver() {
       });
       setHistoryIndex(-1);
 
-      // Save to problem history — only outcomes about the maths (a solve,
-      // "undefined", "indeterminate"). A typo, a refusal or an overflow is
-      // not a solved problem; saving those polluted Progress and its stats.
+      // Save to problem history — except parse errors: a typo is not a
+      // solved problem, and saving it would pollute the Progress stats.
       //
       // Persisting is a separate concern from solving, and it fails for
       // reasons that have nothing to do with the maths (storage quota,
@@ -61,7 +60,7 @@ export default function Solver() {
       // screen and still correct at this point, so a save failure gets its
       // own message instead of being reported as a failed solve.
       let saved = true;
-      if (shouldSaveToHistory(result.status)) {
+      if (result.status !== STATUS.PARSE_ERROR) {
         try {
           await createProblemHistory({
             problem: problemText,
@@ -128,7 +127,7 @@ export default function Solver() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
           Let's Master Some Math!
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">

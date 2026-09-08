@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.33.1] - 2026-09-08
+
+### Fixed
+
+- **History saved errors as if they were solutions.** The Solver skipped
+  only parse errors, so a "Beyond this solver" refusal, an overflow, or any
+  other engine failure was written to history with its refusal text as the
+  "solution", and the Progress page — which had no notion of status —
+  counted every one of them as a problem solved, a topic covered, and work
+  done this week. Now:
+  - History keeps outcomes about the maths only: a solve, and the two honest
+    non-values, "Undefined" (1/0) and "Indeterminate form" (0/0). Unreadable
+    input, unsupported work and overflow are not saved.
+  - The Progress statistics count solved problems only (`historyStats`, a
+    pure function with its own tests).
+  - Entries that are not solves — an "Undefined" answer, or a refusal saved
+    before this release — carry an amber status badge and read "Result:"
+    rather than "Solution:". Nothing already saved is deleted.
+  - The Markdown and PDF exports' solved count uses the same rule.
+
 ## [1.33.0] - 2026-09-07
 
 Roadmap 2026-09 item 7, final step — and with it item 7 is complete. A

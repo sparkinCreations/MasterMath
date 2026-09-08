@@ -7,8 +7,6 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { exportAsCSV, exportAsJSON, exportAsMarkdown, exportAsPDF } from "@/lib/exportUtils";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { historyStats } from "@/lib/historyStats";
-import { statusLabel, countsAsSolved } from "@/lib/solutionEnvelope";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,14 +95,20 @@ export default function Progress() {
     }
   };
 
-  // Statistics count solved problems only; older entries that recorded a
-  // refusal or an error are shown below with a status badge but not counted.
-  const stats = historyStats(problems);
+  const totalProblems = problems.length;
+  const thisWeek = problems.filter(p => {
+    // Simple week calculation - you can improve this
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    return new Date(p.createdAt || Date.now()) > oneWeekAgo;
+  }).length;
+
+  const topicsCovered = new Set(problems.map(p => p.topic)).size;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
           Your Learning Journey
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">
@@ -113,36 +117,36 @@ export default function Progress() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-linear-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/40 dark:to-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-700/60">
+        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/40 dark:to-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-700/60">
           <CardHeader>
             <CardTitle className="text-indigo-700 dark:text-indigo-300 text-lg">Total Problems</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-5xl font-bold text-indigo-600 dark:text-indigo-200" aria-busy={loading}>{loading ? '—' : stats.total}</p>
+            <p className="text-5xl font-bold text-indigo-600 dark:text-indigo-200" aria-busy={loading}>{loading ? '—' : totalProblems}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-linear-to-br from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-950/40 border-2 border-green-200 dark:border-green-700/60">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-950/40 border-2 border-green-200 dark:border-green-700/60">
           <CardHeader>
             <CardTitle className="text-green-700 dark:text-green-300 text-lg">This Week</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-5xl font-bold text-green-600 dark:text-green-200" aria-busy={loading}>{loading ? '—' : stats.thisWeek}</p>
+            <p className="text-5xl font-bold text-green-600 dark:text-green-200" aria-busy={loading}>{loading ? '—' : thisWeek}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-linear-to-br from-orange-50 to-orange-100 dark:from-orange-950/40 dark:to-orange-950/40 border-2 border-orange-200 dark:border-orange-700/60">
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/40 dark:to-orange-950/40 border-2 border-orange-200 dark:border-orange-700/60">
           <CardHeader>
             <CardTitle className="text-orange-700 dark:text-orange-300 text-lg">Topics Covered</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-5xl font-bold text-orange-600 dark:text-orange-200" aria-busy={loading}>{loading ? '—' : stats.topics}</p>
+            <p className="text-5xl font-bold text-orange-600 dark:text-orange-200" aria-busy={loading}>{loading ? '—' : topicsCovered}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card className="border-2 border-indigo-200 dark:border-gray-700 dark:bg-gray-800 shadow-lg">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 border-b border-indigo-200 dark:border-gray-700">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 border-b border-indigo-200 dark:border-gray-700">
           <div className="flex flex-wrap justify-between items-center gap-2">
             <CardTitle className="text-xl dark:text-gray-100">Problem History</CardTitle>
             {problems.length > 0 && (
@@ -202,20 +206,11 @@ export default function Progress() {
               {problems.map((p, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-lg border-2 border-indigo-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700/60 dark:to-gray-700/60 hover:shadow-md transition-shadow"
+                  className="p-4 rounded-lg border-2 border-indigo-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700/60 dark:to-gray-700/60 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="px-3 py-1 rounded-full bg-indigo-200 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-sm font-medium">
-                        {topicLabels[p.topic] || p.topic}
-                      </span>
-                      {/* An entry that is not a solve — "Undefined", or a refusal saved
-                          before v1.33.1 — says so, and is not counted in the stats. */}
-                      {!countsAsSolved(p) && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-medium">
-                          {statusLabel(p.solution.status)}
-                        </span>
-                      )}
+                    <span className="px-3 py-1 rounded-full bg-indigo-200 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-sm font-medium">
+                      {topicLabels[p.topic] || p.topic}
                     </span>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
                       {new Date(p.createdAt).toLocaleDateString()}
@@ -224,7 +219,7 @@ export default function Progress() {
                   <p className="text-gray-800 dark:text-gray-100 font-medium">{p.problem}</p>
                   {p.solution && (
                     <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-                      {countsAsSolved(p) ? 'Solution' : 'Result'}: {typeof p.solution === 'string' ? p.solution : p.solution.answer}
+                      Solution: {typeof p.solution === 'string' ? p.solution : p.solution.answer}
                     </p>
                   )}
                 </div>

@@ -1,5 +1,5 @@
 // Export utilities for MasterMath
-import { statusLabel, isFailureStatus } from './solutionEnvelope.js';
+import { statusLabel, isFailureStatus, countsAsSolved } from './solutionEnvelope.js';
 
 // jsPDF (plus its html2canvas/dompurify dependencies) is ~600 kB — larger than
 // the rest of the app combined. Importing it at module scope pulled it into
@@ -61,11 +61,11 @@ function exportStatus(solution) {
   };
 }
 
-// History holds every outcome except parse errors, so it contains entries the
-// solver could not actually solve (unsupported, undefined, indeterminate,
-// overflow). Counting them all as "solved" overstated what the user had done.
+// History can hold entries that are not solves ("undefined", "indeterminate",
+// and refusals saved before v1.33.1). Counting them all as "solved" overstated
+// what the user had done; the Progress page uses the same rule.
 function solvedCount(problems) {
-  return problems.filter(p => !p.solution?.status || !isFailureStatus(p.solution.status)).length;
+  return problems.filter(countsAsSolved).length;
 }
 
 // Summary line shared by the Markdown and PDF history exports. The breakdown
