@@ -55,10 +55,17 @@ export function useServiceWorker() {
         console.error('[MasterMath] SW registration failed:', error);
       });
 
-    // Handle controller change (new SW took over) — reload to get fresh assets
+    // Handle controller change (new SW took over) — reload to get fresh assets.
+    //
+    // Only when a worker was already controlling this page: on the very first
+    // visit the freshly installed worker claims the page (clients.claim) and
+    // fires controllerchange too, and reloading then threw away a page that
+    // had just loaded from the network — plus anything the user had typed in
+    // that first second. Found by the browser smoke test (September 2026).
+    const hadController = Boolean(navigator.serviceWorker.controller);
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
+      if (hadController && !refreshing) {
         refreshing = true;
         window.location.reload();
       }

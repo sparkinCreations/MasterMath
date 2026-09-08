@@ -1,14 +1,16 @@
 {
   "name": "mastermath",
   "private": true,
-  "version": "1.36.2",
+  "version": "1.36.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "test:watch": "node --test --watch"
+    "test:watch": "node --test --watch",
+    "smoke": "playwright test",
+    "smoke:ui": "playwright test --ui"
   },
   "dependencies": {
     "algebrite": "^1.4.0",
@@ -27,6 +29,7 @@
     "tailwind-merge": "^2.5.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

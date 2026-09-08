@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.3] - 2026-09-14
+
+### Fixed
+
+- **A first visit reloaded itself.** The freshly installed service worker
+  claims the page and fires `controllerchange`, and the update hook reloaded
+  on every such event — so the very first page load was thrown away about a
+  second after it appeared, along with anything typed in that window. The
+  reload now happens only when a worker was already controlling the page
+  (a genuine update), which is the standard guard. Found by the new smoke
+  test, whose state kept vanishing under it.
+
+### Added
+
+- **Browser smoke test** (`npm run smoke`): Playwright builds the app,
+  serves the production bundle with `vite preview`, and drives real
+  Chromium on a desktop and an iPhone 13 viewport. It solves one example
+  per topic and checks the graph draws, exercises a refusal, the Progress
+  page and Clear History, dark mode across a reload, every sidebar route
+  and the unknown-URL redirect, the phone-layout reveal-and-focus
+  behaviour, and that the landing page loads once and preloads no solver
+  library. Every test also fails on any uncaught page error or
+  error-boundary render. This is the net the unit suite cannot provide: the
+  September 2026 graph crash, the Progress crash caught in preview, and
+  this reload were all invisible to the green unit suite.
+- **GitHub Actions workflow** (`.github/workflows/checks.yml`) runs the
+  unit suite and the smoke test on every push and pull request, uploading
+  the Playwright report and traces on failure; it replaces the unit-only
+  `ci.yml`. Netlify still deploys `main` on its own.
+
 ## [1.36.2] - 2026-09-13
 
 ### Fixed

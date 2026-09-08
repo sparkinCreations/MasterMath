@@ -200,6 +200,7 @@ All exports trigger browser downloads with appropriate filenames and timestamps.
 - **Build for production**: `npm run build`
 - **Preview production build**: `npm run preview`
 - **Run tests**: `npm test` (node --test; keep all tests green before pushing)
+- **Browser smoke test**: `npm run smoke` (Playwright: builds, serves the production bundle, drives Chromium on desktop and phone viewports; `npm run smoke:ui` for the interactive runner). Run it after any change to `vite.config.js`, the chunking, dependencies, or a page component — three real crashes in September 2026 were invisible to the unit suite and only showed in the built app. Both suites also run in GitHub Actions on every push.
 
 ## Release Process (REQUIRED)
 
