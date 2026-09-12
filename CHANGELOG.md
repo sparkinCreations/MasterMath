@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.34.1] - 2026-09-12
+
+### Fixed
+
+- **`log` meant the natural logarithm.** mathjs and Algebrite both name the
+  natural log `log`, so a bare `log(…)` reached the engines as ln: `log(100)`
+  evaluated to 4.6052, and `log(x) + log(x − 3) = 1` was "solved" at
+  x ≈ 3.73 instead of x = 5 — confidently wrong by the app's own corpus
+  standard, with no step saying which base had been assumed. Now `log` is
+  the common logarithm, base 10, as on a calculator and in every
+  precalculus text; `ln` is the natural logarithm; `log(x, b)`, `log_b(x)`,
+  `log10(x)` and `log2(x)` name their base as before. The parser rewrites a
+  bare `log(…)` to the change-of-base quotient `log(…)/log(10)` by paren
+  matching (nested arguments and `log|x|` survive; a typed `log(A)/log(B)`
+  is left alone, so a re-parsed expression is unchanged), and every solved
+  result that relied on the reading says so in its tips
+  (`rewriteCommonLog` / `usesCommonLog` in `mathParser.js`,
+  `COMMON_LOG_TIP` in `api.js`; corpus rows and `tests/commonLog.test.js`).
+
+### Changed
+
+- Removed thirteen stale ` 2.jsx` duplicate page and component files
+  (Finder copies committed in 1.33.1; nothing imported them).
+- Added a GitHub Actions workflow that runs the test suite (which includes
+  the production build) on every push to `main` and every pull request.
+
 ## [1.34.0] - 2026-09-08
 
 ### Added

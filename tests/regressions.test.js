@@ -45,8 +45,8 @@ test('regression: (sqrt(1+x)-1)/x at 0 is 1/2 (rationalization family)', async (
   assert.match(r.answer, /=\s*1\/2$/);
 });
 
-test('regression: log(x)/(x-1) at 1 is 1', async () => {
-  const r = await solveLimit('lim x->1 (log(x))/(x-1)');
+test('regression: ln(x)/(x-1) at 1 is 1', async () => {
+  const r = await solveLimit('lim x->1 (ln(x))/(x-1)');
   assert.match(r.answer, /=\s*1$/);
 });
 
