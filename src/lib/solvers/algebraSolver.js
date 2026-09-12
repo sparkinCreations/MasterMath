@@ -1,4 +1,4 @@
-import { isEquation, extractVariable, parseMathExpression } from '../mathParser.js';
+import { isEquation, extractVariable, parseMathExpression, matchingParen } from '../mathParser.js';
 // mathsteps is reached only through these two guarded entry points — see the
 // seam note at the top of mathstepsUtils.js.
 import { mathstepsSolveEquation, mathstepsSimplify } from '../mathstepsUtils.js';
@@ -183,6 +183,17 @@ async function solveEquation(expression, options = {}) {
     }
   }
 
+  // 1c. An equation in logarithms — ln(x) = 1, ln(x)² = 4, log(x) + log(x − 3)
+  // = 1 — is solved exactly by substituting u for the logarithm (one
+  // argument) or combining the logarithms into one (several arguments), so
+  // the answer is e, not 2.7183 from the numeric scan.
+  if (!answer) {
+    const viaLog = await solveViaLogSubstitution(expression, variable);
+    if (viaLog) {
+      ({ steps, answer, solutions } = viaLog);
+    }
+  }
+
   // 2. Algebrite roots — exact solutions (integers, fractions, radicals, complex)
   // for anything mathsteps could not finish, e.g. x^2 = 9.
   if (!answer) {
@@ -320,8 +331,19 @@ async function solveWithAlgebriteRoots(equation, variable) {
 // transcendental function of it, means the substitution does not close).
 async function solveViaExpSubstitution(equation, variable) {
   const v = variable;
-  const expPower = new RegExp(`\\b(?:e\\s*\\^\\s*\\(\\s*(\\d+)\\s*\\*?\\s*${v}\\s*\\)|exp\\(\\s*(\\d+)\\s*\\*?\\s*${v}\\s*\\))`, 'g');
-  const expPlain = new RegExp(`\\b(?:e\\s*\\^\\s*${v}\\b|e\\s*\\^\\s*\\(\\s*${v}\\s*\\)|exp\\(\\s*${v}\\s*\\))`, 'g');
+  // The base: e (e^x, exp(x)) or a positive number other than 1 (2^x,
+  // 10^(2x)). Every exponential term must share it — 4^x − 5·2^x + 4 = 0
+  // leaves a 2^x behind after the substitution and is declined below.
+  const numericBase = equation.match(new RegExp(`(?<![\\w.])(\\d+(?:\\.\\d+)?)\\s*\\^\\s*(?:\\(\\s*\\d*\\s*\\*?\\s*${v}\\s*\\)|${v}\\b)`));
+  const base = numericBase ? numericBase[1] : 'e';
+  if (base !== 'e' && !(Number(base) > 0 && Number(base) !== 1)) return null;
+  const baseRe = base === 'e' ? 'e' : base.replace('.', '\\.');
+  const expPower = base === 'e'
+    ? new RegExp(`\\b(?:e\\s*\\^\\s*\\(\\s*(\\d+)\\s*\\*?\\s*${v}\\s*\\)|exp\\(\\s*(\\d+)\\s*\\*?\\s*${v}\\s*\\))`, 'g')
+    : new RegExp(`(?<![\\w.])${baseRe}\\s*\\^\\s*\\(\\s*(\\d+)\\s*\\*?\\s*${v}\\s*\\)`, 'g');
+  const expPlain = base === 'e'
+    ? new RegExp(`\\b(?:e\\s*\\^\\s*${v}\\b|e\\s*\\^\\s*\\(\\s*${v}\\s*\\)|exp\\(\\s*${v}\\s*\\))`, 'g')
+    : new RegExp(`(?<![\\w.])${baseRe}\\s*\\^\\s*(?:${v}\\b|\\(\\s*${v}\\s*\\))`, 'g');
   if (!expPower.test(equation) && !expPlain.test(equation)) return null;
   const [lhs, rhs] = equation.split('=');
   if (rhs === undefined || !lhs.trim() || !rhs.trim()) return null;
@@ -338,6 +360,7 @@ async function solveViaExpSubstitution(equation, variable) {
     const roots = parseRootsList(rootsRaw);
     if (roots.length === 0) return null;
 
+    const b = base === 'e' ? Math.E : Number(base);
     const lines = [];
     const shown = [];
     const numeric = [];
@@ -348,26 +371,211 @@ async function solveViaExpSubstitution(equation, variable) {
         continue;
       }
       if (r.numeric <= 0) {
-        lines.push(`u = ${uText}: e^${v} is always positive, so this gives no real ${v}`);
+        lines.push(`u = ${uText}: ${base}^${v} is always positive, so this gives no real ${v}`);
         continue;
       }
+      const value = Math.log(r.numeric) / Math.log(b);
       let xText;
-      if (Math.abs(r.numeric - 1) < 1e-12) xText = '0';
-      else if (Math.abs(r.numeric - Math.E) < 1e-12) xText = '1';
-      else xText = `ln(${uText}) (≈ ${formatNumber(Math.log(r.numeric))})`;
-      lines.push(`e^${v} = ${uText} → ${v} = ${xText}`);
+      if (Math.abs(value - Math.round(value)) < 1e-9) xText = String(Math.round(value)); // u is an exact power of the base
+      else if (base === 'e') xText = `ln(${uText}) (≈ ${formatNumber(value)})`;
+      else xText = `ln(${uText})/ln(${base}) (≈ ${formatNumber(value)})`;
+      lines.push(`${base}^${v} = ${uText} → ${v} = ${xText}`);
       shown.push(`${v} = ${xText}`);
-      numeric.push(Math.log(r.numeric));
+      numeric.push(value);
     }
-    const answer = shown.length > 0 ? shown.join('  or  ') : `No real solution (e^${v} is always positive, so no listed u is reachable)`;
+    const answer = shown.length > 0 ? shown.join('  or  ') : `No real solution (${base}^${v} is always positive, so no listed u is reachable)`;
+    const takeLog = base === 'e' ? 'take ln of both sides' : `take the logarithm of both sides: ${v} = ln(u)/ln(${base}) = log_${base}(u)`;
     const steps = [
       `Rewrite as an equation set to zero: ${beautify(zeroForm)} = 0`,
-      `Let u = e^${v} (so e^(2${v}) = u², e^(3${v}) = u³): ${beautify(inU)} = 0`,
+      `Let u = ${base}^${v} (so ${base}^(2${v}) = u², ${base}^(3${v}) = u³): ${beautify(inU)} = 0`,
       `Solve for u: ${formatSolutions(roots, 'u')}`,
-      `Back-substitute u = e^${v}: ${lines.join('; ')}`,
+      `Back-substitute u = ${base}^${v} and ${takeLog}: ${lines.join('; ')}`,
       `Solution: ${answer}`,
     ];
     return { steps, answer, solutions: numeric };
+  } catch {
+    return null;
+  }
+}
+
+// The logarithm terms in `text`, each with its base and argument: ln(g) is
+// base e; (log(g)/log(b)) — the parser's form for a bare log (b = 10) and for
+// log_b(g) — is base b. Returns null if a log appears in any other shape.
+function logTermsOf(text) {
+  const terms = [];
+  const re = /(?<![a-z])(ln|log)\s*\(/gi;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const open = m.index + m[0].length - 1;
+    const close = matchingParen(text, open);
+    if (close === -1) return null;
+    const arg = text.slice(open + 1, close).trim();
+    if (m[1].toLowerCase() === 'ln') {
+      terms.push({ start: m.index, end: close + 1, base: 'e', arg });
+      continue;
+    }
+    const quotient = text.slice(close + 1).match(/^\s*\/\s*log\s*\(/i);
+    if (!quotient || text[m.index - 1] !== '(') return null;
+    const baseOpen = close + 1 + quotient[0].length - 1;
+    const baseClose = matchingParen(text, baseOpen);
+    if (baseClose === -1 || text[baseClose + 1] !== ')') return null;
+    const base = text.slice(baseOpen + 1, baseClose).trim();
+    if (!/^\d+(?:\.\d+)?$/.test(base) || !(Number(base) > 0) || Number(base) === 1) return null;
+    terms.push({ start: m.index - 1, end: baseClose + 2, base, arg });
+    re.lastIndex = baseClose + 2;
+  }
+  return terms;
+}
+
+// Algebrite writes e^k as exp(k); show the textbook form.
+function prettyExp(display) {
+  return String(display)
+    .replace(/\bexp\(1\)/g, 'e')
+    .replace(/\bexp\(\s*-\s*(\d+)\s*\)/g, (_, k) => (k === '1' ? '1/e' : `1/e^${k}`))
+    .replace(/\bexp\(([\w.]+)\)/g, 'e^$1')
+    .replace(/\bexp\(([^()]+)\)/g, 'e^($1)')
+    .replace(/\b1\/(\d+)\*(e(?:\^[\w.]+|\^\([^()]+\))?)/g, '$2/$1')
+    .replace(/\b(\d+)\*(e(?:\^[\w.]+|\^\([^()]+\))?)/g, '$1$2');
+}
+
+// ln(x) = 1, ln(x)² = 4, ln(2x) = 3, log(x) + log(x − 3) = 1, ln(x) − ln(x − 1)
+// = ln(2): an equation whose only use of the variable is inside logarithms of
+// one base. One distinct argument g: substitute u = log(g), solve the
+// polynomial in u, and back-substitute g = b^u. Several arguments: the
+// equation must be linear in the logarithms with integer coefficients, so
+// the product/quotient rules combine them into one — Σ kᵢ·log(gᵢ) = c →
+// Π gᵢ^kᵢ = b^c — and that polynomial is solved. Every candidate is checked
+// against the domain (each argument positive) and substituted into the
+// original equation before it is reported, so log(x) + log(x − 3) = 1 gives
+// x = 5 and says why x = −2 is rejected. Returns null when the shape does
+// not fit; the caller falls through to the numeric scan.
+async function solveViaLogSubstitution(equation, variable) {
+  const v = variable;
+  const [lhs, rhs] = equation.split('=');
+  if (rhs === undefined || !lhs.trim() || !rhs.trim()) return null;
+  const zeroForm = `(${lhs.trim()}) - (${rhs.trim()})`;
+  const terms = logTermsOf(zeroForm);
+  if (!terms || terms.length === 0) return null;
+  const base = terms[0].base;
+  if (!terms.every((t) => t.base === base)) return null;
+  const hasVar = new RegExp(`(?<![a-z])${v}(?![a-z])`);
+  // Arguments must be polynomial in the variable (no nested transcendental,
+  // no variable exponent) for the combined equation to be a polynomial.
+  if (terms.some((t) => /[a-df-wyz]{2,}/i.test(t.arg) || /\^\s*\(?[^()]*[a-z]/i.test(t.arg))) return null;
+
+  // Distinct arguments → u1, u2, …
+  const args = [];
+  const keyOf = (a) => a.replace(/\s+/g, '');
+  for (const t of terms) {
+    let idx = args.findIndex((a) => keyOf(a) === keyOf(t.arg));
+    if (idx === -1) { args.push(t.arg); idx = args.length - 1; }
+    t.sym = `u${idx + 1}`;
+  }
+  let inU = zeroForm;
+  for (const t of [...terms].sort((a, b) => b.start - a.start)) {
+    inU = `${inU.slice(0, t.start)}${t.sym}${inU.slice(t.end)}`;
+  }
+  if (hasVar.test(inU)) return null; // the variable outside a log: the substitution does not close
+  if (/\b(?:sin|cos|tan|sqrt|abs|ln|log)\b/.test(inU)) return null;
+
+  const logName = base === 'e' ? 'ln' : base === '10' ? 'log' : `log_${base}`;
+  const powText = (u) => (base === 'e' ? `exp(${u})` : `${base}^(${u})`);
+  const argumentPositive = (x) => args.every((a) => {
+    try {
+      const val = math.evaluate(a, { [v]: x });
+      return typeof val === 'number' && val > 0;
+    } catch {
+      return false;
+    }
+  });
+
+  try {
+    const Algebrite = await loadAlgebrite();
+    const steps = [`Rewrite as an equation set to zero: ${beautify(zeroForm)} = 0`];
+    let candidates = []; // { display, numeric }
+
+    if (args.length === 1) {
+      const g = args[0];
+      const inOneU = inU.replace(/\bu1\b/g, 'u');
+      const rootsRaw = Algebrite.roots(inOneU, 'u').toString();
+      if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) return null;
+      const uRoots = parseRootsList(rootsRaw);
+      if (uRoots.length === 0) return null;
+      steps.push(`Let u = ${logName}(${beautify(g)}): ${beautify(inOneU)} = 0`);
+      steps.push(`Solve for u: ${formatSolutions(uRoots, 'u')}`);
+      const lines = [];
+      for (const r of uRoots) {
+        const uText = formatSolutions([r], 'u').replace(/^u\s*=\s*/, '');
+        if (!Number.isFinite(r.numeric)) {
+          lines.push(`u = ${uText} is not real, so it gives no real ${v}`);
+          continue;
+        }
+        const raw = String(Algebrite.run(`roots((${g}) - ${powText(r.display)}, ${v})`)).trim();
+        if (!raw || /stop|error|nil/i.test(raw)) return null;
+        // Algebrite writes the real roots of x² = e⁴ as ±i·(−e⁴)^(1/2): not
+        // a form to show anyone. Decline; the numeric scan reports ±7.3891.
+        if (/\(-.*\)\^\(1\/\d+\)/.test(raw)) return null;
+        const xs = parseRootsList(raw);
+        if (xs.length === 0) return null;
+        lines.push(`u = ${uText} means ${logName}(${beautify(g)}) = ${uText}, so ${beautify(g)} = ${base}^${/^[\w.]+$/.test(uText) ? uText : `(${uText})`} → ${xs.map((x) => `${v} = ${prettyExp(prettyRadicals(x.display))}`).join(' or ')}`);
+        candidates.push(...xs);
+      }
+      steps.push(`Back-substitute (${logName}(a) = u means a = ${base}^u): ${lines.join('; ')}`);
+    } else {
+      // Linear in the logarithms with integer coefficients?
+      const coeffs = [];
+      for (let i = 0; i < args.length; i += 1) {
+        const c = String(Algebrite.run(`coeff(${inU}, u${i + 1}, 1)`)).trim();
+        if (!/^-?\d+$/.test(c)) return null;
+        coeffs.push(Number(c));
+      }
+      let constantExpr = inU;
+      for (let i = 0; i < args.length; i += 1) constantExpr = `subst(0, u${i + 1}, ${constantExpr})`;
+      const constant = String(Algebrite.run(constantExpr)).trim();
+      if (/\bu\d+\b|stop|error|nil/i.test(constant) || hasVar.test(constant)) return null;
+      const linear = coeffs.map((c, i) => `(${c})*u${i + 1}`).join(' + ');
+      if (String(Algebrite.run(`simplify((${inU}) - (${linear} + (${constant})))`)).trim() !== '0') return null;
+
+      // Σ kᵢ·log(gᵢ) = −constant → Π gᵢ^kᵢ = b^(−constant)
+      const rhsExp = String(Algebrite.run(`simplify(-(${constant}))`)).trim();
+      const numerator = args.map((a, i) => ({ a, k: coeffs[i] })).filter((t) => t.k > 0).map((t) => (t.k === 1 ? `(${t.a})` : `(${t.a})^${t.k}`));
+      const denominator = args.map((a, i) => ({ a, k: coeffs[i] })).filter((t) => t.k < 0).map((t) => (t.k === -1 ? `(${t.a})` : `(${t.a})^${-t.k}`));
+      if (numerator.length === 0 && denominator.length === 0) return null;
+      const numText = numerator.length ? numerator.join('*') : '1';
+      const denText = denominator.length ? denominator.join('*') : '';
+      const combined = denText ? `(${numText})/(${denText})` : numText;
+      const rhsValue = String(Algebrite.run(`simplify(${powText(rhsExp)})`)).trim();
+      steps.push(`Every term is a logarithm with the same base, so combine them with the log rules (k·${logName}(a) = ${logName}(a^k), ${logName}(a) + ${logName}(b) = ${logName}(ab), ${logName}(a) − ${logName}(b) = ${logName}(a/b)): ${logName}(${beautify(combined)}) = ${beautify(rhsExp)}`);
+      steps.push(`Rewrite in exponential form: ${beautify(combined)} = ${base}^${/^[\w.]+$/.test(rhsExp) ? rhsExp : `(${rhsExp})`}${prettyExp(rhsValue) !== beautify(rhsExp) && !/^\d+(?:\.\d+)?$/.test(rhsExp) ? ` = ${prettyExp(beautify(rhsValue))}` : ''}`);
+      const poly = denText ? `(${numText}) - (${rhsValue})*(${denText})` : `(${numText}) - (${rhsValue})`;
+      const rootsRaw = String(Algebrite.run(`roots(${poly}, ${v})`)).trim();
+      if (!rootsRaw || /stop|error|nil/i.test(rootsRaw)) return null;
+      if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) return null;
+      candidates = parseRootsList(rootsRaw);
+      if (candidates.length === 0) return null;
+      steps.push(`Solve ${beautify(poly)} = 0: ${candidates.map((x) => `${v} = ${prettyExp(prettyRadicals(x.display))}`).join(' or ')}`);
+    }
+
+    // Domain and verification: every argument positive, and the original
+    // equation balanced, before a candidate is reported.
+    const kept = [];
+    const rejected = [];
+    for (const c of candidates) {
+      const show = prettyExp(prettyRadicals(c.display));
+      if (!Number.isFinite(c.numeric)) { rejected.push(`${v} = ${show} is not real`); continue; }
+      if (!argumentPositive(c.numeric)) { rejected.push(`${v} = ${show} makes a logarithm's argument zero or negative`); continue; }
+      if (!satisfiesEquation(equation, v, c.numeric)) { rejected.push(`${v} = ${show} does not balance the original equation`); continue; }
+      if (kept.some((k) => Math.abs(k.numeric - c.numeric) < 1e-9)) continue;
+      kept.push({ display: show, numeric: c.numeric });
+    }
+    if (rejected.length > 0) {
+      steps.push(`A logarithm is defined only for a positive argument, so check each candidate in the original equation: ${rejected.join('; ')} — rejected.`);
+    }
+    const answer = kept.length > 0
+      ? kept.map((k) => `${v} = ${k.display}${/^-?\d+(?:\.\d+)?$/.test(k.display) ? '' : ` (≈ ${formatNumber(k.numeric)})`}`).join('  or  ')
+      : 'No solution (every candidate makes a logarithm argument zero or negative)';
+    steps.push(`Solution: ${answer}`);
+    return { steps, answer, solutions: kept.map((k) => k.numeric) };
   } catch {
     return null;
   }

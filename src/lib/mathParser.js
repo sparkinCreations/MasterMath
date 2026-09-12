@@ -11,7 +11,7 @@ const MATH_CONSTANTS = ['pi', 'PI'];
 const POWER_NOTATION_FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'ln', 'log'];
 
 // Index of the ")" that closes the "(" at `open`, or -1 if it is unbalanced.
-function matchingParen(text, open) {
+export function matchingParen(text, open) {
   let depth = 0;
   for (let i = open; i < text.length; i += 1) {
     if (text[i] === '(') depth += 1;
