@@ -74,7 +74,10 @@ test('domain lists print every asymptote at full precision', async () => {
   // .map(formatNumber) passed the array index as the decimals argument:
   // "-8, -4.7, -1.57, 1.571 …". Every value must have the same precision.
   const r = await solveProblem('tan(x)', 'functions');
-  assert.match(r.answer, /except x = -7\.854, -4\.7124, -1\.5708, 1\.5708, 4\.7124, 7\.854/);
+  // The step lists the asymptotes in the analysed window at one precision;
+  // the answer gives the pattern they follow.
+  assert.ok(r.steps.some((s) => /x ≠ -7\.854, -4\.7124, -1\.5708, 1\.5708, 4\.7124, 7\.854/.test(s)), r.steps.join('\n'));
+  assert.match(r.answer, /except x = π\/2 \+ nπ/);
 });
 
 // ── Medium: definite integrals of |x| and substitution integrands.

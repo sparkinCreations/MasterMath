@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-09-12
+
+September 2026 external review: one derivative error, five thin step
+templates, two wording bugs, and graph legibility.
+
+### Fixed
+
+- **d/dx |x| never said the derivative does not exist at 0.** The answer was
+  `sgn(x)` with a "power rule" step. Now `k·|ax + b|` is rewritten piecewise,
+  each branch differentiated, and the one-sided derivatives compared at the
+  corner: `f'(x) = -1 for x < 0, 1 for x > 0; f'(0) does not exist`.
+  Evaluating at the corner says so (the engine's sgn(0) = 0 used to read as
+  "slope 0"); any other use of abs keeps its sgn form and states where the
+  derivative does not exist. The derivative graph breaks at the corner and
+  marks both one-sided values with hollow points (`solveAbsLinear`,
+  `annotations.openPoints`).
+- **cos(x) = −1/2** said ±2π/3 are "both within one period"; −2π/3 is not in
+  [0, 2π). The step now names 2π − 2π/3 = 4π/3.
+- **lim x/eˣ samples read "0, 0, 0, 0".** Values the display precision rounds
+  to 0 are shown in scientific notation (3.72e-42), and the double-precision
+  underflow behind the later exact zeros is explained.
+
+### Added
+
+- **Graphs are re-sampled for the window on screen.** A graph now carries
+  its `expression` (functions, derivatives, integrals, algebra), and the
+  viewer samples 400 points per visible window instead of filtering a fixed
+  0.25-step grid — a zoomed-in cubic is a smooth curve through its exact
+  markers, not eight straight segments with the markers visibly off the
+  polyline. Every vertical asymptote and derivative corner is an explicit
+  gap, so the tangent curve no longer joins its branches with a
+  near-vertical line; an unnamed pole (a sign change where the midpoint
+  value is larger than both neighbours) is detected too
+  (`src/lib/graphSampling.js`).
+- **Graphs open on their features.** A function graph starts on the window
+  framing its roots, turning points, holes and asymptotes (x³ − 3x opens on
+  ±3.5, not ±10 with the shape squashed into a strip); a periodic function
+  on two full turns; a derivative graph on where f and f′ do something. A
+  **Fit key features** control re-frames them after panning; Reset returns
+  to it.
+- **Two-curve graphs get a second y-axis** when the curves' visible ranges
+  differ by more than 4× (3x² − 3 was flattened under x³ − 3x), with a
+  control to toggle it and the legend saying "(right axis)".
+- **Derivative answers state their domain**: `−1/x², x ≠ 0`,
+  `1/(2√x), x > 0`, `1/x, x > 0` for ln x, `x > 3` for √(x − 3) — from the
+  poles of f′ and any root/log restriction with a linear argument; nothing
+  is stated when it cannot be read exactly (`derivativeDomain`).
+- **Real working in five step templates.** ∫sin²x / ∫cos²(kx) show the
+  power-reduction identity and term-by-term integration; a quadratic shows
+  x² = c and ±√ (naming √(−1) = i) or a, b, c, the discriminant and the
+  quadratic formula; `sqrt(R) = S` is isolated, its domain stated, squared,
+  solved, and every candidate checked with the extraneous one rejected for
+  the reason shown (`solveViaRadicalIsolation`); arithmetic works one
+  operation at a time in PEMDAS order, printing the expression after each
+  ("Exponents first: 2^3 = 8 → 3 + 4·8"), with the leading-minus step for
+  −2².
+- **Periodic function answers are summarised by their pattern**: tan(x) reads
+  "domain: all real numbers except x = π/2 + nπ; x-intercepts at x = nπ;
+  vertical asymptotes at x = π/2 + nπ" instead of thirteen decimals.
+
 ## [1.35.0] - 2026-09-12
 
 ### Added

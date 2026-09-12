@@ -1141,7 +1141,16 @@ function estimateInfiniteLimit(func, variable, target) {
   const finite = samples.filter((v) => Number.isFinite(v));
 
   const steps = [`Evaluate the function at increasingly large ${sign > 0 ? 'positive' : 'negative'} values of ${variable}.`];
-  steps.push(`Samples: ${samples.map((v) => (Number.isFinite(v) ? formatNumber(v) : '±∞')).join(', ')}`);
+  // A value the display precision would round to 0 is shown in scientific
+  // notation instead: "0, 0, 0, 0" hid the convergence of x/e^x (3.7e-42,
+  // then values too small for double precision) and looked like a bug.
+  const shown = samples.map((v) => {
+    if (!Number.isFinite(v)) return '±∞';
+    const text = formatNumber(v);
+    return v !== 0 && /^-?0(?:\.0+)?$/.test(text) ? v.toExponential(2) : text;
+  });
+  const underflowed = samples.some((v, i) => v === 0 && i > 0 && samples[i - 1] !== 0 && Math.abs(samples[i - 1]) < 1e-30);
+  steps.push(`Samples: ${shown.join(', ')}${underflowed ? ' (a value smaller than about 1e-308 cannot be represented in double precision and is computed as exactly 0)' : ''}`);
 
   if (finite.length < 2) {
     // Growing without bound — base the sign on the last value we could evaluate.

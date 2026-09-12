@@ -653,7 +653,8 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
     ];
   } else if (fn === 'cos') {
     steps.push(`Take the inverse cosine: the reference angle is arccos(${cShown}) = ${p.exact}${p.isExact || DEGREES ? '' : ' rad'}.`);
-    steps.push(`Cosine is even, so ${theta} = ±${p.exact} both work within one period.`);
+    const coterminal = fmtRad(TWO_PI - p.rad);
+    steps.push(`Cosine is even (cos(−θ) = cos θ), so ${theta} = ${p.exact} and ${theta} = −${p.exact} both work. Within one period [0, ${PERIOD_FULL()}), −${p.exact} is the same angle as ${PERIOD_FULL()} − ${p.exact} = ${coterminal}.`);
     general = [
       { base: p.rad, period: TWO_PI },
       { base: -p.rad, period: TWO_PI },

@@ -170,9 +170,10 @@ export function solveArithmetic(expression) {
       working = next;
     }
 
-    // For the remaining flat expression, state the order that applies. The UI
-    // numbers each step, so we describe the action rather than prefixing "Step N".
-    describeOrder(working, steps);
+    // For the remaining flat expression, do the work one operation at a time
+    // in PEMDAS order, showing the expression after each — "Resolve the
+    // exponents" with nothing worked out told a student nothing.
+    if (!showWorking(working, steps)) describeOrder(working, steps);
 
     const shownAnswer = formatArithmeticResult(result, cleaned) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
     steps.push(`Final answer: ${shownAnswer}`);
@@ -281,6 +282,85 @@ function dividesByZero(expr) {
   } catch {
     return false;
   }
+}
+
+// Evaluate a parenthesis-free expression one operation at a time in PEMDAS
+// order — functions, then exponents (right to left), then multiplication and
+// division left to right, then addition and subtraction left to right —
+// pushing a step per operation with the result and the expression that
+// remains. Returns false (and pushes nothing) when the expression cannot be
+// worked this way, so the caller falls back to the tier description.
+function showWorking(expr, steps) {
+  let tree;
+  try {
+    tree = math.parse(expr);
+  } catch {
+    return false;
+  }
+  const isConstant = (n) => n.type === 'ConstantNode'
+    || (n.type === 'OperatorNode' && n.fn === 'unaryMinus' && n.args.length === 1 && n.args[0].type === 'ConstantNode')
+    || (n.type === 'ParenthesisNode' && isConstant(n.content));
+  const VERBS = { pow: 'Resolve the exponent', multiply: 'Multiply', divide: 'Divide', mod: 'Take the remainder', add: 'Add', subtract: 'Subtract', unaryMinus: 'Apply the leading minus' };
+  // A leading minus on a worked-out value: -2^2 is -(2^2), so the sign is
+  // applied after the exponent. A (−4) this routine wrote itself is a value.
+  const bareMinus = (n, parent) => n.type === 'OperatorNode' && n.fn === 'unaryMinus' && n.args[0].type === 'ConstantNode' && parent?.type !== 'ParenthesisNode';
+  const tiers = [
+    { intro: 'Evaluate the function', pick: 'first', test: (n) => n.type === 'FunctionNode' && n.args.length > 0 && n.args.every(isConstant) },
+    { intro: 'Exponents first', pick: 'last', test: (n) => n.type === 'OperatorNode' && n.fn === 'pow' && n.args.every(isConstant) },
+    { intro: 'The exponent binds tighter than a leading minus, so apply the sign afterwards', pick: 'first', test: bareMinus, root: true },
+    { intro: 'Multiplication and division next, left to right', pick: 'first', test: (n) => n.type === 'OperatorNode' && ['multiply', 'divide', 'mod'].includes(n.fn) && n.args.every(isConstant) },
+    { intro: 'Addition and subtraction last, left to right', pick: 'first', test: (n) => n.type === 'OperatorNode' && ['add', 'subtract'].includes(n.fn) && n.args.every(isConstant) },
+  ];
+  const render = (node) => node.toString({ implicit: 'show' })
+    .replace(/\b\d+\.\d{5,}\b/g, (t) => formatNumber(Number(t)));
+  const lines = [];
+  let lastTier = -1;
+  for (let guard = 0; guard < 40; guard += 1) {
+    if (tree.type === 'ConstantNode' || (isConstant(tree) && !bareMinus(tree, null))) break;
+    let target = null;
+    let tierIndex = -1;
+    for (let t = 0; t < tiers.length && !target; t += 1) {
+      const matches = [];
+      // The leading-minus tier applies only to the whole expression.
+      if (tiers[t].root) {
+        if (tiers[t].test(tree, null)) matches.push(tree);
+      } else {
+        tree.traverse((n, path, parent) => { if (tiers[t].test(n, parent)) matches.push(n); });
+      }
+      if (matches.length > 0) {
+        target = tiers[t].pick === 'first' ? matches[0] : matches[matches.length - 1];
+        tierIndex = t;
+      }
+    }
+    if (!target) return false;
+    let value;
+    try {
+      value = target.evaluate();
+    } catch {
+      return false;
+    }
+    if (typeof value !== 'number' || !Number.isFinite(value)) return false;
+    const replacement = value < 0 && target !== tree
+      ? new math.ParenthesisNode(new math.OperatorNode('-', 'unaryMinus', [new math.ConstantNode(-value)]))
+      : new math.ConstantNode(value);
+    tree = target === tree ? replacement : tree.transform((n) => (n === target ? replacement : n));
+    const opText = target.type === 'OperatorNode' && target.fn === 'unaryMinus' ? `-(${render(target.args[0])})` : render(target);
+    let valueText = formatNumber(value);
+    if (!Number.isInteger(value)) {
+      try {
+        const fr = exact.evaluate(opText);
+        if (exact.typeOf(fr) === 'Fraction' && fr.d > 1 && fr.d <= 10000) valueText = `${fr.s < 0 ? '-' : ''}${fr.n}/${fr.d} (≈ ${formatNumber(value)})`;
+      } catch { /* not rational */ }
+    }
+    const verb = target.type === 'FunctionNode' ? `Evaluate ${target.fn.name}` : VERBS[target.fn] || 'Work out';
+    const lead = tierIndex !== lastTier ? `${tiers[tierIndex].intro}: ` : `Then ${verb.toLowerCase()}: `;
+    lastTier = tierIndex;
+    const remaining = isConstant(tree) ? '' : `  →  ${render(tree)}`;
+    lines.push(`${lead}${opText} = ${valueText}${remaining}`);
+  }
+  if (!isConstant(tree)) return false;
+  for (const line of lines) steps.push(line);
+  return true;
 }
 
 // Describe which PEMDAS tiers remain in a parenthesis-free expression. The UI

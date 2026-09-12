@@ -194,6 +194,17 @@ async function solveEquation(expression, options = {}) {
     }
   }
 
+  // 1d. One square root of the variable — sqrt(x + 2) = x — is isolated,
+  // the domain stated, both sides squared, the polynomial solved, and every
+  // candidate checked in the original so the extraneous root is rejected
+  // with the reason shown (the numeric scan gave the answer with none of it).
+  if (!answer) {
+    const viaRadical = await solveViaRadicalIsolation(expression, variable);
+    if (viaRadical) {
+      ({ steps, answer, solutions } = viaRadical);
+    }
+  }
+
   // 2. Algebrite roots — exact solutions (integers, fractions, radicals, complex)
   // for anything mathsteps could not finish, e.g. x^2 = 9.
   if (!answer) {
@@ -312,10 +323,11 @@ async function solveWithAlgebriteRoots(equation, variable) {
       .map((r) => r.numeric)
       .filter((n) => Number.isFinite(n));
 
+    const derivation = quadraticDerivation(Algebrite, target, variable);
     const steps = [
       `Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`,
       ...clearingSteps,
-      `Solve for ${variable} by finding the roots.`,
+      ...(derivation || [`Solve for ${variable} by finding the roots.`]),
       `Solution: ${answer}`,
     ];
 
@@ -1547,6 +1559,151 @@ function prettifyRadicals(s) {
   return out.replace(/(\d+)\s*\*\s*([√∛])/g, '$1$2');
 }
 
+const numericText = (t) => /^-?\d+(?:\/\d+)?(?:\.\d+)?$/.test(String(t).trim());
+const asNumber = (t) => {
+  try {
+    const v = math.evaluate(String(t));
+    return typeof v === 'number' && Number.isFinite(v) ? v : NaN;
+  } catch {
+    return NaN;
+  }
+};
+
+// The working for a quadratic with numeric coefficients: x² = c and the
+// square root of both sides (with √(−1) = i named when c < 0), or a, b, c,
+// the discriminant and the quadratic formula. "Solve for x by finding the
+// roots" told a student nothing. Null when the polynomial is not a plain
+// quadratic; the roots themselves come from Algebrite either way.
+function quadraticDerivation(Algebrite, poly, v) {
+  try {
+    if (/[a-wyz]{2,}/i.test(String(poly).replace(new RegExp(v, 'g'), ''))) return null; // function names: not a plain polynomial
+    if (String(Algebrite.run(`deg(${poly}, ${v})`)).trim() !== '2') return null;
+    const [a, b, c] = [2, 1, 0].map((k) => String(Algebrite.run(`coeff(${poly}, ${v}, ${k})`)).trim());
+    if (![a, b, c].every(numericText)) return null;
+    const A = asNumber(a);
+    const B = asNumber(b);
+    const C = asNumber(c);
+    const expanded = beautify(String(Algebrite.run(`expand(${poly})`)));
+    const lines = [];
+    if (B === 0) {
+      const rhs = String(Algebrite.run(`simplify(-(${c})/(${a}))`)).trim();
+      const R = asNumber(rhs);
+      lines.push(`Isolate ${v}²: ${expanded} = 0 gives ${v}^2 = ${beautify(rhs)}.`);
+      if (R < 0) {
+        const mag = String(Algebrite.run(`simplify(${-R === Math.round(-R) ? Math.round(-R) : `(${rhs})*(-1)`}^(1/2))`)).trim();
+        const magShown = prettyRadicals(beautify(mag));
+        lines.push(`Take the square root of both sides: ${v} = ±√(${beautify(rhs)}). A negative number has no real square root; with i = √(−1), √(${beautify(rhs)}) = √${-R === Math.round(-R) ? Math.round(-R) : `(${-R})`}·√(−1) = ${magShown === '1' ? '' : magShown}i.`);
+      } else if (R === 0) {
+        lines.push(`Take the square root of both sides: ${v} = 0 (a repeated root).`);
+      } else {
+        const rootShown = prettyRadicals(beautify(String(Algebrite.run(`simplify((${rhs})^(1/2))`)).trim()));
+        lines.push(`Take the square root of both sides — remembering both signs: ${v} = ±√(${beautify(rhs)}) = ±${rootShown}.`);
+      }
+      return lines;
+    }
+    const D = String(Algebrite.run(`(${b})^2 - 4*(${a})*(${c})`)).trim();
+    const Dn = asNumber(D);
+    lines.push(`This is a quadratic in ${v}: ${expanded} = 0, with a = ${beautify(a)}, b = ${beautify(b)}, c = ${beautify(c)}.`);
+    lines.push(`Discriminant: b² − 4ac = (${beautify(b)})² − 4(${beautify(a)})(${beautify(c)}) = ${beautify(D)}${Dn < 0 ? ' — negative, so the two roots are a complex conjugate pair' : Dn === 0 ? ' — zero, so there is one repeated root' : ''}.`);
+    const sqrtD = prettyRadicals(beautify(String(Algebrite.run(`simplify((${D})^(1/2))`)).trim()));
+    const negB = beautify(String(Algebrite.run(`-(${b})`)).trim());
+    const twoA = beautify(String(Algebrite.run(`2*(${a})`)).trim());
+    lines.push(`Quadratic formula: ${v} = (−b ± √(b² − 4ac))/(2a) = (${negB} ± √(${beautify(D)}))/${twoA}${sqrtD !== `√${beautify(D)}` && sqrtD !== `√(${beautify(D)})` ? ` = (${negB} ± ${sqrtD})/${twoA}` : ''}.`);
+    return lines;
+  } catch {
+    return null;
+  }
+}
+
+// sqrt(R) = S: isolate the radical, state the domain (R ≥ 0, and S ≥ 0
+// because a square root is never negative), square both sides, solve the
+// polynomial, and check every candidate in the original — squaring can
+// manufacture a solution of sqrt(R) = −S. Only one square root, whose
+// argument contains the variable, is handled; anything else returns null.
+async function solveViaRadicalIsolation(equation, variable) {
+  const v = variable;
+  const [lhs, rhs] = equation.split('=');
+  if (rhs === undefined || !lhs.trim() || !rhs.trim()) return null;
+  const zero = `(${lhs.trim()}) - (${rhs.trim()})`;
+  const hasVar = new RegExp(`(?<![a-z])${v}(?![a-z])`);
+  const re = /(?<![a-z])sqrt\s*\(/gi;
+  const radicals = [];
+  let m;
+  while ((m = re.exec(zero)) !== null) {
+    const open = m.index + m[0].length - 1;
+    const close = matchingParen(zero, open);
+    if (close === -1) return null;
+    radicals.push({ start: m.index, end: close + 1, arg: zero.slice(open + 1, close).trim() });
+    re.lastIndex = close + 1;
+  }
+  if (radicals.length !== 1 || !hasVar.test(radicals[0].arg)) return null;
+  const R = radicals[0].arg;
+  const inS = `${zero.slice(0, radicals[0].start)}s${zero.slice(radicals[0].end)}`;
+  if (/\^\s*\(\s*1\s*\/\s*2\s*\)|\b(?:sin|cos|tan|ln|log|abs|exp|sqrt)\b/i.test(inS)) return null;
+  if (/[a-wyz]{2,}/i.test(R.replace(new RegExp(v, 'g'), ''))) return null; // functions inside the radicand
+  try {
+    const Algebrite = await loadAlgebrite();
+    const k = String(Algebrite.run(`coeff(${inS}, s, 1)`)).trim();
+    if (!numericText(k) || asNumber(k) === 0) return null;
+    const rest = String(Algebrite.run(`subst(0, s, ${inS})`)).trim();
+    if (/\bs\b|stop|error|nil/i.test(rest)) return null;
+    if (String(Algebrite.run(`simplify((${inS}) - ((${k})*s + (${rest})))`)).trim() !== '0') return null;
+    const S = String(Algebrite.run(`simplify(-(${rest})/(${k}))`)).trim();
+    // A constant right side: negative means no solution at all, before any
+    // squaring; non-negative needs no sign check of its own.
+    const constantS = !hasVar.test(S) ? asNumber(S) : NaN;
+    if (Number.isFinite(constantS) && constantS < 0) {
+      return {
+        steps: [
+          `Isolate the radical: ${beautify(zero)} = 0 rearranges to √(${beautify(R)}) = ${beautify(S)}.`,
+          `A square root is never negative, so √(${beautify(R)}) = ${beautify(S)} has no solution. (Squaring both sides would give ${beautify(R)} = ${formatNumber(constantS * constantS)}, but that candidate solves √(${beautify(R)}) = ${formatNumber(-constantS)}, not the original equation.)`,
+          'Solution: No solution (a square root cannot equal a negative number)',
+        ],
+        answer: 'No solution (a square root cannot equal a negative number)',
+        solutions: [],
+      };
+    }
+    const squared = String(Algebrite.run(`expand((${S})^2)`)).trim();
+    const poly = `(${R}) - (${squared})`;
+    const rootsRaw = String(Algebrite.roots(poly, v)).trim();
+    if (!rootsRaw || /stop|error|nil/i.test(rootsRaw) || /\(-.*\)\^\(1\/\d+\)/.test(rootsRaw)) return null;
+    const candidates = parseRootsList(rootsRaw);
+    if (candidates.length === 0) return null;
+
+    const steps = [
+      `Isolate the radical: ${beautify(zero)} = 0 rearranges to √(${beautify(R)}) = ${beautify(S)}.`,
+      Number.isFinite(constantS)
+        ? `Domain: the radicand must be non-negative, so ${beautify(R)} ≥ 0. Any candidate breaking this is extraneous.`
+        : `Domain: the radicand must be non-negative, so ${beautify(R)} ≥ 0; and a square root is never negative, so the other side must also satisfy ${beautify(S)} ≥ 0. Any candidate breaking either is extraneous.`,
+      `Square both sides: ${beautify(R)} = (${beautify(S)})² = ${beautify(squared)}.`,
+      `Solve the polynomial equation ${beautify(poly)} = 0: ${candidates.map((c) => `${v} = ${prettyRadicals(c.display)}`).join(' or ')}.`,
+    ];
+    const kept = [];
+    const checks = [];
+    for (const c of candidates) {
+      const show = prettyRadicals(c.display);
+      if (!Number.isFinite(c.numeric)) { checks.push(`${v} = ${show} is not real — rejected`); continue; }
+      const rVal = asNumber(R.replace(new RegExp(`(?<![a-z])${v}(?![a-z])`, 'g'), `(${c.numeric})`));
+      const sVal = asNumber(S.replace(new RegExp(`(?<![a-z])${v}(?![a-z])`, 'g'), `(${c.numeric})`));
+      if (!(rVal >= -1e-9)) { checks.push(`${v} = ${show}: ${beautify(R)} = ${formatNumber(rVal)} < 0, outside the domain — rejected`); continue; }
+      if (!(sVal >= -1e-9)) { checks.push(`${v} = ${show}: the right side ${beautify(S)} = ${formatNumber(sVal)} is negative, but a square root cannot be — extraneous (it solves √(${beautify(R)}) = −(${beautify(S)}) instead) — rejected`); continue; }
+      if (!satisfiesEquation(equation, v, c.numeric)) { checks.push(`${v} = ${show} does not balance the original equation — rejected`); continue; }
+      checks.push(Number.isFinite(constantS)
+        ? `${v} = ${show}: √(${formatNumber(rVal)}) = ${formatNumber(Math.sqrt(Math.max(rVal, 0)))} — balances ✓`
+        : `${v} = ${show}: √(${formatNumber(rVal)}) = ${formatNumber(Math.sqrt(Math.max(rVal, 0)))} and ${beautify(S)} = ${formatNumber(sVal)} — balances ✓`);
+      kept.push({ display: show, numeric: c.numeric });
+    }
+    steps.push(`Check each candidate in the original equation: ${checks.join('; ')}.`);
+    const answer = kept.length > 0
+      ? kept.map((c) => `${v} = ${c.display}`).join('  or  ')
+      : 'No solution (every candidate is extraneous — introduced by squaring)';
+    steps.push(`Solution: ${answer}`);
+    return { steps, answer, solutions: kept.map((c) => c.numeric) };
+  } catch {
+    return null;
+  }
+}
+
 function generateAlgebraGraph(expression) {
   try {
     if (isEquation(expression)) return null;
@@ -1556,6 +1713,8 @@ function generateAlgebraGraph(expression) {
     if (points.length > 0) {
       return {
         points,
+        expression,
+        variable,
         title: `Graph of ${beautify(expression)}`,
         description: 'Visual representation of the expression',
       };
@@ -1580,6 +1739,8 @@ function generateEquationGraph(equation, solutions) {
 
     return {
       points,
+      expression: left.trim(),
+      variable,
       solutions,
       title: `Graph of ${beautify(left.trim())}`,
       description: `${solutionText} (where the curve crosses y = ${beautify(right.trim())})`,
