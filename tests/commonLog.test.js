@@ -80,7 +80,7 @@ test('d/dx log(x) = 1/(x·ln(10)); d/dx ln(x) = 1/x', async () => {
   assert.match(c.answer, /ln\(10\)/);
   assert.match(c.answer, /1\/\(x\*ln\(10\)\)|1\/\(ln\(10\)\*x\)/);
   const n = await solveProblem('d/dx ln(x)', 'derivatives');
-  assert.match(n.answer, /=\s*1\/x$/);
+  assert.match(n.answer, /=\s*1\/x, x > 0$/);
 });
 
 test('lim x->1 log(x)/(x-1) = 1/ln(10) ≈ 0.4343, not 1', async () => {

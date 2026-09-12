@@ -347,7 +347,9 @@ async function grade(category, problem, expected) {
   const ans = String(r.answer);
 
   if (cat === 'derivatives') {
-    const core = ans.replace(/^f'\([^)]*\)\s*=\s*/, '');
+    // The answer may carry its domain ("…, x ≠ 0") and a corner note
+    // ("(does not exist where x = 0)"); the expression is graded alone.
+    const core = ans.replace(/^f'\([^)]*\)\s*=\s*/, '').replace(/\s*\(does not exist where[^)]*\)\s*$/, '').replace(/,\s*[a-z]\s*[≠><≥≤].*$/, '');
     if (isRefusal(core)) return { verdict: 'REFUSED', got: ans };
     return { verdict: exprEquivalent(core, expected) ? 'CORRECT' : 'WRONG', got: ans };
   }

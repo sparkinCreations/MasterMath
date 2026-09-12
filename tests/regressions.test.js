@@ -429,7 +429,7 @@ test('regression: audit — no-solution radical equations stay honest', async ()
   // sqrt(x) = -2 genuinely has no real solution; the scanner must say so
   // rather than inventing roots (the back-substitution gate at work).
   const r = await solveProblem('sqrt(x) = -2', 'algebra');
-  assert.match(r.answer, /No real solution found/);
+  assert.match(r.answer, /^No solution \(a square root cannot equal a negative number\)/);
 });
 
 test('regression: audit — the scanner still finds genuine fallback roots', async () => {
@@ -833,7 +833,7 @@ test('regression: an equation that cannot be evaluated is refused, not called un
   const none = await solveProblem('x + 1 = x + 2', 'algebra');
   assert.match(none.answer, /No solution/i);
   const negRoot = await solveProblem('sqrt(x) = -5', 'algebra');
-  assert.match(negRoot.answer, /No real solution/i);
+  assert.match(negRoot.answer, /No (?:real )?solution/i);
 });
 
 // ---------------------------------------------------------------------------

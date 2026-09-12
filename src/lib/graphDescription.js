@@ -77,6 +77,20 @@ export function describeGraphFeatures(functionData) {
     features.push(`${plural(holes.length, "A hole", "Holes")} at ${list(holes.map((h) => point(h.x, h.y)))} — the function is undefined there but does not blow up.`);
   }
 
+  // Open points: one-sided values a curve approaches but does not take.
+  const opens = Array.isArray(ann.openPoints) ? ann.openPoints.filter((o) => Number.isFinite(o?.x) && Number.isFinite(o?.y)) : [];
+  if (opens.length) {
+    const byLabel = new Map();
+    for (const o of opens) {
+      const key = o.label || "";
+      if (!byLabel.has(key)) byLabel.set(key, []);
+      byLabel.get(key).push(point(o.x, o.y));
+    }
+    for (const [label, pts] of byLabel) {
+      features.push(`Hollow ${plural(pts.length, "marker", "markers")} at ${list(pts)}${label ? `: ${label}` : ""} — the curve approaches ${plural(pts.length, "this value", "these values")} but does not take ${plural(pts.length, "it", "them")}.`);
+    }
+  }
+
   // Asymptotes
   const vas = Array.isArray(ann.verticalAsymptotes) ? ann.verticalAsymptotes.filter(Number.isFinite) : [];
   if (vas.length) {

@@ -1,13 +1,27 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot, ReferenceArea } from "recharts";
-import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
+import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Focus, Rows3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
+import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow } from "@/lib/graphSampling";
 
 const DEFAULT_RANGE = { xMin: -10, xMax: 10 };
+
+// The window a graph opens in: the solver's own choice; else, when the curve
+// can be re-sampled anywhere, one framing its marked features (a cubic's
+// three roots and two turning points, not ±10 with the shape squashed into
+// a strip); else the default.
+function startWindow(functionData) {
+  if (functionData?.initialWindow) return functionData.initialWindow;
+  if (functionData?.expression) {
+    const fitted = featureWindow(annotationFeatureXs(functionData));
+    if (fitted) return fitted;
+  }
+  return DEFAULT_RANGE;
+}
 const HEIGHTS = [240, 320, 400, 480, 560];
 const DEFAULT_HEIGHT_IDX = 1; // 320px
 
@@ -15,24 +29,34 @@ export default function GraphViewer({ functionData }) {
   const { isDarkMode } = useDarkMode();
 
   // Limits graphs open centered on the approach point instead of the origin.
-  const initialRange = functionData?.initialWindow || DEFAULT_RANGE;
-  const [range, setRange] = useState(initialRange);
+  // A graph that carries its expression is re-sampled for whatever window
+  // is on screen (see graphSampling.js); one without it can only be
+  // filtered to the points the solver supplied.
+  const canResample = Boolean(functionData?.expression);
+  const variable = functionData?.variable || 'x';
+  const [range, setRange] = useState(() => startWindow(functionData));
   const [yDomain, setYDomain] = useState(null); // null = auto-fit
   const [heightIdx, setHeightIdx] = useState(DEFAULT_HEIGHT_IDX);
+  // Second y-axis for the dashed curve: null = automatic (separate when the
+  // two curves' visible ranges differ by more than 4×), true/false = chosen.
+  const [separateAxes, setSeparateAxes] = useState(null);
 
   // New problem → reset the viewport.
   useEffect(() => {
-    setRange(functionData?.initialWindow || DEFAULT_RANGE);
+    setRange(startWindow(functionData));
     setYDomain(null);
+    setSeparateAxes(null);
   }, [functionData]);
 
   // Panning is allowed only "to a reasonable extent": the extent of the
-  // sampled data (solvers sample well beyond the initial view for this).
+  // sampled data (solvers sample well beyond the initial view for this), or
+  // a generous fixed extent when the curve can be re-sampled anywhere.
   const xExtent = useMemo(() => {
+    if (canResample) return { min: -1000, max: 1000 };
     const pts = functionData?.points || [];
     if (pts.length === 0) return { min: -10, max: 10 };
     return { min: pts[0].x, max: pts[pts.length - 1].x };
-  }, [functionData?.points]);
+  }, [functionData?.points, canResample]);
 
   const yExtent = useMemo(() => {
     const all = [
@@ -43,15 +67,27 @@ export default function GraphViewer({ functionData }) {
     return { min: Math.min(...all), max: Math.max(...all) };
   }, [functionData?.points, functionData?.secondaryPoints]);
 
+  const primaryBreaks = useMemo(() => [
+    ...(functionData?.annotations?.verticalAsymptotes || []),
+    ...(functionData?.breaks || []),
+  ], [functionData]);
+  const secondaryBreaks = useMemo(() => functionData?.secondaryBreaks || [], [functionData]);
+
   const visiblePoints = useMemo(() => {
     if (!functionData?.points) return [];
+    if (canResample) {
+      return sampleCurve(functionData.expression, variable, { ...range, breaks: primaryBreaks, extraXs: secondaryBreaks });
+    }
     return functionData.points.filter(p => p.x >= range.xMin && p.x <= range.xMax);
-  }, [functionData?.points, range]);
+  }, [functionData, canResample, variable, range, primaryBreaks, secondaryBreaks]);
 
   const visibleSecondary = useMemo(() => {
+    if (functionData?.secondaryExpression && canResample) {
+      return sampleCurve(functionData.secondaryExpression, variable, { ...range, breaks: secondaryBreaks, extraXs: primaryBreaks });
+    }
     if (!functionData?.secondaryPoints) return [];
     return functionData.secondaryPoints.filter(p => p.x >= range.xMin && p.x <= range.xMax);
-  }, [functionData?.secondaryPoints, range]);
+  }, [functionData, canResample, variable, range, primaryBreaks, secondaryBreaks]);
 
   const mergedPoints = useMemo(() => {
     if (visibleSecondary.length === 0) return visiblePoints;
@@ -64,15 +100,33 @@ export default function GraphViewer({ functionData }) {
     return Array.from(map.values()).sort((a, b) => a.x - b.x);
   }, [visiblePoints, visibleSecondary]);
 
-  // Current y-window when auto: fit the visible data (used as the pan seed).
-  const autoYWindow = () => {
-    const ys = mergedPoints.flatMap((p) => [p.y, p.y2]).filter(Number.isFinite);
-    if (ys.length === 0) return { yMin: -10, yMax: 10 };
-    const lo = Math.min(...ys);
-    const hi = Math.max(...ys);
-    const pad = (hi - lo || 1) * 0.05;
-    return { yMin: lo - pad, yMax: hi + pad };
+  // Visible ranges of the two curves, for the axis decision and the legend.
+  const spanOf = (pts, key) => {
+    const ys = pts.map((p) => p[key]).filter(Number.isFinite);
+    return ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
   };
+  const primarySpan = spanOf(visiblePoints, 'y');
+  const secondarySpan = spanOf(visibleSecondary, 'y');
+  const axesDiffer = visibleSecondary.length > 0 && primarySpan > 0 && secondarySpan > 0 && (primarySpan / secondarySpan > 4 || secondarySpan / primarySpan > 4);
+  const useRightAxis = visibleSecondary.length > 0 && (separateAxes === null ? axesDiffer : separateAxes);
+
+  // Automatic y-windows: a robust fit of what is visible (see robustYWindow),
+  // with every marked feature kept inside. The left axis fits both curves
+  // unless the dashed one has its own axis.
+  const autoY = useMemo(
+    () => robustYWindow(mergedPoints, useRightAxis ? ['y'] : ['y', 'y2'], [
+      ...annotationFeatureYs(functionData, 'primary'),
+      ...(useRightAxis ? [] : annotationFeatureYs(functionData, 'secondary')),
+    ]),
+    [mergedPoints, useRightAxis, functionData]
+  );
+  const autoY2 = useMemo(
+    () => (useRightAxis ? robustYWindow(mergedPoints, ['y2'], annotationFeatureYs(functionData, 'secondary')) : null),
+    [mergedPoints, useRightAxis, functionData]
+  );
+
+  // Current y-window when auto (used as the pan seed).
+  const autoYWindow = () => autoY || { yMin: -10, yMax: 10 };
 
   const zoomIn = () => {
     setRange(prev => {
@@ -129,9 +183,19 @@ export default function GraphViewer({ functionData }) {
   const shorter = () => setHeightIdx((i) => Math.max(i - 1, 0));
 
   const resetZoom = () => {
-    setRange(functionData?.initialWindow || DEFAULT_RANGE);
+    setRange(startWindow(functionData));
     setYDomain(null);
     setHeightIdx(DEFAULT_HEIGHT_IDX);
+    setSeparateAxes(null);
+  };
+
+  // Frame the marked features (extrema, intercepts, asymptotes, …) with
+  // room around them; a no-op when nothing is marked.
+  const fitFeatures = () => {
+    const win = featureWindow(annotationFeatureXs(functionData));
+    if (!win) return;
+    setRange(win);
+    setYDomain(null);
   };
 
   // Theme-aware colors
@@ -147,6 +211,8 @@ export default function GraphViewer({ functionData }) {
   const interceptColor = '#10b981';
   const asymptoteColor = isDarkMode ? '#f87171' : '#ef4444';
   const markerStroke = isDarkMode ? '#1f2937' : '#ffffff';
+  const secondaryColor = '#10b981';
+  const secondaryAxisName = functionData?.secondaryLabel ? functionData.secondaryLabel.split('=')[0].trim() : 'secondary';
 
   // Solver.jsx already gates on graph data, so this is a defensive guard for
   // any other caller rather than the path users normally see.
@@ -190,6 +256,20 @@ export default function GraphViewer({ functionData }) {
             {ctrl(zoomOut, "Zoom out", ZoomOut)}
             {ctrl(taller, "Taller graph", Maximize2)}
             {ctrl(shorter, "Shorter graph", Minimize2)}
+            {annotationFeatureXs(functionData).length > 0 && ctrl(fitFeatures, "Fit key features", Focus)}
+            {hasSecondary && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-8 w-8 ${useRightAxis ? 'bg-indigo-100 dark:bg-gray-600' : ''}`}
+                onClick={() => setSeparateAxes(!useRightAxis)}
+                title={useRightAxis ? 'Use one y-axis for both curves' : `Separate y-axis for ${functionData.secondaryLabel ? functionData.secondaryLabel.split('=')[0].trim() : 'the dashed curve'}`}
+                aria-label={useRightAxis ? 'Use one y-axis for both curves' : 'Separate y-axis for the dashed curve'}
+                aria-pressed={useRightAxis}
+              >
+                <Rows3 className="w-4 h-4" aria-hidden="true" />
+              </Button>
+            )}
             {ctrl(resetZoom, "Reset view", RotateCcw)}
           </div>
         </div>
@@ -221,11 +301,23 @@ export default function GraphViewer({ functionData }) {
               <YAxis
                 stroke={axisColor}
                 tick={{ fill: axisColor }}
-                domain={yDomain ? [yDomain.yMin, yDomain.yMax] : ['auto', 'auto']}
+                domain={yDomain ? [yDomain.yMin, yDomain.yMax] : autoY ? [autoY.yMin, autoY.yMax] : ['auto', 'auto']}
                 tickFormatter={(v) => Number.isInteger(v) ? v : Number(v).toFixed(1)}
                 allowDataOverflow
                 label={{ value: 'y', angle: -90, position: 'insideLeft', fill: axisColor }}
               />
+              {useRightAxis && (
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  stroke={secondaryColor}
+                  tick={{ fill: secondaryColor }}
+                  domain={autoY2 ? [autoY2.yMin, autoY2.yMax] : ['auto', 'auto']}
+                  tickFormatter={(v) => Number.isInteger(v) ? v : Number(v).toFixed(1)}
+                  allowDataOverflow
+                  label={{ value: secondaryAxisName, angle: 90, position: 'insideRight', fill: secondaryColor }}
+                />
+              )}
               <Tooltip
                 contentStyle={{
                   backgroundColor: tooltipBg,
@@ -320,10 +412,27 @@ export default function GraphViewer({ functionData }) {
               ))}
 
               {/* Primary curve */}
-              <Line type="linear" dataKey="y" stroke="url(#colorGradient)" strokeWidth={3} dot={false} connectNulls={false} name="y" />
+              <Line type="linear" dataKey="y" stroke="url(#colorGradient)" strokeWidth={3} dot={false} connectNulls={false} name="y" isAnimationActive={false} />
               {hasSecondary && (
-                <Line type="linear" dataKey="y2" stroke="#10b981" strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls={false} name="y2" />
+                <Line type="linear" dataKey="y2" yAxisId={useRightAxis ? 'right' : 0} stroke={secondaryColor} strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls={false} name="y2" isAnimationActive={false} />
               )}
+
+              {/* Open points: a value a curve approaches but does not take —
+                  the one-sided values of a derivative at a corner. Hollow,
+                  on the curve they belong to. */}
+              {(ann.openPoints || []).filter((o) => inX(o.x) && Number.isFinite(o.y)).map((o, i) => (
+                <ReferenceDot
+                  key={`open-${i}`}
+                  x={o.x}
+                  y={o.y}
+                  yAxisId={o.series === 'secondary' && useRightAxis ? 'right' : 0}
+                  r={6}
+                  fill={tooltipBg}
+                  stroke={o.series === 'secondary' ? secondaryColor : asymptoteColor}
+                  strokeWidth={3}
+                  label={o.label && (i === 0 || (ann.openPoints[i - 1].label !== o.label)) ? { value: o.label, position: 'right', fill: o.series === 'secondary' ? secondaryColor : asymptoteColor, fontSize: 12, fontWeight: 'bold' } : undefined}
+                />
+              ))}
 
               {/* x-intercepts + y-intercept (functions) */}
               {(ann.intercepts || []).filter((p) => inX(p.x) && inY(0)).map((p, i) => (
@@ -407,7 +516,7 @@ export default function GraphViewer({ functionData }) {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-0.5 border-t-2 border-dashed border-green-500" />
-              <span className="text-gray-600 dark:text-gray-400">{functionData.secondaryLabel || 'Secondary'}</span>
+              <span className="text-gray-600 dark:text-gray-400">{functionData.secondaryLabel || 'Secondary'}{useRightAxis ? ' (right axis)' : ''}</span>
             </div>
           </div>
         )}

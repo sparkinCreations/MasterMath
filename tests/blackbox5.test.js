@@ -147,7 +147,7 @@ test('"sin x", "cos 30", "2 sin(x)": spaced function arguments', async () => {
 });
 
 test('derivative output writes ln and e^ rather than log and exp', async () => {
-  assert.equal((await solveProblem('ln^2(x)', 'derivatives')).answer, "f'(x) = 2ln(x)/x");
+  assert.equal((await solveProblem('ln^2(x)', 'derivatives')).answer, "f'(x) = 2ln(x)/x, x > 0");
   assert.equal((await solveProblem('e^x', 'derivatives')).answer, "f'(x) = e^x");
   assert.equal((await solveProblem('e^(2x)', 'derivatives')).answer, "f'(x) = 2e^(2x)");
 });
@@ -169,7 +169,7 @@ test('edge: parser reads π, ·, ∛, vulgar fractions, thousands separators, lo
   assert.equal((await solveProblem('1,000,000/4', 'other')).answer, '250000');
   assert.equal((await solveProblem('log10(100)', 'other')).answer, '2');
   assert.equal((await solveProblem('log(8, 2)', 'other')).answer, '3');
-  assert.equal((await solveProblem('log10(x)', 'derivatives')).answer, "f'(x) = 1/(x*ln(10))");
+  assert.equal((await solveProblem('log10(x)', 'derivatives')).answer, "f'(x) = 1/(x*ln(10)), x > 0");
 });
 
 test('edge: ln(x) = -1 has the root 1/e (was "No real solution")', async () => {
@@ -216,7 +216,7 @@ test('edge: derivatives — order, with respect to, ln|x|, asymptote at the poin
   assert.equal((await solveProblem('d^2/dx^2 x^3', 'derivatives')).answer, "f''(x) = 6x");
   assert.equal((await solveProblem("f''(x) where f(x) = x^3", 'derivatives')).answer, "f''(x) = 6x");
   assert.equal((await solveProblem('derivative of x*y with respect to y', 'derivatives')).answer, "f'(y) = x");
-  assert.equal((await solveProblem('ln|x|', 'derivatives')).answer, "f'(x) = 1/x");
+  assert.equal((await solveProblem('ln|x|', 'derivatives')).answer, "f'(x) = 1/x, x ≠ 0");
   assert.equal((await solveProblem('tan(x) at x = pi/2', 'derivatives')).answer, "f'(pi/2) is undefined");
   assert.equal((await solveProblem('x^2 at x = a', 'derivatives')).answer, "f'(a) = 2a");
   assert.match((await solveProblem('x^x', 'derivatives')).steps[1], /Logarithmic differentiation/);
@@ -251,7 +251,7 @@ test('worked derivative steps name u/w (product, quotient) and the inner u (chai
   assert.ok(p.steps.some((s) => /Then u′ = 2x and w′ = cos\(x\)/.test(s)));
   const q = await solveProblem('(x+1)/(x-1)', 'derivatives');
   assert.ok(q.steps.some((s) => /Let u = x \+ 1 \(numerator\) and w = x - 1 \(denominator\)/.test(s)));
-  assert.equal(q.answer, "f'(x) = -2/((x - 1)^2)");
+  assert.equal(q.answer, "f'(x) = -2/((x - 1)^2), x ≠ 1");
   const c = await solveProblem('sin(x^2)', 'derivatives');
   assert.ok(c.steps.some((s) => /Let u = x\^2 \(the inside\), so the outer function is sin\(u\)/.test(s)));
   assert.ok(c.steps.some((s) => /put u = x\^2 back: cos\(x\^2\) · 2x/.test(s)));

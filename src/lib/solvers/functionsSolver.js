@@ -31,6 +31,7 @@ import {
   formatRestriction,
   realOddRoots,
 } from './solverUtils.js';
+import { featureWindow } from '../graphSampling.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 
@@ -111,6 +112,14 @@ export async function solveFunctions(expression) {
       ],
       graph: points.length > 0 ? {
         points,
+        // The viewer re-samples a graph that carries its expression for the
+        // window on screen, and opens on the window that frames the features.
+        expression: func,
+        variable,
+        // A periodic curve opens on two full turns; anything else on its
+        // features (a cubic's roots and turning points, not ±10 with the
+        // shape squashed into a strip).
+        initialWindow: features.isPeriodic ? { xMin: -2 * Math.PI, xMax: 2 * Math.PI } : featureWindow(featureXs(features)),
         title: `Graph of f(${variable}) = ${beautify(func)}`,
         description: describeGraph(features, variable),
         // Computed features rendered as markers by GraphViewer.
@@ -769,6 +778,57 @@ function formatDomain(domain, variable, extraPoints = []) {
   return parts.join(' and ') + note;
 }
 
+// Every x at which the analysis found something — the window to open on.
+function featureXs(f) {
+  const xs = [];
+  const push = (v) => { if (Number.isFinite(v)) xs.push(v); };
+  for (const e of f.extrema) push(e.x);
+  for (const e of f.endpointExtrema) push(e.x);
+  for (const r of f.xIntercepts.list) push(r.numeric);
+  if (f.yIntercept) push(0);
+  for (const h of f.holes) push(h.x);
+  for (const a of f.verticalAsymptotes) push(a);
+  for (const i of f.inflections) push(i.x);
+  if (f.quadratic) push(f.quadratic.vertex.x);
+  return xs;
+}
+
+// A multiple of π/12 written as such: π/2, -3π/4, 2π. Null otherwise.
+function piForm(x) {
+  const ratio = x / Math.PI;
+  for (const d of [1, 2, 3, 4, 6, 12]) {
+    const n = ratio * d;
+    if (Math.abs(n - Math.round(n)) < 1e-9) {
+      const k = Math.round(n);
+      if (k === 0) return '0';
+      const num = Math.abs(k) === 1 ? '' : String(Math.abs(k));
+      return `${k < 0 ? '-' : ''}${num}π${d > 1 ? `/${d}` : ''}`;
+    }
+  }
+  return null;
+}
+
+// Three or more evenly spaced values → their general form, "x = π/2 + nπ" or
+// "x = nπ" (n any integer). Null when they are not evenly spaced. Listing
+// six asymptotes and seven intercepts to four decimals made the tangent
+// answer a wall of numbers; the pattern is the answer.
+function generalForm(values, variable) {
+  const sorted = [...values].filter(Number.isFinite).sort((a, b) => a - b);
+  if (sorted.length < 3) return null;
+  const d = sorted[1] - sorted[0];
+  if (!(d > 1e-9)) return null;
+  for (let i = 2; i < sorted.length; i += 1) {
+    if (Math.abs(sorted[i] - sorted[i - 1] - d) > 1e-6) return null;
+  }
+  let a0 = sorted.find((v) => v >= -1e-9);
+  if (a0 === undefined) a0 = sorted[sorted.length - 1];
+  const dText = piForm(d) || formatNumber(d);
+  const stepText = dText.startsWith('π') ? `n${dText}` : `n·${dText}`;
+  if (Math.abs(a0) < 1e-9) return `${variable} = ${stepText}`;
+  const aText = piForm(a0) || formatNumber(a0);
+  return `${variable} = ${aText} + ${stepText}`;
+}
+
 // The "Final Answer" of a function analysis is the analysis, not the input
 // echoed back. One line, the useful findings in reading order: domain, then
 // intercepts, then the shape (vertex / extrema / holes / asymptotes). Only
@@ -777,7 +837,10 @@ function summarizeAnalysis(func, variable, f) {
   const parts = [];
   const pt = (x, y) => `(${formatNumber(x)}, ${formatNumber(y)})`;
 
-  if (f.domain.length === 0 && f.verticalAsymptotes.length > 0) parts.push(`domain: all real numbers except ${variable} = ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}${f.isPeriodic ? ' (repeating)' : ''}`);
+  const asymptotePattern = f.isPeriodic ? generalForm(f.verticalAsymptotes, variable) : null;
+  const interceptPattern = f.isPeriodic ? generalForm(f.xIntercepts.list.map((r) => r.numeric), variable) : null;
+  if (f.domain.length === 0 && asymptotePattern) parts.push(`domain: all real numbers except ${asymptotePattern} (n any integer)`);
+  else if (f.domain.length === 0 && f.verticalAsymptotes.length > 0) parts.push(`domain: all real numbers except ${variable} = ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}${f.isPeriodic ? ' (repeating)' : ''}`);
   else if (f.domain.length === 0) parts.push('domain: all real numbers');
   else {
     const extraPoles = f.verticalAsymptotes.filter((a) => !f.domain.some((r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.from - a) < 1e-6));
@@ -785,7 +848,9 @@ function summarizeAnalysis(func, variable, f) {
   }
 
   if (f.yIntercept) parts.push(`y-intercept ${pt(0, f.yIntercept.y)}`);
-  if (f.xIntercepts.list.length > 0) {
+  if (interceptPattern) {
+    parts.push(`x-intercepts at ${interceptPattern}`);
+  } else if (f.xIntercepts.list.length > 0) {
     const xs = f.xIntercepts.list.map((r) => r.display).join(', ');
     parts.push(`x-intercept${f.xIntercepts.list.length > 1 ? 's' : ''} at ${variable} = ${xs}${f.xIntercepts.truncated ? ', …' : ''}`);
   } else if (!f.isPeriodic) {
@@ -805,7 +870,8 @@ function summarizeAnalysis(func, variable, f) {
   }
 
   for (const h of f.holes) parts.push(`hole at ${pt(h.x, h.y)}`);
-  if (f.verticalAsymptotes.length > 0) parts.push(`vertical asymptote${f.verticalAsymptotes.length > 1 ? 's' : ''} ${f.verticalAsymptotes.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')}`);
+  if (asymptotePattern) parts.push(`vertical asymptotes at ${asymptotePattern}`);
+  else if (f.verticalAsymptotes.length > 0) parts.push(`vertical asymptote${f.verticalAsymptotes.length > 1 ? 's' : ''} ${f.verticalAsymptotes.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')}`);
   if (typeof f.horizontalAsymptote === 'number') parts.push(`horizontal asymptote y = ${formatNumber(f.horizontalAsymptote)}`);
   if (f.inflections.length > 0) parts.push(`inflection at ${variable} = ${f.inflections.map((i) => i.display).join(', ')}`);
   if (f.isPeriodic) parts.push('periodic');
