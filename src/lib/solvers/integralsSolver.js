@@ -219,7 +219,10 @@ function lnify(integralResult) {
     // (?<![a-z]) not \b: beautify writes 4*log(x) as 4log(x).
     .replace(/(?<![a-z])log\(((?:[^()]|\([^()]*\))+)\)/g, 'ln|$1|')
     // a log(...) left inside those bars → ln(...) (bars within bars read badly)
-    .replace(/(?<![a-z])log\(([^()]+)\)/g, 'ln($1)');
+    .replace(/(?<![a-z])log\(([^()]+)\)/g, 'ln($1)')
+    // bars around a positive number mean nothing: the base-10 quotient's
+    // ln|10| reads as ln(10)
+    .replace(/ln\|(\d+(?:\.\d+)?)\|/g, 'ln($1)');
 }
 
 function safeRunLocal(Algebrite, code) {

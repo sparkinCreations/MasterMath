@@ -1,7 +1,7 @@
 // Import IndexedDB functions (local storage - no API needed!)
 import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './indexedDB.js';
 import { validateProblemHistory } from './validation.js';
-import { extractFunctionFromProblem, parseMathExpression } from './mathParser.js';
+import { extractFunctionFromProblem, parseMathExpression, usesCommonLog } from './mathParser.js';
 import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
 import { bareFunctionName } from './solvers/solverUtils.js';
 
@@ -251,6 +251,9 @@ export function isPresentable(value) {
 // It is also the last line of defence against engine internals reaching the
 // screen: an answer or step that is not presentable text is replaced with an
 // honest "unsupported" envelope, never rendered — and never marked solved.
+// Shown whenever a solved input relied on the base-10 reading of a bare `log`.
+export const COMMON_LOG_TIP = 'log(…) is read as the common logarithm, base 10, as on a calculator. Write ln(…) for the natural logarithm, or log(x, b) / log_b(x) for another base.';
+
 export function finalizeResult(result, input) {
   if (!result || typeof result !== 'object') {
     throw new Error('Invalid solver result');
@@ -295,6 +298,10 @@ export function finalizeResult(result, input) {
     } else {
       result.status = STATUS.SOLVED;
     }
+  }
+  // Say which logarithm convention was applied, once, on solved results only.
+  if (result.status === STATUS.SOLVED && usesCommonLog(input || '') && !result.tips.includes(COMMON_LOG_TIP)) {
+    result.tips = [COMMON_LOG_TIP, ...result.tips];
   }
   return result;
 }

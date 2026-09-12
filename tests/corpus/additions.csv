@@ -32,3 +32,7 @@ Limits,lim x->infinity (3x^2+1)/(2x^2-5),3/2,—,Roadmap 2026-09 item 3: leading
 Limits,lim x->0 x*sin(1/x),0,—,Roadmap 2026-09 item 3: squeeze theorem with bounds shown
 Algebra,-1 < 2x + 1 <= 5,-1 < x <= 2,—,Roadmap 2026-09 item 5: chained inequality (was refused)
 Algebra,x > 1 and x < 4,1 < x < 4,—,Roadmap 2026-09 item 5: "and" intersection (was refused)
+Arithmetic,log(100),2,4.6052 (log read as the natural log),Incorrect (September 2026: log is base 10 as of v1.34.1)
+Arithmetic,log(0.001),-3,-6.9078 (log read as the natural log),Incorrect (September 2026: log is base 10 as of v1.34.1)
+Algebra,log(x) + log(x-3) = 1,x = 5,x = 3.729 (log read as the natural log),Incorrect (September 2026: log is base 10 as of v1.34.1)
+Derivatives,log(x),1/(x*log(10)),1/x (log read as the natural log),Incorrect (September 2026: log is base 10 as of v1.34.1)
