@@ -7,7 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.34.1] - 2026-09-12
+## [1.35.0] - 2026-09-12
+
+### Added
+
+- **Equations in logarithms are solved exactly.** `ln(x) = 1` fell to the
+  numeric root scan and came back as `x = 2.7183`. Now one logarithm
+  argument is substituted (`u = ln(x)`), the polynomial in u solved, and the
+  argument recovered in exponential form — `x = e (≈ 2.7183)`,
+  `ln(x) = 2` → `e^2`, `ln(x) = −1` → `1/e`, `ln(2x) = 3` → `e^3/2`,
+  `ln(x)^2 = 4` → `e^2` or `1/e^2`, `log(x) = 2` → `100`,
+  `log_2(x) = 5` → `32`. Several arguments with integer coefficients are
+  combined by the log rules into one logarithm, rewritten in exponential
+  form and solved as a polynomial: `log(x) + log(x − 3) = 1` → `x = 5`
+  with the step saying why `x = −2` is rejected, `ln(x) + ln(x − 1) = 0` →
+  `(1 + √5)/2`, `ln(x) − ln(x − 1) = ln(2)` → `2`, `2 ln(x) = ln(9)` → `3`.
+  Every candidate must keep every argument positive and balance the
+  original equation before it is reported (`solveViaLogSubstitution` in
+  `algebraSolver.js`; `tests/logEquations.test.js`; corpus rows).
+- **Exponentials with a numeric base** join the `u = e^x` substitution:
+  `2^x = 10` → `x = ln(10)/ln(2) (≈ 3.3219)`, `5^x = 125` → `3`,
+  `3·2^x = 24` → `3`. Mixed bases (`4^x − 5·2^x + 4 = 0`) still take the
+  numeric scan, which remains correct.
+- The evaluation harness grades an exact algebra answer by the value of
+  each `x = …` clause, so `e^2 (≈ 7.3891)` is compared as 7.3891, not as
+  the digits 2 and 7.3891.
 
 ### Fixed
 

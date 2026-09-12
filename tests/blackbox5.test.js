@@ -173,7 +173,7 @@ test('edge: parser reads π, ·, ∛, vulgar fractions, thousands separators, lo
 });
 
 test('edge: ln(x) = -1 has the root 1/e (was "No real solution")', async () => {
-  assert.equal((await solveProblem('ln(x) = -1', 'algebra')).answer, 'x = 0.3679');
+  assert.equal((await solveProblem('ln(x) = -1', 'algebra')).answer, 'x = 1/e (≈ 0.3679)');
   assert.equal((await solveProblem('x! = 24', 'algebra')).answer, 'x = 4');
 });
 

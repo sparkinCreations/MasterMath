@@ -211,9 +211,39 @@ function parseVarValues(s) {
 }
 
 // Pull the numeric solution set out of an algebra answer like "x = 2  or  x = 3".
+// An exact answer — "x = e (≈ 2.7183)", "x = ln(10)/ln(2) (≈ 3.3219)",
+// "x = (1 + √5)/2 (≈ 1.618)" — is graded by the VALUE of each "x = …" clause
+// (the decimal aside and any multiplicity note stripped, √n and ln made
+// evaluable), never by the digits that happen to appear in its text.
 function solutionNumbers(s) {
+  const text = String(s);
+  // A clause is "x = <value>" up to the next "or" / ";" / end; the CSV's
+  // shorthand "x=2,3" lists several values in one clause, so split on commas.
+  const clauses = [...text.matchAll(/(?<![a-z])[a-z]\s*=\s*(.+?)(?=\s+or\s+|;|$)/gi)];
+  if (clauses.length > 0) {
+    const values = [];
+    let failed = false;
+    for (const m of clauses) {
+      for (const piece of m[1].split(',')) {
+        const expr = piece
+          .replace(/\(≈[^)]*\)/g, '')
+          .replace(/\(repeated root[^)]*\)/g, '')
+          .replace(/√\s*(\d+)/g, 'sqrt($1)')
+          .replace(/\bln\b/g, 'log')
+          .trim();
+        try {
+          const v = Number(math.evaluate(expr));
+          if (!Number.isFinite(v)) throw new Error('not a real number');
+          values.push(v);
+        } catch {
+          failed = true;
+        }
+      }
+    }
+    if (!failed && values.length > 0) return values.sort((a, b) => a - b);
+  }
   const nums = [];
-  for (const m of String(s).matchAll(/-?\d+(?:\.\d+)?/g)) nums.push(Number(m[0]));
+  for (const m of text.matchAll(/-?\d+(?:\.\d+)?/g)) nums.push(Number(m[0]));
   return nums.sort((a, b) => a - b);
 }
 
