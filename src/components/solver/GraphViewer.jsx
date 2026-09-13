@@ -1,12 +1,62 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot, ReferenceArea } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot, ReferenceArea, usePlotArea, useXAxisScale } from "recharts";
 import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Focus, Rows3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
-import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow } from "@/lib/graphSampling";
+import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
+
+// A ReferenceDot label placed where it fits inside the plot (placePointLabel).
+// Recharts renders this with the dot's box as `viewBox`; the props are named
+// text/color, not value/fill, so Recharts' own label props cannot override
+// them. The halo (a stroke in the card colour painted under the fill) keeps
+// the text readable where it crosses a curve or grid line.
+function PointLabel({ viewBox, text, color, haloColor }) {
+  const plot = usePlotArea();
+  if (!viewBox || !plot || text == null) return null;
+  const cx = viewBox.x + (viewBox.width ?? viewBox.upperWidth ?? 0) / 2;
+  const cy = viewBox.y + (viewBox.height ?? 0) / 2;
+  const at = placePointLabel({ cx, cy, textWidth: estimateLabelWidth(text), plot });
+  return (
+    <text x={at.x} y={at.y} textAnchor={at.anchor} dominantBaseline={at.anchor === 'middle' ? 'auto' : 'central'}
+      fill={color} stroke={haloColor} strokeWidth={3} paintOrder="stroke" fontSize={12} fontWeight="bold">
+      {text}
+    </text>
+  );
+}
+
+// Labels for vertical lines — asymptotes, equation solutions, a limit's
+// approach guideline — drawn INSIDE the plot. Recharts' own 'top' position
+// puts them in the 5px margin above the plot, where they were cut off at every
+// width. Each row is laid out together, so a label that would overlap its
+// neighbour is dropped (layoutLineLabels). A limit's guideline takes the
+// bottom row: its point label ("L = 1") sits beside the marker, and a top-row
+// guideline label landed on top of it. Rendered as a chart child for the
+// scale hooks.
+function LineLabels({ items, haloColor }) {
+  const plot = usePlotArea();
+  const xScale = useXAxisScale();
+  if (!plot || !xScale || !items.length) return null;
+  const rows = { top: plot.y + 14, bottom: plot.y + plot.height - 6 };
+  return (
+    <g className="line-labels">
+      {Object.entries(rows).map(([row, y]) => layoutLineLabels(
+        items
+          .filter((item) => (item.row || 'top') === row && item.text)
+          .map((item, i) => ({ ...item, key: `line-label-${row}-${i}`, px: xScale(item.x) }))
+          .filter((item) => Number.isFinite(item.px)),
+        { plot }
+      ).map((label) => (
+        <text key={label.key} x={label.x} y={y} textAnchor="middle"
+          fill={label.color} stroke={haloColor} strokeWidth={3} paintOrder="stroke" fontSize={12} fontWeight="bold">
+          {label.text}
+        </text>
+      )))}
+    </g>
+  );
+}
 
 const DEFAULT_RANGE = { xMin: -10, xMax: 10 };
 
@@ -384,7 +434,6 @@ export default function GraphViewer({ functionData }) {
                   stroke={asymptoteColor}
                   strokeWidth={2}
                   strokeDasharray="4 4"
-                  label={{ value: `x = ${a}`, position: 'top', fill: asymptoteColor, fontSize: 12, fontWeight: 'bold' }}
                 />
               ))}
 
@@ -395,7 +444,6 @@ export default function GraphViewer({ functionData }) {
                   stroke={extremumColor}
                   strokeWidth={2}
                   strokeDasharray="4 4"
-                  label={{ value: ann.guideline.label, position: 'top', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
                 />
               )}
 
@@ -407,9 +455,19 @@ export default function GraphViewer({ functionData }) {
                   stroke={interceptColor}
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  label={{ value: `x = ${sol.toFixed(2)}`, position: 'top', fill: interceptColor, fontWeight: 'bold' }}
                 />
               ))}
+
+              {/* Labels for every vertical line above, laid out together inside
+                  the plot so none is cut off or overlaps another (LineLabels). */}
+              <LineLabels
+                haloColor={tooltipBg}
+                items={[
+                  ...(ann.verticalAsymptotes || []).filter(inX).map((a) => ({ x: a, text: formatLineX(a, variable), color: asymptoteColor })),
+                  ...(functionData.solutions || []).filter(inX).map((sol) => ({ x: sol, text: formatLineX(sol, variable), color: interceptColor })),
+                  ...(ann.guideline && inX(ann.guideline.x) ? [{ x: ann.guideline.x, text: ann.guideline.label, color: extremumColor, row: 'bottom' }] : []),
+                ]}
+              />
 
               {/* Primary curve */}
               <Line type="linear" dataKey="y" stroke="url(#colorGradient)" strokeWidth={3} dot={false} connectNulls={false} name="y" isAnimationActive={false} />
@@ -430,7 +488,7 @@ export default function GraphViewer({ functionData }) {
                   fill={tooltipBg}
                   stroke={o.series === 'secondary' ? secondaryColor : asymptoteColor}
                   strokeWidth={3}
-                  label={o.label && (i === 0 || (ann.openPoints[i - 1].label !== o.label)) ? { value: o.label, position: 'right', fill: o.series === 'secondary' ? secondaryColor : asymptoteColor, fontSize: 12, fontWeight: 'bold' } : undefined}
+                  label={o.label && (i === 0 || (ann.openPoints[i - 1].label !== o.label)) ? <PointLabel text={o.label} color={o.series === 'secondary' ? secondaryColor : asymptoteColor} haloColor={tooltipBg} /> : undefined}
                 />
               ))}
 
@@ -494,7 +552,7 @@ export default function GraphViewer({ functionData }) {
                   fill={tooltipBg}
                   stroke={extremumColor}
                   strokeWidth={3}
-                  label={{ value: `L = ${ann.limitPoint.y}`, position: 'right', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
+                  label={<PointLabel text={`L = ${ann.limitPoint.y}`} color={extremumColor} haloColor={tooltipBg} />}
                 />
               )}
 

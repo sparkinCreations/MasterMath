@@ -532,3 +532,20 @@ export function sampleFunction(expression, variable, options = {}) {
 
   return points;
 }
+
+// A multiple of π/12 written as such: π/2, -3π/4, 2π. Null otherwise.
+// Shared by the functions solver (periodic patterns) and the graph viewer
+// (asymptote labels), so an asymptote reads "x = 3π/2", not a 15-digit float.
+export function piForm(x) {
+  const ratio = x / Math.PI;
+  for (const d of [1, 2, 3, 4, 6, 12]) {
+    const n = ratio * d;
+    if (Math.abs(n - Math.round(n)) < 1e-9) {
+      const k = Math.round(n);
+      if (k === 0) return '0';
+      const num = Math.abs(k) === 1 ? '' : String(Math.abs(k));
+      return `${k < 0 ? '-' : ''}${num}π${d > 1 ? `/${d}` : ''}`;
+    }
+  }
+  return null;
+}
