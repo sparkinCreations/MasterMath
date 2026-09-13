@@ -7,6 +7,152 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.2] - 2026-09-13
+
+### Fixed
+
+- **Graph labels were cut off or unreadable.** Every label Recharts puts on a
+  vertical line with position `top` lands in the 5px margin above the plot,
+  so at every width the tan(x) asymptote labels — printed as raw floats,
+  `x = 4.712388980384276`, and overlapping — the solutions of a trigonometric
+  equation (`x = 0.52`) and a limit's guideline (`x → 0`) were cut off to a
+  sliver. At a 390px phone width `f'(0) does not exist` also ran 12px past the
+  chart's right edge. Vertical-line labels are now drawn inside the plot by
+  one layer that keeps each label in bounds and drops one that would overlap
+  its neighbour (`layoutLineLabels`), and they read as multiples of π where
+  they are (`x = 3π/2`, `x = π/6`). A marker's label goes right of it when
+  there is room, else left, else above (`placePointLabel`). Checked at 390px
+  and 1280px on tan(x), sin(x) = 1/2, lim x→0 sin(x)/x, d/dx |x|, d/dx 1/x and
+  a definite integral: no label cut off, none overlapping.
+
+## [1.36.1] - 2026-09-13
+
+### Fixed
+
+- **A change-of-base quotient could still read `log` as the natural log.**
+  `rewriteCommonLog` left a typed `log(A)/log(B)` in place — correct only as a
+  plain ratio, where the base cancels — but copied it verbatim, so a bare log
+  nested inside kept its natural meaning, and it also skipped quotients the
+  base does not cancel in. All were answered confidently wrong:
+  `log(log(1000))/log(2)` read 2.7882 instead of 1.585, `log(100)/log(10)^2`
+  read 0.8686 instead of 2, `2^log(100)/log(3)` read 22.1539 instead of
+  8.3836, `100/log(100)/log(2)` read 31.3277 instead of 166.0964, and
+  `log(x)/log(10)^2 = 1` had no real solution instead of x = 10. The quotient
+  is now left alone only when nothing binds more tightly to either log than
+  the division between them (`isPlainLogRatio`), and a bare log inside it is
+  rewritten like any other. Untouched text keeps its spacing, so the base-10
+  tip still appears only when a bare log was actually read as base 10.
+
+## [1.36.0] - 2026-09-12
+
+September 2026 external review: one derivative error, five thin step
+templates, two wording bugs, and graph legibility.
+
+### Fixed
+
+- **d/dx |x| never said the derivative does not exist at 0.** The answer was
+  `sgn(x)` with a "power rule" step. Now `k·|ax + b|` is rewritten piecewise,
+  each branch differentiated, and the one-sided derivatives compared at the
+  corner: `f'(x) = -1 for x < 0, 1 for x > 0; f'(0) does not exist`.
+  Evaluating at the corner says so (the engine's sgn(0) = 0 used to read as
+  "slope 0"); any other use of abs keeps its sgn form and states where the
+  derivative does not exist. The derivative graph breaks at the corner and
+  marks both one-sided values with hollow points (`solveAbsLinear`,
+  `annotations.openPoints`).
+- **cos(x) = −1/2** said ±2π/3 are "both within one period"; −2π/3 is not in
+  [0, 2π). The step now names 2π − 2π/3 = 4π/3.
+- **lim x/eˣ samples read "0, 0, 0, 0".** Values the display precision rounds
+  to 0 are shown in scientific notation (3.72e-42), and the double-precision
+  underflow behind the later exact zeros is explained.
+
+### Added
+
+- **Graphs are re-sampled for the window on screen.** A graph now carries
+  its `expression` (functions, derivatives, integrals, algebra), and the
+  viewer samples 400 points per visible window instead of filtering a fixed
+  0.25-step grid — a zoomed-in cubic is a smooth curve through its exact
+  markers, not eight straight segments with the markers visibly off the
+  polyline. Every vertical asymptote and derivative corner is an explicit
+  gap, so the tangent curve no longer joins its branches with a
+  near-vertical line; an unnamed pole (a sign change where the midpoint
+  value is larger than both neighbours) is detected too
+  (`src/lib/graphSampling.js`).
+- **Graphs open on their features.** A function graph starts on the window
+  framing its roots, turning points, holes and asymptotes (x³ − 3x opens on
+  ±3.5, not ±10 with the shape squashed into a strip); a periodic function
+  on two full turns; a derivative graph on where f and f′ do something. A
+  **Fit key features** control re-frames them after panning; Reset returns
+  to it.
+- **Two-curve graphs get a second y-axis** when the curves' visible ranges
+  differ by more than 4× (3x² − 3 was flattened under x³ − 3x), with a
+  control to toggle it and the legend saying "(right axis)".
+- **Derivative answers state their domain**: `−1/x², x ≠ 0`,
+  `1/(2√x), x > 0`, `1/x, x > 0` for ln x, `x > 3` for √(x − 3) — from the
+  poles of f′ and any root/log restriction with a linear argument; nothing
+  is stated when it cannot be read exactly (`derivativeDomain`).
+- **Real working in five step templates.** ∫sin²x / ∫cos²(kx) show the
+  power-reduction identity and term-by-term integration; a quadratic shows
+  x² = c and ±√ (naming √(−1) = i) or a, b, c, the discriminant and the
+  quadratic formula; `sqrt(R) = S` is isolated, its domain stated, squared,
+  solved, and every candidate checked with the extraneous one rejected for
+  the reason shown (`solveViaRadicalIsolation`); arithmetic works one
+  operation at a time in PEMDAS order, printing the expression after each
+  ("Exponents first: 2^3 = 8 → 3 + 4·8"), with the leading-minus step for
+  −2².
+- **Periodic function answers are summarised by their pattern**: tan(x) reads
+  "domain: all real numbers except x = π/2 + nπ; x-intercepts at x = nπ;
+  vertical asymptotes at x = π/2 + nπ" instead of thirteen decimals.
+
+## [1.35.0] - 2026-09-12
+
+### Added
+
+- **Equations in logarithms are solved exactly.** `ln(x) = 1` fell to the
+  numeric root scan and came back as `x = 2.7183`. Now one logarithm
+  argument is substituted (`u = ln(x)`), the polynomial in u solved, and the
+  argument recovered in exponential form — `x = e (≈ 2.7183)`,
+  `ln(x) = 2` → `e^2`, `ln(x) = −1` → `1/e`, `ln(2x) = 3` → `e^3/2`,
+  `ln(x)^2 = 4` → `e^2` or `1/e^2`, `log(x) = 2` → `100`,
+  `log_2(x) = 5` → `32`. Several arguments with integer coefficients are
+  combined by the log rules into one logarithm, rewritten in exponential
+  form and solved as a polynomial: `log(x) + log(x − 3) = 1` → `x = 5`
+  with the step saying why `x = −2` is rejected, `ln(x) + ln(x − 1) = 0` →
+  `(1 + √5)/2`, `ln(x) − ln(x − 1) = ln(2)` → `2`, `2 ln(x) = ln(9)` → `3`.
+  Every candidate must keep every argument positive and balance the
+  original equation before it is reported (`solveViaLogSubstitution` in
+  `algebraSolver.js`; `tests/logEquations.test.js`; corpus rows).
+- **Exponentials with a numeric base** join the `u = e^x` substitution:
+  `2^x = 10` → `x = ln(10)/ln(2) (≈ 3.3219)`, `5^x = 125` → `3`,
+  `3·2^x = 24` → `3`. Mixed bases (`4^x − 5·2^x + 4 = 0`) still take the
+  numeric scan, which remains correct.
+- The evaluation harness grades an exact algebra answer by the value of
+  each `x = …` clause, so `e^2 (≈ 7.3891)` is compared as 7.3891, not as
+  the digits 2 and 7.3891.
+
+### Fixed
+
+- **`log` meant the natural logarithm.** mathjs and Algebrite both name the
+  natural log `log`, so a bare `log(…)` reached the engines as ln: `log(100)`
+  evaluated to 4.6052, and `log(x) + log(x − 3) = 1` was "solved" at
+  x ≈ 3.73 instead of x = 5 — confidently wrong by the app's own corpus
+  standard, with no step saying which base had been assumed. Now `log` is
+  the common logarithm, base 10, as on a calculator and in every
+  precalculus text; `ln` is the natural logarithm; `log(x, b)`, `log_b(x)`,
+  `log10(x)` and `log2(x)` name their base as before. The parser rewrites a
+  bare `log(…)` to the change-of-base quotient `log(…)/log(10)` by paren
+  matching (nested arguments and `log|x|` survive; a typed `log(A)/log(B)`
+  is left alone, so a re-parsed expression is unchanged), and every solved
+  result that relied on the reading says so in its tips
+  (`rewriteCommonLog` / `usesCommonLog` in `mathParser.js`,
+  `COMMON_LOG_TIP` in `api.js`; corpus rows and `tests/commonLog.test.js`).
+
+### Changed
+
+- Removed thirteen stale ` 2.jsx` duplicate page and component files
+  (Finder copies committed in 1.33.1; nothing imported them).
+- Added a GitHub Actions workflow that runs the test suite (which includes
+  the production build) on every push to `main` and every pull request.
+
 ## [1.34.0] - 2026-09-08
 
 ### Added

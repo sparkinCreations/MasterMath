@@ -242,7 +242,7 @@ function finalize(Algebrite, F, term, v, steps, cyclic) {
 // --- step wording ------------------------------------------------------------
 
 function lnify(s) {
-  return beautify(s).replace(/\blog\(([^()]+)\)/g, 'ln|$1|');
+  return beautify(s).replace(/\blog\(([^()]+)\)/g, 'ln|$1|').replace(/ln\|(\d+(?:\.\d+)?)\|/g, 'ln($1)');
 }
 
 // Each round is emitted as a header plus three "Label: math" lines. The colon

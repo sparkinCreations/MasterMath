@@ -219,7 +219,10 @@ function lnify(integralResult) {
     // (?<![a-z]) not \b: beautify writes 4*log(x) as 4log(x).
     .replace(/(?<![a-z])log\(((?:[^()]|\([^()]*\))+)\)/g, 'ln|$1|')
     // a log(...) left inside those bars → ln(...) (bars within bars read badly)
-    .replace(/(?<![a-z])log\(([^()]+)\)/g, 'ln($1)');
+    .replace(/(?<![a-z])log\(([^()]+)\)/g, 'ln($1)')
+    // bars around a positive number mean nothing: the base-10 quotient's
+    // ln|10| reads as ln(10)
+    .replace(/ln\|(\d+(?:\.\d+)?)\|/g, 'ln($1)');
 }
 
 function safeRunLocal(Algebrite, code) {
@@ -305,6 +308,8 @@ async function integrateTerm(term, variable, Algebrite) {
   let anti = safeRunLocal(Algebrite, `integral(${rewriteReciprocalTrig(term)}, ${variable})`);
   if (anti !== null && !isUnevaluatedOperator(anti)) {
     anti = polishLogArguments(Algebrite, anti);
+    const halfAngle = halfAngleSteps(term, variable, anti);
+    if (halfAngle) return { antideriv: anti, steps: halfAngle, method: 'direct', term };
     const { label, hint } = classifyIntegralRule(term, variable);
     const steps = [`∫(${beautify(term)}) d${variable} = ${lnify(anti)}${hint ? `  (${label})` : ''}.`];
     return { antideriv: anti, steps, method: 'direct', term };
@@ -1492,6 +1497,30 @@ function generateIntegralSteps(expression, integral, variable, Algebrite) {
  * on one term at a time, the heuristics are reliable and the label sits next to
  * the real computed antiderivative.
  */
+// ∫c·sin²(kx) dx and ∫c·cos²(kx) dx: Algebrite hands back the antiderivative
+// in one jump ("Trig rule"). The course method is the power-reduction
+// (half-angle) identity followed by term-by-term integration — show it.
+function halfAngleSteps(term, variable, anti) {
+  const v = variable;
+  const m = String(term).replace(/\s+/g, '').match(new RegExp(`^([+-]?)(\\d+(?:\\.\\d+)?)?\\*?\\(?(sin|cos)\\((?:(\\d+(?:\\.\\d+)?)\\*?)?${v}\\)\\)?\\^2$`, 'i'));
+  if (!m) return null;
+  const sign = m[1] === '-' ? -1 : 1;
+  const c = sign * (m[2] ? Number(m[2]) : 1);
+  const fn = m[3].toLowerCase();
+  const k = m[4] ? Number(m[4]) : 1;
+  const arg = k === 1 ? v : `${formatNumber(k)}${v}`;
+  const doubled = `${formatNumber(2 * k)}${v}`;
+  const cText = c === 1 ? '' : c === -1 ? '-' : `${formatNumber(c)}·`;
+  const op = fn === 'sin' ? '−' : '+';
+  const halfC = c === 1 ? '1/2' : c === -1 ? '-1/2' : `${formatNumber(c)}/2`;
+  return [
+    `An even power of ${fn} has no direct rule. Use the power-reduction (half-angle) identity ${fn}²(u) = (1 ${op} cos(2u))/2 with u = ${arg}: ∫${cText}${fn}²(${arg}) d${v} = ∫${cText}(1 ${op} cos(${doubled}))/2 d${v}.`,
+    `Split it into two integrals: ${halfC}·∫1 d${v} ${fn === 'sin' ? '−' : '+'} ${halfC.replace(/^-/, '')}·∫cos(${doubled}) d${v}.`,
+    `Integrate term by term: ∫1 d${v} = ${v}, and ∫cos(${doubled}) d${v} = sin(${doubled})/${formatNumber(2 * k)} (the chain rule in reverse: the inner derivative ${formatNumber(2 * k)} is divided out).`,
+    `So ∫${cText}${fn}²(${arg}) d${v} = ${lnify(anti)}.`,
+  ];
+}
+
 function classifyIntegralRule(term, variable) {
   const v = variable;
 
@@ -1572,6 +1601,9 @@ function generateIntegralGraph(original, integral, variable) {
       return {
         points,
         secondaryPoints: secondaryPoints.length > 0 ? secondaryPoints : null,
+        expression: original,
+        secondaryExpression: integral,
+        variable,
         secondaryLabel: `F(${variable}) = ${lnify(integral)}`,
         title: `Graph of f(${variable}) = ${beautify(original)}`,
         description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: F(${variable}) = ${lnify(integral)} (antiderivative)`,

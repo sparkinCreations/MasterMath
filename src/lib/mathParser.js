@@ -11,7 +11,7 @@ const MATH_CONSTANTS = ['pi', 'PI'];
 const POWER_NOTATION_FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'ln', 'log'];
 
 // Index of the ")" that closes the "(" at `open`, or -1 if it is unbalanced.
-function matchingParen(text, open) {
+export function matchingParen(text, open) {
   let depth = 0;
   for (let i = open; i < text.length; i += 1) {
     if (text[i] === '(') depth += 1;
@@ -55,6 +55,98 @@ function rewriteFunctionPowers(text) {
   return out;
 }
 
+// True if `text` has a comma outside every pair of parentheses.
+function hasTopLevelComma(text) {
+  let depth = 0;
+  for (const ch of text) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    else if (ch === ',' && depth === 0) return true;
+  }
+  return false;
+}
+
+// Is the log(A)/log(B) spanning text[start, end) a plain ratio? The base
+// cancels only when nothing binds more tightly to either log than the
+// division between them. An exponent or factorial on the denominator
+// (log(A)/log(10)^2), or an exponent or division reaching into the numerator
+// (2^log(A)/log(B), x/log(A)/log(B)), leaves one natural log uncancelled —
+// skipped whole, those were answered confidently wrong
+// (log(100)/log(10)^2 = 0.8686 instead of 2). A division AFTER the pair is
+// fine: log(A)/log(B)/log(C) is the base-B ratio over a base-10 log(C), which
+// is exactly what it means.
+function isPlainLogRatio(text, start, end) {
+  const before = text.slice(0, start).trimEnd().slice(-1);
+  const after = text.slice(end).trimStart().charAt(0);
+  return before !== '^' && before !== '/' && after !== '^' && after !== '!';
+}
+
+// A bare `log(…)` is the common logarithm — base 10 — exactly as on a
+// calculator and in every precalculus text; `ln` is the natural logarithm.
+// mathjs and Algebrite both name the NATURAL log `log`, so left alone
+// "log(100)" evaluated to 4.6052 and log(x) + log(x − 3) = 1 was "solved" at
+// x ≈ 3.73 instead of x = 5. Rewritten here to the change-of-base quotient
+// log(…)/log(10) that every engine understands (the solvers render it as
+// ln(…)/ln(10)). The argument is taken by paren matching so a nested call —
+// log(x^2 + (x − 1)) — survives, and a nested bare log inside it is
+// rewritten too. Left alone:
+//   • log(x, b), a two-argument call: it names its base (rule below);
+//   • log10(…), log2(…), log_b(…): the name carries the base (rules below);
+//   • log(A)/log(B), a change-of-base quotient: its value is base B
+//     whatever base `log` is, and it is exactly what this rule and the
+//     other-base rules produce — skipping it keeps a second parse of an
+//     already-parsed expression from wrapping the quotient again. Only a
+//     PLAIN ratio is skipped (isPlainLogRatio), and a bare log nested in
+//     A or B is still rewritten.
+// Must run before the other-base rules so their own log(b) is not rewritten.
+export function rewriteCommonLog(input) {
+  // log|x| → log(abs(x)) first, so the bars do not hide the argument.
+  const text = String(input).replace(/(?<![a-z_])log\s*\|([^|]+)\|/gi, 'log(abs($1))');
+  const pattern = /(?<![a-z_])log\s*\(/gi;
+  let out = '';
+  let cursor = 0;
+  let m;
+  while ((m = pattern.exec(text)) !== null) {
+    const open = m.index + m[0].length - 1;
+    const close = matchingParen(text, open);
+    if (close === -1) break; // unbalanced — leave the text as the user typed it
+    const argument = text.slice(open + 1, close);
+    if (hasTopLevelComma(argument)) continue; // log(x, b): explicit base
+
+    // "log(A)/log(B)": an explicit change-of-base quotient — left in place when
+    // it is a plain ratio. Its arguments are still rewritten: skipped verbatim,
+    // log(log(1000))/log(2) kept its inner log natural and read 2.7882 instead
+    // of 1.585. Untouched text keeps its exact spacing, so usesCommonLog does
+    // not report a quotient with no bare log in it as changed.
+    const quotient = text.slice(close + 1).match(/^\s*\/\s*log\s*\(/i);
+    if (quotient) {
+      const baseOpen = close + 1 + quotient[0].length - 1;
+      const baseClose = matchingParen(text, baseOpen);
+      if (baseClose !== -1 && isPlainLogRatio(text, m.index, baseClose + 1)) {
+        out += text.slice(cursor, open + 1)
+          + rewriteCommonLog(argument)
+          + text.slice(close, baseOpen + 1)
+          + rewriteCommonLog(text.slice(baseOpen + 1, baseClose))
+          + ')';
+        cursor = baseClose + 1;
+        pattern.lastIndex = baseClose + 1;
+        continue;
+      }
+    }
+
+    out += `${text.slice(cursor, m.index)}(log(${rewriteCommonLog(argument)})/log(10))`;
+    cursor = close + 1;
+    pattern.lastIndex = close + 1;
+  }
+  return out + text.slice(cursor);
+}
+
+// Does this input rely on the base-10 reading of a bare `log`? (Used to tell
+// the user which convention was applied.)
+export function usesCommonLog(input) {
+  return rewriteCommonLog(input) !== String(input);
+}
+
 export function parseMathExpression(input) {
   let cleaned = input.trim();
 
@@ -96,6 +188,9 @@ export function parseMathExpression(input) {
   // reads the string. (The ^-1 inverse form is handled just above and never
   // reaches this rule.)
   cleaned = rewriteFunctionPowers(cleaned);
+
+  // A bare log(…) is base 10 (see rewriteCommonLog); ln is the natural log.
+  cleaned = rewriteCommonLog(cleaned);
 
   // Logarithms in other bases: log10(x), log2(x), log(x, b) → log(x)/log(b).
   // mathjs knows log10 and the two-argument log, Algebrite knows neither

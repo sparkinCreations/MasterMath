@@ -32,3 +32,18 @@ Limits,lim x->infinity (3x^2+1)/(2x^2-5),3/2,—,Roadmap 2026-09 item 3: leading
 Limits,lim x->0 x*sin(1/x),0,—,Roadmap 2026-09 item 3: squeeze theorem with bounds shown
 Algebra,-1 < 2x + 1 <= 5,-1 < x <= 2,—,Roadmap 2026-09 item 5: chained inequality (was refused)
 Algebra,x > 1 and x < 4,1 < x < 4,—,Roadmap 2026-09 item 5: "and" intersection (was refused)
+Arithmetic,log(100),2,4.6052 (log read as the natural log),Incorrect (September 2026: log is base 10 as of v1.34.1)
+Arithmetic,log(0.001),-3,-6.9078 (log read as the natural log),Incorrect (September 2026: log is base 10 as of v1.34.1)
+Algebra,log(x) + log(x-3) = 1,x = 5,x = 3.729 (log read as the natural log),Incorrect (September 2026: log is base 10 as of v1.34.1)
+Derivatives,log(x),1/(x*log(10)),1/x (log read as the natural log),Incorrect (September 2026: log is base 10 as of v1.34.1)
+Algebra,ln(x) = 1,x = 2.7183,x = 2.7183 (decimal only),Partial (September 2026: exact e as of v1.35.0)
+Algebra,ln(x) = 2,x = 7.3891,x = 7.3891 (decimal only),Partial (September 2026: exact e^2 as of v1.35.0)
+Algebra,ln(2x) = 3,x = 10.0428,x = 10.0428 (decimal only),Partial (September 2026: exact e^3/2 as of v1.35.0)
+Algebra,ln(x) + ln(x-1) = 0,x = 1.618,x = 1.618 (decimal only),Partial (September 2026: exact (1 + √5)/2 as of v1.35.0)
+Algebra,ln(x) - ln(x-1) = ln(2),x = 2,—,Log rules v1.35.0
+Algebra,2^x = 10,x = 3.3219,x = 3.3219 (decimal only),Partial (September 2026: exact ln(10)/ln(2) as of v1.35.0)
+Algebra,5^x = 125,x = 3,—,Exponential with a numeric base v1.35.0
+Arithmetic,log(log(1000))/log(2),1.585,2.7882,Incorrect (September 2026 review of PR #5: nested log in a quotient read as natural)
+Arithmetic,log(100)/log(10)^2,2,0.8686,Incorrect (September 2026 review of PR #5: exponent on the quotient denominator)
+Arithmetic,2^log(100)/log(3),8.3836,22.1539,Incorrect (September 2026 review of PR #5: exponent into the quotient numerator)
+Arithmetic,100/log(100)/log(2),166.0964,31.3277,Incorrect (September 2026 review of PR #5: division into the quotient numerator)
