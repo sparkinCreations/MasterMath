@@ -43,3 +43,7 @@ Algebra,ln(x) + ln(x-1) = 0,x = 1.618,x = 1.618 (decimal only),Partial (Septembe
 Algebra,ln(x) - ln(x-1) = ln(2),x = 2,—,Log rules v1.35.0
 Algebra,2^x = 10,x = 3.3219,x = 3.3219 (decimal only),Partial (September 2026: exact ln(10)/ln(2) as of v1.35.0)
 Algebra,5^x = 125,x = 3,—,Exponential with a numeric base v1.35.0
+Arithmetic,log(log(1000))/log(2),1.585,2.7882,Incorrect (September 2026 review of PR #5: nested log in a quotient read as natural)
+Arithmetic,log(100)/log(10)^2,2,0.8686,Incorrect (September 2026 review of PR #5: exponent on the quotient denominator)
+Arithmetic,2^log(100)/log(3),8.3836,22.1539,Incorrect (September 2026 review of PR #5: exponent into the quotient numerator)
+Arithmetic,100/log(100)/log(2),166.0964,31.3277,Incorrect (September 2026 review of PR #5: division into the quotient numerator)

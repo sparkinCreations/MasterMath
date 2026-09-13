@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.1] - 2026-09-13
+
+### Fixed
+
+- **A change-of-base quotient could still read `log` as the natural log.**
+  `rewriteCommonLog` left a typed `log(A)/log(B)` in place — correct only as a
+  plain ratio, where the base cancels — but copied it verbatim, so a bare log
+  nested inside kept its natural meaning, and it also skipped quotients the
+  base does not cancel in. All were answered confidently wrong:
+  `log(log(1000))/log(2)` read 2.7882 instead of 1.585, `log(100)/log(10)^2`
+  read 0.8686 instead of 2, `2^log(100)/log(3)` read 22.1539 instead of
+  8.3836, `100/log(100)/log(2)` read 31.3277 instead of 166.0964, and
+  `log(x)/log(10)^2 = 1` had no real solution instead of x = 10. The quotient
+  is now left alone only when nothing binds more tightly to either log than
+  the division between them (`isPlainLogRatio`), and a bare log inside it is
+  rewritten like any other. Untouched text keeps its spacing, so the base-10
+  tip still appears only when a bare log was actually read as base 10.
+
 ## [1.36.0] - 2026-09-12
 
 September 2026 external review: one derivative error, five thin step
