@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.2] - 2026-09-13
+
+### Fixed
+
+- **Graph labels were cut off or unreadable.** Every label Recharts puts on a
+  vertical line with position `top` lands in the 5px margin above the plot,
+  so at every width the tan(x) asymptote labels — printed as raw floats,
+  `x = 4.712388980384276`, and overlapping — the solutions of a trigonometric
+  equation (`x = 0.52`) and a limit's guideline (`x → 0`) were cut off to a
+  sliver. At a 390px phone width `f'(0) does not exist` also ran 12px past the
+  chart's right edge. Vertical-line labels are now drawn inside the plot by
+  one layer that keeps each label in bounds and drops one that would overlap
+  its neighbour (`layoutLineLabels`), and they read as multiples of π where
+  they are (`x = 3π/2`, `x = π/6`). A marker's label goes right of it when
+  there is room, else left, else above (`placePointLabel`). Checked at 390px
+  and 1280px on tan(x), sin(x) = 1/2, lim x→0 sin(x)/x, d/dx |x|, d/dx 1/x and
+  a definite integral: no label cut off, none overlapping.
+
 ## [1.36.1] - 2026-09-13
 
 ### Fixed

@@ -9,7 +9,7 @@
 // `expression` is now re-sampled here for whatever window is on screen, at a
 // fixed number of samples per window, with an explicit gap at every break.
 
-import { math, realOddRoots } from './solvers/solverUtils.js';
+import { math, realOddRoots, formatNumber, piForm } from './solvers/solverUtils.js';
 
 export const SAMPLES_PER_WINDOW = 400;
 
@@ -247,4 +247,63 @@ export function annotationFeatureYs(functionData, series = 'primary') {
     if ((o?.series === 'secondary') === (series === 'secondary')) push(o?.y);
   }
   return ys;
+}
+
+// ---------------------------------------------------------------------------
+// Label placement. SVG text is neither wrapped nor kept inside the plot, so a
+// label has to be put where it fits. Measured Sep 2026 at a 390px phone width:
+// "f'(0) does not exist" ran 12px off the chart's right edge. And every label
+// Recharts puts on a vertical line with position 'top' lands in the 5px margin
+// above the plot, cut off at EVERY width: the tan(x) asymptotes (raw floats,
+// "x = 4.712388980384276", four cut off and three pairs overlapping at 1280px),
+// the trig-equation solutions ("x = 0.52"), and a limit's guideline ("x → 0").
+// ---------------------------------------------------------------------------
+
+// Width of a label in px. An estimate (bold 12px sans ≈ 0.62 em a character):
+// placement only has to know whether the text fits, not its exact extent.
+export function estimateLabelWidth(text, fontSize = 12) {
+  return String(text).length * fontSize * 0.62;
+}
+
+// "x = 3π/2" for a vertical line — an asymptote or an equation's solution —
+// not "x = 4.712388980384276" or "x = 0.52".
+export function formatLineX(x, variable = 'x') {
+  return `${variable} = ${piForm(x) ?? formatNumber(x)}`;
+}
+
+// Where a point's label goes: right of the point when it fits in the plot,
+// else left, else centred above it and slid inside the plot. `plot` is the
+// Recharts plot area {x, y, width, height} in px; the returned y is the text's
+// vertical centre for 'start'/'end' and its baseline for 'middle'.
+export function placePointLabel({ cx, cy, radius = 6, gap = 6, textWidth, plot }) {
+  const left = plot.x;
+  const right = plot.x + plot.width;
+  const offset = radius + gap;
+  if (cx + offset + textWidth <= right) return { x: cx + offset, y: cy, anchor: 'start' };
+  if (cx - offset - textWidth >= left) return { x: cx - offset, y: cy, anchor: 'end' };
+  const half = textWidth / 2;
+  const x = Math.min(Math.max(cx, left + half), right - half);
+  return { x, y: cy - offset - 4, anchor: 'middle' };
+}
+
+// One row of vertical-line labels, laid out left to right inside the plot:
+// each centred on its line and slid inside the plot, and one that would
+// overlap the label before it is dropped. The dashed line stays and the Key
+// features panel still lists every feature, so a narrow chart shows fewer
+// labels instead of a pile of unreadable ones. `items` are {px, text, ...}.
+export function layoutLineLabels(items, { plot, fontSize = 12, minGap = 8 }) {
+  const left = plot.x;
+  const right = plot.x + plot.width;
+  const placed = [];
+  let lastRight = -Infinity;
+  for (const item of [...items].sort((a, b) => a.px - b.px)) {
+    const width = estimateLabelWidth(item.text, fontSize);
+    if (width > plot.width) continue;
+    const half = width / 2;
+    const x = Math.min(Math.max(item.px, left + half), right - half);
+    if (x - half < lastRight + minGap) continue;
+    placed.push({ ...item, x, width });
+    lastRight = x + half;
+  }
+  return placed;
 }

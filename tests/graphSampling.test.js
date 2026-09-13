@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, interestingXs, robustYWindow, SAMPLES_PER_WINDOW } from '../src/lib/graphSampling.js';
+import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, interestingXs, robustYWindow, SAMPLES_PER_WINDOW,
+  estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from '../src/lib/graphSampling.js';
 
 // The viewer re-samples a graph that carries its expression for the window on
 // screen, so a zoomed-in cubic is a smooth curve through its exact markers,
@@ -106,4 +107,57 @@ test('annotationFeatureYs splits primary and secondary features', () => {
   const data = { annotations: { extrema: [{ x: 1, y: 5 }], openPoints: [{ x: 0, y: -1, series: 'secondary' }, { x: 0, y: 1, series: 'secondary' }], intercepts: [{ x: 2, y: 0 }] } };
   assert.deepEqual(annotationFeatureYs(data, 'primary').sort(), [0, 5]);
   assert.deepEqual(annotationFeatureYs(data, 'secondary').sort(), [-1, 1]);
+});
+
+// Label placement. Plot sizes are the ones measured in the browser: a 390px
+// phone gives a 219px plot (starting 60px in, after the y-axis); a desktop
+// card gives ~480px.
+const PHONE_PLOT = { x: 60, y: 5, width: 219, height: 200 };
+const DESKTOP_PLOT = { x: 60, y: 5, width: 480, height: 300 };
+
+test('formatLineX: multiples of π read as such, other values as decimals', () => {
+  assert.equal(formatLineX(Math.PI / 2), 'x = π/2');
+  assert.equal(formatLineX((3 * Math.PI) / 2), 'x = 3π/2');
+  assert.equal(formatLineX((-3 * Math.PI) / 2), 'x = -3π/2');
+  assert.equal(formatLineX(2), 'x = 2');
+  // What the viewer used to print: a tan(x) asymptote, and a sin(x) = 1/2 solution.
+  assert.doesNotMatch(formatLineX(4.712388980384276), /4\.71238898/);
+  assert.equal(formatLineX(Math.PI / 6), 'x = π/6');
+});
+
+test('placePointLabel: right when it fits, else left, else above and inside the plot', () => {
+  const right = PHONE_PLOT.x + PHONE_PLOT.width;
+  assert.equal(placePointLabel({ cx: 80, cy: 50, textWidth: 40, plot: PHONE_PLOT }).anchor, 'start');
+  const left = placePointLabel({ cx: 260, cy: 50, textWidth: 60, plot: PHONE_PLOT });
+  assert.equal(left.anchor, 'end');
+  assert.ok(left.x - 60 >= PHONE_PLOT.x);
+  // The |x| corner label, centred on a phone: it fits on neither side, so it
+  // goes above the point — and stays inside the plot, where it used to run
+  // 12px off the chart's right edge.
+  const w = estimateLabelWidth("f'(0) does not exist");
+  const above = placePointLabel({ cx: PHONE_PLOT.x + PHONE_PLOT.width / 2, cy: 50, textWidth: w, plot: PHONE_PLOT });
+  assert.equal(above.anchor, 'middle');
+  assert.ok(above.x - w / 2 >= PHONE_PLOT.x && above.x + w / 2 <= right);
+});
+
+test('layoutLineLabels: labels stay inside the plot and never overlap', () => {
+  const xs = [(-3 * Math.PI) / 2, -Math.PI / 2, Math.PI / 2, (3 * Math.PI) / 2];
+  const layout = (plot) => {
+    const scale = (v) => plot.x + ((v + 2 * Math.PI) / (4 * Math.PI)) * plot.width;
+    return layoutLineLabels(xs.map((a) => ({ px: scale(a), text: formatLineX(a) })), { plot });
+  };
+  for (const plot of [PHONE_PLOT, DESKTOP_PLOT]) {
+    const placed = layout(plot);
+    assert.ok(placed.length >= 1);
+    for (const l of placed) {
+      assert.ok(l.x - l.width / 2 >= plot.x - 1e-9, `${l.text} starts left of the plot`);
+      assert.ok(l.x + l.width / 2 <= plot.x + plot.width + 1e-9, `${l.text} runs past the plot`);
+    }
+    for (let i = 1; i < placed.length; i += 1) {
+      assert.ok(placed[i].x - placed[i].width / 2 >= placed[i - 1].x + placed[i - 1].width / 2, 'labels overlap');
+    }
+  }
+  // A phone drops the labels that would collide; a desktop has room for all four.
+  assert.ok(layout(PHONE_PLOT).length < xs.length);
+  assert.equal(layout(DESKTOP_PLOT).length, xs.length);
 });

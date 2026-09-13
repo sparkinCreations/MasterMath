@@ -30,6 +30,7 @@ import {
   findUndefinedRegions,
   formatRestriction,
   realOddRoots,
+  piForm,
 } from './solverUtils.js';
 import { featureWindow } from '../graphSampling.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
@@ -793,20 +794,6 @@ function featureXs(f) {
   return xs;
 }
 
-// A multiple of π/12 written as such: π/2, -3π/4, 2π. Null otherwise.
-function piForm(x) {
-  const ratio = x / Math.PI;
-  for (const d of [1, 2, 3, 4, 6, 12]) {
-    const n = ratio * d;
-    if (Math.abs(n - Math.round(n)) < 1e-9) {
-      const k = Math.round(n);
-      if (k === 0) return '0';
-      const num = Math.abs(k) === 1 ? '' : String(Math.abs(k));
-      return `${k < 0 ? '-' : ''}${num}π${d > 1 ? `/${d}` : ''}`;
-    }
-  }
-  return null;
-}
 
 // Three or more evenly spaced values → their general form, "x = π/2 + nπ" or
 // "x = nπ" (n any integer). Null when they are not evenly spaced. Listing
