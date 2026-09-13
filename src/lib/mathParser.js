@@ -66,6 +66,21 @@ function hasTopLevelComma(text) {
   return false;
 }
 
+// Is the log(A)/log(B) spanning text[start, end) a plain ratio? The base
+// cancels only when nothing binds more tightly to either log than the
+// division between them. An exponent or factorial on the denominator
+// (log(A)/log(10)^2), or an exponent or division reaching into the numerator
+// (2^log(A)/log(B), x/log(A)/log(B)), leaves one natural log uncancelled —
+// skipped whole, those were answered confidently wrong
+// (log(100)/log(10)^2 = 0.8686 instead of 2). A division AFTER the pair is
+// fine: log(A)/log(B)/log(C) is the base-B ratio over a base-10 log(C), which
+// is exactly what it means.
+function isPlainLogRatio(text, start, end) {
+  const before = text.slice(0, start).trimEnd().slice(-1);
+  const after = text.slice(end).trimStart().charAt(0);
+  return before !== '^' && before !== '/' && after !== '^' && after !== '!';
+}
+
 // A bare `log(…)` is the common logarithm — base 10 — exactly as on a
 // calculator and in every precalculus text; `ln` is the natural logarithm.
 // mathjs and Algebrite both name the NATURAL log `log`, so left alone
@@ -80,7 +95,9 @@ function hasTopLevelComma(text) {
 //   • log(A)/log(B), a change-of-base quotient: its value is base B
 //     whatever base `log` is, and it is exactly what this rule and the
 //     other-base rules produce — skipping it keeps a second parse of an
-//     already-parsed expression from wrapping the quotient again.
+//     already-parsed expression from wrapping the quotient again. Only a
+//     PLAIN ratio is skipped (isPlainLogRatio), and a bare log nested in
+//     A or B is still rewritten.
 // Must run before the other-base rules so their own log(b) is not rewritten.
 export function rewriteCommonLog(input) {
   // log|x| → log(abs(x)) first, so the bars do not hide the argument.
@@ -96,13 +113,21 @@ export function rewriteCommonLog(input) {
     const argument = text.slice(open + 1, close);
     if (hasTopLevelComma(argument)) continue; // log(x, b): explicit base
 
-    // "log(A)/log(B)": an explicit change-of-base quotient — skip it whole.
+    // "log(A)/log(B)": an explicit change-of-base quotient — left in place when
+    // it is a plain ratio. Its arguments are still rewritten: skipped verbatim,
+    // log(log(1000))/log(2) kept its inner log natural and read 2.7882 instead
+    // of 1.585. Untouched text keeps its exact spacing, so usesCommonLog does
+    // not report a quotient with no bare log in it as changed.
     const quotient = text.slice(close + 1).match(/^\s*\/\s*log\s*\(/i);
     if (quotient) {
       const baseOpen = close + 1 + quotient[0].length - 1;
       const baseClose = matchingParen(text, baseOpen);
-      if (baseClose !== -1) {
-        out += text.slice(cursor, baseClose + 1);
+      if (baseClose !== -1 && isPlainLogRatio(text, m.index, baseClose + 1)) {
+        out += text.slice(cursor, open + 1)
+          + rewriteCommonLog(argument)
+          + text.slice(close, baseOpen + 1)
+          + rewriteCommonLog(text.slice(baseOpen + 1, baseClose))
+          + ')';
         cursor = baseClose + 1;
         pattern.lastIndex = baseClose + 1;
         continue;

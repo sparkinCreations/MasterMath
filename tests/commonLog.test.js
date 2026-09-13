@@ -33,10 +33,53 @@ test('parser: ln, explicit-base forms and change-of-base quotients are left alon
 });
 
 test('parser: the rewrite is idempotent, so a re-parsed expression is unchanged', () => {
-  for (const input of ['log(100)', 'log(x) + log(x-3) = 1', 'log10(x)', 'log(x, 2)', 'log(log(x))', '2*log(x)/log(3)']) {
+  for (const input of ['log(100)', 'log(x) + log(x-3) = 1', 'log10(x)', 'log(x, 2)', 'log(log(x))', '2*log(x)/log(3)',
+    'log(log(x))/log(2)', 'log(x)/log(10)^2', '2^log(x)/log(3)', 'x/log(x)/log(2)', 'log(x)/log(2)/log(3)']) {
     const once = parseMathExpression(input);
     assert.equal(parseMathExpression(once), once, input);
   }
+});
+
+test('parser: a bare log nested inside a change-of-base quotient is still base 10', () => {
+  // The quotient used to be copied verbatim, so its inner log stayed natural
+  // while every other bare log was base 10: log(log(1000))/log(2) read 2.7882.
+  assert.equal(parseMathExpression('log(log(x))/log(2)'), 'log((log(x)/log(10)))/log(2)');
+  assert.equal(usesCommonLog('log(log(x))/log(2)'), true);
+  // Untouched text keeps its spacing, so a quotient with no bare log is unchanged.
+  assert.equal(usesCommonLog('log(x) / log(10)'), false);
+});
+
+test('parser: only a PLAIN log(A)/log(B) ratio is left in place', () => {
+  // Nothing may bind more tightly to either log than the division between them,
+  // or one natural log is left uncancelled.
+  assert.equal(parseMathExpression('log(x)/log(10)^2'), '(log(x)/log(10))/(log(10)/log(10))^2');
+  assert.equal(parseMathExpression('2^log(x)/log(3)'), '2^(log(x)/log(10))/(log(3)/log(10))');
+  assert.equal(parseMathExpression('x/log(x)/log(2)'), 'x/(log(x)/log(10))/(log(2)/log(10))');
+  // A division AFTER the pair is still a plain ratio: base-2 log over base-10 log(3).
+  assert.equal(parseMathExpression('log(x)/log(2)/log(3)'), 'log(x)/log(2)/(log(3)/log(10))');
+});
+
+test('change-of-base quotients evaluate with log read as base 10 throughout', async () => {
+  const cases = [
+    ['log(log(1000))/log(2)', '1.585'],   // log2(log10 1000) = log2(3); was 2.7882
+    ['log(100)/log(10)^2', '2'],          // was 0.8686
+    ['2^log(100)/log(3)', '8.3836'],      // 2^2 / log10(3); was 22.1539
+    ['100/log(100)/log(2)', '166.0964'],  // (100/2) / log10(2); was 31.3277
+    ['log(8)/log(2)/log(10)', '3'],       // plain ratio then a base-10 divisor
+  ];
+  for (const [input, expected] of cases) {
+    const r = await solveProblem(input, 'other');
+    assert.equal(r.status, 'solved', input);
+    assert.equal(r.answer, expected, input);
+  }
+});
+
+test('an equation in a non-plain quotient is solved with base-10 log', async () => {
+  // Read as ln(x)/ln(10)^2 = 1 before, which the solver could not finish:
+  // "No real solution found".
+  const r = await solveProblem('log(x)/log(10)^2 = 1', 'algebra');
+  assert.equal(r.status, 'solved');
+  assert.match(r.answer, /x\s*=\s*10(?!\d)/);
 });
 
 test('usesCommonLog: true only when a bare log was read as base 10', () => {

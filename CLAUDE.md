@@ -171,7 +171,7 @@ Each solver module exports a solve function that returns a consistent solution o
 
 Utilities for parsing and cleaning user input:
 - `parseMathExpression(input)`: Converts common notation to JS-friendly format (x² → x^2, 2x → 2*x, etc.)
-  - A bare `log(…)` is the **common logarithm, base 10** (`rewriteCommonLog` turns it into `log(…)/log(10)` because mathjs and Algebrite both name the *natural* log `log`); `ln` is natural; `log(x, b)`, `log_b(x)`, `log10`, `log2` name their base. `usesCommonLog` tells `finalizeResult` to add `COMMON_LOG_TIP` so the user sees the convention.
+  - A bare `log(…)` is the **common logarithm, base 10** (`rewriteCommonLog` turns it into `log(…)/log(10)` because mathjs and Algebrite both name the *natural* log `log`); `ln` is natural; `log(x, b)`, `log_b(x)`, `log10`, `log2` name their base. `usesCommonLog` tells `finalizeResult` to add `COMMON_LOG_TIP` so the user sees the convention. A typed `log(A)/log(B)` is left in place only as a *plain* ratio — nothing binding more tightly to either log than the division between them (`isPlainLogRatio`; `log(A)/log(10)^2`, `2^log(A)/log(B)` and `x/log(A)/log(B)` are read log by log) — and a bare log nested inside it is still rewritten.
 - `extractFunctionFromProblem(text)`: Extracts math expression from natural language
 - `extractVariable(expr)`: Finds main variable (usually x)
 - `isEquation(expr)`: Checks if expression is an equation (contains =)
