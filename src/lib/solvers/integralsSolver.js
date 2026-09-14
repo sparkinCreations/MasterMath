@@ -145,7 +145,18 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       throw new Error('Algebrite returned a complex-valued antiderivative');
     }
 
-    const tips = [
+    // The error function. Algebrite answers ∫e^(−x²) dx with erf, which is
+    // right — but the per-term path labelled it "Exponential rule" and the
+    // tips talked about the power rule. A student meets a function they have
+    // never seen with no explanation. Say what erf is and why it appears.
+    const usesErf = /\berf\(/.test(integral);
+    if (usesErf) steps = buildErfSteps(expression, integral, variable);
+
+    const tips = usesErf ? [
+      'erf is a "special function": a named antiderivative, the way ln is the name for ∫1/x dx. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.',
+      'Whole-line and half-line definite versions do have closed forms: ∫₋∞^∞ e^(−x²) dx = √π, and ∫₀^∞ e^(−x²) dx = √π/2.',
+      'Always add the constant of integration (+C) for an indefinite integral.',
+    ] : [
       anyByParts
         ? 'Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).'
         : anySubstitution
@@ -157,7 +168,11 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       'Constant factors pull out front: ∫c·f dx = c·∫f dx.',
     ];
 
-    const common_mistakes = [
+    const common_mistakes = usesErf ? [
+      'Trying u = −x²: then du = −2x dx, and there is no x factor in the integrand to absorb it — the substitution does not close.',
+      'Reading e^(−x²) as (e^(−x))² — the square is on x, not on e^(−x). (e^(−x))² = e^(−2x), which IS elementary.',
+      'Forgetting the constant of integration (+C).',
+    ] : [
       'Forgetting the constant of integration (+C).',
       anyByParts
         ? 'Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.'
@@ -171,7 +186,7 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
 
     return {
       steps,
-      answer: `∫(${beautify(expression)}) d${variable} = ${lnify(integral)} + C`,
+      answer: `∫(${beautify(expression)}) d${variable} = ${usesErf ? prettyErf(integral) : lnify(integral)} + C`,
       tips,
       common_mistakes,
       graph: generateIntegralGraph(expression, integral, variable),
@@ -207,6 +222,34 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       tips: ['Use ^ for powers and * for products (e.g., x^2 * sin(x)).'],
     });
   }
+}
+
+// Algebrite writes √π as pi^(1/2) and the Gaussian antiderivative as
+// 1/2*pi^(1/2)*erf(x). Present it the way a table does: (√π/2)·erf(x).
+function prettyErf(integralResult) {
+  return lnify(integralResult)
+    .replace(/pi\^\(1\/2\)/g, '√π')
+    .replace(/(\d+)\/(\d+)\*√π/g, '($1√π/$2)')
+    .replace(/\(1√π\/(\d+)\)/g, '(√π/$1)')
+    .replace(/\)\*erf/g, ')·erf');
+}
+
+// Steps for an antiderivative that involves the error function: say plainly
+// that no elementary antiderivative exists, define erf, and show that the
+// stated answer differentiates back to the integrand. The mathematics is
+// Algebrite's; the explanation is the whole point.
+function buildErfSteps(expression, integral, variable) {
+  const v = variable;
+  const shown = beautify(expression);
+  return [
+    `Identify the function to integrate: ∫(${shown}) d${v}.`,
+    `This integrand has no elementary antiderivative: no finite combination of polynomials, roots, exponentials, logarithms and trig functions differentiates to a Gaussian e^(−k${v}²) (Liouville's theorem). So no substitution or integration by parts will finish it — u = the exponent would need a factor of ${v} that is not there.`,
+    `Calculus handles this by NAMING the antiderivative. The error function is defined as erf(${v}) = (2/√π)·∫₀^${v} e^(−t²) dt, so by the Fundamental Theorem of Calculus d/d${v} erf(${v}) = (2/√π)·e^(−${v}²).`,
+    `Rearranging that derivative: e^(−${v}²) = (√π/2)·d/d${v} erf(${v}), so ∫e^(−${v}²) d${v} = (√π/2)·erf(${v}) + C. Constant factors and a scaled argument (e^(−k${v}²)) carry through the same way.`,
+    `For this integrand: ∫(${shown}) d${v} = ${prettyErf(integral)}.`,
+    `Check by differentiating: d/d${v}[${prettyErf(integral)}] = ${shown} ✓ (verified symbolically).`,
+    `Add the constant of integration: ∫(${shown}) d${v} = ${prettyErf(integral)} + C.`,
+  ];
 }
 
 // Algebrite writes the natural log as `log(x)` and omits the absolute value.

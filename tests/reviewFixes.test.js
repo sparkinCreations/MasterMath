@@ -112,9 +112,12 @@ test('arithmetic steps show the expression after every operation, in PEMDAS orde
   assert.ok(m.steps.some((s) => /apply the sign afterwards: -\(4\) = -4/.test(s)));
   const d = await solveProblem('8/2*4', 'other');
   assert.ok(d.steps.some((s) => /left to right: 8 \/ 2 = 4  →  4 \* 4/.test(s)));
+  // A chain of fractions is exact fraction work (v1.37.0), not PEMDAS on decimals.
   const f = await solveProblem('1/3 + 1/6', 'other');
   assert.equal(f.answer, '1/2 (= 0.5)');
-  assert.ok(f.steps.some((s) => /1 \/ 3 = 1\/3 \(≈ 0\.3333\)/.test(s)));
+  assert.ok(f.steps.some((s) => /1\/3 = 2\/6/.test(s)));
+  assert.ok(f.steps.some((s) => /2\/6 \+ 1\/6 = \(2 \+ 1\)\/6 = 3\/6/.test(s)));
+  assert.ok(!f.steps.some((s) => /0\.3333/.test(s)));
 });
 
 test('cos(x) = −1/2: the second angle is named on [0, 2π), not called "within one period"', async () => {

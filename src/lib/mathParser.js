@@ -355,6 +355,53 @@ export function extractVariable(expression) {
   return match ? match[0].toLowerCase() : 'x';
 }
 
+// An operand of a word-arithmetic phrase, wrapped in parentheses when it has
+// an operator of its own so precedence survives: "quotient of 1/2 and 3/4"
+// must become (1/2)/(3/4), not 1/2/3/4.
+function operand(text) {
+  const t = text.trim();
+  return /[+\-*/^]/.test(t) && !/^\(.*\)$/.test(t) ? `(${t})` : t;
+}
+
+// Rewrite spoken arithmetic into symbols. Each phrase form is anchored to its
+// own keywords, and the operands are whatever lies between them, so the
+// rewrite never touches an input that has no such phrase.
+export function rewriteWordArithmetic(input) {
+  let text = input;
+  const A = '(.+?)';
+  const B = '(.+)';
+  const rules = [
+    // "add A and B", "add A to B"
+    [new RegExp(`\\badd\\s+${A}\\s+(?:and|to)\\s+${B}$`, 'i'), (a, b) => `${operand(a)} + ${operand(b)}`],
+    // "subtract A from B" → B − A
+    [new RegExp(`\\bsubtract\\s+${A}\\s+from\\s+${B}$`, 'i'), (a, b) => `${operand(b)} - ${operand(a)}`],
+    // "multiply A by B", "multiply A and B"
+    [new RegExp(`\\bmultiply\\s+${A}\\s+(?:by|and)\\s+${B}$`, 'i'), (a, b) => `${operand(a)} * ${operand(b)}`],
+    // "divide A by B"
+    [new RegExp(`\\bdivide\\s+${A}\\s+by\\s+${B}$`, 'i'), (a, b) => `${operand(a)} / ${operand(b)}`],
+    // "the sum of A and B", "the product of A and B", "the difference of/between A and B", "the quotient of A and B"
+    [new RegExp(`\\b(?:the\\s+)?sum\\s+of\\s+${A}\\s+and\\s+${B}$`, 'i'), (a, b) => `${operand(a)} + ${operand(b)}`],
+    [new RegExp(`\\b(?:the\\s+)?difference\\s+(?:of|between)\\s+${A}\\s+and\\s+${B}$`, 'i'), (a, b) => `${operand(a)} - ${operand(b)}`],
+    [new RegExp(`\\b(?:the\\s+)?product\\s+of\\s+${A}\\s+and\\s+${B}$`, 'i'), (a, b) => `${operand(a)} * ${operand(b)}`],
+    [new RegExp(`\\b(?:the\\s+)?quotient\\s+of\\s+${A}\\s+and\\s+${B}$`, 'i'), (a, b) => `${operand(a)} / ${operand(b)}`],
+  ];
+  for (const [pattern, build] of rules) {
+    const m = text.match(pattern);
+    if (m) {
+      text = text.slice(0, m.index) + build(m[1], m[2]);
+      break;
+    }
+  }
+  // Infix words: "5 plus 3", "9 minus 2", "5 times 4", "8 divided by 2",
+  // "3 multiplied by 4". Applied wherever they occur.
+  text = text
+    .replace(/\s+plus\s+/gi, ' + ')
+    .replace(/\s+minus\s+/gi, ' - ')
+    .replace(/\s+(?:times|multiplied\s+by)\s+/gi, ' * ')
+    .replace(/\s+divided\s+by\s+/gi, ' / ');
+  return text;
+}
+
 export function extractFunctionFromProblem(problemText) {
   // Extract mathematical expression from natural language
   // Examples:
@@ -370,6 +417,11 @@ export function extractFunctionFromProblem(problemText) {
   // A trailing parenthetical instruction — "(solve for y)", "(find x)" — is
   // routing information, not part of the expression.
   text = text.replace(/\s*\(\s*(?:solve|find|for|in terms of)\b[^)]*\)\s*$/i, '').trim();
+  // Word arithmetic — "add 1/3 and 1/7", "the sum of 2 and 3", "5 times 4",
+  // "subtract 2 from 9", "divide 1/2 by 3/4" — becomes its symbolic form
+  // before the verb patterns run. Before this, "add 1/3 and 1/7" reached the
+  // parser as "add1/3and1/7" and failed with "Undefined symbol add1".
+  text = rewriteWordArithmetic(text);
 
   // Patterns are ordered from most specific to least specific.
   // More specific patterns (like "find the derivative of") must come before

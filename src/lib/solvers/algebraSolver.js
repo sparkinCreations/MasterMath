@@ -31,6 +31,55 @@ const COMMON_MISTAKES = [
   'Sign errors when moving a term across the equals sign.',
 ];
 
+// mathsteps reports "Factor using the sum-product method: (x - 2)(x - 3) = 0"
+// without showing how −2 and −3 were found. For a monic quadratic with
+// integer coefficients, insert the search a student is expected to do: list
+// the factor pairs of c, find the pair that sums to b, and check by
+// expanding. Anything else (non-monic, non-integer) is left as mathsteps
+// wrote it — never a fabricated search.
+async function explainSumProduct(steps, expression, variable) {
+  const index = steps.findIndex((s) => /^Factor using the sum-product method: /.test(s));
+  if (index < 0) return steps;
+  const v = variable;
+  // The quadratic being factored: the previous step's equation, or the input.
+  const source = index > 0 ? steps[index - 1].replace(/^[^:]*: /, '') : expression;
+  const [lhs, rhs = '0'] = source.split('=').map((t) => t.trim());
+  if (!lhs || rhs === undefined) return steps;
+  try {
+    const Algebrite = await loadAlgebrite();
+    const poly = `(${parseMathExpression(lhs)}) - (${parseMathExpression(rhs)})`;
+    const coeff = (k) => {
+      const out = String(Algebrite.run(`coeff(${poly}, ${v}, ${k})`)).trim();
+      return /^-?\d+$/.test(out) ? Number(out) : null;
+    };
+    const a = coeff(2);
+    const b = coeff(1);
+    const c = coeff(0);
+    if (a !== 1 || b === null || c === null || c === 0) return steps;
+    const pairs = [];
+    for (let p = 1; p * p <= Math.abs(c); p += 1) {
+      if (c % p !== 0) continue;
+      const q = c / p;
+      pairs.push([p, q]);
+      pairs.push([-p, -q]);
+    }
+    if (pairs.length > 12) return steps;
+    const hit = pairs.find(([p, q]) => p + q === b);
+    if (!hit) return steps;
+    const sign = (n) => (n < 0 ? `(${n})` : String(n));
+    const term = (n) => (n < 0 ? `${v} - ${-n}` : `${v} + ${n}`);
+    const quad = beautify(`${v}^2 ${b < 0 ? '-' : '+'} ${Math.abs(b) === 1 ? '' : Math.abs(b)}${v} ${c < 0 ? '-' : '+'} ${Math.abs(c)}`).replace(/\s+/g, ' ');
+    const inserted = [
+      `To factor ${quad}, look for two numbers whose product is ${c} (the constant term) and whose sum is ${b} (the coefficient of ${v}).`,
+      `Factor pairs of ${c}: ${pairs.map(([p, q]) => `${sign(p)}·${sign(q)}`).join(', ')}. Their sums: ${pairs.map(([p, q]) => p + q).join(', ')} — the pair ${hit[0]} and ${hit[1]} sums to ${b}.`,
+      `So ${quad} = (${term(hit[0])})(${term(hit[1])}). Check by expanding: ${v}·${v} + ${sign(hit[1])}${v} + ${sign(hit[0])}${v} + ${sign(hit[0])}·${sign(hit[1])} = ${quad}. ✓`,
+    ];
+    return [...steps.slice(0, index), ...inserted, ...steps.slice(index)];
+  } catch {
+    return steps;
+  }
+}
+
 export async function solveAlgebra(expression, options = {}) {
   try {
     // Two-equation systems are handled upstream (api.js routes them to the
@@ -159,7 +208,7 @@ async function solveEquation(expression, options = {}) {
       // exact Algebrite path runs instead. (Found September 2026.)
       const balanced = normalized.numericSolutions.every((x) => satisfiesEquation(expression, variable, x));
       if (balanced) {
-        steps = parsed.steps;
+        steps = await explainSumProduct(parsed.steps, expression, variable);
         answer = normalized.answer;
         solutions = normalized.numericSolutions;
         // mathsteps can hand back a raw roots array on the last step; make the

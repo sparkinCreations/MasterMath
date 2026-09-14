@@ -1185,3 +1185,206 @@ test('inequalities: "and" intersects, "or" unites, and the trivial outcomes are 
   const single = await solveProblem('x^2 - 4 > 0', 'algebra');
   assert.equal(single.answer, 'x < -2  or  x > 2');
 });
+
+// ---------------------------------------------------------------------------
+// September 2026 teaching-quality review (v1.35.0). The mathematics was right;
+// the WORK shown was not always the method a student should learn.
+// ---------------------------------------------------------------------------
+
+test('fractions: sums and differences are taught by common denominators, never via decimals', async () => {
+  for (const input of ['1/3 + 1/7', '(1/3) + (1/7)', 'add 1/3 and 1/7', 'what is the sum of 1/3 and 1/7?']) {
+    const r = await solveProblem(input, 'other');
+    assert.equal(r.answer, '10/21 (= 0.4762)', input);
+    const work = r.steps.join('\n');
+    assert.match(work, /least common denominator is 21/, input);
+    assert.match(work, /1\/3 = 7\/21/, input);
+    assert.match(work, /7\/21 \+ 3\/21 = \(7 \+ 3\)\/21 = 10\/21/, input);
+    assert.doesNotMatch(work, /0\.3333|0\.1429|2381/, `${input}: rounded decimals must never appear in exact fraction work`);
+  }
+  // Reduction is shown, whole numbers are named, and a difference keeps its sign.
+  const reduce = await solveProblem('1/3+1/6', 'other');
+  assert.equal(reduce.answer, '1/2 (= 0.5)');
+  assert.match(reduce.steps.join('\n'), /Reduce by the common factor 3: 3\/6 = 1\/2/);
+  const mixed = await solveProblem('2 - 1/4 + 1/2', 'other');
+  assert.match(mixed.steps.join('\n'), /2 = 8\/4/);
+  assert.match(mixed.steps.join('\n'), /\(8 - 1 \+ 2\)\/4 = 9\/4/);
+  const negative = await solveProblem('-1/3 + 1/7', 'other');
+  assert.match(negative.steps.join('\n'), /\(-7 \+ 3\)\/21 = -4\/21/);
+  assert.equal(negative.answer, '-4/21 (= -0.1905)');
+  // Fraction-relevant guidance, not PEMDAS boilerplate.
+  assert.match(reduce.tips.join('\n'), /common denominator/);
+  assert.match(reduce.common_mistakes.join('\n'), /1\/3 \+ 1\/7 is not 2\/10/);
+});
+
+test('fractions: products multiply across and quotients use the reciprocal', async () => {
+  const product = await solveProblem('multiply 2/3 by 3/4', 'other');
+  assert.equal(product.answer, '1/2 (= 0.5)');
+  assert.match(product.steps.join('\n'), /\(2 × 3\)\/\(3 × 4\) = 6\/12/);
+  const quotient = await solveProblem('(1/2)/(3/4)', 'other');
+  assert.equal(quotient.answer, '2/3 (= 0.6667)');
+  assert.match(quotient.steps.join('\n'), /reciprocal: 1\/2 ÷ 3\/4 = 1\/2 × 4\/3/);
+  // A parenthesised group that works out to a fraction is shown as one.
+  const grouped = await solveProblem('(1/3 + 1/7)*21', 'other');
+  assert.equal(grouped.answer, '10');
+  assert.match(grouped.steps[1], /\(1\/3\+1\/7\) = 10\/21/);
+  assert.doesNotMatch(grouped.steps.join('\n'), /0\.476/);
+});
+
+test('fractions: the PEMDAS narration still runs for everything else', async () => {
+  const r = await solveProblem('(5 + 3) * 4 - 2^3', 'other');
+  assert.equal(r.answer, '24');
+  assert.match(r.steps.join('\n'), /Exponents first: 2 \^ 3 = 8/);
+  assert.equal((await solveProblem('0.1+0.2', 'other')).answer, '3/10 (= 0.3)');
+});
+
+test('linear inequalities take the two-line method, and say when the sign reverses', async () => {
+  const r = await solveProblem('-2x > 4', 'algebra');
+  assert.equal(r.answer, 'x < -2');
+  assert.equal(r.verified, true);
+  assert.ok(r.steps.length <= 5, `expected a short solution, got ${r.steps.length} steps`);
+  assert.match(r.steps.join('\n'), /REVERSES the inequality, so > becomes </);
+  assert.doesNotMatch(r.steps.join('\n'), /Test the sign/);
+  assert.match(r.tips.join('\n'), /negative number reverses/);
+
+  const positive = await solveProblem('2x + 3 < 7', 'algebra');
+  assert.equal(positive.answer, 'x < 2');
+  assert.match(positive.steps.join('\n'), /2x < 4/);
+  assert.match(positive.steps.join('\n'), /direction stays the same/);
+
+  const bothSides = await solveProblem('3x + 2 > 5x - 4', 'algebra');
+  assert.equal(bothSides.answer, 'x < 3');
+  assert.match(bothSides.steps.join('\n'), /-2x > -6/);
+
+  const fractional = await solveProblem('x/2 + 1 <= 3', 'algebra');
+  assert.equal(fractional.answer, 'x ≤ 4');
+  assert.match(fractional.steps.join('\n'), /Multiply both sides by 2, the reciprocal of 1\/2/);
+
+  // A chain of two linear halves still combines.
+  assert.equal((await solveProblem('-1 < 2x + 1 <= 5', 'algebra')).answer, '-1 < x ≤ 2');
+  // Non-linear inequalities keep the sign chart.
+  const quadratic = await solveProblem('x^2 - 4 > 0', 'algebra');
+  assert.equal(quadratic.answer, 'x < -2  or  x > 2');
+  assert.match(quadratic.steps.join('\n'), /Test the sign/);
+  const rational = await solveProblem('(x-1)/(x+2) >= 0', 'algebra');
+  assert.equal(rational.answer, 'x < -2  or  x ≥ 1');
+  assert.match(rational.steps.join('\n'), /Test the sign/);
+});
+
+test('∫e^(−x²) dx explains the error function instead of calling it a rule', async () => {
+  const r = await solveProblem('∫e^(-x^2) dx', 'integrals');
+  assert.equal(r.status, 'solved');
+  assert.equal(r.answer, '∫(e^(-x^2)) dx = (√π/2)·erf(x) + C');
+  const work = r.steps.join('\n');
+  assert.match(work, /no elementary antiderivative/);
+  assert.match(work, /erf\(x\) = \(2\/√π\)·∫₀\^x e\^\(−t²\) dt/);
+  assert.match(work, /Check by differentiating/);
+  assert.doesNotMatch(work, /Exponential rule|u-substitution|pi\^\(1\/2\)/);
+  assert.match(r.tips.join('\n'), /special function/);
+  assert.doesNotMatch(r.tips.join('\n'), /Power rule/);
+  assert.match(r.common_mistakes.join('\n'), /u = −x²/);
+  // A constant factor and a scaled argument carry through.
+  assert.equal((await solveProblem('∫ 3e^(-x^2) dx', 'integrals')).answer, '∫(3e^(-x^2)) dx = (3√π/2)·erf(x) + C');
+  assert.equal((await solveProblem('∫ e^(-4x^2) dx', 'integrals')).answer, '∫(e^(-4x^2)) dx = (√π/4)·erf(2x) + C');
+  // Elementary neighbours are untouched.
+  assert.match((await solveProblem('∫ x e^(-x^2) dx', 'integrals')).answer, /-1\/2\*exp\(-x\^2\) \+ C$/);
+  assert.match((await solveProblem('∫ e^x dx', 'integrals')).steps[1], /Exponential rule/);
+});
+
+test('word arithmetic is read as arithmetic: add / subtract from / times / divided by / sum of', async () => {
+  const cases = [
+    ['add 1/3 and 1/7', '10/21 (= 0.4762)'],
+    ['add 2 to 3', '5'],
+    ['subtract 2 from 9', '7'],
+    ['multiply 2/3 by 3/4', '1/2 (= 0.5)'],
+    ['divide 1/2 by 3/4', '2/3 (= 0.6667)'],
+    ['the quotient of 1/2 and 3/4', '2/3 (= 0.6667)'],
+    ['calculate the product of 5 and 6', '30'],
+    ['the difference between 10 and 4', '6'],
+    ['what is 5 plus 3', '8'],
+    ['5 times 4', '20'],
+    ['8 divided by 2', '4'],
+    ['9 minus 2', '7'],
+  ];
+  for (const [input, expected] of cases) {
+    const r = await solveProblem(input, 'other');
+    assert.equal(r.status, 'solved', `${input}: ${r.answer}`);
+    assert.equal(r.answer, expected, input);
+  }
+  // The rewrite is topic-neutral: "add 2x and 3x" is algebra.
+  assert.equal((await solveProblem('add 2x and 3x', 'algebra')).answer, '5x');
+});
+
+test('sin(1) says it is reading radians, the way sin(45) says it is reading degrees', async () => {
+  const radians = await solveProblem('sin(1)', 'trigonometry');
+  assert.equal(radians.answer, '0.8415');
+  assert.match(radians.steps.join('\n'), /Interpreting 1 as radians: 1 rad = 1 × 180\/π ≈ 57\.2958°/);
+  const half = await solveProblem('sin(0.5)', 'trigonometry');
+  assert.match(half.steps.join('\n'), /Interpreting 0\.5 as radians/);
+  // The degrees branch, an explicit π, and inverse trig are untouched.
+  const degrees = await solveProblem('sin(45)', 'trigonometry');
+  assert.match(degrees.steps.join('\n'), /Detected input as degrees/);
+  assert.doesNotMatch(degrees.steps.join('\n'), /Interpreting 45 as radians/);
+  assert.doesNotMatch((await solveProblem('sin(pi/6)', 'trigonometry')).steps.join('\n'), /Interpreting/);
+  assert.doesNotMatch((await solveProblem('arcsin(0.5)', 'trigonometry')).steps.join('\n'), /Interpreting/);
+});
+
+test('sum-product factoring shows the search for the pair and checks by expanding', async () => {
+  const r = await solveProblem('x^2 - 5x + 6 = 0', 'algebra');
+  assert.equal(r.answer, 'x = 2  or  x = 3');
+  const work = r.steps.join('\n');
+  assert.match(work, /two numbers whose product is 6 \(the constant term\) and whose sum is -5/);
+  assert.match(work, /Factor pairs of 6: 1·6, \(-1\)·\(-6\), 2·3, \(-2\)·\(-3\)/);
+  assert.match(work, /the pair -2 and -3 sums to -5/);
+  assert.match(work, /Check by expanding: .* = x\^2 - 5x \+ 6\. ✓/);
+  // The search precedes mathsteps' own factor line, which is kept.
+  const searchAt = r.steps.findIndex((s) => /look for two numbers/.test(s));
+  const factorAt = r.steps.findIndex((s) => /^Factor using the sum-product method/.test(s));
+  assert.ok(searchAt >= 0 && factorAt > searchAt);
+  // Mixed signs.
+  assert.match((await solveProblem('x^2 - x - 6 = 0', 'algebra')).steps.join('\n'), /the pair 2 and -3 sums to -1/);
+  // A non-monic quadratic gets no fabricated search.
+  const nonMonic = await solveProblem('2x^2 - 5x + 2 = 0', 'algebra');
+  assert.doesNotMatch(nonMonic.steps.join('\n'), /look for two numbers/);
+  assert.match(nonMonic.answer, /x = 1 \/ 2  or  x = 2/);
+});
+
+test('limit cancellation explains the excluded point and the hole', async () => {
+  const r = await solveProblem('lim x->1 (x^2-1)/(x-1)', 'limits');
+  assert.match(r.answer, /= 2$/);
+  const work = r.steps.join('\n');
+  assert.match(work, /Cancelling is allowed only for x ≠ 1/);
+  assert.match(work, /a limit asks what the function approaches for x NEAR 1, never at it/);
+  assert.match(work, /a single hole at \(1, 2\) — a removable discontinuity/);
+});
+
+test('derivative tips and mistakes are chosen from the rules the solution used', async () => {
+  const poly = await solveProblem('x^3 + 2x', 'derivatives');
+  assert.match(poly.tips.join('\n'), /Power rule/);
+  assert.doesNotMatch(poly.tips.join('\n'), /product, quotient, or chain rule/);
+  assert.doesNotMatch(poly.common_mistakes.join('\n'), /chain rule|inside function/);
+
+  const chain = await solveProblem('sin(x^2)', 'derivatives');
+  assert.match(chain.tips.join('\n'), /Chain rule/);
+  assert.match(chain.common_mistakes.join('\n'), /derivative of the inside function/);
+  assert.doesNotMatch(chain.tips.join('\n'), /Power rule/);
+
+  const product = await solveProblem('x*e^x', 'derivatives');
+  assert.match(product.tips.join('\n'), /Product rule/);
+  const quotient = await solveProblem('ln(x)/x', 'derivatives');
+  assert.match(quotient.tips.join('\n'), /Quotient rule/);
+  const trig = await solveProblem('cos(x)', 'derivatives');
+  assert.match(trig.common_mistakes.join('\n'), /minus sign in d\/dx cos\(x\)/);
+  // Every derivative still has at least one tip and one mistake.
+  for (const input of ['7', 'x^x', '1/x^2 + 5', 'e^(3x)', 'ln(x)']) {
+    const r = await solveProblem(input, 'derivatives');
+    assert.ok(r.tips.length >= 1 && r.common_mistakes.length >= 1, input);
+  }
+});
+
+test('u-substitution substitutes the whole du factor instead of isolating dx', async () => {
+  const r = await solveProblem('∫2x cos(x^2) dx', 'integrals');
+  assert.match(r.answer, /sin\(x\^2\) \+ C$/);
+  const work = r.steps.join('\n');
+  assert.match(work, /Let u = x\^2\. Then du = 2x dx — so wherever 2x dx appears in the integrand it becomes du/);
+  assert.doesNotMatch(work, /dx = du\//);
+});

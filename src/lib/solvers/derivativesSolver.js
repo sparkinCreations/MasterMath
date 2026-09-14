@@ -146,17 +146,11 @@ export async function solveDerivative(expression, options = {}) {
       }
     }
 
-    const tips = [
-      `Power rule: d/d${variable}(${variable}^n) = n·${variable}^(n-1)`,
-      'The derivative of a constant is 0, and constant factors carry straight through.',
-      'For products, quotients, and nested functions, reach for the product, quotient, or chain rule.',
-    ];
-
-    const common_mistakes = [
-      'Dropping a constant factor when differentiating terms like 3x.',
-      'Forgetting the inner derivative when using the chain rule.',
-      'Sign slips when differentiating negative or subtracted terms.',
-    ];
+    // Tips and mistakes are chosen from the rules this derivative actually
+    // used. A plain polynomial used to be served chain-rule warnings and a
+    // pointer to the product and quotient rules that never appeared
+    // (September 2026 teaching-quality review).
+    const { tips, common_mistakes } = derivativeGuidance(expression, variable);
 
     if (evalPoint) tips.unshift(`f'(a) is a number — the slope at one point — while f'(${variable}) is a function giving the slope everywhere.`);
 
@@ -181,6 +175,65 @@ export async function solveDerivative(expression, options = {}) {
       tips: ['Use ^ for powers and * for products (e.g., x^2 * sin(x)).'],
     });
   }
+}
+
+// Guidance matched to the rules the term-by-term walkthrough used.
+function derivativeGuidance(expression, variable) {
+  const v = variable;
+  let labels;
+  try {
+    labels = splitTerms(expression).map(({ signed }) => classifyDerivativeRule(signed, v).label);
+  } catch {
+    labels = [];
+  }
+  const used = (word) => labels.some((l) => l.includes(word));
+  const tips = [];
+  const mistakes = [];
+
+  if (used('Power') || labels.length === 0) {
+    tips.push(`Power rule: d/d${v}(${v}^n) = n·${v}^(n-1) — bring the exponent down as a factor, then lower it by one.`);
+    mistakes.push('Forgetting to lower the exponent by one after bringing it down as a factor.');
+  }
+  if (used('negative exponent')) {
+    tips.push(`Rewrite reciprocals as powers before differentiating: 1/${v}^n = ${v}^(-n), so the power rule applies.`);
+    mistakes.push(`Lowering a negative exponent the wrong way: d/d${v}(${v}^-2) = -2${v}^-3, not -2${v}^-1.`);
+  }
+  if (used('Chain')) {
+    tips.push(`Chain rule: d/d${v} f(g(${v})) = f′(g(${v}))·g′(${v}) — differentiate the outside function, keep the inside as it is, then multiply by the inside's derivative.`);
+    mistakes.push('Forgetting to multiply by the derivative of the inside function.');
+  }
+  if (used('Product')) {
+    tips.push('Product rule: (u·w)′ = u′·w + u·w′ — the derivative of a product is NOT the product of the derivatives.');
+    mistakes.push('Differentiating each factor and multiplying the results — (u·w)′ is not u′·w′.');
+  }
+  if (used('Quotient')) {
+    tips.push('Quotient rule: (u/w)′ = (u′·w − u·w′)/w² — "low d-high minus high d-low, over low squared".');
+    mistakes.push('Swapping the order in the numerator of the quotient rule; the subtraction makes the order matter.');
+  }
+  if (used('Exponential')) {
+    tips.push(`d/d${v} e^${v} = e^${v} (the exponential is its own derivative), and d/d${v} a^${v} = a^${v}·ln(a) for any other base.`);
+    mistakes.push(`Treating e^${v} like a power and writing ${v}·e^(${v}-1) — the power rule is for a variable BASE, not a variable exponent.`);
+  }
+  if (used('Logarithmic rule')) {
+    tips.push(`d/d${v} ln(${v}) = 1/${v}, valid on the domain ${v} > 0; for log base b, divide by ln(b).`);
+    mistakes.push(`Writing d/d${v} ln(${v}) as 1/ln(${v}) or as ln(${v})/${v}.`);
+  }
+  if (used('Logarithmic differentiation')) {
+    tips.push(`For ${v}^${v}-type terms, take ln of both sides first: ln(y) = ${v}·ln(${v}), differentiate implicitly, then multiply back by y.`);
+    mistakes.push('Applying the power rule or the exponential rule to a term where BOTH the base and the exponent contain the variable.');
+  }
+  if (used('Trig')) {
+    tips.push(`d/d${v} sin(${v}) = cos(${v}), d/d${v} cos(${v}) = −sin(${v}), d/d${v} tan(${v}) = sec²(${v}) — the trig derivatives are worth memorising as a set.`);
+    mistakes.push(`Losing the minus sign in d/d${v} cos(${v}) = −sin(${v}).`);
+  }
+  if (labels.some((l) => l === 'Constant rule') || labels.length > 1) {
+    tips.push('The derivative of a constant is 0, and constant factors carry straight through.');
+    mistakes.push('Dropping a constant factor when differentiating terms like 3x, or keeping a lone constant instead of sending it to 0.');
+  }
+  if (labels.length > 1) {
+    mistakes.push('Sign slips when differentiating negative or subtracted terms.');
+  }
+  return { tips: tips.slice(0, 4), common_mistakes: mistakes.slice(0, 4) };
 }
 
 /**

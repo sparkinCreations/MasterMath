@@ -172,7 +172,7 @@ export function integrateBySubstitution(term, variable, Algebrite) {
 
     const steps = [
       `The integrand contains ${beautify(u)} inside a function, and its derivative d/d${v}(${beautify(u)}) = ${beautify(du)} appears as a factor (up to a constant) — the shape g′(${v})·h(g(${v})) that u-substitution is made for.`,
-      `Let u = ${beautify(u)}. Then du = ${beautify(du)} d${v}, so d${v} = du/(${beautify(du)}).`,
+      `Let u = ${beautify(u)}. Then du = ${beautify(du)} d${v} — so wherever ${beautify(du)} d${v} appears in the integrand it becomes du, and a constant multiple of it becomes the same multiple of du.`,
       `Rewrite the integrand in terms of u: ∫(${beautify(term)}) d${v} = ∫(${beautify(inU)}) du.`,
       `Integrate in u: ∫(${beautify(inU)}) du = ${beautify(H)}.`,
       `Substitute back u = ${beautify(u)}: ${beautify(back)}.`,

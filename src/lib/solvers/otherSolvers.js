@@ -613,7 +613,8 @@ function tryFactorAndCancel(Algebrite, func, variable, target) {
     'Direct substitution gives 0/0, so factor the numerator and the denominator.',
     `Numerator: ${beautify(factoredNum)}.  Denominator: ${beautify(factoredDen)}.`,
     `Both contain the factor (${factorShown}), which is what makes the 0/0. Cancel it: ${beautify(cancelled)}.`,
-    `Now substitute ${v} = ${formatNumber(target)}: the limit is ${shown}.`,
+    `Cancelling is allowed only for ${v} ≠ ${formatNumber(target)}: at ${v} = ${formatNumber(target)} the factor is 0, and 0/0 has no value. That is fine here, because a limit asks what the function approaches for ${v} NEAR ${formatNumber(target)}, never at it — and away from ${formatNumber(target)} the original and ${beautify(cancelled)} are the same function.`,
+    `Now substitute ${v} = ${formatNumber(target)} into the simplified form: the limit is ${shown}. On a graph the original is the curve ${beautify(cancelled)} with a single hole at (${formatNumber(target)}, ${shown}) — a removable discontinuity.`,
   ];
   return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'factor and cancel + numeric check' };
 }
@@ -1407,6 +1408,11 @@ export async function solveTrigonometry(expression, settingsOverride) {
       result = radianResult;
       if (angleUnit === 'radians' && autoDegrees) {
         steps.push(`Angle unit is set to radians (Settings), so ${argValue} is treated as ${argValue} radians.`);
+      } else if (!inverseWhole && !hasRadians && argValue !== null) {
+        // Say which unit was assumed EVERY time a plain number is read as an
+        // angle. sin(45) announced "detected as degrees" while sin(1) went
+        // silently to radians (September 2026 teaching-quality review).
+        steps.push(`Interpreting ${argValue} as radians: ${argValue} rad = ${argValue} × 180/π ≈ ${formatNumber(argValue * 180 / Math.PI)}°. For degrees, write ${argValue}° or set the angle unit to degrees in Settings.`);
       }
     }
 

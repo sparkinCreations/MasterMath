@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-09-14
+
+Fixes from a teaching-quality review of 23 problems: the mathematics was
+right, but the work shown was not always the method a student should learn.
+
+### Added
+
+- **Word arithmetic.** "add 1/3 and 1/7", "subtract 2 from 9", "the quotient
+  of 1/2 and 3/4", "5 times 4", "8 divided by 2", "what is the sum of 2 and
+  3" are read as the operations they name. Before, "add 1/3 and 1/7" reached
+  the parser as `add1/3and1/7` and failed with "Undefined symbol add1".
+  Operands that carry their own operator are parenthesised, so the quotient
+  of two fractions is (1/2)/(3/4), not 1/2/3/4.
+
+### Changed
+
+- **Fractions are taught exactly.** A sum or difference of fractions now
+  shows the textbook method — the least common denominator, each term
+  rewritten over it, the numerators combined, the result reduced — and a
+  product or quotient of two fractions multiplies across or flips the
+  divisor. A parenthesised group that works out to a fraction is shown as
+  that fraction. Before, `(1/3) + (1/7)` showed `0.3333 + 0.1429` and then
+  answered 10/21: intermediate work that was not equivalent to the answer,
+  and that taught rounding as an exact method. Tips and mistakes on these
+  problems are about fractions, not PEMDAS.
+- **Linear inequalities take the two-line method.** `-2x > 4` is solved by
+  collecting terms and dividing, with the reversal named when the divisor
+  is negative ("Dividing by a negative number REVERSES the inequality, so >
+  becomes <"), then checked at a point on each side of the boundary. It
+  used to run the full eight-step sign chart, the right method for
+  x² − 4 > 0 but the wrong one to teach here. A fractional coefficient is
+  cleared by multiplying by its reciprocal. Polynomial and rational
+  inequalities, and each half of a chain, are unchanged.
+- **∫e^(−x²) dx explains the error function.** The answer was right,
+  `(√π/2)·erf(x) + C`, but it was labelled "Exponential rule" and the tips
+  were about the power rule — a student met a function they had never seen
+  with no explanation. The steps now say that no elementary antiderivative
+  exists, define erf, derive the answer from its derivative, and show the
+  differentiation check; the answer is written with √π rather than
+  `pi^(1/2)`. Constant factors and scaled arguments (e^(−4x²)) carry
+  through.
+- **Every plain-number angle says which unit it was read in.** `sin(45)`
+  announced "detected as degrees" while `sin(1)` went silently to radians.
+  Now `sin(1)` says "Interpreting 1 as radians: 1 rad ≈ 57.2958°" and how
+  to get degrees instead.
+- **Sum-product factoring shows the search.** For a monic quadratic with
+  integer coefficients, `x² − 5x + 6 = 0` lists the factor pairs of 6 with
+  their sums, names the pair that sums to −5, and checks by expanding,
+  before mathsteps' own "Factor using the sum-product method" line. A
+  non-monic quadratic is left as mathsteps wrote it rather than given a
+  fabricated search.
+- **Limit cancellation explains the excluded point.** After cancelling
+  (x − 1) in (x² − 1)/(x − 1), the steps say cancelling is valid only for
+  x ≠ 1, that a limit asks about values near 1 and never at it, and that
+  the graph is the line y = x + 1 with a hole at (1, 2).
+- **Derivative tips and mistakes match the rules used.** A plain
+  polynomial was warned about the chain rule and pointed at the product
+  and quotient rules it never used. Guidance is now chosen from the rule
+  labels the term-by-term walkthrough applied: power, chain, product,
+  quotient, exponential, logarithmic, trig.
+- **u-substitution keeps du whole.** The step read "du = 2x dx, so
+  dx = du/(2x)"; it now says the 2x dx in the integrand becomes du, which
+  is how the substitution is taught.
+
 ## [1.36.3] - 2026-09-14
 
 ### Fixed
