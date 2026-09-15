@@ -11,6 +11,7 @@ import {
   parsesAsMath,
   isUnevaluatedOperator,
   isAlgebriteFailure,
+  lnify,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
@@ -156,6 +157,7 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     const usesErf = /\berf\(/.test(integral);
     if (usesErf) steps = buildErfSteps(expression, integral, variable);
 
+    const anyPartial = perTerm.some((r) => r.method === 'partial fractions');
     const tips = usesErf ? [
       'erf is a "special function": a named antiderivative, the way ln is the name for ∫1/x dx. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.',
       'Whole-line and half-line definite versions do have closed forms: ∫₋∞^∞ e^(−x²) dx = √π, and ∫₀^∞ e^(−x²) dx = √π/2.',
@@ -165,6 +167,8 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
         ? 'Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).'
         : anyInverseTrig
           ? `Inverse-trig antiderivatives come from derivatives you know: d/d${variable} arctan(${variable}) = 1/(1 + ${variable}²) and d/d${variable} arcsin(${variable}) = 1/√(1 − ${variable}²). A constant a² in the pattern is factored out first.`
+        : anyPartial
+          ? 'Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece to a logarithm.'
         : anySubstitution
           ? 'u-substitution: look for an inner function whose derivative appears as a factor — ∫g′(x)·h(g(x)) dx = ∫h(u) du with u = g(x).'
           : anyAbs
@@ -184,6 +188,8 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
         ? 'Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.'
         : anyInverseTrig
           ? `Reading 1/(1 + ${variable}²) as a power of ${variable} — it is not ${variable}^(−2), and the power rule does not apply.`
+        : anyPartial
+          ? 'Splitting 1/(a·b) into 1/a + 1/b — the decomposition needs constants found from the factors, not a guess.'
         : anySubstitution
           ? 'Forgetting to divide by g′(x) when changing to du — the constant from du = g′(x) dx must be carried.'
           : anyAbs
@@ -194,12 +200,13 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
         : 'Skipping the check: differentiate the result and compare it with the integrand.',
     ];
 
+    const shownIntegral = usesErf ? prettyErf(integral) : dropBarsOnPositiveArguments(lnify(integral), integral, variable);
     return {
       steps,
-      answer: `∫(${beautify(expression)}) d${variable} = ${usesErf ? prettyErf(integral) : lnify(integral)} + C`,
-      tips,
-      common_mistakes,
-      graph: generateIntegralGraph(expression, integral, variable),
+      answer: `∫(${beautify(expression)}) d${variable} = ${shownIntegral} + C`,
+      tips: [...new Set(tips)],
+      common_mistakes: [...new Set(common_mistakes)],
+      graph: generateIntegralGraph(expression, integral, variable, shownIntegral),
     };
   } catch (error) {
     console.error('Integral solver error:', error);
@@ -283,21 +290,7 @@ function buildErfSteps(expression, integral, variable) {
   ];
 }
 
-// Algebrite writes the natural log as `log(x)` and omits the absolute value.
-// The textbook antiderivative of 1/x is ln|x| (correct for negative x too), so
-// present integral RESULTS with that convention. Only applied to outputs, never
-// to the integrand.
-function lnify(integralResult) {
-  return beautify(integralResult)
-    // outermost log(...) (one nesting level inside) → ln|...|
-    // (?<![a-z]) not \b: beautify writes 4*log(x) as 4log(x).
-    .replace(/(?<![a-z])log\(((?:[^()]|\([^()]*\))+)\)/g, 'ln|$1|')
-    // a log(...) left inside those bars → ln(...) (bars within bars read badly)
-    .replace(/(?<![a-z])log\(([^()]+)\)/g, 'ln($1)')
-    // bars around a positive number mean nothing: the base-10 quotient's
-    // ln|10| reads as ln(10)
-    .replace(/ln\|(\d+(?:\.\d+)?)\|/g, 'ln($1)');
-}
+// lnify (ln|…|, e^…) is the shared formatter in solverUtils.
 
 function safeRunLocal(Algebrite, code) {
   try {
@@ -898,7 +891,7 @@ async function solveImproperInfinite(parsed, notation) {
     const shown = (res.samples || []).slice(0, 4).map((x) => (Number.isFinite(x) ? formatNumber(x) : '±∞')).join(', ');
     const at = sign > 0 ? '10², 10³, 10⁴, 10⁵' : '-10², -10³, -10⁴, -10⁵';
     if (res.value !== undefined) steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)} (samples at ${at}: ${shown}).`);
-    else if (res.diverges) steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) grows without bound${res.slow ? ' — slowly, but steadily' : ''} (samples: ${shown}) — the limit is ${res.diverges}.`);
+    else if (res.diverges) steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) → ${res.diverges}${res.slow ? ' — slowly, but steadily' : ''} (samples: ${shown}): the limit is not a finite number.`);
     else steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) does not settle (samples: ${shown}).`);
   };
 
@@ -1425,12 +1418,15 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
     const unboundedAt = (edge, dir) => {
       const y0 = f(edge);
       const probes = [1e-4, 1e-6, 1e-8].map((eps) => f(edge + dir * eps * Math.max(L, 1)));
-      if (!probes.every(Number.isFinite)) return false;
+      if (!probes.every(Number.isFinite)) return 0;
       const growing = Math.abs(probes[1]) > Math.abs(probes[0]) + 1 && Math.abs(probes[2]) > Math.abs(probes[1]) + 1;
-      return (!Number.isFinite(y0) || Math.abs(y0) > 1e12) && growing;
+      return (!Number.isFinite(y0) || Math.abs(y0) > 1e12) && growing ? Math.sign(probes[2]) : 0;
     };
-    const singularLo = unboundedAt(lo, 1);
-    const singularHi = unboundedAt(hi, -1);
+    const loSign = unboundedAt(lo, 1);
+    const hiSign = unboundedAt(hi, -1);
+    const singularLo = loSign !== 0;
+    const singularHi = hiSign !== 0;
+    const infinity = (sign) => (sign < 0 ? '−∞' : '+∞');
     if (!singularLo && !singularHi) return null;
 
     let F = await antiderivativeViaTerms(integrand, v, Algebrite);
@@ -1465,8 +1461,8 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
     const labelOf = (edge) => (edge === a ? lowerLabel : upperLabel);
 
     const ends = [
-      { edge: lo, dir: 1, side: '⁺', singular: singularLo, symbol: 's' },
-      { edge: hi, dir: -1, side: '⁻', singular: singularHi, symbol: 't' },
+      { edge: lo, dir: 1, side: '⁺', singular: singularLo, symbol: 's', integrandSign: loSign },
+      { edge: hi, dir: -1, side: '⁻', singular: singularHi, symbol: 't', integrandSign: hiSign },
     ];
     for (const end of ends) {
       end.label = labelOf(end.edge);
@@ -1492,7 +1488,7 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
     const reversed = b < a;
     const ordered = `∫_${loEnd.label}^${hiEnd.label}`;
     const innerBounds = `∫_${singularLo ? 's' : loEnd.label}^${singularHi ? 't' : hiEnd.label}`;
-    const why = singularEnds.map((e) => `${v} = ${e.label} (it grows without bound as ${v} → ${e.label}${e.side})`).join(' and at ');
+    const why = singularEnds.map((e) => `${v} = ${e.label} (the integrand → ${infinity(e.integrandSign)} as ${v} → ${e.label}${e.side})`).join(' and at ');
     const steps = [
       `Evaluate the definite integral ${notation}.`,
       `The integrand ${beautify(integrand)} is undefined at the endpoint ${why}, so this is an improper integral. The Fundamental Theorem cannot be applied at that point; instead the integral is defined as a limit: ${ordered} = ${limitNotation} ${innerBounds} (${beautify(integrand)}) d${v}.${reversed ? ` (The bounds are written in reverse order: ${notation.replace(/ \(.*$/, '')} = −${ordered}.)` : ''}`,
@@ -1503,7 +1499,9 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
     const shownSamples = (e) => e.samples.slice(0, 4).map((y) => formatNumber(y)).join(', ');
     const divergent = singularEnds.find((e) => !Number.isFinite(e.numeric));
     if (divergent) {
-      steps.push(`Take the limit: as ${divergent.symbol} → ${divergent.label}${divergent.side}, F(${divergent.symbol}) grows without bound (samples: ${shownSamples(divergent)}, …), so the limit does not exist as a finite number.`);
+      const finiteSamples = divergent.samples.filter(Number.isFinite);
+      const direction = finiteSamples.length >= 2 ? infinity(Math.sign(finiteSamples[finiteSamples.length - 1] - finiteSamples[finiteSamples.length - 2])) : 'infinity';
+      steps.push(`Take the limit: as ${divergent.symbol} → ${divergent.label}${divergent.side}, F(${divergent.symbol}) → ${direction} (samples: ${shownSamples(divergent)}, …), so the limit is not a finite number.`);
       steps.push('The integral diverges — the area under the curve near that endpoint is infinite.');
       return diverges({
         input: notation,
@@ -1641,8 +1639,10 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
     if (!Number.isFinite(Fa) || !Number.isFinite(Fb)) return null;
 
     // One-sided limit of F at c along a shrinking ladder; NaN if it does not settle.
+    const ladder = {};
     const limitFrom = (side) => {
       const vals = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6].map((eps) => Fat(c + side * eps));
+      ladder[side] = vals;
       if (vals.some((y) => !Number.isFinite(y))) return NaN;
       const [p, q, r] = vals.slice(-3);
       const settling = Math.abs(r - q) <= Math.abs(q - p) + 1e-9 && Math.abs(r - q) < 1e-3 * (1 + Math.abs(r));
@@ -1650,6 +1650,13 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
     };
     const Lminus = limitFrom(-1);
     const Lplus = limitFrom(1);
+    // Where a one-sided limit of F fails, say which infinity it runs to.
+    const runsTo = (side) => {
+      const vals = (ladder[side] || []).filter(Number.isFinite);
+      if (vals.length < 2) return 'infinity';
+      return vals[vals.length - 1] > vals[vals.length - 2] ? '+∞' : '−∞';
+    };
+    const shownLadder = (side) => (ladder[side] || []).slice(0, 4).map((y) => (Number.isFinite(y) ? formatNumber(y) : '±∞')).join(', ');
     const cShown = formatNumber(c);
     const splitText = `∫_{${lowerLabel}}^{${cShown}} + ∫_{${cShown}}^{${upperLabel}}`;
 
@@ -1663,7 +1670,10 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
           `Evaluate the definite integral ${notation}.`,
           `The integrand has a vertical asymptote at ${v} = ${cShown}, strictly between the bounds, so this is an improper integral. Split it there, each piece taken as a one-sided limit: ${splitText}.`,
           `Antiderivative: F(${v}) = ${lnify(F)}.`,
-          `As ${v} → ${cShown}${side}, F(${v}) grows without bound, so that piece has no finite value — and one divergent piece makes the whole integral diverge.`,
+          `Left piece, ∫_{${lowerLabel}}^{${cShown}} = lim (s→${cShown}⁻) [F(s) − F(${lowerLabel})]: as s → ${cShown}⁻, F(s) → ${Number.isFinite(Lminus) ? formatNumber(Lminus) : runsTo(-1)} (samples: ${shownLadder(-1)}), so this piece ${Number.isFinite(Lminus) ? 'converges' : 'has no finite value'}.`,
+          `Right piece, ∫_{${cShown}}^{${upperLabel}} = lim (t→${cShown}⁺) [F(${upperLabel}) − F(t)]: as t → ${cShown}⁺, F(t) → ${Number.isFinite(Lplus) ? formatNumber(Lplus) : runsTo(1)} (samples: ${shownLadder(1)}), so this piece ${Number.isFinite(Lplus) ? 'converges' : 'has no finite value'}.`,
+          'The one-sided improper integrals do not both converge, so the integral diverges.',
+          ...(principalValueNote(integrand, v, c, lo, hi)),
         ],
         tips: [
           'An integral across a vertical asymptote is a sum of two one-sided limits; if either fails to exist, the integral diverges.',
@@ -1705,6 +1715,22 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
   }
 }
 
+// ∫₋₁¹ 1/x: the two infinite pieces cancel symmetrically, and students meet
+// "= 0" for it. Say what that 0 is — the Cauchy principal value — and that
+// it is not the value of the improper integral. Only when the integrand is
+// odd about the pole and the interval is symmetric around it.
+function principalValueNote(integrand, v, c, lo, hi) {
+  if (Math.abs((c - lo) - (hi - c)) > 1e-9) return [];
+  const f = (x) => evalAntiderivNumeric(integrand, v, x);
+  const odd = [0.1, 0.25, 0.5].every((h) => {
+    const l = f(c - h * (hi - c));
+    const r = f(c + h * (hi - c));
+    return Number.isFinite(l) && Number.isFinite(r) && Math.abs(l + r) < 1e-9 * (1 + Math.abs(r));
+  });
+  if (!odd) return [];
+  return [`(Because the integrand is odd about ${v} = ${formatNumber(c)} and the interval is symmetric, the two pieces cancel if they are cut off at the same distance ε on each side: that symmetric limit, the Cauchy principal value, is 0. It is not the value of the improper integral, which does not exist.)`];
+}
+
 // Graph f(x) with the integration interval [a, b] shaded — the definite
 // integral IS that signed area. Samples a padded window so the region sits in
 // context and the viewer can pan out.
@@ -1724,7 +1750,9 @@ function generateDefiniteGraph(integrand, variable, a, b, lowerLabel, upperLabel
     return {
       points,
       title: `Area under f(${variable}) = ${beautify(integrand)}`,
-      description: `The shaded region from ${variable} = ${lowerLabel} to ${variable} = ${upperLabel} has signed area ${formatNumber(value)}.`,
+      description: Number.isFinite(value)
+        ? `The shaded region from ${variable} = ${lowerLabel} to ${variable} = ${upperLabel} has signed area ${formatNumber(value)}.`
+        : `The integral from ${variable} = ${lowerLabel} to ${variable} = ${upperLabel} diverges — the shaded region has no finite area.`,
       annotations: {
         shaded: { from: a, to: b, fromLabel: lowerLabel, toLabel: upperLabel },
       },
@@ -1948,14 +1976,34 @@ function isLogDerivativeShape(term, variable, Algebrite) {
 // coefficients plus a positive constant, it is positive everywhere and the
 // absolute-value bars can be dropped. Says so; otherwise the bars stay.
 function positiveArgumentNote(antiderivative, variable) {
-  const m = antiderivative.match(/log\(([^()]+)\)/);
-  if (!m) return [];
-  const arg = m[1].replace(/\s+/g, '');
-  const terms = arg.split(/(?=[+-])/).filter(Boolean);
-  const positive = terms.length > 0 && terms.every((t) => !t.startsWith('-') && (/^\+?\d+(?:\.\d+)?$/.test(t) || new RegExp(`^\\+?(?:\\d+(?:\\.\\d+)?\\*?)?${variable}\\^(?:\\d*[02468])$`).test(t)));
-  const hasConstant = terms.some((t) => /^\+?\d+(?:\.\d+)?$/.test(t));
-  if (!positive || !hasConstant) return [];
-  return [`Because ${beautify(m[1])} > 0 for every ${variable}, the absolute-value bars in ln|${beautify(m[1])}| are not needed.`];
+  return alwaysPositiveLogArguments(antiderivative, variable)
+    .map((arg) => `Because ${beautify(arg)} > 0 for every ${variable}, the absolute-value bars in ln|${beautify(arg)}| are not needed.`);
+}
+
+// The log arguments in an antiderivative that are positive for every x: a
+// sum of even powers with positive coefficients plus a positive constant.
+function alwaysPositiveLogArguments(antiderivative, variable) {
+  const out = [];
+  for (const m of String(antiderivative).matchAll(/log\(([^()]+)\)/g)) {
+    const arg = m[1].replace(/\s+/g, '');
+    const terms = arg.split(/(?=[+-])/).filter(Boolean);
+    const positive = terms.length > 0 && terms.every((t) => !t.startsWith('-') && (/^\+?\d+(?:\.\d+)?$/.test(t) || new RegExp(`^\\+?(?:\\d+(?:\\.\\d+)?\\*?)?${variable}\\^(?:\\d*[02468])$`).test(t)));
+    const hasConstant = terms.some((t) => /^\+?\d+(?:\.\d+)?$/.test(t));
+    if (positive && hasConstant) out.push(m[1]);
+  }
+  return out;
+}
+
+// ln|x² + 1| → ln(x² + 1) in a displayed antiderivative, for every argument
+// that is always positive — so the answer agrees with the step that said the
+// bars were not needed.
+function dropBarsOnPositiveArguments(shown, antiderivative, variable) {
+  let out = shown;
+  for (const arg of alwaysPositiveLogArguments(antiderivative, variable)) {
+    const b = beautify(arg);
+    out = out.split(`ln|${b}|`).join(`ln(${b})`);
+  }
+  return out;
 }
 
 
@@ -1987,7 +2035,7 @@ function splitTopLevel(str, delimiter) {
   return parts;
 }
 
-function generateIntegralGraph(original, integral, variable) {
+function generateIntegralGraph(original, integral, variable, shown = null) {
   try {
     const points = sampleFunction(original, variable);
     const secondaryPoints = sampleFunction(integral, variable);
@@ -2001,7 +2049,7 @@ function generateIntegralGraph(original, integral, variable) {
         variable,
         secondaryLabel: `F(${variable}) = ${lnify(integral)}`,
         title: `Graph of f(${variable}) = ${beautify(original)}`,
-        description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: F(${variable}) = ${lnify(integral)} (antiderivative)`,
+        description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: F(${variable}) = ${shown || lnify(integral)} (antiderivative)`,
       };
     }
   } catch (error) {

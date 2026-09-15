@@ -386,6 +386,8 @@ function classifyDerivativeRule(term, variable) {
     return { label: 'Chain rule', hint: `d/d${v}[f(g(${v}))] = f′(g(${v}))·g′(${v})` };
   }
 
+  // log(x) is the common logarithm: the parser wrote it as log(x)/log(10).
+  if (/\blog\(/i.test(inner) && /log\(10\)/.test(inner)) return { label: 'Logarithmic rule', hint: `log(${v}) is the base-10 logarithm, log(${v}) = ln(${v})/ln(10), so d/d${v}[log(${v})] = 1/(${v}·ln(10))` };
   // Single trig / exponential / logarithmic / root functions.
   if (/\bsin\b/i.test(inner)) return { label: 'Trig rule', hint: `d/d${v}[sin(${v})] = cos(${v})` };
   if (/\bcos\b/i.test(inner)) return { label: 'Trig rule', hint: `d/d${v}[cos(${v})] = -sin(${v})` };

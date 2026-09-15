@@ -346,7 +346,30 @@ export function beautify(expression) {
     .replace(/\s{2,}/g, ' ')
     .trim();
 
+  // The parser rewrites a bare log(…) as (log(…)/log(10)) for the engines;
+  // that internal form must never reach the screen — show what was typed.
+  out = out.replace(/\(log\(((?:[^()]|\([^()]*\))+)\)\/log\(10\)\)/g, 'log($1)');
+
   return out;
+}
+
+// Algebrite writes the natural log as `log(x)` (without the absolute value
+// the antiderivative of 1/x needs) and the exponential as `exp(x)`. Present
+// integral RESULTS the textbook way: ln|…| and e^(…). One formatter for every
+// integral step and answer, so a walkthrough never switches between log and
+// ln, or exp and e^, part-way through (September 2026 review, 1.38.1).
+export function lnify(result) {
+  return beautify(result)
+    // outermost log(...) (one nesting level inside) → ln|...|
+    // (?<![a-z]) not \b: beautify writes 4*log(x) as 4log(x).
+    .replace(/(?<![a-z])log\(((?:[^()]|\([^()]*\))+)\)/g, 'ln|$1|')
+    // a log(...) left inside those bars → ln(...) (bars within bars read badly)
+    .replace(/(?<![a-z])log\(([^()]+)\)/g, 'ln($1)')
+    // bars around a positive number mean nothing: ln|10| reads as ln(10)
+    .replace(/ln\|(\d+(?:\.\d+)?)\|/g, 'ln($1)')
+    // exp(x) → e^x for a single token, e^(…) otherwise
+    .replace(/(?<![a-z])exp\(([a-z]|\d+)\)/gi, 'e^$1')
+    .replace(/(?<![a-z])exp\(((?:[^()]|\([^()]*\))+)\)/g, 'e^($1)');
 }
 
 /**

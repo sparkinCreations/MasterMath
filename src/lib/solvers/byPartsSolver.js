@@ -16,7 +16,7 @@
 // One loop handles both "the polynomial fizzles out" and "the integral comes
 // back around." Every result is differentiated and checked before it is trusted.
 
-import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, isAlgebriteFailure } from './solverUtils.js';
+import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, isAlgebriteFailure, lnify } from './solverUtils.js';
 
 const MAX_ROUNDS = 8;
 
@@ -241,9 +241,7 @@ function finalize(Algebrite, F, term, v, steps, cyclic) {
 
 // --- step wording ------------------------------------------------------------
 
-function lnify(s) {
-  return beautify(s).replace(/\blog\(([^()]+)\)/g, 'ln|$1|').replace(/ln\|(\d+(?:\.\d+)?)\|/g, 'ln($1)');
-}
+// Step wording uses the shared integral formatter (ln|…|, e^…).
 
 // Each round is emitted as a header plus three "Label: math" lines. The colon
 // shape lets the renderer typeset the math tail (KaTeX) and fall back to plain

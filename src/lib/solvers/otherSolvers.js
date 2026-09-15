@@ -52,7 +52,21 @@ function limitGuidance(result) {
       ],
     };
   }
-  if (/infinit|∞/i.test(text) && /at infinity|growth|dominant|leading/i.test(text + method)) {
+  if (/diverges to|opposite infinities|Does not exist|blows up instead of settling/i.test(text)) {
+    return {
+      tips: [
+        'When direct substitution blows up, check each side separately: the two-sided limit exists only if both sides agree.',
+        'A vertical asymptote gives infinite one-sided limits; opposite signs on the two sides mean the limit does not exist.',
+        'Write "does not exist" (DNE) rather than a number when the sides disagree; write +∞ or −∞ when they agree on an infinity.',
+      ],
+      common_mistakes: [
+        'Writing ∞ for a limit whose two sides go to +∞ and −∞.',
+        'Treating 1/0 as a number instead of describing how the function behaves nearby.',
+        'Checking only one side of the point.',
+      ],
+    };
+  }
+  if (/increasingly large|values settle toward|highest powers|degree/i.test(text) || (/infinit|∞/i.test(text) && /at infinity|growth|dominant|leading/i.test(text + method))) {
     return {
       tips: [
         'For a limit at infinity, the highest power dominates: divide numerator and denominator by it.',

@@ -26,6 +26,123 @@ const TIPS = [
 // "ln + 3". Always a mis-read, never mathematics a solver should act on.
 const BARE_FUNCTION_NAME = /(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp)(?![a-z])\s*(?!\()/i;
 
+const SIMPLIFY_TIPS = [
+  'Distribute first, then collect like terms — terms with exactly the same variable part.',
+  'Like terms combine by adding their coefficients: 3x − 6 + 4 → 3x − 2.',
+  'Check by substituting a value for the variable into both the original and the simplified form.',
+];
+
+const SIMPLIFY_MISTAKES = [
+  'Combining unlike terms (adding x and x²).',
+  'Forgetting to distribute a factor across every term in the parentheses.',
+  'Losing a sign when distributing a negative.',
+];
+
+// Tips and mistakes for a solved equation, chosen from the method the steps
+// actually used — the same three lines about combining like terms used to
+// close an absolute-value, a radical, and a logarithmic equation alike
+// (September 2026 review, 1.38.1).
+function equationGuidance(steps, expression) {
+  const text = steps.join('\n');
+  const variableInDenominator = /\/\s*\(?[0-9.]*[a-z]/i.test(expression);
+  if (/absolute-value equation/.test(text)) {
+    return {
+      tips: [
+        '|A| = b splits into two equations, A = b or A = −b — two candidate solutions.',
+        'If b < 0 there is no solution at all (an absolute value is never negative); if b = 0 there is exactly one case, A = 0.',
+        'Isolate the absolute value first: 2|x − 1| + 1 = 7 becomes |x − 1| = 3 before the cases are written.',
+      ],
+      common_mistakes: [
+        'Solving only the positive case and missing the second solution.',
+        'Dropping the bars as if |A| = b meant A = b.',
+        'Splitting into cases before the absolute value is isolated, or not checking both answers in the original.',
+      ],
+    };
+  }
+  if (/Isolate the radical/.test(text)) {
+    return {
+      tips: [
+        'Isolate the root, then square both sides. Squaring can create extraneous solutions, so every candidate must be checked in the original.',
+        'The radicand must be ≥ 0, and √(…) itself is ≥ 0: √(x + 1) = −3 has no solution before any algebra.',
+        'If a root remains after squaring once, isolate it and square again.',
+      ],
+      common_mistakes: [
+        'Squaring term by term: (√x + 1)² is not x + 1.',
+        'Keeping a candidate that fails the check in the original equation.',
+        'Forgetting that the radicand cannot be negative.',
+      ],
+    };
+  }
+  if (/Let u = ln|Let u = log|ln\(a\) = u|exponential form/.test(text)) {
+    return {
+      tips: [
+        'ln(x) = c means x = e^c: undo a logarithm by exponentiating with its base.',
+        'Combine several logs with the log rules first (ln a + ln b = ln(ab), ln a − ln b = ln(a/b)), then rewrite in exponential form.',
+        'Every solution must keep every log argument positive — check each one.',
+      ],
+      common_mistakes: [
+        'Reading ln(x) = c as x = c, forgetting the exponential.',
+        'Keeping a candidate that makes a log argument zero or negative.',
+        'Splitting ln(a + b) into ln a + ln b — there is no such rule.',
+      ],
+    };
+  }
+  if (/take the logarithm of both sides|Let u = \d+\^|Let u = e\^|Let u = \w+\^/.test(text)) {
+    return {
+      tips: [
+        'a^x = b is solved by taking a logarithm of both sides: x = ln(b)/ln(a) = log_a(b).',
+        'Any log base works as long as it is the same on both sides; ln is the usual choice.',
+        'A polynomial in a^x (e^(2x) − 3e^x + 2) is a quadratic in u = a^x — solve for u first, then for x.',
+      ],
+      common_mistakes: [
+        'Dividing instead of taking a log: 2^x = 10 does not give x = 5.',
+        'Writing ln(10)/ln(2) as ln(10/2).',
+        'Losing a solution of the quadratic in u, or keeping a negative u (a^x is always positive).',
+      ],
+    };
+  }
+  if (variableInDenominator && /Multiply both sides|extraneous|denominator/.test(text)) {
+    return {
+      tips: [
+        'Clear the denominators by multiplying both sides by them, then solve the polynomial equation that remains.',
+        'Any value that makes a denominator zero is excluded from the start — it can never be a solution.',
+        'Check every candidate in the original equation, not the cleared one.',
+      ],
+      common_mistakes: [
+        'Multiplying only one side by the denominator.',
+        'Keeping a "solution" that makes a denominator zero (an extraneous root).',
+        'Cancelling a factor that could be zero.',
+      ],
+    };
+  }
+  if (/sum-product|Take the square root of both sides|discriminant|quadratic formula|Factor using|difference of squares|perfect square|Find the roots/.test(text)) {
+    return {
+      tips: [
+        'A quadratic has up to two solutions: factor, take square roots, or use x = (−b ± √(b² − 4ac))/(2a).',
+        'Set the equation to 0 before factoring — (x − 2)(x − 3) = 0 gives the roots; (x − 2)(x − 3) = 6 does not.',
+        'Check by substituting each root into the original equation.',
+      ],
+      common_mistakes: [
+        'Taking only the positive square root: x² = 9 has x = −3 as well.',
+        'Dividing both sides by x and losing the x = 0 solution.',
+        'Reading (x − 2)(x − 3) = 0 as x = −2 or −3 — the roots are 2 and 3.',
+      ],
+    };
+  }
+  return {
+    tips: [
+      'Undo the operations in reverse order: add or subtract to isolate the variable term first, then multiply or divide.',
+      'Whatever you do to one side, do to the other — the equation stays balanced.',
+      'Check by substituting the solution into the original equation.',
+    ],
+    common_mistakes: [
+      'Sign errors when moving a term across the equals sign.',
+      'Dividing only one term by the coefficient instead of the whole side.',
+      'Forgetting to distribute a factor across every term in the parentheses.',
+    ],
+  };
+}
+
 const COMMON_MISTAKES = [
   'Forgetting to distribute a factor across every term in the parentheses.',
   'Combining unlike terms (e.g., adding x and x²).',
@@ -338,11 +455,12 @@ async function solveEquation(expression, options = {}) {
     }
   }
 
+  const guidance = equationGuidance(steps, expression);
   return {
     steps: steps.length > 0 ? steps : [`Solve ${beautify(expression)}`, `Result: ${answer}`],
     answer,
-    tips: TIPS,
-    common_mistakes: COMMON_MISTAKES,
+    tips: guidance.tips,
+    common_mistakes: guidance.common_mistakes,
     graph: solutions.length > 0 ? generateEquationGraph(expression, solutions) : null,
   };
 }
@@ -1602,8 +1720,8 @@ async function simplifyExpression(expression) {
   return {
     steps,
     answer,
-    tips: TIPS,
-    common_mistakes: COMMON_MISTAKES,
+    tips: SIMPLIFY_TIPS,
+    common_mistakes: SIMPLIFY_MISTAKES,
     graph: generateAlgebraGraph(expression),
   };
 }

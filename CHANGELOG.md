@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.38.1] - 2026-09-15
+
+Consistency fixes from re-testing v1.38.0 on the live site, plus the same
+classes of problem found by a sweep of 54 inputs across every topic.
+
+### Fixed
+
+- **One formatter for every integral step.** The substitution and by-parts
+  walkthroughs printed Algebrite's raw `log(u)` and `exp(x)` while the
+  answer said `ln|…|` and the derivative solver said `e^x`. Every integral
+  step and answer now goes through the same formatter: `ln|·|`, `e^x`,
+  `e^(−x²)`.
+- **Bars dropped where the step said they were not needed.** `∫x/(x²+1) dx`
+  explained that `x² + 1 > 0` and then answered `½ln|x²+1| + C`; the answer
+  and the graph legend now read `½ln(x²+1) + C`. Arguments that can be
+  negative keep their bars.
+- **Divergence is stated with its sign.** "F grows without bound" was
+  wrong in direction for `ln|x| → −∞`. Endpoint, interior and infinite-bound
+  divergence now say which infinity each one-sided limit runs to, with the
+  samples shown, and conclude from the one-sided pieces not both
+  converging. For an odd integrand on a symmetric interval (`∫₋₁¹ 1/x dx`)
+  the Cauchy principal value is named as 0 and distinguished from the value
+  of the improper integral, which does not exist.
+- **Equation and arithmetic guidance follow the method.** Absolute-value,
+  radical, logarithmic, exponential, quadratic, rational and linear
+  equations each get their own tips and mistakes instead of "combine like
+  terms"; negative exponents, factorials, percents and roots get theirs
+  instead of PEMDAS. `7!` now shows the product `7 × 6 × … × 1`.
+- **The internal common-log rewrite stayed off the screen.** `d/dx log(x)`
+  displayed `f(x) = (log(x)/log(10))` and called it the power rule; it now
+  shows `log(x)` and names the base-10 logarithmic rule.
+- Partial-fraction integrals got power-rule tips; a divergent integral's
+  graph said "signed area NaN"; a table antiderivative listed the same
+  mistake twice; limits that diverge to opposite infinities, or are sampled
+  toward infinity, got the generic limit tips. All fixed.
+
 ## [1.38.0] - 2026-09-15
 
 The second teaching-quality review, all three batches: the places where

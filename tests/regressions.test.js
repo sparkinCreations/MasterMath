@@ -1007,7 +1007,7 @@ test('audit R01: a negative base under an odd root gives the real root', async (
 
 test('audit: cyclic by-parts keeps rational coefficients', async () => {
   const r = await solveProblem('∫ e^(2x)*cos(x) dx', 'integrals');
-  assert.match(r.answer, /1\/5\*exp\(2x\)\*\(2cos\(x\) \+ sin\(x\)\)/);
+  assert.match(r.answer, /1\/5\*e\^\(2x\)\*\(2cos\(x\) \+ sin\(x\)\)/);
   assert.doesNotMatch(r.answer, /0\.4|0\.2|1\.0/);
 });
 
@@ -1286,7 +1286,7 @@ test('∫e^(−x²) dx explains the error function instead of calling it a rule'
   assert.equal((await solveProblem('∫ 3e^(-x^2) dx', 'integrals')).answer, '∫(3e^(-x^2)) dx = (3√π/2)·erf(x) + C');
   assert.equal((await solveProblem('∫ e^(-4x^2) dx', 'integrals')).answer, '∫(e^(-4x^2)) dx = (√π/4)·erf(2x) + C');
   // Elementary neighbours are untouched.
-  assert.match((await solveProblem('∫ x e^(-x^2) dx', 'integrals')).answer, /-1\/2\*exp\(-x\^2\) \+ C$/);
+  assert.match((await solveProblem('∫ x e^(-x^2) dx', 'integrals')).answer, /-1\/2\*e\^\(-x\^2\) \+ C$/);
   assert.match((await solveProblem('∫ e^x dx', 'integrals')).steps[1], /Exponential rule/);
 });
 
@@ -1416,7 +1416,7 @@ test('improper integrals at an endpoint are taken as one-sided limits, never F(a
     const r = await solveProblem(input, 'integrals');
     assert.equal(r.status, 'diverges', input);
     assert.match(r.answer, new RegExp(`^Diverges.*unbounded at ${at}`), input);
-    assert.match(r.steps.join('\n'), /grows without bound .* so the limit does not exist/, input);
+    assert.match(r.steps.join('\n'), /F\(s\) → [−+]∞ .* so the limit is not a finite number/, input);
   }
   // An interior singularity still diverges (and never returns 0).
   const interior = await solveProblem('∫_-1^1 1/x dx', 'integrals');
@@ -1453,7 +1453,7 @@ test('integration methods are named from the integrand, never "Power rule" as a 
     ['∫ 1/(1+x^2) dx', /arctan\(x\) \+ C$/, /inverse-tangent pattern/],
     ['∫ 2/(1+4x^2) dx', /arctan\(2x\) \+ C$/, /Let u = 2x, so du = 2 dx/],
     ['∫ 1/(9+x^2) dx', /1\/3\*arctan\(1\/3\*x\) \+ C$/, /factoring out 9/],
-    ['∫ x/(x^2+1) dx', /1\/2\*ln\|x\^2 \+ 1\| \+ C$/, /Let u = x\^2 \+ 1/],
+    ['∫ x/(x^2+1) dx', /1\/2\*ln\(x\^2 \+ 1\) \+ C$/, /Let u = x\^2 \+ 1/],
     ['∫ 3x^2/(x^3+7) dx', /ln\|x\^3 \+ 7\| \+ C$/, /Let u = x\^3 \+ 7/],
     ['∫ 1/sqrt(1-x^2) dx', /arcsin\(x\) \+ C$/, /inverse-sine pattern/],
     ['∫ 1/sqrt(4-x^2) dx', /arcsin\(1\/2\*x\) \+ C$/, /factoring out 4/],
@@ -1686,4 +1686,89 @@ test('guidance follows the concept: limits by technique, trig by function, fract
   // An integral that used no power rule is not warned about 1/x.
   assert.doesNotMatch((await solveProblem('∫ sec(x)^2 dx', 'integrals')).common_mistakes.join('\n'), /power rule to 1\/x/);
   assert.match((await solveProblem('∫ x^2 dx', 'integrals')).common_mistakes.join('\n'), /power rule to 1\/x/);
+});
+
+// ---------------------------------------------------------------------------
+// v1.38.1 — consistency: one formatter for every integral step (ln|·|, e^…),
+// bars dropped where the argument is always positive, divergence stated with
+// its sign, guidance chosen by method for equations and arithmetic, and the
+// internal common-log rewrite kept off the screen.
+// ---------------------------------------------------------------------------
+
+test('an integral walkthrough never switches between log and ln, or exp and e^', async () => {
+  const sub = await solveProblem('∫ x/(x^2+1) dx', 'integrals');
+  const work = sub.steps.join('\n');
+  assert.doesNotMatch(work, /(?<![a-z])log\(/, 'raw log() in the steps');
+  assert.match(work, /Integrate in u: ∫\(1\/\(2u\)\) du = 1\/2\*ln\|u\|/);
+  assert.match(work, /the absolute-value bars in ln\|x\^2 \+ 1\| are not needed/);
+  assert.equal(sub.answer, '∫(x/(x^2 + 1)) dx = 1/2*ln(x^2 + 1) + C');
+  assert.match(sub.graph.description, /F\(x\) = 1\/2\*ln\(x\^2 \+ 1\)/);
+  // Bars stay where the argument can be negative.
+  assert.match((await solveProblem('∫ 2x/(x^2-4) dx', 'integrals')).answer, /ln\|x\^2 - 4\| \+ C$/);
+  // exp() is written e^ in by-parts steps and answers alike.
+  const parts = await solveProblem('∫ x*e^x dx', 'integrals');
+  assert.doesNotMatch(parts.steps.join('\n'), /exp\(/);
+  assert.match(parts.steps.join('\n'), /Choose the parts: u = x, dv = e\^x dx/);
+  assert.equal(parts.answer, '∫(x*e^x) dx = e^x*(x - 1) + C');
+  assert.match((await solveProblem('∫ x e^(-x^2) dx', 'integrals')).answer, /= -1\/2\*e\^\(-x\^2\) \+ C$/);
+});
+
+test('divergence is stated with its sign, and the principal value is named for a symmetric odd pole', async () => {
+  const interior = await solveProblem('∫_-1^1 1/x dx', 'integrals');
+  const work = interior.steps.join('\n');
+  assert.match(work, /Left piece, ∫_\{-1\}\^\{0\} = lim \(s→0⁻\) \[F\(s\) − F\(-1\)\]: as s → 0⁻, F\(s\) → −∞ \(samples: -4\.6052/);
+  assert.match(work, /Right piece, ∫_\{0\}\^\{1\} = lim \(t→0⁺\) \[F\(1\) − F\(t\)\]: as t → 0⁺, F\(t\) → −∞/);
+  assert.match(work, /The one-sided improper integrals do not both converge, so the integral diverges/);
+  assert.match(work, /Cauchy principal value, is 0\. It is not the value of the improper integral/);
+  assert.doesNotMatch(work, /grows without bound/);
+  // 1/x² is even about the pole: both pieces run to +∞ on the left... and no principal-value note.
+  const even = await solveProblem('∫_-1^1 1/x^2 dx', 'integrals');
+  assert.match(even.steps.join('\n'), /as s → 0⁻, F\(s\) → \+∞ .*\n.*as t → 0⁺, F\(t\) → −∞/);
+  assert.doesNotMatch(even.steps.join('\n'), /principal value/);
+  // Endpoint and infinite-bound wording carry the sign too.
+  assert.match((await solveProblem('∫_0^1 1/x dx', 'integrals')).steps.join('\n'), /the integrand → \+∞ as x → 0⁺.*\n.*\n.*\n.*F\(s\) → −∞/);
+  assert.match((await solveProblem('∫_0^1 ln(x) dx', 'integrals')).steps[1], /the integrand → −∞ as x → 0⁺/);
+  assert.match((await solveProblem('∫_1^∞ 1/x dx', 'integrals')).steps.join('\n'), /F\(t\) → ∞ — slowly, but steadily/);
+  // A divergent integral's graph never says "signed area NaN".
+  assert.match((await solveProblem('∫_1^∞ 1/x dx', 'integrals')).graph.description, /diverges — the shaded region has no finite area/);
+});
+
+test('equation guidance follows the method: absolute value, radical, log, exponential, quadratic, rational, linear', async () => {
+  const pick = async (input) => (await solveProblem(input, 'algebra'));
+  assert.match((await pick('abs(2x-3) = 5')).tips[0], /\|A\| = b splits into two equations/);
+  assert.match((await pick('abs(2x-3) = 5')).common_mistakes[0], /only the positive case/);
+  assert.match((await pick('sqrt(x+1) = 3')).tips[0], /square both sides/);
+  assert.match((await pick('ln(x) = 1')).tips[0], /ln\(x\) = c means x = e\^c/);
+  assert.match((await pick('2^x = 10')).tips[0], /taking a logarithm of both sides/);
+  assert.match((await pick('x^2 - 5x + 6 = 0')).tips[0], /A quadratic has up to two solutions/);
+  assert.match((await pick('x/(x-1) = 2')).tips[0], /Clear the denominators/);
+  assert.match((await pick('2x + 5 = 11')).tips[0], /Undo the operations in reverse order/);
+  assert.match((await pick('simplify 3(x-2)+4')).tips[0], /Distribute first, then collect like terms/);
+  for (const input of ['abs(2x-3) = 5', 'sqrt(x+1) = 3', 'ln(x) = 1', '2^x = 10']) {
+    assert.doesNotMatch((await pick(input)).tips.join('\n'), /Combine like terms by adding or subtracting their coefficients/, input);
+  }
+});
+
+test('arithmetic guidance follows the feature: negative exponent, factorial, percent, root, else PEMDAS', async () => {
+  assert.match((await solveProblem('2^-3', 'other')).tips[0], /a\^\(−n\) = 1\/a\^n/);
+  assert.match((await solveProblem('2^-3', 'other')).common_mistakes[1], /minus sign is in the exponent/);
+  const fact = await solveProblem('7!', 'other');
+  assert.equal(fact.steps[1], '7! means the product of every whole number from 7 down to 1: 7 × 6 × 5 × 4 × 3 × 2 × 1 = 5040.');
+  assert.match(fact.tips[1], /0! = 1 by definition/);
+  assert.match((await solveProblem('50% of 80', 'other')).answer, /^40$/);
+  assert.match((await solveProblem('sqrt(2)', 'other')).tips[0], /√2 is irrational/);
+  assert.match((await solveProblem('(5 + 3) * 4 - 2^3', 'other')).tips[0], /^PEMDAS/);
+});
+
+test('the common-log rewrite never reaches the screen', async () => {
+  const r = await solveProblem('d/dx log(x)', 'derivatives');
+  assert.equal(r.steps[0], 'Identify the function to differentiate: f(x) = log(x)');
+  assert.match(r.steps[1], /^Logarithmic rule — log\(x\) is the base-10 logarithm/);
+  assert.doesNotMatch(r.steps.join('\n') + r.graph.description, /log\(10\)\)/);
+  assert.equal(r.answer, "f'(x) = 1/(x*ln(10)), x > 0");
+});
+
+test('limit guidance covers two-sided divergence and sampling at infinity', async () => {
+  assert.match((await solveProblem('lim x->0 1/x', 'limits')).tips[0], /check each side separately/);
+  assert.match((await solveProblem('lim x->infinity e^(-x)', 'limits')).tips[0], /highest power dominates/);
 });

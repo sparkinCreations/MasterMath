@@ -129,6 +129,16 @@ export function solveArithmetic(expression) {
       }
     }
     const steps = [`Evaluate: ${original}`, ...rootNotes];
+    // n! spelled out, so 7! = 5040 is not a bare fact.
+    for (const m of cleaned.matchAll(/(?<![\d.])(\d{1,2})!/g)) {
+      const n = Number(m[1]);
+      if (n >= 2 && n <= 12) {
+        const factors = Array.from({ length: n }, (_, i) => n - i);
+        steps.push(`${n}! means the product of every whole number from ${n} down to 1: ${factors.join(' × ')} = ${formatNumber(factors.reduce((a, b) => a * b, 1))}.`);
+      } else if (n < 2) {
+        steps.push(`${n}! = 1 by definition (the empty product), so that formulas for counting work at the edges.`);
+      }
+    }
     // 0^0 is a convention, not a computation. Say so rather than presenting
     // "1" as if it were forced.
     const zeroToZero = raisesZeroToZero(cleaned);
@@ -191,19 +201,12 @@ export function solveArithmetic(expression) {
     const shownAnswer = formatArithmeticResult(result, cleaned) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
     steps.push(`Final answer: ${shownAnswer}`);
 
+    const guidance = fractionWork || arithmeticGuidance(steps, cleaned);
     return {
       steps,
       answer: shownAnswer,
-      tips: fractionWork ? fractionWork.tips : [
-        'PEMDAS/BODMAS order: Parentheses, Exponents, Multiplication & Division (left to right), Addition & Subtraction (left to right).',
-        'Multiplication and division share a tier — resolve them left to right, not multiplication first.',
-        'Use parentheses to force a different order of operations.',
-      ],
-      common_mistakes: fractionWork ? fractionWork.common_mistakes : [
-        'Adding or subtracting before multiplying or dividing.',
-        'Evaluating left to right while ignoring precedence.',
-        'Sign errors when subtracting a negative number.',
-      ],
+      tips: guidance.tips,
+      common_mistakes: guidance.common_mistakes,
       graph: null,
     };
   } catch (error) {
@@ -413,6 +416,81 @@ function fractionSteps(expr) {
     };
   }
   return null;
+}
+
+// Tips and mistakes for a plain arithmetic evaluation, chosen by what the
+// expression actually used — a negative exponent, a factorial, a percent, a
+// root or function — instead of the PEMDAS list for everything.
+function arithmeticGuidance(steps, expr) {
+  const text = steps.join('\n');
+  if (/negative exponent means a reciprocal/.test(text)) {
+    return {
+      tips: [
+        'a^(−n) = 1/a^n: a negative exponent moves the power to the denominator — it does not make the result negative.',
+        'The base cannot be 0 (0^(−n) would be 1/0), and the sign of the result comes from the base: (−2)^(−3) = 1/(−8) = −1/8.',
+        'A negative exponent on a fraction flips it: (1/2)^(−2) = 2² = 4.',
+      ],
+      common_mistakes: [
+        'Writing 2^(−3) as −8 or as −2³.',
+        'Making the result negative — the minus sign is in the exponent, not in the value.',
+        'Forgetting that −2^(−2) applies the minus after the power: −(1/4).',
+      ],
+    };
+  }
+  if (/!/.test(expr)) {
+    return {
+      tips: [
+        'n! = n × (n − 1) × … × 2 × 1 — the product of every whole number from n down to 1.',
+        '0! = 1 by definition, so that formulas for combinations and permutations work at the edges.',
+        'Factorials grow very fast: 10! is already 3,628,800.',
+      ],
+      common_mistakes: [
+        'Reading 7! as 7 × 1, or as 7 + 6 + … + 1.',
+        'Treating (n − 1)! as n! − 1.',
+        'Applying ! to a fraction or a negative number.',
+      ],
+    };
+  }
+  if (/%/.test(expr) || /Percent means/.test(text)) {
+    return {
+      tips: [
+        '"Per cent" means per hundred: 50% = 50/100 = 1/2, and "of" means multiply.',
+        'To find p% of a number, multiply by p/100 (or move the decimal point two places).',
+        'A percent of a percent multiplies: 50% of 50% is 25%, not 100%.',
+      ],
+      common_mistakes: [
+        'Multiplying by 50 instead of by 0.5.',
+        'Adding the percentage instead of multiplying by it.',
+        'Mixing up "50% of 80" with "50 is what percent of 80".',
+      ],
+    };
+  }
+  if (/\b(?:sqrt|cbrt|nthRoot)\b|√|\^\s*\(?\d+\/\d+\)?/i.test(expr)) {
+    return {
+      tips: [
+        '√a is the non-negative number whose square is a; √2 is irrational, so its decimal never ends or repeats.',
+        'Rewrite roots as powers when combining them: √a = a^(1/2), ∛a = a^(1/3).',
+        'Simplify by pulling out perfect squares: √8 = √4·√2 = 2√2.',
+      ],
+      common_mistakes: [
+        '√(a + b) is not √a + √b.',
+        'Reporting ±√a for a plain root — the radical symbol means the positive root.',
+        'Rounding too early in a longer calculation.',
+      ],
+    };
+  }
+  return {
+    tips: [
+      'PEMDAS/BODMAS order: Parentheses, Exponents, Multiplication & Division (left to right), Addition & Subtraction (left to right).',
+      'Multiplication and division share a tier — resolve them left to right, not multiplication first.',
+      'Use parentheses to force a different order of operations.',
+    ],
+    common_mistakes: [
+      'Adding or subtracting before multiplying or dividing.',
+      'Evaluating left to right while ignoring precedence.',
+      'Sign errors when subtracting a negative number.',
+    ],
+  };
 }
 
 // ln(0) / log(0) anywhere in the parse tree.

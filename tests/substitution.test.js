@@ -24,7 +24,7 @@ test('∫ x·cos(x²) dx = ½ sin(x²) + C, by u-substitution with a worked walk
 
 test('u-substitution family: inner arguments, trig calls, logs, roots', async () => {
   const cases = [
-    ['2*x*e^(x^2)', 'exp(x^2)'],
+    ['2*x*e^(x^2)', 'e^(x^2)'],
     ['sin(x)^2*cos(x)', '1/3*sin(x)^3'],
     ['cos(x)/sin(x)', 'ln|sin(x)|'],
     ['ln(x)/x', '1/2*ln|x|^2'],

@@ -17,7 +17,7 @@
 // The steps show the substitution the way it is taught: choose u, compute
 // du, rewrite, integrate in u, substitute back.
 
-import { math, beautify, isAlgebriteFailure } from './solverUtils.js';
+import { math, beautify, isAlgebriteFailure, lnify } from './solverUtils.js';
 
 // Does d/dx F numerically equal f at several points? Central differences at
 // h = 1e-5; points where either side is undefined are skipped, and at least
@@ -173,10 +173,10 @@ export function integrateBySubstitution(term, variable, Algebrite) {
     const steps = [
       `The integrand contains ${beautify(u)} inside a function, and its derivative d/d${v}(${beautify(u)}) = ${beautify(du)} appears as a factor (up to a constant) — the shape g′(${v})·h(g(${v})) that u-substitution is made for.`,
       `Let u = ${beautify(u)}. Then du = ${beautify(du)} d${v} — so wherever ${beautify(du)} d${v} appears in the integrand it becomes du, and a constant multiple of it becomes the same multiple of du.`,
-      `Rewrite the integrand in terms of u: ∫(${beautify(term)}) d${v} = ∫(${beautify(inU)}) du.`,
-      `Integrate in u: ∫(${beautify(inU)}) du = ${beautify(H)}.`,
-      `Substitute back u = ${beautify(u)}: ${beautify(back)}.`,
-      `Check by differentiating: d/d${v}[${beautify(back)}] = ${beautify(term)} ✓`,
+      `Rewrite the integrand in terms of u: ∫(${beautify(term)}) d${v} = ∫(${lnify(inU)}) du.`,
+      `Integrate in u: ∫(${lnify(inU)}) du = ${lnify(H)}.`,
+      `Substitute back u = ${beautify(u)}: ${lnify(back)}.`,
+      `Check by differentiating: d/d${v}[${lnify(back)}] = ${beautify(term)} ✓`,
     ];
     return { antiderivative: back, steps, u };
   }
