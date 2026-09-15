@@ -70,6 +70,8 @@ const CHANGE_TYPE_LABELS = {
   ADD_POLYNOMIAL_TERMS: 'Add the like terms',
   ADD_FRACTIONS: 'Add the fractions',
   DISTRIBUTE: 'Distribute across the parentheses',
+  SIMPLIFY_TERMS: 'Simplify the terms',
+  COLLECT_LIKE_TERMS: 'Collect the like terms',
   DISTRIBUTE_NEGATIVE_ONE: 'Distribute the negative sign',
   SUBTRACT_FROM_BOTH_SIDES: 'Subtract from both sides',
   ADD_TO_BOTH_SIDES: 'Add to both sides',
@@ -144,7 +146,16 @@ export function stepsFromMathstepsResult(result) {
     return null;
   }
 
-  const steps = result.map(formatMathstepsStep).filter(Boolean);
+  // "Simplify the left side: 3x − 2 = 2x + 1" hid the two things a student
+  // most needs to see — the distribution and the combining of constants.
+  // When a simplify-side step's substeps include a distribution, show
+  // those first-level substeps instead (September 2026 review, batch 2).
+  const expanded = result.flatMap((step) => {
+    const sub = Array.isArray(step.substeps) ? step.substeps : [];
+    const distributes = /^SIMPLIFY_(?:LEFT|RIGHT)_SIDE$/.test(step.changeType) && sub.some((t) => /DISTRIBUTE/.test(t.changeType));
+    return distributes ? sub.filter((t) => t.newEquation || t.newNode) : [step];
+  });
+  const steps = expanded.map(formatMathstepsStep).filter(Boolean);
   const lastStep = result[result.length - 1];
 
   let answer = '';

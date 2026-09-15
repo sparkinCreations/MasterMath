@@ -61,6 +61,7 @@ const STATUS_THEMES = {
   [STATUS.UNDEFINED]: AMBER_THEME,
   [STATUS.INDETERMINATE]: AMBER_THEME,
   [STATUS.OVERFLOW]: AMBER_THEME,
+  [STATUS.DIVERGES]: AMBER_THEME,
 };
 
 export default function SolutionDisplay({ solution, problem, topic }) {

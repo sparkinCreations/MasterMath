@@ -18,6 +18,68 @@ import { parseError, unsupported } from '../solutionEnvelope.js';
 // Limits
 // ---------------------------------------------------------------------------
 
+// Tips and mistakes chosen from the technique the limit actually used (read
+// off its verification method and steps), instead of one list for every
+// limit. September 2026 review, batch 3.
+function limitGuidance(result) {
+  const method = String(result.verificationMethod || '');
+  const text = (result.steps || []).join('\n');
+  if (/standard limit/.test(method)) {
+    return {
+      tips: [
+        'The standard limits sin(u)/u → 1 and (1 − cos u)/u² → 1/2 (as u → 0) are the building blocks: rewrite so the argument of the trig function matches the denominator.',
+        'A constant factor comes out: sin(3x)/x = 3·sin(3x)/(3x).',
+        'These limits are the reason d/dx sin(x) = cos(x) — they sit under every trig derivative.',
+      ],
+      common_mistakes: [
+        'Substituting x = 0 and stopping at 0/0 — the form is indeterminate, not an answer.',
+        'Forgetting the constant factor when the argument is scaled (sin(3x)/x → 3, not 1).',
+        'Applying the standard limit when the argument does not match the denominator.',
+      ],
+    };
+  }
+  if (/factor and cancel/.test(method) || /Cancel it/.test(text)) {
+    return {
+      tips: [
+        '0/0 means a common factor is hiding in numerator and denominator: factor both and cancel it.',
+        'The cancelled form equals the original everywhere except at the point itself — that is exactly what a limit needs.',
+        'On the graph, a cancelled factor is a hole (removable discontinuity), not an asymptote.',
+      ],
+      common_mistakes: [
+        'Substituting the value before cancelling and stopping at 0/0.',
+        'Claiming the function "equals" the simplified form at the point — it is undefined there.',
+        'Cancelling terms instead of factors.',
+      ],
+    };
+  }
+  if (/infinit|∞/i.test(text) && /at infinity|growth|dominant|leading/i.test(text + method)) {
+    return {
+      tips: [
+        'For a limit at infinity, the highest power dominates: divide numerator and denominator by it.',
+        'Equal degrees → the ratio of leading coefficients; lower degree on top → 0; higher on top → ±∞.',
+        'Exponentials outgrow every polynomial, and polynomials outgrow every logarithm.',
+      ],
+      common_mistakes: [
+        'Plugging in a large number and rounding — that suggests the value but does not prove it.',
+        'Forgetting the sign when the leading term is odd and x → −∞.',
+        'Treating ∞/∞ as 1.',
+      ],
+    };
+  }
+  return {
+    tips: [
+      'Try substituting the value directly first — if the function is continuous there, that is the limit.',
+      'A 0/0 or ∞/∞ result is indeterminate: factor, rationalize, or use L\'Hôpital\'s rule.',
+      'For limits at infinity, compare the growth rates of the numerator and denominator.',
+    ],
+    common_mistakes: [
+      'Assuming the limit equals the function value even at a discontinuity.',
+      'Only checking one side when the two sides can disagree.',
+      'Stopping at a 0/0 form instead of simplifying first.',
+    ],
+  };
+}
+
 export async function solveLimit(expression) {
   try {
     let cleaned = expression.trim().replace(/[.?!]+$/, '').trim();
@@ -195,20 +257,12 @@ export async function solveLimit(expression) {
         'A one-sided limit only follows the function along one side of the point — the other side is ignored entirely.',
         'The two-sided limit exists exactly when the left- and right-hand limits agree.',
         'One-sided limits are the right tool at domain boundaries, jump discontinuities, and vertical asymptotes.',
-      ] : [
-        'Try substituting the value directly first — if the function is continuous there, that is the limit.',
-        'A 0/0 or ∞/∞ result is indeterminate: factor, rationalize, or use L\'Hôpital\'s rule.',
-        'For limits at infinity, compare the growth rates of the numerator and denominator.',
-      ],
+      ] : limitGuidance(result).tips,
       common_mistakes: side !== 0 ? [
         'Mixing up the notation: x → a⁺ approaches from the right (values above a), x → a⁻ from the left.',
         'Reporting a two-sided limit when only one side was asked for (or exists).',
         'Assuming a one-sided limit exists where the function is not even defined on that side.',
-      ] : [
-        'Assuming the limit equals the function value even at a discontinuity.',
-        'Only checking one side when the two sides can disagree.',
-        'Stopping at a 0/0 form instead of simplifying first.',
-      ],
+      ] : limitGuidance(result).common_mistakes,
       graph: generateLimitGraph(func, variable, target, displayTarget, result.answer),
     };
   } catch (error) {
@@ -513,7 +567,9 @@ function tryStandardLimit(func, variable, target) {
       const shown = formatLimitAnswer(value, rationalText(value));
       const u = k === 1 ? v : `${formatNumber(k)}${v}`;
       const steps = [
-        'Direct substitution gives 0/0. This is the standard limit (1 − cos u)/u² → 1/2 as u → 0.',
+        'Direct substitution gives 0/0. This is the standard limit (1 − cos u)/u² → 1/2 as u → 0 — which comes from the sine limit:',
+        `Use the half-angle identity 1 − cos(u) = 2sin²(u/2). Then (1 − cos(u))/u² = 2sin²(u/2)/u² = (1/2)·[sin(u/2)/(u/2)]².`,
+        'As u → 0, u/2 → 0 too, so sin(u/2)/(u/2) → 1 (the standard limit sin(w)/w → 1), and the bracket squared → 1. Hence (1 − cos u)/u² → 1/2.',
       ];
       if (k !== 1 || m !== 1) steps.push(`With u = ${u}: (1 − cos(${u}))/${beautify(den)} = (${rationalText((k * k) / m) ?? formatNumber((k * k) / m)}) · (1 − cos(${u}))/(${u})².`);
       steps.push(`(1 − cos(${u}))/(${u})² → 1/2, so the limit is ${shown}.`);
@@ -1278,6 +1334,41 @@ function detectTrigAsymptote(expression, result, treatAsDegrees) {
   return null;
 }
 
+// Tips and mistakes for a trig evaluation, chosen by the function that was
+// evaluated and by whether a unit or a special angle came up — instead of
+// the same four lines (all about sin and degrees) for every input.
+function trigGuidance(expression, steps) {
+  const text = steps.join('\n');
+  const fn = (expression.match(/\b(arcsin|arccos|arctan|asin|acos|atan|sin|cos|tan|sec|csc|cot)\b/i) || [])[1]?.toLowerCase();
+  const tips = [];
+  const mistakes = [];
+  const special = /special angle/.test(text);
+  const unit = /degrees|radians/.test(text);
+  if (/^arc|^a(sin|cos|tan)$/.test(fn || '')) {
+    tips.push('An inverse trig function returns an ANGLE: arcsin(1/2) asks "which angle has sine 1/2?" — the principal one, in [−π/2, π/2] for arcsin and arctan, [0, π] for arccos.');
+    tips.push('arcsin and arccos only accept inputs in [−1, 1]; arctan accepts any real number.');
+    mistakes.push('Reading arcsin(x) as 1/sin(x) — that is csc(x), a different function.');
+    mistakes.push('Reporting an angle outside the principal range, or in the wrong unit.');
+  } else if (fn === 'tan' || fn === 'cot' || fn === 'sec' || fn === 'csc') {
+    tips.push(fn === 'tan' ? 'tan = sin/cos, so tan is undefined wherever cos = 0 (90°, 270°, …) and its period is 180°, not 360°.' : `${fn} is a reciprocal: sec = 1/cos, csc = 1/sin, cot = 1/tan — undefined wherever the function it inverts is 0.`);
+    tips.push('Key identity: 1 + tan²(x) = sec²(x).');
+    mistakes.push('Forgetting that tan(90°) is undefined — a calculator shows a huge number, not the truth.');
+    mistakes.push(fn === 'tan' ? 'Using 360° as the period of tan (it repeats every 180°).' : 'Confusing sec with 1/sin (sec = 1/cos).');
+  } else {
+    tips.push(fn === 'cos'
+      ? 'Remember: cos(0°) = 1, cos(30°) = √3/2, cos(45°) = √2/2, cos(60°) = 1/2, cos(90°) = 0.'
+      : 'Remember: sin(0°) = 0, sin(30°) = 1/2, sin(45°) = √2/2, sin(60°) = √3/2, sin(90°) = 1.');
+    tips.push('Key identity: sin²(x) + cos²(x) = 1 — and sin and cos are cofunctions: sin(θ) = cos(90° − θ).');
+    mistakes.push('Confusing sin and cos values for complementary angles (sin 30° = cos 60°).');
+    if (special) mistakes.push('Not memorising the special-angle values — they are expected exactly, not as decimals.');
+  }
+  if (unit) {
+    tips.push('π radians = 180°: multiply degrees by π/180 to get radians. Write pi for π (sin(pi/6)) or set the angle unit in Settings.');
+    mistakes.unshift('Mixing up radians and degrees — sin(30) in radians is −0.988, not 1/2.');
+  }
+  return { tips: tips.slice(0, 3), common_mistakes: mistakes.slice(0, 3) };
+}
+
 export async function solveTrigonometry(expression, settingsOverride) {
   try {
     // Equations go to the trig-equation solver and never reach the numeric
@@ -1541,18 +1632,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
     return {
       steps,
       answer: formattedResult,
-      tips: [
-        'Remember: sin(30°) = 1/2, sin(45°) = √2/2, sin(60°) = √3/2.',
-        'math.js uses radians by default (π radians = 180°).',
-        'Key identity: sin²(x) + cos²(x) = 1.',
-        'Use pi for π (e.g., sin(pi/2) for sin(90°)).',
-      ],
-      common_mistakes: [
-        'Mixing up radians and degrees (use pi for radians).',
-        'Forgetting that tan(90°) is undefined.',
-        'Not memorizing the special-angle values.',
-        'Confusing sin/cos values for complementary angles.',
-      ],
+      ...trigGuidance(expression, steps),
       graph: generateTrigGraph(expression),
     };
   } catch (error) {

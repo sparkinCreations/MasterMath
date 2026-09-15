@@ -22,6 +22,7 @@ import {
   undefinedValue,
   indeterminate,
   overflow,
+  diverges,
 } from '../src/lib/solutionEnvelope.js';
 
 // --- constructor contract ----------------------------------------------------
@@ -33,6 +34,8 @@ test('every constructor produces its own valid status', () => {
   assert.equal(undefinedValue({ input: '1/0' }).status, STATUS.UNDEFINED);
   assert.equal(indeterminate({ input: '0/0', form: '0/0' }).status, STATUS.INDETERMINATE);
   assert.equal(overflow({ input: '1e308*10' }).status, STATUS.OVERFLOW);
+  assert.equal(diverges({ input: '∫_0^1 1/x dx' }).status, STATUS.DIVERGES);
+  assert.equal(statusLabel(STATUS.DIVERGES), 'Diverges');
   for (const status of ALL_STATUSES) {
     assert.ok(isValidStatus(status));
     assert.ok(statusLabel(status).length > 0);
@@ -110,10 +113,10 @@ test('integral of sin(x^2) is unsupported with the Fresnel explanation', async (
 });
 
 // Improper definite integrals refuse with an honest unsupported status.
-test('definite integral across a discontinuity is unsupported, not solved', async () => {
+test('definite integral across a discontinuity diverges, not solved', async () => {
   const result = await solveProblem('∫_-1^1 1/x dx', 'integrals');
   assert.ok(isFailureStatus(result.status), `got status: ${result.status}`);
-  assert.equal(result.status, STATUS.UNSUPPORTED);
+  assert.equal(result.status, STATUS.DIVERGES);
 });
 
 // Systems and inequalities refusals carry statuses too.

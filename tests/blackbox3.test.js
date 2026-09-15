@@ -67,7 +67,7 @@ test('inverse trig outside [-1, 1] is "undefined for real numbers", not a raw co
 // ── Medium: divergent vs convergent improper integrals at an endpoint.
 test('∫_0^1 1/x dx diverges — and says so; ∫_0^1 1/√x dx = 2', async () => {
   const d = await solveProblem('∫_0^1 1/x dx', 'integrals');
-  assert.equal(d.status, STATUS.UNSUPPORTED);
+  assert.equal(d.status, STATUS.DIVERGES);
   assert.match(d.answer, /^Diverges/);
   const c = await solveProblem('∫_0^1 1/sqrt(x) dx', 'integrals');
   assert.equal(c.status, STATUS.SOLVED);

@@ -12,6 +12,7 @@ export const STATUS = {
   UNDEFINED: 'undefined',         // valid math, no defined value (1/0)
   INDETERMINATE: 'indeterminate', // 0/0, ∞−∞, 0^0 — forms, not values
   OVERFLOW: 'overflow',           // valid math, exceeds double-precision range
+  DIVERGES: 'diverges',           // valid math, the defining limit has no finite value (∫₀¹ 1/x dx)
 };
 
 export const ALL_STATUSES = Object.values(STATUS);
@@ -28,6 +29,7 @@ const STATUS_LABELS = {
   [STATUS.UNDEFINED]: 'Undefined',
   [STATUS.INDETERMINATE]: 'Indeterminate form',
   [STATUS.OVERFLOW]: 'Number too large',
+  [STATUS.DIVERGES]: 'Diverges',
 };
 
 export function statusLabel(status) {
@@ -46,7 +48,7 @@ export function isFailureStatus(status) {
 // tool or the typing, not about the student's maths, and until September 2026
 // every one of them was saved and shown in Progress as if it were a solution.
 export function shouldSaveToHistory(status) {
-  return status === STATUS.SOLVED || status === STATUS.UNDEFINED || status === STATUS.INDETERMINATE;
+  return status === STATUS.SOLVED || status === STATUS.UNDEFINED || status === STATUS.INDETERMINATE || status === STATUS.DIVERGES;
 }
 
 // A history entry that counts as a solved problem in the statistics. Entries
@@ -113,6 +115,20 @@ export function undefinedValue({ input, reason, steps, tips, common_mistakes, gr
   return baseResult(STATUS.UNDEFINED, {
     steps: steps || [`Evaluate: ${input}`, reason || 'This expression has no defined value.'],
     answer: reason ? `Undefined — ${reason}` : 'Undefined',
+    tips: tips || [],
+    common_mistakes: common_mistakes || [],
+    graph,
+  });
+}
+
+// An improper integral (or series) whose defining limit has no finite value.
+// The solver DID understand and settle the question — "diverges" is the
+// answer — so this is not "unsupported", which used to be its status and
+// put "Beyond this solver" above a correct divergence argument.
+export function diverges({ input, reason, steps, answer, tips, common_mistakes, graph }) {
+  return baseResult(STATUS.DIVERGES, {
+    steps: steps || [`Evaluate: ${input}`, reason || 'The limit defining this quantity has no finite value.'],
+    answer: answer || (reason ? `Diverges — ${reason}` : 'Diverges'),
     tips: tips || [],
     common_mistakes: common_mistakes || [],
     graph,

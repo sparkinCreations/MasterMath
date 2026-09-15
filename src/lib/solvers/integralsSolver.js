@@ -15,7 +15,7 @@ import {
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
 import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerically } from './substitutionSolver.js';
-import { parseError, unsupported } from '../solutionEnvelope.js';
+import { parseError, unsupported, diverges } from '../solutionEnvelope.js';
 
 // Famous non-elementary integrands, so "the engine can't do this" comes with
 // the honest reason: the antiderivative exists but isn't elementary. The
@@ -85,12 +85,16 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     let anyByParts = false;
     let anySubstitution = false;
     let anyAbs = false;
+    let anyInverseTrig = false;
+    const directLabels = new Set();
     for (const { signed } of terms) {
       const res = await integrateTerm(signed, variable, Algebrite);
       if (!res) { perTerm.length = 0; break; }
       if (res.method === 'byparts') anyByParts = true;
       if (res.method === 'substitution') anySubstitution = true;
       if (res.method === 'abs') anyAbs = true;
+      if (res.method === 'inverse trig') anyInverseTrig = true;
+      if (res.label) directLabels.add(res.label);
       perTerm.push(res);
     }
 
@@ -159,11 +163,13 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     ] : [
       anyByParts
         ? 'Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).'
+        : anyInverseTrig
+          ? `Inverse-trig antiderivatives come from derivatives you know: d/d${variable} arctan(${variable}) = 1/(1 + ${variable}²) and d/d${variable} arcsin(${variable}) = 1/√(1 − ${variable}²). A constant a² in the pattern is factored out first.`
         : anySubstitution
           ? 'u-substitution: look for an inner function whose derivative appears as a factor — ∫g′(x)·h(g(x)) dx = ∫h(u) du with u = g(x).'
           : anyAbs
             ? '∫|ax + b| dx = (ax + b)·|ax + b| / (2a) + C — split at the corner, integrate each piece, and the two pieces match up into one formula.'
-            : `Power rule: ∫${variable}^n d${variable} = ${variable}^(n+1)/(n+1) + C  (n ≠ -1)`,
+            : directTip(directLabels, variable),
       'Always add the constant of integration (+C) for an indefinite integral.',
       'Constant factors pull out front: ∫c·f dx = c·∫f dx.',
     ];
@@ -176,12 +182,16 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       'Forgetting the constant of integration (+C).',
       anyByParts
         ? 'Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.'
+        : anyInverseTrig
+          ? `Reading 1/(1 + ${variable}²) as a power of ${variable} — it is not ${variable}^(−2), and the power rule does not apply.`
         : anySubstitution
           ? 'Forgetting to divide by g′(x) when changing to du — the constant from du = g′(x) dx must be carried.'
           : anyAbs
             ? 'Integrating |x| as if it were x, giving x²/2 — that is only right for x ≥ 0.'
-            : 'Mishandling the (n+1) denominator in the power rule.',
-      'Applying the power rule to 1/x — that integrates to ln|x|, not x⁰/0.',
+            : directMistake(directLabels, variable),
+      directLabels.has('Power rule') || (!anyByParts && !anySubstitution && !anyAbs && !anyInverseTrig && directLabels.size === 0)
+        ? 'Applying the power rule to 1/x — that integrates to ln|x|, not x⁰/0.'
+        : 'Skipping the check: differentiate the result and compare it with the integrand.',
     ];
 
     return {
@@ -222,6 +232,27 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       tips: ['Use ^ for powers and * for products (e.g., x^2 * sin(x)).'],
     });
   }
+}
+
+// The first tip and mistake for a directly-integrated expression follow the
+// rule(s) its terms actually used; "Power rule" used to be served with
+// sec²(x) → tan(x) and ln|2x + 1| alike.
+function directTip(labels, v) {
+  if (labels.has('Power rule') || labels.size === 0) return `Power rule: ∫${v}^n d${v} = ${v}^(n+1)/(n+1) + C  (n ≠ -1)`;
+  if (labels.has('Trig rule')) return `The trig antiderivatives are the trig derivatives read backwards: ∫cos = sin, ∫sin = −cos, ∫sec² = tan, ∫sec·tan = sec.`;
+  if (labels.has('Exponential rule')) return `∫e^${v} d${v} = e^${v} — the exponential is its own antiderivative; ∫a^${v} d${v} = a^${v}/ln(a).`;
+  if (labels.has('Reciprocal rule')) return `∫1/${v} d${v} = ln|${v}| + C — the one power the power rule cannot do (n = −1 would divide by 0).`;
+  if (labels.has('Linear substitution')) return `For 1/(a${v} + b), let u = a${v} + b: the 1/a from du = a d${v} is the only extra factor.`;
+  return 'Every antiderivative can be checked by differentiating it — the derivative must give back the integrand exactly.';
+}
+
+function directMistake(labels, v) {
+  if (labels.has('Power rule') || labels.size === 0) return 'Mishandling the (n+1) denominator in the power rule.';
+  if (labels.has('Trig rule')) return `Sign slips: ∫sin(${v}) d${v} = −cos(${v}), while ∫cos(${v}) d${v} = +sin(${v}).`;
+  if (labels.has('Exponential rule')) return `Treating e^${v} like a power and writing e^(${v}+1)/(${v}+1).`;
+  if (labels.has('Reciprocal rule')) return `Writing ∫1/${v} d${v} as ${v}⁰/0 — use ln|${v}| instead, with the absolute value.`;
+  if (labels.has('Linear substitution')) return 'Forgetting the 1/a factor that comes from du = a dx.';
+  return 'Skipping the check: differentiate the result and compare it with the integrand.';
 }
 
 // Algebrite writes √π as pi^(1/2) and the Gaussian antiderivative as
@@ -348,6 +379,21 @@ async function integrateTerm(term, variable, Algebrite) {
     // fall through to a direct attempt if by-parts declined
   }
 
+  // Method chosen from the integrand's STRUCTURE, before the engine answers:
+  // Algebrite integrates 1/(x²+1) and x/(x²+1) directly, and the direct
+  // path used to attach the classifier's fallback label — "Power rule" — to
+  // arctan(x) and ½ln(x²+1) (September 2026 review, batch 1).
+  const inverseTrig = integrateInverseTrig(term, variable, Algebrite);
+  if (inverseTrig) {
+    return { antideriv: inverseTrig.antiderivative, steps: inverseTrig.steps, method: 'inverse trig', term };
+  }
+  if (isLogDerivativeShape(term, variable, Algebrite)) {
+    const sub = integrateBySubstitution(rewriteReciprocalTrig(term), variable, Algebrite);
+    if (sub) {
+      return { antideriv: sub.antiderivative, steps: [...sub.steps, ...positiveArgumentNote(sub.antiderivative, variable)], method: 'substitution', term };
+    }
+  }
+
   let anti = safeRunLocal(Algebrite, `integral(${rewriteReciprocalTrig(term)}, ${variable})`);
   if (anti !== null && !isUnevaluatedOperator(anti)) {
     anti = polishLogArguments(Algebrite, anti);
@@ -355,7 +401,7 @@ async function integrateTerm(term, variable, Algebrite) {
     if (halfAngle) return { antideriv: anti, steps: halfAngle, method: 'direct', term };
     const { label, hint } = classifyIntegralRule(term, variable);
     const steps = [`∫(${beautify(term)}) d${variable} = ${lnify(anti)}${hint ? `  (${label})` : ''}.`];
-    return { antideriv: anti, steps, method: 'direct', term };
+    return { antideriv: anti, steps, method: 'direct', term, label };
   }
 
   // Algebrite has no substitution step: it gives up on x·cos(x²). Try the
@@ -901,7 +947,7 @@ async function solveImproperInfinite(parsed, notation) {
     return {
       steps,
       answer: `${notation} diverges`,
-      status: 'undefined',
+      status: 'diverges',
       tips: ['An improper integral converges only if the limit defining it is a finite number.', 'Compare with ∫₁^∞ 1/x^p dx: it converges for p > 1 and diverges for p ≤ 1.'],
       common_mistakes: ['Treating ∞ as a number and "plugging it in" — the integral is a limit, and it can fail to exist.', 'Assuming a function that tends to 0 has a convergent integral (1/x → 0 but ∫₁^∞ 1/x dx = ∞).'],
       graph: generateDefiniteGraph(integrand, v, lowerInf ? -10 : finiteBoundVal(lowerRaw), upperInf ? 10 : finiteBoundVal(upperRaw), lowerLabel, upperLabel, NaN),
@@ -1019,6 +1065,13 @@ async function solveDefiniteIntegral(parsed) {
 
     const Algebrite = await loadAlgebrite();
     const forAlgebrite = rewriteReciprocalTrig(integrand);
+
+    // An integrand unbounded at an endpoint (1/√x at 0, ln x at 0) makes the
+    // integral improper: it is a one-sided limit, and F(b) − F(a) with F
+    // evaluated AT the singular endpoint is not valid reasoning even when it
+    // happens to give the right number. Handled first, as a limit.
+    const endpoint = await integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upperRaw, lowerLabel, upperLabel, notation, Algebrite });
+    if (endpoint) return endpoint;
 
     // Authoritative exact value.
     let exactRaw;
@@ -1315,7 +1368,7 @@ function refuseDefinite(reason, notation, kind = 'unsupported') {
 // The integrand is unbounded at an endpoint and the antiderivative has no
 // finite limit there: the improper integral diverges.
 function refuseImproperAt(notation, variable, at, integrand) {
-  return unsupported({
+  return diverges({
     input: notation,
     reason: `The integrand ${beautify(integrand)} is unbounded as ${variable} → ${at}, and its antiderivative has no finite value there — this improper integral diverges (it has no finite value).`,
     answer: `Diverges — the integral has no finite value (unbounded at ${variable} = ${at})`,
@@ -1336,10 +1389,10 @@ function refuseImproper(notation, variable) {
   return unsupported({
     steps: [
       `Evaluate the definite integral ${notation}.`,
-      `The integrand is discontinuous somewhere between the bounds (it has a vertical asymptote in the interval).`,
-      'That makes this an improper integral — its value cannot be found by the ordinary Fundamental Theorem of Calculus, so MasterMath does not report a number here.',
+      'The integrand is unbounded somewhere in the interval, so this is an improper integral: it must be split at the singularity and each piece taken as a one-sided limit.',
+      'MasterMath could not locate the singularity precisely or evaluate those one-sided limits reliably here, so it does not report a value rather than apply F(b) − F(a) across the break.',
     ],
-    answer: 'Improper integral (discontinuous on the interval) — not supported',
+    answer: 'Improper integral — MasterMath could not evaluate the one-sided limits at the singularity',
     tips: [
       `Split the integral at the discontinuity and take one-sided limits to test convergence.`,
       `For example, ∫ 1/${variable} over an interval containing 0 diverges — it has no finite value.`,
@@ -1348,6 +1401,198 @@ function refuseImproper(notation, variable) {
       'Blindly applying F(b) − F(a) across a vertical asymptote — that gives a confident but meaningless number.',
     ],
   });
+}
+
+// The integrand is unbounded at one (or both) endpoints of [a, b]: the
+// integral is improper there and is DEFINED as a one-sided limit,
+// ∫_a^b = lim (t→a⁺) ∫_t^b. F(b) − F(a) with F evaluated at the singular
+// endpoint is not valid reasoning — ∫₀¹ 1/√x used to show "F(0) = 0" and
+// ∫₀¹ ln x "F(0) = 0" as if the Fundamental Theorem applied there. Now the
+// limit of F toward the endpoint is taken explicitly: finite → converges
+// (value shown as the limit), unbounded → diverges. Returns null when no
+// endpoint is singular, so the ordinary path runs. (September 2026 review.)
+async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upperRaw, lowerLabel, upperLabel, notation, Algebrite }) {
+  try {
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    if (lo === hi) return null;
+    const L = hi - lo;
+    const f = (x) => evalAntiderivNumeric(integrand, v, x);
+
+    // Unbounded at the edge: undefined (or astronomically large) AT the
+    // endpoint, finite just inside, and growing in magnitude as the probes
+    // approach it. sin(x)/x at 0 (undefined but bounded) is not singular.
+    const unboundedAt = (edge, dir) => {
+      const y0 = f(edge);
+      const probes = [1e-4, 1e-6, 1e-8].map((eps) => f(edge + dir * eps * Math.max(L, 1)));
+      if (!probes.every(Number.isFinite)) return false;
+      const growing = Math.abs(probes[1]) > Math.abs(probes[0]) + 1 && Math.abs(probes[2]) > Math.abs(probes[1]) + 1;
+      return (!Number.isFinite(y0) || Math.abs(y0) > 1e12) && growing;
+    };
+    const singularLo = unboundedAt(lo, 1);
+    const singularHi = unboundedAt(hi, -1);
+    if (!singularLo && !singularHi) return null;
+
+    let F = await antiderivativeViaTerms(integrand, v, Algebrite);
+    if (!F) {
+      try { F = Algebrite.integral(rewriteReciprocalTrig(integrand), v).toString(); } catch { F = null; }
+    }
+    if (!F || isAlgebriteFailure(F) || /integral/i.test(F)) {
+      return refuseDefinite('The integrand is unbounded at an endpoint (an improper integral), and MasterMath could not find an antiderivative to take the limit with.', notation);
+    }
+    const Fat = (x) => evalAntiderivNumeric(F, v, x);
+
+    // One-sided limit of F at a singular endpoint along a shrinking ladder:
+    // the finite value it settles to, or NaN when it keeps growing.
+    const limitToward = (edge, dir) => {
+      const vals = [1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10].map((eps) => Fat(edge + dir * eps * Math.max(L, 1)));
+      if (vals.some((y) => !Number.isFinite(y))) return { value: NaN, samples: vals };
+      const [p, q, r] = vals.slice(-3);
+      const settling = Math.abs(r - q) <= Math.abs(q - p) + 1e-12 && Math.abs(r - q) < 1e-3 * (1 + Math.abs(r));
+      return { value: settling ? r : NaN, samples: vals };
+    };
+    // Exact value of the limit when Algebrite can take F at the endpoint
+    // symbolically and it agrees with the numeric ladder (2√x → 0 at 0).
+    const exactLimit = (raw, numeric) => {
+      try {
+        const out = String(Algebrite.run(`simplify(real(subst(${raw}, ${v}, ${F})))`)).trim();
+        if (isAlgebriteFailure(out) || /\bi\b|nan|inf/i.test(out) || new RegExp(`\\b${v}\\b`).test(out)) return null;
+        const n = Number(math.evaluate(out));
+        return Number.isFinite(n) && Math.abs(n - numeric) < 1e-3 * (1 + Math.abs(n)) ? out : null;
+      } catch { return null; }
+    };
+    const rawOf = (edge) => (edge === a ? lowerRaw : upperRaw);
+    const labelOf = (edge) => (edge === a ? lowerLabel : upperLabel);
+
+    const ends = [
+      { edge: lo, dir: 1, side: '⁺', singular: singularLo, symbol: 's' },
+      { edge: hi, dir: -1, side: '⁻', singular: singularHi, symbol: 't' },
+    ];
+    for (const end of ends) {
+      end.label = labelOf(end.edge);
+      end.raw = rawOf(end.edge);
+      if (end.singular) {
+        const lim = limitToward(end.edge, end.dir);
+        end.numeric = lim.value;
+        end.samples = lim.samples;
+        end.exact = Number.isFinite(lim.value) ? (exactLimit(end.raw, lim.value) || exactValueToRaw(Math.abs(lim.value) < 1e-6 ? 0 : lim.value)) : null;
+      } else {
+        end.numeric = Fat(end.edge);
+        end.exact = evalAntiderivAt(Algebrite, F, v, end.raw);
+        if (!Number.isFinite(end.numeric)) return null;
+      }
+    }
+    const [loEnd, hiEnd] = ends;
+    const singularEnds = ends.filter((e) => e.singular);
+    const FofT = (sym) => lnify(F.replace(new RegExp(`\\b${v}\\b`, 'g'), sym));
+
+    const limitNotation = singularEnds
+      .map((e) => `lim (${e.symbol}→${e.label}${e.side})`)
+      .join(' ');
+    const reversed = b < a;
+    const ordered = `∫_${loEnd.label}^${hiEnd.label}`;
+    const innerBounds = `∫_${singularLo ? 's' : loEnd.label}^${singularHi ? 't' : hiEnd.label}`;
+    const why = singularEnds.map((e) => `${v} = ${e.label} (it grows without bound as ${v} → ${e.label}${e.side})`).join(' and at ');
+    const steps = [
+      `Evaluate the definite integral ${notation}.`,
+      `The integrand ${beautify(integrand)} is undefined at the endpoint ${why}, so this is an improper integral. The Fundamental Theorem cannot be applied at that point; instead the integral is defined as a limit: ${ordered} = ${limitNotation} ${innerBounds} (${beautify(integrand)}) d${v}.${reversed ? ` (The bounds are written in reverse order: ${notation.replace(/ \(.*$/, '')} = −${ordered}.)` : ''}`,
+      `Find the antiderivative: F(${v}) = ${lnify(F)}.`,
+      `Inside the interval the Fundamental Theorem applies: ${innerBounds} = F(${singularHi ? 't' : hiEnd.label}) − F(${singularLo ? 's' : loEnd.label}) = ${singularHi ? FofT('t') : (hiEnd.exact ? formatExactValue(hiEnd.exact) : formatNumber(hiEnd.numeric))} − (${singularLo ? FofT('s') : (loEnd.exact ? formatExactValue(loEnd.exact) : formatNumber(loEnd.numeric))}).`,
+    ];
+
+    const shownSamples = (e) => e.samples.slice(0, 4).map((y) => formatNumber(y)).join(', ');
+    const divergent = singularEnds.find((e) => !Number.isFinite(e.numeric));
+    if (divergent) {
+      steps.push(`Take the limit: as ${divergent.symbol} → ${divergent.label}${divergent.side}, F(${divergent.symbol}) grows without bound (samples: ${shownSamples(divergent)}, …), so the limit does not exist as a finite number.`);
+      steps.push('The integral diverges — the area under the curve near that endpoint is infinite.');
+      return diverges({
+        input: notation,
+        answer: `Diverges — the integral has no finite value (unbounded at ${v} = ${divergent.label})`,
+        steps,
+        tips: [
+          `An improper integral converges only if the limit toward the singular endpoint is finite: ∫₀¹ 1/√x d${v} = 2 converges, ∫₀¹ 1/${v} d${v} diverges.`,
+          `Compare with a p-integral: ∫₀¹ 1/${v}ᵖ d${v} converges for p < 1 and diverges for p ≥ 1.`,
+        ],
+        common_mistakes: ['Applying F(b) − F(a) at a point where F is not defined.', 'Assuming an integral is finite because the interval is.'],
+        graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, NaN),
+      });
+    }
+
+    // Convergent: value = F(hi end) − F(lo end), each a limit where singular.
+    const valueNumeric = hiEnd.numeric - loEnd.numeric;
+    let exactRaw = null;
+    if (hiEnd.exact && loEnd.exact) {
+      try {
+        const out = String(Algebrite.run(`simplify((${hiEnd.exact}) - (${loEnd.exact}))`)).trim();
+        if (!isAlgebriteFailure(out) && !/\bi\b/.test(out)) {
+          const n = Number(math.evaluate(out));
+          if (Number.isFinite(n) && Math.abs(n - valueNumeric) < 1e-3 * (1 + Math.abs(n))) exactRaw = out;
+        }
+      } catch { /* numeric form below */ }
+    }
+    if (!exactRaw) exactRaw = exactValueToRaw(valueNumeric);
+    const exactValue = Number(math.evaluate(exactRaw));
+
+    // Independent check: quadrature with a mesh graded toward the singular
+    // endpoint (numericIntegral handles exactly one singular endpoint); when
+    // both ends are singular, check a shrinking sequence of inner intervals.
+    let check;
+    if (singularLo !== singularHi) {
+      check = numericIntegral(integrand, v, lo, hi);
+    } else {
+      // Split at the midpoint so each half has one singular end for the
+      // graded mesh to handle.
+      const mid = (lo + hi) / 2;
+      const halves = [numericIntegral(integrand, v, lo, mid), numericIntegral(integrand, v, mid, hi)];
+      check = halves.every(Number.isFinite) ? halves[0] + halves[1] : NaN;
+    }
+    if (!Number.isFinite(check) || Math.abs(check - exactValue) > Math.max(1e-2, Math.abs(exactValue) * 1e-2)) {
+      return refuseDefinite('The integrand is unbounded at an endpoint (an improper integral), and the limit of the antiderivative could not be confirmed numerically, so no value is reported.', notation);
+    }
+
+    for (const e of singularEnds) {
+      steps.push(`Take the limit: as ${e.symbol} → ${e.label}${e.side}, F(${e.symbol}) → ${formatExactValue(e.exact)} (samples: ${shownSamples(e)}, …). The limit is finite, so the integral converges.`);
+    }
+    const display = (raw, value) => {
+      const shown = formatExactValue(raw);
+      const approx = formatNumber(value);
+      return /^-?\d+$/.test(raw.replace(/\s/g, '')) || shown === approx ? shown : `${shown} (≈ ${approx})`;
+    };
+    const pieces = `${hiEnd.exact ? formatExactValue(hiEnd.exact) : formatNumber(hiEnd.numeric)} − (${loEnd.exact ? formatExactValue(loEnd.exact) : formatNumber(loEnd.numeric)})`;
+    steps.push(`So ${ordered} = ${pieces} = ${display(exactRaw, exactValue)}.`);
+    let signed = exactValue;
+    let valueText = display(exactRaw, exactValue);
+    if (reversed) {
+      signed = -exactValue;
+      let negRaw = null;
+      try {
+        const out = String(Algebrite.run(`simplify(-(${exactRaw}))`)).trim();
+        if (!isAlgebriteFailure(out)) negRaw = out;
+      } catch { /* numeric */ }
+      valueText = display(negRaw || exactValueToRaw(signed), signed);
+      steps.push(`Reversing the bounds changes the sign: ${notation.replace(/ \(.*$/, '')} = −${ordered} = ${valueText}.`);
+    }
+    steps.push(`Checked numerically with a mesh graded toward the singular endpoint: ≈ ${formatNumber(reversed ? -check : check)}.`);
+
+    return {
+      steps,
+      answer: `${notation} = ${valueText}`,
+      verified: true,
+      verificationMethod: 'one-sided limit of the antiderivative + graded numeric quadrature',
+      tips: [
+        'An integral whose integrand blows up at an endpoint is improper: replace that endpoint with a variable, integrate, then take the one-sided limit.',
+        'It converges only if that limit is a finite number — the area can be finite even though the curve is unbounded (1/√x on (0, 1]).',
+        `Compare with a p-integral: ∫₀¹ 1/${v}ᵖ d${v} converges for p < 1 and diverges for p ≥ 1.`,
+      ],
+      common_mistakes: [
+        'Substituting the singular endpoint straight into F as if the Fundamental Theorem applied there.',
+        'Assuming an unbounded integrand always gives an infinite area.',
+      ],
+      graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, signed),
+    };
+  } catch {
+    return null;
+  }
 }
 
 // A pole strictly inside [a, b]. Split there and test each side as a one-sided
@@ -1410,7 +1655,7 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
 
     if (!Number.isFinite(Lminus) || !Number.isFinite(Lplus)) {
       const side = !Number.isFinite(Lminus) ? '⁻' : '⁺';
-      return unsupported({
+      return diverges({
         input: notation,
         reason: `The integrand ${beautify(integrand)} is unbounded at ${v} = ${cShown}, inside the interval, and its antiderivative has no finite one-sided limit there — this improper integral diverges (it has no finite value).`,
         answer: `Diverges — the integral has no finite value (unbounded at ${v} = ${cShown} inside the interval)`,
@@ -1596,16 +1841,123 @@ function classifyIntegralRule(term, variable) {
     return { label: 'u-substitution', hint: `let u = the inner function, then du = u′ d${v}` };
   }
 
+  const t = inner.replace(/\s+/g, '');
+  if (new RegExp(`^(?:[\\d./*]+\\*?)?sec\\(${v}\\)\\^2$`, 'i').test(t)) return { label: 'Trig rule', hint: `∫sec²(${v}) d${v} = tan(${v}), since d/d${v} tan(${v}) = sec²(${v})` };
+  if (new RegExp(`^(?:[\\d./*]+\\*?)?csc\\(${v}\\)\\^2$`, 'i').test(t)) return { label: 'Trig rule', hint: `∫csc²(${v}) d${v} = -cot(${v}), since d/d${v} cot(${v}) = -csc²(${v})` };
+  if (new RegExp(`^(?:[\\d./*]+\\*?)?sec\\(${v}\\)\\*tan\\(${v}\\)$|^(?:[\\d./*]+\\*?)?tan\\(${v}\\)\\*sec\\(${v}\\)$`, 'i').test(t)) return { label: 'Trig rule', hint: `∫sec(${v})tan(${v}) d${v} = sec(${v})` };
   if (/\bsin\b/i.test(inner)) return { label: 'Trig rule', hint: `∫sin(${v}) d${v} = -cos(${v})` };
   if (/\bcos\b/i.test(inner)) return { label: 'Trig rule', hint: `∫cos(${v}) d${v} = sin(${v})` };
   if (/\bexp\b|e\^/i.test(inner)) return { label: 'Exponential rule', hint: `∫e^${v} d${v} = e^${v}` };
   if (/\bsqrt\b|√/i.test(inner)) return { label: 'Power rule', hint: `rewrite √${v} as ${v}^(1/2), then use the power rule` };
 
-  if (/\^/.test(inner)) return { label: 'Power rule', hint: `∫${v}^n d${v} = ${v}^(n+1)/(n+1)` };
+  // c/(ax + b): a linear substitution, not a power of x.
+  if (new RegExp(`^[\\d./]+/\\(?[\\d./]*\\*?${v}[+-][\\d./]+\\)?$`, 'i').test(t)) {
+    return { label: 'Linear substitution', hint: `∫1/(a${v} + b) d${v} = (1/a)·ln|a${v} + b| — let u = a${v} + b, so du = a d${v}` };
+  }
 
-  // Linear term (a·x or x).
-  return { label: 'Power rule', hint: `∫${v} d${v} = ${v}²/2` };
+  // Power rule only for a genuine power of the variable: x^n, c·x^n, x, c·x.
+  if (new RegExp(`^(?:[\\d./*()-]+\\*)?${v}\\^\\(?-?[\\d./]+\\)?$`, 'i').test(t)) return { label: 'Power rule', hint: `∫${v}^n d${v} = ${v}^(n+1)/(n+1)` };
+  if (new RegExp(`^(?:[\\d./*()-]+\\*)?${v}$`, 'i').test(t)) return { label: 'Power rule', hint: `∫${v} d${v} = ${v}²/2` };
+
+  // Anything else the engine integrates directly is a table antiderivative
+  // — say so, never "Power rule" (which used to be the fallback label).
+  return { label: 'Table antiderivative', hint: 'a standard antiderivative from the table, verified by differentiating the result' };
 }
+
+// c/(p + q·x²) → arctan, c/√(p − q·x²) → arcsin, for positive numeric p, q.
+// Recognised from the integrand's structure; Algebrite's antiderivative is
+// the result and it is verified by differentiation before it is shown.
+function integrateInverseTrig(term, variable, Algebrite) {
+  const v = variable;
+  const run = (code) => { const out = safeRunLocal(Algebrite, code); return out !== null && !isAlgebriteFailure(out) ? out : null; };
+  const isConst = (t) => t !== null && !new RegExp(`\\b${v}\\b`).test(t);
+  const num = run(`numerator(${term})`);
+  const den = run(`denominator(${term})`);
+  if (!isConst(num) || !den) return null;
+  const c = num;
+
+  const quadratic = (poly) => {
+    const q = run(`coeff(${poly}, ${v}, 2)`);
+    const p = run(`coeff(${poly}, ${v}, 0)`);
+    const linear = run(`coeff(${poly}, ${v}, 1)`);
+    const degree = run(`deg(${poly}, ${v})`);
+    if (!isConst(q) || !isConst(p) || linear !== '0' || degree !== '2') return null;
+    return { p, q, pNum: Number(math.evaluate(p)), qNum: Number(math.evaluate(q)) };
+  };
+
+  // arctan: denominator p + q x² with p, q > 0.
+  const quad = quadratic(den);
+  const arcsinDen = den.match(/^\((.+)\)\^\(1\/2\)$/);
+  const shape = quad && quad.pNum > 0 && quad.qNum > 0 ? 'arctan'
+    : arcsinDen ? 'arcsin' : null;
+  if (!shape) return null;
+  const inside = shape === 'arcsin' ? quadratic(arcsinDen[1]) : quad;
+  if (!inside) return null;
+  if (shape === 'arcsin' && !(inside.pNum > 0 && inside.qNum < 0)) return null;
+
+  const antiderivative = run(`integral(${term}, ${v})`);
+  if (!antiderivative || isUnevaluatedOperator(antiderivative) || !/arctan|arcsin/.test(antiderivative)) return null;
+  if (!derivativeMatchesNumerically(antiderivative, term, v)) return null;
+
+  const p = inside.p;
+  const qAbs = shape === 'arcsin' ? run(`simplify(-(${inside.q}))`) : inside.q;
+  const k = run(`simplify(sqrt((${qAbs})/(${p})))`);
+  const kx = k === '1' ? v : `${beautify(k)}${/^[\d]+$/.test(k) ? '' : '·'}${v}`;
+  const steps = [];
+  const shown = beautify(term);
+  if (shape === 'arctan') {
+    steps.push(`Recognize the inverse-tangent pattern: d/d${v} arctan(${v}) = 1/(1 + ${v}²), so ∫1/(1 + ${v}²) d${v} = arctan(${v}) + C. The integrand ${shown} has that shape — a constant over (constant + constant·${v}²) — and the power rule does not apply (it is not a power of ${v}).`);
+    if (p !== '1' || k !== '1') {
+      steps.push(`Match it to the pattern: ${beautify(den)} = ${p === '1' ? '' : `${beautify(p)}·`}(1 + (${kx})²)${p === '1' ? '' : `, factoring out ${beautify(p)}`}${k === '1' ? '' : `, since (${kx})² = ${beautify(qAbs)}${p === '1' ? '' : `/${beautify(p)}`}·${v}²`}.`);
+      const coef = run(`simplify((${c})/((${p})*(${k})))`) || `${c}/(${p}·${k})`;
+      const recip = run(`simplify(1/(${k}))`) || `1/(${k})`;
+      steps.push(`Let u = ${kx}, so du = ${beautify(k)} d${v} and d${v} = ${recip === '1' ? '' : `${beautify(recip)}·`}du: ∫${shown} d${v} = ${beautify(c)}/(${beautify(p)}·${beautify(k)}) · ∫1/(1 + u²) du = ${coef === '1' ? '' : `${beautify(coef)}·`}arctan(u).`);
+      steps.push(`Substitute back u = ${kx}: ${lnify(antiderivative)}.`);
+    } else if (c !== '1') {
+      steps.push(`The constant factor ${beautify(c)} comes out front: ∫${shown} d${v} = ${beautify(c)}·arctan(${v}).`);
+    }
+  } else {
+    steps.push(`Recognize the inverse-sine pattern: d/d${v} arcsin(${v}) = 1/√(1 − ${v}²), so ∫1/√(1 − ${v}²) d${v} = arcsin(${v}) + C. The integrand ${shown} has that shape, and no substitution u = 1 − ${v}² will work (there is no ${v} factor to absorb du).`);
+    if (p !== '1' || k !== '1') {
+      steps.push(`Match it to the pattern: √(${beautify(arcsinDen[1])}) = ${p === '1' ? '' : `√${beautify(p)}·`}√(1 − (${kx})²)${p === '1' ? '' : `, factoring out ${beautify(p)}`}.`);
+      const coef = run(`simplify((${c})/(sqrt(${p})*(${k})))`) || `${c}/(√${p}·${k})`;
+      steps.push(`Let u = ${kx}, so du = ${beautify(k)} d${v}: ∫${shown} d${v} = ${beautify(c)}/(√${beautify(p)}·${beautify(k)}) · ∫1/√(1 − u²) du = ${coef === '1' ? '' : `${beautify(coef)}·`}arcsin(u); substituting back gives ${lnify(antiderivative)}.`);
+    } else if (c !== '1') {
+      steps.push(`The constant factor ${beautify(c)} comes out front: ∫${shown} d${v} = ${beautify(c)}·arcsin(${v}).`);
+    }
+  }
+  steps.push(`Check by differentiating: d/d${v}[${lnify(antiderivative)}] = ${shown} ✓`);
+  return { antiderivative, steps };
+}
+
+// c·g′(x)/g(x): the numerator is a constant multiple of the denominator's
+// derivative, so u = g(x) turns it into c∫du/u = c·ln|u|. Detected here so
+// the substitution walkthrough runs instead of the engine's direct answer
+// with a wrong label.
+function isLogDerivativeShape(term, variable, Algebrite) {
+  const v = variable;
+  const run = (code) => { const out = safeRunLocal(Algebrite, code); return out !== null && !isAlgebriteFailure(out) ? out : null; };
+  const num = run(`numerator(${term})`);
+  const den = run(`denominator(${term})`);
+  if (!num || !den || den === '1' || !hasVariable(den, v) || !hasVariable(num, v)) return false;
+  const ratio = run(`simplify((${num})/(d(${den}, ${v})))`);
+  return ratio !== null && !new RegExp(`\\b${v}\\b`).test(ratio) && ratio !== '0';
+}
+
+// ln|x² + 1|: when the argument is a sum of even powers with positive
+// coefficients plus a positive constant, it is positive everywhere and the
+// absolute-value bars can be dropped. Says so; otherwise the bars stay.
+function positiveArgumentNote(antiderivative, variable) {
+  const m = antiderivative.match(/log\(([^()]+)\)/);
+  if (!m) return [];
+  const arg = m[1].replace(/\s+/g, '');
+  const terms = arg.split(/(?=[+-])/).filter(Boolean);
+  const positive = terms.length > 0 && terms.every((t) => !t.startsWith('-') && (/^\+?\d+(?:\.\d+)?$/.test(t) || new RegExp(`^\\+?(?:\\d+(?:\\.\\d+)?\\*?)?${variable}\\^(?:\\d*[02468])$`).test(t)));
+  const hasConstant = terms.some((t) => /^\+?\d+(?:\.\d+)?$/.test(t));
+  if (!positive || !hasConstant) return [];
+  return [`Because ${beautify(m[1])} > 0 for every ${variable}, the absolute-value bars in ln|${beautify(m[1])}| are not needed.`];
+}
+
 
 function isComposite(term, variable) {
   const fnInner = term.match(/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt)\s*\(([^()]*)\)/i);

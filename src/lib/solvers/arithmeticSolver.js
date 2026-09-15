@@ -392,14 +392,22 @@ function fractionSteps(expr) {
     reduceStep(n, d, steps);
     return {
       steps,
-      tips: [
-        'Multiplying fractions needs no common denominator: multiply straight across.',
-        'To divide by a fraction, flip it (take its reciprocal) and multiply.',
+      tips: op === '*' ? [
+        'Multiplying fractions needs no common denominator: multiply straight across, numerators together and denominators together.',
+        'Cross-cancel a common factor between a numerator and a denominator before multiplying, and the product is already reduced.',
+        'Reduce the result by dividing numerator and denominator by their greatest common factor.',
+      ] : [
+        'To divide by a fraction, flip it (take its reciprocal) and multiply — "keep, change, flip".',
+        'Only the divisor (the second fraction) is inverted; the first fraction stays as it is.',
         'Reduce the result by dividing numerator and denominator by their greatest common factor.',
       ],
-      common_mistakes: [
+      common_mistakes: op === '*' ? [
         'Finding a common denominator before multiplying — that is only needed for adding and subtracting.',
+        'Multiplying the numerators but keeping one of the denominators.',
+        'Rounding a fraction to a decimal in the middle of exact work.',
+      ] : [
         'Flipping the wrong fraction when dividing: only the divisor (the second fraction) is inverted.',
+        'Dividing straight across (numerator by numerator) — that only works when it happens to divide evenly.',
         'Rounding a fraction to a decimal in the middle of exact work.',
       ],
     };
@@ -557,7 +565,23 @@ function showWorking(expr, steps) {
     const lead = tierIndex !== lastTier ? `${tiers[tierIndex].intro}: ` : `Then ${verb.toLowerCase()}: `;
     lastTier = tierIndex;
     const remaining = isConstant(tree) ? '' : `  →  ${render(tree)}`;
-    lines.push(`${lead}${opText} = ${valueText}${remaining}`);
+    // A negative exponent is a reciprocal: teach the rule, not just the
+    // number (September 2026 review, batch 2).
+    let note = '';
+    if (target.type === 'OperatorNode' && target.fn === 'pow') {
+      try {
+        const e = target.args[1].evaluate();
+        const base = target.args[0].evaluate();
+        if (typeof e === 'number' && e < 0 && Number.isInteger(e) && typeof base === 'number' && base !== 0) {
+          const baseText = render(target.args[0]);
+          const power = Math.pow(base, -e);
+          const powerText = power < 0 ? `(${formatNumber(power)})` : formatNumber(power);
+          const viaReciprocal = power < 0 ? `1/${powerText} = ` : '';
+          note = ` — a negative exponent means a reciprocal, a^(-n) = 1/a^n (the base cannot be 0): ${baseText}^(${e}) = 1/${baseText}^${-e} = ${viaReciprocal}${valueText}`;
+        }
+      } catch { /* no note */ }
+    }
+    lines.push(note ? `${lead}${opText}${note}${remaining}` : `${lead}${opText} = ${valueText}${remaining}`);
   }
   if (!isConstant(tree)) return false;
   for (const line of lines) steps.push(line);

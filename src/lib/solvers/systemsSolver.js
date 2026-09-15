@@ -89,30 +89,58 @@ export async function solveSystem(rawText) {
       const Dy = sub(mul(a1, c2), mul(a2, c1));
       const dependent = isZero(Dx) && isZero(Dy);
 
+      // The ratio equation 2 : equation 1 (from whichever coefficient is nonzero).
+      const k = !isZero(a1) ? div(a2, a1) : div(b2, b1);
+      const kText = fmtFrac(k);
+      const scaledEq1 = formatLinearEq(mul(k, a1), mul(k, b1), mul(k, c1), v1, v2);
+
       if (dependent) {
+        // Show the proportionality, then parameterise the line.
+        const steps = [`Write the system: ${eq1Disp};  ${eq2Disp}.`];
+        steps.push(Number(k.n) === Number(k.d) && Number(k.s) > 0
+          ? 'The two equations are identical, so they describe the same line.'
+          : `Compare the equations: equation 2 is ${kText} × equation 1 — divide equation 2 by ${kText} and it becomes ${eq1Disp}. Both describe the same line.`);
+        steps.push(`That leaves one equation in two unknowns, ${eq1Disp}, so one variable is free.`);
+        let param;
+        if (!isZero(a1)) {
+          // v1 = (c1 − b1·t)/a1
+          const p0 = div(c1, a1);
+          const p1 = div(b1, a1);
+          const tTerm = isZero(p1) ? '' : `${Number(p1.s) < 0 ? ' + ' : ' − '}${Number(p1.n) === Number(p1.d) ? '' : fmtFrac(math.abs(p1))}t`;
+          const x = isZero(p0) && tTerm ? tTerm.replace(/^ [+−] /, (m) => (m.includes('−') ? '-' : '')) : `${fmtFrac(p0)}${tTerm}`;
+          const minusB = Number(b1.s) < 0 ? `+ ${fmtFrac(math.abs(b1))}` : `− ${fmtFrac(b1)}`;
+          steps.push(`Let ${v2} = t (any real number). Then from ${eq1Disp}: ${v1} = (${fmtFrac(c1)} ${minusB}·t)/${fmtFrac(a1)} = ${x}.`);
+          param = `(${v1}, ${v2}) = (${x}, t)`;
+        } else {
+          const yFixed = div(c1, b1);
+          steps.push(`Equation 1 has no ${v1} term: it fixes ${v2} = ${fmtFrac(yFixed)} and leaves ${v1} free. Let ${v1} = t (any real number).`);
+          param = `(${v1}, ${v2}) = (t, ${fmtFrac(yFixed)})`;
+        }
+        steps.push(`Solutions: ${param} for every real t — every point on the line.`);
         return {
-          steps: [
-            `Write the system: ${eq1Disp};  ${eq2Disp}.`,
-            'The two equations are proportional — one is a multiple of the other, so they describe the same line.',
-            'Every point on that line satisfies both equations.',
-          ],
-          answer: 'Infinitely many solutions — the two equations describe the same line',
+          steps,
+          answer: `Infinitely many solutions — the two equations describe the same line: ${param}, t any real number`,
           tips: [
             'When one equation is a constant multiple of the other, the system is dependent.',
-            'A dependent system has infinitely many solutions: the whole line.',
+            'A dependent system has infinitely many solutions: describe them with a parameter, one point for each value of t.',
           ],
           common_mistakes: [
             'Reading “0 = 0” after elimination as “no solution” — it actually means infinitely many.',
+            'Stopping at "infinitely many" without saying which points: the parameterised form is the answer.',
           ],
           graph: buildGraph([r1], v1, v2, null, 'The two equations graph as the same line.'),
         };
       }
 
+      const gap = sub(c2, mul(k, c1));
       return {
         steps: [
           `Write the system: ${eq1Disp};  ${eq2Disp}.`,
-          'Eliminating a variable makes both variables cancel but leaves a false statement (a nonzero number = 0).',
-          'The two lines have the same slope but different intercepts — they are parallel and never meet.',
+          Number(k.n) === Number(k.d) && Number(k.s) > 0
+            ? `The left sides are identical. Subtract equation 1 from equation 2: (${eq2Disp.split(' = ')[0]}) − (${eq1Disp.split(' = ')[0]}) = ${fmtFrac(c2)} − ${fmtFrac(c1)}, which gives 0 = ${fmtFrac(gap)}.`
+            : `Try elimination: multiply equation 1 by ${kText} so the ${isZero(a1) ? v2 : v1} terms match — ${scaledEq1} — then subtract it from equation 2. Both variables cancel: 0 = ${fmtFrac(c2)} − (${fmtFrac(mul(k, c1))}) = ${fmtFrac(gap)}.`,
+          `0 = ${fmtFrac(gap)} is false for every (${v1}, ${v2}): a contradiction. No pair satisfies both equations.`,
+          'Geometrically the two lines have the same slope but different intercepts — they are parallel and never meet.',
         ],
         answer: 'No solution — the two lines are parallel',
         tips: [

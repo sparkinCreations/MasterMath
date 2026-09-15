@@ -74,7 +74,7 @@ test('percent notation: N% of M and bare N%', async () => {
 
 test('function analysis: the answer summarises the findings, not the input', async () => {
   const q = await solveProblem('x^2-4*x+3', 'functions');
-  assert.equal(q.answer, 'f(x) = x^2 - 4x + 3: domain: all real numbers; y-intercept (0, 3); x-intercepts at x = 1, 3; vertex (2, -1) (minimum), axis x = 2.');
+  assert.equal(q.answer, 'f(x) = x^2 - 4x + 3: domain: all real numbers; range: y ≥ -1; y-intercept (0, 3); x-intercepts at x = 1, 3; vertex (2, -1) (minimum), axis x = 2.');
   const r = await solveProblem('1/(x-2)', 'functions');
   assert.match(r.answer, /domain: x ≠ 2/);
   assert.match(r.answer, /vertical asymptote x = 2/);

@@ -1,9 +1,9 @@
 // Import IndexedDB functions (local storage - no API needed!)
 import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './indexedDB.js';
 import { validateProblemHistory } from './validation.js';
-import { extractFunctionFromProblem, parseMathExpression, usesCommonLog } from './mathParser.js';
+import { extractFunctionFromProblem, parseMathExpression, usesCommonLog, matchingParen } from './mathParser.js';
 import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
-import { bareFunctionName } from './solvers/solverUtils.js';
+import { bareFunctionName, math, formatNumber } from './solvers/solverUtils.js';
 
 // The storage wrappers below replace the underlying error with a message fit
 // for a toast. That message is all the user should see, but it is not all a
@@ -303,7 +303,56 @@ export function finalizeResult(result, input) {
   if (result.status === STATUS.SOLVED && usesCommonLog(input || '') && !result.tips.includes(COMMON_LOG_TIP)) {
     result.tips = [COMMON_LOG_TIP, ...result.tips];
   }
+  // 8/2(2+2), 6/2x, 1/2pi: division followed by implicit multiplication is
+  // read left to right (as every calculator and the parser do), but many
+  // readers see the juxtaposed factor as part of the denominator. Solve it,
+  // and say which reading was used (September 2026 review, batch 3).
+  if (result.status === STATUS.SOLVED) {
+    const warning = implicitDivisionWarning(input || '');
+    if (warning && !(result.warnings || []).includes(warning)) result.warnings = [...(result.warnings || []), warning];
+  }
   return result;
+}
+
+// The two readings of a/b(c) — MasterMath's (a/b)·(c) and the grouped
+// a/(b·c) — with values when the input is purely numeric. Null when the
+// input has no such juxtaposition, or the grouping is already explicit.
+function implicitDivisionWarning(raw) {
+  const text = String(raw).replace(/\s+/g, '');
+  // number or single letter, slash, number, then a paren group or a letter
+  // (a variable, or pi) — with no operator in between.
+  const m = text.match(/(?<![\w.)])((?:\d+(?:\.\d+)?|[a-z]))\/(\d+(?:\.\d+)?)(\(|[a-z])/i);
+  if (!m) return null;
+  const tailStart = m.index + m[0].length - 1;
+  let tail;
+  if (m[3] === '(') {
+    const close = matchingParen(text, tailStart);
+    if (close < 0) return null;
+    tail = text.slice(tailStart, close + 1);
+  } else {
+    const word = text.slice(tailStart).match(/^[a-z]+/i)[0];
+    tail = word;
+  }
+  const num = m[1];
+  const den = m[2];
+  const asWritten = `(${num}/${den})·${tail}`;
+  const grouped = `${num}/(${den}·${tail})`;
+  let values = '';
+  if (!/[a-z]/i.test(`${num}${tail}`.replace(/\bpi\b/gi, ''))) {
+    try {
+      const evalText = (t) => math.evaluate(t.replace(/·/g, '*').replace(/\bpi\b/gi, 'pi'));
+      const a = evalText(asWritten);
+      const b = evalText(grouped);
+      if (typeof a === 'number' && typeof b === 'number' && Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) > 1e-12) {
+        values = ` = ${formatNumber(a)}`;
+        return `"${num}/${den}${tail}" can be read two ways. MasterMath follows left-to-right precedence: ${asWritten}${values}. If you meant ${grouped} = ${formatNumber(b)}, write the grouping explicitly: ${num}/(${den}*${tail}).`;
+      }
+      return null;
+    } catch {
+      /* fall through to the symbolic wording */
+    }
+  }
+  return `"${num}/${den}${tail}" can be read two ways. MasterMath follows left-to-right precedence: ${asWritten}. If you meant ${grouped}, write the grouping explicitly: ${num}/(${den}*${tail}).`;
 }
 
 // Real math solver using local libraries

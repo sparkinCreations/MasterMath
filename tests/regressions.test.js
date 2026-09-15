@@ -498,7 +498,7 @@ test('regression: "from a to b" phrasing works (x^2 from 0 to 3 = 9)', async () 
 test('regression: improper integral ∫_{-1}^{1} 1/x is refused, never -i*pi', async () => {
   const r = await solveProblem('∫_{-1}^{1} 1/x dx', 'integrals');
   assert.match(r.answer, /improper|unable|diverges/i);
-  assert.equal(r.status, 'unsupported');
+  assert.equal(r.status, 'diverges');
   // Must not leak Algebrite's bogus complex value or its float (-3.14159…).
   assert.doesNotMatch(r.answer, /i\s*\*\s*pi|3\.14/i);
 });
@@ -1014,7 +1014,7 @@ test('audit: cyclic by-parts keeps rational coefficients', async () => {
 test('audit: an interior singularity is reported as divergent, not "not supported"', async () => {
   for (const [p, at] of [['∫_{-1}^{1} 1/x^2 dx', 'x = 0'], ['∫_0^2 1/(x-1)^2 dx', 'x = 1'], ['∫_{-1}^{1} 1/x dx', 'x = 0']]) {
     const r = await solveProblem(p, 'integrals');
-    assert.equal(r.status, 'unsupported', p);
+    assert.equal(r.status, 'diverges', p);
     assert.match(r.answer, /Diverges/, p);
     assert.match(r.answer, new RegExp(`${at.replace('x = ', 'x = ')} inside the interval`), p);
   }
@@ -1387,4 +1387,303 @@ test('u-substitution substitutes the whole du factor instead of isolating dx', a
   const work = r.steps.join('\n');
   assert.match(work, /Let u = x\^2\. Then du = 2x dx — so wherever 2x dx appears in the integrand it becomes du/);
   assert.doesNotMatch(work, /dx = du\//);
+});
+
+// ---------------------------------------------------------------------------
+// September 2026 teaching-quality review, batch 1 (v1.38.0): displayed
+// reasoning that was invalid or mislabeled even though the answer was right.
+// ---------------------------------------------------------------------------
+
+test('improper integrals at an endpoint are taken as one-sided limits, never F(a) at the singularity', async () => {
+  const root = await solveProblem('∫_0^1 1/sqrt(x) dx', 'integrals');
+  assert.equal(root.status, 'solved');
+  assert.match(root.answer, /= 2$/);
+  const work = root.steps.join('\n');
+  assert.match(work, /improper integral/);
+  assert.match(work, /lim \(s→0⁺\) ∫_s\^1/);
+  assert.match(work, /F\(1\) − F\(s\) = 2 − \(2s\^\(1\/2\)\)/);
+  assert.match(work, /as s → 0⁺, F\(s\) → 0/);
+  assert.doesNotMatch(work, /F\(0\) = 0|Apply the Fundamental Theorem of Calculus: ∫_a\^b/, 'no direct F(0) substitution');
+  assert.doesNotMatch(work, /Simpson's rule\)/);
+
+  const log = await solveProblem('∫_0^1 ln(x) dx', 'integrals');
+  assert.equal(log.status, 'solved');
+  assert.match(log.answer, /= -1$/);
+  assert.match(log.steps.join('\n'), /lim \(s→0⁺\)/);
+
+  // Divergent endpoint singularities say so, with the divergent status.
+  for (const [input, at] of [['∫_0^1 1/x dx', 'x = 0'], ['∫_0^1 1/x^2 dx', 'x = 0']]) {
+    const r = await solveProblem(input, 'integrals');
+    assert.equal(r.status, 'diverges', input);
+    assert.match(r.answer, new RegExp(`^Diverges.*unbounded at ${at}`), input);
+    assert.match(r.steps.join('\n'), /grows without bound .* so the limit does not exist/, input);
+  }
+  // An interior singularity still diverges (and never returns 0).
+  const interior = await solveProblem('∫_-1^1 1/x dx', 'integrals');
+  assert.equal(interior.status, 'diverges');
+  assert.doesNotMatch(interior.answer, /dx = 0|= 0$/);
+  // The singular upper end, reversed bounds, and both ends singular.
+  assert.match((await solveProblem('∫_0^4 1/sqrt(4-x) dx', 'integrals')).answer, /= 4$/);
+  const reversed = await solveProblem('∫_1^0 1/sqrt(x) dx', 'integrals');
+  assert.match(reversed.answer, /= -2$/);
+  assert.match(reversed.steps.join('\n'), /Reversing the bounds changes the sign/);
+  const both = await solveProblem('∫_-1^1 1/sqrt(1-x^2) dx', 'integrals');
+  assert.equal(both.status, 'solved');
+  assert.match(both.answer, /= π \(≈ 3\.1416\)$/);
+  // A proper integral is untouched.
+  const proper = await solveProblem('∫_0^1 x^2 dx', 'integrals');
+  assert.match(proper.steps.join('\n'), /Apply the Fundamental Theorem of Calculus/);
+  assert.doesNotMatch(proper.steps.join('\n'), /improper/);
+});
+
+test('a divergent integral carries the diverges status, not unsupported', async () => {
+  const { STATUS: S, statusLabel: label, shouldSaveToHistory: keep } = await import('../src/lib/solutionEnvelope.js');
+  assert.equal(S.DIVERGES, 'diverges');
+  assert.equal(label(S.DIVERGES), 'Diverges');
+  assert.equal(keep(S.DIVERGES), true);
+  for (const input of ['∫_0^1 1/x dx', '∫_-1^1 1/x dx', '∫_1^∞ 1/x dx']) {
+    assert.equal((await solveProblem(input, 'integrals')).status, S.DIVERGES, input);
+  }
+  // Genuinely unsupported stays unsupported.
+  assert.equal((await solveProblem('∫ sin(x^2) dx', 'integrals')).status, S.UNSUPPORTED);
+});
+
+test('integration methods are named from the integrand, never "Power rule" as a fallback', async () => {
+  const cases = [
+    ['∫ 1/(1+x^2) dx', /arctan\(x\) \+ C$/, /inverse-tangent pattern/],
+    ['∫ 2/(1+4x^2) dx', /arctan\(2x\) \+ C$/, /Let u = 2x, so du = 2 dx/],
+    ['∫ 1/(9+x^2) dx', /1\/3\*arctan\(1\/3\*x\) \+ C$/, /factoring out 9/],
+    ['∫ x/(x^2+1) dx', /1\/2\*ln\|x\^2 \+ 1\| \+ C$/, /Let u = x\^2 \+ 1/],
+    ['∫ 3x^2/(x^3+7) dx', /ln\|x\^3 \+ 7\| \+ C$/, /Let u = x\^3 \+ 7/],
+    ['∫ 1/sqrt(1-x^2) dx', /arcsin\(x\) \+ C$/, /inverse-sine pattern/],
+    ['∫ 1/sqrt(4-x^2) dx', /arcsin\(1\/2\*x\) \+ C$/, /factoring out 4/],
+    ['∫ sec(x)^2 dx', /tan\(x\) \+ C$/, /Trig rule/],
+    ['∫ 1/(2x+1) dx', /1\/2\*ln\|2x \+ 1\| \+ C$/, /Linear substitution/],
+  ];
+  for (const [input, answer, method] of cases) {
+    const r = await solveProblem(input, 'integrals');
+    assert.equal(r.status, 'solved', input);
+    assert.match(r.answer, answer, input);
+    const work = r.steps.join('\n');
+    assert.match(work, method, input);
+    assert.doesNotMatch(work, /\(Power rule\)/, `${input}: mislabeled as the power rule`);
+    assert.doesNotMatch(r.tips.join('\n'), /^Power rule/, `${input}: power-rule tip`);
+  }
+  // Positivity note only where the log argument is always positive.
+  assert.match((await solveProblem('∫ x/(x^2+1) dx', 'integrals')).steps.join('\n'), /x\^2 \+ 1 > 0 for every x, the absolute-value bars/);
+  assert.doesNotMatch((await solveProblem('∫ 3x^2/(x^3+7) dx', 'integrals')).steps.join('\n'), /absolute-value bars/);
+  // Genuine power-rule integrals keep the label; unknown table results are named honestly.
+  assert.match((await solveProblem('∫ x^2 dx', 'integrals')).steps[1], /\(Power rule\)/);
+  assert.match((await solveProblem('∫ 5x dx', 'integrals')).steps[1], /\(Power rule\)/);
+  assert.match((await solveProblem('∫ 1/(x^2-1) dx', 'integrals')).steps[1], /\(Table antiderivative\)/);
+  // The first tip follows the rule that was used.
+  assert.match((await solveProblem('∫ e^x dx', 'integrals')).tips[0], /its own antiderivative/);
+  assert.match((await solveProblem('∫ 1/x dx', 'integrals')).tips[0], /ln\|x\|/);
+  assert.match((await solveProblem('∫ sec(x)^2 dx', 'integrals')).tips[0], /∫sec² = tan/);
+});
+
+test('a quotient-rule derivative never steps backward to an expanded form', async () => {
+  const r = await solveProblem('d/dx (x^2+1)/(x-1)', 'derivatives');
+  assert.equal(r.answer, "f'(x) = (x^2 - 2x - 1)/((x - 1)^2), x ≠ 1");
+  const work = r.steps.join('\n');
+  assert.match(work, /\(2x·\(x - 1\) − \(x\^2 \+ 1\)·1\)\/\(x - 1\)²/);
+  assert.match(work, /d\/dx\(\(x\^2 \+ 1\)\/\(x - 1\)\) = \(x\^2 - 2x - 1\)\/\(\(x - 1\)\^2\)/);
+  assert.doesNotMatch(work, /So f'\(x\) = -1\/\(\(x - 1\)\^2\)/, 'the raw expanded sum must not follow the simplified form');
+  assert.doesNotMatch(work, /2x\/\(x - 1\) - x\^2/);
+  // The last expression shown is the answer.
+  const last = r.steps.filter((s) => /^d\/dx\(/.test(s)).pop();
+  assert.match(last, /\(x\^2 - 2x - 1\)\/\(\(x - 1\)\^2\)$/);
+  // Higher orders differentiate the simplified form, and show it.
+  const second = await solveProblem('second derivative of (x^2+1)/(x-1)', 'derivatives');
+  assert.match(second.answer, /4\/\(\(x - 1\)\^3\)/);
+  assert.match(second.steps.join('\n'), /f''\(x\) = d\/dx\[\(x\^2 - 2x - 1\)\/\(\(x - 1\)\^2\)\] = 4\/\(\(x - 1\)\^3\)/);
+  // Sums still close with the combined line; single terms are not restated.
+  assert.match((await solveProblem('d/dx x^3 + 2x', 'derivatives')).steps.join('\n'), /Add the term derivatives and simplify: f'\(x\) = 3x\^2 \+ 2/);
+  assert.doesNotMatch((await solveProblem('d/dx sin(x)', 'derivatives')).steps.join('\n'), /So f'\(x\)/);
+});
+
+// ---------------------------------------------------------------------------
+// September 2026 teaching-quality review, batch 2 (v1.38.0): templates that
+// were missing — the answer was right but the governing method was not shown.
+// ---------------------------------------------------------------------------
+
+test('absolute-value equations are solved by the two-case rule, with every candidate checked', async () => {
+  const r = await solveProblem('abs(2x-3) = 5', 'algebra');
+  assert.equal(r.answer, 'x = -1  or  x = 4');
+  const work = r.steps.join('\n');
+  assert.match(work, /\|2x - 3\| = 5 means the expression inside is either 5 or −5/);
+  assert.match(work, /Case 1 .*: 2x - 3 = 5\n\s+Add 3 to both sides: 2x = 8\n\s+Divide both sides by 2: x = 4/);
+  assert.match(work, /Case 2 .*: 2x - 3 = -5\n\s+Add 3 to both sides: 2x = -2\n\s+Divide both sides by 2: x = -1/);
+  assert.match(work, /Check in the original equation: x = -1 gives \|2x - 3\| = 5/);
+  assert.doesNotMatch(work, /crosses zero/);
+  assert.equal((await solveProblem('|x+1| = -2', 'algebra')).answer, 'No real solution — an absolute value is never negative');
+  assert.equal((await solveProblem('|x-4| = 0', 'algebra')).answer, 'x = 4');
+  assert.equal((await solveProblem('|x| = 3', 'algebra')).answer, 'x = -3  or  x = 3');
+  // Isolation first, a swapped side, exact fractions, and a non-linear inside.
+  const isolated = await solveProblem('2|x - 1| + 1 = 7', 'algebra');
+  assert.equal(isolated.answer, 'x = -2  or  x = 4');
+  assert.match(isolated.steps.join('\n'), /First isolate the absolute value.*\|x - 1\| = 3/);
+  assert.equal((await solveProblem('5 = |3x + 2|', 'algebra')).answer, 'x = -7/3  or  x = 1');
+  const quad = await solveProblem('|x^2 - 4| = 5', 'algebra');
+  assert.equal(quad.answer, 'x = -3  or  x = 3');
+  assert.match(quad.steps.join('\n'), /This case gives no real solution/);
+});
+
+test('every solved equation ends with a substitution check', async () => {
+  assert.match((await solveProblem('2x + 5 = 11', 'algebra')).steps.join('\n'), /Check in the original equation: x = 3 gives 2x \+ 5 = 11 and 11 = 11 ✓/);
+  assert.match((await solveProblem('x^2 - 5x + 6 = 0', 'algebra')).steps.join('\n'), /x = 2 gives x\^2 - 5x \+ 6 = 0 and 0 = 0; x = 3 gives/);
+});
+
+test('logarithmic differentiation is derived in full, not just named', async () => {
+  const r = await solveProblem('d/dx x^x', 'derivatives');
+  assert.equal(r.answer, "f'(x) = x^x*(1 + ln(x)), x > 0");
+  const work = r.steps.join('\n');
+  assert.match(work, /Let y = x\^x, with x > 0/);
+  assert.match(work, /ln\(y\) = ln\(x\^x\) = x·ln\(x\)/);
+  assert.match(work, /d\/dx ln\(y\) = y′\/y/);
+  assert.match(work, /d\/dx\[x·ln\(x\)\] = ln\(x\) \+ x·1\/x = 1 \+ ln\(x\)/);
+  assert.match(work, /y′ = y·\(1 \+ ln\(x\)\)/);
+  assert.match(work, /Substitute y = x\^x back: y′ = x\^x·\(1 \+ ln\(x\)\)/);
+  // The general u^v form, and a scaled exponent.
+  const general = await solveProblem('d/dx (x+1)^x', 'derivatives');
+  assert.match(general.answer, /\(x \+ 1\)\^x\*\(ln\(x \+ 1\) \+ x\/\(x \+ 1\)\), x > -1$/);
+  assert.match(general.steps.join('\n'), /with x \+ 1 > 0/);
+  assert.match((await solveProblem('d/dx x^(2x)', 'derivatives')).steps.join('\n'), /ln\(y\) = ln\(x\^\(2x\)\) = 2x·ln\(x\)/);
+});
+
+test('a negative exponent is taught as a reciprocal', async () => {
+  const r = await solveProblem('2^-3', 'other');
+  assert.equal(r.answer, '1/8 (= 0.125)');
+  assert.match(r.steps[1], /a negative exponent means a reciprocal, a\^\(-n\) = 1\/a\^n \(the base cannot be 0\): 2\^\(-3\) = 1\/2\^3 = 1\/8/);
+  assert.match((await solveProblem('(-2)^-3', 'other')).steps[1], /1\/\(-2\)\^3 = 1\/\(-8\) = -1\/8/);
+  assert.equal((await solveProblem('10^-2', 'other')).answer, '1/100 (= 0.01)');
+  assert.equal((await solveProblem('0^-1', 'other')).status, 'undefined');
+  const unary = await solveProblem('-2^-2', 'other');
+  assert.equal(unary.answer, '-1/4 (= -0.25)');
+  assert.match(unary.steps.join('\n'), /apply the sign afterwards/);
+  // A positive exponent gets no note.
+  assert.equal((await solveProblem('2^3', 'other')).steps[1], 'Exponents first: 2 ^ 3 = 8');
+});
+
+test('linear equations show the distribution and the combining of constants', async () => {
+  const r = await solveProblem('3(x-2)+4 = 2x+1', 'algebra');
+  assert.equal(r.answer, 'x = 3');
+  assert.equal(r.steps[0], 'Distribute across the parentheses: 3x - 6 + 4 = 2x + 1');
+  assert.equal(r.steps[1], 'Collect and combine like terms: 3x - 2 = 2x + 1');
+  assert.match(r.steps.join('\n'), /Check in the original equation: x = 3 gives 3\(x - 2\) \+ 4 = 7 and 2x \+ 1 = 7 ✓/);
+  const negative = await solveProblem('-2(x-3)+1=7', 'algebra');
+  assert.equal(negative.steps[0], 'Distribute across the parentheses: -2x + 6 + 1 = 7');
+  assert.equal(negative.answer, 'x = 0');
+  // 4 − 3(2x + 1) = 10: mathsteps' "x = -3 / 2" used to be read as the two
+  // numbers −3 and 2, fail verification, and lose its steps to the roots path.
+  const subtracted = await solveProblem('4-3(2x+1)=10', 'algebra');
+  assert.match(subtracted.steps[0], /^Distribute across the parentheses: 4 - \(6x \+ 3\) = 10/);
+  assert.match(subtracted.steps[1], /^Distribute the negative sign: 4 - 6x - 3 = 10/);
+  assert.match(subtracted.answer, /-3 \/ 2$/);
+  assert.match((await solveProblem('simplify 3(x-2)+4', 'algebra')).steps[0], /^Distribute across the parentheses: 3x - 6 \+ 4$/);
+});
+
+// ---------------------------------------------------------------------------
+// September 2026 teaching-quality review, batch 3 (v1.38.0): coherence and
+// polish — classifications shown rather than described, range, ambiguity,
+// guidance chosen by concept, and the cosine limit derived.
+// ---------------------------------------------------------------------------
+
+test('a dependent 2×2 system shows the proportionality and parameterises the line', async () => {
+  const r = await solveProblem('x + y = 2; 2x + 2y = 4', 'algebra');
+  assert.equal(r.answer, 'Infinitely many solutions — the two equations describe the same line: (x, y) = (2 − t, t), t any real number');
+  const work = r.steps.join('\n');
+  assert.match(work, /equation 2 is 2 × equation 1 — divide equation 2 by 2 and it becomes x \+ y = 2/);
+  assert.match(work, /Let y = t \(any real number\)\. Then from x \+ y = 2: x = \(2 − 1·t\)\/1 = 2 − t/);
+  assert.match(work, /Solutions: \(x, y\) = \(2 − t, t\) for every real t/);
+  const scaled = await solveProblem('2x - 4y = 6; -x + 2y = -3', 'algebra');
+  assert.match(scaled.steps.join('\n'), /x = \(6 \+ 4·t\)\/2 = 3 \+ 2t/);
+});
+
+test('an inconsistent 2×2 system displays the contradiction', async () => {
+  const same = await solveProblem('x + y = 2; x + y = 3', 'algebra');
+  assert.equal(same.answer, 'No solution — the two lines are parallel');
+  assert.match(same.steps.join('\n'), /Subtract equation 1 from equation 2: \(x \+ y\) − \(x \+ y\) = 3 − 2, which gives 0 = 1/);
+  assert.match(same.steps.join('\n'), /0 = 1 is false for every \(x, y\): a contradiction/);
+  const scaled = await solveProblem('2x + 3y = 6; 4x + 6y = 7', 'algebra');
+  assert.match(scaled.steps.join('\n'), /multiply equation 1 by 2 .* 4x \+ 6y = 12 .* 0 = 7 − \(12\) = -5/);
+  // A unique solution is untouched.
+  assert.equal((await solveProblem('x + y = 2; x - y = 4', 'algebra')).answer, 'x = 3,  y = -1');
+});
+
+test('the range is stated for recognised function families, and only for them', async () => {
+  const cases = [
+    ['f(x) = sqrt(x-2)', 'y ≥ 0'],
+    ['f(x) = 2x + 3', 'all real numbers'],
+    ['f(x) = (x-1)^2 + 2', 'y ≥ 2'],
+    ['f(x) = -x^2 + 4x', 'y ≤ 4'],
+    ['f(x) = -2|x+1| + 3', 'y ≤ 3'],
+    ['f(x) = -3sqrt(2x+1) + 5', 'y ≤ 5'],
+    ['f(x) = 1/(x-2) + 1', 'y ≠ 1'],
+    ['f(x) = 1/x', 'y ≠ 0'],
+    ['f(x) = 3*2^x - 1', 'y > -1'],
+    ['f(x) = -e^x + 2', 'y < 2'],
+    ['f(x) = ln(x-1)', 'all real numbers'],
+    ['f(x) = 2sin(x) + 1', '-1 ≤ y ≤ 3'],
+    ['f(x) = cos(2x) - 3', '-4 ≤ y ≤ -2'],
+  ];
+  for (const [input, range] of cases) {
+    const r = await solveProblem(input, 'functions');
+    const line = r.steps.find((s) => /^Range: /.test(s));
+    assert.ok(line, `${input}: no range line`);
+    assert.ok(line.startsWith(`Range: ${range} — `), `${input}: ${line}`);
+    assert.match(r.answer, new RegExp(`range: ${range.replace(/[-+≤≥≠]/g, (c) => `\\${c}`)}`), input);
+  }
+  // Outside the recognised families nothing is claimed — never read off the window.
+  for (const input of ['f(x) = x^3 - x', 'f(x) = x^4 - x^2', 'f(x) = x*e^x']) {
+    const r = await solveProblem(input, 'functions');
+    assert.ok(!r.steps.some((s) => /^Range/.test(s)), `${input}: fabricated range`);
+    assert.doesNotMatch(r.answer, /range:/, input);
+  }
+});
+
+test('division followed by implicit multiplication carries a warning naming both readings', async () => {
+  const r = await solveProblem('8/2(2+2)', 'other');
+  assert.equal(r.answer, '16');
+  assert.deepEqual(r.warnings, ['"8/2(2+2)" can be read two ways. MasterMath follows left-to-right precedence: (8/2)·(2+2) = 16. If you meant 8/(2·(2+2)) = 1, write the grouping explicitly: 8/(2*(2+2)).']);
+  assert.match((await solveProblem('6/2x', 'algebra')).warnings[0], /\(6\/2\)·x\. If you meant 6\/\(2·x\)/);
+  assert.match((await solveProblem('1/2pi', 'other')).warnings[0], /\(1\/2\)·pi/);
+  assert.equal((await solveProblem('(8/2)*(2+2)', 'other')).warnings, undefined);
+  assert.equal((await solveProblem('8/(2*(2+2))', 'other')).warnings, undefined);
+  assert.equal((await solveProblem('2x + 5 = 11', 'algebra')).warnings, undefined);
+});
+
+test('the cosine standard limit is derived from the sine limit', async () => {
+  const r = await solveProblem('lim x->0 (1-cos(x))/x^2', 'limits');
+  assert.match(r.answer, /= 1\/2$/);
+  const work = r.steps.join('\n');
+  assert.match(work, /half-angle identity 1 − cos\(u\) = 2sin²\(u\/2\)/);
+  assert.match(work, /\(1\/2\)·\[sin\(u\/2\)\/\(u\/2\)\]²/);
+  assert.match(work, /sin\(u\/2\)\/\(u\/2\) → 1/);
+  const scaled = await solveProblem('lim x->0 (1-cos(3x))/x^2', 'limits');
+  assert.match(scaled.answer, /= 9\/2$/);
+  assert.match(scaled.steps.join('\n'), /With u = 3x: .* = \(9\) · \(1 − cos\(3x\)\)\/\(3x\)²/);
+});
+
+test('guidance follows the concept: limits by technique, trig by function, fractions by operation', async () => {
+  assert.match((await solveProblem('lim x->0 sin(3x)/x', 'limits')).tips[0], /standard limits sin\(u\)\/u → 1/);
+  assert.match((await solveProblem('lim x->1 (x^2-1)/(x-1)', 'limits')).tips[0], /common factor is hiding/);
+  assert.match((await solveProblem('lim x->infinity (3x^2+1)/(x^2-4)', 'limits')).tips[0], /highest power dominates/);
+  assert.match((await solveProblem('lim x->2 x^2+1', 'limits')).tips[0], /substituting the value directly/);
+
+  const cosine = await solveProblem('cos(pi/3)', 'trigonometry');
+  assert.match(cosine.tips[0], /^Remember: cos\(0°\) = 1/);
+  const arc = await solveProblem('arcsin(0.5)', 'trigonometry');
+  assert.match(arc.tips[0], /returns an ANGLE/);
+  assert.match(arc.common_mistakes.join('\n'), /Reading arcsin\(x\) as 1\/sin\(x\)/);
+  const tangent = await solveProblem('tan(pi/4)', 'trigonometry');
+  assert.match(tangent.tips[0], /tan = sin\/cos/);
+
+  const product = await solveProblem('1/2 * 3/4', 'other');
+  assert.doesNotMatch(product.tips.join('\n'), /divide by a fraction|reciprocal/i);
+  const quotient = await solveProblem('(1/2)/(3/4)', 'other');
+  assert.match(quotient.tips[0], /keep, change, flip/);
+  // An integral that used no power rule is not warned about 1/x.
+  assert.doesNotMatch((await solveProblem('∫ sec(x)^2 dx', 'integrals')).common_mistakes.join('\n'), /power rule to 1\/x/);
+  assert.match((await solveProblem('∫ x^2 dx', 'integrals')).common_mistakes.join('\n'), /power rule to 1\/x/);
 });

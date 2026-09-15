@@ -13,6 +13,7 @@ test('history keeps solves and the honest mathematical non-values, not tool fail
   assert.equal(shouldSaveToHistory(STATUS.SOLVED), true);
   assert.equal(shouldSaveToHistory(STATUS.UNDEFINED), true);      // 1/0 — an answer about the maths
   assert.equal(shouldSaveToHistory(STATUS.INDETERMINATE), true);  // 0/0 — likewise
+  assert.equal(shouldSaveToHistory(STATUS.DIVERGES), true);       // ∫₀¹ 1/x dx diverges — an answer too
   assert.equal(shouldSaveToHistory(STATUS.UNSUPPORTED), false);   // the engine's limit, not the student's
   assert.equal(shouldSaveToHistory(STATUS.OVERFLOW), false);
   assert.equal(shouldSaveToHistory(STATUS.PARSE_ERROR), false);

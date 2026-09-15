@@ -7,6 +7,107 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-09-15
+
+The second teaching-quality review, all three batches: the places where
+the displayed reasoning was invalid or mislabeled, the templates that were
+missing, and the coherence and polish items.
+
+### Added
+
+- **Absolute-value equations.** `|2x − 3| = 5` used to fall to the numeric
+  root scan and explain itself as "search for where the expression crosses
+  zero". It is now solved by the rule: isolate the absolute value if
+  needed, then `|g| = c` means `g = c` or `g = −c` (no real solution when
+  `c < 0`, one case when `c = 0`), each case solved by hand in exact
+  arithmetic for a linear inside (`x = −7/3`) or by the exact-roots path
+  otherwise, every candidate substituted into the original.
+- **Logarithmic differentiation is derived in full.** `d/dx x^x` named the
+  method and jumped to the answer. It now takes ln of both sides, brings
+  the exponent down, differentiates implicitly (`y′/y`), differentiates the
+  product on the right, multiplies back by y, and substitutes — and the
+  answer keeps the factored form the derivation reaches,
+  `x^x·(1 + ln x)`. Works for any `u(x)^v(x)`, stating the domain `u > 0`.
+- **Negative exponents are taught as reciprocals.** `2^−3` said
+  `2 ^ (−3) = 1/8`; the step now reads
+  `a^(−n) = 1/a^n (the base cannot be 0): 2^(−3) = 1/2^3 = 1/8`.
+- **Every solved equation ends with a substitution check** showing both
+  sides evaluated at each solution.
+- **Dependent and inconsistent systems are shown, not described.** A
+  dependent 2×2 system shows the proportionality ("equation 2 is 2 ×
+  equation 1"), then parameterises the line: `(x, y) = (2 − t, t)`, t any
+  real number. An inconsistent one shows the elimination and the
+  contradiction it leaves: `0 = 1`.
+- **Range for recognised function families.** Lines, quadratics (via the
+  vertex), `a√(…)+k`, `a|…|+k`, `a/(…)+k`, `a·bˣ+k`, `ln(…)+k`, and
+  `a·sin/cos(…)+k` get a range line with the reason (`f(x) = √(x−2)`:
+  `y ≥ 0`). Anything outside those families gets no range at all — it is
+  never read off the visible window.
+- **Ambiguous division is flagged.** `8/2(2+2)`, `6/2x` and `1/2pi` still
+  solve left to right, and now carry a warning naming both readings:
+  "(8/2)·(2+2) = 16. If you meant 8/(2·(2+2)) = 1, write the grouping
+  explicitly." Explicit groupings get no warning.
+- **The cosine standard limit is derived.** `(1 − cos x)/x²` now goes
+  through the half-angle identity to `(1/2)·[sin(u/2)/(u/2)]²` and the
+  sine limit, rather than citing `→ 1/2` as known; the scaled case
+  `(1 − cos 3x)/x² = 9/2` keeps its substitution step.
+
+- **A `diverges` status.** A divergent improper integral used to carry
+  `unsupported`, so a correct divergence argument sat under the heading
+  "Beyond this solver". It now has its own status and heading, "Diverges",
+  and is kept in the Progress history like any other answer about the
+  maths. Applies to endpoint, interior, and infinite-bound divergence.
+- **Method templates for inverse-trig and logarithmic-derivative
+  integrals.** `∫1/(1+x²) dx` and `∫1/√(1−x²) dx` are recognised from the
+  integrand's shape and taught as the derivatives of arctan and arcsin read
+  backwards, with the constant factored out and `u = kx` shown for scaled
+  forms (`∫1/(9+x²) dx = ⅓·arctan(x/3)`). `∫x/(x²+1) dx` and
+  `∫3x²/(x³+7) dx` are recognised as `c·g′/g` and take the u-substitution
+  walkthrough, noting when the absolute-value bars can be dropped. Every
+  result is still verified by differentiation before it is shown.
+
+### Fixed
+
+- **Improper integrals at an endpoint are taken as limits.** `∫₀¹ 1/√x dx`
+  and `∫₀¹ ln x dx` applied the Fundamental Theorem straight across the
+  singular endpoint, showing `F(0) = 0` as if F were defined there. The
+  steps now say the integrand is unbounded at the endpoint, define the
+  integral as `lim (s→0⁺) ∫ₛ¹`, apply the theorem on `[s, 1]`, take the
+  limit of F with its samples shown, and only then report the value.
+  `∫₀¹ 1/x dx` and `∫₀¹ 1/x² dx` reach the same steps and diverge.
+  `∫₀¹ 1/x² dx` used to be refused as "discontinuous somewhere in the
+  interval", which was wrong twice over. Reversed bounds and both
+  endpoints singular (`∫₋₁¹ 1/√(1−x²) dx = π`) are handled, and the
+  numeric check uses a mesh graded toward each singular end.
+- **Integration methods are named from the integrand.** The classifier's
+  fallback label was "Power rule", which is what `∫1/(1+x²) dx`,
+  `∫x/(x²+1) dx` and `∫sec²x dx` were called. `sec²`, `csc²` and
+  `sec·tan` are trig rules; `c/(ax+b)` is a linear substitution; a power
+  rule is claimed only for a genuine power of the variable; anything else
+  the engine integrates directly is labelled "Table antiderivative". The
+  first tip and mistake follow the rule that was used instead of always
+  being about the power rule.
+- **Linear equations show the distribution.** For `3(x − 2) + 4 = 2x + 1`
+  the first step was already `3x − 2 = 2x + 1`; mathsteps' substeps for a
+  simplify-side step that distributes are now shown instead:
+  "Distribute across the parentheses: 3x − 6 + 4 = 2x + 1", then "Collect
+  and combine like terms: 3x − 2 = 2x + 1". Found alongside it: a mathsteps
+  answer written `x = -3 / 2` was read as the two numbers −3 and 2, failed
+  the substitution check, and lost its steps to the roots path.
+- **Guidance follows the concept.** Limit tips and mistakes are chosen by
+  the technique used (standard limit, factor-and-cancel, leading powers at
+  infinity, direct substitution); trig tips by the function evaluated
+  (sin/cos values, tan and the reciprocals, inverse functions returning an
+  angle) and whether a unit came up; fraction tips by the operation, so a
+  multiplication no longer explains dividing; an integral that used no
+  power rule is no longer warned about `1/x`.
+- **A quotient-rule derivative no longer steps backward.** For
+  `(x²+1)/(x−1)` the steps showed the simplified `(x²−2x−1)/(x−1)²` and
+  then restated it as Algebrite's expanded sum of fractions. A single
+  term's simplified derivative is now the canonical answer and is not
+  restated; higher orders are differentiated from, and shown from, the
+  simplified form.
+
 ## [1.37.0] - 2026-09-14
 
 Fixes from a teaching-quality review of 23 problems: the mathematics was

@@ -265,9 +265,9 @@ test('improper integrals to ±∞ are evaluated as limits, or reported divergent
   assert.match((await solveProblem('∫_-∞^∞ 1/(1+x^2) dx', 'integrals')).answer, /= π \(≈ 3\.1416\)$/);
   assert.match((await solveProblem('∫_0^∞ e^(-x^2) dx', 'integrals')).answer, /= √π\/2 \(≈ 0\.8862\)$/);
   const d = await solveProblem('∫_1^∞ 1/x dx', 'integrals');
-  assert.equal(d.status, 'undefined');
+  assert.equal(d.status, 'diverges');
   assert.match(d.answer, /diverges$/);
-  assert.equal((await solveProblem('∫_0^∞ sin(x) dx', 'integrals')).status, 'undefined');
+  assert.equal((await solveProblem('∫_0^∞ sin(x) dx', 'integrals')).status, 'diverges');
   assert.match((await solveProblem('integral of e^(-2x) from 0 to infinity', 'integrals')).answer, /= 1\/2 \(≈ 0\.5\)$/);
 });
 

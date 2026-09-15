@@ -6,6 +6,7 @@ import { parseError, unsupported } from '../solutionEnvelope.js';
 import {
   math,
   loadAlgebrite,
+  isAlgebriteFailure,
   beautify,
   formatNumber,
   hasVariable,
@@ -194,11 +195,20 @@ async function solveEquation(expression, options = {}) {
     });
   }
 
+  // 0. |g(x)| = c: the two-case rule. The numeric root scan found x = −1 and
+  // x = 4 for |2x − 3| = 5 but explained it as "search for where the
+  // expression crosses zero" — the answer without the governing idea
+  // (September 2026 review, batch 2).
+  const viaAbs = await solveAbsoluteValueEquation(expression, variable);
+  if (viaAbs) {
+    ({ steps, answer, solutions } = viaAbs);
+  }
+
   // 1. mathsteps — gives the nicest linear/simple-quadratic walkthroughs.
   // Only accept it if it actually isolated the variable; mathsteps sometimes
   // stops early (e.g. x^2 = -1), which we hand off to Algebrite below.
   try {
-    const parsed = mathstepsSolveEquation(expression);
+    const parsed = answer ? null : mathstepsSolveEquation(expression);
     if (parsed && parsed.steps.length > 0 && isSolved(parsed.answer, variable)) {
       const normalized = normalizeSolutionAnswer(parsed.answer, variable);
       // mathsteps (unmaintained) can be confidently wrong: it "factors"
@@ -304,6 +314,30 @@ async function solveEquation(expression, options = {}) {
     }
   }
 
+  // Verify by substitution, and show it: the check a student is expected to
+  // do, and the proof that the listed solutions are solutions.
+  if (solutions.length > 0 && solutions.length <= 4 && isEquation(expression) && !steps.some((st) => /^Check /.test(st))) {
+    const [lhs, rhs] = expression.split('=');
+    const at = (side, x) => {
+      try {
+        const y = math.evaluate(side, { [variable]: x });
+        return typeof y === 'number' && Number.isFinite(y) ? y : null;
+      } catch {
+        return null;
+      }
+    };
+    const checks = solutions
+      .filter(Number.isFinite)
+      .map((x) => ({ x, l: at(lhs, x), r: at(rhs, x) }))
+      .filter((c) => c.l !== null && c.r !== null && Math.abs(c.l - c.r) <= 1e-6 * (1 + Math.abs(c.l)));
+    if (checks.length === solutions.filter(Number.isFinite).length && checks.length > 0) {
+      steps = [
+        ...steps,
+        `Check in the original equation: ${checks.map((c) => `${variable} = ${formatNumber(c.x)} gives ${beautify(lhs.trim()).replace(/abs\(([^()]*)\)/g, '|$1|')} = ${formatNumber(c.l)} and ${beautify(rhs.trim()).replace(/abs\(([^()]*)\)/g, '|$1|')} = ${formatNumber(c.r)}`).join('; ')} ✓`,
+      ];
+    }
+  }
+
   return {
     steps: steps.length > 0 ? steps : [`Solve ${beautify(expression)}`, `Result: ${answer}`],
     answer,
@@ -311,6 +345,111 @@ async function solveEquation(expression, options = {}) {
     common_mistakes: COMMON_MISTAKES,
     graph: solutions.length > 0 ? generateEquationGraph(expression, solutions) : null,
   };
+}
+
+// |g(x)| = c, possibly as k·|g(x)| + b = c (or with the sides swapped).
+// c < 0: no real solution; c = 0: solve g = 0; c > 0: solve g = c and
+// g = −c. A linear g is solved by hand in exact arithmetic; anything else
+// takes the exact-roots path per case. Every candidate is substituted into
+// the ORIGINAL equation before it is listed. Returns null when the equation
+// is not of this shape.
+async function solveAbsoluteValueEquation(equation, variable) {
+  const v = variable;
+  const [lhsRaw, rhsRaw] = equation.split('=').map((t) => t.replace(/\s+/g, ''));
+  if (!lhsRaw || rhsRaw === undefined) return null;
+  const isConst = (t) => t !== '' && !/[a-z]/i.test(t.replace(/\b(?:pi|sqrt|e)\b/gi, ''));
+  const parseSide = (side) => {
+    const m = side.match(/^(-?(?:\d+(?:\.\d+)?|\d+\/\d+)\*)?abs\(/i);
+    if (!m) return null;
+    const open = side.indexOf('(');
+    const close = matchingParen(side, open);
+    if (close < 0) return null;
+    const g = side.slice(open + 1, close);
+    const rest = side.slice(close + 1);
+    const b = rest.match(/^([+-](?:\d+(?:\.\d+)?|\d+\/\d+))?$/);
+    if (!b) return null;
+    if (!hasVariable(g, v)) return null;
+    return { k: m[1] ? m[1].slice(0, -1) : '1', g, b: b[1] || '0' };
+  };
+  let abs = parseSide(lhsRaw);
+  let other = rhsRaw;
+  if (!abs) {
+    abs = parseSide(rhsRaw);
+    other = lhsRaw;
+  }
+  if (!abs || !isConst(other)) return null;
+  const Algebrite = await loadAlgebrite();
+  const exactOf = (code) => {
+    try {
+      const out = String(Algebrite.run(`simplify(${code})`)).trim();
+      return isAlgebriteFailure(out) ? null : out;
+    } catch { return null; }
+  };
+  const kNum = Number(math.evaluate(abs.k));
+  if (!Number.isFinite(kNum) || kNum === 0) return null;
+  const cRaw = exactOf(`((${other}) - (${abs.b}))/(${abs.k})`);
+  if (cRaw === null) return null;
+  const c = Number(math.evaluate(cRaw));
+  if (!Number.isFinite(c)) return null;
+  const gShown = beautify(abs.g);
+  const shownC = beautify(cRaw);
+  const bars = (t) => beautify(t).replace(/abs\(([^()]*)\)/g, '|$1|').replace(/\s*=\s*/, ' = ');
+  const steps = [`This is an absolute-value equation: ${bars(equation)}.`];
+  if (abs.k !== '1' || abs.b !== '0') {
+    steps.push(`First isolate the absolute value${abs.b !== '0' ? `: move the constant ${beautify(abs.b)} across` : ''}${abs.k !== '1' ? `${abs.b !== '0' ? ' and' : ':'} divide by ${beautify(abs.k)}` : ''}: |${gShown}| = ${shownC}.`);
+  }
+
+  if (c < 0) {
+    steps.push(`An absolute value is never negative — |${gShown}| ≥ 0 for every ${v} — so it can never equal ${shownC}.`);
+    steps.push('No real solution.');
+    return { steps, answer: 'No real solution — an absolute value is never negative', solutions: [] };
+  }
+
+  // Solve one case g = value, by hand when g is linear.
+  const solveCase = async (value, label) => {
+    const a = exactOf(`coeff(${abs.g}, ${v}, 1)`);
+    const b0 = exactOf(`coeff(${abs.g}, ${v}, 0)`);
+    const degree = exactOf(`deg(${abs.g}, ${v})`);
+    const lines = [];
+    if (degree === '1' && a && b0 && !hasVariable(a, v) && !hasVariable(b0, v)) {
+      const aNum = Number(math.evaluate(a));
+      const moved = exactOf(`(${value}) - (${b0})`);
+      const x = exactOf(`((${value}) - (${b0}))/(${a})`);
+      lines.push(`${label}: ${gShown} = ${beautify(value)}`);
+      if (b0 !== '0') lines.push(`  ${b0.startsWith('-') ? 'Add' : 'Subtract'} ${beautify(b0.replace(/^-/, ''))} ${b0.startsWith('-') ? 'to' : 'from'} both sides: ${beautify(`${a === '1' ? '' : a === '-1' ? '-' : `${a}*`}${v}`)} = ${beautify(moved)}`);
+      if (aNum !== 1) lines.push(`  Divide both sides by ${beautify(a)}: ${v} = ${beautify(x)}`);
+      else if (b0 === '0') lines.push(`  So ${v} = ${beautify(x)}`);
+      return { lines, roots: [Number(math.evaluate(x))], exact: { [Number(math.evaluate(x))]: x } };
+    }
+    const viaRoots = await solveWithAlgebriteRoots(`${abs.g} = ${value}`, v);
+    if (!viaRoots) return null;
+    lines.push(`${label}: ${gShown} = ${beautify(value)}`);
+    for (const st of viaRoots.steps) lines.push(`  ${st}`);
+    if (!viaRoots.solutions.some(Number.isFinite)) lines.push('  This case gives no real solution, so it contributes nothing.');
+    return { lines, roots: viaRoots.solutions, exact: {} };
+  };
+
+  const cases = c === 0
+    ? [{ value: '0', label: 'Since |g| = 0 only when g = 0, solve' }]
+    : [{ value: cRaw, label: 'Case 1 (the inside is positive)' }, { value: exactOf(`-(${cRaw})`) || `-(${cRaw})`, label: 'Case 2 (the inside is negative)' }];
+  if (c === 0) steps.push(`|${gShown}| = 0 only when the expression inside is 0.`);
+  else steps.push(`|${gShown}| = ${shownC} means the expression inside is either ${shownC} or −${shownC}, so there are two cases to solve.`);
+
+  const solutions = [];
+  const exactOfRoot = {};
+  for (const cs of cases) {
+    const solved = await solveCase(cs.value, cs.label);
+    if (!solved) return null;
+    steps.push(...solved.lines);
+    Object.assign(exactOfRoot, solved.exact);
+    for (const r of solved.roots) if (Number.isFinite(r) && !solutions.some((x) => Math.abs(x - r) < 1e-9)) solutions.push(r);
+  }
+  const verified = solutions.filter((x) => satisfiesEquation(equation, v, x));
+  if (verified.length !== solutions.length) return null; // never list an unverified candidate
+  verified.sort((p, q) => p - q);
+  const shownRoots = verified.map((x) => `${v} = ${exactOfRoot[x] ? beautify(exactOfRoot[x]) : formatNumber(x)}`);
+  steps.push(verified.length ? `Solution: ${shownRoots.join('  or  ')}` : 'No real solution.');
+  return { steps, answer: verified.length ? shownRoots.join('  or  ') : 'No real solution', solutions: verified };
 }
 
 async function solveWithAlgebriteRoots(equation, variable) {
@@ -880,7 +1019,20 @@ function normalizeSolutionAnswer(answer, variable) {
   }
 
   const cleaned = beautify(answer);
-  const numericSolutions = extractNumbers(cleaned);
+  // Each "x = value" evaluated as one number: "x = -3 / 2" is −1.5, not the
+  // two numbers −3 and 2 (which made the verified mathsteps answer for
+  // 4 − 3(2x + 1) = 10 look wrong and threw its steps away).
+  const parts = cleaned.split(/\s+or\s+/);
+  const evaluated = parts.map((part) => {
+    const rhs = part.split('=').pop().trim().replace(/√(\d+)/g, 'sqrt($1)');
+    try {
+      const n = math.evaluate(rhs);
+      return typeof n === 'number' ? n : NaN;
+    } catch {
+      return NaN;
+    }
+  });
+  const numericSolutions = evaluated.every(Number.isFinite) ? evaluated : extractNumbers(cleaned);
   return { answer: cleaned, numericSolutions, rewritten: cleaned !== answer };
 }
 

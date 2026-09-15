@@ -248,8 +248,10 @@ function analyzeFunction(func, variable, Algebrite) {
   const inflections = findInflections(func, variable, Algebrite);
   const horizontalAsymptote = findHorizontalAsymptote(func, variable);
   const quadratic = analyzeQuadratic(func, variable, Algebrite);
+  const range = detectRange(func, variable, quadratic);
 
   return {
+    range,
     domain,
     holes,
     xIntercepts,
@@ -621,6 +623,88 @@ function analyzeQuadratic(func, variable, Algebrite) {
   }
 }
 
+// The range for the families where it follows from the form alone:
+//   ax + b (a ≠ 0)          all real numbers
+//   a(x − h)² + k           y ≥ k (a > 0) / y ≤ k (a < 0)     [any quadratic, via the vertex]
+//   a·√(linear) + k         y ≥ k / y ≤ k
+//   a·|linear| + k          y ≥ k / y ≤ k
+//   a/(linear) + k          y ≠ k
+//   a·b^(linear) + k        y > k / y < k
+//   ln(linear) + k          all real numbers
+//   a·sin/cos(linear) + k   k − |a| ≤ y ≤ k + |a|
+// Anything else: null, and nothing is said — a range must never be
+// estimated from the visible graph window.
+function detectRange(func, variable, quadratic) {
+  const v = variable;
+  const t = String(func).replace(/\s+/g, '');
+  const fmt = (n) => formatNumber(n);
+  const num = (str) => {
+    if (str === undefined || str === '' || str === '+') return 1;
+    if (str === '-') return -1;
+    try {
+      const n = math.evaluate(str.replace(/\*$/, ''));
+      return typeof n === 'number' && Number.isFinite(n) ? n : null;
+    } catch {
+      return null;
+    }
+  };
+  const linearInV = (g) => new RegExp(`^[-+\\d./*]*${v}[-+\\d./*]*$|^[-+\\d./*]*$`).test(g) && new RegExp(v).test(g) && !/\^/.test(g) && !/[a-z]/i.test(g.replace(new RegExp(v, 'g'), ''));
+  const COEF = '(-?(?:\\d+(?:\\.\\d+)?|\\d+/\\d+)?\\*?|-)?';
+  const SHIFT = '([+-](?:\\d+(?:\\.\\d+)?|\\d+/\\d+))?';
+
+  if (quadratic) {
+    const k = quadratic.vertex.y;
+    return quadratic.opensUpward
+      ? { text: `y ≥ ${fmt(k)}`, why: `the parabola opens upward, so its lowest value is the vertex height ${fmt(k)} and it takes every value above it.` }
+      : { text: `y ≤ ${fmt(k)}`, why: `the parabola opens downward, so its highest value is the vertex height ${fmt(k)} and it takes every value below it.` };
+  }
+
+  const linear = t.match(new RegExp(`^${COEF}${v}${SHIFT}$`));
+  if (linear && num(linear[1]) !== 0) {
+    return { text: 'all real numbers', why: 'a non-horizontal line takes every real value.' };
+  }
+
+  const halfLine = (a, k, fn) => {
+    const zeroText = fn === 'sqrt' ? 'the square root is 0 at the edge of the domain and grows without bound' : 'the absolute value is 0 at its corner and grows without bound';
+    return a > 0
+      ? { text: `y ≥ ${fmt(k)}`, why: `${zeroText}, so a·${fn === 'sqrt' ? '√(…)' : '|…|'} ${k < 0 ? '− ' + fmt(-k) : '+ ' + fmt(k)} with a = ${fmt(a)} > 0 starts at ${fmt(k)} and rises.` }
+      : { text: `y ≤ ${fmt(k)}`, why: `${zeroText}, so a·${fn === 'sqrt' ? '√(…)' : '|…|'} ${k < 0 ? '− ' + fmt(-k) : '+ ' + fmt(k)} with a = ${fmt(a)} < 0 starts at ${fmt(k)} and falls.` };
+  };
+  const root = t.match(new RegExp(`^${COEF}sqrt\\(([^()]+)\\)${SHIFT}$`));
+  if (root && linearInV(root[2]) && num(root[1]) !== null && num(root[1]) !== 0) return halfLine(num(root[1]), num(root[3]) === 1 && !root[3] ? 0 : num(root[3]), 'sqrt');
+  const absV = t.match(new RegExp(`^${COEF}abs\\(([^()]+)\\)${SHIFT}$`));
+  if (absV && linearInV(absV[2]) && num(absV[1]) !== null && num(absV[1]) !== 0) return halfLine(num(absV[1]), absV[3] ? num(absV[3]) : 0, 'abs');
+
+  const recip = t.match(new RegExp(`^(-?(?:\\d+(?:\\.\\d+)?|\\d+/\\d+))/(?:\\(([^()]+)\\)|(${v}))${SHIFT}$`));
+  if (recip && recip[3]) recip[2] = recip[3];
+  if (recip && linearInV(recip[2]) && num(recip[1]) !== 0) {
+    const k = recip[4] ? num(recip[4]) : 0;
+    return { text: `y ≠ ${fmt(k)}`, why: `a/(…) is never 0 but comes arbitrarily close, so the shifted curve takes every value except its horizontal asymptote y = ${fmt(k)}.` };
+  }
+
+  const expo = t.match(new RegExp(`^${COEF}(\\d+(?:\\.\\d+)?|e)\\^\\(?([^()]+?)\\)?${SHIFT}$`));
+  if (expo && linearInV(expo[3]) && num(expo[1]) !== null && num(expo[1]) !== 0 && expo[2] !== '1') {
+    const a = num(expo[1]);
+    const k = expo[4] ? num(expo[4]) : 0;
+    return a > 0
+      ? { text: `y > ${fmt(k)}`, why: `${expo[2]}^(…) is always positive and takes every positive value, so a·${expo[2]}^(…) ${k < 0 ? '− ' + fmt(-k) : '+ ' + fmt(k)} with a > 0 stays above its asymptote y = ${fmt(k)}.` }
+      : { text: `y < ${fmt(k)}`, why: `${expo[2]}^(…) is always positive and takes every positive value, so a·${expo[2]}^(…) ${k < 0 ? '− ' + fmt(-k) : '+ ' + fmt(k)} with a < 0 stays below its asymptote y = ${fmt(k)}.` };
+  }
+
+  const logV = t.match(new RegExp(`^${COEF}(?:ln|log)\\(([^()]+)\\)${SHIFT}$`));
+  if (logV && linearInV(logV[2]) && num(logV[1]) !== 0) {
+    return { text: 'all real numbers', why: 'a logarithm takes every real value (→ −∞ near the edge of its domain, → +∞ as its argument grows).' };
+  }
+
+  const wave = t.match(new RegExp(`^${COEF}(sin|cos)\\(([^()]+)\\)${SHIFT}$`));
+  if (wave && linearInV(wave[3]) && num(wave[1]) !== null && num(wave[1]) !== 0) {
+    const a = Math.abs(num(wave[1]));
+    const k = wave[4] ? num(wave[4]) : 0;
+    return { text: `${fmt(k - a)} ≤ y ≤ ${fmt(k + a)}`, why: `${wave[2]} swings between −1 and 1, so a·${wave[2]}(…) + k swings between k − |a| = ${fmt(k - a)} and k + |a| = ${fmt(k + a)}.` };
+  }
+  return null;
+}
+
 // --- presentation -------------------------------------------------------------
 
 function buildSteps(func, variable, f) {
@@ -646,6 +730,10 @@ function buildSteps(func, variable, f) {
     const undefinedAll = undefinedFor + (extraPoles.length ? ` and for ${extraPoles.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')}` : '');
     steps.push(`Domain restriction: f is undefined for ${undefinedAll} — so the domain is ${allowed}.`);
   }
+
+  // Range, only for families where it is known exactly (never read off the
+  // sampled window). September 2026 review, batch 3.
+  if (f.range) steps.push(`Range: ${f.range.text} — ${f.range.why}`);
 
   // Holes (removable discontinuities) — explained, not just "undefined at".
   for (const h of f.holes) {
@@ -834,6 +922,7 @@ function summarizeAnalysis(func, variable, f) {
     parts.push(`domain: ${formatDomain(f.domain, variable, extraPoles)}`);
   }
 
+  if (f.range) parts.push(`range: ${f.range.text}`);
   if (f.yIntercept) parts.push(`y-intercept ${pt(0, f.yIntercept.y)}`);
   if (interceptPattern) {
     parts.push(`x-intercepts at ${interceptPattern}`);

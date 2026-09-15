@@ -10,6 +10,7 @@ import {
   isAlgebriteFailure,
   math,
   formatNumber,
+  expressionsNumericallyEqual,
 } from './solverUtils.js';
 import { extractVariable, matchingParen } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -43,25 +44,29 @@ export async function solveDerivative(expression, options = {}) {
       if (piecewise) return piecewise;
     }
 
+    // Algebrite leaves quotient-rule results as a sum of fractions:
+    // (x+1)/(x-1) → -1/(x-1)^2 + 1/(x-1) - x/(x-1)^2. Prefer the simplified
+    // form when it is genuinely shorter and still a real answer — at every
+    // order, so a second derivative is shown from the simplified first one.
+    // Only for results of modest size: simplify on the expanded derivative
+    // of (x+1)^50 does not return in any useful time.
+    const shorten = (expr) => {
+      try {
+        if (expr.length > 160) return expr;
+        const simplified = Algebrite.simplify(expr).toString();
+        return simplified && !isAlgebriteFailure(simplified) && !isUnevaluatedOperator(simplified) && simplified.length < expr.length ? simplified : expr;
+      } catch {
+        return expr;
+      }
+    };
     // Authoritative, fully-simplified derivative.
-    let derivative = Algebrite.derivative(forAlgebrite, variable).toString();
+    let derivative = shorten(Algebrite.derivative(forAlgebrite, variable).toString());
     // Higher orders: differentiate the previous result again, showing each.
     const orderChain = [derivative];
     for (let k = 2; k <= order; k += 1) {
-      derivative = Algebrite.derivative(derivative, variable).toString();
+      derivative = shorten(Algebrite.derivative(derivative, variable).toString());
       orderChain.push(derivative);
     }
-    // Algebrite leaves quotient-rule results as a sum of fractions:
-    // (x+1)/(x-1) → -1/(x-1)^2 + 1/(x-1) - x/(x-1)^2. Prefer the simplified
-    // form when it is genuinely shorter and still a real answer.
-    // Only for results of modest size: simplify on the expanded derivative
-    // of (x+1)^50 does not return in any useful time.
-    try {
-      const simplified = derivative.length > 160 ? derivative : Algebrite.simplify(derivative).toString();
-      if (simplified && !isAlgebriteFailure(simplified) && !isUnevaluatedOperator(simplified) && simplified.length < derivative.length) {
-        derivative = simplified;
-      }
-    } catch { /* keep the raw derivative */ }
 
     // Algebrite doesn't throw when it can't differentiate something — it
     // returns `d(f, x)` unevaluated. That is not an answer.
@@ -78,7 +83,18 @@ export async function solveDerivative(expression, options = {}) {
     }
 
     const primes = "'".repeat(order);
-    const steps = generateDerivativeSteps(expression, orderChain[0], variable, Algebrite);
+    const worked = generateDerivativeSteps(expression, order === 1 ? derivative : orderChain[0], variable, Algebrite);
+    const steps = worked.steps;
+    // A single term's simplified derivative is the canonical answer. Before,
+    // the term step showed (x² − 2x − 1)/(x − 1)² and the closing line then
+    // restated it as Algebrite's expanded sum of fractions — a step backward
+    // (September 2026 teaching-quality review, batch 1).
+    if (worked.simplest && worked.simplest !== orderChain[0]
+        && (worked.preferSimplest || worked.simplest.length <= orderChain[0].length)
+        && expressionsNumericallyEqual(rewriteReciprocalTrig(worked.simplest), rewriteReciprocalTrig(orderChain[0]), variable)) {
+      orderChain[0] = worked.simplest;
+      if (order === 1) derivative = worked.simplest;
+    }
     // sgn(u) in a derivative marks a corner of |u|: say where f′ does not exist.
     const corners = sgnArguments(derivative);
     if (corners.length > 0) {
@@ -247,6 +263,8 @@ function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
   steps.push(`Identify the function to differentiate: f(${variable}) = ${beautify(expression)}`);
 
   const terms = splitTerms(expression);
+  let simplest = null;
+  let preferSimplest = false;
 
   if (terms.length > 1) {
     steps.push('Apply the sum/difference rule: differentiate each term separately, then add the results.');
@@ -275,8 +293,18 @@ function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
       for (const line of workedRuleSteps(signed, variable, label, Algebrite)) steps.push(line);
     } catch { /* the label + result still stand */ }
 
+    if (termDerivative !== null && label === 'Logarithmic differentiation') {
+      // Keep the factored u^v·(…) form the derivation arrived at, rather
+      // than restating it expanded.
+      const factored = logDiffFactoredForm(signed, variable, Algebrite);
+      if (factored && expressionsNumericallyEqual(factored, termDerivative, variable)) {
+        termDerivative = factored;
+        preferSimplest = true;
+      }
+    }
     if (termDerivative !== null) {
       steps.push(`${ddx}(${beautify(signed)}) = ${lnify(termDerivative)}`);
+      if (terms.length === 1) simplest = termDerivative;
     } else {
       steps.push(`Differentiate ${beautify(signed)} using the ${label.toLowerCase()}.`);
     }
@@ -284,11 +312,13 @@ function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
 
   if (terms.length > 1) {
     steps.push(`Add the term derivatives and simplify: f'(${variable}) = ${lnify(derivative)}`);
-  } else {
+  } else if (simplest === null) {
     steps.push(`So f'(${variable}) = ${lnify(derivative)}`);
   }
+  // With one term, the term line IS the result; restating it in another form
+  // reads as a step backward, so it is not repeated.
 
-  return steps;
+  return { steps, simplest, preferSimplest };
 }
 
 /**
@@ -372,6 +402,29 @@ function classifyDerivativeRule(term, variable) {
 }
 
 // Derivative of a single piece as clean text, or null.
+// d/dx[v·ln(u)] simplified — the bracket in y′ = u^v·(v′·ln u + v·u′/u).
+function logDiffInnerDerivative(base, expo, v, Algebrite) {
+  try {
+    const raw = Algebrite.simplify(`d((${expo})*log(${base}), ${v})`).toString();
+    if (isAlgebriteFailure(raw) || isUnevaluatedOperator(raw)) return null;
+    return lnify(raw);
+  } catch { return null; }
+}
+
+// The factored form u^v·(…) of a logarithmic-differentiation result, as an
+// Algebrite-evaluable string, or null.
+function logDiffFactoredForm(term, v, Algebrite) {
+  const inner = stripOuterSign(term);
+  const sign = term.trim().startsWith('-') ? '-' : '';
+  const powParts = splitTopLevel(inner, '^');
+  if (powParts.length !== 2) return null;
+  try {
+    const bracket = Algebrite.simplify(`d((${unwrap(powParts[1])})*log(${unwrap(powParts[0])}), ${v})`).toString();
+    if (isAlgebriteFailure(bracket) || isUnevaluatedOperator(bracket)) return null;
+    return `${sign}${inner}*(${bracket})`;
+  } catch { return null; }
+}
+
 function derivText(expr, variable, Algebrite) {
   try {
     const d = Algebrite.derivative(rewriteReciprocalTrig(expr), variable).toString();
@@ -441,6 +494,29 @@ function workedRuleSteps(term, variable, label, Algebrite) {
       `Let ${U} = ${b(first)} and ${W} = ${b(rest)}${c ? ` (the constant factor ${constFactors.map(b).join('·')} carries through)` : ''}.`,
       `Then ${U}′ = ${du} and ${W}′ = ${dw}.`,
       `${U}′·${W} + ${U}·${W}′ = ${paren(du)}·${paren(rest)} + ${paren(first)}·${paren(dw)}${sign ? `, with the leading minus sign${c ? ' and constant' : ''} kept in front` : c ? `, times ${constFactors.map(b).join('·')}` : ''}.`,
+    ];
+  }
+
+  if (label === 'Logarithmic differentiation') {
+    const powParts = splitTopLevel(inner, '^');
+    if (powParts.length !== 2) return [];
+    const base = unwrap(powParts[0]);
+    const expo = unwrap(powParts[1]);
+    const du = derivText(base, v, Algebrite);
+    const dv = derivText(expo, v, Algebrite);
+    if (!du || !dv) return [];
+    const bB = b(base);
+    const bE = b(expo);
+    const parenExp = (t) => (/^[a-z]$|^\d+(?:\.\d+)?$|^[a-z]+\([^()]*\)$/i.test(b(t)) ? b(t) : `(${b(t)})`);
+    const rhs = logDiffInnerDerivative(base, expo, v, Algebrite);
+    if (!rhs) return [];
+    const productForm = `${dv === '1' ? '' : `${paren(dv)}·`}ln(${bB}) + ${bE === v ? v : paren(expo)}·${du === '1' ? '' : `${paren(du)}`}${du === '1' ? '' : '/'}${du === '1' ? `1/${paren(base)}` : paren(base)}`;
+    return [
+      `Let y = ${b(inner)}, with ${bB} > 0 so that ln(${bB}) is defined. The variable is in both the base and the exponent, so neither the power rule nor the exponential rule applies on its own.`,
+      `Take ln of both sides: ln(y) = ln(${paren(base)}^${parenExp(expo)}) = ${bE === v ? v : paren(expo)}·ln(${bB})  (the log rule ln(a^b) = b·ln(a) brings the exponent down).`,
+      `Differentiate both sides with respect to ${v}. The left side is implicit: d/d${v} ln(y) = y′/y. The right side is a product: d/d${v}[${bE === v ? v : paren(expo)}·ln(${bB})] = ${productForm} = ${rhs}.`,
+      `So y′/y = ${rhs}. Multiply both sides by y: y′ = y·(${rhs}).`,
+      `Substitute y = ${b(inner)} back: y′ = ${b(inner)}·(${rhs})${sign ? ', with the leading minus sign kept in front' : ''}.`,
     ];
   }
 
