@@ -26,7 +26,7 @@
 MasterMath is a **fully client-side** app. That means:
 
 - Everything runs **in your browser** — no servers, no accounts, no internet required after the page loads.
-- Math problems are solved using **JavaScript math libraries** (mathjs, algebrite, mathsteps) — not AI.
+- Math problems are solved using **JavaScript math libraries** (mathjs, algebrite) — not AI.
 - Your problem history is stored in **IndexedDB**, a database built into your browser.
 - You can export your work as **PDF, CSV, JSON, or Markdown** files.
 
@@ -140,7 +140,8 @@ Each solver is a separate file that specializes in one type of math:
 
 | Solver File | What It Solves | Library Used |
 |-------------|---------------|-------------|
-| `algebraSolver.js` | Equations, simplification, factoring | mathsteps + algebrite |
+| `algebraSolver.js` | Equations, simplification, factoring | algebrite + mathjs |
+| `linearEquationSolver.js` | Linear equations, worked step by step | mathjs (exact fractions) |
 | `derivativesSolver.js` | Derivatives (differentiation) | algebrite |
 | `integralsSolver.js` | Integrals (integration) | algebrite |
 | `arithmeticSolver.js` | Basic math (add, subtract, etc.) | mathjs |

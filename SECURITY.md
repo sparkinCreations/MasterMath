@@ -4,17 +4,22 @@
 
 We actively maintain and provide security updates for the following versions of MasterMath:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | ✅ Fully supported |
-| < 1.0   | ❌ No longer supported |
+MasterMath is a web app that updates itself: every visitor runs the latest
+release, and the in-app update banner moves an open tab onto it. Only the
+latest release receives fixes.
+
+| Version        | Supported              |
+| -------------- | ---------------------- |
+| Latest release | ✅ Fully supported      |
+| Anything older | ❌ Reload to update     |
 
 ## Security Considerations
 
 ### Client-Side Application
 MasterMath is a **client-side only** application that:
 - Runs entirely in the user's browser
-- Does not transmit data to external servers
+- Does not transmit data to external servers — the one exception is the
+  Feedback form, which sends your message to Web3Forms only when you submit it
 - Stores data locally using browser storage APIs
 - Does not require user accounts or authentication
 
@@ -22,7 +27,7 @@ MasterMath is a **client-side only** application that:
 - **No data collection** - All calculations happen locally
 - **No tracking** - No analytics or user behavior monitoring
 - **No cookies** - Except for essential functionality (dark mode preferences)
-- **No external API calls** - Completely self-contained
+- **No external API calls** - Self-contained, apart from a submitted Feedback form
 
 ## Reporting Security Vulnerabilities
 
@@ -140,6 +145,16 @@ We use the following guidelines to assess vulnerability severity:
 - Input sanitization prevents code injection
 - Error handling prevents information disclosure
 
+### Response Headers
+Netlify serves the headers in `public/_headers` with every response: a
+Content-Security-Policy (scripts from the app's own origin only — no `eval`, no
+inline script except the boot watchdog, allowed by its hash; framing denied;
+network requests limited to the app and the Feedback endpoint), plus
+`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` and
+`Permissions-Policy`. `vite preview` serves the same file, so the browser smoke
+test runs under the production policy, and `tests/securityHeaders.test.js`
+keeps the watchdog's hash in step with `index.html`.
+
 ### Browser Storage
 - Local storage is used for user preferences and problem history
 - No sensitive information should be stored
@@ -147,7 +162,8 @@ We use the following guidelines to assess vulnerability severity:
 
 ### Third-Party Dependencies
 - Regular dependency updates for security patches
-- Vulnerability scanning of npm packages
+- `npm audit --omit=dev` runs in CI on every push and fails on a high or
+  critical advisory in a shipped dependency
 - Minimal dependency footprint to reduce attack surface
 
 ## Contact Information

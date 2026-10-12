@@ -249,7 +249,7 @@ export default {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          math: ['algebrite', 'mathjs', 'mathsteps']
+          math: ['algebrite', 'mathjs']
         }
       }
     }

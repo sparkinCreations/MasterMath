@@ -22,13 +22,14 @@ test('solveArithmetic evaluates PEMDAS-style expressions', () => {
   assert.match(result.steps.at(-1), /24/);
 });
 
-test('solveAlgebra solves a simple linear equation with mathsteps steps', async () => {
+test('solveAlgebra solves a simple linear equation with inverse-operation steps', async () => {
   const result = await solveAlgebra('2*x + 5 = 11');
   assert.match(result.answer, /x\s*=\s*3/);
-  assert.ok(result.steps.some((step) => /subtract from both sides/i.test(step)));
+  assert.equal(result.steps[0], 'Subtract 5 from both sides: 2x = 6');
+  assert.equal(result.steps[1], 'Divide both sides by 2: x = 6/2 = 3');
 });
 
-test('solveAlgebra returns exact roots for quadratics mathsteps cannot finish', async () => {
+test('solveAlgebra returns exact radical and complex roots for quadratics', async () => {
   const irrational = await solveAlgebra('x^2 = 2');
   // Radical roots are kept exact, not collapsed to decimals.
   assert.match(irrational.answer, /√2/);

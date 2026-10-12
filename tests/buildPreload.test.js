@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 // `shared` is the lazy chunk of node_modules code the solver chunks have in
-// common (mathsteps, mathjs's number types); it is heavy too.
+// common (mathjs's number types); it is heavy too.
 const HEAVY = /(mathjs|algebrite|charts|pdf|html2canvas|purify|shared)-/;
 
 test('the built landing page preloads none of the heavy library chunks', () => {

@@ -26,7 +26,7 @@ export default function FAQ() {
     },
     {
       question: "Is MasterMath AI?",
-      answer: "No. MasterMath does not use a language model or any cloud AI to solve problems. All calculations run in your browser with open-source math libraries (Algebrite, MathJS, and mathsteps). That is why it works offline, why answers are deterministic, and why unsupported input is refused instead of invented."
+      answer: "No. MasterMath does not use a language model or any cloud AI to solve problems. All calculations run in your browser with open-source math libraries (Algebrite and MathJS). That is why it works offline, why answers are deterministic, and why unsupported input is refused instead of invented."
     },
     {
       question: "What types of math problems can I solve?",
@@ -34,7 +34,7 @@ export default function FAQ() {
     },
     {
       question: "How accurate are the solutions?",
-      answer: "We use industry-standard math libraries (Algebrite, MathJS, mathsteps) for calculations — not AI. However, you should always verify solutions independently. MasterMath is a learning tool, not a replacement for understanding the concepts."
+      answer: "We use industry-standard math libraries (Algebrite and MathJS) for calculations — not AI. However, you should always verify solutions independently. MasterMath is a learning tool, not a replacement for understanding the concepts."
     },
     {
       question: "Can I export my solutions?",

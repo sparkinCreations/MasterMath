@@ -1,7 +1,5 @@
 import { isEquation, extractVariable, parseMathExpression, matchingParen } from '../mathParser.js';
-// mathsteps is reached only through these two guarded entry points — see the
-// seam note at the top of mathstepsUtils.js.
-import { mathstepsSolveEquation, mathstepsSimplify } from '../mathstepsUtils.js';
+import { solveLinearEquation } from './linearEquationSolver.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 import {
   math,
@@ -14,6 +12,7 @@ import {
   expressionsNumericallyEqual,
   findUndefinedRegions,
   formatRestriction,
+  splitTerms,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -115,7 +114,7 @@ function equationGuidance(steps, expression) {
       ],
     };
   }
-  if (/sum-product|Take the square root of both sides|discriminant|quadratic formula|Factor using|difference of squares|perfect square|Find the roots/.test(text)) {
+  if (/sum-product|zero-product|Factor out the common|Set the factor to zero|Take the square root of both sides|discriminant|quadratic formula|Factor using|difference of squares|perfect square|Find the roots/i.test(text)) {
     return {
       tips: [
         'A quadratic has up to two solutions: factor, take square roots, or use x = (−b ± √(b² − 4ac))/(2a).',
@@ -149,53 +148,42 @@ const COMMON_MISTAKES = [
   'Sign errors when moving a term across the equals sign.',
 ];
 
-// mathsteps reports "Factor using the sum-product method: (x - 2)(x - 3) = 0"
-// without showing how −2 and −3 were found. For a monic quadratic with
-// integer coefficients, insert the search a student is expected to do: list
-// the factor pairs of c, find the pair that sums to b, and check by
-// expanding. Anything else (non-monic, non-integer) is left as mathsteps
-// wrote it — never a fabricated search.
-async function explainSumProduct(steps, expression, variable) {
-  const index = steps.findIndex((s) => /^Factor using the sum-product method: /.test(s));
-  if (index < 0) return steps;
-  const v = variable;
-  // The quadratic being factored: the previous step's equation, or the input.
-  const source = index > 0 ? steps[index - 1].replace(/^[^:]*: /, '') : expression;
-  const [lhs, rhs = '0'] = source.split('=').map((t) => t.trim());
-  if (!lhs || rhs === undefined) return steps;
-  try {
-    const Algebrite = await loadAlgebrite();
-    const poly = `(${parseMathExpression(lhs)}) - (${parseMathExpression(rhs)})`;
-    const coeff = (k) => {
-      const out = String(Algebrite.run(`coeff(${poly}, ${v}, ${k})`)).trim();
-      return /^-?\d+$/.test(out) ? Number(out) : null;
-    };
-    const a = coeff(2);
-    const b = coeff(1);
-    const c = coeff(0);
-    if (a !== 1 || b === null || c === null || c === 0) return steps;
-    const pairs = [];
-    for (let p = 1; p * p <= Math.abs(c); p += 1) {
-      if (c % p !== 0) continue;
-      const q = c / p;
-      pairs.push([p, q]);
-      pairs.push([-p, -q]);
-    }
-    if (pairs.length > 12) return steps;
-    const hit = pairs.find(([p, q]) => p + q === b);
-    if (!hit) return steps;
-    const sign = (n) => (n < 0 ? `(${n})` : String(n));
-    const term = (n) => (n < 0 ? `${v} - ${-n}` : `${v} + ${n}`);
-    const quad = beautify(`${v}^2 ${b < 0 ? '-' : '+'} ${Math.abs(b) === 1 ? '' : Math.abs(b)}${v} ${c < 0 ? '-' : '+'} ${Math.abs(c)}`).replace(/\s+/g, ' ');
-    const inserted = [
-      `To factor ${quad}, look for two numbers whose product is ${c} (the constant term) and whose sum is ${b} (the coefficient of ${v}).`,
-      `Factor pairs of ${c}: ${pairs.map(([p, q]) => `${sign(p)}·${sign(q)}`).join(', ')}. Their sums: ${pairs.map(([p, q]) => p + q).join(', ')} — the pair ${hit[0]} and ${hit[1]} sums to ${b}.`,
-      `So ${quad} = (${term(hit[0])})(${term(hit[1])}). Check by expanding: ${v}·${v} + ${sign(hit[1])}${v} + ${sign(hit[0])}${v} + ${sign(hit[0])}·${sign(hit[1])} = ${quad}. ✓`,
+// A monic quadratic with integer coefficients that factors over the integers
+// is solved the way it is taught first: factor out x when c = 0, otherwise
+// list the factor pairs of c, find the pair that sums to b, check by
+// expanding, and apply the zero-product property. Null when it does not
+// factor that way — the caller shows the quadratic formula instead, never a
+// fabricated search.
+function factoringLines(B, C, v, expanded) {
+  if (![B, C].every(Number.isInteger)) return null;
+  const sign = (n) => (n < 0 ? `(${n})` : String(n));
+  const factor = (n) => (n === 0 ? v : n < 0 ? `${v} - ${-n}` : `${v} + ${n}`);
+  if (C === 0) {
+    if (B === 0) return null;
+    return [
+      `Factor out the common ${v}: ${expanded} = 0 becomes ${v}(${factor(B)}) = 0.`,
+      `Set each factor to zero: ${v} = 0 or ${factor(B)} = 0, so ${v} = 0 or ${v} = ${-B}.`,
     ];
-    return [...steps.slice(0, index), ...inserted, ...steps.slice(index)];
-  } catch {
-    return steps;
   }
+  const pairs = [];
+  for (let p = 1; p * p <= Math.abs(C); p += 1) {
+    if (C % p !== 0) continue;
+    pairs.push([p, C / p]);
+    pairs.push([-p, -C / p]);
+  }
+  if (pairs.length > 12) return null;
+  const hit = pairs.find(([p, q]) => p + q === B);
+  if (!hit) return null;
+  const [p, q] = hit;
+  const factored = p === q ? `(${factor(p)})^2` : `(${factor(p)})(${factor(q)})`;
+  return [
+    `To factor ${expanded}, look for two numbers whose product is ${C} (the constant term) and whose sum is ${B} (the coefficient of ${v}).`,
+    `Factor pairs of ${C}: ${pairs.map(([m, n]) => `${sign(m)}·${sign(n)}`).join(', ')}. Their sums: ${pairs.map(([m, n]) => m + n).join(', ')} — the pair ${p} and ${q} sums to ${B}.`,
+    `So ${expanded} = ${factored}. Check by expanding: ${v}·${v} + ${sign(q)}${v} + ${sign(p)}${v} + ${sign(p)}·${sign(q)} = ${expanded}. ✓`,
+    p === q
+      ? `Set the factor to zero: ${factor(p)} = 0, so ${v} = ${-p} (a repeated root).`
+      : `Set each factor to zero (zero-product property): ${factor(p)} = 0 or ${factor(q)} = 0, so ${v} = ${-p} or ${v} = ${-q}.`,
+  ];
 }
 
 export async function solveAlgebra(expression, options = {}) {
@@ -321,32 +309,15 @@ async function solveEquation(expression, options = {}) {
     ({ steps, answer, solutions } = viaAbs);
   }
 
-  // 1. mathsteps — gives the nicest linear/simple-quadratic walkthroughs.
-  // Only accept it if it actually isolated the variable; mathsteps sometimes
-  // stops early (e.g. x^2 = -1), which we hand off to Algebrite below.
-  try {
-    const parsed = answer ? null : mathstepsSolveEquation(expression);
-    if (parsed && parsed.steps.length > 0 && isSolved(parsed.answer, variable)) {
-      const normalized = normalizeSolutionAnswer(parsed.answer, variable);
-      // mathsteps (unmaintained) can be confidently wrong: it "factors"
-      // x² − 2x − 1 as the perfect square (x − 1)² and answers x = 1. Every
-      // numeric solution it offers is substituted into the ORIGINAL equation
-      // first; if any fails to balance, its whole result is discarded and the
-      // exact Algebrite path runs instead. (Found September 2026.)
-      const balanced = normalized.numericSolutions.every((x) => satisfiesEquation(expression, variable, x));
-      if (balanced) {
-        steps = await explainSumProduct(parsed.steps, expression, variable);
-        answer = normalized.answer;
-        solutions = normalized.numericSolutions;
-        // mathsteps can hand back a raw roots array on the last step; make the
-        // final line a clean, readable statement of the solution.
-        if (normalized.rewritten) {
-          steps = [...steps, `Solution: ${answer}`];
-        }
-      }
+  // 1. Linear equations: the textbook inverse-operations walkthrough in exact
+  // fractions (clear fractions or distribute, collect, isolate, divide).
+  // Quadratics go to the Algebrite path below, which shows the factoring or
+  // the discriminant and formula.
+  if (!answer) {
+    const viaLinear = solveLinearEquation(expression, variable);
+    if (viaLinear) {
+      ({ steps, answer, solutions } = viaLinear);
     }
-  } catch (e) {
-    // fall through to Algebrite
   }
 
   // 1b. A polynomial in e^x — e^(2x) − 3e^x + 2 = 0 — is solved by the
@@ -382,7 +353,7 @@ async function solveEquation(expression, options = {}) {
   }
 
   // 2. Algebrite roots — exact solutions (integers, fractions, radicals, complex)
-  // for anything mathsteps could not finish, e.g. x^2 = 9.
+  // for anything the linear path did not take, e.g. x^2 = 9.
   if (!answer) {
     const viaAlgebrite = await solveWithAlgebriteRoots(expression, variable);
     if (viaAlgebrite) {
@@ -401,9 +372,8 @@ async function solveEquation(expression, options = {}) {
     solutions = numeric.solutions;
   }
 
-  // Extraneous roots. Multiplying through by a denominator (mathsteps) or
-  // clearing it symbolically (Algebrite roots) can manufacture a "solution"
-  // at which the ORIGINAL equation is undefined: x²/(x−1) = 1/(x−1) + 1
+  // Extraneous roots. Clearing a denominator symbolically (Algebrite roots)
+  // can manufacture a "solution" at which the ORIGINAL equation is undefined: x²/(x−1) = 1/(x−1) + 1
   // yields x = 0 or x = 1, and x = 1 makes both denominators zero. Every
   // real solution is substituted into the original sides; any that leaves a
   // side undefined is dropped, and the step says why.
@@ -624,14 +594,20 @@ async function solveWithAlgebriteRoots(equation, variable) {
     const roots = parseRootsList(rootsRaw);
     if (roots.length === 0) return null;
 
-    const answer = formatSolutions(roots, variable);
+    let answer = formatSolutions(roots, variable);
+    // Algebrite lists a double root once; a quadratic with a single root has
+    // it twice, and the answer says so.
+    if (roots.length === 1 && !/multiplicity/.test(answer) && String(Algebrite.run(`deg(${target}, ${variable})`)).trim() === '2') {
+      answer += ' (repeated root, multiplicity 2)';
+    }
     const numericSolutions = roots
       .map((r) => r.numeric)
       .filter((n) => Number.isFinite(n));
 
     const derivation = quadraticDerivation(Algebrite, target, variable);
     const steps = [
-      `Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`,
+      // Already "… = 0": no rewrite to show.
+      ...(/^0$/.test(right.trim()) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),
       ...clearingSteps,
       ...(derivation || [`Solve for ${variable} by finding the roots.`]),
       `Solution: ${answer}`,
@@ -1076,21 +1052,6 @@ export function parseRootsList(raw) {
   });
 }
 
-/**
- * True when an answer has actually isolated the variable: the left side is the
- * bare variable and the right side no longer contains it. A raw roots array
- * ("x = [2, 3]") also counts as solved.
- */
-function isSolved(answer, variable) {
-  if (!answer) return false;
-  const eqIndex = answer.indexOf('=');
-  if (eqIndex === -1) return false;
-  const lhs = answer.slice(0, eqIndex).trim();
-  const rhs = answer.slice(eqIndex + 1).trim();
-  if (lhs !== variable) return false;
-  return !new RegExp(`\\b${variable}\\b`, 'i').test(rhs);
-}
-
 // Does x balance the equation? A side that cannot be evaluated at x is not a
 // disproof (the extraneous-root check deals with undefined sides); only a
 // finite, clearly unequal pair of sides says "wrong".
@@ -1117,41 +1078,6 @@ export function prettyRadicals(display) {
   s = s.replace(/^(-?\d+)\/(\d+) ([+-]) √(\d+)\/\2$/, '($1 $3 √$4)/$2');
   s = s.replace(/^(-?\d+)\/(\d+) ([+-]) (\d+)√(\d+)\/\2$/, '($1 $3 $4√$5)/$2');
   return s;
-}
-
-/**
- * Detect a raw roots array in a mathsteps answer ("x = [2, 3]") and rewrite it
- * as a readable "x = 2 or x = 3". Returns numeric solutions for graphing.
- */
-function normalizeSolutionAnswer(answer, variable) {
-  const bracket = answer.match(/\[([^\]]*)\]/);
-  if (bracket) {
-    const roots = parseRootsList(`[${bracket[1]}]`);
-    if (roots.length > 0) {
-      return {
-        answer: formatSolutions(roots, variable),
-        numericSolutions: roots.map((r) => r.numeric).filter((n) => Number.isFinite(n)),
-        rewritten: true,
-      };
-    }
-  }
-
-  const cleaned = beautify(answer);
-  // Each "x = value" evaluated as one number: "x = -3 / 2" is −1.5, not the
-  // two numbers −3 and 2 (which made the verified mathsteps answer for
-  // 4 − 3(2x + 1) = 10 look wrong and threw its steps away).
-  const parts = cleaned.split(/\s+or\s+/);
-  const evaluated = parts.map((part) => {
-    const rhs = part.split('=').pop().trim().replace(/√(\d+)/g, 'sqrt($1)');
-    try {
-      const n = math.evaluate(rhs);
-      return typeof n === 'number' ? n : NaN;
-    } catch {
-      return NaN;
-    }
-  });
-  const numericSolutions = evaluated.every(Number.isFinite) ? evaluated : extractNumbers(cleaned);
-  return { answer: cleaned, numericSolutions, rewritten: cleaned !== answer };
 }
 
 function formatSolutions(roots, variable) {
@@ -1186,11 +1112,6 @@ function formatSolutions(roots, variable) {
     return `${realText};  plus ${complexCount} complex solutions (not listed)`;
   }
   return unique.map(line).join('  or  ');
-}
-
-function extractNumbers(str) {
-  const matches = String(str).match(/-?\d+\.?\d*/g);
-  return matches ? matches.map(Number).filter((n) => !Number.isNaN(n)) : [];
 }
 
 // Brute-force numeric root finding, used only when symbolic methods fail.
@@ -1642,24 +1563,14 @@ async function simplifyExpression(expression) {
   }
 
   // Gather candidate simplifications and keep only those that are genuinely
-  // equal to the input. mathsteps carries nice steps but sometimes "simplifies"
-  // (x^2-9)/(x+3) into the LONGER split form x^2/(x+3) - 9/(x+3); Algebrite
-  // cancels it to x-3. We pick the SHORTEST verified-equivalent candidate, so a
-  // result is never longer than what the student typed.
-  let mathstepsResult = null;
-  try {
-    const parsed = mathstepsSimplify(expression);
-    if (parsed && parsed.steps.length > 0 && parsed.answer) {
-      mathstepsResult = { answer: beautify(parsed.answer), steps: parsed.steps };
-    }
-  } catch {
-    // fall through
-  }
-
+  // equal to the input. An engine can "simplify" (x^2-9)/(x+3) into the
+  // LONGER split form x^2/(x+3) - 9/(x+3) where Algebrite cancels it to x-3,
+  // so we pick the SHORTEST verified-equivalent candidate and a result is
+  // never longer than what the student typed. A polynomial's expanded form
+  // wins ties: "simplify 2(x + 3) + 4x" means 6x + 6, not 6(x + 1).
   const candidates = [];
-  if (mathstepsResult && equivalentOrConstant(expression, mathstepsResult.answer, variable)) {
-    candidates.push({ source: 'mathsteps', answer: mathstepsResult.answer });
-  }
+  const polynomial = await expandPolynomial(expression, variable);
+  if (polynomial) candidates.push({ source: 'expand', answer: polynomial.answer, steps: polynomial.steps });
   const algebrite = await algebriteSimplify(expression, variable);
   if (algebrite) candidates.push({ source: 'algebrite', answer: algebrite });
   try {
@@ -1687,22 +1598,22 @@ async function simplifyExpression(expression) {
     }
   }
 
-  // Best = shortest; on a tie prefer mathsteps for its worked steps.
+  // Best = shortest; on a tie prefer the expanded polynomial and its steps.
   candidates.sort((a, b) => {
     const d = complexity(a.answer) - complexity(b.answer);
     if (d !== 0) return d;
-    return (a.source === 'mathsteps' ? -1 : 0) - (b.source === 'mathsteps' ? -1 : 0);
+    return (a.source === 'expand' ? -1 : 0) - (b.source === 'expand' ? -1 : 0);
   });
   const best = candidates[0];
 
   let steps;
   let answer;
   if (best && complexity(best.answer) < inputLen) {
-    // A real simplification. Keep mathsteps' steps only when they actually lead
-    // to the chosen (best) form; otherwise present a clean three-line derivation.
+    // A real simplification. A polynomial shows its expansion and combining;
+    // anything else gets a clean three-line derivation.
     answer = best.answer;
-    if (best.source === 'mathsteps' && mathstepsResult) {
-      steps = mathstepsResult.steps;
+    if (best.steps) {
+      steps = best.steps;
     } else {
       steps = [
         `Original expression: ${beautify(expression)}`,
@@ -1726,6 +1637,39 @@ async function simplifyExpression(expression) {
   };
 }
 
+// A polynomial in the variable (nothing but numbers in any denominator),
+// expanded by Algebrite, with the working: each top-level term multiplied out,
+// then like terms combined. Null for anything that is not a polynomial.
+async function expandPolynomial(expression, variable) {
+  if (/[a-z]{2,}/i.test(expression)) return null; // function calls
+  if (/[a-z]/i.test(expression.replace(new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'gi'), ''))) return null; // other letters
+  try {
+    const Algebrite = await loadAlgebrite();
+    const denominator = String(Algebrite.run(`denominator(${expression})`)).trim();
+    if (hasVariable(denominator, variable) || /nil|error|stop/i.test(denominator)) return null;
+    const expand = (e) => {
+      const out = String(Algebrite.run(`expand(${e})`)).trim();
+      if (!out || /nil|error|stop/i.test(out)) throw new Error('expand failed');
+      return out;
+    };
+    const answer = beautify(expand(expression));
+    if (!equivalentOrConstant(expression, answer, variable)) return null;
+    const terms = splitTerms(expression);
+    const multiplied = beautify(terms.map((t) => `(${t.signed.includes('(') ? expand(t.signed) : t.signed})`).join(' + ')
+      .replace(/\(([^()]*)\)/g, '$1'));
+    const steps = [];
+    if (expression.includes('(')) {
+      steps.push(`Multiply out the parentheses: ${multiplied}`);
+      if (complexity(multiplied) !== complexity(answer)) steps.push(`Combine like terms: ${answer}`);
+    } else {
+      steps.push(`${terms.length > 1 ? 'Combine like terms' : 'Simplify'}: ${answer}`);
+    }
+    return { answer, steps };
+  } catch {
+    return null;
+  }
+}
+
 // Normalized size of an expression for "is this actually simpler?" comparisons.
 // Strips spaces and explicit '*' so 2*(x+2) and 2(x+2) compare equal.
 function complexity(expr) {
@@ -1739,7 +1683,10 @@ async function algebriteSimplify(expression, variable) {
     const Algebrite = await loadAlgebrite();
     const out = String(Algebrite.run(`simplify(${expression})`)).trim();
     if (!out || /nil|error|stop/i.test(out)) return null;
-    const pretty = beautify(out);
+    // Algebrite writes x/2 as 1/2*x; show it the textbook way.
+    const pretty = beautify(out)
+      .replace(/(?<![\w^/.)])1\/(\d+)\*([a-z](?:\^\d+)?)(?![\w^(])/gi, '$2/$1')
+      .replace(/(?<![\w^/.)])(\d+)\/(\d+)\*([a-z](?:\^\d+)?)(?![\w^(])/gi, '$1$3/$2');
     if (!equivalentOrConstant(expression, pretty, variable)) return null;
     return pretty;
   } catch {
@@ -1919,6 +1866,10 @@ function quadraticDerivation(Algebrite, poly, v) {
         lines.push(`Take the square root of both sides — remembering both signs: ${v} = ±√(${beautify(rhs)}) = ±${rootShown}.`);
       }
       return lines;
+    }
+    if (A === 1) {
+      const factoring = factoringLines(B, C, v, expanded);
+      if (factoring) return factoring;
     }
     const D = String(Algebrite.run(`(${b})^2 - 4*(${a})*(${c})`)).trim();
     const Dn = asNumber(D);

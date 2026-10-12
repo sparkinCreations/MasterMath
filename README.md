@@ -5,7 +5,7 @@
 🌐 **Live at [mastermath.app](https://mastermath.app)**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-18.3.1-blue)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-19-blue)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4.5-purple)](https://vitejs.dev/)
 
 ![MasterMath Screenshot](./docs/screenshot.png)
@@ -78,14 +78,13 @@ npm run build
 ## 🏗️ Technology Stack
 
 ### **Frontend Framework**
-- **React 18.3.1** - Modern UI library with hooks
+- **React 19** - Modern UI library with hooks
 - **Vite** - Fast build tool and development server
 - **React Router** - Client-side routing
 
 ### **Math Libraries**
 - **Algebrite** - Symbolic calculus and algebra
 - **MathJS** - Expression parsing and evaluation
-- **mathsteps** - Step-by-step algebraic solutions
 
 ### **Styling & UI**
 - **Tailwind CSS** - Utility-first styling
@@ -106,14 +105,15 @@ MasterMath uses **local JavaScript math libraries** (not AI) to solve problems:
 
 1. **Math Parser** extracts expressions from natural language input
 2. **Topic Router** directs problems to the appropriate solver
-3. **Solver Engines** compute solutions using mathjs, algebrite, and mathsteps
+3. **Solver Engines** compute solutions using mathjs and algebrite
 4. **Solution Formatter** generates step-by-step explanations, tips, and graphs
 5. **Local Storage** saves your history in the browser (IndexedDB)
 
 All computations happen **entirely in your browser** - no data is sent to external servers.
 
-The solvers are covered by an automated test suite (55 tests, `npm test`),
-including a regression suite that pins every previously-fixed math bug —
+The solvers are covered by an automated unit suite (`npm test`) and a
+Playwright browser smoke test of the production build (`npm run smoke`), both
+run in GitHub Actions on every push. The unit suite includes a regression suite that pins every previously-fixed math bug —
 from `tan(π/2)` floating-point artifacts to cancellation-prone limits —
 so they can't silently return.
 
@@ -177,7 +177,6 @@ MasterMath/
 │   │   ├── api.js              # Main API for solving & storage
 │   │   ├── indexedDB.js        # IndexedDB wrapper
 │   │   ├── mathParser.js       # Expression parsing utilities
-│   │   ├── mathstepsUtils.js   # mathsteps output formatting
 │   │   ├── settings.js         # User preferences (localStorage-backed)
 │   │   ├── exportUtils.js      # Export to PDF/CSV/JSON/Markdown
 │   │   ├── validation.js       # Input validation utilities
@@ -208,7 +207,6 @@ MasterMath/
 │   ├── regressions.test.js     # Pinned past bugs (never let them return)
 │   ├── settings.test.js        # Preferences store & solver wiring
 │   ├── mathParser.test.js      # Input parsing
-│   ├── mathstepsUtils.test.js  # Step formatting
 │   ├── solverUtils.test.js     # Shared helpers
 │   └── validation.test.js      # Input validation
 │
@@ -272,7 +270,7 @@ MasterMath is developed by [sparkinCreations™](https://sparkincreations.com), 
 
 ## 🙏 Acknowledgments
 
-- **Math Libraries** - Algebrite, MathJS, and mathsteps communities
+- **Math Libraries** - Algebrite and MathJS communities
 - **UI Framework** - React and Vite teams
 - **Open Source** - All the amazing libraries that make this possible
 

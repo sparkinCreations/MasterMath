@@ -81,7 +81,7 @@ finds.
 | 5 | ~~Compound inequalities~~ ✅ Done v1.32.0 (chains and and/or, by set intersection/union of the per-part sign-chart solutions) | P2 | Small–Med | Feature | 2 |
 | 6 | ~~First-load payload: mathjs chunk~~ ✅ Done v1.32.1 — 1,132 → 866 kB (gzip 324 → 245 kB) via explicit dependencies; the 500 kB target is structurally out of reach (see section) | P2 | Small–Med | Perf | 3 |
 | 7 | ~~Dependency majors (React 19, Vite 8, Tailwind 4, …)~~ ✅ Done v1.32.2–v1.33.0 — KaTeX 0.18, jsPDF 4, mathjs 15, Vite 8 (Rolldown chunk groups + preload test), React 19 + Recharts 3 + framer-motion 13 + lucide 1.x (fixed a production-only chunk-cycle crash), Router 7 (+ catch-all route), Tailwind 4 (upgrade tool, computed-style diff against a pre-upgrade baseline on four pages × light/dark) | P3 | Medium | Maint | 3 |
-| 8 | ~~Isolate mathsteps behind one seam~~ ✅ Done v1.30.1 (moved up after it produced a wrong answer; two guarded entry points, kill switch, fallback proven by test) | P3 | Small | Maint | 3 |
+| 8 | ~~Isolate mathsteps behind one seam~~ ✅ Done v1.30.1 (moved up after it produced a wrong answer; two guarded entry points, kill switch, fallback proven by test) — **removed entirely v1.39.0** (its bundled mathjs 3 carried critical advisories and needs `eval`, which the new CSP forbids; replaced by `linearEquationSolver.js` and factoring in `quadraticDerivation`) | P3 | Small | Maint | 3 |
 | 9 | ~~Documentation debt~~ ✅ Done v1.29.2 (semantics status header, test renamed, worktree pruned) | P3 | Small | Docs | 1 |
 | 10 | New topic: Sequences & Series | P4 | Large | Engine | — |
 | 11 | Practice mode: "Try a similar problem" | P4 | Medium | UX | — |
@@ -348,7 +348,14 @@ during a feature.
 
 ---
 
-## P3 — Isolate mathsteps Behind One Seam — ✅ Done v1.30.1
+## P3 — Isolate mathsteps Behind One Seam — ✅ Done v1.30.1, removed v1.39.0
+
+> **v1.39.0:** mathsteps is gone. Its nested mathjs 3.11 / typed-function
+> 0.10 carried critical and high advisories and build code with
+> `new Function`, which the Content-Security-Policy added in the same release
+> blocks. The linear walkthrough is now `linearEquationSolver.js` (exact
+> fractions); monic quadratics factor by the sum-product search; polynomial
+> simplification shows the multiplying out and combining.
 
 mathsteps is v0.2.0 and unmaintained (already noted in July). It has 20
 call sites in `algebraSolver.js` plus `mathstepsUtils.js`. Its linear and
@@ -436,7 +443,7 @@ It needs nothing new from the engine.
 
 Updated from July. Keep in mind when triaging bug reports:
 
-- **mathsteps is unmaintained** (v0.2.0). See item 8.
+- **mathsteps was removed in v1.39.0** (unmaintained, vulnerable nested mathjs). See item 8.
 - **Algebrite is the symbolic engine, and the app drives it, not the other
   way round.** Repeated/cyclic by-parts, u-substitution, partial fractions,
   and every trig-equation family are implemented on top of Algebrite's

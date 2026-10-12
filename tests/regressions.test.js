@@ -547,8 +547,8 @@ test('regression: audit polish — a jump limit still reads "sides disagree", no
   assert.ok(!r.steps.some((s) => /oscillat/i.test(s)));
 });
 
-// Nit 3 — a simplification is never longer than the input. mathsteps split
-// (x^2-9)/(x+3) into x^2/(x+3) - 9/(x+3); Algebrite cancels it to x-3.
+// Nit 3 — a simplification is never longer than the input. mathsteps (since
+// removed) split (x^2-9)/(x+3) into x^2/(x+3) - 9/(x+3); Algebrite cancels it.
 test('regression: audit polish — (x^2-9)/(x+3) simplifies to x - 3, not a split fraction', async () => {
   const r = await solveProblem('(x^2-9)/(x+3)', 'algebra');
   assert.equal(r.answer, 'x - 3');
@@ -559,7 +559,7 @@ test('regression: audit polish — rational simplifications cancel fully', async
   assert.equal((await solveProblem('(2x^2-8)/(x-2)', 'algebra')).answer, '2(x + 2)');
 });
 
-test('regression: audit polish — mathsteps keeps its steps when it is the best form', async () => {
+test('regression: audit polish — like terms combine with a worked step', async () => {
   const r = await solveProblem('2x + 3x', 'algebra');
   assert.equal(r.answer, '5x');
   assert.ok(r.steps.length >= 1);
@@ -958,7 +958,7 @@ test('audit L08: a limit at infinity that is a power of e or a small rational is
 // answer found on the way: mathsteps "factored" x² − 2x − 1 as (x − 1)².
 // ---------------------------------------------------------------------------
 
-test('mathsteps output is verified: x^2 - 2x - 1 = 0 is 1 ± √2, never "x = 1, repeated root"', async () => {
+test('x^2 - 2x - 1 = 0 is 1 ± √2, never "x = 1, repeated root" (mathsteps\' old misfactoring)', async () => {
   // Was: "factor perfect square: (x - 1)^2 = 0", answer x = 1 (repeated root).
   const r = await solveProblem('x^2 - 2x - 1 = 0', 'algebra');
   assert.match(r.answer, /1 - √2/);
@@ -1336,16 +1336,16 @@ test('sum-product factoring shows the search for the pair and checks by expandin
   assert.match(work, /Factor pairs of 6: 1·6, \(-1\)·\(-6\), 2·3, \(-2\)·\(-3\)/);
   assert.match(work, /the pair -2 and -3 sums to -5/);
   assert.match(work, /Check by expanding: .* = x\^2 - 5x \+ 6\. ✓/);
-  // The search precedes mathsteps' own factor line, which is kept.
+  // The search is followed by the zero-product property.
   const searchAt = r.steps.findIndex((s) => /look for two numbers/.test(s));
-  const factorAt = r.steps.findIndex((s) => /^Factor using the sum-product method/.test(s));
-  assert.ok(searchAt >= 0 && factorAt > searchAt);
+  const zeroAt = r.steps.findIndex((s) => /zero-product property\): x - 2 = 0 or x - 3 = 0, so x = 2 or x = 3/.test(s));
+  assert.ok(searchAt >= 0 && zeroAt > searchAt);
   // Mixed signs.
   assert.match((await solveProblem('x^2 - x - 6 = 0', 'algebra')).steps.join('\n'), /the pair 2 and -3 sums to -1/);
   // A non-monic quadratic gets no fabricated search.
   const nonMonic = await solveProblem('2x^2 - 5x + 2 = 0', 'algebra');
   assert.doesNotMatch(nonMonic.steps.join('\n'), /look for two numbers/);
-  assert.match(nonMonic.answer, /x = 1 \/ 2  or  x = 2/);
+  assert.equal(nonMonic.answer, 'x = 1/2  or  x = 2');
 });
 
 test('limit cancellation explains the excluded point and the hole', async () => {
@@ -1568,19 +1568,20 @@ test('a negative exponent is taught as a reciprocal', async () => {
 test('linear equations show the distribution and the combining of constants', async () => {
   const r = await solveProblem('3(x-2)+4 = 2x+1', 'algebra');
   assert.equal(r.answer, 'x = 3');
-  assert.equal(r.steps[0], 'Distribute across the parentheses: 3x - 6 + 4 = 2x + 1');
-  assert.equal(r.steps[1], 'Collect and combine like terms: 3x - 2 = 2x + 1');
+  assert.equal(r.steps[0], 'Distribute to remove the parentheses: 3x - 6 + 4 = 2x + 1');
+  assert.equal(r.steps[1], 'Combine like terms: 3x - 2 = 2x + 1');
   assert.match(r.steps.join('\n'), /Check in the original equation: x = 3 gives 3\(x - 2\) \+ 4 = 7 and 2x \+ 1 = 7 ✓/);
   const negative = await solveProblem('-2(x-3)+1=7', 'algebra');
-  assert.equal(negative.steps[0], 'Distribute across the parentheses: -2x + 6 + 1 = 7');
+  assert.equal(negative.steps[0], 'Distribute to remove the parentheses: -2x + 6 + 1 = 7');
   assert.equal(negative.answer, 'x = 0');
-  // 4 − 3(2x + 1) = 10: mathsteps' "x = -3 / 2" used to be read as the two
-  // numbers −3 and 2, fail verification, and lose its steps to the roots path.
+  // A subtracted product distributes the negative sign too, and the answer
+  // is an exact fraction.
   const subtracted = await solveProblem('4-3(2x+1)=10', 'algebra');
-  assert.match(subtracted.steps[0], /^Distribute across the parentheses: 4 - \(6x \+ 3\) = 10/);
-  assert.match(subtracted.steps[1], /^Distribute the negative sign: 4 - 6x - 3 = 10/);
-  assert.match(subtracted.answer, /-3 \/ 2$/);
-  assert.match((await solveProblem('simplify 3(x-2)+4', 'algebra')).steps[0], /^Distribute across the parentheses: 3x - 6 \+ 4$/);
+  assert.equal(subtracted.steps[0], 'Distribute to remove the parentheses: 4 - 6x - 3 = 10');
+  assert.equal(subtracted.steps[1], 'Combine like terms: -6x + 1 = 10');
+  assert.equal(subtracted.answer, 'x = -3/2');
+  const simplified = await solveProblem('simplify 3(x-2)+4', 'algebra');
+  assert.deepEqual(simplified.steps, ['Multiply out the parentheses: 3x - 6 + 4', 'Combine like terms: 3x - 2']);
 });
 
 // ---------------------------------------------------------------------------

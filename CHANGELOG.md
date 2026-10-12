@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-10-12
+
+Security hardening from an outside review of v1.38.1, and the removal of
+mathsteps, which that hardening required.
+
+### Added
+
+- **Security headers.** Every response now carries a Content-Security-Policy
+  (scripts only from the app itself, no `eval`, the inline boot watchdog
+  allowed by its hash, framing denied, network requests limited to the app
+  and the Feedback form's endpoint), plus `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy`, `X-Frame-Options: DENY` and `Permissions-Policy`. They
+  live in `public/_headers`; `vite preview` serves the same file, and the
+  browser smoke test now fails on any CSP violation.
+- **Linear equations worked like a textbook, in exact fractions.** Clear the
+  fractions by the least common denominator, or distribute and then combine
+  like terms (as separate steps), collect the variable, move the constant,
+  divide: `(x+1)/2 = (x−3)/4` starts with "Multiply both sides by 4",
+  `4 − 3(2x + 1) = 10` ends with `x = 9/(−6) = −3/2`.
+- **Quadratics that factor are factored.** A monic integer quadratic shows
+  the sum-product search and the zero-product property (`x² + 2x − 15 = 0`);
+  `x² − 3x = 0` factors out the common x. Others keep the discriminant and
+  the quadratic formula.
+- `npm audit` of shipped dependencies runs in CI.
+
+### Changed
+
+- **mathsteps removed.** It was unmaintained, had been confidently wrong
+  once, and carried its own mathjs 3.11 and typed-function 0.10 — versions
+  with critical and high advisories — which build code with `new Function`
+  and so cannot run under the new CSP. Across the 378 problems of the
+  evaluation corpora every answer is mathematically unchanged; the steps it
+  produced are replaced by the walkthroughs above, and the app no longer
+  ships a second, older copy of mathjs.
+- **"Simplify" expands a polynomial** and shows the multiplying out, then
+  the combining: `2(x + 3) + 4x` → `2x + 6 + 4x` → `6x + 6` (was `6(x + 1)`).
+- Algebrite's `1/2*x` is shown as `x/2` in simplified answers
+  (`(2x² − 8)/(4x)` → `x/2 − 2/x`; mathsteps wrote the ambiguous `1 / 2x`).
+- An equation already of the form `… = 0` no longer shows the redundant
+  "Rewrite as an equation set to zero: (…) − (0) = 0".
+- Privacy Policy, FAQ and Home no longer list mathsteps.
+
+### Fixed
+
+- **Input errors are announced to screen readers.** The "Please enter a
+  valid math problem" message is a live `role="alert"` region, and the
+  problem field is marked `aria-invalid` and points at it with
+  `aria-describedby`.
+- jsPDF's DOMPurify and fflate updated past their published advisories;
+  `npm audit --omit=dev` reports no vulnerabilities.
+
 ## [1.38.1] - 2026-09-15
 
 Consistency fixes from re-testing v1.38.0 on the live site, plus the same

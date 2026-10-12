@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Last Updated: March 10, 2026
+          Last Updated: October 12, 2026
         </p>
       </div>
 
@@ -205,7 +205,6 @@ export default function PrivacyPolicy() {
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
             <li><strong>Math.js:</strong> For mathematical computations (runs locally in your browser)</li>
             <li><strong>Algebrite:</strong> For symbolic algebra and calculus (runs locally in your browser)</li>
-            <li><strong>mathsteps:</strong> For step-by-step algebraic solutions (runs locally in your browser)</li>
             <li><strong>Recharts:</strong> For graph visualization (runs locally in your browser)</li>
             <li><strong>Framer Motion:</strong> For UI animations (runs locally in your browser)</li>
             <li><strong>jsPDF:</strong> For PDF export functionality (runs locally in your browser)</li>

@@ -145,6 +145,8 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             validationError ? 'border-red-300 focus:border-red-400' : 'border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500'
           } rounded-xl p-4 resize-none`}
           maxLength={1000}
+          aria-invalid={validationError ? true : undefined}
+          aria-describedby={validationError ? 'problem-error' : undefined}
         />
         <div className="flex justify-between">
           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -159,8 +161,8 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       </div>
 
       {validationError && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+        <div id="problem-error" role="alert" className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <AlertCircle aria-hidden="true" className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
           <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>
         </div>
       )}

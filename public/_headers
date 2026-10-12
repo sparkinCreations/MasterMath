@@ -1,0 +1,15 @@
+# Netlify response headers (copied to dist/ by Vite). vite.config.js also
+# serves these from `vite preview`, so the Playwright smoke test runs the
+# built app under exactly this policy.
+#
+# script-src: the hash is the inline boot watchdog in index.html. Editing that
+# script changes its hash, and tests/securityHeaders.test.js fails until the
+# hash here is updated — otherwise the watchdog would be silently blocked.
+# style-src 'unsafe-inline': KaTeX, Recharts and Framer Motion set inline
+# style attributes. connect-src: the Feedback form posts to Web3Forms.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-/5KWl1vWqc/vC/UnaCwx3t4X8D1O5xiOjinghu62jkY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.web3forms.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

@@ -166,7 +166,8 @@ Each solver handles a specific math domain and returns a consistent solution obj
 
 | File                    | Domain                    | Libraries Used          |
 |-------------------------|---------------------------|-------------------------|
-| `algebraSolver.js`      | Equations, simplification, factoring | mathsteps, algebrite |
+| `algebraSolver.js`      | Equations, simplification, factoring | algebrite, mathjs |
+| `linearEquationSolver.js` | Linear equations, worked step by step | mathjs (Fraction) |
 | `derivativesSolver.js`  | Differentiation           | algebrite               |
 | `integralsSolver.js`    | Integration               | algebrite               |
 | `arithmeticSolver.js`   | Basic arithmetic          | mathjs                  |

@@ -1,4 +1,5 @@
-# Unit suite + browser smoke test on every push and pull request.
+# Dependency audit, unit suite and browser smoke test on every push and pull
+# request.
 #
 # Netlify builds and deploys main on its own; this workflow does not gate
 # that (there is no user base to protect yet — see docs/future-work). It
@@ -21,6 +22,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Dependency audit (shipped dependencies, high and critical)
+        run: npm audit --omit=dev --audit-level=high
       - name: Unit suite (includes the corpus and the build-preload test)
         run: npm test
       - name: Playwright browser

@@ -1,7 +1,7 @@
 {
   "name": "mastermath",
   "private": true,
-  "version": "1.38.1",
+  "version": "1.39.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,7 +21,6 @@
     "katex": "^0.18.7",
     "lucide-react": "^1.41.0",
     "mathjs": "^15.2.0",
-    "mathsteps": "^0.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",

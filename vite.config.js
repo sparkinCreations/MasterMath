@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import fs from 'fs'
 import { execSync } from 'child_process'
+import { readGlobalHeaders } from './scripts/netlifyHeaders.js'
 
 // Stamp the service worker's CACHE_NAME with the package version plus the
 // git commit being built. Browsers only detect an app update when sw.js
@@ -70,6 +71,11 @@ export default defineConfig({
   server: {
     // Honor an externally assigned port (e.g. when 5173 is already in use).
     port: Number(process.env.PORT) || 5173,
+  },
+  // Netlify serves public/_headers in production; serve the same headers from
+  // `vite preview` so the smoke test exercises the real CSP.
+  preview: {
+    headers: readGlobalHeaders(path.resolve(__dirname, 'public', '_headers')),
   },
   resolve: {
     alias: {

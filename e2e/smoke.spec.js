@@ -24,11 +24,15 @@ const HEAVY_CHUNK = /\/assets\/(mathjs|algebrite|charts|pdf|html2canvas|purify|s
 // Fail the test on anything the app would show its "Something went wrong"
 // boundary for, and on any uncaught exception. Solver-level console.error
 // lines ("Integral solver error: …") are expected on refusals and ignored.
+// A CSP violation is not: it fails the test.
 function armErrorCapture(page) {
   const errors = [];
   page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
   page.on('console', (msg) => {
     if (msg.type() === 'error' && /caught by boundary/i.test(msg.text())) errors.push(`boundary: ${msg.text()}`);
+    // vite preview serves public/_headers, so anything the production CSP
+    // would block is blocked here too.
+    if (/Content Security Policy/i.test(msg.text())) errors.push(`csp: ${msg.text()}`);
   });
   return errors;
 }
