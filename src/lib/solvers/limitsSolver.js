@@ -13,6 +13,8 @@ import {
   hasVariable,
   parsesAsMath,
   isAlgebriteFailure,
+  stripOuterParens,
+  gcd,
 } from './solverUtils.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
@@ -947,27 +949,6 @@ function splitQuotient(expr) {
   return null;
 }
 
-// Remove one or more layers of balanced parentheses that wrap the whole
-// string. "((a)/(b))" -> "(a)/(b)"; "sin(x)" is left untouched because its
-// outer parens are not balanced around the entire expression.
-function stripOuterParens(expr) {
-  let s = expr.trim();
-  while (s.length >= 2 && s[0] === '(' && s[s.length - 1] === ')') {
-    let depth = 0;
-    let wrapsWhole = true;
-    for (let i = 0; i < s.length; i += 1) {
-      if (s[i] === '(') depth += 1;
-      else if (s[i] === ')') depth -= 1;
-      // If depth returns to 0 before the final char, the leading "(" does not
-      // pair with the trailing ")", so the parens do not wrap the whole thing.
-      if (depth === 0 && i < s.length - 1) { wrapsWhole = false; break; }
-    }
-    if (!wrapsWhole) break;
-    s = s.slice(1, -1).trim();
-  }
-  return s;
-}
-
 // Independent numeric check of a claimed symbolic answer. Returns a boolean —
 // never a fabricated probability. Samples small offsets on both sides and
 // requires agreement. The tolerance is scaled to the offset: a point 1e-3 away
@@ -1200,10 +1181,6 @@ function formatLimitConstant(v) {
     }
   }
   return dec;
-}
-
-function gcd(a, b) {
-  return b === 0 ? a : gcd(b, a % b);
 }
 
 function estimateInfiniteLimit(func, variable, target) {

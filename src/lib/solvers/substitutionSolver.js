@@ -17,7 +17,7 @@
 // The steps show the substitution the way it is taught: choose u, compute
 // du, rewrite, integrate in u, substitute back.
 
-import { math, beautify, isAlgebriteFailure, lnify } from './solverUtils.js';
+import { math, beautify, lnify, splitTopLevel, runAlgebrite } from './solverUtils.js';
 
 // Does d/dx F numerically equal f at several points? Central differences at
 // h = 1e-5; points where either side is undefined are skipped, and at least
@@ -41,15 +41,6 @@ export function derivativeMatchesNumerically(F, f, v) {
 }
 
 const FN_CALL = /\b(sin|cos|tan|sec|csc|cot|exp|log|ln|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh)\s*\(/g;
-
-function run(A, code) {
-  try {
-    const out = String(A.run(code)).trim();
-    return isAlgebriteFailure(out) ? null : out;
-  } catch {
-    return null;
-  }
-}
 
 // Read a balanced parenthesised group starting at index `open` (which must be
 // '('); returns the inner text or null.
@@ -108,20 +99,6 @@ function candidateInner(term, variable) {
   return [...found].sort((a, b) => b.length - a.length);
 }
 
-// Split on a delimiter that appears only at parenthesis depth 0.
-function splitTopLevel(str, delimiter) {
-  const out = [];
-  let depth = 0;
-  let cur = '';
-  for (const ch of str) {
-    if (ch === '(') depth += 1;
-    else if (ch === ')') depth -= 1;
-    if (ch === delimiter && depth === 0) { out.push(cur); cur = ''; } else cur += ch;
-  }
-  out.push(cur);
-  return out;
-}
-
 /**
  * Try to integrate `term` with respect to `variable` by u-substitution.
  * Returns { antiderivative, steps, u } or null.
@@ -133,13 +110,13 @@ export function integrateBySubstitution(term, variable, Algebrite) {
   const varRe = new RegExp(`\\b${v}\\b`);
 
   for (const u of candidateInner(term, v)) {
-    const du = run(A, `d(${u}, ${v})`);
+    const du = runAlgebrite(A, `d(${u}, ${v})`);
     if (!du || du === '0') continue;
 
     // h(x) = term / g'(x); then rewrite g(x) → u. If x survives, wrong u.
-    const ratio = run(A, `simplify((${term}) / (${du}))`);
+    const ratio = runAlgebrite(A, `simplify((${term}) / (${du}))`);
     if (!ratio) continue;
-    let inU = run(A, `simplify(subst(u, ${u}, ${ratio}))`);
+    let inU = runAlgebrite(A, `simplify(subst(u, ${u}, ${ratio}))`);
     // Algebrite may have normalised the ratio into a form where u no longer
     // appears literally: (x+1)/(x²+2x) ÷ (2x+2) simplifies to 1/(2x²+4x), in
     // which "x²+2x" cannot be substituted. For a denominator candidate the
@@ -151,23 +128,23 @@ export function integrateBySubstitution(term, variable, Algebrite) {
         let den = parts[1].trim();
         if (den.startsWith('(') && readGroup(den, 0) === den.slice(1, -1)) den = den.slice(1, -1).trim();
         if (den === u) {
-          const k = run(A, `simplify((${parts[0]}) / (${du}))`);
+          const k = runAlgebrite(A, `simplify((${parts[0]}) / (${du}))`);
           if (k && !varRe.test(k)) inU = `${k}/u`;
         }
       }
     }
     if (!inU || varRe.test(inU)) continue;
 
-    const H = run(A, `integral(${inU}, u)`);
+    const H = runAlgebrite(A, `integral(${inU}, u)`);
     if (!H || /\bintegral\s*\(/.test(H)) continue;
 
-    const back = run(A, `simplify(subst(${u}, u, ${H}))`);
+    const back = runAlgebrite(A, `simplify(subst(${u}, u, ${H}))`);
     if (!back || /\bu\b/.test(back)) continue;
 
     // Verify: d/dx of the result must equal the integrand. Symbolic first;
     // when simplification doesn't reach a literal 0 (trig identities, roots),
     // a numeric derivative check at several points decides.
-    const check = run(A, `simplify(d(${back}, ${v}) - (${term}))`);
+    const check = runAlgebrite(A, `simplify(d(${back}, ${v}) - (${term}))`);
     if (check !== '0' && !derivativeMatchesNumerically(back, term, v)) continue;
 
     const steps = [

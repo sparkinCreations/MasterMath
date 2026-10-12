@@ -6,6 +6,9 @@ import {
   splitTerms,
   formatNumber,
   sampleFunction,
+  stripOuterParens,
+  splitTopLevel,
+  gcd,
 } from '../src/lib/solvers/solverUtils.js';
 
 test('beautify drops explicit multiplication in coefficient products', () => {
@@ -63,4 +66,28 @@ test('sampleFunction skips undefined and exploding points', () => {
   // x = 0 is undefined (division) and must be skipped, not NaN-filled
   assert.ok(points.every((p) => Number.isFinite(p.y)));
   assert.ok(points.every((p) => p.x !== 0));
+});
+
+// Shared string helpers (consolidated from per-solver copies in 1.39.0).
+test('stripOuterParens removes only parentheses that wrap the whole expression', () => {
+  assert.equal(stripOuterParens('((x + 1))'), 'x + 1');
+  assert.equal(stripOuterParens(' (x) '), 'x');
+  // The first "(" closes before the end: not a wrapper. The old /^\((.*)\)$/
+  // strip produced "x+1)*(x+2" here.
+  assert.equal(stripOuterParens('(x+1)*(x+2)'), '(x+1)*(x+2)');
+  assert.equal(stripOuterParens('(a)+(b)'), '(a)+(b)');
+  assert.equal(stripOuterParens('((a)(b))'), '(a)(b)');
+});
+
+test('splitTopLevel splits only at depth 0', () => {
+  assert.deepEqual(splitTopLevel('(a*b)*c', '*'), ['(a*b)', 'c']);
+  assert.deepEqual(splitTopLevel('x', '*'), ['x']);
+  assert.deepEqual(splitTopLevel('sin(x/2)/x', '/'), ['sin(x/2)', 'x']);
+});
+
+test('gcd is non-negative for any signs', () => {
+  assert.equal(gcd(-4, 6), 2);
+  assert.equal(gcd(4, -6), 2);
+  assert.equal(gcd(0, 5), 5);
+  assert.equal(gcd(7, 0), 7);
 });

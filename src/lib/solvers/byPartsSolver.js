@@ -16,7 +16,7 @@
 // One loop handles both "the polynomial fizzles out" and "the integral comes
 // back around." Every result is differentiated and checked before it is trusted.
 
-import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, isAlgebriteFailure, lnify } from './solverUtils.js';
+import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, lnify, runAlgebrite, splitTopLevel } from './solverUtils.js';
 
 const MAX_ROUNDS = 8;
 
@@ -34,16 +34,7 @@ function liateRank(factor, v) {
 
 // Split a product into its top-level factors (respecting parentheses).
 function factorList(term) {
-  const parts = [];
-  let depth = 0;
-  let cur = '';
-  for (const ch of String(term)) {
-    if (ch === '(') depth += 1;
-    else if (ch === ')') depth -= 1;
-    if (ch === '*' && depth === 0) { parts.push(cur); cur = ''; } else cur += ch;
-  }
-  if (cur) parts.push(cur);
-  return parts.map((p) => p.trim()).filter(Boolean);
+  return splitTopLevel(term, '*').map((p) => p.trim()).filter(Boolean);
 }
 
 // Category flags for an integrand term.
@@ -117,18 +108,9 @@ function chooseUDV(term, v) {
 
 // --- Algebrite wrappers ------------------------------------------------------
 
-function run(Algebrite, code) {
-  try {
-    const out = String(Algebrite.run(code)).trim();
-    return isAlgebriteFailure(out) ? null : out;
-  } catch {
-    return null;
-  }
-}
-
-const derivative = (A, e, v) => run(A, `d(${e},${v})`);
-const antideriv = (A, e, v) => run(A, `integral(${e},${v})`);
-const simplify = (A, e) => run(A, `simplify(${e})`) || e;
+const derivative = (A, e, v) => runAlgebrite(A, `d(${e},${v})`);
+const antideriv = (A, e, v) => runAlgebrite(A, `integral(${e},${v})`);
+const simplify = (A, e) => runAlgebrite(A, `simplify(${e})`) || e;
 
 // Is `current` a constant multiple k of `original`? Returns k (a number) or null.
 // Sampled numerically where original ≠ 0.

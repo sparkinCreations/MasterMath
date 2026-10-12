@@ -16,7 +16,7 @@
  */
 
 import { createMath } from '../mathInstance.js';
-import { beautify, formatNumber, splitTerms } from './solverUtils.js';
+import { beautify, formatNumber, gcd, splitTerms } from './solverUtils.js';
 
 const exact = createMath({ number: 'Fraction' });
 const PROBES = ['2', '-3', '1/7', '5/3'];
@@ -93,10 +93,7 @@ function distribute(side, variable, linear) {
   return beautify(pieces.join(' + '));
 }
 
-const lcm = (a, b) => {
-  const gcd = (x, y) => (y === 0 ? x : gcd(y, x % y));
-  return (a / gcd(a, b)) * b;
-};
+const lcm = (a, b) => (a / gcd(a, b)) * b;
 
 /**
  * Worked solution of a linear equation in `variable`, or null when the

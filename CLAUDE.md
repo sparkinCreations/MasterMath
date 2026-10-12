@@ -144,6 +144,8 @@ Each solver module exports a solve function that returns a consistent solution o
 }
 ```
 
+**Shared helpers (`solverUtils.js`):** `splitTopLevel`, `splitTerms`, `stripOuterParens`, `gcd`, `runAlgebrite`, `beautify`, `formatNumber` — import these rather than writing a local copy (copies drifted, and one bare `/^\((.*)\)$/` paren strip broke partial fractions). Never strip parentheses with that regex.
+
 **Graph sampling (`src/lib/graphSampling.js`):** `sampleCurve` (re-sampling with explicit gaps, unnamed-pole detection), `featureWindow` (the window framing a set of feature x-values), `annotationFeatureXs` (the "Fit key features" control), `interestingXs` (numeric zeros/extrema/inflections for solvers with no exact feature list). Label placement: `formatLineX` (`x = 3π/2` via `piForm`, which now lives in `solverUtils.js`), `layoutLineLabels` (one row of vertical-line labels kept inside the plot, a label that would overlap its neighbour dropped) and `placePointLabel` (right of the marker, else left, else above). GraphViewer draws every vertical-line label (asymptotes, equation solutions, a limit's guideline) through its `LineLabels` layer and marker labels through `PointLabel`, both inside the plot — never Recharts' `position: 'top'` on a vertical line, which lands in the 5px margin above the plot and is cut off at every width. GraphViewer opens on `initialWindow`, else the feature window when the graph can be re-sampled, else ±10; it adds a right-hand y-axis for the dashed curve when the two visible ranges differ by more than 4× (toggleable).
 
 **Available Solvers:**

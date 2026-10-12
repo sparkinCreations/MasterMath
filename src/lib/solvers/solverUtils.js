@@ -234,6 +234,17 @@ export function isAlgebriteFailure(output) {
   return /\b(stop|error|nil|unsupported|sorry|cannot|can't|undefined|not implemented)\b/i.test(s);
 }
 
+// One Algebrite command, trimmed, or null when it throws or answers with a
+// failure marker. For callers that treat "no answer" and "error" alike.
+export function runAlgebrite(Algebrite, code) {
+  try {
+    const out = String(Algebrite.run(code)).trim();
+    return isAlgebriteFailure(out) ? null : out;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Did Algebrite give up and hand the operator back unevaluated?
  *
@@ -370,6 +381,54 @@ export function lnify(result) {
     // exp(x) → e^x for a single token, e^(…) otherwise
     .replace(/(?<![a-z])exp\(([a-z]|\d+)\)/gi, 'e^$1')
     .replace(/(?<![a-z])exp\(((?:[^()]|\([^()]*\))+)\)/g, 'e^($1)');
+}
+
+// Split on a delimiter at parenthesis depth 0: splitTopLevel('(a*b)*c', '*')
+// is ['(a*b)', 'c']. Pieces are untrimmed; a string without the delimiter is
+// one piece.
+export function splitTopLevel(str, delimiter) {
+  const parts = [];
+  let depth = 0;
+  let current = '';
+  for (const ch of String(str)) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    if (ch === delimiter && depth === 0) {
+      parts.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  parts.push(current);
+  return parts;
+}
+
+// Remove parentheses that wrap the WHOLE expression, as many layers as there
+// are: '((x + 1))' -> 'x + 1'. '(x + 1)*(x + 2)' is returned unchanged — its
+// first '(' closes before the end. (A bare /^\((.*)\)$/ strip turns that into
+// 'x + 1)*(x + 2', which is how a factored numerator once broke partial
+// fractions.)
+export function stripOuterParens(expr) {
+  let s = String(expr).trim();
+  while (s.length >= 2 && s[0] === '(' && s[s.length - 1] === ')') {
+    let depth = 0;
+    for (let i = 0; i < s.length - 1; i += 1) {
+      if (s[i] === '(') depth += 1;
+      else if (s[i] === ')') depth -= 1;
+      if (depth === 0) return s;
+    }
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+// Greatest common divisor of two integers, always ≥ 0.
+export function gcd(a, b) {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y) [x, y] = [y, x % y];
+  return x;
 }
 
 /**

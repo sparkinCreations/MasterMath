@@ -51,9 +51,19 @@ mathsteps, which that hardening required.
 - `otherSolvers.js` (limits *and* trigonometry, 1,900 lines) is split into
   `limitsSolver.js` and `trigonometrySolver.js`, each its own lazy chunk. No
   behaviour change: all 378 corpus problems give identical output.
+- Helpers that had been copied between solvers now live once in
+  `solverUtils.js`: `splitTopLevel` (three copies), `stripOuterParens`,
+  `gcd` (three copies, one wrong for negative numbers) and the Algebrite
+  `runAlgebrite` wrapper (two copies).
 
 ### Fixed
 
+- **Partial fractions with a factored numerator.** `∫(x + 1)(x + 2)/((x − 1)(x − 2)(x − 3)) dx`
+  was refused while the same integral with the numerator multiplied out
+  solved: the numerator was read with a regex that stripped a "(" and ")"
+  from the two ends even when they did not belong together, leaving
+  `x+1)*(x+2`. Found by an audit of duplicated helpers; every such strip now
+  goes through one `stripOuterParens` that checks the brackets pair.
 - **Input errors are announced to screen readers.** The "Please enter a
   valid math problem" message is a live `role="alert"` region, and the
   problem field is marked `aria-invalid` and points at it with

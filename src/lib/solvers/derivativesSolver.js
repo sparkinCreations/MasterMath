@@ -11,6 +11,8 @@ import {
   math,
   formatNumber,
   expressionsNumericallyEqual,
+  splitTopLevel,
+  stripOuterParens,
 } from './solverUtils.js';
 import { extractVariable, matchingParen } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -358,7 +360,7 @@ function classifyDerivativeRule(term, variable) {
   }
   // a^x: constant base, variable exponent.
   if (powParts.length === 2 && !hasVariable(powParts[0], v) && hasVariable(powParts[1], v) && !/^\(?e\)?$/.test(powParts[0].trim())) {
-    const u = powParts[1].trim().replace(/^\((.*)\)$/, '$1');
+    const u = stripOuterParens(powParts[1]);
     if (/[+\-*/^]/.test(u)) {
       return { label: 'Exponential rule with the chain rule', hint: `d/d${v}(a^u) = a^u·ln(a)·u′ with u = ${beautify(u)}` };
     }
@@ -368,7 +370,7 @@ function classifyDerivativeRule(term, variable) {
   // negative exponent, not the linear rule.
   const divOnce = splitTopLevel(inner, '/');
   if (divOnce.length === 2 && !hasVariable(divOnce[0], v) && hasVariable(divOnce[1], v)) {
-    const den = divOnce[1].trim().replace(/^\((.*)\)$/, '$1').trim();
+    const den = stripOuterParens(divOnce[1]);
     const pow = den.match(new RegExp(`^${v}(?:\\^([\\d.]+))?$`));
     if (pow) {
       const n = pow[1] || '1';
@@ -421,7 +423,7 @@ function logDiffFactoredForm(term, v, Algebrite) {
   const powParts = splitTopLevel(inner, '^');
   if (powParts.length !== 2) return null;
   try {
-    const bracket = Algebrite.simplify(`d((${unwrap(powParts[1])})*log(${unwrap(powParts[0])}), ${v})`).toString();
+    const bracket = Algebrite.simplify(`d((${stripOuterParens(powParts[1])})*log(${stripOuterParens(powParts[0])}), ${v})`).toString();
     if (isAlgebriteFailure(bracket) || isUnevaluatedOperator(bracket)) return null;
     return `${sign}${inner}*(${bracket})`;
   } catch { return null; }
@@ -433,21 +435,6 @@ function derivText(expr, variable, Algebrite) {
     if (isAlgebriteFailure(d) || isUnevaluatedOperator(d)) return null;
     return lnify(d);
   } catch { return null; }
-}
-
-// Strip one layer of wrapping parentheses: "(x+1)" → "x+1".
-function unwrap(t) {
-  const s = t.trim();
-  if (s.startsWith('(') && s.endsWith(')') && splitTopLevel(s.slice(1, -1), ')').length === 1) {
-    let depth = 0;
-    for (let i = 0; i < s.length; i += 1) {
-      if (s[i] === '(') depth += 1;
-      else if (s[i] === ')') depth -= 1;
-      if (depth === 0 && i < s.length - 1) return s;
-    }
-    return s.slice(1, -1);
-  }
-  return s;
 }
 
 const OUTER_DERIVATIVES = {
@@ -478,7 +465,7 @@ function workedRuleSteps(term, variable, label, Algebrite) {
   const sign = term.trim().startsWith('-') ? '-' : '';
   const U = v === 'u' ? 'p' : 'u';
   const W = v === 'w' ? 'q' : 'w';
-  const b = (t) => beautify(unwrap(t));
+  const b = (t) => beautify(stripOuterParens(t));
   const paren = (t) => (/^[a-z0-9.]+$|^[a-z]+\([^()]*\)$/i.test(b(t)) ? b(t) : `(${b(t)})`);
 
   if (label === 'Product rule') {
@@ -502,8 +489,8 @@ function workedRuleSteps(term, variable, label, Algebrite) {
   if (label === 'Logarithmic differentiation') {
     const powParts = splitTopLevel(inner, '^');
     if (powParts.length !== 2) return [];
-    const base = unwrap(powParts[0]);
-    const expo = unwrap(powParts[1]);
+    const base = stripOuterParens(powParts[0]);
+    const expo = stripOuterParens(powParts[1]);
     const du = derivText(base, v, Algebrite);
     const dv = derivText(expo, v, Algebrite);
     if (!du || !dv) return [];
@@ -589,7 +576,7 @@ function workedRuleSteps(term, variable, label, Algebrite) {
     }
     if (!g || !hasVariable(g, v)) return [];
     // If the "inner" is itself just the variable there is no chain to show.
-    if (unwrap(g).trim() === v) return [];
+    if (stripOuterParens(g).trim() === v) return [];
     const dg = derivText(g, v, Algebrite);
     if (!dg) return [];
     const gShown = b(g);
@@ -643,25 +630,6 @@ function isChain(term, variable) {
     if (hasVariable(arg, variable) && /[+\-*/^]/.test(arg)) return true;
   }
   return false;
-}
-
-// Split a string on a delimiter that appears only at parenthesis depth 0.
-function splitTopLevel(str, delimiter) {
-  const parts = [];
-  let depth = 0;
-  let current = '';
-  for (const ch of str) {
-    if (ch === '(') depth++;
-    else if (ch === ')') depth--;
-    if (ch === delimiter && depth === 0) {
-      parts.push(current);
-      current = '';
-    } else {
-      current += ch;
-    }
-  }
-  parts.push(current);
-  return parts;
 }
 
 function generateDerivativeGraph(original, derivative, variable, extras = {}) {

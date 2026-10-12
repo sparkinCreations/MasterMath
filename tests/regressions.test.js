@@ -1773,3 +1773,15 @@ test('limit guidance covers two-sided divergence and sampling at infinity', asyn
   assert.match((await solveProblem('lim x->0 1/x', 'limits')).tips[0], /check each side separately/);
   assert.match((await solveProblem('lim x->infinity e^(-x)', 'limits')).tips[0], /highest power dominates/);
 });
+
+// Partial fractions read the numerator and denominator with a regex that
+// stripped "(…)" from both ends of any string, so the numerator
+// (x + 1)(x + 2) became "x+1)*(x+2" and a textbook integral was refused
+// while its expanded twin solved (October 2026 helper audit).
+test('partial fractions accept a factored numerator', async () => {
+  const factored = await solveProblem('integrate (x+1)(x+2)/((x-1)(x-2)(x-3))', 'integrals');
+  const expanded = await solveProblem('integrate (x^2+3x+2)/((x-1)*(x-2)*(x-3))', 'integrals');
+  assert.equal(factored.status, 'solved');
+  assert.match(factored.answer, /10ln\|x - 3\| - 12ln\|x - 2\| \+ 3ln\|x - 1\| \+ C$/);
+  assert.equal(factored.answer.split(' = ').pop(), expanded.answer.split(' = ').pop());
+});

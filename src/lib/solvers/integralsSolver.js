@@ -12,6 +12,8 @@ import {
   isUnevaluatedOperator,
   isAlgebriteFailure,
   lnify,
+  splitTopLevel,
+  stripOuterParens,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
@@ -503,7 +505,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
   if (!factored || isAlgebriteFailure(factored)) return null;
   // A product splits on top-level '*'; a top-level sum (an irreducible
   // polynomial such as x^2+2*x+5) is a single factor.
-  const rawFactors = hasTopLevelSum(factored) ? [factored] : splitTopLevelStar(factored);
+  const rawFactors = hasTopLevelSum(factored) ? [factored] : splitTopLevel(factored, '*').filter((t) => t.trim());
   const factors = []; // { base, power, kind: 'lin'|'quad', r?, p?, q? }
   let constant = 1;
   for (const f0 of rawFactors) {
@@ -511,7 +513,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
     let power = 1;
     const pm = f.match(/^\((.+)\)\^(\d+)$/) || f.match(/^([a-z])\^(\d+)$/i);
     if (pm) { f = pm[1]; power = Number(pm[2]); }
-    f = f.replace(/^\((.*)\)$/, '$1');
+    f = stripOuterParens(f);
     if (!hasVariable(f, v)) { const c = Number(math.evaluate(f)); if (!Number.isFinite(c) || c === 0) return null; constant *= c; continue; }
     const d = degOf(f);
     if (d === 1) {
@@ -581,7 +583,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
     if (Number.isFinite(l) && Number.isFinite(rr) && Math.abs(l - rr) > 1e-7 * (1 + Math.abs(l))) return null;
   }
 
-  const linNum = (r0, denomText) => { const sgn = r0.n < 0 ? '−' : ''; const an = Math.abs(r0.n); const bare = denomText.replace(/^\((.*)\)$/, '$1'); return r0.d === 1 ? `${sgn}${an}/${/[+\-]/.test(bare) && !/\^/.test(denomText) ? `(${bare})` : denomText}` : `${sgn}${an}/(${r0.d}${denomText})`; };
+  const linNum = (r0, denomText) => { const sgn = r0.n < 0 ? '−' : ''; const an = Math.abs(r0.n); const bare = stripOuterParens(denomText); return r0.d === 1 ? `${sgn}${an}/${/[+\-]/.test(bare) && !/\^/.test(denomText) ? `(${bare})` : denomText}` : `${sgn}${an}/(${r0.d}${denomText})`; };
   const quadNum = (b0, c0, denomText) => {
     const partB = b0.n === 0 ? '' : `${b0.n < 0 ? '−' : ''}${Math.abs(b0.n) === 1 && b0.d === 1 ? '' : (b0.d === 1 ? Math.abs(b0.n) : `${Math.abs(b0.n)}/${b0.d}`)}${v}`;
     const partC = c0.n === 0 ? '' : `${c0.n < 0 ? '−' : partB ? '+' : ''} ${c0.d === 1 ? Math.abs(c0.n) : `${Math.abs(c0.n)}/${c0.d}`}`;
@@ -596,7 +598,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
       const c = cTxt[i++];
       const R = rat[i - 1];
       const L = linTxt(t.r);
-      const Lbare = L.replace(/^\((.*)\)$/, '$1');
+      const Lbare = stripOuterParens(L);
       const sgn = R.n < 0 ? '−' : '';
       const an = Math.abs(R.n);
       const cofLn = an === 1 && R.d === 1 ? '' : `${R.d === 1 ? an : `${an}/${R.d}`}·`;
@@ -621,7 +623,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
         if (Math.abs(K) > 1e-12) { pieces.push(`${cm(K / k)}arctan(${arcArg})`); }
         const numTxt = quadNum(B, C, Q).replace(/\/\(.*$/, '');
         const arcCoef = Math.abs(K / k - 1) < 1e-12 ? '' : Math.abs(K / k + 1) < 1e-12 ? '−' : `${fmtRat(K / k)}·`;
-        pieceSteps.push(`∫ ${numTxt}/${Q} d${v}: ${h !== 0 ? `complete the square, ${Q} = ${U}^2 + ${fmtRat(k2)}; ` : ''}${Bv !== 0 ? `the ${v}-part gives ${fmtRat(Bv / 2)}·ln|${Q.replace(/^\((.*)\)$/, '$1')}|` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${arcCoef}arctan(${U}${k === 1 ? '' : `/${kTxt}`})` : ''}`);
+        pieceSteps.push(`∫ ${numTxt}/${Q} d${v}: ${h !== 0 ? `complete the square, ${Q} = ${U}^2 + ${fmtRat(k2)}; ` : ''}${Bv !== 0 ? `the ${v}-part gives ${fmtRat(Bv / 2)}·ln|${stripOuterParens(Q)}|` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${arcCoef}arctan(${U}${k === 1 ? '' : `/${kTxt}`})` : ''}`);
       } else if (t.j === 2) {
         if (Bv !== 0) pieces.push(`${cm(-Bv / 2)}1/${Q}`);
         if (Math.abs(K) > 1e-12) pieces.push(`${cm(K / (2 * k2))}${U}/${Q} + ${cm(K / (2 * k2 * k))}arctan(${arcArg})`);
@@ -673,20 +675,6 @@ function hasTopLevelSum(text) {
   return false;
 }
 
-// Split on top-level '*'.
-function splitTopLevelStar(text) {
-  const out = [];
-  let depth = 0;
-  let cur = '';
-  for (const ch of text) {
-    if (ch === '(') depth += 1;
-    else if (ch === ')') depth -= 1;
-    if (ch === '*' && depth === 0) { out.push(cur); cur = ''; } else cur += ch;
-  }
-  out.push(cur);
-  return out.filter((t) => t.trim());
-}
-
 // "num/den" split at the single top-level slash, or null.
 function splitTopLevelSlash(term) {
   let depth = 0;
@@ -698,8 +686,8 @@ function splitTopLevelSlash(term) {
     else if (ch === '/' && depth === 0) { if (idx !== -1) return null; idx = i; }
   }
   if (idx === -1) return null;
-  const num = term.slice(0, idx).trim().replace(/^\((.*)\)$/, '$1');
-  const den = term.slice(idx + 1).trim().replace(/^\((.*)\)$/, '$1');
+  const num = stripOuterParens(term.slice(0, idx));
+  const den = stripOuterParens(term.slice(idx + 1));
   return [num || '1', den];
 }
 
@@ -2015,24 +2003,6 @@ function isComposite(term, variable) {
   }
   if (/\([^()]*[+\-*/][^()]*\)\s*\^/.test(term)) return true;
   return false;
-}
-
-function splitTopLevel(str, delimiter) {
-  const parts = [];
-  let depth = 0;
-  let current = '';
-  for (const ch of str) {
-    if (ch === '(') depth++;
-    else if (ch === ')') depth--;
-    if (ch === delimiter && depth === 0) {
-      parts.push(current);
-      current = '';
-    } else {
-      current += ch;
-    }
-  }
-  parts.push(current);
-  return parts;
 }
 
 function generateIntegralGraph(original, integral, variable, shown = null) {

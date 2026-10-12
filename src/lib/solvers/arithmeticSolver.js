@@ -1,5 +1,5 @@
 import { createMath } from '../mathInstance.js';
-import { math, formatNumber, beautify } from './solverUtils.js';
+import { math, formatNumber, beautify, gcd } from './solverUtils.js';
 import { parseError, overflow, undefinedValue, indeterminate } from '../solutionEnvelope.js';
 
 // A second mathjs instance that computes in exact rational arithmetic. Where
@@ -259,13 +259,6 @@ function isSettledGroup(group) {
   if (!m) return false;
   const f = exactFraction(group);
   return !!f && f.n === Number(m[1]) && f.d === Number(m[2]);
-}
-
-function gcd(a, b) {
-  a = Math.abs(a);
-  b = Math.abs(b);
-  while (b) [a, b] = [b, a % b];
-  return a;
 }
 
 // One term of a flat chain: an integer or a fraction, optionally negative,
