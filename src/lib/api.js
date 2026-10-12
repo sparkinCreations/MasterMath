@@ -470,11 +470,15 @@ export async function solveProblem(problem, topic) {
       return noteRouting(routed, topic, 'algebra', 'the input contains a variable, and arithmetic has none');
     }
     // "2 3": two numbers with only a space between them would be read as 23.
-    if (topic === 'other' && /\d\s+\d/.test(problem) && !/[a-z=<>]/i.test(problem)) {
+    // Any topic, not just Arithmetic: under Algebra "12 34" was answered
+    // 1234, and under Derivatives f'(x) = 0 (corpus row, October 2026).
+    const spaced = /[a-z=<>]/i.test(problem) ? null : problem.match(/(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/);
+    if (spaced) {
+      const [, a, b] = spaced;
       return finalizeResult(parseError({
         input: problem,
-        hint: 'Two numbers with a space between them — did you mean to multiply (2*3) or to write one number (23)?',
-        tips: ['Use * for multiplication: 2*3. To write one number, remove the space.'],
+        hint: `Two numbers with a space between them — did you mean to multiply (${a}*${b}) or to write one number (${a}${b})?`,
+        tips: [`Use * for multiplication: ${a}*${b}. To write one number, remove the space.`],
       }), problem);
     }
     if (!calculus && isArithmeticUnderTrigonometry(problem, topic)) {

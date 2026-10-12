@@ -1785,3 +1785,29 @@ test('partial fractions accept a factored numerator', async () => {
   assert.match(factored.answer, /10ln\|x - 3\| - 12ln\|x - 2\| \+ 3ln\|x - 1\| \+ C$/);
   assert.equal(factored.answer.split(' = ').pop(), expanded.answer.split(' = ').pop());
 });
+
+// "lim f(x) as x approaches a" kept the "lim" inside the function, which was
+// then read as a variable multiplying f(x): "Does not exist" for sin(x)/x
+// (outside review, October 2026).
+test('lim … as x approaches a reads the same as lim x->a …', async () => {
+  for (const input of ['lim sin(x)/x as x approaches 0', 'lim sin(x)/x as x -> 0', 'limit sin(x)/x as x approaches 0']) {
+    const r = await solveProblem(input, 'limits');
+    assert.equal(r.status, 'solved', input);
+    assert.match(r.answer, /= 1$/, input);
+  }
+  // A shape the patterns cannot separate gets a format hint, never a limit of lim·f(x).
+  assert.equal((await solveProblem('sin(x)/x as x -> 0 lim', 'limits')).status, 'parse_error');
+});
+
+
+// Two numbers separated by a space were refused only under Arithmetic; every
+// other topic joined them ("12 34" → 1234, f'(x) = 0). Found by the expanded
+// evaluation corpus, October 2026.
+test('two numbers with only a space between them are queried under every topic', async () => {
+  for (const topic of ['other', 'algebra', 'functions', 'derivatives', 'trigonometry']) {
+    const r = await solveProblem('12 34', topic);
+    assert.equal(r.status, 'parse_error', topic);
+    assert.match(r.steps.join('\n') + r.answer, /12\*34.*1234/, topic);
+  }
+  assert.equal((await solveProblem('2 + 3', 'algebra')).answer, '5');
+});

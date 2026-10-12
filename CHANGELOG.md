@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.39.2] - 2026-10-12
+
+Fixes from a third outside review.
+
+### Fixed
+
+- **High-degree polynomials could still get a partial root list.** The
+  completeness check read the degree by scanning coefficients up to x²⁰ and,
+  past that, trusted Algebrite: `x(x − 1)(x − 2)⋯(x − 20) + x = 0` answered
+  `x = 0` alone. Polynomials are now read exactly from the parse tree, with
+  no cap that silently passes, and their roots come from a new solver that
+  cannot miss one: Sturm's theorem counts the real roots exactly, a
+  square-free factorisation gives exact multiplicities, and each root is
+  located by exact bisection. Non-real roots are listed only when they
+  verify; otherwise the answer gives their count. That equation now lists
+  all 21 roots. Above degree 40 a list is given only when it provably
+  accounts for every root (`x¹⁰⁰ = 1`); otherwise the answer is an honest
+  refusal, never a partial list.
+- **`lim sin(x)/x as x approaches 0` said "Does not exist."** The "f(x) as
+  x approaches a" phrasing kept the leading `lim`, which was read as a
+  variable multiplying the function. It now reads like `lim x->0 sin(x)/x`
+  (= 1); a shape the parser still cannot separate gets a format hint
+  instead of an answer.
+- **"12 34" was 1234 outside Arithmetic.** Two numbers separated only by a
+  space were refused under Arithmetic but silently joined under every other
+  topic (Algebra answered `1234`, Derivatives `f'(x) = 0`). The question
+  "did you mean 12*34 or 1234?" is now asked under every topic, with the
+  numbers that were typed. Found by the expanded evaluation corpus.
+- The README's privacy wording ("no data sent to servers") now names the
+  one exception, a Feedback message you choose to submit.
+
+### Changed
+
+- **Deploys are gated on the unit suite.** Netlify's build runs `npm test`
+  before `npm run build`, so a failing test keeps the previous deploy live.
+- **The evaluation corpus grades 277 problems, up from 139,** at 47 sample
+  points instead of 7: the September 2026 corpus (149 problems) is read
+  alongside July's, including its systems, inequalities (compared as
+  interval sets), trig equations (the solutions on one period, as sets),
+  angle-unit and topic annotations, and adversarial input that must be
+  refused.
+
 ## [1.39.1] - 2026-10-12
 
 Fixes from an outside review of v1.39.0.

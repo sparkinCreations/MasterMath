@@ -28,7 +28,7 @@
 - **Educational Tips** - Contextual learning guidance
 
 ### 🔒 **Privacy-First Design**
-- **100% Client-Side** - No data sent to servers, no AI
+- **100% Client-Side** - Problems are solved in your browser, never sent to a server; no AI. The one thing that leaves your device is a message you choose to submit on the Feedback page (sent to Web3Forms)
 - **Works Offline** - Installable PWA; solve problems with no connection at all
 - **Local Storage** - Your problems stay on your device
 - **No Account Required** - Start solving immediately
@@ -109,7 +109,7 @@ MasterMath uses **local JavaScript math libraries** (not AI) to solve problems:
 4. **Solution Formatter** generates step-by-step explanations, tips, and graphs
 5. **Local Storage** saves your history in the browser (IndexedDB)
 
-All computations happen **entirely in your browser** - no data is sent to external servers.
+All computations happen **entirely in your browser** - your problems and history are never sent anywhere. The only outbound request is the Feedback form, and only when you submit it.
 
 The solvers are covered by an automated unit suite (`npm test`) and a
 Playwright browser smoke test of the production build (`npm run smoke`), both

@@ -21,59 +21,11 @@
 
 import { createMath } from '../mathInstance.js';
 import { beautify, formatNumber, gcd, splitTerms } from './solverUtils.js';
+import { degreeBound } from './polynomialRoots.js';
 
 const exact = createMath({ number: 'Fraction' });
 // Above this degree bound the side is left to the general paths.
 const MAX_DEGREE = 24;
-
-// An upper bound on the degree of `node` as a polynomial in `variable`, or
-// Infinity when it is not a polynomial (x in a denominator, an exponent or a
-// function argument). Cancellation can make the true degree lower —
-// (x + 1)^2 − x^2 is linear — which the exact check below then finds.
-function degreeBound(node, variable) {
-  const deg = (n) => degreeBound(n, variable);
-  switch (node.type) {
-    case 'ConstantNode':
-      return 0;
-    case 'SymbolNode':
-      return node.name === variable ? 1 : 0;
-    case 'ParenthesisNode':
-      return deg(node.content);
-    case 'FunctionNode':
-      return node.args.every((arg) => deg(arg) === 0) ? 0 : Infinity;
-    case 'OperatorNode': {
-      const [a, b] = node.args;
-      switch (node.fn) {
-        case 'unaryMinus':
-        case 'unaryPlus':
-          return deg(a);
-        case 'add':
-        case 'subtract':
-          return Math.max(...node.args.map(deg));
-        case 'multiply':
-          return node.args.reduce((sum, arg) => sum + deg(arg), 0);
-        case 'divide':
-          return deg(b) === 0 ? deg(a) : Infinity;
-        case 'pow': {
-          if (deg(b) !== 0) return Infinity;
-          const base = deg(a);
-          if (base === 0) return 0;
-          try {
-            const n = b.compile().evaluate({});
-            if (exact.typeOf(n) !== 'Fraction' || !exact.isInteger(n) || exact.isNegative(n)) return Infinity;
-            return base * Number(n.valueOf());
-          } catch {
-            return Infinity;
-          }
-        }
-        default:
-          return Infinity;
-      }
-    }
-    default:
-      return Infinity;
-  }
-}
 
 // { a, c } with side ≡ a·x + c exactly, or null.
 function linearForm(side, variable) {

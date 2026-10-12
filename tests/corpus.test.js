@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Runs the full 91-row evaluation corpus (docs/evaluations/2026-07) through the
+// Runs the evaluation corpora (docs/evaluations/2026-07 and 2026-09) through the
 // real solver pipeline. The harness exits non-zero if ANY row is confidently
 // wrong (a real answer that disagrees with the verified expected value), so this
 // test fails loudly the moment a regression reintroduces one. Refusals on

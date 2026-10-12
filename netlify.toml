@@ -1,5 +1,8 @@
 [build]
-  command = "npm run build"
+  # The unit suite runs first: a failing test fails the build, so Netlify
+  # keeps serving the previous deploy instead of shipping the regression.
+  # (The Playwright smoke test needs a browser and stays in GitHub Actions.)
+  command = "npm test && npm run build"
   publish = "dist"
 
 # SPA fallback — direct links like /solver must serve index.html

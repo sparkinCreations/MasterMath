@@ -131,7 +131,10 @@ export async function solveLimit(expression) {
       approachValue = limitMatch2[2];
       func = parseMathExpression(limitMatch2[3]);
     } else if (limitMatch3) {
-      func = parseMathExpression(limitMatch3[1]);
+      // "lim sin(x)/x as x approaches 0": the leading "lim" belongs to the
+      // notation, not the function — left in, it was read as a variable
+      // multiplying sin(x)/x and the limit "did not exist".
+      func = parseMathExpression(limitMatch3[1].replace(/^\s*lim(?:it)?(?:\s+of)?\s+/i, ''));
       variable = limitMatch3[2];
       approachValue = limitMatch3[3].trim();
     } else {
@@ -158,6 +161,17 @@ export async function solveLimit(expression) {
           common_mistakes: ['Leaving out the "x → a" part — the same expression has different limits at different points.'],
         });
       }
+    }
+
+    // Whatever the phrasing, "lim" must never survive into the function: if it
+    // does, the input is in a shape the patterns above do not read, and the
+    // honest answer is a format hint, not a limit of lim·f(x).
+    if (/(?<![a-z])lim(?:it)?(?![a-z])/i.test(func)) {
+      return parseError({
+        input: expression,
+        hint: 'The limit notation could not be separated from the function.',
+        tips: ['Write limits like: lim x->0 (sin(x)/x), or sin(x)/x as x approaches 0.'],
+      });
     }
 
     // One-sided limits, suffix form: a trailing +/- (or ⁺/⁻, or ^+/^-) on the

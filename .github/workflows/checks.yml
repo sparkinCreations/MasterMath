@@ -1,9 +1,10 @@
 # Dependency audit, unit suite and browser smoke test on every push and pull
 # request.
 #
-# Netlify builds and deploys main on its own; this workflow does not gate
-# that (there is no user base to protect yet — see docs/future-work). It
-# exists so a red smoke test is visible on the commit that caused it.
+# Netlify builds and deploys main on its own, but its build command runs the
+# unit suite first (netlify.toml), so a failing unit test blocks the deploy.
+# This workflow adds the dependency audit and the browser smoke test, which
+# Netlify does not run; a red smoke test shows on the commit that caused it.
 name: checks
 
 on:
