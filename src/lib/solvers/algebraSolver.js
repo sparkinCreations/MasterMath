@@ -1,7 +1,8 @@
 import { isEquation, extractVariable, parseMathExpression, matchingParen } from '../mathParser.js';
 import { solveLinearEquation } from './linearEquationSolver.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
-import { readPolynomial, allRoots, MAX_POLYNOMIAL_DEGREE } from './polynomialRoots.js';
+import { readPolynomial, allRoots, valueAtDecimal, MAX_POLYNOMIAL_DEGREE } from './polynomialRoots.js';
+import { getSettings } from '../settings.js';
 import {
   math,
   loadAlgebrite,
@@ -945,9 +946,23 @@ function rootsViaPolynomialRoot(Algebrite, polynomial, variable, extraSteps = []
   if (poly.degree < 1) return null;
   const { real, complex, complexCount, degree } = allRoots(poly);
   const multiplicity = (m) => (m > 1 ? ` (multiplicity ${m})` : '');
-  const realShown = real.map((r) => ({ ...formatComplexRoot(r.value), multiplicity: r.multiplicity }));
-  const complexShown = (complex || []).map((z) => ({ ...formatComplexRoot(z), multiplicity: z.multiplicity }));
-  const line = (r) => `${variable} = ${r.display}${multiplicity(r.multiplicity)}`;
+  // A root that is exactly a rational is shown as one ("x = 1/3"); a root
+  // only located numerically is marked ≈ — x(x−1)⋯(x−20) + x has a root at
+  // 20 − 7×10⁻¹², and "x = 20" would be false (outside review, October 2026).
+  const rational = ({ m, d }) => (d === 1n ? String(m) : `${m}/${d}`);
+  const realShown = real.map((r) => (r.exact
+    ? { display: rational(r.exact), sign: '=', multiplicity: r.multiplicity, numeric: r.value }
+    : { display: formatNumber(r.value), sign: '≈', multiplicity: r.multiplicity, numeric: r.value }));
+  const gaussian = ({ re, im }) => {
+    const rePart = re.m === 0n ? '' : rational(re);
+    const imAbs = { m: im.m < 0n ? -im.m : im.m, d: im.d };
+    const imPart = `${imAbs.m === 1n && imAbs.d === 1n ? '' : rational(imAbs)}i`;
+    return rePart ? `${rePart} ${im.m < 0n ? '-' : '+'} ${imPart}` : `${im.m < 0n ? '-' : ''}${imPart}`;
+  };
+  const complexShown = (complex || []).map((z) => (z.exact
+    ? { display: gaussian(z.exact), sign: '=', multiplicity: z.multiplicity }
+    : { ...formatComplexRoot(z), sign: '≈', multiplicity: z.multiplicity }));
+  const line = (r) => `${variable} ${r.sign} ${r.display}${multiplicity(r.multiplicity)}`;
   // As formatSolutions: past a handful of complex roots, list the real ones
   // and count the rest — 98 decimal pairs is not an answer anyone can read.
   const listComplex = complex !== null && complexShown.length <= 4 && realShown.length + complexShown.length <= 8;
@@ -962,11 +977,27 @@ function rootsViaPolynomialRoot(Algebrite, polynomial, variable, extraSteps = []
   }
   const realCount = real.reduce((n, r) => n + r.multiplicity, 0);
   const counted = `${real.length === 0 ? 'no' : real.length} distinct real root${real.length === 1 ? '' : 's'}${realCount > real.length ? ` (${realCount} counting multiplicity)` : ''}`;
+  // The first approximate root whose decimal display reads as a simple
+  // number: say what that number actually gives, so ≈ is not read as =.
+  const approxNote = (() => {
+    const shown = realShown.find((r) => r.sign === '≈' && /^-?\d+(?:\.\d+)?$/.test(r.display));
+    if (!shown) return [];
+    const at = valueAtDecimal(poly, shown.display);
+    if (!at || at.equals(0)) return [];
+    const v = Number(at.valueOf());
+    // Small values in scientific notation, so "0.00000012" never rounds to "0".
+    const sup = (t) => String(t).replace(/-/g, '⁻').replace(/\d/g, (c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[c]);
+    const shownValue = Math.abs(v) >= 1e-3 && Math.abs(v) < 1e6
+      ? (at.d === 1n ? String(at.s * at.n) : formatNumber(v))
+      : v.toExponential(2).replace(/e([+-]?\d+)/, (_, e) => `×10${sup(Number(e))}`);
+    return [`Roots marked ≈ were located numerically and are not exactly the number shown: substituting ${variable} = ${shown.display} gives ${shownValue}, not 0. The number shown is rounded to ${getSettings().decimalPlaces} decimals; MasterMath located the root itself to within 10⁻¹².`];
+  })();
   const steps = [
     ...(/\)\s*-\s*\(0\)$/.test(polynomial) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),
     ...extraSteps,
     `This is a degree-${degree} polynomial, so it has exactly ${degree} roots counted with multiplicity. MasterMath cannot write them in exact form, so they are found numerically.`,
-    `Real roots: Sturm's theorem counts them exactly — ${counted} — and each is located by bisection to 12 significant digits, so none is missed even when roots lie very close together.`,
+    `Real roots: Sturm's theorem counts them exactly — ${counted} — and each is located by bisection to 12 significant digits, so none is missed even when roots lie very close together.${real.some((r) => r.exact) ? ' A root shown with = was confirmed exact by substitution.' : ''}`,
+    ...approxNote,
     ...(complexCount === 0 ? [] : [complex === null
       ? `The remaining ${complexCount} root${complexCount === 1 ? ' is' : 's are'} non-real; ${complexCount === 1 ? 'it' : 'they'} could not be computed to a value MasterMath can verify, so only the count is given.`
       : listComplex

@@ -118,5 +118,5 @@ test('every root of a high-degree polynomial is reported, never a partial list',
   // Algebrite throws for an unfactorable quintic: all five roots, not just the real one.
   const quintic = await solveProblem('x^5 - x + 1 = 0', 'algebra');
   assert.equal(quintic.answer.split('  or  ').length, 5, quintic.answer);
-  assert.match(quintic.answer, /x = -1\.1673/);
+  assert.match(quintic.answer, /x ≈ -1\.1673/);
 });

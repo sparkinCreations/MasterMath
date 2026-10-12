@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.1] - 2026-10-12
+
+### Fixed
+
+- **A numerically located root was printed as if exact.** The roots of
+  `x(x − 1)(x − 2)⋯(x − 20) + x = 0` near 1…20 are not 1…20 (substituting
+  20 gives 20, not 0; the root is 20 − 7×10⁻¹²), yet the answer read
+  `x = 20`. Every root the exact finder locates is now tested, in exact
+  arithmetic, against the simplest rational near it: a root that is exactly
+  that number is shown with `=` (`x = 0`, `x = 1/3`, `x = 2 (multiplicity
+  3)`); any other is shown with `≈`, and a step says what the displayed
+  number actually gives ("substituting x = 1 gives 1, not 0"). Found by
+  an outside review of v1.40.0.
+- The same rule applies to complex roots: `x⁴ = 16` keeps `x = ±2i`
+  (tested exactly as a Gaussian rational), while the rounded
+  `−1 ± 1.7321i` of `x³ = 8` is shown with `≈`.
+- A polynomial with double roots at −17/10 and 3/10 now reports them as
+  those exact fractions with their multiplicity, rather than as decimals
+  from the numeric scan.
+
 ## [1.40.0] - 2026-10-12
 
 ### Added

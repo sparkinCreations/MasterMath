@@ -270,6 +270,50 @@ function refine(p, lo, hi) {
   return toNumber(midpoint(a, b));
 }
 
+// Exact value of the integer polynomial at the rational m/d, as a Fraction:
+// p(m/d) = Σ a_i·m^i·d^(n−i) / d^n, computed in BigInt.
+function valueAtRational(p, m, d) {
+  const n = p.length - 1;
+  let acc = 0n;
+  let pow = 1n;
+  for (let i = n; i >= 0; i -= 1) {
+    acc = acc * m + p[i] * pow;
+    pow *= d;
+  }
+  return exact.fraction(acc, d ** BigInt(n));
+}
+
+// Exact value of the integer polynomial at the Gaussian rational a + bi
+// (a, b Fractions): Horner in exact complex arithmetic. [re, im].
+function valueAtGaussian(p, a, b) {
+  let re = ZERO;
+  let im = ZERO;
+  for (let k = p.length - 1; k >= 0; k -= 1) {
+    [re, im] = [re.mul(a).sub(im.mul(b)).add(exact.fraction(p[k])), re.mul(b).add(im.mul(a))];
+  }
+  return [re, im];
+}
+
+// The simplest rational within 1e-9 (relative) of a double, by continued
+// fractions, with denominator at most 10⁶ — the candidate for "is this root
+// exactly 20, or exactly 1/3?" Null when no such rational is that close.
+function nearbyRational(value) {
+  const tol = 1e-9 * Math.max(1, Math.abs(value));
+  let [h0, h1, k0, k1] = [0n, 1n, 1n, 0n];
+  let x = value;
+  for (let i = 0; i < 40; i += 1) {
+    const a = BigInt(Math.floor(x));
+    [h0, h1] = [h1, a * h1 + h0];
+    [k0, k1] = [k1, a * k1 + k0];
+    if (k1 > 1000000n) return null;
+    if (Math.abs(Number(h1) / Number(k1) - value) <= tol) return { m: h1, d: k1 };
+    const frac = x - Math.floor(x);
+    if (frac < 1e-15) return null;
+    x = 1 / frac;
+  }
+  return null;
+}
+
 // Durand–Kerner on float coefficients (lowest order first).
 function durandKerner(c) {
   const n = c.length - 1;
@@ -347,12 +391,31 @@ export function readPolynomial(expression, variable) {
 /**
  * All roots of a polynomial read by readPolynomial.
  * Returns {
- *   real: [{ value (number), multiplicity }],   // complete, ascending
- *   complex: [{ re, im }] | null,                // null: could not be computed reliably
+ *   real: [{ value (number), multiplicity, exact }],   // complete, ascending;
+ *        // exact: { m, d } when the root IS the rational m/d (tested exactly),
+ *        // null when it was only located numerically — x(x−1)⋯(x−20) + x has
+ *        // a root at 20 − 7×10⁻¹² that must not be printed as 20
+ *   complex: [{ re, im, multiplicity, exact }] | null,   // exact: { re: {m,d}, im: {m,d} } or null;
+ *        // null for the whole list when it could not be computed reliably
  *   complexCount,                                // non-real roots, with multiplicity
  *   degree,
  * }
  */
+// What the polynomial equals at a decimal as displayed ("1.0173", "-3.0002",
+// "20") — the number a student would substitute — as an exact Fraction. For
+// the step that says "x = 20 gives 20, not 0".
+export function valueAtDecimal(poly, text) {
+  const m = String(text).match(/^(-?)(\d+)(?:\.(\d+))?$/);
+  if (!m) return null;
+  const [, sign, whole, frac = ''] = m;
+  const num = BigInt((sign === '-' ? '-' : '') + whole + frac);
+  const den = 10n ** BigInt(frac.length);
+  const { coefficients } = poly;
+  const lcmD = coefficients.reduce((acc, c) => acc / bgcd(acc, c.d) * c.d, 1n);
+  const ints = coefficients.map((c) => c.s * c.n * (lcmD / c.d));
+  return valueAtRational(ints, num, den).div(exact.fraction(lcmD));
+}
+
 export function allRoots(poly) {
   const { coefficients, degree } = poly;
   // Clear denominators once: an integer multiple has the same roots.
@@ -363,7 +426,11 @@ export function allRoots(poly) {
   let reliable = true;
   for (const { factor, multiplicity } of squareFree(ints)) {
     const roots = realRootsSquareFree(factor);
-    roots.forEach((value) => real.push({ value, multiplicity }));
+    roots.forEach((value) => {
+      const candidate = nearbyRational(value);
+      const exactRoot = candidate && valueAtRational(ints, candidate.m, candidate.d).equals(0) ? candidate : null;
+      real.push({ value: exactRoot ? Number(exactRoot.m) / Number(exactRoot.d) : value, multiplicity, exact: exactRoot });
+    });
     const nonRealCount = degreeOf(factor) - roots.length;
     if (nonRealCount === 0) continue;
     // Non-real roots of each square-free factor: Durand–Kerner, accepted only
@@ -373,7 +440,18 @@ export function allRoots(poly) {
     const z = durandKerner(floats);
     const nonReal = z ? z.filter((w) => Math.abs(w.im) > 1e-7 * (1 + Math.abs(w.re))) : [];
     if (z && nonReal.length === nonRealCount && nonReal.every((w) => passesResidual(floats, w))) {
-      nonReal.forEach((w) => complex.push({ ...w, multiplicity }));
+      // ±2i is exact; −1 ± 1.7321i is not. Test each against the nearest
+      // Gaussian rational so the display can say = or ≈ truthfully.
+      nonReal.forEach((w) => {
+        const a = nearbyRational(w.re);
+        const b = nearbyRational(w.im);
+        let exactRoot = null;
+        if (a && b) {
+          const [vr, vi] = valueAtGaussian(ints, exact.fraction(a.m, a.d), exact.fraction(b.m, b.d));
+          if (vr.equals(0) && vi.equals(0)) exactRoot = { re: a, im: b };
+        }
+        complex.push({ ...w, multiplicity, exact: exactRoot });
+      });
     } else {
       reliable = false;
     }

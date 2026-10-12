@@ -118,8 +118,10 @@ test('touch roots between grid points are found (squared factors)', async () => 
   const r = await solveProblem('sin^2(3x) + 1 = 1', 'algebra');
   assert.match(r.answer, /x = \(πn\)\/3/);
   const s = await solveProblem('(x - 0.3)^2 * (x + 1.7)^2 = 0', 'algebra');
-  assert.match(s.answer, /x = -1\.7/);
-  assert.match(s.answer, /x = 0\.3/);
+  // The exact root finder now takes this (a polynomial): exact fractions,
+  // each a double root, in the app's exact style.
+  assert.match(s.answer, /x = (?:-1\.7|-17\/10)/);
+  assert.match(s.answer, /x = (?:0\.3|3\/10)/);
   // A decaying tail is still not a root.
   assert.equal((await solveProblem('e^(-x^2) = 0', 'algebra')).answer, 'No real solution found');
   assert.equal((await solveProblem('1/(x-2)^2 = 0', 'algebra')).answer, 'No real solution found');
@@ -239,7 +241,7 @@ test('edge: functions — x^x domain and no phantom intercept at an isolated poi
 test('an Algebrite error in one problem does not poison the next (x/0 = 1, then x^3 = 8)', async () => {
   await solveProblem('x/0 = 1', 'algebra');
   const r = await solveProblem('x^3 = 8', 'algebra');
-  assert.equal(r.answer, 'x = 2  or  x = -1 - 1.7321i  or  x = -1 + 1.7321i');
+  assert.equal(r.answer, 'x = 2  or  x ≈ -1 - 1.7321i  or  x ≈ -1 + 1.7321i');
   const s = await solveProblem('x^2 = 2', 'algebra');
   assert.equal(s.answer, 'x = -√2  or  x = √2');
 });
