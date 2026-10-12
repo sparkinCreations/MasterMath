@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-19-blue)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.4.5-purple)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8-purple)](https://vitejs.dev/)
 
 ![MasterMath Screenshot](./docs/screenshot.png)
 

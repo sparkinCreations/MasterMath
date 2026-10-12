@@ -8,33 +8,92 @@
  *
  * Replaces mathsteps' linear walkthrough (mathsteps was removed in 1.39.0:
  * unmaintained, and its bundled mathjs 3 builds code with `new Function`,
- * which the app's Content-Security-Policy forbids). Linearity is decided
- * exactly: each side is evaluated at several rational points and must agree
- * with a·x + c at every one. Anything else — another letter, x in a
- * denominator, x², a constant like π, an equation whose x terms cancel —
- * returns null, and algebraSolver's later paths handle it.
+ * which the app's Content-Security-Policy forbids). Linearity is proved,
+ * not sampled: the parse tree gives an upper bound d on each side's degree
+ * as a polynomial, and a polynomial of degree ≤ d that equals a·x + c at
+ * d + 1 points (in exact arithmetic) equals it everywhere. A fixed set of
+ * sample points is not enough — x(x − 1)(x − 2)(x + 3)(7x − 1)(3x − 5) + x
+ * agrees with x at six chosen points and once passed as linear (October
+ * 2026). Anything else — another letter, x in a denominator or a function,
+ * a constant like π, an equation whose x terms cancel — returns null, and
+ * algebraSolver's later paths handle it.
  */
 
 import { createMath } from '../mathInstance.js';
 import { beautify, formatNumber, gcd, splitTerms } from './solverUtils.js';
 
 const exact = createMath({ number: 'Fraction' });
-const PROBES = ['2', '-3', '1/7', '5/3'];
+// Above this degree bound the side is left to the general paths.
+const MAX_DEGREE = 24;
+
+// An upper bound on the degree of `node` as a polynomial in `variable`, or
+// Infinity when it is not a polynomial (x in a denominator, an exponent or a
+// function argument). Cancellation can make the true degree lower —
+// (x + 1)^2 − x^2 is linear — which the exact check below then finds.
+function degreeBound(node, variable) {
+  const deg = (n) => degreeBound(n, variable);
+  switch (node.type) {
+    case 'ConstantNode':
+      return 0;
+    case 'SymbolNode':
+      return node.name === variable ? 1 : 0;
+    case 'ParenthesisNode':
+      return deg(node.content);
+    case 'FunctionNode':
+      return node.args.every((arg) => deg(arg) === 0) ? 0 : Infinity;
+    case 'OperatorNode': {
+      const [a, b] = node.args;
+      switch (node.fn) {
+        case 'unaryMinus':
+        case 'unaryPlus':
+          return deg(a);
+        case 'add':
+        case 'subtract':
+          return Math.max(...node.args.map(deg));
+        case 'multiply':
+          return node.args.reduce((sum, arg) => sum + deg(arg), 0);
+        case 'divide':
+          return deg(b) === 0 ? deg(a) : Infinity;
+        case 'pow': {
+          if (deg(b) !== 0) return Infinity;
+          const base = deg(a);
+          if (base === 0) return 0;
+          try {
+            const n = b.compile().evaluate({});
+            if (exact.typeOf(n) !== 'Fraction' || !exact.isInteger(n) || exact.isNegative(n)) return Infinity;
+            return base * Number(n.valueOf());
+          } catch {
+            return Infinity;
+          }
+        }
+        default:
+          return Infinity;
+      }
+    }
+    default:
+      return Infinity;
+  }
+}
 
 // { a, c } with side ≡ a·x + c exactly, or null.
 function linearForm(side, variable) {
   try {
-    const code = exact.parse(side).compile();
+    const node = exact.parse(side);
+    const bound = degreeBound(node, variable);
+    if (!(bound <= MAX_DEGREE)) return null;
+    const code = node.compile();
     const at = (v) => {
       const r = code.evaluate({ [variable]: exact.fraction(v) });
       if (exact.typeOf(r) !== 'Fraction') throw new Error('not exact');
       return r;
     };
-    const c = at('0');
-    const a = exact.subtract(at('1'), c);
-    for (const p of PROBES) {
-      const expected = exact.add(exact.multiply(a, exact.fraction(p)), c);
-      if (!exact.equal(at(p), expected)) return null;
+    const c = at(0);
+    const a = exact.subtract(at(1), c);
+    // side − (a·x + c) has degree ≤ max(bound, 1) and vanishes at 0 and 1;
+    // vanishing at `bound` more distinct points makes it identically zero.
+    for (let k = 2; k <= bound + 1; k += 1) {
+      const expected = exact.add(exact.multiply(a, k), c);
+      if (!exact.equal(at(k), expected)) return null;
     }
     return { a, c };
   } catch {
@@ -133,8 +192,13 @@ export function solveLinearEquation(expression, variable = 'x') {
       // Distribution and combining are separate steps: folding them into one
       // hid the two things a student most needs to see (September 2026).
       const distributed = `${distribute(lhs, v, linear)} = ${distribute(rhs, v, linear)}`;
-      steps.push(`Distribute to remove the parentheses: ${distributed}`);
-      if (tight(distributed) !== tight(simplified)) steps.push(`Combine like terms: ${simplified}`);
+      if (tight(distributed) === tight(`${beautify(lhs)} = ${beautify(rhs)}`)) {
+        // Nothing distributes term by term — (x + 1)^2 − x^2 expands as a whole.
+        steps.push(`Expand and combine like terms on each side: ${simplified}`);
+      } else {
+        steps.push(`Distribute to remove the parentheses: ${distributed}`);
+        if (tight(distributed) !== tight(simplified)) steps.push(`Combine like terms: ${simplified}`);
+      }
     } else {
       steps.push(`Combine like terms on each side: ${simplified}`);
     }

@@ -13,6 +13,7 @@ import {
   findUndefinedRegions,
   formatRestriction,
   splitTerms,
+  splitTopLevel,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -574,7 +575,14 @@ async function solveWithAlgebriteRoots(equation, variable) {
       }
     }
 
-    const rootsRaw = Algebrite.roots(target, variable).toString();
+    // Algebrite throws "not factorable" for x^5 − x + 1: every root is
+    // still found numerically rather than left to the zero-crossing scan.
+    let rootsRaw;
+    try {
+      rootsRaw = Algebrite.roots(target, variable).toString();
+    } catch {
+      return rootsViaPolynomialRoot(Algebrite, target, variable);
+    }
 
     // Algebrite mangles many cubics: rather than a clean real root like x = 2
     // for x^3 - 8, it emits terms like "-2*(-1)^(1/3)", the *principal complex*
@@ -589,6 +597,15 @@ async function solveWithAlgebriteRoots(equation, variable) {
       // arithmetic — so students see ±2, ±2i, not (-1)^(1/4) soup.
       const evaluated = rootsViaComplexEvaluate(rootsRaw, target, variable);
       if (evaluated) return evaluated;
+    }
+
+    // Algebrite can return only the roots it could factor out and say nothing
+    // about the rest: for x(x − 1)(x − 2)(x + 3)(7x − 1)(3x − 5) + x it
+    // answers [0] and drops the quintic. A degree-n polynomial has n roots
+    // counted with multiplicity; if the listed ones fall short, the list is
+    // partial and the numeric scan below must answer instead (October 2026).
+    if (!rootsAccountForDegree(Algebrite, target, variable, rootsRaw)) {
+      return rootsViaPolynomialRoot(Algebrite, target, variable);
     }
 
     const roots = parseRootsList(rootsRaw);
@@ -875,39 +892,103 @@ async function solveViaLogSubstitution(equation, variable) {
   }
 }
 
+// The coefficients of a polynomial in `variable`, lowest order first, as
+// Algebrite strings — or null when the expression is not a polynomial of
+// degree ≤ maxDegree. Found by scanning coeff() (Algebrite's deg() is
+// unreliable in this build) and confirmed by rebuilding the polynomial from
+// them: coeff() of a non-polynomial is not meaningful.
+function polynomialCoefficients(Algebrite, polynomial, variable, maxDegree = 20) {
+  try {
+    const raw = [];
+    let degree = -1;
+    for (let n = maxDegree; n >= 0; n -= 1) {
+      const c = String(Algebrite.run(`coeff(${polynomial}, ${variable}, ${n})`)).trim();
+      if (!c || isAlgebriteFailure(c) || new RegExp(`\\b${variable}\\b`).test(c)) return null;
+      raw[n] = c;
+      if (degree === -1 && c !== '0') degree = n;
+    }
+    if (degree < 0) return null;
+    const rebuilt = raw.slice(0, degree + 1).map((c, n) => `(${c})*${variable}^${n}`).join(' + ');
+    if (String(Algebrite.run(`simplify((${polynomial}) - (${rebuilt}))`)).trim() !== '0') return null;
+    return raw.slice(0, degree + 1);
+  } catch {
+    return null;
+  }
+}
+
+// Every root, real and complex, of the real polynomial Σ c[k]·x^k (c lowest
+// order first), by Durand–Kerner iteration, with real roots polished by
+// Newton's method. Null if the iteration does not converge.
+function durandKerner(c) {
+  const n = c.length - 1;
+  const lead = c[n];
+  const a = c.map((v) => v / lead);
+  const mul = (p, q) => ({ re: p.re * q.re - p.im * q.im, im: p.re * q.im + p.im * q.re });
+  const sub = (p, q) => ({ re: p.re - q.re, im: p.im - q.im });
+  const div = (p, q) => { const d = q.re * q.re + q.im * q.im; return { re: (p.re * q.re + p.im * q.im) / d, im: (p.im * q.re - p.re * q.im) / d }; };
+  const evalAt = (z) => { let r = { re: 1, im: 0 }; for (let k = n - 1; k >= 0; k -= 1) r = { re: r.re * z.re - r.im * z.im + a[k], im: r.re * z.im + r.im * z.re }; return r; };
+  // Start on a circle of the Cauchy bound's radius, at angles that avoid symmetry.
+  const radius = 1 + Math.max(...a.slice(0, n).map(Math.abs));
+  let z = Array.from({ length: n }, (_, k) => ({ re: radius * Math.cos(2 * Math.PI * k / n + 0.4), im: radius * Math.sin(2 * Math.PI * k / n + 0.4) }));
+  for (let iter = 0; iter < 2000; iter += 1) {
+    let moved = 0;
+    z = z.map((zk, k) => {
+      let denom = { re: 1, im: 0 };
+      z.forEach((zj, j) => { if (j !== k) denom = mul(denom, sub(zk, zj)); });
+      const step = div(evalAt(zk), denom);
+      moved = Math.max(moved, Math.hypot(step.re, step.im));
+      return sub(zk, step);
+    });
+    if (moved < 1e-14 * radius) break;
+  }
+  const p = (x) => c.reduceRight((acc, v) => acc * x + v, 0);
+  const dp = (x) => c.slice(1).reduceRight((acc, v, k) => acc * x + (k + 1) * v, 0);
+  return z.map((root) => {
+    if (Math.abs(root.im) > 1e-6 * (1 + Math.abs(root.re))) return root;
+    let x = root.re;
+    for (let i = 0; i < 50; i += 1) {
+      const d = dp(x);
+      if (d === 0) break;
+      const next = x - p(x) / d;
+      if (!Number.isFinite(next) || Math.abs(next - x) < 1e-15 * (1 + Math.abs(x))) { x = Number.isFinite(next) ? next : x; break; }
+      x = next;
+    }
+    return { re: x, im: 0 };
+  });
+}
+
 /**
- * Recompute polynomial roots numerically when Algebrite's symbolic output is
- * malformed. Extracts integer/rational coefficients with Algebrite's coeff(),
- * hands them to mathjs's polynomialRoot (which returns correct real and complex
- * roots), then formats each cleanly: real roots as numbers, complex roots as
- * "a + bi", with floating-point noise snapped away.
+ * All roots of a polynomial numerically, for when Algebrite's symbolic output
+ * is malformed or incomplete. Coefficients come from Algebrite's coeff(); a
+ * cubic or lower goes to mathjs's polynomialRoot, anything higher (up to
+ * degree 20) to Durand–Kerner. Each root is formatted cleanly — real roots as
+ * numbers, complex roots as "a + bi", floating-point noise snapped away — and
+ * every real root is checked by substitution before it is reported.
  */
 function rootsViaPolynomialRoot(Algebrite, polynomial, variable) {
   try {
-    // Algebrite's degree() is unreliable in this build (returns unevaluated),
-    // so find the degree by scanning coefficients from high order down to the
-    // first nonzero one. coeff() is dependable.
-    const MAX_DEGREE = 6;
-    let degree = -1;
-    const rawCoeffs = [];
-    for (let n = MAX_DEGREE; n >= 0; n -= 1) {
-      const cRaw = String(Algebrite.run(`coeff(${polynomial}, ${variable}, ${n})`)).trim();
-      rawCoeffs[n] = cRaw;
-      if (degree === -1 && cRaw !== '0' && cRaw !== '') degree = n;
-    }
+    const raw = polynomialCoefficients(Algebrite, polynomial, variable);
+    if (!raw) return null;
+    const degree = raw.length - 1;
     if (degree < 1) return null;
-
-    const coeffs = [];
-    for (let n = 0; n <= degree; n += 1) {
-      const c = math.evaluate(rawCoeffs[n]);
-      const num = typeof c === 'number' ? c : Number(c);
-      if (!Number.isFinite(num)) return null;
-      coeffs.push(num);
-    }
+    const coeffs = raw.map((r) => {
+      const c = math.evaluate(r);
+      return typeof c === 'number' ? c : Number(c);
+    });
+    if (!coeffs.every(Number.isFinite)) return null;
 
     // mathjs wants coefficients low-order first: polynomialRoot(c0, c1, ..., cN).
-    const rawRoots = math.polynomialRoot(...coeffs);
-    if (!Array.isArray(rawRoots) || rawRoots.length === 0) return null;
+    const rawRoots = degree <= 3 ? math.polynomialRoot(...coeffs) : durandKerner(coeffs);
+    if (!Array.isArray(rawRoots) || rawRoots.length !== degree) return null;
+    const scale = coeffs.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+    for (const r of rawRoots) {
+      if (typeof r === 'number' || Math.abs(r.im ?? 0) < 1e-9) {
+        const x = typeof r === 'number' ? r : r.re;
+        const value = coeffs.reduceRight((acc, v) => acc * x + v, 0);
+        const size = coeffs.reduceRight((acc, v) => acc * Math.abs(x) + Math.abs(v), 0);
+        if (!(Math.abs(value) <= 1e-8 * Math.max(size, scale))) return null;
+      }
+    }
 
     const roots = rawRoots.map(formatComplexRoot);
 
@@ -921,8 +1002,10 @@ function rootsViaPolynomialRoot(Algebrite, polynomial, variable) {
     const numericSolutions = roots.filter((r) => r.isReal).map((r) => r.numeric);
 
     const steps = [
-      `Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`,
-      `This is a degree-${degree} polynomial; find all ${degree} roots.`,
+      ...(/\)\s*-\s*\(0\)$/.test(polynomial) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),
+      degree <= 3
+        ? `This is a degree-${degree} polynomial; find all ${degree} roots.`
+        : `This is a degree-${degree} polynomial with no exact factorisation MasterMath can find, so all ${degree} roots (real and complex) are found numerically and each real root is checked by substitution. A degree-${degree} polynomial has exactly ${degree} roots counted with multiplicity, so none is missed.`,
       `Solution: ${answer}`,
     ];
 
@@ -1016,23 +1099,37 @@ function formatComplexRoot(root) {
 // commas inside parentheses.
 export function splitRootsList(raw) {
   const trimmed = String(raw).trim().replace(/^\[|\]$/g, '');
-  if (!trimmed) return [];
+  return trimmed ? splitTopLevel(trimmed, ',').filter(Boolean) : [];
+}
 
-  const parts = [];
-  let depth = 0;
-  let current = '';
-  for (const ch of trimmed) {
-    if (ch === '(') depth++;
-    else if (ch === ')') depth--;
-    if (ch === ',' && depth === 0) {
-      parts.push(current);
-      current = '';
-    } else {
-      current += ch;
+// Do the listed roots, with their multiplicities, add up to the polynomial's
+// degree? A root's multiplicity is the number of successive derivatives that
+// vanish there, checked exactly by Algebrite. Degree ≤ 2 (and anything that
+// is not a polynomial) is not checked: Algebrite's quadratic roots are
+// complete, and the other paths have their own verification. A partial list
+// sends the polynomial to rootsViaPolynomialRoot, which finds every root. A multiplicity
+// Algebrite cannot simplify to zero is undercounted, which only sends the
+// equation to the numeric scan — never the other way round.
+function rootsAccountForDegree(Algebrite, poly, variable, rootsRaw) {
+  const coefficients = polynomialCoefficients(Algebrite, poly, variable);
+  if (!coefficients) return true;
+  const degree = coefficients.length - 1;
+  if (degree <= 2) return true;
+  const roots = [...new Set(splitRootsList(rootsRaw).map((r) => r.trim()))];
+  let counted = 0;
+  for (const r of roots) {
+    let multiplicity = 0;
+    let derivative = poly;
+    while (multiplicity < degree) {
+      let value;
+      try { value = String(Algebrite.run(`simplify(subst((${r}), ${variable}, ${derivative}))`)).trim(); } catch { break; }
+      if (value !== '0') break;
+      multiplicity += 1;
+      derivative = `d(${derivative}, ${variable})`;
     }
+    counted += Math.max(multiplicity, 1);
   }
-  if (current) parts.push(current);
-  return parts;
+  return counted >= degree;
 }
 
 export function parseRootsList(raw) {

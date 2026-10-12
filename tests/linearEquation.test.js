@@ -91,3 +91,32 @@ test('simplify expands a polynomial and shows the multiplying out, then the comb
   // A rational expression still cancels, written the textbook way.
   assert.equal((await solveProblem('(2x^2 - 8)/(4x)', 'algebra')).answer, 'x/2 - 2/x');
 });
+
+// Linearity was once decided by agreement with a·x + c at six fixed points;
+// this sextic vanishes at exactly those points and passed as linear, answered
+// "x = 0" (outside review, October 2026). It is now proved from a degree bound.
+const SEXTIC = 'x*(x-1)*(x-2)*(x+3)*(7*x-1)*(3*x-5) + x = 0';
+
+test('a polynomial that agrees with a line at many points is not linear', () => {
+  assert.equal(solveLinearEquation(SEXTIC), null);
+  // Cancellation is still recognised: (x + 1)^2 − x^2 is 2x + 1.
+  assert.deepEqual(solveLinearEquation('(x+1)^2 - x^2 = 7').steps, [
+    'Expand and combine like terms on each side: 2x + 1 = 7',
+    'Subtract 1 from both sides: 2x = 6',
+    'Divide both sides by 2: x = 6/2 = 3',
+  ]);
+});
+
+test('every root of a high-degree polynomial is reported, never a partial list', async () => {
+  // Algebrite factors out x and silently drops the quintic, answering [0].
+  const r = await solveProblem(SEXTIC, 'algebra');
+  const reals = r.solutions ?? r.answer.match(/-?\d+(?:\.\d+)?(?![\d.]*i)/g).map(Number);
+  assert.equal(r.answer.split('  or  ').length, 6, r.answer);
+  for (const expected of [-3.0002, 0, 0.1492, 0.9796, 1.6976, 1.9833]) {
+    assert.ok(reals.some((x) => Math.abs(x - expected) < 2e-4), `${expected} missing from ${r.answer}`);
+  }
+  // Algebrite throws for an unfactorable quintic: all five roots, not just the real one.
+  const quintic = await solveProblem('x^5 - x + 1 = 0', 'algebra');
+  assert.equal(quintic.answer.split('  or  ').length, 5, quintic.answer);
+  assert.match(quintic.answer, /x = -1\.1673/);
+});

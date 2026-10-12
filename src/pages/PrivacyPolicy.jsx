@@ -289,11 +289,11 @@ export default function PrivacyPolicy() {
         <ul className="space-y-2 text-gray-700 dark:text-gray-300">
           <li className="flex items-start gap-2">
             <span className="text-green-600 dark:text-green-400 font-bold mt-1">✓</span>
-            <span>All your data stays on your device - we have no servers</span>
+            <span>Your problem history and settings stay on your device - we have no servers</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-600 dark:text-green-400 font-bold mt-1">✓</span>
-            <span>We don't collect personal information</span>
+            <span>We don't collect personal information - the Feedback form sends only what you choose to submit</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-600 dark:text-green-400 font-bold mt-1">✓</span>
@@ -301,7 +301,7 @@ export default function PrivacyPolicy() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-600 dark:text-green-400 font-bold mt-1">✓</span>
-            <span>No tracking, no ads, no data sharing</span>
+            <span>No tracking, no ads, and no data sharing - except feedback you submit, which goes to Web3Forms to reach us</span>
           </li>
         </ul>
       </div>

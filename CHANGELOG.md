@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.39.1] - 2026-10-12
+
+Fixes from an outside review of v1.39.0.
+
+### Fixed
+
+- **A non-linear equation could be solved as linear.** The new linear
+  walkthrough decided linearity by agreement with a line at six fixed
+  points, and `x(x − 1)(x − 2)(x + 3)(7x − 1)(3x − 5) + x = 0` — which
+  vanishes at exactly those points — was "distributed" to `0 + x = 0` and
+  answered `x = 0`. Linearity is now proved: the parse tree bounds each
+  side's degree d, and agreement with a·x + c at d + 1 points in exact
+  arithmetic means the two are identical. `(x + 1)² − x² = 7` is still
+  recognised as linear.
+- **High-degree polynomials no longer get a partial list of roots.**
+  Behind the linear check, Algebrite factored the `x` out of that sextic,
+  gave up on the quintic left over without saying so, and answered `[0]`;
+  the zero-crossing scan that might have caught it missed two roots lying
+  close to others. The listed roots are now counted with their
+  multiplicities against the degree, and a shortfall — or an Algebrite
+  "not factorable" error, as for `x⁵ − x + 1` — sends the polynomial to a
+  numeric solver that finds all n roots (Durand–Kerner, real roots polished
+  by Newton's method and checked by substitution). The sextic now has all
+  six real roots; `x⁵ − x + 1 = 0` lists its five.
+- The Privacy Policy summary said all data stays on the device with no data
+  sharing; it now names the one exception, feedback you choose to submit.
+- README badge showed Vite 5.4.5 (the app uses Vite 8); a development-only
+  `source-map-js` advisory is patched.
+
+### Changed
+
+- A polynomial equation already of the form `… = 0` no longer shows a
+  redundant "Rewrite as an equation set to zero: (…) − (0) = 0" in the
+  numeric-roots path either.
+
 ## [1.39.0] - 2026-10-12
 
 Security hardening from an outside review of v1.38.1, and the removal of
