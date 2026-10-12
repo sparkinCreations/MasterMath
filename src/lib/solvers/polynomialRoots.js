@@ -27,9 +27,13 @@ const exact = createMath({ number: 'Fraction' });
 const F = (v) => exact.fraction(v);
 const ZERO = F(0);
 
-// Above this degree the exact machinery gets slow; such input is refused
-// honestly rather than answered with a partial list.
-export const MAX_POLYNOMIAL_DEGREE = 40;
+// Measured (October 2026): sparse, random-dense and repeated-factor
+// polynomials of degree 100 take under 100 ms. The slow family is
+// Wilkinson-type — dozens of real roots, enormous coefficients — at
+// 0.5 s (degree 40), 1.8 s (50), 6.7 s (60), 38 s (80); the solve budget
+// (budgetedSolver.js) stops those. Above this degree the input is refused
+// at once rather than answered with a partial list.
+export const MAX_POLYNOMIAL_DEGREE = 100;
 
 // An upper bound on the degree of a mathjs node as a polynomial in
 // `variable`, or Infinity when it is not a polynomial (the variable in a

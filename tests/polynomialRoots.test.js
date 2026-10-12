@@ -38,7 +38,19 @@ test('the degree-21 equation from the review lists all 21 roots, not just x = 0'
   assert.match(r.steps.join('\n'), /Sturm's theorem counts them exactly — 21 distinct real roots/);
 });
 
-test('high degrees: a complete Algebrite list is kept; otherwise an honest refusal', async () => {
-  assert.match((await solveProblem('x^100 = 1', 'algebra')).answer, /plus 98 complex solutions/);
-  assert.equal((await solveProblem('x^50 = 2', 'algebra')).answer.split('  or  ').length, 50);
+test('high degrees skip Algebrite: every real root, the complex ones counted past a handful', async () => {
+  // x^41 − x − 1 made Algebrite grind for ten seconds before it gave up (and
+  // the exact finder then refused it as above degree 40). One real root.
+  const started = Date.now();
+  const r = await solveProblem('x^41 - x = 1', 'algebra');
+  assert.ok(Date.now() - started < 3000, 'must not wait for Algebrite');
+  assert.match(r.answer, /^x = 1\.\d+;  plus 40 complex solutions \(not listed\)$/, r.answer);
+  assert.match((await solveProblem('x^100 = 1', 'algebra')).answer, /^x = -1  or  x = 1;  plus 98 complex solutions/);
+  assert.match((await solveProblem('x^50 = 2', 'algebra')).answer, /^x = -1\.014  or  x = 1\.014;  plus 48 complex solutions/);
+  // A handful of complex roots is still listed.
+  assert.equal((await solveProblem('x^5 - x + 1 = 0', 'algebra')).answer.split('  or  ').length, 5);
+  // Above the exact finder's limit: an honest refusal, at once.
+  const above = await solveProblem(`x^${MAX_POLYNOMIAL_DEGREE + 1} = 1`, 'algebra');
+  assert.equal(above.status, 'unsupported');
+  assert.match(above.answer, /above the supported limit/);
 });

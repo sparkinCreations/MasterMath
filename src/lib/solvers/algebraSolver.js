@@ -586,6 +586,17 @@ async function solveWithAlgebriteRoots(equation, variable) {
       }
     }
 
+    // Above degree 12 Algebrite's exact forms are not readable (x^50 = 2 came
+    // back as 2^(1/50)·cos(π/50)… and was evaluated numerically anyway), and
+    // a dense polynomial makes it grind for seconds before it fails
+    // (x^41 − x − 1: ten seconds). Go straight to the exact root finder,
+    // which also refuses at once above its own limit.
+    const read = readPolynomial(target, variable);
+    if (read && (read.tooHigh || read.degree > ALGEBRITE_DEGREE_LIMIT)) {
+      const exact = rootsViaPolynomialRoot(Algebrite, target, variable, clearingSteps);
+      if (exact) return exact;
+    }
+
     // Algebrite throws "not factorable" for x^5 − x + 1: every root is
     // still found numerically rather than left to the zero-crossing scan.
     let rootsRaw;
@@ -915,7 +926,10 @@ async function solveViaLogSubstitution(equation, variable) {
  * { envelope } (an honest refusal) past the supported degree, or null when
  * the input is not a polynomial with rational coefficients.
  */
-function rootsViaPolynomialRoot(Algebrite, polynomial, variable) {
+// Past this degree a polynomial equation skips Algebrite (see solveWithAlgebriteRoots).
+const ALGEBRITE_DEGREE_LIMIT = 12;
+
+function rootsViaPolynomialRoot(Algebrite, polynomial, variable, extraSteps = []) {
   const poly = readPolynomial(polynomial, variable);
   if (!poly) return null;
   if (poly.tooHigh) {
@@ -933,21 +947,31 @@ function rootsViaPolynomialRoot(Algebrite, polynomial, variable) {
   const multiplicity = (m) => (m > 1 ? ` (multiplicity ${m})` : '');
   const realShown = real.map((r) => ({ ...formatComplexRoot(r.value), multiplicity: r.multiplicity }));
   const complexShown = (complex || []).map((z) => ({ ...formatComplexRoot(z), multiplicity: z.multiplicity }));
-  const parts = [...realShown, ...complexShown].map((r) => `${variable} = ${r.display}${multiplicity(r.multiplicity)}`);
-  if (complex === null && complexCount > 0) {
-    parts.push(`${complexCount} non-real complex root${complexCount === 1 ? '' : 's'}`);
+  const line = (r) => `${variable} = ${r.display}${multiplicity(r.multiplicity)}`;
+  // As formatSolutions: past a handful of complex roots, list the real ones
+  // and count the rest — 98 decimal pairs is not an answer anyone can read.
+  const listComplex = complex !== null && complexShown.length <= 4 && realShown.length + complexShown.length <= 8;
+  let answer;
+  if (complexCount === 0 || listComplex) {
+    const parts = [...realShown, ...complexShown].map(line);
+    if (parts.length === 0) return null;
+    answer = parts.join('  or  ');
+  } else {
+    const realText = realShown.length ? realShown.map(line).join('  or  ') : 'no real solutions';
+    answer = `${realText};  plus ${complexCount} complex solutions (not listed)`;
   }
-  if (parts.length === 0) return null;
-  const answer = parts.join('  or  ');
   const realCount = real.reduce((n, r) => n + r.multiplicity, 0);
   const counted = `${real.length === 0 ? 'no' : real.length} distinct real root${real.length === 1 ? '' : 's'}${realCount > real.length ? ` (${realCount} counting multiplicity)` : ''}`;
   const steps = [
     ...(/\)\s*-\s*\(0\)$/.test(polynomial) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),
+    ...extraSteps,
     `This is a degree-${degree} polynomial, so it has exactly ${degree} roots counted with multiplicity. MasterMath cannot write them in exact form, so they are found numerically.`,
     `Real roots: Sturm's theorem counts them exactly — ${counted} — and each is located by bisection to 12 significant digits, so none is missed even when roots lie very close together.`,
     ...(complexCount === 0 ? [] : [complex === null
       ? `The remaining ${complexCount} root${complexCount === 1 ? ' is' : 's are'} non-real; ${complexCount === 1 ? 'it' : 'they'} could not be computed to a value MasterMath can verify, so only the count is given.`
-      : `The remaining ${complexCount} root${complexCount === 1 ? ' is' : 's are'} non-real, found by Durand–Kerner iteration and each checked by substitution.`]),
+      : listComplex
+        ? `The remaining ${complexCount} root${complexCount === 1 ? ' is' : 's are'} non-real, found by Durand–Kerner iteration and each checked by substitution.`
+        : `The remaining ${complexCount} roots are non-real (found by Durand–Kerner iteration and each checked by substitution); that many decimal pairs would not be a readable answer, so they are counted rather than listed.`]),
     `Solution: ${answer}`,
   ];
   return { steps, answer, solutions: real.map((r) => cleanNumber(r.value)) };

@@ -22,8 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Terminating the worker also discards Algebrite's state, so a symbolic
   call that threw can no longer poison every call after it.
 
+- **Polynomial equations up to degree 100 are solved in full.** The exact
+  root finder's limit was 40, a guess; measured, ordinary polynomials of
+  degree 100 take well under a tenth of a second, so the limit is now 100
+  (the slow family, Wilkinson-type polynomials with dozens of real roots,
+  is what the time budget is for). `x⁴¹ − x = 1` now answers with its one
+  real root and the count of complex ones in about 50 ms.
+
 ### Changed
 
+- **Polynomial equations above degree 12 no longer go through Algebrite.**
+  Its exact forms stop being readable well below that (`x⁵⁰ = 2` came back
+  as `2^(1/50)·cos(π/50)…` and was evaluated numerically anyway), and a
+  dense polynomial made it grind for seconds before failing. They go
+  straight to the exact root finder; past a handful of complex roots the
+  real ones are listed and the rest counted, as before.
 - The worker is its own build with the same chunking as the page, so a
   solve still downloads only the solver it needs. mathjs and Algebrite now
   exist in both builds; online users download no more than before (the

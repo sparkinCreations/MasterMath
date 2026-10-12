@@ -169,15 +169,17 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).toBeInViewport();
   });
 
-  // The solver runs in a worker with a time budget (1.40.0). x^41 − x = 1
-  // makes Algebrite grind for about ten seconds before it gives up; the page
-  // must stay responsive meanwhile, and the solve must end in an honest
-  // refusal — the budget's or the solver's own — never hang.
-  test('a slow solve leaves the page responsive and ends in a refusal within the budget', async ({ page }) => {
+  // The solver runs in a worker with a time budget (1.40.0). A degree-50
+  // Wilkinson polynomial (fifty real roots, coefficients of 60 digits) takes
+  // the exact root finder about two seconds here and longer on a slow CI
+  // runner; the page must stay responsive meanwhile, and the solve must end
+  // in the complete list of roots or the budget's honest refusal — never hang.
+  const WILKINSON_50 = `${Array.from({ length: 50 }, (_, k) => `(x-${k + 1})`).join('*')} + x = 0`;
+  test('a slow solve leaves the page responsive and ends within the budget', async ({ page }) => {
     test.setTimeout(90_000);
     await openSolver(page);
     await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
-    await page.locator('#problem').fill('x^41 - x = 1');
+    await page.locator('#problem').fill(WILKINSON_50);
     const started = Date.now();
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     await page.waitForTimeout(2000);
@@ -186,15 +188,14 @@ test.describe('MasterMath smoke', () => {
     await page.evaluate(() => 1);
     expect(Date.now() - probe, 'the page froze during the solve').toBeLessThan(1500);
     const solution = page.locator('[aria-label="Solution"]');
-    await expect(solution).toContainText(/Stopped after 10 seconds|above the supported limit/, { timeout: 30_000 });
+    await expect(solution).toContainText(/Stopped after 10 seconds|50 distinct real roots/, { timeout: 30_000 });
     expect(Date.now() - started).toBeLessThan(25_000);
-    await expect(solution).not.toContainText('Final Answer: x =');
   });
 
   test('Cancel ends a solve at once, and the next solve still works', async ({ page }) => {
     await openSolver(page);
     await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
-    await page.locator('#problem').fill('x^41 - x = 1');
+    await page.locator('#problem').fill(WILKINSON_50);
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByText('Solve cancelled')).toBeVisible();
