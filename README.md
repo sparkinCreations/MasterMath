@@ -187,7 +187,9 @@ MasterMath/
 │   │       ├── derivativesSolver.js
 │   │       ├── integralsSolver.js
 │   │       ├── arithmeticSolver.js
-│   │       └── otherSolvers.js      # Limits, trig, functions
+│   │       ├── functionsSolver.js   # Function analysis and graphing
+│   │       ├── limitsSolver.js      # Limits
+│   │       └── trigonometrySolver.js # Trig values and identities
 │   │
 │   ├── contexts/
 │   │   └── DarkModeContext.jsx # Dark mode state management

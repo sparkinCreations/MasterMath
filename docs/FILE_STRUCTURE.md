@@ -171,7 +171,9 @@ Each solver handles a specific math domain and returns a consistent solution obj
 | `derivativesSolver.js`  | Differentiation           | algebrite               |
 | `integralsSolver.js`    | Integration               | algebrite               |
 | `arithmeticSolver.js`   | Basic arithmetic          | mathjs                  |
-| `otherSolvers.js`       | Limits, trigonometry, functions/graphing | mathjs, algebrite |
+| `functionsSolver.js`    | Function analysis, graphing | mathjs, algebrite     |
+| `limitsSolver.js`       | Limits                    | mathjs, algebrite       |
+| `trigonometrySolver.js` | Trig values, identities   | mathjs, algebrite       |
 
 ---
 

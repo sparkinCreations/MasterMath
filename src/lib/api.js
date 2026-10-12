@@ -76,11 +76,11 @@ async function loadSolver(topic) {
     case 'integrals':
       return (await import('./solvers/integralsSolver.js')).solveIntegral;
     case 'limits':
-      return (await import('./solvers/otherSolvers.js')).solveLimit;
+      return (await import('./solvers/limitsSolver.js')).solveLimit;
     case 'trigonometry':
-      return (await import('./solvers/otherSolvers.js')).solveTrigonometry;
+      return (await import('./solvers/trigonometrySolver.js')).solveTrigonometry;
     case 'functions':
-      return (await import('./solvers/otherSolvers.js')).solveFunctions;
+      return (await import('./solvers/functionsSolver.js')).solveFunctions;
     case 'other':
       return (await import('./solvers/arithmeticSolver.js')).solveArithmetic;
     default:

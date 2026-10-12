@@ -48,6 +48,9 @@ mathsteps, which that hardening required.
 - An equation already of the form `… = 0` no longer shows the redundant
   "Rewrite as an equation set to zero: (…) − (0) = 0".
 - Privacy Policy, FAQ and Home no longer list mathsteps.
+- `otherSolvers.js` (limits *and* trigonometry, 1,900 lines) is split into
+  `limitsSolver.js` and `trigonometrySolver.js`, each its own lazy chunk. No
+  behaviour change: all 378 corpus problems give identical output.
 
 ### Fixed
 

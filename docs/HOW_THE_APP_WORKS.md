@@ -145,7 +145,9 @@ Each solver is a separate file that specializes in one type of math:
 | `derivativesSolver.js` | Derivatives (differentiation) | algebrite |
 | `integralsSolver.js` | Integrals (integration) | algebrite |
 | `arithmeticSolver.js` | Basic math (add, subtract, etc.) | mathjs |
-| `otherSolvers.js` | Limits, trig, functions & graphing | mathjs + algebrite |
+| `functionsSolver.js` | Function analysis & graphing | mathjs + algebrite |
+| `limitsSolver.js` | Limits | mathjs + algebrite |
+| `trigonometrySolver.js` | Trig values and identities | mathjs + algebrite |
 
 ### The Router (`lib/api.js` → `solveProblem()`)
 The `solveProblem()` function acts as a traffic controller. Based on the topic you selected, it sends the expression to the right solver:

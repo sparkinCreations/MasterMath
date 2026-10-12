@@ -7,7 +7,7 @@ import {
   resetSettings,
   DEFAULT_SETTINGS,
 } from '../src/lib/settings.js';
-import { solveTrigonometry } from '../src/lib/solvers/otherSolvers.js';
+import { solveTrigonometry } from '../src/lib/solvers/trigonometrySolver.js';
 import { formatNumber } from '../src/lib/solvers/solverUtils.js';
 
 // node:test runs without localStorage, so the module must fall back to

@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { solveLimit } from '../src/lib/solvers/otherSolvers.js';
+import { solveLimit } from '../src/lib/solvers/limitsSolver.js';
 import { solveDerivative } from '../src/lib/solvers/derivativesSolver.js';
 import { solveIntegral } from '../src/lib/solvers/integralsSolver.js';
 import { solveAlgebra } from '../src/lib/solvers/algebraSolver.js';

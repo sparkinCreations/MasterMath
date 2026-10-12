@@ -5,11 +5,9 @@ import { solveArithmetic } from '../src/lib/solvers/arithmeticSolver.js';
 import { solveAlgebra } from '../src/lib/solvers/algebraSolver.js';
 import { solveDerivative } from '../src/lib/solvers/derivativesSolver.js';
 import { solveIntegral } from '../src/lib/solvers/integralsSolver.js';
-import {
-  solveFunctions,
-  solveLimit,
-  solveTrigonometry,
-} from '../src/lib/solvers/otherSolvers.js';
+import { solveFunctions } from '../src/lib/solvers/functionsSolver.js';
+import { solveLimit } from '../src/lib/solvers/limitsSolver.js';
+import { solveTrigonometry } from '../src/lib/solvers/trigonometrySolver.js';
 
 function extractNumericAnswer(answer) {
   const match = String(answer).match(/=\s*(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)/i);
