@@ -41,7 +41,7 @@ const EXAMPLE_PROBLEMS = [
   { topic: "other", problem: "(5 + 3) * 4 - 2^3" }
 ];
 
-export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, isLoading, onNavigateHistory, hasHistory }) {
+export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, onCancel, isLoading, onNavigateHistory, hasHistory }) {
   const [validationError, setValidationError] = useState(null);
   const textareaRef = useRef(null);
 
@@ -184,6 +184,18 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           </>
         )}
       </Button>
+      {isLoading && onCancel && (
+        // A solve runs in a worker with a time budget; this ends it early
+        // (the worker is terminated, so even a stuck symbolic step stops).
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="w-full h-11 text-base font-semibold border-2 border-indigo-200 dark:border-gray-600 rounded-xl"
+        >
+          Cancel
+        </Button>
+      )}
 
       <div className="pt-4 border-t border-indigo-200">
         <div className="flex items-center gap-2 mb-3">

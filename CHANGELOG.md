@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-10-12
+
+### Added
+
+- **A time budget, and a Cancel button.** The solver now runs in a Web
+  Worker, so the page never freezes while a problem is being worked on, and
+  a solve that passes ten seconds is stopped — the worker is terminated and
+  the answer is an honest "Stopped after 10 seconds", never a late or
+  partial one. Cancel ends a solve the same way at once. `x^41 − x = 1`
+  used to lock the whole page for ten seconds. Settings travel with each
+  request (a worker cannot read the page's storage), and if the worker
+  cannot start the solve falls back to the page with the fault logged.
+- Terminating the worker also discards Algebrite's state, so a symbolic
+  call that threw can no longer poison every call after it.
+
+### Changed
+
+- The worker is its own build with the same chunking as the page, so a
+  solve still downloads only the solver it needs. mathjs and Algebrite now
+  exist in both builds; online users download no more than before (the
+  page's Algebrite copy is fetched only in the fallback), but the offline
+  precache grows by about 700 kB uncompressed.
+
 ## [1.39.2] - 2026-10-12
 
 Fixes from a third outside review.

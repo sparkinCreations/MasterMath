@@ -3,7 +3,8 @@ import { revealElement } from "@/lib/reveal";
 import ProblemInput from "@/components/solver/ProblemInput";
 import SolutionDisplay from "@/components/solver/SolutionDisplay";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
-import { solveProblem, createProblemHistory } from "@/lib/api";
+import { createProblemHistory } from "@/lib/api";
+import { solveWithBudget, warmSolver } from "@/lib/budgetedSolver";
 import { STATUS, statusLabel, shouldSaveToHistory } from "@/lib/solutionEnvelope";
 import { useToast } from "@/components/ui/toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -39,14 +40,29 @@ export default function Solver() {
     if (solution) revealElement(solutionRef.current, { focus: true });
   }, [solution]);
 
+  // Start the solver worker now, so its bundle is loading while the user
+  // types rather than when they press Solve.
+  useEffect(() => { warmSolver(); }, []);
+
+  // The in-flight solve, so Cancel can end it (the worker is terminated).
+  const abortRef = useRef(null);
+  const handleCancel = () => abortRef.current?.abort();
+
   // `problemText` is the sanitized string ProblemInput validated, which may
   // differ from the raw textarea contents (collapsed whitespace). Everything
   // downstream — the solve, the recall history, the saved record — uses that
   // one string, so what was validated is what gets solved and stored.
   const handleSolve = async (problemText = problem) => {
     setIsLoading(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const result = await solveProblem(problemText, topic);
+      // Runs in the worker with a time budget; null means the user cancelled.
+      const result = await solveWithBudget(problemText, topic, { signal: controller.signal });
+      if (!result) {
+        toast.warning("Solve cancelled");
+        return;
+      }
       setSolution(result);
       setSolvedInput({ problem: problemText, topic });
       setGraphData(result.graph);
@@ -105,6 +121,7 @@ export default function Solver() {
       console.error("Error solving problem:", error);
       toast.error("Failed to solve problem. Please try again.");
     } finally {
+      abortRef.current = null;
       setIsLoading(false);
     }
   };
@@ -156,6 +173,7 @@ export default function Solver() {
               setTopic={setTopic}
               onSolve={handleSolve}
               isLoading={isLoading}
+              onCancel={handleCancel}
               onNavigateHistory={navigateHistory}
               hasHistory={inputHistory.length > 0}
             />

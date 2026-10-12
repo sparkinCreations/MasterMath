@@ -32,7 +32,17 @@ function sanitize(settings) {
   return out;
 }
 
+// Settings handed in by message rather than read from storage. The solver
+// worker has no localStorage; the page sends the current settings with every
+// solve request and the worker primes them here before solving.
+let primed = null;
+
+export function primeSettings(settings) {
+  primed = settings ? sanitize(settings) : null;
+}
+
 export function getSettings() {
+  if (primed) return { ...primed };
   if (typeof localStorage === 'undefined') return { ...DEFAULT_SETTINGS };
 
   try {

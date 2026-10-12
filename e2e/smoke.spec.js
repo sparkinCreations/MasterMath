@@ -33,6 +33,9 @@ function armErrorCapture(page) {
     // vite preview serves public/_headers, so anything the production CSP
     // would block is blocked here too.
     if (/Content Security Policy/i.test(msg.text())) errors.push(`csp: ${msg.text()}`);
+    // The solver worker could not start, so solves fell back to the main
+    // thread: every solve "works" and nothing else would notice.
+    if (/Solver worker failed/i.test(msg.text())) errors.push(`worker: ${msg.text()}`);
   });
   return errors;
 }
@@ -164,5 +167,40 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).toContainText('Final Answer:');
     await expect(solution).toBeFocused();
     await expect(solution).toBeInViewport();
+  });
+
+  // The solver runs in a worker with a time budget (1.40.0). x^41 − x = 1
+  // makes Algebrite grind for about ten seconds before it gives up; the page
+  // must stay responsive meanwhile, and the solve must end in an honest
+  // refusal — the budget's or the solver's own — never hang.
+  test('a slow solve leaves the page responsive and ends in a refusal within the budget', async ({ page }) => {
+    test.setTimeout(90_000);
+    await openSolver(page);
+    await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+    await page.locator('#problem').fill('x^41 - x = 1');
+    const started = Date.now();
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await page.waitForTimeout(2000);
+    // A frozen main thread would stall this round trip.
+    const probe = Date.now();
+    await page.evaluate(() => 1);
+    expect(Date.now() - probe, 'the page froze during the solve').toBeLessThan(1500);
+    const solution = page.locator('[aria-label="Solution"]');
+    await expect(solution).toContainText(/Stopped after 10 seconds|above the supported limit/, { timeout: 30_000 });
+    expect(Date.now() - started).toBeLessThan(25_000);
+    await expect(solution).not.toContainText('Final Answer: x =');
+  });
+
+  test('Cancel ends a solve at once, and the next solve still works', async ({ page }) => {
+    await openSolver(page);
+    await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+    await page.locator('#problem').fill('x^41 - x = 1');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByText('Solve cancelled')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeEnabled();
+    // A fresh worker answers the next problem.
+    const solution = await solveExample(page, 'Algebra: 2*x + 5 = 11');
+    await expect(solution).toContainText(/x = 3/);
   });
 });
