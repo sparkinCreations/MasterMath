@@ -241,7 +241,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                   >
                     <div className="flex gap-3">
                       <div className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
-                        {idx + 1}
+                        <span className="sr-only">Step </span>{idx + 1}
                       </div>
                       <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
                     </div>

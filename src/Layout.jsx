@@ -65,10 +65,15 @@ function AppSidebar() {
   return (
     <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs" role="navigation" aria-label="Main navigation">
       <SidebarHeader className="border-b border-indigo-100 dark:border-gray-700 p-6">
+        {/* The logo images in these home links are decorative (alt=""): the link
+            text names the destination, and a named image made screen readers
+            say "MasterMath Logo MasterMath by sparkinCreations…" (October 2026
+            screen-reader walk). */}
         <Link to="/" onClick={closeSidebar} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <img
             src="/favicon.png"
-            alt="MasterMath Logo"
+            alt=""
+            aria-hidden="true"
             className="w-12 h-12 rounded-2xl shadow-lg"
           />
           {/* Brand text is a home link, not a heading — the page's own h1
@@ -142,7 +147,8 @@ export default function Layout({ children }) {
                 <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">
                   <img
                     src="/favicon.png"
-                    alt="MasterMath Logo"
+                    alt=""
+                    aria-hidden="true"
                     className="w-8 h-8 rounded-lg shadow-md"
                   />
                   {/* Not a heading: the header brand is a home link, and
@@ -154,7 +160,8 @@ export default function Layout({ children }) {
                 <Link to="/" className="flex md:hidden items-center gap-2 hover:opacity-80 transition-opacity">
                   <img
                     src="/favicon.png"
-                    alt="MasterMath Logo"
+                    alt=""
+                    aria-hidden="true"
                     className="w-6 h-6 rounded-lg shadow-md"
                   />
                   <p className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">

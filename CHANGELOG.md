@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.5] - 2026-10-13
+
+### Fixed
+
+- **Screen readers no longer hear the logo twice.** The logo image inside
+  the sidebar and header home links had its own alt text, so a reader said
+  "MasterMath Logo MasterMath by sparkinCreations…"; the image is now
+  decorative and the link text alone names it. Step numbers in a solution
+  were a bare "1" to a reader; they are now "Step 1". Both found by a walk
+  of a full solve through the accessibility tree, recorded with a VoiceOver
+  listening script in `docs/ACCESSIBILITY.md`.
+
 ## [1.40.4] - 2026-10-13
 
 ### Changed

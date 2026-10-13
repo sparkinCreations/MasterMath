@@ -67,7 +67,8 @@ test('high degrees skip Algebrite: every real root, the complex ones counted pas
   // the exact finder then refused it as above degree 40). One real root.
   const started = Date.now();
   const r = await solveProblem('x^41 - x = 1', 'algebra');
-  assert.ok(Date.now() - started < 3000, 'must not wait for Algebrite');
+  // ~1 s alone; the bound catches Algebrite's ten-second grind, not a busy machine.
+  assert.ok(Date.now() - started < 6000, 'must not wait for Algebrite');
   assert.match(r.answer, /^x ≈ 1\.0173;  plus 40 complex solutions \(not listed\)$/, r.answer);
   assert.match((await solveProblem('x^100 = 1', 'algebra')).answer, /^x = -1  or  x = 1;  plus 98 complex solutions/);
   assert.match((await solveProblem('x^50 = 2', 'algebra')).answer, /^x ≈ -1\.014  or  x ≈ 1\.014;  plus 48 complex solutions/);
