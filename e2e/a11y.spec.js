@@ -13,7 +13,20 @@ import AxeBuilder from '@axe-core/playwright';
 const PAGES = ['/', '/solver', '/progress', '/usermanual', '/faq', '/privacypolicy', '/termsofservice', '/feedback', '/settings'];
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
+// Audit the page in its final state: the solution card and steps fade in
+// over half a second, and axe measured the blended, half-transparent text
+// when the audit ran mid-fade (2.1:1 on a run that otherwise passed —
+// outside review, October 2026). Wait for every running animation to finish
+// and every element with an inline opacity to reach 1.
+async function settled(page) {
+  await page.waitForFunction(() =>
+    // A looping animation (a spinner) never finishes; only finite ones are waited for.
+    document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming?.().iterations === Infinity)
+    && [...document.querySelectorAll('[style*="opacity"]')].every((e) => getComputedStyle(e).opacity === '1'));
+}
+
 async function audit(page, label) {
+  await settled(page);
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   const report = results.violations.map((v) =>
     `${v.id} (${v.impact}): ${v.help}\n${v.nodes.slice(0, 3).map((n) => `    ${n.target.join(' ')}\n      ${n.failureSummary.split('\n').join('\n      ')}`).join('\n')}`).join('\n\n');

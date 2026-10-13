@@ -18,16 +18,16 @@ function stampServiceWorker() {
     name: 'stamp-service-worker',
     apply: 'build',
     closeBundle() {
-      const swPath = path.resolve(__dirname, 'dist', 'sw.js')
+      const swPath = path.resolve(import.meta.dirname, 'dist', 'sw.js')
       if (!fs.existsSync(swPath)) return
 
-      const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'))
+      const pkg = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf8'))
 
       // Netlify exposes the commit as COMMIT_REF; fall back to git locally.
       let commit = (process.env.COMMIT_REF || '').slice(0, 8)
       if (!commit) {
         try {
-          commit = execSync('git rev-parse --short=8 HEAD', { cwd: __dirname }).toString().trim()
+          commit = execSync('git rev-parse --short=8 HEAD', { cwd: import.meta.dirname }).toString().trim()
         } catch {
           commit = 'local'
         }
@@ -38,7 +38,7 @@ function stampServiceWorker() {
       // libraries; woff2 are the KaTeX fonts (the woff/ttf siblings are
       // fallbacks no supported browser will request). Sorted for a stable
       // sw.js across identical builds.
-      const assetsDir = path.resolve(__dirname, 'dist', 'assets')
+      const assetsDir = path.resolve(import.meta.dirname, 'dist', 'assets')
       const precache = fs.existsSync(assetsDir)
         ? fs
             .readdirSync(assetsDir)
@@ -110,11 +110,11 @@ export default defineConfig({
   // Netlify serves public/_headers in production; serve the same headers from
   // `vite preview` so the smoke test exercises the real CSP.
   preview: {
-    headers: readGlobalHeaders(path.resolve(__dirname, 'public', '_headers')),
+    headers: readGlobalHeaders(path.resolve(import.meta.dirname, 'public', '_headers')),
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   build: {

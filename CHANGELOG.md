@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.3] - 2026-10-13
+
+### Fixed
+
+- **The accessibility audit could run mid-animation.** The solution card
+  and its steps fade in over half a second; on a fast run axe sometimes
+  measured the half-transparent text (2.1:1) and failed a page that passes
+  once settled — about one run in twelve. The audit now waits for every
+  animation to finish and every faded element to reach full opacity before
+  measuring. A transition is not presented text, so this was a test defect,
+  not a contrast defect; reported by an outside review of v1.40.2.
+- The build's "`__dirname` is unsupported by the native config loader"
+  warning: `vite.config.js` uses `import.meta.dirname`.
+
 ## [1.40.2] - 2026-10-12
 
 Housekeeping: accessibility verification, documentation consolidation, and
