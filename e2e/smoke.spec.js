@@ -111,6 +111,10 @@ test.describe('MasterMath smoke', () => {
   test('a solve lands in Progress with the right count, and Clear History empties it', async ({ page }) => {
     await openSolver(page);
     await solveExample(page, 'Algebra: 2*x + 5 = 11');
+    // "Final Answer" renders before the history record is written; the
+    // success toast fires only after the save. Navigating earlier aborted the
+    // write on a loaded CI runner (October 2026) and Progress showed 0.
+    await expect(page.getByText('Problem solved!')).toBeVisible();
     await page.goto('/progress');
     await expect(page.getByText('2*x + 5 = 11', { exact: true })).toBeVisible();
     const totalCard = page.getByText('Total Problems').locator('..').locator('..');
