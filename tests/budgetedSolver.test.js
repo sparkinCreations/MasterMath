@@ -3,7 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createBudgetedSolver, budgetExceeded, SOLVE_BUDGET_MS } from '../src/lib/budgetedSolver.js';
+import { createBudgetedSolver, budgetExceeded, SOLVE_BUDGET_MS, FALLBACK_WARNING } from '../src/lib/budgetedSolver.js';
 import { getSettings, primeSettings, DEFAULT_SETTINGS } from '../src/lib/settings.js';
 
 // A worker double. `script` decides what happens to each posted message:
@@ -62,15 +62,24 @@ test('Cancel terminates the worker and resolves null', async () => {
   assert.equal(made[0].terminated, true);
 });
 
-test('a worker that cannot start, or that crashes, is reported and the solve falls back to the main thread', async () => {
+test('a worker that cannot start, or that crashes, is reported, the solve falls back to the main thread, and the result says so', async () => {
   const failures = [];
   const noWorker = createBudgetedSolver({ makeWorker: () => { throw new Error('no workers here'); }, fallback: async (p) => ({ status: 'solved', answer: `${p} in-thread` }), onWorkerFailure: (e) => failures.push(e) });
-  assert.equal((await noWorker.solve('x = 1', 'algebra')).answer, 'x = 1 in-thread');
+  const r1 = await noWorker.solve('x = 1', 'algebra');
+  assert.equal(r1.answer, 'x = 1 in-thread');
+  // The budget and Cancel do not apply in-thread; the user is told on the result.
+  assert.deepEqual(r1.warnings, [FALLBACK_WARNING]);
   assert.equal(failures.length, 1);
 
-  const crashing = createBudgetedSolver({ makeWorker: () => fakeWorker('crash'), fallback: async (p) => ({ status: 'solved', answer: `${p} in-thread` }), onWorkerFailure: (e) => failures.push(e) });
-  assert.equal((await crashing.solve('x = 2', 'algebra')).answer, 'x = 2 in-thread');
+  const crashing = createBudgetedSolver({ makeWorker: () => fakeWorker('crash'), fallback: async (p) => ({ status: 'solved', answer: `${p} in-thread`, warnings: ['existing'] }), onWorkerFailure: (e) => failures.push(e) });
+  const r2 = await crashing.solve('x = 2', 'algebra');
+  assert.equal(r2.answer, 'x = 2 in-thread');
+  assert.deepEqual(r2.warnings, ['existing', FALLBACK_WARNING]);
   assert.equal(failures.length, 2);
+
+  // A worker result carries no such warning.
+  const fine = createBudgetedSolver({ makeWorker: () => fakeWorker('reply'), fallback: () => { throw new Error('fallback must not run'); } });
+  assert.equal((await fine.solve('x = 3', 'algebra')).warnings, undefined);
 });
 
 test('the budget refusal names the budget, and the default budget is ten seconds', () => {

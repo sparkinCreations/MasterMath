@@ -15,6 +15,16 @@ import { getSettings } from './settings.js';
 
 export const SOLVE_BUDGET_MS = 10_000;
 
+// Shown on every result solved in-thread. The fallback keeps answers coming
+// in a browser without workers, but it cannot keep the time budget — a
+// synchronous solve cannot be interrupted — so the user is told, rather than
+// finding out when the page freezes (outside reviews, October 2026).
+export const FALLBACK_WARNING = 'Solved on the page itself because the background solver could not start in this browser. The 10-second time limit and Cancel are unavailable here, so a very hard problem may make the page unresponsive while it is being worked on.';
+
+const withFallbackWarning = (result) => (result && typeof result === 'object'
+  ? { ...result, warnings: [...(result.warnings || []), FALLBACK_WARNING] }
+  : result);
+
 export function budgetExceeded(problem, budgetMs) {
   const seconds = Math.round(budgetMs / 1000);
   return unsupported({
@@ -52,7 +62,7 @@ export function createBudgetedSolver({ makeWorker, fallback, budgetMs = SOLVE_BU
     if (!w) {
       // No worker (an environment without them, or one that failed to
       // load): solve in-thread so the user still gets an answer.
-      Promise.resolve(fallback(problem, topic)).then(resolve, reject);
+      Promise.resolve(fallback(problem, topic)).then((r) => resolve(withFallbackWarning(r)), reject);
       return;
     }
     const id = nextId++;
@@ -80,7 +90,7 @@ export function createBudgetedSolver({ makeWorker, fallback, budgetMs = SOLVE_BU
       // error — those arrive as messages). Report it, then answer in-thread.
       dropWorker();
       onWorkerFailure(event?.error || event?.message || event);
-      Promise.resolve(fallback(problem, topic)).then((r) => finish(resolve, r), (e) => finish(reject, e));
+      Promise.resolve(fallback(problem, topic)).then((r) => finish(resolve, withFallbackWarning(r)), (e) => finish(reject, e));
     };
     const onAbort = () => {
       dropWorker();

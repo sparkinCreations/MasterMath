@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.4] - 2026-10-13
+
+### Changed
+
+- **The in-thread fallback says so.** If the background solver cannot start
+  (a browser without Web Workers, or a worker that fails to load), solving
+  still works on the page itself — but the 10-second time limit and Cancel
+  cannot apply there, because a synchronous solve cannot be interrupted.
+  That degradation was silent; every result solved that way now carries a
+  warning saying the limit and Cancel are unavailable and a very hard
+  problem may make the page unresponsive. Raised by three outside reviews.
+
 ## [1.40.3] - 2026-10-13
 
 ### Fixed
