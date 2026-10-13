@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.2] - 2026-10-12
+
+Housekeeping: accessibility verification, documentation consolidation, and
+repository tidying.
+
+### Added
+
+- **Accessibility audit on every push.** `e2e/a11y.spec.js` runs axe-core
+  (WCAG 2.0/2.1 A and AA rules) on all nine pages in light and dark mode,
+  and on the Solver showing a validation error and a solution with a graph;
+  any violation fails the build. Keyboard operation, focus visibility and
+  reflow at 320 px were checked by hand; `docs/ACCESSIBILITY.md` records
+  what was tested, the results, and what remains unverified.
+- A polite live region announces "Calculating the solution…" to screen
+  readers while a solve runs (the button's label change alone is not
+  announced).
+
+### Fixed
+
+- The validation error text was 4.36:1 against its panel at 14 px, under
+  the AA minimum of 4.5:1 — the only violation axe found. Now 5.88:1.
+
+### Changed
+
+- One file tree instead of three: `docs/FILE_STRUCTURE.md` is gone and the
+  README shows directories only; the architecture, invariants and process
+  live in `CLAUDE.md`, rewritten to a third of its length. The React guide
+  is dated to the version it describes.
+- Removed three unused files from `public/`; Playwright output is ignored.
+
 ## [1.40.1] - 2026-10-12
 
 ### Fixed

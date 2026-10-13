@@ -28,3 +28,7 @@ pnpm-debug.log*
 # Playwright smoke test output
 test-results/
 playwright-report/
+
+# Playwright output
+test-results
+playwright-report

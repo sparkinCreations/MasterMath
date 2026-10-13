@@ -1,275 +1,191 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository. This file holds the
+architecture, the invariants and the process; the history of individual fixes
+lives in `CHANGELOG.md`, and the behaviour of each solver is documented at the
+top of its own file.
 
-## Project Overview
+## What MasterMath is
 
-**MasterMath** is a React-based educational math application that helps students solve math problems with step-by-step solutions and visual feedback. The application uses local JavaScript math libraries (not AI) to generate solutions, explanations, and graphs, with all data stored locally in the browser using IndexedDB.
+A React app that solves maths problems step by step — arithmetic, algebra,
+systems, inequalities, trigonometry, functions, limits, derivatives, integrals —
+using local JavaScript maths libraries (mathjs, Algebrite), **not AI**. All data
+stays in the browser (IndexedDB, localStorage). Deployed at mastermath.app by
+Netlify from `main`.
 
-## Architecture
+Branding: **MasterMath** (never MathMaster) by sparkinCreations™; tagline
+"Master math with confidence"; positioning is "step-by-step local solver", never
+"tutor" or AI-chatbot framing. Palette: indigo (book) and orange (operators) from
+the logo; green = answer, amber = tips.
 
-### Component Structure
+## Layout
 
-The application follows a modular architecture with clear separation of concerns:
-
-- **Layout.jsx**: Main application layout with sidebar navigation using shadcn/ui components. Includes dark mode toggle, header with branding, footer with links, and navigation between all pages. Uses React Router for routing with `createPageUrl` utility from `@/utils`.
-
-- **App.jsx**: Root component that wraps the application with providers (DarkModeProvider, ToastProvider, ConfirmProvider) and defines all routes including Solver, Progress, UserManual, PrivacyPolicy, TermsOfService, and Feedback.
-
-- **Pages/**: Top-level page components
-  - `Solver.jsx`: Main problem-solving interface with ProblemInput, SolutionDisplay, and GraphViewer components. Handles solving logic and saves to IndexedDB.
-  - `Progress.jsx`: User progress tracking page showing statistics (total problems, this week, topics covered), problem history with filtering by topic/date, export functionality (PDF, CSV, JSON, Markdown), and clear history button with confirmation.
-  - `UserManual.jsx`: User documentation and help page
-  - `PrivacyPolicy.jsx`: Privacy policy information
-  - `TermsOfService.jsx`: Terms of service
-  - `Feedback.jsx`: User feedback and support page
-
-- **Components/solver/**: Solver-specific UI components
-  - `ProblemInput.jsx`: Input form with topic selection dropdown (derivatives, integrals, limits, functions, trigonometry, algebra, other/arithmetic), problem textarea with dynamic placeholders, solve button with loading state, and example problems for each topic.
-  - `SolutionDisplay.jsx`: Displays step-by-step solutions with Framer Motion animations, final answer, key insights (tips), common mistakes to avoid, and export buttons (PDF, JSON, Markdown).
-  - `GraphViewer.jsx`: Renders mathematical function graphs using Recharts. Accepts `functionData` prop with `points` array (x, y coordinates), `title`, and optional `description`.
-
-- **Contexts/**:
-  - `DarkModeContext.jsx`: Provides dark mode state and toggle function, persists to localStorage, defaults to light mode.
-
-- **Entities/**: Data schema definitions
-  - `ProblemHistory.json`: JSON schema for problem history storage in IndexedDB. Properties include `id` (auto-increment), `problem`, `topic`, `solution`, `feedback`, and `createdAt` timestamp.
-
-### UI Library
-
-The app uses **shadcn/ui** components with Tailwind CSS for styling. All UI components are imported from `@/components/ui/` including:
-- Button, Card, Textarea, Select, Label
-- Sidebar (with SidebarProvider, SidebarContent, SidebarMenu, etc.)
-- Toast (for notifications)
-- ConfirmDialog (for confirmations)
-- DropdownMenu (for export options)
-
-The design features:
-- Gradient backgrounds (blue/purple/green)
-- Modern, colorful styling with purple/blue/green color scheme
-- Dark mode support throughout
-- Responsive layout with mobile support
-
-### Key Dependencies
-
-**UI & Routing:**
-- **React Router**: Client-side routing with `createPageUrl` utility
-- **Recharts**: Data visualization for function graphs
-- **Framer Motion**: Animations for solution display
-- **Lucide React**: Icon library
-- **shadcn/ui + Tailwind CSS**: UI component library and styling. Tailwind 4: configuration is CSS-first in `src/index.css` (`@import "tailwindcss"`, `@theme` for the radius scale, `@custom-variant dark` for class-based dark mode, and a v3 border-colour compatibility layer) — there is no `tailwind.config.js`; PostCSS uses `@tailwindcss/postcss`.
-
-**Math Libraries:**
-- **mathjs**: Core math operations and expression parsing. Both instances are built in `src/lib/mathInstance.js` from an explicit dependency list (not `create(all)`) so matrices, units and statistics tree-shake out; add a function there AND to the battery in `tests/mathInstance.test.js`. Floor is ~865 kB because every function in the full entry pulls BigNumber and Matrix through the typed core; the number-only entry lacks Complex/Fraction/polynomialRoot.
-- **algebrite**: Symbolic algebra, calculus, and simplification
-- **No mathsteps** (removed v1.39.0): its nested mathjs 3 had critical advisories and builds code with `new Function`, which the CSP blocks. Never re-add it or any dependency that needs `eval`; `tests/linearEquation.test.js` checks it stays out.
-
-**Export & Storage:**
-- **jspdf**: PDF generation for exports
-- **IndexedDB**: Browser-based local storage (via custom `indexedDB.js` utility)
-
-## Data Flow
-
-1. User selects topic and enters problem in `ProblemInput` component
-2. On solve, `solveProblem()` in `api.js`:
-   - Extracts mathematical expression from natural language using `mathParser.js`
-   - Routes to appropriate solver based on topic (algebra, derivatives, integrals, limits, trigonometry, functions, arithmetic)
-   - Each solver uses mathjs or algebrite to compute solution
-3. `SolutionDisplay` renders the solution with steps, answer, tips, and common mistakes
-4. `GraphViewer` visualizes function data if available (points array with x/y coordinates)
-5. Problem saved to IndexedDB via `createProblemHistory()` with problem, topic, solution, feedback, and timestamp
-6. Progress page loads all problems from IndexedDB and displays statistics, history, and export options
-
-## Storage Architecture
-
-### IndexedDB Implementation (`src/lib/indexedDB.js`)
-
-The app uses **IndexedDB** for local, browser-based storage (no backend API):
-- Database name: `MathMasterDB` (legacy pre-rebrand name, kept so existing users' saved history is not orphaned — IndexedDB databases are identified by this string)
-- Object store: `problemHistory`
-- Schema: Auto-incrementing `id`, with indexes on `topic` and `createdAt`
-- Functions:
-  - `initDB()`: Initialize database
-  - `getAllProblems()`: Fetch all problems (sorted by date descending)
-  - `addProblem(data)`: Add new problem with auto timestamp
-  - `updateProblem(id, data)`: Update existing problem
-  - `deleteProblem(id)`: Delete problem
-  - `clearAllProblems()`: Clear entire history
-  - `getProblemsByTopic(topic)`: Filter by topic
-
-### API Layer (`src/lib/api.js`)
-
-Wraps IndexedDB functions and provides:
-- `fetchProblemHistory()`: Get all problems
-- `createProblemHistory(data)`: Add new problem
-- `updateProblemHistory(id, data)`: Update problem
-- `clearProblemHistory()`: Clear all
-- `solveProblem(problem, topic)`: Main solving logic that routes to appropriate solver
-
-## Math Solvers
-
-### Solver Architecture (`src/lib/solvers/`)
-
-Each solver module exports a solve function that returns a consistent solution object:
-
-```javascript
-{
-  steps: string[],              // Step-by-step solution
-  answer: string,               // Final answer
-  tips: string[],               // Key insights
-  common_mistakes: string[],    // Common mistakes to avoid
-  graph: {                      // Optional graph data
-    points: [{x, y}, ...],
-    title: string,
-    description: string,
-    annotations: {              // Optional markers rendered by GraphViewer
-      extrema: [{x, y, kind}],  // kind: "max" | "min"
-      intercepts: [{x, y: 0}],
-      yIntercept: {x: 0, y},
-      verticalAsymptotes: [x],
-      holes: [{x, y}],          // removable discontinuities: hollow marker labelled "hole"
-      guideline: {x, label},    // limits: the approach point
-      limitPoint: {x, y},       // limits: hollow marker at (a, L)
-      shaded: {from, to, fromLabel, toLabel},  // definite integrals: shaded area over [a,b]
-      intersection: {x, y, label},  // systems: the solution point where two lines cross
-      shadedRegions: [{from, to}],  // inequalities: x-ranges where it holds (±Infinity clamped to the window)
-      openPoints: [{x, y, label, series}]  // hollow markers a curve approaches but does not take (one-sided derivative values at a corner); series "secondary" puts them on the dashed curve
-    },
-    initialWindow: {xMin, xMax}, // optional non-default starting view
-    expression: string,          // optional: the viewer re-samples the curve for the window on screen (400 points per window, gaps at every break) instead of filtering `points`
-    secondaryExpression: string, // the dashed curve (f′, F), re-sampled likewise
-    variable: string,
-    breaks: [x], secondaryBreaks: [x] // x values where a curve is undefined (a null point is inserted there); vertical asymptotes are breaks automatically
-  }
-}
+```
+src/
+  App.jsx, Layout.jsx          providers, routes, sidebar/header/footer
+  pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback
+  components/solver/           ProblemInput, SolutionDisplay, GraphViewer, GraphEmptyState
+  components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
+  components/MathText.jsx      KaTeX rendering of solver text
+  contexts/DarkModeContext.jsx class-based dark mode, persisted to localStorage
+  hooks/                       usePageTitle, useServiceWorker
+  lib/
+    api.js                     solveProblem (intent routing) + IndexedDB wrappers + finalizeResult gate
+    budgetedSolver.js          the page's entry point: worker, 10 s budget, Cancel, in-thread fallback
+    solver.worker.js           runs solveProblem off the main thread
+    mathParser.js              notation → mathjs/Algebrite syntax; expression extraction
+    validation.js              input length/topic checks
+    settings.js                angleUnit, decimalPlaces (localStorage, or primed by message in the worker)
+    solutionEnvelope.js        typed result statuses: solved / parse_error / unsupported / undefined / indeterminate / diverges / overflow
+    mathInstance.js            mathjs built from an explicit dependency list (tree-shaken)
+    graphSampling.js, graphDescription.js, latex.js, exportUtils.js, indexedDB.js, reveal.js
+    solvers/                   one module per topic (below) + solverUtils.js shared helpers
+tests/        node --test unit suite; tests/corpus/harness.mjs grades the evaluation corpora
+e2e/          Playwright smoke test of the production build
+docs/         evaluations/ (graded CSVs + audits), future-work/, HOW_THE_APP_WORKS.md, REACT_GUIDE.md
+public/       _headers (CSP), sw.js (service worker), manifest, icons, robots, sitemap
 ```
 
-**Shared helpers (`solverUtils.js`):** `splitTopLevel`, `splitTerms`, `stripOuterParens`, `gcd`, `runAlgebrite`, `beautify`, `formatNumber` — import these rather than writing a local copy (copies drifted, and one bare `/^\((.*)\)$/` paren strip broke partial fractions). Never strip parentheses with that regex.
+Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
+`tailwind.config.js`); dark mode is the `dark` class.
 
-**Graph sampling (`src/lib/graphSampling.js`):** `sampleCurve` (re-sampling with explicit gaps, unnamed-pole detection), `featureWindow` (the window framing a set of feature x-values), `annotationFeatureXs` (the "Fit key features" control), `interestingXs` (numeric zeros/extrema/inflections for solvers with no exact feature list). Label placement: `formatLineX` (`x = 3π/2` via `piForm`, which now lives in `solverUtils.js`), `layoutLineLabels` (one row of vertical-line labels kept inside the plot, a label that would overlap its neighbour dropped) and `placePointLabel` (right of the marker, else left, else above). GraphViewer draws every vertical-line label (asymptotes, equation solutions, a limit's guideline) through its `LineLabels` layer and marker labels through `PointLabel`, both inside the plot — never Recharts' `position: 'top'` on a vertical line, which lands in the 5px margin above the plot and is cut off at every width. GraphViewer opens on `initialWindow`, else the feature window when the graph can be re-sampled, else ±10; it adds a right-hand y-axis for the dashed curve when the two visible ranges differ by more than 4× (toggleable).
+## How a solve flows
 
-**Available Solvers:**
-- `algebraSolver.js`: Equations, simplification, factoring (using algebrite, mathjs). Linear equations take `linearEquationSolver.js` (exact mathjs Fractions: clear fractions by the LCD, or distribute then combine as separate steps, collect, isolate, divide; null for anything non-linear or an identity/contradiction). Quadratics show their working (`quadraticDerivation`: a monic integer quadratic that factors gets the sum-product search and the zero-product property, else x² = c and ±√, or a, b, c, discriminant, formula); polynomial simplification (`expandPolynomial`) shows the multiplying out and then the combining, and its expanded form wins ties; one square root of the variable takes `solveViaRadicalIsolation` (isolate, domain, square, solve, check every candidate and reject the extraneous one with the reason). rational equations are cleared of denominators before the exact root path; polynomials in e^x — or in a^x for a numeric base a — are solved via u = e^x (`solveViaExpSubstitution`: `2^x = 10` → `ln(10)/ln(2)`); equations in logarithms via `solveViaLogSubstitution` (one argument: u = ln(g), solve, back-substitute; several: combine by the log rules into one log, rewrite in exponential form, solve the polynomial; every candidate must keep every argument positive and balance the original — `ln(x) = 1` → `e (≈ 2.7183)`, `log(x) + log(x − 3) = 1` → `5` with `−2` rejected); radicals display as √n.
-- `polynomialRoots.js`: every root of a polynomial with rational coefficients, guaranteed complete. `readPolynomial` reads it exactly (`degreeBound` from the parse tree, coefficients interpolated in Fractions — no Algebrite deg/coeff), `allRoots` counts real roots by Sturm's theorem on each square-free factor (multiplicities exact), locates them by bisection at dyadic points in BigInt arithmetic, and lists non-real roots from Durand–Kerner only if they verify (else gives their count). Degree > `MAX_POLYNOMIAL_DEGREE` (100, measured: ordinary degree-100 polynomials take < 100 ms; Wilkinson-type ones are what the solve budget is for) is refused at once. `algebraSolver` sends any polynomial above `ALGEBRITE_DEGREE_LIMIT` (12) straight here — Algebrite's exact forms are unreadable past that and it grinds for seconds on dense input — checks every Algebrite root list against the degree for the rest, and sends shortfalls here; a polynomial never reaches the zero-crossing scan. Past 4 complex roots (or 8 roots in all) the real ones are listed and the rest counted, matching `formatSolutions`. Never decide completeness or a mathematical property from fixed sample points.
-- `systemsSolver.js`: Systems of two linear equations in two unknowns — Cramer's rule in exact rational arithmetic — and three in three (`solve3x3`: Gaussian elimination in mathjs fractions, every row operation shown, rank/consistency trichotomy, verified against the original equations before it is reported). Cramer's rule in exact rational arithmetic (18/5, not 3.6), worked substitution steps, and the unique / no-solution (parallel) / infinitely-many (same line) trichotomy. The solution is substituted back into both equations before it is reported. Receives the raw problem text (routed from api.js when it detects two `=` signs) so the first equation isn't mangled by single-expression extraction. Non-linear 2×2 systems (line ∩ parabola or circle, `xy = 6; x + y = 5`) are solved by substitution when one equation is linear in some variable: isolate it, substitute, take Algebrite's exact roots, back-substitute, and verify every pair against both equations; two general conics are refused.
-- `inequalitiesSolver.js`: Single-variable inequalities (`<`, `>`, `≤`, `≥`) by the sign-chart method — move to one side, find zeros (numerator roots) and breaks (denominator roots), test the sign on each interval, and read off the solution with correct open/closed endpoints (roots closed for ≤/≥, poles always open). Handles linear, polynomial, and rational inequalities; reports all-reals / no-solution / single-point cases; solves compound inequalities — chains `a < f(x) ≤ b` and `and`/`or` pairs — by solving each part and intersecting or uniting the solution sets (a chain pointing both ways, `a < x > b`, is refused). Routed from api.js when the raw text contains a comparison operator.
-- `derivativesSolver.js`: Differentiation (using algebrite). `k·|ax + b|` takes `solveAbsLinear` — piecewise rewrite, each branch differentiated, one-sided derivatives compared at the corner, `f'(x₀) does not exist` (never sgn(0) = 0); other abs uses keep sgn and say where f′ does not exist. `derivativeDomain` appends `x ≠ a` / `x > a` from the poles of f′ and linear root/log restrictions (`1/x → −1/x², x ≠ 0`). `classifyDerivativeRule` labels the rule per term (power / negative-exponent power / exponential / logarithmic differentiation / product / quotient / chain, incl. reciprocal and a^u); `workedRuleSteps` then shows the interior — product and quotient name u and w and their derivatives and assemble the formula; chain names the inner u, gives the outer derivative from a table (`OUTER_DERIVATIVES`) and the inner derivative, then substitutes back. Orders up to 4 (`options.order`), `options.variable` for "with respect to", `options.evalAt`. Results write ln/e^ (`lnify`).
-- `integralsSolver.js`: Integration (using algebrite) — indefinite antiderivatives (direct / substitution / by-parts / partial fractions over distinct real linear factors via `integrateByPartialFractions` (cover-up, decomposition and antiderivative both verified) / abs), definite integrals, and improper integrals to ±∞ (`solveImproperInfinite`: F from the per-term machinery, `limitAtInfinity` samples F at 10²…10⁸ and classifies converge / diverge (incl. slow ln-type growth) / oscillate; exact value when the limit is a nameable constant, e.g. `∫₀^∞ e^(−x²) dx = √π/2`; cross-checked by quadrature over a long finite stretch). Definite integrals (`∫_a^b f dx` via the Fundamental Theorem of Calculus, exact value cross-checked by Simpson's-rule quadrature; an interior singularity is split at the pole and tested by one-sided limits of F — reported as divergent when either fails, summed when both converge). Integrates term by term so each term can take its own path. Receives the raw problem text (like limits) so it can read definite-integral bounds before notation is normalized.
-- `byPartsSolver.js`: The integration-by-parts walkthrough engine. Drives `∫u dv = uv − ∫v du` on Algebrite's single-step derivative/integral primitives via a linear accumulator (`I = boundary + coeff·∫current`), so it can *show* the u/dv derivation and compute the two families Algebrite fails outright — repeated by-parts (`x³·sin x`) and cyclic by-parts (`eˣ·sin x`, solved algebraically when the integral reappears). u is chosen by LIATE; every antiderivative is differentiated back and checked before it's trusted. `integralsSolver` calls it per term.
-- `substitutionSolver.js`: u-substitution for integrands of the shape `g′(x)·h(g(x))` — candidate inner functions are the arguments of function calls, the calls themselves (`sin(x)`, `ln(x)`), power bases and `e^(…)` exponents; for each, the integrand is divided by `g′(x)` and rewritten in `u`, and if `x` has vanished it is integrated in `u`, back-substituted, and **verified by differentiation** (symbolic, then numeric). Also `∫c·|ax+b| dx = c·(ax+b)·|ax+b|/(2a) + C` with exact fractional coefficients, since Algebrite has no `abs`. `integralsSolver` tries substitution before by-parts for products (x·e^(x²) is not a by-parts problem) and after the direct attempt otherwise.
-- `arithmeticSolver.js`: Basic arithmetic operations (using mathjs). `showWorking` evaluates one operation at a time in PEMDAS order on the mathjs parse tree and prints the expression after each; `describeOrder` is the fallback.
-- `limitsSolver.js`: Limits — named techniques (standard limits, factor-and-cancel, conjugate, leading terms, squeeze, series, L'Hôpital), each verified numerically, then numeric estimation.
-- `trigonometrySolver.js`: Trig values, identities and simplification (using mathjs, algebrite); exports `detectTrigAsymptote`, which `limitsSolver` uses.
-- `trigEquationSolver.js`: Trigonometric equations of the form `A·f(kx) + B = C` — plus, via `solveReducibleTrig`, three shapes that reduce to it: a quadratic in one function (`2sin²x − sin x − 1 = 0` → u = 1 or −1/2, each case solved by the linear path and the results merged), `a·sin + b·cos = 0` → `tan = −a/b`, a Pythagorean rewrite (`sin²x + cos x = 1` → `1 − cos²x + cos x = 1`), `a·sin + b·cos = c` by the auxiliary angle (R·sin(θ+φ)), and `f(A) = f(B)` with two different linear arguments (`solveEqualArguments`: sin → equal/supplementary, cos → ±, tan → +πn, mixed via the cofunction identity). Base family for f ∈ {sin, cos, tan} — isolates the trig term (linear-in-u check), gives the reference angle exactly for special values (π/6, √3/2, …), the full general solution (`x = π/6 + 2πn or 5π/6 + 2πn`), the solutions on [0, 2π), and a graph of the curve against `y = c` with the solutions marked. Every listed solution is substituted back before it is reported. Out-of-family equations (sin²x, sin x = cos x, sin(x²)) are refused as *unsupported*, never mis-solved. Reached from `solveTrigonometry` whenever the input is an equation — mathjs parses `sin(x) = 1/2` as a function *definition* and returns a function object, so an equation must never reach `math.evaluate` — and from the Algebra topic for single trig equations (falling through to the numeric root scan when out of family).
+1. `ProblemInput` validates and sanitizes the text, then `Solver.jsx` calls
+   `solveWithBudget(problem, topic, { signal })` (`budgetedSolver.js`). The
+   page never calls `solveProblem` directly.
+2. The request (with the current settings) goes to a module Web Worker. The
+   worker primes the settings and runs `solveProblem`. Past
+   `SOLVE_BUDGET_MS` (10 s), or on Cancel, the worker is **terminated** and the
+   page gets an honest `unsupported` envelope / `null`; the next solve gets a
+   fresh worker. If the worker cannot start, the solve runs in-thread and
+   `console.error("Solver worker failed …")` is logged — the smoke test fails
+   on that line.
+3. `solveProblem` (`api.js`) routes by **intent, not topic**: derivative /
+   integral / limit notation goes to that solver under any topic; a single
+   equation goes to Algebra; two `=` signs go to systems; a comparison operator
+   to inequalities; a trailing "at x = a" is stripped first (`extractEvalPoint`).
+   A routed result's first step says so (`routedTopic`).
+4. The solver returns `{ steps[], answer, tips[], common_mistakes[], graph? }`
+   wrapped in an envelope status. `finalizeResult` enforces the status and
+   refuses anything that is not presentable text (objects, code-shaped
+   strings) as `unsupported`.
+5. `SolutionDisplay` renders it (KaTeX via `MathText`, which must keep
+   `htmlAndMathml` output — the MathML is what screen readers get);
+   `GraphViewer` re-samples `graph.expression` for the window on screen.
+6. Solved / undefined / indeterminate / diverges results are saved to
+   IndexedDB (`MathMasterDB` — legacy name, keep it) under `routedTopic`.
 
-**Where the solver runs (`budgetedSolver.js`, `solver.worker.js`):** the page never calls `solveProblem` directly. `solveWithBudget(problem, topic, { signal })` posts the request (with the current settings — a worker has no localStorage; the worker calls `primeSettings`) to a module Web Worker and resolves with the result, `null` on cancel, or an `unsupported` envelope after `SOLVE_BUDGET_MS` (10 s), terminating the worker in the last two cases so the next solve gets a fresh one (which also clears Algebrite's poisoned state). A worker that fails to start logs "Solver worker failed" and falls back in-thread; the smoke test fails on that log line, because unit tests cannot see a bundling fault. The worker is a separate Vite build (`worker` in `vite.config.js`) sharing `CHUNK_GROUPS` with the page, so it lazy-loads solvers too. Anything the solver imports must stay free of `window`/`document` at module load.
+## Solvers (`src/lib/solvers/`)
 
-**Routing by intent (`solveProblem` in `api.js`):** the topic dropdown is a hint, not a command. Before any topic-specific path runs, the input's own signals are read: derivative notation (`d/dx`, "derivative of", `dy/dx`), integral notation (`∫`, "integrate"), and limit notation (`lim`, `->`, "approaches") route to that solver under *any* topic; a single equation in one unknown routes to Algebra from any topic that doesn't own equations (trig equations stay in Trigonometry; `f(x) = …`/`y = …` stay in Functions); a variable expression under Arithmetic goes to Algebra. A routed result's first step says so ("Solved as Derivatives (you chose Algebra): the input uses derivative notation"). Before this, `d/dx x^3` under Algebra "simplified" to `x^3` and `x^2 = 4` under Integrals became `∫(x^2=4) dx = nil*x + C`.
+Each file documents its own methods at the top. Shared invariants:
 
-**Evaluation points (`extractEvalPoint` in `api.js`):** a trailing "at x = a" / "when x = π/4" is stripped from the raw text *before* routing (its `=` would otherwise make `x^2 at x = 1.5` look like an equation in a, t and x). Under derivative intent it becomes `solveDerivative(expr, { evalAt })` — the derivative is evaluated at the point, exact via Algebrite `subst` with a decimal alongside (`f'(1) = cos(1) ≈ 0.5403`); under Algebra/Functions/Arithmetic/Trigonometry a plain expression is substituted and evaluated (`f(3) = 10`).
+- **Verify before reporting.** Every equation solution is substituted back
+  into the original; every antiderivative is differentiated back; definite
+  integrals are cross-checked by quadrature; limits numerically. Extraneous
+  roots are rejected with the reason shown.
+- **Refuse honestly.** Out-of-family input returns `unsupported`, never a
+  guess. Never decide a mathematical property (linearity, completeness of a
+  root list) from fixed sample points — construct a proof or refuse.
+- **Exact first.** Fractions and radicals stay exact (18/5, √2, π/6); a
+  decimal is shown alongside. `formatNumber` honours the `decimalPlaces`
+  setting. A root located numerically is shown with ≈, `=` only when it is
+  exactly the number shown.
+- **Teach the method.** Steps show the working a textbook would (u and dv,
+  the discriminant, the sign chart, the LCD), with tips and mistakes chosen
+  from the method used, not one generic list.
 
-**Settings (`settings.js`):** `decimalPlaces` flows through `formatNumber` (default arg) so every solver honours it. `angleUnit` is read only by trigonometry: it decides how plain-number angles are *read* (`sin(0.5)`, decimals included) and how angle *results* are reported — `arcsin(0.3)` → `17.4576°`, and `trigEquationSolver` renders the whole solution (reference angle, general solution, `[0°, 360°)` listing, graph x-axis) in degrees when the unit is degrees. Calculus solvers always work in radians. Routed results carry `routedTopic`, and history saves under it.
+Modules: `arithmeticSolver` (PEMDAS working, exact fractions), `algebraSolver`
+(equations: linear → `linearEquationSolver` in exact fractions; quadratics with
+factoring or the formula; exp/log/radical/abs substitutions; Algebrite roots
+checked for completeness against the degree, shortfalls and anything above
+degree 12 to `polynomialRoots`; simplification; factoring), `polynomialRoots`
+(exact reader, Sturm counting, exact bisection, verified complex roots, cap
+`MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,
+non-linear by substitution), `inequalitiesSolver` (sign charts, compound),
+`trigonometrySolver` (values, identities; exports `detectTrigAsymptote`),
+`trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
+`functionsSolver` (exact extrema/intercepts/asymptotes), `limitsSolver`
+(named techniques, each verified; numeric estimate last), `derivativesSolver`
+(rule classification and worked rule steps, orders 1–4, evalAt),
+`integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` / partial
+fractions / definite / improper).
 
-**Result gate (`finalizeResult` in `api.js`):** every solver's output passes through it. Besides enforcing the envelope status, it refuses any answer or step that is not presentable text — a function/object/array, or a string shaped like source code — and returns an honest `unsupported` envelope instead. It is the last line of defence against engine internals reaching the screen; the pattern is deliberately code-specific so prose like "return to the original variable" is never mistaken for a leak.
-- `functionsSolver.js`: Function analysis/graphing — exact extrema via f'(x)=0, root-based intercepts, domain & asymptote detection (never fabricates a feature)
+`solverUtils.js` owns the shared helpers — `beautify`, `formatNumber`,
+`splitTerms`, `splitTopLevel`, `stripOuterParens`, `gcd`, `runAlgebrite`,
+`loadAlgebrite`, `lnify`, `piForm` — import them, never copy them. Never strip
+parentheses with `/^\((.*)\)$/`.
 
-### Math Parser (`src/lib/mathParser.js`)
+Algebrite: always through `loadAlgebrite()` (a throwing direct call poisons
+every later call; the worker's termination also clears it). mathjs: add a
+function to `mathInstance.js` **and** to the battery in
+`tests/mathInstance.test.js`. The number-only entry lacks Complex/Fraction, so
+keep the full dependency list. `log(…)` typed bare is base 10
+(`rewriteCommonLog`); `ln` is natural.
 
-Utilities for parsing and cleaning user input:
-- `parseMathExpression(input)`: Converts common notation to JS-friendly format (x² → x^2, 2x → 2*x, etc.)
-  - A bare `log(…)` is the **common logarithm, base 10** (`rewriteCommonLog` turns it into `log(…)/log(10)` because mathjs and Algebrite both name the *natural* log `log`); `ln` is natural; `log(x, b)`, `log_b(x)`, `log10`, `log2` name their base. `usesCommonLog` tells `finalizeResult` to add `COMMON_LOG_TIP` so the user sees the convention. A typed `log(A)/log(B)` is left in place only as a *plain* ratio — nothing binding more tightly to either log than the division between them (`isPlainLogRatio`; `log(A)/log(10)^2`, `2^log(A)/log(B)` and `x/log(A)/log(B)` are read log by log) — and a bare log nested inside it is still rewritten.
-- `extractFunctionFromProblem(text)`: Extracts math expression from natural language
-- `extractVariable(expr)`: Finds main variable (usually x)
-- `isEquation(expr)`: Checks if expression is an equation (contains =)
+**No mathsteps** (removed 1.39.0: unmaintained, vulnerable nested mathjs,
+needs `eval` which the CSP forbids). Never re-add it or any dependency that
+needs `eval`; `tests/linearEquation.test.js` checks.
 
-## Export Functionality
+## Graphs
 
-### Export Utilities (`src/lib/exportUtils.js`)
+`graph` may carry `expression` / `secondaryExpression` (re-sampled by the
+viewer, 400 points per window, gaps at `breaks`), `annotations` (extrema,
+intercepts, asymptotes, holes, limit guideline/point, shaded regions,
+intersection, open points) and `initialWindow`. Vertical-line and marker
+labels are drawn inside the plot by `LineLabels`/`PointLabel` — never
+Recharts' `position: 'top'`, which is clipped. Every graph gets a text
+description (`graphDescription.js`).
 
-**Progress History Exports:**
-- `exportAsCSV(problems, topicLabels)`: CSV with date, topic, problem, solution
-- `exportAsJSON(problems)`: JSON array of all problems
-- `exportAsMarkdown(problems, topicLabels)`: Markdown grouped by topic
-- `exportAsPDF(problems, topicLabels)`: PDF using jsPDF
+## Security and privacy
 
-**Individual Solution Exports:**
-- `exportSolutionAsMarkdown(problem, topic, solution, topicLabels)`: Single solution as Markdown
-- `exportSolutionAsJSON(problem, topic, solution)`: Single solution as JSON
-- `exportSolutionAsPDF(problem, topic, solution, topicLabels)`: Single solution as PDF
+- `public/_headers`: CSP (self-only scripts, no `eval`, the inline boot
+  watchdog in `index.html` allowed by hash — edit that script and
+  `tests/securityHeaders.test.js` tells you the new hash), nosniff, frame
+  denial, referrer and permissions policies. `vite preview` serves the same
+  file, so the smoke test fails on any CSP violation. A new outside origin
+  needs a `connect-src`/`img-src` entry.
+- The only outbound request is the Feedback form (Web3Forms), only on submit.
+  Privacy wording anywhere must name that exception.
+- `npm audit --omit=dev` runs in CI and must stay clean.
 
-All exports trigger browser downloads with appropriate filenames and timestamps.
+## Tests and verification
 
-## Development Commands
+- `npm test` — unit suite (node --test), includes the corpus harness
+  (`tests/corpus/`: July + September 2026 evaluations, 277 graded problems,
+  0 confidently-wrong is the bar) and a build-preload check.
+- `npm run smoke` — Playwright against the production build, desktop and
+  phone: pages, every example, worker + budget + Cancel, CSP, accessibility
+  (axe-core, WCAG 2.1 AA rules, light and dark). Run it after any change to
+  `vite.config.js`, chunking, dependencies or a page component — real crashes
+  have been invisible to the unit suite.
+- Both run in GitHub Actions; Netlify's build runs `npm test` before building,
+  so a red unit suite blocks the deploy.
+- When an outside review lands, reproduce each claim before agreeing, then
+  sweep the same class of input for more.
 
-- **Install dependencies**: `npm install`
-- **Start dev server**: `npm run dev` (opens at http://localhost:5173)
-- **Build for production**: `npm run build`
-- **Preview production build**: `npm run preview`
-- **Run tests**: `npm test` (node --test; keep all tests green before pushing)
-- **Security headers**: `public/_headers` (CSP, nosniff, frame denial…) is served by Netlify and, via `scripts/netlifyHeaders.js`, by `vite preview`, so the smoke test fails on any CSP violation. Editing the inline boot watchdog in `index.html` changes its hash — update `script-src` (`tests/securityHeaders.test.js` says what to put). A new outside origin (fetch, font, image) needs a CSP entry.
-- **Browser smoke test**: `npm run smoke` (Playwright: builds, serves the production bundle, drives Chromium on desktop and phone viewports; `npm run smoke:ui` for the interactive runner). Run it after any change to `vite.config.js`, the chunking, dependencies, or a page component — three real crashes in September 2026 were invisible to the unit suite and only showed in the built app. Both suites also run in GitHub Actions on every push.
+## Release process (required)
 
-## Release Process (REQUIRED)
+Every push to `main` deploys. Any push that changes the app (`src/`,
+`public/`, `index.html`, `vite.config.js`, dependencies) must, in the same
+push:
 
-Every push to `main` deploys to production (Netlify builds from source per
-`netlify.toml`, running `npm test` first — a failing unit test fails the
-build and blocks the deploy; the smoke test runs only in GitHub Actions). **Any push that changes what the deployed app does or looks
-like MUST include, in the same push:**
+1. Bump `package.json` (semver: patch = fixes, minor = features) and run
+   `npm install --package-lock-only` (or edit the two lockfile version fields).
+2. Add a dated `CHANGELOG.md` entry (Keep a Changelog: Added / Changed /
+   Fixed) under `## [Unreleased]`.
 
-1. **A version bump** in `package.json` following semver:
-   - patch (x.y.Z) — bug fixes only
-   - minor (x.Y.0) — new features, no breaking changes
-   - Run `npm install --package-lock-only` after editing so the lockfile
-     version stays in sync.
-2. **A dated `CHANGELOG.md` entry** under the version heading (Keep a
-   Changelog format: Added / Changed / Fixed), inserted above the previous
-   release and below `## [Unreleased]`.
+The version is single-sourced from `package.json` (footer, Settings, service
+worker stamp). Docs-only or test-only pushes need no bump. `git fetch` before
+choosing a version number: releases land from other sessions and PRs.
 
-App-affecting means changes to `src/`, `public/`, `index.html`,
-`vite.config.js`, `postcss.config.js`, or dependencies. Docs-only, test-only,
-or repo-housekeeping pushes do **not** need a version bump.
+## Conventions
 
-The version is single-sourced from `package.json`: the footer (`Layout.jsx`),
-the Settings About card, and the service-worker cache stamp
-(`stampServiceWorker` in `vite.config.js`) all read it automatically — never
-hardcode a version string anywhere else. The commit-stamped service worker is
-also what makes the in-app update banner fire, so a forgotten version bump
-still deploys safely; the bump is for humans (changelog, footer, releases).
-
-## Important Notes
-
-### Path Aliases
-- Components use the `@/` path alias for imports (e.g., `@/components/ui/button`, `@/lib/api`)
-- Configured in Vite/bundler settings
-
-### Data Structures
-- **Solution objects** must include: `steps[]`, `answer`, `tips[]`, `common_mistakes[]`, `graph` (optional)
-- **Graph data** must include: `points[]` (with x, y properties), `title`, `description` (optional)
-- **Topic values**: "derivatives", "integrals", "limits", "functions", "trigonometry", "algebra", "other" (arithmetic)
-- **Topic labels**: Map internal values to display names (e.g., "other" → "Arithmetic")
-
-### Storage Considerations
-- All data stored in browser's IndexedDB (persistent across sessions)
-- No backend API - fully client-side application
-- Users can clear history via UI (with confirmation)
-- Export functionality for data portability
-
-### Styling Conventions
-- Primary colors: Blue (#3B82F6) and Purple (#9333EA)
-- Accent colors: Green, Orange, Amber
-- Gradient backgrounds throughout
-- Dark mode: Uses Tailwind's `dark:` prefix, controlled by DarkModeContext
-- All components support dark mode
-
-### Math Input Format
-- Use `*` for multiplication (2*x, not 2x - though parser handles both)
-- Use `^` for exponents (x^2, not x²)
-- Use standard function names: sin, cos, tan, sqrt, ln, log, exp, abs
-- Parser handles common notation and natural language
-
-### Branding
-- App name: **MasterMath** (not MathMaster)
-- By: sparkinCreations™
-- Tagline: "Master math with confidence"
-- Positioning: step-by-step local solver (open-source math libraries, not AI) — never "personal math tutor" / AI chatbot framing
-- Links to sparkincreations.com in footer
+- Math input: `*` and `^` explicit, standard function names; the parser also
+  accepts natural notation (`x²`, `2x`, `∫`, `d/dx`).
+- Topic values: `derivatives`, `integrals`, `limits`, `functions`,
+  `trigonometry`, `algebra`, `other` (= Arithmetic).
+- Dark mode support on every component; respect `prefers-reduced-motion`;
+  every page sets its title; icon-only controls carry `aria-label`.
+- UI must never look AI-powered: Calculator icon, "Calculating…", keep the
+  "not AI" disclaimers.

@@ -1,6 +1,6 @@
 # Learning React Through MasterMath
 
-**Version:** 1.2.0
+**Written for:** MasterMath 1.2.0 — a learning guide to the React concepts the app uses. The concepts still apply; file names and details have moved on since (see CLAUDE.md for the current layout).
 **By:** sparkinCreations™
 **Last Updated:** March 9, 2026
 

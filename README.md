@@ -135,107 +135,21 @@ MasterMath is designed as a **learning companion**, not a homework shortcut:
 ## 🗂️ Project Structure
 
 ```
-MasterMath/
-├── 📄 Configuration
-│   ├── index.html              # Main entry point
-│   ├── package.json            # Dependencies and scripts
-│   ├── vite.config.js          # Vite build configuration
-│   ├── tailwind.config.js      # Tailwind CSS configuration
-│   └── postcss.config.js       # PostCSS configuration
-│
-├── 🎨 Source Code (src/)
-│   ├── main.jsx                # React entry point
-│   ├── App.jsx                 # Root component with providers & routes
-│   ├── Layout.jsx              # Main layout with sidebar navigation
-│   ├── index.css               # Global styles
-│   │
-│   ├── components/
-│   │   ├── ErrorBoundary.jsx   # Error boundary component
-│   │   ├── solver/             # Solver-specific components
-│   │   │   ├── ProblemInput.jsx     # Problem input form
-│   │   │   ├── SolutionDisplay.jsx  # Solution with steps & tips
-│   │   │   └── GraphViewer.jsx      # Function graph visualization
-│   │   └── ui/                 # shadcn/ui components
-│   │       ├── button.jsx
-│   │       ├── card.jsx
-│   │       ├── sidebar.jsx
-│   │       ├── toast.jsx
-│   │       └── ...             # Other UI components
-│   │
-│   ├── pages/
-│   │   ├── Home.jsx            # Landing page
-│   │   ├── Solver.jsx          # Main problem solver interface
-│   │   ├── Progress.jsx        # History & statistics
-│   │   ├── Settings.jsx        # Theme, solver preferences, data & about
-│   │   ├── UserManual.jsx      # Documentation
-│   │   ├── FAQ.jsx             # Frequently asked questions
-│   │   ├── Feedback.jsx        # User feedback form
-│   │   ├── PrivacyPolicy.jsx   # Privacy policy
-│   │   └── TermsOfService.jsx  # Terms of service
-│   │
-│   ├── lib/
-│   │   ├── api.js              # Main API for solving & storage
-│   │   ├── indexedDB.js        # IndexedDB wrapper
-│   │   ├── mathParser.js       # Expression parsing utilities
-│   │   ├── settings.js         # User preferences (localStorage-backed)
-│   │   ├── exportUtils.js      # Export to PDF/CSV/JSON/Markdown
-│   │   ├── validation.js       # Input validation utilities
-│   │   ├── utils.js            # General utilities
-│   │   └── solvers/            # Topic-specific math solvers
-│   │       ├── solverUtils.js       # Shared helpers (beautify, terms, sampling)
-│   │       ├── algebraSolver.js
-│   │       ├── derivativesSolver.js
-│   │       ├── integralsSolver.js
-│   │       ├── arithmeticSolver.js
-│   │       ├── functionsSolver.js   # Function analysis and graphing
-│   │       ├── limitsSolver.js      # Limits
-│   │       └── trigonometrySolver.js # Trig values and identities
-│   │
-│   ├── contexts/
-│   │   └── DarkModeContext.jsx # Dark mode state management
-│   │
-│   ├── hooks/
-│   │   ├── usePageTitle.js     # Custom hook for page titles
-│   │   └── useServiceWorker.js # PWA update detection & banner flow
-│   │
-│   ├── entities/
-│   │   └── ProblemHistory.json # IndexedDB schema definition
-│   │
-│   └── utils/
-│       └── index.js            # Utility functions
-│
-├── 🧪 Tests (tests/)
-│   ├── solvers.test.js         # Solver behavior across all topics
-│   ├── regressions.test.js     # Pinned past bugs (never let them return)
-│   ├── settings.test.js        # Preferences store & solver wiring
-│   ├── mathParser.test.js      # Input parsing
-│   ├── solverUtils.test.js     # Shared helpers
-│   └── validation.test.js      # Input validation
-│
-├── 📁 Public Assets (public/)
-│   ├── favicon.svg             # App icon
-│   ├── favicon.png             # PNG favicon
-│   ├── manifest.json           # PWA manifest
-│   ├── sw.js                   # Offline-first service worker
-│   ├── robots.txt              # Search engine directives
-│   ├── sitemap.xml             # Site map
-│   ├── og-image.jpg            # Open Graph image
-│   └── twitter-image.jpg       # Twitter card image
-│
-└── 📚 Documentation
-    ├── README.md               # This file
-    ├── CLAUDE.md               # Claude Code project instructions
-    ├── CONTRIBUTING.md         # Contribution guidelines
-    ├── CHANGELOG.md            # Version history
-    ├── DEPLOYMENT.md           # Deployment instructions
-    ├── SECURITY.md             # Security policy
-    ├── LICENSE                 # MIT license
-    └── docs/
-        ├── HOW_THE_APP_WORKS.md     # Architecture & data flow guide
-        ├── FILE_STRUCTURE.md        # File organization docs
-        ├── REACT_GUIDE.md           # React concepts for this app
-        └── future-work/ROADMAP.md   # Prioritized future improvements
+src/
+  pages/               one component per route (Home, Solver, Progress, Settings, …)
+  components/solver/   ProblemInput, SolutionDisplay, GraphViewer
+  components/ui/       shadcn/ui primitives
+  lib/                 api.js (routing), budgetedSolver.js (worker + time budget), mathParser.js, settings.js, exports, storage
+  lib/solvers/         one module per topic, each documented at the top of its file
+tests/                 unit suite and the evaluation-corpus harness
+e2e/                   Playwright smoke and accessibility tests of the production build
+docs/                  how the app works, evaluation records, roadmap
+public/                service worker, security headers, icons, manifest
 ```
+
+The architecture, solver invariants and release process are in
+[CLAUDE.md](CLAUDE.md); a narrative walkthrough is in
+[docs/HOW_THE_APP_WORKS.md](docs/HOW_THE_APP_WORKS.md).
 
 ## 🤝 Contributing
 

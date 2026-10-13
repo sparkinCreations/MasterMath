@@ -73,6 +73,10 @@ You interact with the **Solver page** (`pages/Solver.jsx`), which contains three
 | **GraphViewer** | Draws a graph if the problem involves a function |
 
 ### Step 2: You Click "Solve Problem"
+
+> Since 1.40.0 the solve runs in a **Web Worker** (`lib/solver.worker.js`), driven
+> by `lib/budgetedSolver.js`: the page stays responsive, a solve that passes ten
+> seconds is stopped with an honest refusal, and the Cancel button ends one early.
 When you hit the button, here's the chain of events:
 
 ```
@@ -142,6 +146,7 @@ Each solver is a separate file that specializes in one type of math:
 |-------------|---------------|-------------|
 | `algebraSolver.js` | Equations, simplification, factoring | algebrite + mathjs |
 | `linearEquationSolver.js` | Linear equations, worked step by step | mathjs (exact fractions) |
+| `polynomialRoots.js` | Every root of a polynomial (Sturm counting, exact bisection) | BigInt / mathjs fractions |
 | `derivativesSolver.js` | Derivatives (differentiation) | algebrite |
 | `integralsSolver.js` | Integrals (integration) | algebrite |
 | `arithmeticSolver.js` | Basic math (add, subtract, etc.) | mathjs |

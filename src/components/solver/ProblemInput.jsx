@@ -163,7 +163,8 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       {validationError && (
         <div id="problem-error" role="alert" className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
           <AlertCircle aria-hidden="true" className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>
+          {/* red-700, not red-600: 600 on the red-50 panel is 4.36:1 at this size, under the AA 4.5:1 (axe). */}
+          <p className="text-sm text-red-700 dark:text-red-400">{validationError}</p>
         </div>
       )}
 
@@ -184,6 +185,12 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           </>
         )}
       </Button>
+      {/* The button's label changes to "Calculating…" but a label change is
+          not announced; this polite live region is, and it empties when the
+          solve ends (the outcome is announced by the toast). */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {isLoading ? 'Calculating the solution…' : ''}
+      </div>
       {isLoading && onCancel && (
         // A solve runs in a worker with a time budget; this ends it early
         // (the worker is terminated, so even a stuck symbolic step stops).
