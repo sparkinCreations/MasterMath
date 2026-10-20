@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.41.0] - 2026-10-20
+
+The October student review's top five, and the slow quintic.
+
+### Added
+
+- **Cubics and higher are worked, not announced.** `x³ − 6x² + 11x − 6 = 0`
+  said "Solve for x by finding the roots". It now lists the Rational Root
+  Theorem candidates (p over the constant term's divisors, q over the
+  leading coefficient's), tests them by exact substitution, divides
+  synthetically by each root found with every multiply-and-add shown, and
+  solves the quadratic that remains by the existing factoring or formula
+  steps — `x³ = 8` ends with `x = -1 ± i√3` exactly. A common factor of x
+  is pulled out first. What has no rational root is handed to the exact
+  root finder with the reason stated (`factorByRationalRoots` in
+  `polynomialRoots.js`, `solveByRationalRoots` in `algebraSolver.js`).
+- **A worked example on the landing page**, the solver's own output for
+  `x² − 5x + 6 = 0` (a test keeps it identical), with a button that opens
+  the solver with that problem filled in; and a line saying who the app is
+  for. The "not AI" disclaimer appears twice rather than five times.
+- **Drag to pan the graph** with a mouse or a finger. A horizontal drag
+  slides the window; a mouse drag slides vertically too; on touch the
+  vertical direction is left to the page, so the graph never traps a
+  scroll. The buttons remain.
+- **The user manual and FAQ cover what the app does**: systems, inequalities,
+  radical, absolute-value, exponential and logarithmic equations, definite
+  and improper integrals, cubics, function ranges, Settings (angle unit,
+  decimal places), the 10-second limit and Cancel, the base-10 reading of
+  `log`, and the graph controls. The manual gains a "What you can enter"
+  section with examples for every topic.
+
+### Fixed
+
+- **An irreducible quintic took three seconds.** Algebrite's `roots()`
+  ground for ~2.8 s on `x⁵ − x + 1` before throwing "not factorable"; the
+  Rational Root Theorem path above now establishes that no rational root
+  exists in exact arithmetic and goes straight to the exact finder — 9 ms.
+- **Exploding functions opened unreadable.** The derivative and integral
+  graphs of `eˣ` had nothing to frame, fell back to ±10, and drew a flat
+  line with a spike to 22 000. A graph with no marked features now opens on
+  the widest window in which the curve's largest value is within 25× its
+  typical value (`growthWindow`): `eˣ` opens on ±3, `2ˣ` on ±4, a bounded
+  or polynomial curve keeps ±10.
+- **The graph tooltip ran off the chart on a phone.** It named the dashed
+  curve by its whole expression; it now says `f'(x)` or `F(x)` (the legend
+  carries the expression) and is capped at 70 % of the viewport width.
+- **The header scrolls away on a phone.** It is now sticky at phone widths,
+  under the open sidebar's overlay, so the menu and theme toggle stay
+  reachable while a long solution scrolls; static on wider screens.
+
 ## [1.40.5] - 2026-10-13
 
 ### Fixed

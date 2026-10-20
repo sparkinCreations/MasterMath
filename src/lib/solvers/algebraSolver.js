@@ -1,7 +1,7 @@
 import { isEquation, extractVariable, parseMathExpression, matchingParen } from '../mathParser.js';
 import { solveLinearEquation } from './linearEquationSolver.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
-import { readPolynomial, allRoots, valueAtDecimal, MAX_POLYNOMIAL_DEGREE } from './polynomialRoots.js';
+import { readPolynomial, allRoots, valueAtDecimal, factorByRationalRoots, MAX_POLYNOMIAL_DEGREE } from './polynomialRoots.js';
 import { getSettings } from '../settings.js';
 import {
   math,
@@ -598,6 +598,20 @@ async function solveWithAlgebriteRoots(equation, variable) {
       if (exact) return exact;
     }
 
+    // A cubic or higher is worked the way a course does it: the Rational
+    // Root Theorem, synthetic division by each root found, then the
+    // quadratic that remains — and whatever has no rational root goes to
+    // the exact root finder without a call to Algebrite, whose roots() ground
+    // for three seconds on an irreducible quintic before giving up.
+    if (read && !read.tooHigh && read.degree >= 3) {
+      const leading = [
+        ...(/^0$/.test(right.trim()) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),
+        ...clearingSteps,
+      ];
+      const viaRational = solveByRationalRoots(Algebrite, target, variable, read, leading);
+      if (viaRational) return viaRational;
+    }
+
     // Algebrite throws "not factorable" for x^5 − x + 1: every root is
     // still found numerically rather than left to the zero-crossing scan.
     let rootsRaw;
@@ -929,6 +943,112 @@ async function solveViaLogSubstitution(equation, variable) {
  */
 // Past this degree a polynomial equation skips Algebrite (see solveWithAlgebriteRoots).
 const ALGEBRITE_DEGREE_LIMIT = 12;
+
+// Highest-first coefficient strings → "x^3 - 6x^2 + 11x - 6".
+function polynomialText(coeffs, v) {
+  const n = coeffs.length - 1;
+  const parts = [];
+  coeffs.forEach((c, i) => {
+    const text = String(c);
+    if (text === '0') return;
+    const power = n - i;
+    const neg = text.startsWith('-');
+    const mag = neg ? text.slice(1) : text;
+    const coef = mag === '1' && power > 0 ? '' : mag;
+    const term = power === 0 ? mag : `${coef}${v}${power > 1 ? `^${power}` : ''}`;
+    parts.push(parts.length === 0 ? `${neg ? '-' : ''}${term}` : `${neg ? '- ' : '+ '}${term}`);
+  });
+  return parts.length ? parts.join(' ') : '0';
+}
+const signedList = (items) => items.map((t) => (String(t).startsWith('-') ? `(${t})` : String(t)));
+
+// x³ − 6x² + 11x − 6 = 0, worked: factor out x if the constant term is 0,
+// list the Rational Root Theorem candidates, test them by substitution,
+// divide synthetically by each root found, and solve what remains — a
+// quadratic by the formula (exactly, surds and complex pairs kept), or a
+// factor with no rational root by the exact numeric finder. Returns
+// { steps, answer, solutions } or null when the shape is not suitable.
+function solveByRationalRoots(Algebrite, target, v, read, leadingSteps) {
+  const fac = factorByRationalRoots(read);
+  if (!fac) return null;
+  const steps = [...leadingSteps];
+  const shown = []; // { display, numeric, sign }
+  const pow = (k) => (k === 1 ? v : `${v}^${k}`);
+  const afterX = polynomialText(fac.coefficients, v);
+  if (fac.xPower > 0) {
+    steps.push(`Every term has a factor of ${pow(fac.xPower)}: factor it out — ${pow(fac.xPower)}·(${afterX}) = 0 — so ${v} = 0 is a root${fac.xPower > 1 ? ` (multiplicity ${fac.xPower})` : ''}, and the other factor is solved on its own.`);
+    shown.push({ display: '0', numeric: 0, sign: '=', multiplicity: fac.xPower });
+  }
+  if (fac.degree >= 3) {
+    const name = fac.degree === 3 ? 'a cubic' : fac.degree === 4 ? 'a quartic' : `degree ${fac.degree}`;
+    const list = fac.candidates.length > 16 ? `${fac.candidates.slice(0, 16).join(', ')}, …` : fac.candidates.join(', ');
+    steps.push(`${afterX} = 0 is ${name}. Rational Root Theorem: any rational root p/q has p dividing the constant term ${fac.constant} and q dividing the leading coefficient ${fac.leading}, so the only possible rational roots are ${list}.`);
+    let currentText = afterX;
+    for (const round of fac.rounds) {
+      const failed = round.trials.filter((t) => !t.isRoot);
+      const shownFailed = failed.slice(0, 5).map((t) => `p(${t.text}) = ${t.value}`);
+      const more = failed.length > 5 ? `, … (${failed.length - 5} more fail)` : '';
+      const r = round.root.text;
+      // (x − r) reads as (x + 3) for r = −3.
+      const factorText = r.startsWith('-') ? `(${v} + ${r.slice(1)})` : `(${v} − ${r})`;
+      steps.push(`Test the candidates in p(${v}) = ${currentText}: ${shownFailed.length ? `${shownFailed.join(', ')}${more}; ` : ''}p(${r}) = 0 ✓ — so ${v} = ${r} is a root and ${factorText} is a factor.`);
+      const work = round.products.map((prod, i) => `${signedList([r])[0]}·${signedList([round.bottom[i]])[0]} = ${prod}, then ${signedList([round.top[i + 1]])[0]} + ${signedList([prod])[0]} = ${round.bottom[i + 1]}`);
+      const quotientText = polynomialText(round.quotient, v);
+      steps.push(`Synthetic division by ${factorText}, using r = ${r}: write the coefficients ${signedList(round.top).join(', ')}; bring down ${round.top[0]}; ${work.join('; ')}. The last number is the remainder, 0 ✓, and the rest are the quotient: ${quotientText}.`);
+      shown.push({ display: round.root.text, numeric: Number(round.root.m) / Number(round.root.d), sign: '=' });
+      currentText = quotientText;
+    }
+    const remDegree = fac.remaining.length - 1;
+    const remText = polynomialText(fac.remaining.map((f) => (f.d === 1n ? String(f.s * f.n) : `${f.s < 0 ? '-' : ''}${f.n}/${f.d}`)), v);
+    if (remDegree === 2) {
+      steps.push(`The remaining factor is a quadratic: ${remText} = 0.`);
+      let rootsRaw = '';
+      try { rootsRaw = Algebrite.roots(remText, v).toString(); } catch { rootsRaw = ''; }
+      const derivation = quadraticDerivation(Algebrite, remText, v);
+      if (derivation) steps.push(...derivation);
+      const roots = parseRootsList(rootsRaw);
+      if (roots.length === 0) return null;
+      // i*√3 reads as i√3.
+      const tidy = (d) => prettyRadicals(d).replace(/i\*√/g, 'i√');
+      for (const root of roots) shown.push({ display: tidy(root.display), numeric: root.numeric, sign: '=' });
+      const names = roots.map((root) => `${v} = ${tidy(root.display)}`).join(' or ');
+      steps.push(`So the quadratic gives ${names}.`);
+    } else if (remDegree === 1) {
+      const [b, c] = fac.remaining;
+      const root = c.neg().div(b);
+      const rootText = root.d === 1n ? String(root.s * root.n) : `${root.s < 0 ? '-' : ''}${root.n}/${root.d}`;
+      steps.push(`The remaining factor is linear: ${remText} = 0, so ${v} = ${rootText}.`);
+      shown.push({ display: rootText, numeric: Number(root.valueOf()), sign: '=' });
+    } else if (remDegree >= 3) {
+      steps.push(`No rational root remains: every candidate fails for ${remText}. Its roots cannot be written in a closed form here, so they are found numerically.`);
+      const numeric = rootsViaPolynomialRoot(Algebrite, `(${remText}) - (0)`, v);
+      if (!numeric || numeric.envelope) return null;
+      // Its own "degree-n polynomial … Sturm …" steps, minus the solution line.
+      steps.push(...numeric.steps.filter((line) => !/^Solution:/.test(line)));
+      // The finder's own answer may open with "no real solutions;" when
+      // every remaining root is complex — the rational ones already listed
+      // are the real solutions, so only its count clause is kept.
+      const rest = numeric.answer.replace(/^no real solutions;\s*/, '');
+      const sortedShown = [...shown].sort((a, b) => a.numeric - b.numeric);
+      const answer = /^plus \d+ complex/.test(rest)
+        ? `${sortedShown.map(line).join('  or  ')};  ${rest}`
+        : [...sortedShown.map(line), rest].join('  or  ');
+      steps.push(`Solution: ${answer}`);
+      return { steps, answer, solutions: [...shown.map((r) => r.numeric).filter(Number.isFinite), ...(numeric.solutions || [])] };
+    }
+  }
+  if (shown.length === 0) return null;
+  // Real roots in ascending order, then the complex pair(s).
+  const reals = shown.filter((r) => Number.isFinite(r.numeric)).sort((a, b) => a.numeric - b.numeric);
+  const others = shown.filter((r) => !Number.isFinite(r.numeric));
+  const answer = [...reals, ...others].map(line).join('  or  ');
+  steps.push(`Solution: ${answer}`);
+  return { steps, answer, solutions: reals.map((r) => r.numeric) };
+
+  function line(r) {
+    return `${v} ${r.sign} ${r.display}${r.multiplicity > 1 ? ` (multiplicity ${r.multiplicity})` : ''}`;
+  }
+}
 
 function rootsViaPolynomialRoot(Algebrite, polynomial, variable, extraSteps = []) {
   const poly = readPolynomial(polynomial, variable);

@@ -141,7 +141,11 @@ export default function Layout({ children }) {
           {/* tabIndex={-1} so the skip link actually moves focus here, not
               just the scroll position. */}
           <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 flex flex-col focus:outline-hidden" role="main">
-            <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-xs" role="banner">
+            {/* Sticky on phones so the menu and theme toggle stay reachable
+                while a long solution scrolls; static on wider screens where
+                the sidebar is always in reach. z-20 keeps it under the open
+                sidebar's overlay (z-30). */}
+            <header className="sticky top-0 z-20 md:static bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-xs" role="banner">
               <div className="flex items-center justify-between">
                 <SidebarTrigger className="hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
                 <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">

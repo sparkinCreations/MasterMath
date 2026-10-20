@@ -241,7 +241,7 @@ test('edge: functions — x^x domain and no phantom intercept at an isolated poi
 test('an Algebrite error in one problem does not poison the next (x/0 = 1, then x^3 = 8)', async () => {
   await solveProblem('x/0 = 1', 'algebra');
   const r = await solveProblem('x^3 = 8', 'algebra');
-  assert.equal(r.answer, 'x = 2  or  x ≈ -1 - 1.7321i  or  x ≈ -1 + 1.7321i');
+  assert.equal(r.answer, 'x = 2  or  x = -1 - i√3  or  x = -1 + i√3');
   const s = await solveProblem('x^2 = 2', 'algebra');
   assert.equal(s.answer, 'x = -√2  or  x = √2');
 });
