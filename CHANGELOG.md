@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.41.1] - 2026-10-21
+
+### Changed
+
+- **Landing page.** The hero subtitle no longer ends "— not by AI" (the
+  feature card still says it, once). The audience line reads "For students
+  and teachers, from algebra to Calculus II, who want a solver that shows
+  the method." The worked example gives the equation its own card header,
+  large and in the brand colour, separates the steps with dividers and more
+  space, shows the maths with superscripts and a proper minus sign (styled
+  Unicode — the page still loads no solver library), and has a roomier card
+  and a larger "Try this one in the solver" button with more space around it.
+- **After a solve on a phone, the page lands on the graph** when one was
+  drawn, since it sits above the solution and used to be skipped; keyboard
+  focus still goes to the solution so a screen reader announces it. Without
+  a graph, or on a desktop where the solution is beside the input, nothing
+  changes.
+
 ## [1.41.0] - 2026-10-20
 
 The October student review's top five, and the slow quintic.
