@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.46.0] - 2026-10-21
+
+### Added
+
+- **The Symbols strip is grouped, and has the basic operators.** Four
+  groups — Basic (+ − × ÷ = ( ) a/b x² xⁿ √ π), Algebra (= ≤ ≥ |x| and a ;
+  for systems), Calculus (∫ ∫ₐᵇ d/dx lim ∞ eˣ ln) and Functions (sin … cot,
+  the inverse trig functions, ln, log, π) — instead of one strip of
+  everything, which was too long on a phone. The topic picks the starting
+  group (Integrals opens on Calculus, Trigonometry on Functions); a group
+  chosen by hand holds until the topic changes, and every group stays
+  reachable because the solver routes by what is typed, not by the topic.
+- **A Clear button** under the problem box, shown when there is text:
+  empties the box, keeps the topic, and puts the caret back. The ↑ history
+  recall brings a solved problem back.
+
 ## [1.45.1] - 2026-10-21
 
 ### Fixed

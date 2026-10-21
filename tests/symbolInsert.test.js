@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SYMBOLS, insertSymbol, readSymbolStripOpen, writeSymbolStripOpen } from '../src/lib/symbolInsert.js';
+import { SYMBOLS, GROUPS, symbolsInGroup, groupForTopic, insertSymbol, readSymbolStripOpen, writeSymbolStripOpen } from '../src/lib/symbolInsert.js';
 import { validateMathInput } from '../src/lib/validation.js';
 import { solveProblem } from '../src/lib/api.js';
 
@@ -22,11 +22,11 @@ test('every symbol is a distinct 44px-target entry with a label, and parses once
   assert.equal(new Set(SYMBOLS.map((s) => s.key)).size, SYMBOLS.length);
   for (const s of SYMBOLS) {
     assert.ok(s.label.startsWith('Insert'), s.key);
-    assert.ok(s.glyph.length <= 4, s.key);
+    assert.ok(s.glyph.length <= 5, s.key);
     const caret = s.select ? s.select[0] : (s.caret ?? s.text.length);
     const filled = s.select ? s.text.slice(0, s.select[0]) + '2' + s.text.slice(s.select[1]) : s.text.slice(0, caret) + 'x' + s.text.slice(caret);
     // A bare operator needs operands around it to be a problem.
-    const sample = /^[*^]|^ [≤≥] $/.test(s.text) ? `x${s.text}2` : filled;
+    const sample = /^[*^\/]|^ [≤≥=+-] $|^; $/.test(s.text) ? `x${s.text}2` : filled;
     assert.equal(validateMathInput(sample).isValid, true, `${s.key}: ${sample}`);
   }
 });
@@ -42,6 +42,11 @@ test('the strip entries solve as real problems', async () => {
     ['algebra', 'x^2 - 4 ≥ 0', /x ≤ -2/],
     ['trigonometry', 'sin(π/4)', /√2\/2/],
     ['other', '(3)/(4) * 2', /3\/2|1\.5/],
+    ['other', '7 - 3 + 2 * 4 / 2', /8/],
+    ['limits', 'lim x->∞ (1/x)', /= 0/],
+    ['trigonometry', 'arcsin(1/2)', /π\/6/],
+    ['trigonometry', 'cot(pi/4)', /1/],
+    ['algebra', '2x + 3y = 6; x - y = 4', /x = 18\/5/],
   ];
   for (const [topic, problem, expected] of cases) {
     const r = await solveProblem(problem, topic);
@@ -59,4 +64,21 @@ test('the strip remembers whether it was left open', () => {
   assert.equal(readSymbolStripOpen(storage), false);
   assert.equal(readSymbolStripOpen(null), false);
   assert.equal(readSymbolStripOpen({ getItem: () => { throw new Error('blocked'); } }), false);
+});
+
+test('every symbol belongs to a known group, every group has symbols, and the topic picks a group', () => {
+  const keys = new Set(GROUPS.map((g) => g.key));
+  for (const s of SYMBOLS) {
+    assert.ok(s.groups.length >= 1 && s.groups.every((g) => keys.has(g)), s.key);
+  }
+  for (const g of GROUPS) assert.ok(symbolsInGroup(g.key).length >= 6, g.key);
+  assert.ok(symbolsInGroup('basic').some((s) => s.key === 'plus'));
+  assert.ok(symbolsInGroup('calculus').some((s) => s.key === 'integral'));
+  assert.equal(groupForTopic('integrals'), 'calculus');
+  assert.equal(groupForTopic('limits'), 'calculus');
+  assert.equal(groupForTopic('trigonometry'), 'functions');
+  assert.equal(groupForTopic('algebra'), 'algebra');
+  assert.equal(groupForTopic('functions'), 'algebra');
+  assert.equal(groupForTopic('other'), 'basic');
+  assert.equal(groupForTopic(undefined), 'basic');
 });
