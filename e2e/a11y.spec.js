@@ -54,7 +54,7 @@ for (const scheme of ['light', 'dark']) {
     // navigation toggle shipped black on the dark card for that reason.
     test('icon-only buttons meet 3:1 against their background', async ({ page }) => {
       await page.goto('/solver');
-      await page.getByRole('button', { name: 'Functions: x^2 - 4*x + 3' }).click();
+      { await page.getByText('Try an example:').waitFor(); const b = page.getByRole('button', { name: 'Functions: x^2 - 4*x + 3' }); if (!(await b.isVisible())) await page.getByRole('button', { name: /Show all \d+ examples/ }).click(); await b.click(); }
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.locator('[role="img"][aria-label] svg.recharts-surface').first()).toBeVisible();
       const low = await page.evaluate(() => {
@@ -106,7 +106,7 @@ for (const scheme of ['light', 'dark']) {
 
     test('the solver with a validation error, and with a solution and graph', async ({ page }) => {
       await page.goto('/solver');
-      await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+      { await page.getByText('Try an example:').waitFor(); const b = page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }); if (!(await b.isVisible())) await page.getByRole('button', { name: /Show all \d+ examples/ }).click(); await b.click(); }
       await page.locator('#problem').fill('hello world');
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.getByRole('alert')).toContainText('valid math problem');

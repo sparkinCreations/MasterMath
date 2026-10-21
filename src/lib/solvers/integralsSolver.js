@@ -111,8 +111,11 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       // simplify would refactor it (1/3·(…)) and hide the pieces.
       // Likewise a trig-substitution result: simplify would turn its √ back
       // into (…)^(1/2).
-      integral = perTerm.some((r) => r.method === 'partial fractions' || r.method === 'trig substitution')
-        ? perTerm.map((r) => r.antideriv).join(' + ')
+      // A polynomial integrand keeps its expanded antiderivative (x^2 + x):
+      // simplify factored ∫(2x + 1) dx into x·(x + 1), which nobody wants.
+      const polynomial = perTerm.every((r) => r.method === 'direct' && /^(?:Power rule|Constant rule)$/.test(r.label || ''));
+      integral = perTerm.some((r) => r.method === 'partial fractions' || r.method === 'trig substitution') || polynomial
+        ? perTerm.map((r) => r.antideriv.trim()).join(' + ').replace(/\+\s*-\s*/g, '- ')
         : (simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) || perTerm.map((r) => r.antideriv).join(' + '));
       // Algebrite's simplify re-expands log arguments into partial fractions;
       // polish after combining, not before.
@@ -403,6 +406,19 @@ async function integrateTerm(term, variable, Algebrite) {
   const trig = integrateByTrigSubstitution(term, variable);
   if (trig) {
     return { antideriv: trig.antiderivative, steps: trig.steps, method: 'trig substitution', term };
+  }
+
+  // A rational function over a factorable quadratic-or-higher denominator:
+  // show the partial-fraction working. Algebrite integrates 1/(x² − 1)
+  // itself, as a one-line table formula, so this must come before it.
+  {
+    const parts = splitTopLevelSlash(term);
+    const den = parts ? parts[1] : '';
+    const varRe = new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'g');
+    if (parts && ((den.match(varRe) || []).length >= 2 || /\^/.test(den))) {
+      const pfFirst = integrateByPartialFractions(term, variable, Algebrite);
+      if (pfFirst) return { antideriv: pfFirst.antiderivative, steps: pfFirst.steps, method: 'partial fractions', term };
+    }
   }
 
   let anti = safeRunLocal(Algebrite, `integral(${rewriteReciprocalTrig(term)}, ${variable})`);

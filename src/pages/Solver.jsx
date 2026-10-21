@@ -94,6 +94,9 @@ export default function Solver() {
 
   const handleSolve = async (problemText = problem, chosenTopic = topic) => {
     setIsLoading(true);
+    // A red "Couldn't read that input" from the last attempt would otherwise
+    // sit beside this solve's green "Problem solved!".
+    toast.clearKinds?.(['error', 'warning']);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
@@ -180,9 +183,8 @@ export default function Solver() {
       }
 
       if (newIndex === -1) {
-        // Back to current (empty) input
+        // Back to the current (empty) input; the topic stays.
         setProblem('');
-        setTopic('');
       } else {
         const entry = inputHistory[newIndex];
         setProblem(entry.problem);

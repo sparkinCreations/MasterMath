@@ -142,10 +142,12 @@ test('double-angle and Pythagorean rewrites are found and named', async () => {
 });
 
 test('partial-fraction logs display in textbook form', async () => {
+  // Since 1.48.0 the partial-fraction working is shown, so the answer is
+  // the sum of the two logs it produces, not the engine's combined log.
   const a = await solveProblem('1/(x^2-1)', 'integrals');
-  assert.match(a.answer, /1\/2\*ln\|\(x - 1\)\/\(x \+ 1\)\| \+ C$/);
+  assert.match(a.answer, /1\/2\*\(ln\|x - 1\| - ln\|x \+ 1\|\) \+ C$/);
   const b = await solveProblem('1/(x^2-4)', 'integrals');
-  assert.match(b.answer, /1\/4\*ln\|\(x - 2\)\/\(x \+ 2\)\| \+ C$/);
+  assert.match(b.answer, /1\/4\*\(ln\|x - 2\| - ln\|x \+ 2\|\) \+ C$/);
 });
 
 test('"a mod b" and "n choose k" notation', async () => {

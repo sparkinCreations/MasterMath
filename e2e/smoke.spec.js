@@ -45,8 +45,19 @@ async function openSolver(page) {
   await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeVisible();
 }
 
+// On a phone only the first four example cards show; the rest open with
+// "Show all N examples".
+async function pickExample(page, label) {
+  // isVisible() does not wait, and a role query never finds a display:none
+  // card, so wait for the examples heading before deciding.
+  await page.getByText('Try an example:').waitFor();
+  const button = page.getByRole('button', { name: label });
+  if (!(await button.isVisible())) await page.getByRole('button', { name: /Show all \d+ examples/ }).click();
+  await button.click();
+}
+
 async function solveExample(page, label) {
-  await page.getByRole('button', { name: label }).click();
+  await pickExample(page, label);
   await page.getByRole('button', { name: 'Solve Problem' }).click();
   const solution = page.locator('[aria-label="Solution"]');
   // 'Final Answer:' is the label; a step may also say 'Final answer: 24'.
@@ -102,7 +113,7 @@ test.describe('MasterMath smoke', () => {
 
   test('an unsupported problem is refused honestly and is not saved to history', async ({ page }) => {
     await openSolver(page);
-    await page.getByRole('button', { name: 'Integrals: 2*x + 1' }).click();
+    await pickExample(page, 'Integrals: 2*x + 1');
     await page.getByLabel('Enter your problem').fill('sin(x^2)');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     const solution = page.locator('[aria-label="Solution"]');
@@ -162,7 +173,7 @@ test.describe('MasterMath smoke', () => {
     await page.evaluate(() => localStorage.removeItem('solutionMode'));
     await page.reload();
     await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeVisible();
-    await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+    await pickExample(page, 'Algebra: 2*x + 5 = 11');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     const solution = page.locator('[aria-label="Solution"]');
     await expect(page.getByRole('button', { name: 'Step through' })).toHaveAttribute('aria-pressed', 'true');
@@ -171,7 +182,7 @@ test.describe('MasterMath smoke', () => {
     await page.getByRole('button', { name: 'Show all' }).click();
     await expect(solution).toContainText('Final Answer:');
     await page.reload();
-    await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+    await pickExample(page, 'Algebra: 2*x + 5 = 11');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     await expect(page.getByRole('button', { name: 'Show all' })).toHaveAttribute('aria-pressed', 'true');
     await expect(solution).toContainText('Final Answer:');
@@ -230,6 +241,56 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('combobox').first()).toContainText('Derivatives');
     await expect(page.locator('[aria-label="Solution"]')).toContainText(/2x \+ 3/);
     await expect(page.getByRole('note')).toHaveCount(0);
+  });
+
+  test('↑ recalls each past problem once, ↓ steps back, and a new solve clears the last error toast', async ({ page }) => {
+    await openSolver(page);
+    for (const p of ['x + 1 = 2', 'x + 2 = 5']) {
+      await page.locator('#problem').fill(p);
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
+      await page.getByRole('button', { name: 'Close notification' }).first().click();
+    }
+    await page.locator('#problem').fill('');
+    await page.locator('#problem').focus();
+    const values = [];
+    for (let i = 0; i < 3; i += 1) { await page.keyboard.press('ArrowUp'); values.push(await page.locator('#problem').inputValue()); }
+    expect(values).toEqual(['x + 2 = 5', 'x + 1 = 2', 'x + 1 = 2']);
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('#problem')).toHaveValue('x + 2 = 5');
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('#problem')).toHaveValue('');
+    await expect(page.getByRole('combobox').first()).toContainText('Algebra');
+    // A parse error leaves a red toast that stays; the next solve clears it.
+    await page.locator('#problem').fill('sin()');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(page.getByText(/Couldn't read that input/)).toBeVisible();
+    await page.locator('#problem').fill('x + 3 = 4');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(page.getByText('Problem solved!')).toBeVisible();
+    await expect(page.getByText(/Couldn't read that input/)).toHaveCount(0);
+  });
+
+  test('a differential equation and a matrix are refused honestly', async ({ page }) => {
+    await openSolver(page);
+    await page.locator('#problem').fill("y'' + y = 0");
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(page.locator('[aria-label="Solution"]')).toContainText('Differential equations are not supported');
+    await expect(page.getByText('Problem solved!')).toHaveCount(0);
+    await page.locator('#problem').fill('determinant of [[1,2],[3,4]]');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(page.locator('[aria-label="Solution"]')).toContainText('Matrices are not supported yet');
+  });
+
+  test('on a phone four example cards show and the rest open on demand', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'phone layout only');
+    await openSolver(page);
+    await expect(page.getByRole('button', { name: 'Derivatives: x^2 + 3*x' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Arithmetic: (5 + 3) * 4 - 2^3' })).toBeHidden();
+    await page.getByRole('button', { name: /Show all \d+ examples/ }).click();
+    await expect(page.getByRole('button', { name: 'Arithmetic: (5 + 3) * 4 - 2^3' })).toBeVisible();
+    await page.getByRole('button', { name: 'Fewer examples' }).click();
+    await expect(page.getByRole('button', { name: 'Arithmetic: (5 + 3) * 4 - 2^3' })).toBeHidden();
   });
 
   test('the Symbols strip inserts at the caret, previews the typed math, and remembers being open', async ({ page }) => {
@@ -314,6 +375,9 @@ test.describe('MasterMath smoke', () => {
     test.skip(testInfo.project.name !== 'phone', 'phone layout only');
     await openSolver(page);
     const textarea = page.getByLabel('Enter your problem');
+    await page.getByText('Try an example:').waitFor();
+    const more = page.getByRole('button', { name: /Show all \d+ examples/ });
+    if (await more.isVisible()) await more.click();
     const example = page.getByRole('button', { name: 'Functions: x^2 - 4*x + 3' });
     await example.scrollIntoViewIfNeeded();
     await expect(textarea).not.toBeInViewport();
@@ -330,7 +394,7 @@ test.describe('MasterMath smoke', () => {
     await expect.poll(async () => (await graph.boundingBox()).y).toBeGreaterThanOrEqual(headerBottom - 1);
 
     // No graph: the solution itself is the target.
-    await page.getByRole('button', { name: 'Arithmetic: (5 + 3) * 4 - 2^3' }).click();
+    await pickExample(page, 'Arithmetic: (5 + 3) * 4 - 2^3');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     await expect(solution).toContainText(/Final Answer:\s*24/);
     await expect(solution).toBeFocused();
@@ -346,7 +410,7 @@ test.describe('MasterMath smoke', () => {
   test('a slow solve leaves the page responsive and ends within the budget', async ({ page }) => {
     test.setTimeout(90_000);
     await openSolver(page);
-    await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+    await pickExample(page, 'Algebra: 2*x + 5 = 11');
     await page.locator('#problem').fill(WILKINSON_50);
     const started = Date.now();
     await page.getByRole('button', { name: 'Solve Problem' }).click();
@@ -362,7 +426,7 @@ test.describe('MasterMath smoke', () => {
 
   test('Cancel ends a solve at once, and the next solve still works', async ({ page }) => {
     await openSolver(page);
-    await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+    await pickExample(page, 'Algebra: 2*x + 5 = 11');
     await page.locator('#problem').fill(WILKINSON_50);
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     await page.getByRole('button', { name: 'Cancel' }).click();

@@ -3,7 +3,7 @@ import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './i
 import { validateProblemHistory } from './validation.js';
 import { extractFunctionFromProblem, parseMathExpression, usesCommonLog, matchingParen } from './mathParser.js';
 import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
-import { bareFunctionName, math, formatNumber } from './solvers/solverUtils.js';
+import { bareFunctionName, math, formatNumber, beautify } from './solvers/solverUtils.js';
 
 // The storage wrappers below replace the underlying error with a message fit
 // for a toast. That message is all the user should see, but it is not all a
@@ -391,6 +391,37 @@ export async function solveProblem(problem, topic) {
     }
 
     let result;
+
+    // Differential equations (y'' + y = 0, dy/dx = 2x) and matrices are
+    // outside every solver family. Refused up front, honestly: the algebra
+    // path read y'' + y = 0 as 0 and called it solved (October 2026 review).
+    {
+      const t = String(problem);
+      // f''(x) is a named function's derivative, not an ODE: no prime run
+      // followed by "(" counts (the lookahead sits after the whole run, so
+      // the regex cannot back off to a shorter run to dodge it).
+      const primed = /(?<![a-z])[a-z]\s*(?:'+|′+|″|‴)(?!['′″‴]|\s*\()/.test(t);
+      const leibniz = /\bd[a-z]\s*\/\s*d[a-z]\b/i.test(t);
+      if (primed || leibniz) {
+        return finalizeResult(unsupported({
+          input: problem,
+          reason: `${beautify(t)} is a differential equation: it relates a function to its own derivative${primed ? " (the ' marks a derivative)" : ' (dy/dx is the derivative of y)'}. Solving differential equations is not supported; the solver differentiates and integrates functions you give it.`,
+          answer: 'Differential equations are not supported',
+          tips: [
+            'To differentiate a function, enter it under Derivatives: x^3, or d/dx(x^3).',
+            'To find a function from its derivative, integrate it under Integrals: ∫ 2x dx.',
+          ],
+        }), problem);
+      }
+      if (/\[\s*\[|\b(?:matrix|matrices|determinant|eigenvalues?|eigenvectors?|transpose)\b/i.test(t)) {
+        return finalizeResult(unsupported({
+          input: problem,
+          reason: 'Matrices (determinants, inverses, eigenvalues, products) are not supported yet. The solver covers arithmetic, algebra, systems of equations, inequalities, trigonometry, functions, limits, derivatives and integrals.',
+          answer: 'Matrices are not supported yet',
+          tips: ['A system of linear equations can be solved as equations: 2x + 3y = 6; x - y = 4.'],
+        }), problem);
+      }
+    }
 
     // Higher-order derivatives and "with respect to": read from the raw text
     // and handed to the derivative solver as options. "second derivative of

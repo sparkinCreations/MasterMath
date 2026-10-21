@@ -51,6 +51,11 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
   // The symbol strip is hidden until asked for, and stays the way it was
   // left (the choice is saved on this device).
   const [symbolsOpen, setSymbolsOpen] = useState(() => readSymbolStripOpen(globalThis.localStorage));
+  // Eleven example cards each took a full row on a phone, pushing the
+  // solution far down; four show, the rest open on demand. Desktops (md
+  // and up) show them all.
+  const [allExamples, setAllExamples] = useState(false);
+  const EXAMPLES_ON_PHONE = 4;
   const toggleSymbols = () => {
     setSymbolsOpen((open) => {
       writeSymbolStripOpen(globalThis.localStorage, !open);
@@ -102,6 +107,23 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
     setValidationError(null);
   };
 
+  // ↑/↓ recall only from an empty box or with the caret at an edge, so the
+  // keys still move the caret in a multi-line problem. A recalled problem
+  // puts the caret at its end, which blocked the next ↑ (every other press
+  // did nothing); a box showing exactly what was recalled stays navigable.
+  const recalledRef = useRef(null);
+  const navigatingRef = useRef(false);
+  useEffect(() => {
+    if (navigatingRef.current) {
+      recalledRef.current = problem;
+      navigatingRef.current = false;
+    }
+  }, [problem]);
+  const recall = (direction) => {
+    navigatingRef.current = true;
+    onNavigateHistory(direction);
+  };
+
   const handleKeyDown = (e) => {
     // Submit on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -111,13 +133,14 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       }
     }
     // Navigate input history with ArrowUp/ArrowDown when input is empty or at start
-    if (e.key === 'ArrowUp' && onNavigateHistory && (problem === '' || e.target.selectionStart === 0)) {
+    const recalled = problem !== '' && problem === recalledRef.current;
+    if (e.key === 'ArrowUp' && onNavigateHistory && (problem === '' || e.target.selectionStart === 0 || recalled)) {
       e.preventDefault();
-      onNavigateHistory('up');
+      recall('up');
     }
-    if (e.key === 'ArrowDown' && onNavigateHistory && (problem === '' || e.target.selectionStart === e.target.value.length)) {
+    if (e.key === 'ArrowDown' && onNavigateHistory && (problem === '' || e.target.selectionStart === e.target.value.length || recalled)) {
       e.preventDefault();
-      onNavigateHistory('down');
+      recall('down');
     }
     // Shift+Enter creates a new line (default behavior)
   };
@@ -303,13 +326,21 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             <button
               key={idx}
               onClick={() => loadExample(ex)}
-              className="text-left p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm"
+              className={`text-left p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
             >
               <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
               <span className="text-gray-700 dark:text-gray-300">{ex.problem}</span>
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => setAllExamples((v) => !v)}
+          aria-expanded={allExamples}
+          className="md:hidden mt-2 w-full min-h-11 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition-colors"
+        >
+          {allExamples ? 'Fewer examples' : `Show all ${EXAMPLE_PROBLEMS.length} examples`}
+        </button>
       </div>
     </div>
   );

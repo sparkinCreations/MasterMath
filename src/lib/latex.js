@@ -76,6 +76,10 @@ export function toLatex(ascii) {
   // Simple numeric fractions like 1/3 (not part of a longer token) → \frac
   s = s.replace(/(?<![\w}])(\d+)\/(\d+)(?![\w.])/g, '\\frac{$1}{$2}');
 
+  // log_2(x) (beautify's form of the parser's log(x)/log(2)) → \log_{2}(x);
+  // the word-boundary loop below does not see "log" before an underscore.
+  s = s.replace(/\blog_(\d+(?:\.\d+)?)/g, '\\log_{$1}');
+
   // Function names → \sin etc.
   for (const fn of FUNCTIONS) {
     s = s.replace(new RegExp(`\\b${fn}\\b`, 'g'), `\\${fn === 'arcsin' ? 'arcsin' : fn === 'arccos' ? 'arccos' : fn === 'arctan' ? 'arctan' : fn}`);

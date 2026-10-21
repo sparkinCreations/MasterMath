@@ -1475,7 +1475,8 @@ test('integration methods are named from the integrand, never "Power rule" as a 
   // Genuine power-rule integrals keep the label; unknown table results are named honestly.
   assert.match((await solveProblem('∫ x^2 dx', 'integrals')).steps[1], /\(Power rule\)/);
   assert.match((await solveProblem('∫ 5x dx', 'integrals')).steps[1], /\(Power rule\)/);
-  assert.match((await solveProblem('∫ 1/(x^2-1) dx', 'integrals')).steps[1], /\(Table antiderivative\)/);
+  assert.match((await solveProblem('∫ 1/(x^2-1) dx', 'integrals')).steps[1], /partial|factors into distinct linear factors/i);
+  assert.match((await solveProblem('∫ 1/(x^2+1) dx', 'integrals')).steps.join('\n'), /arctan/);
   // The first tip follows the rule that was used.
   assert.match((await solveProblem('∫ e^x dx', 'integrals')).tips[0], /its own antiderivative/);
   assert.match((await solveProblem('∫ 1/x dx', 'integrals')).tips[0], /ln\|x\|/);

@@ -342,6 +342,8 @@ export function beautify(expression) {
   } while (out !== previous);
 
   out = out
+    // The parser writes log2(x) as log(x)/log(2); show it as log_2(x).
+    .replace(/\(?(?<![a-z])log\(([^()]+)\)\s*\/\s*log\((\d+(?:\.\d+)?)\)\)?/g, (m, arg, base) => (base === '10' ? `log(${arg})` : `log_${base}(${arg})`))
     // Redundant exponent of one: `x^1` -> `x` (but keep `x^12`, `x^1.5`).
     .replace(/\^1(?![\d.])/g, '')
     // Space around binary plus.
