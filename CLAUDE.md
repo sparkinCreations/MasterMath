@@ -26,7 +26,7 @@ src/
   pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback
   components/solver/           ProblemInput, SolutionDisplay, GraphViewer, GraphEmptyState
   components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
-  components/MathText.jsx      KaTeX rendering of solver text
+  components/MathText.jsx      KaTeX rendering of solver text (lib/latex.js segments prose from math, clause by clause)
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
   hooks/                       usePageTitle, useServiceWorker
   lib/
@@ -116,8 +116,11 @@ fractions / definite / improper).
 
 `solverUtils.js` owns the shared helpers — `beautify`, `formatNumber`,
 `splitTerms`, `splitTopLevel`, `stripOuterParens`, `gcd`, `runAlgebrite`,
-`loadAlgebrite`, `lnify`, `piForm` — import them, never copy them. Never strip
-parentheses with `/^\((.*)\)$/`.
+`loadAlgebrite`, `lnify`, `piForm`, and the structural proofs
+`linearCoefficients`, `structuralPeriod`, `definedEverywhere`,
+`trigUndefinedPoints` (facts read off the parse tree: use these for any
+"periodic" / "defined everywhere" / "undefined at" claim) — import them,
+never copy them. Never strip parentheses with `/^\((.*)\)$/`.
 
 Algebrite: always through `loadAlgebrite()` (a throwing direct call poisons
 every later call; the worker's termination also clears it). mathjs: add a
@@ -137,7 +140,9 @@ viewer, 400 points per window, gaps at `breaks`), `annotations` (extrema,
 intercepts, asymptotes, holes, limit guideline/point, shaded regions,
 intersection, open points) and `initialWindow`. The viewer opens on
 `initialWindow`, else the window framing the annotations, else `growthWindow`
-(the widest ±w in which max|y| ≤ 25× the median — eˣ opens on ±3), else ±10.
+(the widest ±w in which max|y| ≤ 25× the median — eˣ opens on ±3), else ±10;
+whichever is chosen is then passed through `tameWindow` (shrunk about its
+centre while the curve explodes at an edge; curves with poles are exempt).
 Drag pans (horizontal on touch, both axes with a mouse; `touch-action: pan-y`
 so the page still scrolls); the tooltip names series as `f'(x)`, never by
 the whole expression. Vertical-line and marker

@@ -16,6 +16,7 @@ import {
   formatRestriction,
   splitTerms,
   splitTopLevel,
+  trigUndefinedPoints,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -114,6 +115,23 @@ function equationGuidance(steps, expression) {
         'Multiplying only one side by the denominator.',
         'Keeping a "solution" that makes a denominator zero (an extraneous root).',
         'Cancelling a factor that could be zero.',
+      ],
+    };
+  }
+  if (/Rational Root Theorem/.test(text)) {
+    // A cubic or higher solved by the rational-root test and synthetic
+    // division: the advice is about that method, not about quadratics (the
+    // quadratic lines used to match on the final factoring step).
+    return {
+      tips: [
+        'Rational Root Theorem: every rational root is ±(a factor of the constant term)/(a factor of the leading coefficient) — a finite list to test, so test it before anything else.',
+        'Once p(r) = 0, divide by (x − r): synthetic division must leave remainder 0, and the quotient has degree one less. Repeat until a quadratic remains, then factor or use the formula.',
+        'A degree-n polynomial has at most n real roots; count them (with multiplicity) and stop when the degree is used up.',
+      ],
+      common_mistakes: [
+        'Testing only positive candidates — the negatives are on the list too.',
+        'An arithmetic slip in synthetic division: a non-zero remainder means r was not a root (or the division went wrong), not that the method failed.',
+        'Stopping after one root: the quotient still has to be solved, and a root can repeat.',
       ],
     };
   }
@@ -1367,6 +1385,25 @@ function solveNumerically(equation, variable) {
       // 1/(x-1) = 1/(x-1) to 0 = 0 loses that x = 1 was never allowed, so the
       // domain is read off the original sides, not the simplified difference.
       const restrictions = domainRestrictionsOf([left, right], variable);
+      // tan, sec, cot, csc and divisions by sin or cos are undefined on a
+      // lattice of points the grid never lands on exactly (tan(π/2) is a
+      // huge finite number in floating point), so read those off the
+      // structure: tan(x) = sin(x)/cos(x) holds except at x = π/2 + nπ.
+      const poles = trigUndefinedPoints(`${left} = ${right}`, variable);
+      if (restrictions.length === 0 && poles.length > 0) {
+        const where = [...new Set(poles.map((p) => p.text))].join(' and ');
+        const because = [...new Set(poles.map((p) => p.because))].join(', ');
+        return {
+          steps: [
+            `Before simplifying, note where the original equation is defined: ${because} ${poles.length > 1 ? 'are' : 'is'} undefined at ${where} (n any integer), so those values are excluded from the start.`,
+            `Rewrite as ${beautify(expression)} = 0`,
+            `The ${variable} terms cancel — the two sides are identical wherever they are both defined.`,
+            `This is an identity on its domain: every real number except ${where} is a solution. The excluded points are not solutions, even though the simplified form 0 = 0 would allow them.`,
+          ],
+          answer: `All real numbers except ${where}, n any integer (identity on its domain — ${because} ${poles.length > 1 ? 'are' : 'is'} undefined there)`,
+          solutions: [],
+        };
+      }
       if (restrictions.length === 0) {
         return {
           steps: [

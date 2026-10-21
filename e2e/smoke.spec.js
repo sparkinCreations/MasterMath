@@ -13,7 +13,7 @@ const EXAMPLES = [
   { label: 'Derivatives: x^2 + 3*x', answer: /2x \+ 3/, graph: true },
   { label: 'Integrals: ∫_0^1 x^2 dx', answer: /0.3333/, graph: true }, // KaTeX stacks 1/3; the decimal is plain text
   { label: 'Limits: lim x->0 (sin(x)/x)', answer: /= 1/, graph: true },
-  { label: 'Functions: x^2 - 4*x + 3', answer: /x\^2 - 4x \+ 3/, graph: true },
+  { label: 'Functions: x^2 - 4*x + 3', answer: /domain: all real numbers; range: y ≥ -1/, graph: true }, // the function itself is typeset (x^{2} in the MathML), the summary is plain text
   { label: 'Algebra: 2*x + 5 = 11', answer: /x = 3/, graph: true },
   { label: 'Trigonometry: sin(x) = 1/2', answer: /π\/6/, graph: true },
   { label: 'Arithmetic: (5 + 3) * 4 - 2^3', answer: /24/, graph: false },

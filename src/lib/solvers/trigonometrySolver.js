@@ -127,6 +127,21 @@ export async function solveTrigonometry(expression, settingsOverride) {
       const { solveAlgebra } = await import('./algebraSolver.js');
       const numeric = await solveAlgebra(expression);
       if (numeric && numeric.answer && !['unsupported', 'parse_error'].includes(numeric.status || '')) {
+        if (/identity/i.test(numeric.answer)) {
+          // An identity is recognised before any root scan; saying it was
+          // "solved numerically" and then "true for every x" contradicted
+          // itself.
+          numeric.steps = [
+            'The two sides simplify to the same expression, so this is an identity, not an equation with particular solutions.',
+            ...(numeric.steps || []),
+          ];
+          numeric.tips = [
+            'An identity is true for every input where both sides are defined — check the domain: tan, sec, cot and csc have points where they do not exist.',
+            'To prove an identity by hand, rewrite everything in terms of sin and cos and simplify one side until it matches the other.',
+          ];
+          numeric.common_mistakes = ['Treating the points where tan(x) or sec(x) is undefined as solutions because the simplified form 0 = 0 allows them.'];
+          return numeric;
+        }
         numeric.steps = [
           'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.',
           ...(numeric.steps || []),

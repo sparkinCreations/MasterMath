@@ -184,5 +184,47 @@ export function segmentMathText(step) {
     }
   }
 
+  // "Let u = sin(x²) and w = eˣ." / "Then u′ = 2x·cos(x²) and w′ = eˣ.":
+  // prose joined by connector words around several math clauses. Split at
+  // the connectors and typeset each clause that is math on its own; a step
+  // with no such clause stays one text segment, as before.
+  const clauses = splitClauses(s);
+  if (clauses.some((c) => c.type === 'math')) return clauses;
+
   return [{ type: 'text', value: s }];
+}
+
+// Connector words and punctuation that separate clauses. A comma is not
+// one: "x = 1, 3" is a single list.
+const CONNECTOR = /(\s*\b(?:Let|Then|So|and|so|or|where|with|gives|is|are|if|when|since|because|but|while|for|at|from|to|into|as|not)\b\s*|;\s+|\s+[—–]\s+|:\s+)/;
+
+const balanced = (s) => {
+  let depth = 0;
+  for (const ch of s) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+};
+
+function splitClauses(s) {
+  const out = [];
+  let text = '';
+  for (const piece of s.split(CONNECTOR)) {
+    if (piece === undefined || piece === '') continue;
+    // A tick or cross and the sentence's full stop stay prose.
+    const trailing = piece.match(/(?:\s*[✓✗✔✘])?[.?!]*\s*$/)?.[0] ?? '';
+    const core = trailing ? piece.slice(0, -trailing.length) : piece;
+    if (core.trim() && isMathFragment(core) && balanced(core) && !CONNECTOR.test(core)) {
+      if (text) out.push({ type: 'text', value: text });
+      text = '';
+      out.push({ type: 'math', value: core.trim() });
+      if (trailing) text += trailing;
+    } else {
+      text += piece;
+    }
+  }
+  if (text) out.push({ type: 'text', value: text });
+  return out;
 }
