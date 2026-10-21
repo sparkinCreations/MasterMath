@@ -27,7 +27,7 @@ src/
   components/solver/           ProblemInput, SolutionDisplay, GraphViewer, GraphEmptyState
   components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
   components/MathText.jsx      KaTeX rendering of solver text
-  contexts/DarkModeContext.jsx class-based dark mode, persisted to localStorage
+  contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
   hooks/                       usePageTitle, useServiceWorker
   lib/
     api.js                     solveProblem (intent routing) + IndexedDB wrappers + finalizeResult gate
@@ -148,7 +148,8 @@ description (`graphDescription.js`).
 ## Security and privacy
 
 - `public/_headers`: CSP (self-only scripts, no `eval`, the inline boot
-  watchdog in `index.html` allowed by hash — edit that script and
+  script in `index.html` — theme before first paint + the stale-shell
+  watchdog — allowed by hash; edit that script and
   `tests/securityHeaders.test.js` tells you the new hash), nosniff, frame
   denial, referrer and permissions policies. `vite preview` serves the same
   file, so the smoke test fails on any CSP violation. A new outside origin

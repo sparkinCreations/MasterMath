@@ -39,7 +39,10 @@ function LineLabels({ items, haloColor }) {
   const plot = usePlotArea();
   const xScale = useXAxisScale();
   if (!plot || !xScale || !items.length) return null;
+  // Tier 1 (a label that would overlap its neighbour) sits one line further
+  // into the plot: below the top row, above the bottom row.
   const rows = { top: plot.y + 14, bottom: plot.y + plot.height - 6 };
+  const tierStep = { top: 15, bottom: -15 };
   return (
     <g className="line-labels">
       {Object.entries(rows).map(([row, y]) => layoutLineLabels(
@@ -49,7 +52,7 @@ function LineLabels({ items, haloColor }) {
           .filter((item) => Number.isFinite(item.px)),
         { plot }
       ).map((label) => (
-        <text key={label.key} x={label.x} y={y} textAnchor="middle"
+        <text key={label.key} x={label.x} y={y + (label.tier || 0) * tierStep[row]} textAnchor="middle"
           fill={label.color} stroke={haloColor} strokeWidth={3} paintOrder="stroke" fontSize={12} fontWeight="bold">
           {label.text}
         </text>
@@ -461,23 +464,15 @@ export default function GraphViewer({ functionData }) {
                   stroke="none"
                 />
               )}
+              {/* The bound lines; their labels are drawn by LineLabels below,
+                  at the top of the plot. Recharts' 'bottom' label sat in the
+                  x-axis tick strip, where "0" and "1" printed over the ticks
+                  "0" and "1". */}
               {ann.shaded && inX(ann.shaded.from) && (
-                <ReferenceLine
-                  x={ann.shaded.from}
-                  stroke={extremumColor}
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  label={{ value: `${ann.shaded.fromLabel}`, position: 'bottom', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
-                />
+                <ReferenceLine x={ann.shaded.from} stroke={extremumColor} strokeWidth={2} strokeDasharray="4 4" />
               )}
               {ann.shaded && inX(ann.shaded.to) && (
-                <ReferenceLine
-                  x={ann.shaded.to}
-                  stroke={extremumColor}
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  label={{ value: `${ann.shaded.toLabel}`, position: 'bottom', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
-                />
+                <ReferenceLine x={ann.shaded.to} stroke={extremumColor} strokeWidth={2} strokeDasharray="4 4" />
               )}
 
               {/* Vertical asymptotes (functions) */}
@@ -520,6 +515,12 @@ export default function GraphViewer({ functionData }) {
                   ...(ann.verticalAsymptotes || []).filter(inX).map((a) => ({ x: a, text: formatLineX(a, variable), color: asymptoteColor })),
                   ...(functionData.solutions || []).filter(inX).map((sol) => ({ x: sol, text: formatLineX(sol, variable), color: interceptColor })),
                   ...(ann.guideline && inX(ann.guideline.x) ? [{ x: ann.guideline.x, text: ann.guideline.label, color: extremumColor, row: 'bottom' }] : []),
+                  // A definite integral's bounds head their shaded column at
+                  // the top of the plot ("a = 0", "b = 1"), clear of the
+                  // x-axis ticks and of the curve, which runs near the axis
+                  // there.
+                  ...(ann.shaded && inX(ann.shaded.from) ? [{ x: ann.shaded.from, text: `a = ${ann.shaded.fromLabel ?? ann.shaded.from}`, color: extremumColor }] : []),
+                  ...(ann.shaded && inX(ann.shaded.to) ? [{ x: ann.shaded.to, text: `b = ${ann.shaded.toLabel ?? ann.shaded.to}`, color: extremumColor }] : []),
                 ]}
               />
 

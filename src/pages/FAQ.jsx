@@ -50,7 +50,7 @@ export default function FAQ() {
     },
     {
       question: "What do the Settings do?",
-      answer: "Angle unit (Auto, Degrees or Radians) decides how plain-number angles are read and how angle results are shown, including the general solution of a trig equation; calculus always works in radians. Decimal places sets how many decimals numeric results show — exact fractions, radicals and π are kept regardless. Both are saved in your browser."
+      answer: "Theme: System follows your device's light or dark setting and switches when it does; Light and Dark are fixed. Angle unit (Auto, Degrees or Radians) decides how plain-number angles are read and how angle results are shown, including the general solution of a trig equation; calculus always works in radians. Decimal places sets how many decimals numeric results show — exact fractions, radicals and π are kept regardless. All are saved in your browser."
     },
     {
       question: "Why did my solve stop after 10 seconds?",
