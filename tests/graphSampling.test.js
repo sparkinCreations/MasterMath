@@ -153,11 +153,32 @@ test('layoutLineLabels: labels stay inside the plot and never overlap', () => {
       assert.ok(l.x - l.width / 2 >= plot.x - 1e-9, `${l.text} starts left of the plot`);
       assert.ok(l.x + l.width / 2 <= plot.x + plot.width + 1e-9, `${l.text} runs past the plot`);
     }
-    for (let i = 1; i < placed.length; i += 1) {
-      assert.ok(placed[i].x - placed[i].width / 2 >= placed[i - 1].x + placed[i - 1].width / 2, 'labels overlap');
+    for (const tier of [0, 1]) {
+      const row = placed.filter((l) => l.tier === tier);
+      for (let i = 1; i < row.length; i += 1) {
+        assert.ok(row[i].x - row[i].width / 2 >= row[i - 1].x + row[i - 1].width / 2, 'labels overlap');
+      }
     }
   }
-  // A phone drops the labels that would collide; a desktop has room for all four.
-  assert.ok(layout(PHONE_PLOT).length < xs.length);
+  // A phone moves the labels that would collide to the second tier; a
+  // desktop has room for all four on one line.
+  assert.ok(layout(PHONE_PLOT).some((l) => l.tier === 1));
   assert.equal(layout(DESKTOP_PLOT).length, xs.length);
+  assert.ok(layout(DESKTOP_PLOT).every((l) => l.tier === 0));
+});
+
+// A definite integral's bounds on a phone: "a = 0" and "b = 1" are a few
+// pixels apart, so the second goes to the next tier instead of vanishing.
+test('layoutLineLabels: a label that would overlap moves to the second tier, a third is dropped', () => {
+  const plot = PHONE_PLOT;
+  const items = [
+    { px: plot.x + plot.width * 0.50, text: 'a = 0' },
+    { px: plot.x + plot.width * 0.55, text: 'b = 1' },
+    { px: plot.x + plot.width * 0.58, text: 'c = 2' },
+  ];
+  const placed = layoutLineLabels(items, { plot });
+  assert.deepEqual(placed.map((l) => [l.text, l.tier]), [['a = 0', 0], ['b = 1', 1]]);
+  // Far apart, both sit on the first tier.
+  const apart = layoutLineLabels([items[0], { px: plot.x + plot.width * 0.9, text: 'b = 1' }], { plot });
+  assert.deepEqual(apart.map((l) => l.tier), [0, 0]);
 });

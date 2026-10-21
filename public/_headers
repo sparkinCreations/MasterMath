@@ -8,7 +8,7 @@
 # style-src 'unsafe-inline': KaTeX, Recharts and Framer Motion set inline
 # style attributes. connect-src: the Feedback form posts to Web3Forms.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-/5KWl1vWqc/vC/UnaCwx3t4X8D1O5xiOjinghu62jkY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.web3forms.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-ExFrn82lHRUvtymtISaDTY4Bh2zGk4kTLfIyeUTioxU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.web3forms.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY

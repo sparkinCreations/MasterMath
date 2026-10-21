@@ -12,8 +12,7 @@ import {
   Download,
   Trash2,
   ChevronDown,
-  Info,
-} from "lucide-react";
+  Info, Monitor } from "lucide-react";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -67,14 +66,10 @@ function OptionButton({ active, onClick, children, title }) {
 
 export default function Settings() {
   usePageTitle("Settings - Customize MasterMath");
-  const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { theme, setTheme } = useDarkMode();
   const toast = useToast();
   const confirm = useConfirm();
   const [settings, setSettings] = useState(() => getSettings());
-
-  const setTheme = (dark) => {
-    if (dark !== isDarkMode) toggleDarkMode();
-  };
 
   const updateSetting = (partial, message) => {
     const merged = saveSettings(partial);
@@ -147,14 +142,22 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="font-medium text-gray-800 dark:text-gray-200 mb-3">Theme</p>
-          <div className="flex gap-3">
-            <OptionButton active={!isDarkMode} onClick={() => setTheme(false)}>
+          <div className="flex flex-wrap gap-3">
+            <OptionButton active={theme === 'system'} onClick={() => setTheme('system')}>
+              <span className="inline-flex items-center gap-2"><Monitor className="w-4 h-4" /> System</span>
+            </OptionButton>
+            <OptionButton active={theme === 'light'} onClick={() => setTheme('light')}>
               <span className="inline-flex items-center gap-2"><Sun className="w-4 h-4" /> Light</span>
             </OptionButton>
-            <OptionButton active={isDarkMode} onClick={() => setTheme(true)}>
+            <OptionButton active={theme === 'dark'} onClick={() => setTheme('dark')}>
               <span className="inline-flex items-center gap-2"><Moon className="w-4 h-4" /> Dark</span>
             </OptionButton>
           </div>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            {theme === 'system'
+              ? 'Follows your device\u2019s light or dark setting, and switches when it does. The sun/moon button in the header picks a fixed theme instead.'
+              : 'A fixed theme. Choose System to follow your device\u2019s setting.'}
+          </p>
         </CardContent>
       </Card>
 

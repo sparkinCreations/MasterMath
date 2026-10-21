@@ -105,6 +105,21 @@
          history survives recovery. -->
     <script>
       (function () {
+        // Theme before first paint, so a dark-mode user never sees a light
+        // flash: the same resolution as src/lib/theme.js ('theme' is
+        // 'system' | 'light' | 'dark'; the pre-1.42 boolean 'darkMode' is
+        // honoured until the app migrates it). The provider owns the class
+        // from mount on.
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme !== 'light' && theme !== 'dark' && theme !== 'system') {
+            var legacy = localStorage.getItem('darkMode');
+            theme = legacy === 'true' ? 'dark' : legacy === 'false' ? 'light' : 'system';
+          }
+          var dark = theme === 'dark' || (theme === 'system' && !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) { /* no storage: the provider decides after mount */ }
+
         var RELOADED = 'mastermath:stale-shell-reloaded';
         var PURGED = 'mastermath:recovery-purged';
 

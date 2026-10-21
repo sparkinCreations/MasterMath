@@ -287,23 +287,28 @@ export function placePointLabel({ cx, cy, radius = 6, gap = 6, textWidth, plot }
 }
 
 // One row of vertical-line labels, laid out left to right inside the plot:
-// each centred on its line and slid inside the plot, and one that would
-// overlap the label before it is dropped. The dashed line stays and the Key
-// features panel still lists every feature, so a narrow chart shows fewer
-// labels instead of a pile of unreadable ones. `items` are {px, text, ...}.
+// each centred on its line and slid inside the plot. One that would overlap
+// the label before it moves to a second tier (the viewer draws tier 1 one
+// line further into the plot), and one that would overlap on both tiers is
+// dropped. The dashed line stays and the Key features panel still lists
+// every feature, so a narrow chart shows fewer labels instead of a pile of
+// unreadable ones; a definite integral's "a = 0" and "b = 1" on a phone
+// both fit, one above the other. `items` are {px, text, ...}; each placed
+// label gains x, width and tier.
 export function layoutLineLabels(items, { plot, fontSize = 12, minGap = 8 }) {
   const left = plot.x;
   const right = plot.x + plot.width;
   const placed = [];
-  let lastRight = -Infinity;
+  const lastRight = [-Infinity, -Infinity];
   for (const item of [...items].sort((a, b) => a.px - b.px)) {
     const width = estimateLabelWidth(item.text, fontSize);
     if (width > plot.width) continue;
     const half = width / 2;
     const x = Math.min(Math.max(item.px, left + half), right - half);
-    if (x - half < lastRight + minGap) continue;
-    placed.push({ ...item, x, width });
-    lastRight = x + half;
+    const tier = lastRight.findIndex((r) => x - half >= r + minGap);
+    if (tier === -1) continue;
+    placed.push({ ...item, x, width, tier });
+    lastRight[tier] = x + half;
   }
   return placed;
 }

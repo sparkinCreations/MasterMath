@@ -124,6 +124,30 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByText('2*x + 5 = 11', { exact: true })).toHaveCount(0);
   });
 
+  // Theme 'system' (the default for a new visitor) follows the device setting
+  // live; the header toggle makes an explicit choice that then sticks. The
+  // class must be on <html> at first paint (the boot script), not only after
+  // the app mounts.
+  test('with no saved preference the theme follows the system, and the toggle overrides it', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    const atFirstPaint = await page.evaluate(() => performance.getEntriesByType('navigation').length >= 0 && document.documentElement.className.includes('dark'));
+    expect(atFirstPaint).toBe(true);
+    await page.emulateMedia({ colorScheme: 'light' });
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
+    await page.getByRole('button', { name: /Switch to dark mode/ }).click();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    // An explicit choice no longer follows the device.
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.waitForTimeout(200);
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    await page.goto('/settings');
+    await expect(page.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'System' }).click();
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
+  });
+
   test('dark mode toggles, survives a reload, and the solver still renders in it', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Switch to dark mode/ }).click();

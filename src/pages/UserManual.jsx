@@ -265,7 +265,7 @@ export default function UserManual() {
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
             <li><strong>Angle unit:</strong> Auto (special values such as 30, 45 and 60 read as degrees, everything else as radians), Degrees, or Radians. It decides how plain-number angles are read and how angle results are reported — including the general solution of a trig equation. Calculus always works in radians.</li>
             <li><strong>Decimal places:</strong> How many decimals a numeric result shows. Exact forms (fractions, radicals, π) are kept regardless, with the decimal alongside.</li>
-            <li><strong>Dark mode:</strong> The sun/moon button in the header.</li>
+            <li><strong>Theme:</strong> System (follows your device's light or dark setting, and switches when it does), Light, or Dark. The sun/moon button in the header is a quick way to pick a fixed theme.</li>
             <li><strong>History:</strong> Export or clear everything from the Settings or Progress page.</li>
           </ul>
         </CardContent>

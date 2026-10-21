@@ -1,34 +1,44 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { readThemePreference, writeThemePreference, resolveIsDark, systemPrefersDark, DARK_QUERY } from '@/lib/theme';
 
 const DarkModeContext = createContext();
 
+// Theme: 'system' | 'light' | 'dark' (see lib/theme.js). `isDarkMode` is the
+// resolved value every component reads; in system mode it follows the
+// OS/browser setting live. The inline boot script in index.html applies the
+// same resolution before first paint, so there is no flash of the wrong
+// theme on load; this provider then owns the class from mount on.
 export function DarkModeProvider({ children }) {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check localStorage, default to light mode
-    const saved = localStorage.getItem('darkMode');
-    if (saved !== null) {
-      return saved === 'true';
-    }
-    // Default to light mode instead of system preference
-    return false;
-  });
+  const [theme, setThemeState] = useState(() => readThemePreference(globalThis.localStorage));
+  const [systemDark, setSystemDark] = useState(() => systemPrefersDark());
+
+  // Follow the system setting while it is the preference.
+  useEffect(() => {
+    const query = globalThis.matchMedia?.(DARK_QUERY);
+    if (!query) return undefined;
+    const onChange = (event) => setSystemDark(event.matches);
+    query.addEventListener?.('change', onChange);
+    return () => query.removeEventListener?.('change', onChange);
+  }, []);
+
+  const isDarkMode = resolveIsDark(theme, systemDark);
 
   useEffect(() => {
-    // Save to localStorage
-    localStorage.setItem('darkMode', isDarkMode);
+    writeThemePreference(globalThis.localStorage, theme);
+  }, [theme]);
 
-    // Apply dark mode class to html element
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 
-  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
+  const setTheme = useCallback((next) => setThemeState(next), []);
+  // The header's one-button toggle: pick the opposite of what is showing,
+  // as an explicit choice (leaving system mode).
+  const toggleDarkMode = useCallback(() => setThemeState(isDarkMode ? 'light' : 'dark'), [isDarkMode]);
 
+  const value = useMemo(() => ({ isDarkMode, theme, setTheme, toggleDarkMode }), [isDarkMode, theme, setTheme, toggleDarkMode]);
   return (
-    <DarkModeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
+    <DarkModeContext.Provider value={value}>
       {children}
     </DarkModeContext.Provider>
   );

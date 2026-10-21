@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.42.0] - 2026-10-21
+
+### Added
+
+- **A System theme.** Settings → Appearance now offers System, Light and
+  Dark. System follows the device's light or dark setting and switches live
+  when it does; Light and Dark are fixed. New visitors start on System. The
+  header's sun/moon button still toggles, as an explicit choice. Anyone who
+  had chosen a theme keeps it: the old `darkMode` setting is migrated once
+  (`src/lib/theme.js`, with unit tests).
+
+### Fixed
+
+- **No more light flash on load for dark-mode users.** The theme class was
+  applied only after the app mounted. The inline boot script now resolves
+  the stored preference (or the system setting) before first paint; the
+  script's hash in the Content Security Policy is updated to match.
+- **A definite integral's bound labels no longer print over the x-axis
+  numbers.** They were Recharts' own "bottom" labels, placed in the tick
+  strip, so "0" and "1" sat on the ticks "0" and "1". The bounds now go
+  through the in-plot label layer, as "a = 0" and "b = 1" heading the
+  shaded column at the top of the plot. In-plot labels that would overlap
+  (the two bounds on a phone) now stack on a second line instead of the
+  second one being dropped.
+
 ## [1.41.1] - 2026-10-21
 
 ### Changed
