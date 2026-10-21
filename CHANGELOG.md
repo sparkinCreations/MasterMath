@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.47.1] - 2026-10-21
+
+### Changed
+
+- **The notation hint is a "Notation guide" button**, next to the character
+  count under the problem box, that opens a short reference (powers, roots,
+  fractions, functions, equations, inequalities, derivatives, integrals,
+  limits, constants) with a link to the full section in the manual. The
+  1.47.0 spelled-out line under the box was a strip of notation to scan
+  past on every visit. The dialog follows the app's confirm dialog: focus
+  moves in and back, Escape and the backdrop close it, Tab stays inside.
+
 ## [1.47.0] - 2026-10-21
 
 Fifth outside review: the solver-page items, each reproduced first.

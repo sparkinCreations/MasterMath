@@ -182,12 +182,21 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('combobox').first()).toContainText('Algebra');
     await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeDisabled();
     await expect(page.getByText('Type a problem above, or pick an example below, to enable Solve.')).toBeVisible();
-    await expect(page.getByText(/Type it as you would say it/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Notation guide' })).toBeVisible();
     await page.getByRole('combobox').first().click();
     await page.getByRole('option', { name: 'Integrals' }).click();
     await page.reload();
     await expect(page.getByRole('combobox').first()).toContainText('Integrals');
-    await page.getByRole('link', { name: 'Notation guide' }).click();
+    // The guide opens as a dialog, closes on Escape, and links to the manual.
+    await page.getByRole('button', { name: 'Notation guide' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Notation guide' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('lim x->0 (sin(x)/x)');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Notation guide' })).toBeFocused();
+    await page.getByRole('button', { name: 'Notation guide' }).click();
+    await page.getByRole('link', { name: /full guide in the User Manual/ }).click();
     await expect(page).toHaveURL(/usermanual#entering-your-problem/);
     await expect(page.getByRole('heading', { name: 'Step 2: Enter Your Problem' })).toBeInViewport();
   });
