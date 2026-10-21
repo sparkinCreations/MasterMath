@@ -26,6 +26,20 @@ import { detectTrigAsymptote, EXPLODED_MAGNITUDE } from './trigonometrySolver.js
 function limitGuidance(result) {
   const method = String(result.verificationMethod || '');
   const text = (result.steps || []).join('\n');
+  if (/^logarithms/.test(method)) {
+    return {
+      tips: [
+        '1^∞ is indeterminate: a base just above 1 raised to a huge power can go anywhere. Take logarithms to bring the exponent down: ln(B^E) = E·ln(B).',
+        'ln(1 + u) ≈ u for small u (the standard limit ln(1 + u)/u → 1), so lim B^E = e^(lim E·(B − 1)).',
+        'The family to know: (1 + a/x)^(bx) → e^(ab) as x → ∞, and (1 + ax)^(b/x) → e^(ab) as x → 0.',
+      ],
+      common_mistakes: [
+        'Saying 1^∞ = 1: the base is only approaching 1, and the exponent magnifies the difference.',
+        'Forgetting to undo the logarithm at the end: ln L = 2 means L = e², not 2.',
+        'Dropping the constant in the exponent: (1 + 1/x)^(2x) → e², not e.',
+      ],
+    };
+  }
   if (/standard limit/.test(method)) {
     return {
       tips: [
@@ -543,6 +557,7 @@ function tryNamedTechnique(Algebrite, func, variable, target) {
   const attempts = [
     () => tryStandardLimit(func, variable, target),
     () => trySqueezeAtZero(func, variable, target),
+    () => tryOneToInfinity(Algebrite, func, variable, target),
     () => (Algebrite ? tryConjugate(Algebrite, func, variable, target) : null),
     () => (Algebrite ? tryFactorAndCancel(Algebrite, func, variable, target) : null),
   ];
@@ -791,6 +806,87 @@ function trySqueezeAtInfinity(func, variable, target) {
   return { steps, answer: '0', verified: verifyInfiniteLimit(func, v, target, 0), verificationMethod: 'squeeze theorem + numeric check' };
 }
 
+// The form 1^∞: B^E with B → 1 and E → ±∞, such as (1 + a/x)^(bx) at ∞,
+// (x/(x + 1))^x at ∞, (1 + ax)^(b/x) at 0. Take logarithms:
+// ln L = lim E·ln(1 + u) with u = B − 1 → 0, and the standard limit
+// ln(1 + u)/u → 1 leaves ln L = lim E·u = c, so L = e^c. c is found exactly
+// (E·u simplified: a constant, or at ±∞ a ratio of equal-degree
+// polynomials); anything else is left to the ladder. The sampling fallback
+// used to produce e for this family, with steps that admitted it.
+function tryOneToInfinity(Algebrite, func, variable, target) {
+  if (!Algebrite || (target !== 0 && Number.isFinite(target))) return null;
+  let node;
+  try {
+    node = math.parse(func);
+  } catch {
+    return null;
+  }
+  while (node.type === 'ParenthesisNode') node = node.content;
+  if (node.type !== 'OperatorNode' || node.op !== '^') return null;
+  const base = stripOuterParens(noSpaces(node.args[0].toString()));
+  const exponent = stripOuterParens(noSpaces(node.args[1].toString()));
+  const v = variable;
+  if (!hasVariable(base, v) || !hasVariable(exponent, v)) return null;
+
+  // Near the point: the base must go to 1, the exponent to ±∞.
+  const near = Number.isFinite(target) ? [1e-6, -1e-6] : [target === Infinity ? 1e7 : -1e7];
+  for (const x of near) {
+    const b = evalAt(base, v, x);
+    const e = evalAt(exponent, v, x);
+    if (!Number.isFinite(b) || Math.abs(b - 1) > 1e-4 || !Number.isFinite(e) || Math.abs(e) < 1e4) return null;
+  }
+
+  const run = (code) => {
+    const out = String(Algebrite.run(code)).trim();
+    return isAlgebriteFailure(out) ? null : out;
+  };
+  const u = run(`simplify((${base}) - 1)`);
+  const product = u && run(`simplify((${exponent})*(${u}))`);
+  if (!u || !product) return null;
+
+  // c = lim E·u, exactly.
+  const grouped = (t) => (/^[a-z0-9^]+$/i.test(noSpaces(t)) ? beautify(t) : `(${beautify(t)})`);
+  const cSteps = [`E·u = ${grouped(exponent)}·${grouped(u)} = ${beautify(product)}${hasVariable(product, v) ? '' : ', a constant'}.`];
+  let c = null;
+  if (!hasVariable(product, v)) {
+    c = algebriteNumber(Algebrite, product, v);
+  } else if (!Number.isFinite(target)) {
+    const rational = run(`rationalize(${product})`);
+    const num = rational && run(`numerator(${rational})`);
+    const den = rational && run(`denominator(${rational})`);
+    if (!num || !den || !isPolynomial(num, v) || !isPolynomial(den, v)) return null;
+    const dn = Number(run(`deg(${num}, ${v})`));
+    const dd = Number(run(`deg(${den}, ${v})`));
+    if (!Number.isInteger(dn) || !Number.isInteger(dd) || dn > dd) return null;
+    const ratio = dn < dd ? '0' : run(`simplify((${run(`coeff(${num}, ${v}, ${dn})`)})/(${run(`coeff(${den}, ${v}, ${dd})`)}))`);
+    c = ratio === null ? null : algebriteNumber(Algebrite, ratio, v);
+    const toward = target === Infinity ? '∞' : '−∞';
+    cSteps.push(dn < dd
+      ? `As a single fraction its denominator has the higher degree, so as ${v} → ${toward} it → 0.`
+      : `As a single fraction, ${beautify(num)} over ${beautify(den)}, numerator and denominator both have degree ${dn}; only the leading coefficients survive as ${v} → ${toward}, so it → ${beautify(ratio)}.`);
+  }
+  if (c === null || !Number.isFinite(c)) return null;
+
+  const exactC = rationalText(c);
+  if (exactC === null) return null;
+  const value = Math.exp(c);
+  const power = exactC === '0' ? '1' : exactC === '1' ? 'e' : exactC === '-1' ? '1/e' : exactC === '1/2' ? '√e' : /^-?\d+$/.test(exactC) && c > 0 ? `e^${exactC}` : `e^(${exactC})`;
+  const shown = power === '1' ? '1' : `${power} (≈ ${formatNumber(value)})`;
+  const towardShown = Number.isFinite(target) ? '0' : target === Infinity ? '∞' : '−∞';
+  const exponentGoes = Number.isFinite(target) ? '±∞ (the sign depends on the side)' : evalAt(exponent, v, near[0]) > 0 ? '∞' : '−∞';
+  const steps = [
+    `As ${v} → ${towardShown} the base ${beautify(base)} → 1 while the exponent ${beautify(exponent)} → ${exponentGoes}: the indeterminate form 1^∞. A power with a moving exponent is handled by taking logarithms.`,
+    `Let L be the limit, and write the power as B^E with B = ${beautify(base)} and E = ${beautify(exponent)}. Then ln L is the limit of ln(B^E) = E·ln(B).`,
+    `Write the base as 1 + u, with u = B − 1 = ${beautify(u)}; u → 0 as ${v} → ${towardShown}. Then E·ln(1 + u) = (E·u)·[ln(1 + u)/u], and the standard limit ln(1 + u)/u → 1 as u → 0 leaves ln L equal to the limit of E·u.`,
+    ...cSteps,
+    `So ln L = ${exactC}, and L = e^${/^\d+$/.test(exactC) ? exactC : `(${exactC})`}${power.startsWith('e^') ? '' : ` = ${power}`}. The limit is ${shown}.`,
+  ];
+  const verified = Number.isFinite(target)
+    ? verifyLimitNumerically(func, v, target, value)
+    : verifyInfiniteLimit(func, v, target, value);
+  return { steps, answer: shown, verified, verificationMethod: 'logarithms and the standard limit ln(1 + u)/u → 1 + numeric check' };
+}
+
 async function evaluateInfiniteLimit(func, variable, target) {
   let Algebrite = null;
   try {
@@ -801,6 +897,10 @@ async function evaluateInfiniteLimit(func, variable, target) {
   try {
     const squeeze = trySqueezeAtInfinity(func, variable, target);
     if (squeeze && squeeze.verified) return squeeze;
+  } catch { /* fall through */ }
+  try {
+    const power = tryOneToInfinity(Algebrite, func, variable, target);
+    if (power && power.verified) return power;
   } catch { /* fall through */ }
   if (Algebrite) {
     try {

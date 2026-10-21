@@ -30,7 +30,7 @@ export default function FAQ() {
     },
     {
       question: "What types of math problems can I solve?",
-      answer: "Derivatives (any order, at a point, with every rule worked), integrals (indefinite, definite, and improper, by substitution, parts, or partial fractions), limits (one-sided and at infinity), function analysis with graphs, trigonometry (values, identities, and equations), algebra (linear through higher-degree equations, radical, absolute-value, exponential and logarithmic equations, systems of two or three equations, inequalities, simplifying and factoring), and arithmetic (order of operations, fractions, percentages). The User Manual lists what to type for each."
+      answer: "Derivatives (any order, at a point, implicit dy/dx for an equation in x and y, with every rule worked), integrals (indefinite, definite, and improper, by substitution, parts, or partial fractions), limits (one-sided and at infinity), function analysis with graphs, trigonometry (values, identities, and equations), algebra (linear through higher-degree equations, radical, absolute-value, exponential and logarithmic equations, systems of two or three equations, inequalities, simplifying and factoring), and arithmetic (order of operations, fractions, percentages). The User Manual lists what to type for each."
     },
     {
       question: "Can I solve a system of equations?",

@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.49.0] - 2026-10-21
+
+October 2026 roadmap: P1 implicit differentiation and P2 the 1^∞ limits,
+plus three confidently-wrong answers found while sweeping the routing.
+
+### Added
+
+- **Implicit differentiation.** `x^2 + y^2 = 25` under Derivatives gives
+  dy/dx = −x/y, worked as the textbook does it: each term differentiated
+  with respect to x (every y-term picks up dy/dx by the chain rule, x·y
+  terms get the product rule), the dy/dx terms collected, then divided.
+  "find dy/dx if …", "differentiate implicitly: …" and "…, find dy/dx"
+  route here from any topic instead of being refused as differential
+  equations; `xy` is read as x·y. Verified before it is shown: points on
+  the curve are located numerically and the slope measured along the
+  curve must match the formula. "at (3, 4)" (or "at x = 3, y = 4") gives
+  the exact slope there; a point off the curve, a vertical tangent and a
+  singular point are each answered as undefined, with the reason. New
+  module `implicitDerivativeSolver.js`.
+- **The 1^∞ limits by a named technique.** (1 + a/x)^(bx), (x/(x + 1))^x
+  and (1 + ax)^(b/x) at 0 are worked by logarithms: ln L = lim E·ln(1 + u),
+  the standard limit ln(1 + u)/u → 1 leaves ln L = lim E·u, so L = e^(ab).
+  (1 + 1/x)^x used to be "the values settle toward e" from sampling. Tips
+  and mistakes for this method (1^∞ is not 1; undo the logarithm).
+
+### Fixed
+
+- **y = x² and f(x) = x³ under Derivatives are differentiated.** Both went
+  to Algebra and came back "already in simplest form", marked Solved;
+  x·y = 1 came back as 1.
+- **An inequality in two variables is refused**, never answered "No
+  solution". x + y > 2 and x² + y² ≤ 25 describe regions of the plane;
+  the sign chart in x read y as a constant and found nothing.
+
 ## [1.48.0] - 2026-10-21
 
 Sixth outside review (two rounds), first batch; each item reproduced first.

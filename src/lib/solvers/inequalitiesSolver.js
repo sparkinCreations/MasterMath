@@ -177,6 +177,19 @@ async function solveSingle(rawText) {
     const variable = extractVariable(`${lhs} ${rhs}`);
     const fExpr = `(${lhs}) - (${rhs})`;
 
+    // Two variables (x + y > 2, x² + y² ≤ 25) describe a region of the
+    // plane, not a set on the number line. The sign chart in x read y as a
+    // symbol and answered "No solution" — confidently wrong (found in the
+    // 1.49.0 routing sweep).
+    const letters = new Set((fExpr.replace(/(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp|pi|e)(?![a-z])/gi, ' ').match(/(?<![a-z])[a-z](?![a-z])/gi) || []).map((c) => c.toLowerCase()));
+    if (letters.size > 1) {
+      return refuse(
+        `This inequality has more than one variable (${[...letters].sort().join(', ')}). Its solutions are a region of the plane, not a set of numbers on a line, and graphing regions is not supported.`,
+        'An inequality in one variable is solved with a sign chart: x^2 - 4 > 0, or 2x + 3 ≤ 7.',
+        'unsupported',
+      );
+    }
+
     // A constant comparison (no variable) is simply true or false.
     if (!new RegExp(`\\b${variable}\\b`).test(fExpr)) {
       let holds;

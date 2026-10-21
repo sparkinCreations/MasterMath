@@ -948,9 +948,14 @@ test('audit L08: a limit at infinity that is a power of e or a small rational is
   assert.match(cube.answer, /e\^3 \(≈ 20\.0855\)/);
   const ratio = await solveLimit('lim x->infinity (2x^2 + 1)/(5x^2 - 3)');
   assert.match(ratio.answer, /2\/5 \(≈ 0\.4\)/);
-  // A value with no short name stays a plain decimal.
-  const plain = await solveLimit('lim x->infinity (1+1/x)^(x*1.37)');
-  assert.doesNotMatch(plain.answer, /\(≈/);
+  // A sampled value with no short name stays a plain decimal: e^1.37 is
+  // not dressed up as a named constant on the strength of samples.
+  const plain = await solveLimit('lim x->infinity exp(1.37*x/(x+1))');
+  assert.doesNotMatch(plain.answer, /\(≈|e\^/);
+  // The 1^∞ form is now proved by logarithms (1.49.0), so its exact value
+  // is earned: (1 + 1/x)^(1.37x) → e^(137/100).
+  const proved = await solveLimit('lim x->infinity (1+1/x)^(x*1.37)');
+  assert.match(proved.answer, /e\^\(137\/100\) \(≈ 3\.9354\)/);
 });
 
 // ---------------------------------------------------------------------------

@@ -160,6 +160,26 @@ function exprEquivalent(a, b, variable = 'x') {
   return seen >= 3 && agree === seen;
 }
 
+// Are two expressions in x and y equal? Sample (x, y) pairs off the same
+// fixed points.
+function expr2Equivalent(a, b) {
+  const na = prepForEval(a);
+  const nb = prepForEval(b);
+  if (na === null || nb === null) return false;
+  let agree = 0;
+  let seen = 0;
+  SAMPLE_POINTS.forEach((x, i) => {
+    const y = SAMPLE_POINTS[(i + 3) % SAMPLE_POINTS.length];
+    let ya;
+    let yb;
+    try { ya = Number(math.evaluate(na, { x, y })); yb = Number(math.evaluate(nb, { x, y })); } catch { return; }
+    if (!Number.isFinite(ya) || !Number.isFinite(yb)) return;
+    seen += 1;
+    if (Math.abs(ya - yb) < 1e-6 * (1 + Math.abs(ya))) agree += 1;
+  });
+  return seen >= 3 && agree === seen;
+}
+
 // Convert an answer/expected string into an evaluable expression, or null.
 function prepForEval(s) {
   let out = String(s)
@@ -441,6 +461,15 @@ async function grade(category, problem, expected, meta = {}) {
   if (meta.expectRefusal) {
     const declined = r.status !== 'solved' || /diverge|undefined|indeterminate|non-elementary|does not exist|beyond what|cannot|not supported/i.test(ans);
     return { verdict: declined ? 'CORRECT' : 'WRONG', got: ans };
+  }
+
+  if (cat === 'derivatives' && /^d[a-z]\/d[a-z]\b/.test(ans)) {
+    // An implicit derivative, "dy/dx = -x/y" or "dy/dx at (3, 4) = -3/4 ≈ -0.75":
+    // a value, or an expression in both variables graded by sampling (x, y).
+    const core = ans.replace(/^d[a-z]\/d[a-z](?:\s+at\s+\([^)]*\))?\s*=\s*/, '').replace(/\s*≈\s*[-\d.]+\s*$/, '');
+    const en = toNumber(expected);
+    if (en !== null) return { verdict: numClose(toNumber(core), en) ? 'CORRECT' : 'WRONG', got: ans };
+    return { verdict: expr2Equivalent(core, expected) ? 'CORRECT' : 'WRONG', got: ans };
   }
 
   if (cat === 'derivatives') {
