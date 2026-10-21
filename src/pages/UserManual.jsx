@@ -2,9 +2,18 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Calculator, Download, History, Lightbulb, TrendingUp, ListChecks, Settings as SettingsIcon, TimerOff } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
 export default function UserManual() {
   usePageTitle("User Manual - How to Use MasterMath");
+  // "/usermanual#entering-your-problem" from the solver's notation link:
+  // the router does not scroll to a hash on its own.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
+  }, [hash]);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -63,7 +72,7 @@ export default function UserManual() {
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Step 2: Enter Your Problem</h3>
+            <h3 id="entering-your-problem" className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2 scroll-mt-24">Step 2: Enter Your Problem</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-2">
               Type your math problem in the text area. Here are some formatting tips:
             </p>
@@ -193,7 +202,7 @@ export default function UserManual() {
             <p className="text-gray-700 dark:text-gray-300">
               Each solution breaks down the problem into clear, numbered steps showing exactly how to solve it.
               Follow along to understand the mathematical process.
-            </p>
+             New visitors see one step at a time (Step through), with a Next step button; Show all shows the whole working at once, and the choice is remembered.</p>
           </div>
 
           <div>

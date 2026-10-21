@@ -63,6 +63,19 @@ const Select = ({ children, value, onValueChange, id }) => {
     setActiveIndex(-1)
   }
 
+  // A tap outside closes the list. Closing relied on the trigger losing
+  // focus, and on a touch screen a tap on blank page does not move focus,
+  // so the list stayed open until Escape or another option.
+  const rootRef = React.useRef(null)
+  React.useEffect(() => {
+    if (!isOpen) return undefined
+    const onPointerDown = (event) => {
+      if (rootRef.current && !rootRef.current.contains(event.target)) close()
+    }
+    document.addEventListener("pointerdown", onPointerDown, true)
+    return () => document.removeEventListener("pointerdown", onPointerDown, true)
+  }, [isOpen])
+
   const commit = (index) => {
     if (index >= 0 && index < itemValues.length) onValueChange(itemValues[index])
     close()
@@ -129,7 +142,7 @@ const Select = ({ children, value, onValueChange, id }) => {
         optionId,
       }}
     >
-      <div className="relative" onKeyDown={handleKeyDown}>
+      <div ref={rootRef} className="relative" onKeyDown={handleKeyDown}>
         {children}
       </div>
     </SelectContext.Provider>

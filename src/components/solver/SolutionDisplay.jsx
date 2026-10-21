@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { readSolutionMode, writeSolutionMode } from "@/lib/solverPrefs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, Eye, Footprints } from "lucide-react";
@@ -68,7 +69,13 @@ export default function SolutionDisplay({ solution, problem, topic }) {
   const toast = useToast();
 
   const steps = solution?.steps || [];
-  const [stepThrough, setStepThrough] = useState(false);
+  // Step-through for a new visitor (the app teaches the method; the first
+  // thing a new user sees is the working unfolding); remembered once chosen.
+  const [stepThrough, setStepThroughState] = useState(() => readSolutionMode(globalThis.localStorage) === 'step');
+  const setStepThrough = (next) => {
+    writeSolutionMode(globalThis.localStorage, next ? 'step' : 'all');
+    setStepThroughState(next);
+  };
   const [revealed, setRevealed] = useState(0);
 
   // Framer Motion is not covered by the CSS reduced-motion rules, so the two

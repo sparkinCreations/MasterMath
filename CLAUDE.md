@@ -39,6 +39,7 @@ src/
     solutionEnvelope.js        typed result statuses: solved / parse_error / unsupported / undefined / indeterminate / diverges / overflow
     mathInstance.js            mathjs built from an explicit dependency list (tree-shaken)
     graphSampling.js, graphDescription.js, latex.js, exportUtils.js, indexedDB.js, reveal.js
+    solverPrefs.js             solution mode (step-through default), last topic, the bare-expression nudge
     solvers/                   one module per topic (below) + solverUtils.js shared helpers
 tests/        node --test unit suite; tests/corpus/harness.mjs grades the evaluation corpora
 e2e/          Playwright smoke test of the production build

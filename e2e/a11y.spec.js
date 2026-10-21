@@ -37,7 +37,7 @@ for (const scheme of ['light', 'dark']) {
   test.describe(`${scheme} mode`, () => {
     test.beforeEach(async ({ page }) => {
       // Dark mode is the app's own setting (a class on <html>), not the OS one.
-      await page.addInitScript((dark) => { localStorage.setItem('darkMode', String(dark)); }, scheme === 'dark');
+      await page.addInitScript((dark) => { localStorage.setItem('darkMode', String(dark)); localStorage.setItem('solutionMode', 'all'); }, scheme === 'dark');
     });
 
     for (const path of PAGES) {

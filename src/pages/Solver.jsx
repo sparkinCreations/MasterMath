@@ -2,6 +2,8 @@ import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 
 import { useLocation } from "react-router-dom";
 import { revealElement } from "@/lib/reveal";
 import ProblemInput from "@/components/solver/ProblemInput";
+import { readLastTopic, writeLastTopic, expressionNudge } from "@/lib/solverPrefs";
+import { Lightbulb } from "lucide-react";
 import SolutionDisplay from "@/components/solver/SolutionDisplay";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { createProblemHistory } from "@/lib/api";
@@ -23,7 +25,11 @@ export default function Solver() {
   const location = useLocation();
   const prefill = location.state && typeof location.state.problem === 'string' ? location.state : null;
   const [problem, setProblem] = useState(prefill ? prefill.problem : "");
-  const [topic, setTopic] = useState(prefill && typeof prefill.topic === 'string' ? prefill.topic : "");
+  // Never an empty form: the last topic used, else Algebra.
+  const [topic, setTopic] = useState(prefill && typeof prefill.topic === 'string' ? prefill.topic : readLastTopic(globalThis.localStorage));
+  useEffect(() => { writeLastTopic(globalThis.localStorage, topic); }, [topic]);
+  // The bare-expression nudge for the solution on screen, if any.
+  const [nudge, setNudge] = useState(null);
   const [solution, setSolution] = useState(null);
   // What the displayed solution was actually produced from. Kept separate from
   // the live `problem`/`topic` state so the exports describe the solution on
@@ -77,25 +83,35 @@ export default function Solver() {
   // differ from the raw textarea contents (collapsed whitespace). Everything
   // downstream — the solve, the recall history, the saved record — uses that
   // one string, so what was validated is what gets solved and stored.
-  const handleSolve = async (problemText = problem) => {
+  // A problem the input refused (validation): the previous answer and graph
+  // would otherwise stay on screen looking current.
+  const handleInvalid = () => {
+    setSolution(null);
+    setGraphData(null);
+    setNudge(null);
+    setSolvedInput({ problem: "", topic: "" });
+  };
+
+  const handleSolve = async (problemText = problem, chosenTopic = topic) => {
     setIsLoading(true);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
       // Runs in the worker with a time budget; null means the user cancelled.
-      const result = await solveWithBudget(problemText, topic, { signal: controller.signal });
+      const result = await solveWithBudget(problemText, chosenTopic, { signal: controller.signal });
       if (!result) {
         toast.warning("Solve cancelled");
         return;
       }
       setSolution(result);
-      setSolvedInput({ problem: problemText, topic });
+      setSolvedInput({ problem: problemText, topic: chosenTopic });
       setGraphData(result.graph);
+      setNudge(expressionNudge(problemText, chosenTopic, result));
 
       // Add to input history (avoid duplicates of the last entry)
       setInputHistory(prev => {
-        const entry = { problem: problemText, topic };
-        if (prev.length > 0 && prev[0].problem === problemText && prev[0].topic === topic) {
+        const entry = { problem: problemText, topic: chosenTopic };
+        if (prev.length > 0 && prev[0].problem === problemText && prev[0].topic === chosenTopic) {
           return prev;
         }
         return [entry, ...prev].slice(0, MAX_HISTORY);
@@ -118,7 +134,7 @@ export default function Solver() {
             problem: problemText,
             // File it under the topic it was solved as (the router may have
             // overridden the dropdown: "d/dx x^3" under Algebra is a derivative).
-            topic: result.routedTopic || topic,
+            topic: result.routedTopic || chosenTopic,
             solution: result,
             feedback: statusLabel(result.status)
           });
@@ -201,6 +217,7 @@ export default function Solver() {
               topic={topic}
               setTopic={setTopic}
               onSolve={handleSolve}
+              onInvalid={handleInvalid}
               isLoading={isLoading}
               onCancel={handleCancel}
               onNavigateHistory={navigateHistory}
@@ -220,6 +237,24 @@ export default function Solver() {
             )}
           </div>
 
+          {nudge && solution && (
+            <div role="note" className="flex flex-wrap items-center gap-3 p-4 rounded-xl border-2 border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100">
+              <Lightbulb className="w-5 h-5 text-amber-500 shrink-0" aria-hidden="true" />
+              <p className="text-sm flex-1 min-w-48">{nudge.message}</p>
+              <div className="flex flex-wrap gap-2">
+                {nudge.options.map((opt) => (
+                  <button
+                    key={opt.topic}
+                    type="button"
+                    onClick={() => { setTopic(opt.topic); handleSolve(solvedInput.problem, opt.topic); }}
+                    className="min-h-11 px-3 rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-sm font-medium text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div ref={solutionRef} tabIndex={-1} aria-label="Solution" className="outline-hidden scroll-mt-20 lg:scroll-mt-0">
             <SolutionDisplay solution={solution} problem={solvedInput.problem} topic={solvedInput.topic} />
           </div>
