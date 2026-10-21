@@ -14,7 +14,8 @@ export default function SymbolStrip({ id, group, onGroupChange, onInsert }) {
       id={id}
       className="space-y-2 p-2 rounded-xl border-2 border-indigo-100 dark:border-gray-700 bg-indigo-50/60 dark:bg-gray-900/40"
     >
-      <div role="group" aria-label="Symbol group" className="flex flex-wrap gap-1.5">
+      {/* Four equal pills on one row, so the row never wraps on a phone. */}
+      <div role="group" aria-label="Symbol group" className="grid grid-cols-4 gap-1.5">
         {GROUPS.map((g) => (
           <button
             key={g.key}
@@ -22,7 +23,7 @@ export default function SymbolStrip({ id, group, onGroupChange, onInsert }) {
             aria-pressed={group === g.key}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onGroupChange(g.key)}
-            className={`${buttonBase} text-sm px-3 ${group === g.key
+            className={`${buttonBase} text-sm px-1 min-w-0 ${group === g.key
               ? 'bg-indigo-600 text-white dark:bg-indigo-500'
               : 'bg-transparent text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-700'}`}
           >
