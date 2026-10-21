@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.48.0] - 2026-10-21
+
+Sixth outside review (two rounds), first batch; each item reproduced first.
+
+### Fixed
+
+- **A differential equation is refused, never "solved".** y'' + y = 0 came
+  back as 0 with "Problem solved!": the algebra path dropped the primed
+  terms. Any primed variable (y', y'') or dy/dx now gets an honest
+  unsupported result that says what the input is and what the solver does
+  instead. f'(x) notation is untouched.
+- **Matrices get a message that says so.** "determinant of [[1,2],[3,4]]"
+  reported that "determinantof is not a known function".
+- **The last error toast is cleared when a new solve starts.** Error and
+  warning toasts stay until dismissed; a red "Couldn't read that input"
+  used to sit beside the next "Problem solved!".
+- **↑ recalls each past problem once.** A recalled problem left the caret
+  at its end, which blocked the next ↑ (every other press did nothing, so
+  each entry appeared twice). Stepping back past the newest entry keeps
+  the topic.
+- **∫(2x + 1) dx is x² + x + C**, not x·(x + 1) + C: a polynomial
+  integrand keeps its expanded antiderivative.
+- **log₂(x) is shown as log_2(x)** wherever the parser's log(x)/log(2)
+  form reached a step, and typesets as a log with a subscript.
+- **∫1/(x² − 1) dx shows the partial-fraction working** (factor, the
+  cover-up constants, the logs) instead of a one-line table formula. A
+  rational function over a factorable denominator of degree 2 or more
+  takes that path before the engine's direct answer.
+- **Step-through controls are 44 px targets** (Show all, Step through,
+  Reveal all were 20–32 px).
+- **The footer wraps cleanly**: two rows and no "|" separators, which
+  ended up orphaned on a line of their own between 640 and 700 px wide.
+
+### Changed
+
+- **Four example cards on a phone**, the rest behind "Show all 11
+  examples"; desktops show all eleven as before.
+
 ## [1.47.1] - 2026-10-21
 
 ### Changed

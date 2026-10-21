@@ -34,7 +34,14 @@ export function ToastProvider({ children }) {
     setToasts(prev => [...prev, { id, message, type, duration: resolved }]);
   }, []);
 
+  // Error and warning toasts stay until dismissed (a slow reader must be
+  // able to act on them), so a new solve clears the ones about the last.
+  const clearKinds = useCallback((kinds) => {
+    setToasts(prev => prev.filter(t => !kinds.includes(t.type)));
+  }, []);
+
   const toast = {
+    clearKinds,
     success: (message, duration) => addToast(message, 'success', duration),
     error: (message, duration) => addToast(message, 'error', duration),
     info: (message, duration) => addToast(message, 'info', duration),

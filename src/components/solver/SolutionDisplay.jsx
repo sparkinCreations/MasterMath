@@ -211,7 +211,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                       type="button"
                       onClick={() => setStepThrough(false)}
                       aria-pressed={!stepThrough}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-1.5 px-3 min-h-11 rounded-md text-sm font-medium transition-colors ${
                         !stepThrough
                           ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                           : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -227,7 +227,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                         setRevealed(1);
                       }}
                       aria-pressed={stepThrough}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-1.5 px-3 min-h-11 rounded-md text-sm font-medium transition-colors ${
                         stepThrough
                           ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                           : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -271,7 +271,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
                     <button
                       type="button"
                       onClick={() => setRevealed(steps.length)}
-                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 underline underline-offset-2"
+                      className="min-h-11 px-3 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 underline underline-offset-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
                     >
                       Reveal all
                     </button>
