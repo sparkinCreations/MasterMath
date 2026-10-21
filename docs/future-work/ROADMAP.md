@@ -4,6 +4,7 @@
 **By:** sparkinCreations™
 **Last Updated:** September 7, 2026
 **Supersedes:** [`ROADMAP-2026-07.md`](ROADMAP-2026-07.md) (13/13 items shipped)
+**Superseded by:** [`ROADMAP-2026-10.md`](ROADMAP-2026-10.md) (October 21, 2026; this list is 11/13 shipped, the two P4 items carry over)
 
 ---
 
