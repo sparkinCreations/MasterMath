@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.44.0] - 2026-10-21
+
+Fourth outside review.
+
+### Added
+
+- **Trigonometric substitution.** ∫√(a² − b²x²) dx is worked the way a
+  textbook does it (`trigSubstitutionSolver.js`): x = (a/b)·sin θ, dx, the
+  root as a·cos θ, ∫cos²θ by the half-angle identity, back to x with the
+  right triangle. Algebrite's answer for ∫√(1 − x²) dx was correct but came
+  as 1/2·x·(−x²+1)^(1/2) labelled "u-substitution" with no working. Tips and
+  mistakes for the method; the result is still differentiated back.
+- **A "Page not found" page** for unknown URLs, with links home and to the
+  solver, instead of a silent redirect to the home page.
+
+### Changed
+
+- **The graph heads the results column on a desktop.** It sat under the
+  tall input card, below the fold on a 900 px screen; it now sits beside
+  the input, above the steps. Phones keep the order input → graph → steps.
+- **Footer links are 44 px tall on phones** (24 px from 1.43.0 was the WCAG
+  minimum; 44 px is the usual touch guideline), and wrap in a row.
+
+### Fixed
+
+- **Roots are written as roots.** (…)^(1/2) and sqrt(…) in an answer are
+  shown as √(…), and Algebrite's −x² + 1 inside a root as 1 − x².
+- **Axis ticks are round and evenly spaced.** The fitted y-window ended on
+  raw sample values, so the chart labelled ticks −9.6, −5.6, −1.6, 2.4,
+  4.4. Ticks are now chosen from steps of 1, 2, 2.5 or 5 (`niceTicks`); the
+  y-axes widen to round ends and the x-axis keeps its window with round
+  ticks inside it.
+- **Dark mode on the graph card.** The f(x) curve's gradient was the
+  light-theme blue/indigo (2.3:1 on the dark card); it now uses the lighter
+  stops (about 5:1). The card's title was pure black on the dark card
+  (1.2:1); it is now light.
+
 ## [1.43.0] - 2026-10-21
 
 Third outside review, every claim reproduced before it was fixed.

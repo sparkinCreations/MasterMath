@@ -380,7 +380,11 @@ export function lnify(result) {
     .replace(/ln\|(\d+(?:\.\d+)?)\|/g, 'ln($1)')
     // exp(x) → e^x for a single token, e^(…) otherwise
     .replace(/(?<![a-z])exp\(([a-z]|\d+)\)/gi, 'e^$1')
-    .replace(/(?<![a-z])exp\(((?:[^()]|\([^()]*\))+)\)/g, 'e^($1)');
+    .replace(/(?<![a-z])exp\(((?:[^()]|\([^()]*\))+)\)/g, 'e^($1)')
+    // (…)^(1/2) and sqrt(…) → √(…), and Algebrite's −x² + 1 inside → 1 − x²
+    .replace(/\(([^()]+)\)\^\(1\/2\)/g, '√($1)')
+    .replace(/(?<![a-z])sqrt\(([^()]+)\)/g, '√($1)')
+    .replace(/√\(-([^()]+?) \+ (\d+(?:\.\d+)?)\)/g, '√($2 - $1)');
 }
 
 // Split on a delimiter at parenthesis depth 0: splitTopLevel('(a*b)*c', '*')

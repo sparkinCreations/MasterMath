@@ -394,3 +394,24 @@ export function tameWindow(expression, variable, window, { maxSpread = 40, minWi
   }
   return current;
 }
+
+
+// Round tick values for an axis: a step of 1, 2, 2.5 or 5 times a power of
+// ten giving about `count` ticks. With `extend` the ticks run from the round
+// number at or below `min` to the one at or above `max` (a y-axis widened to
+// round ends); without it they stay inside [min, max] (an x-axis that keeps
+// its exact window). `decimals` is what the labels need. Null when the range
+// is empty or would give fewer than two ticks.
+export function niceTicks(min, max, { count = 5, extend = true } = {}) {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return null;
+  const rough = (max - min) / Math.max(1, count - 1);
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= rough - 1e-12);
+  const decimals = Math.max(0, -Math.floor(Math.log10(step))) + (Math.abs(step / magnitude - 2.5) < 1e-9 ? 1 : 0);
+  const start = (extend ? Math.floor(min / step + 1e-9) : Math.ceil(min / step - 1e-9)) * step;
+  const end = (extend ? Math.ceil(max / step - 1e-9) : Math.floor(max / step + 1e-9)) * step;
+  const ticks = [];
+  for (let i = 0; start + i * step <= end + step * 1e-6; i += 1) ticks.push(Number((start + i * step).toFixed(decimals)));
+  if (ticks.length < 2) return null;
+  return { ticks, step, decimals, min: ticks[0], max: ticks[ticks.length - 1] };
+}

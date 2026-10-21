@@ -159,7 +159,7 @@ test.describe('MasterMath smoke', () => {
     await expect(page.locator('html')).toHaveClass(/dark/);
   });
 
-  test('every page is reachable from the sidebar and an unknown URL goes home', async ({ page }) => {
+  test('every page is reachable from the sidebar and an unknown URL gets a not-found page', async ({ page }) => {
     await page.goto('/');
     for (const [path, heading] of [
       ['/solver', /Master Some Math/],
@@ -175,8 +175,13 @@ test.describe('MasterMath smoke', () => {
       await expect(page).toHaveURL(new RegExp(`${path}$`));
       await expect(page.locator('main')).toContainText(heading);
     }
+    // An unknown URL says so and offers the way out, instead of silently
+    // showing the home page.
     await page.goto('/this-page-does-not-exist');
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/this-page-does-not-exist$/);
+    await expect(page.getByRole('heading', { name: /Page not found/ })).toBeVisible();
+    await expect(page).toHaveTitle(/Page not found/);
+    await page.getByRole('link', { name: /Go to the home page/ }).click();
     await expect(page.getByRole('heading', { name: /Welcome to MasterMath/ })).toBeVisible();
   });
 

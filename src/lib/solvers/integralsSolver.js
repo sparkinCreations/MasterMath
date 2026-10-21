@@ -18,6 +18,7 @@ import {
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
 import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerically } from './substitutionSolver.js';
+import { integrateByTrigSubstitution } from './trigSubstitutionSolver.js';
 import { parseError, unsupported, diverges } from '../solutionEnvelope.js';
 
 // Famous non-elementary integrands, so "the engine can't do this" comes with
@@ -89,6 +90,7 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     let anySubstitution = false;
     let anyAbs = false;
     let anyInverseTrig = false;
+    let anyTrigSub = false;
     const directLabels = new Set();
     for (const { signed } of terms) {
       const res = await integrateTerm(signed, variable, Algebrite);
@@ -97,6 +99,7 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       if (res.method === 'substitution') anySubstitution = true;
       if (res.method === 'abs') anyAbs = true;
       if (res.method === 'inverse trig') anyInverseTrig = true;
+      if (res.method === 'trig substitution') anyTrigSub = true;
       if (res.label) directLabels.add(res.label);
       perTerm.push(res);
     }
@@ -106,7 +109,9 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     if (perTerm.length === terms.length && perTerm.length > 0) {
       // A partial-fraction result is already in its teaching form; Algebrite's
       // simplify would refactor it (1/3·(…)) and hide the pieces.
-      integral = perTerm.some((r) => r.method === 'partial fractions')
+      // Likewise a trig-substitution result: simplify would turn its √ back
+      // into (…)^(1/2).
+      integral = perTerm.some((r) => r.method === 'partial fractions' || r.method === 'trig substitution')
         ? perTerm.map((r) => r.antideriv).join(' + ')
         : (simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) || perTerm.map((r) => r.antideriv).join(' + '));
       // Algebrite's simplify re-expands log arguments into partial fractions;
@@ -167,6 +172,8 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     ] : [
       anyByParts
         ? 'Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).'
+        : anyTrigSub
+          ? `Trigonometric substitution: √(a² − ${variable}²) calls for ${variable} = a·sin θ (√(a² + ${variable}²) for ${variable} = a·tan θ, √(${variable}² − a²) for ${variable} = a·sec θ); the root becomes a·cos θ and the integral is one in θ. Convert back with a right triangle.`
         : anyInverseTrig
           ? `Inverse-trig antiderivatives come from derivatives you know: d/d${variable} arctan(${variable}) = 1/(1 + ${variable}²) and d/d${variable} arcsin(${variable}) = 1/√(1 − ${variable}²). A constant a² in the pattern is factored out first.`
         : anyPartial
@@ -188,6 +195,8 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       'Forgetting the constant of integration (+C).',
       anyByParts
         ? 'Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.'
+        : anyTrigSub
+          ? 'Forgetting to change d' + variable + ' as well as the integrand (dx = a·cos θ dθ), or leaving the answer in θ instead of converting back to ' + variable + '.'
         : anyInverseTrig
           ? `Reading 1/(1 + ${variable}²) as a power of ${variable} — it is not ${variable}^(−2), and the power rule does not apply.`
         : anyPartial
@@ -387,6 +396,13 @@ async function integrateTerm(term, variable, Algebrite) {
     if (sub) {
       return { antideriv: sub.antiderivative, steps: [...sub.steps, ...positiveArgumentNote(sub.antiderivative, variable)], method: 'substitution', term };
     }
+  }
+
+  // √(A − B·x²): Algebrite answers it, but as (−x²+1)^(1/2) with no working
+  // and the "u-substitution" label; show the trigonometric substitution.
+  const trig = integrateByTrigSubstitution(term, variable);
+  if (trig) {
+    return { antideriv: trig.antiderivative, steps: trig.steps, method: 'trig substitution', term };
   }
 
   let anti = safeRunLocal(Algebrite, `integral(${rewriteReciprocalTrig(term)}, ${variable})`);
@@ -701,7 +717,7 @@ function buildPerTermSteps(expression, terms, perTerm, variable, total) {
 
   perTerm.forEach((res, i) => {
     if (multi) {
-      const suffix = res.method === 'byparts' ? ' by parts' : res.method === 'substitution' ? ' by substitution' : '';
+      const suffix = res.method === 'byparts' ? ' by parts' : res.method === 'substitution' ? ' by substitution' : res.method === 'trig substitution' ? ' by trigonometric substitution' : '';
       steps.push(`Term ${i + 1} — ∫(${beautify(res.term)}) d${variable}${suffix}:`);
     }
     steps.push(...res.steps);

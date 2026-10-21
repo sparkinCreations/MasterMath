@@ -53,8 +53,11 @@ export default function Solver() {
     // the reader; keyboard focus still goes to the solution so a screen
     // reader announces it. Without a graph, or beside the input on a desktop,
     // the solution is the target as before.
-    const stacked = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1023px)').matches;
-    if (stacked && graphData?.points && graphRef.current) {
+    // The graph now heads the results column on a desktop too (it used to
+    // sit under the tall input card, below the fold), so with a graph the
+    // graph is the target at every width; revealElement scrolls only when
+    // it is not already in the upper part of the viewport.
+    if (graphData?.points && graphRef.current) {
       revealElement(graphRef.current);
       solutionRef.current?.focus?.({ preventScroll: true });
     } else {
@@ -185,8 +188,12 @@ export default function Solver() {
         </p>
       </div>
 
+      {/* Input on the left; graph then steps on the right, so the graph is
+          in view beside the input on a desktop (it used to sit under the
+          input card, below the fold). On a phone the columns stack in the
+          same order: input, graph, solution. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
+        <div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-indigo-200 dark:border-gray-700 shadow-lg">
             <ProblemInput
               problem={problem}
@@ -200,7 +207,9 @@ export default function Solver() {
               hasHistory={inputHistory.length > 0}
             />
           </div>
+        </div>
 
+        <div className="space-y-6">
           <div ref={graphRef} className="scroll-mt-20 lg:scroll-mt-0">
             {graphData?.points ? (
               <Suspense fallback={<GraphEmptyState message="Drawing your graph..." />}>
@@ -210,10 +219,10 @@ export default function Solver() {
               <GraphEmptyState />
             )}
           </div>
-        </div>
 
-        <div ref={solutionRef} tabIndex={-1} aria-label="Solution" className="outline-hidden scroll-mt-20 lg:scroll-mt-0">
-          <SolutionDisplay solution={solution} problem={solvedInput.problem} topic={solvedInput.topic} />
+          <div ref={solutionRef} tabIndex={-1} aria-label="Solution" className="outline-hidden scroll-mt-20 lg:scroll-mt-0">
+            <SolutionDisplay solution={solution} problem={solvedInput.problem} topic={solvedInput.topic} />
+          </div>
         </div>
       </div>
     </div>
