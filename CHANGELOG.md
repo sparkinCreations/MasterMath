@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   accessibility smoke test now measures every heading against its nearest
   solid background (axe reports text over a gradient as "incomplete", not
   as a violation, which is how this shipped twice).
+- **The live preview typesets a typed limit.** `lim x->0 (sin(x)/x)` showed
+  as "limx−>0(sin(x)/x)": the converter knew the solver's `lim (x→0)` form
+  but not the typed `->` arrow or the bare `lim x->0`. Both now convert
+  (so does `x->2` in "… as x->2").
 
 ## [1.45.0] - 2026-10-21
 

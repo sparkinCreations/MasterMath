@@ -38,6 +38,8 @@ export function toLatex(ascii) {
     .replace(/⁺/g, '^{+}')
     .replace(/⁻/g, '^{-}')
     .replace(/→/g, ' \\to ')
+    // The typed form of the arrow: "x->0" rendered as a minus and a greater-than.
+    .replace(/->/g, ' \\to ')
     .replace(/π/g, ' \\pi ')
     .replace(/°/g, '^{\\circ}')
     .replace(/√\(([^()]*)\)/g, '\\sqrt{$1}')
@@ -47,6 +49,9 @@ export function toLatex(ascii) {
 
   // lim (x→0) → \lim_{x \to 0}
   s = s.replace(/\blim\s*\(([^()]*?)\\to([^()]*?)\)/g, (_, a, b) => `\\lim_{${a.trim()} \\to ${b.trim()}}`);
+  // The typed form without parentheses, "lim x->0 (…)": the same limit. Math
+  // mode drops the spaces, so without this it read as "limx→0(…)".
+  s = s.replace(/\blim\s+([a-z])\s*\\to\s*((?:[-+]\s*)?(?:\\infty|[^\s()]+))/g, (_, a, b) => `\\lim_{${a} \\to ${b.replace(/\s+/g, '')}}`);
 
   // ∫_a^b (expr) dx → \int_{a}^{b} expr \, dx  (definite; bounds before body)
   s = s.replace(/∫\s*_\s*([^\s^]+)\s*\^\s*(\S+?)\s*\(([^]*?)\)\s*d([a-z])\b/g,
