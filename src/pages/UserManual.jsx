@@ -69,6 +69,7 @@ export default function UserManual() {
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
               <li>Use <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">*</code> for multiplication: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">2*x</code> instead of 2x (though MasterMath handles both)</li>
+              <li>The <strong>Symbols</strong> button above the problem box opens a strip of one-tap symbols (√, ∫, π, powers, fractions, |x|, d/dx, lim, sin…) and stays open or closed as you leave it. A preview under the box shows how your text was read, with powers raised and roots drawn.</li>
               <li>Use <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">^</code> for exponents: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">x^2</code> for x² (unicode superscripts like x² also work)</li>
               <li>Use parentheses for clarity: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">(x + 2)*(x - 3)</code></li>
               <li>For limits, use format: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">lim x-&gt;0 (sin(x)/x)</code></li>

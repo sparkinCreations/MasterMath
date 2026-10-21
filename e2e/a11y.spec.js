@@ -85,7 +85,9 @@ for (const scheme of ['light', 'dark']) {
       await expect(page.getByRole('alert')).toContainText('valid math problem');
       await audit(page, `solver with validation error (${scheme})`);
 
+      await page.getByRole('button', { name: 'Symbols' }).click();
       await page.locator('#problem').fill('x^2 - 4*x + 3');
+      await audit(page, `solver with the symbol strip open and a preview (${scheme})`);
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
       await expect(page.getByRole('group', { name: 'Graph view controls' })).toBeVisible();

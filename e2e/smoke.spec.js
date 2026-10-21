@@ -148,6 +148,30 @@ test.describe('MasterMath smoke', () => {
     await expect(page.locator('html')).not.toHaveClass(/dark/);
   });
 
+  test('the Symbols strip inserts at the caret, previews the typed math, and remembers being open', async ({ page }) => {
+    await openSolver(page);
+    await expect(page.locator('#symbol-strip')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Symbols' }).click();
+    await expect(page.getByRole('group', { name: 'Insert a math symbol' })).toBeVisible();
+    await page.getByRole('combobox').first().click();
+    await page.getByRole('option', { name: 'Algebra' }).click();
+    await page.locator('#problem').click();
+    await page.getByRole('button', { name: 'Insert a square root' }).click();
+    // The caret is inside the parentheses, so typing continues there.
+    await page.keyboard.type('x+1');
+    await page.keyboard.press('End');
+    await page.keyboard.type(' = 3');
+    await expect(page.locator('#problem')).toHaveValue('√(x+1) = 3');
+    // The preview typesets it (a KaTeX radical), and the problem solves.
+    await expect(page.locator('.katex .sqrt').first()).toBeVisible();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[aria-label="Solution"]')).toContainText('x = 8');
+    await page.reload();
+    await expect(page.getByRole('group', { name: 'Insert a math symbol' })).toBeVisible();
+    await page.getByRole('button', { name: 'Symbols' }).click();
+    await expect(page.locator('#symbol-strip')).toHaveCount(0);
+  });
+
   test('dark mode toggles, survives a reload, and the solver still renders in it', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Switch to dark mode/ }).click();

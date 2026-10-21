@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.0] - 2026-10-21
+
+### Added
+
+- **A Symbols strip and a live preview on the solver.** The Symbols button
+  above the problem box opens a strip of one-tap symbols (x², xⁿ, √, a/b,
+  π, ×, parentheses, |x|, ≤, ≥, ∫, ∫ with bounds, d/dx, lim, sin, cos, tan,
+  ln, log, eˣ) that insert at the caret and leave it where the next thing
+  goes (inside the root, on the lower bound). The strip stays open or
+  closed as it was left. Under the box, a preview typesets what was typed
+  as it is typed, so a ^2 shows raised and a √( shows a radical
+  (`src/lib/symbolInsert.js`, `SymbolStrip.jsx`; every entry is checked
+  against the parser in the unit suite).
+
 ## [1.44.1] - 2026-10-21
 
 ### Fixed
