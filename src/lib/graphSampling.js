@@ -307,3 +307,38 @@ export function layoutLineLabels(items, { plot, fontSize = 12, minGap = 8 }) {
   }
   return placed;
 }
+
+
+// The starting window for a curve with nothing to frame — no roots, turning
+// points or asymptotes in ±10, as for e^x. The default ±10 made e^x a flat
+// line with a spike at the right edge (values to 22 000). Shrink the window
+// until the largest |y| is within `maxSpread` times the typical |y| (the
+// median), so the shape fills the plot: e^x opens on ±3, sin(x) and any
+// polynomial keep ±10. Null only when the expression cannot be sampled.
+export function growthWindow(expression, variable, { widths = [10, 8, 6, 5, 4, 3, 2.5, 2], maxSpread = 25, count = 200 } = {}) {
+  let compiled;
+  try {
+    compiled = math.parse(realOddRoots(String(expression))).compile();
+  } catch {
+    return null;
+  }
+  let fallback = null;
+  for (const w of widths) {
+    const ys = [];
+    for (let i = 0; i <= count; i += 1) {
+      const x = -w + (2 * w * i) / count;
+      try {
+        const y = compiled.evaluate({ [variable]: x });
+        if (typeof y === 'number' && Number.isFinite(y)) ys.push(Math.abs(y));
+      } catch { /* undefined here */ }
+    }
+    if (ys.length === 0) continue;
+    fallback = fallback || { xMin: -w, xMax: w };
+    const sorted = [...ys].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const max = sorted[sorted.length - 1];
+    if (max / Math.max(1, median) <= maxSpread) return { xMin: -w, xMax: w };
+    fallback = { xMin: -w, xMax: w };
+  }
+  return fallback;
+}

@@ -74,7 +74,9 @@ test('high degrees skip Algebrite: every real root, the complex ones counted pas
   assert.match((await solveProblem('x^50 = 2', 'algebra')).answer, /^x ≈ -1\.014  or  x ≈ 1\.014;  plus 48 complex solutions/);
   // A handful of complex roots is still listed; exact ones keep =, rounded ones get ≈.
   assert.equal((await solveProblem('x^4 = 16', 'algebra')).answer, 'x = -2  or  x = 2  or  x = -2i  or  x = 2i');
-  assert.match((await solveProblem('x^3 = 8', 'algebra')).answer, /^x = 2  or  x ≈ -1 - 1\.7321i/);
+  // The remaining quadratic after synthetic division is solved exactly.
+  assert.equal((await solveProblem('x^3 = 8', 'algebra')).answer, 'x = 2  or  x = -1 - i√3  or  x = -1 + i√3');
+  assert.equal((await solveProblem('x^10 = 1', 'algebra')).answer, 'x = -1  or  x = 1;  plus 8 complex solutions (not listed)');
   assert.equal((await solveProblem('x^5 - x + 1 = 0', 'algebra')).answer.split('  or  ').length, 5);
   // Above the exact finder's limit: an honest refusal, at once.
   const above = await solveProblem(`x^${MAX_POLYNOMIAL_DEGREE + 1} = 1`, 'algebra');

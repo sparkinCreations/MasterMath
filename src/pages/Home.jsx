@@ -12,10 +12,12 @@ import {
   BookOpen,
   Target,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  GraduationCap
 
 } from "lucide-react";
 import GithubMark from "@/components/ui/github-mark";
+import { WORKED_EXAMPLE } from "@/lib/workedExample";
 
 export default function Home() {
   usePageTitle("Step-by-step math, solved locally - Free Math Solver");
@@ -38,6 +40,10 @@ export default function Home() {
           </p>
           <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 px-2">
             Step-by-step calculus and algebra, solved in your browser — not by AI
+          </p>
+          <p className="mt-3 text-sm md:text-base text-gray-600 dark:text-gray-300 px-2 max-w-2xl inline-flex items-start gap-2">
+            <GraduationCap className="w-5 h-5 shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+            <span>For high-school and early-college students, from algebra through Calculus II, and for teachers who want a solver that shows the method, not just the answer.</span>
           </p>
         </div>
 
@@ -67,7 +73,7 @@ export default function Home() {
         </div>
 
         <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-6 md:mb-8 px-2">
-          Solved locally · Not AI · No account
+          Solved locally · No account · Works offline
         </p>
 
         {/* GitHub Link */}
@@ -104,6 +110,45 @@ export default function Home() {
         </div>
       </div>
 
+      {/* A worked example — the solver's own output for x² − 5x + 6 = 0,
+          so a visitor sees what "shows the steps" means before clicking. The
+          text is kept in step with the solver by tests/reviewTwo.test.js. */}
+      <div className="max-w-4xl mx-auto mb-8 md:mb-16 px-2">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          What a Solution Looks Like
+        </h2>
+        <p className="text-center text-gray-600 dark:text-gray-400 mb-6 md:mb-8">
+          Algebra · <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1.5 py-0.5 rounded">x^2 - 5x + 6 = 0</code>
+        </p>
+        <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+          <CardContent className="p-4 md:p-8">
+            <ol className="space-y-3 text-sm md:text-base text-gray-700 dark:text-gray-300">
+              {WORKED_EXAMPLE.steps.map((step, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white text-sm font-bold flex items-center justify-center" aria-hidden="true">{i + 1}</span>
+                  <span><span className="sr-only">Step {i + 1}. </span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-5 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 font-semibold">
+              Final answer: {WORKED_EXAMPLE.answer}
+            </p>
+            <p className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm text-amber-900 dark:text-amber-100">
+              <span className="font-semibold">Key insight:</span> {WORKED_EXAMPLE.tip}
+            </p>
+            <div className="mt-5 flex justify-center">
+              <Button asChild className="bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-semibold shadow-md">
+                <Link to={createPageUrl("Solver")} state={{ problem: WORKED_EXAMPLE.problem, topic: WORKED_EXAMPLE.topic }}>
+                  <Calculator className="w-4 h-4 mr-2" />
+                  Try this one in the solver
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Features Section */}
       <div className="max-w-6xl mx-auto mb-8 md:mb-16 px-2">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 md:mb-12">
@@ -121,7 +166,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="p-6">
               <p className="text-gray-700 dark:text-gray-300">
-                Solve problems in derivatives, integrals, limits, functions, trigonometry, algebra, and arithmetic.
+                Derivatives, integrals (definite and improper too), limits, function analysis, trigonometry, algebra — equations, systems, inequalities — and arithmetic.
               </p>
             </CardContent>
           </Card>
@@ -196,7 +241,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="p-6">
               <p className="text-gray-700 dark:text-gray-300">
-                Solving and history stay on your device. No cloud solve, no tracking — and not AI.
+                Solving and history stay on your device. No cloud solve, no tracking. The only thing ever sent is a feedback message you choose to submit.
               </p>
             </CardContent>
           </Card>
@@ -302,7 +347,7 @@ export default function Home() {
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400 shrink-0 mt-1" />
               <div>
                 <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-200 mb-1">Not AI</h3>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Open-source math libraries (mathjs and Algebrite) — deterministic, not a language model</p>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Open-source math libraries (mathjs and Algebrite) — deterministic, the same answer every time</p>
               </div>
             </div>
           </div>
@@ -337,7 +382,7 @@ export default function Home() {
       {/* Footer */}
       <div className="text-center py-8 md:py-12 text-gray-500 dark:text-gray-400 px-2">
         <p className="text-base md:text-lg">MasterMath by sparkinCreations™</p>
-        <p className="text-xs md:text-sm mt-1">Master math with confidence — step-by-step, solved locally, not by AI</p>
+        <p className="text-xs md:text-sm mt-1">Master math with confidence — step-by-step, solved locally</p>
         <a
           href="https://github.com/sparkinCreations/MasterMath"
           target="_blank"

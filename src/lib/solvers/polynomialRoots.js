@@ -465,3 +465,135 @@ export function allRoots(poly) {
     degree,
   };
 }
+
+
+// ---------------------------------------------------------------------------
+// Rational Root Theorem + synthetic division — the textbook route for a
+// cubic or higher, in exact arithmetic. Every candidate p/q (p | constant
+// term, q | leading coefficient) is tested by exact substitution; each root
+// found divides the polynomial by (x − r) with the synthetic-division rows
+// recorded, down to a quadratic or to a factor with no rational root.
+//
+// Returns null when the polynomial has degree < 3 or more candidates than a
+// student would ever test (the caller then uses the numeric finder), else
+//   { xPower, degree, coefficients, constant, leading, candidates, rounds, remaining }
+//   xPower        power of x factored out first (a zero constant term)
+//   coefficients  highest-first integer coefficients after that (strings)
+//   candidates    every ±p/q, as text, in the order tested
+//   rounds        [{ trials: [{ text, value, isRoot }], root: { m, d, text },
+//                    top, products, bottom (strings), quotient (strings) }]
+//   remaining     highest-first exact coefficients (Fractions) of what is
+//                 left — degree ≤ 2, or ≥ 3 with no rational root
+const fracText = (f) => (f.d === 1n ? String(f.s * f.n) : `${f.s < 0 ? '-' : ''}${f.n}/${f.d}`);
+
+function divisorsOf(n) {
+  const out = [];
+  n = abs(n);
+  for (let d = 1n; d * d <= n; d += 1n) {
+    if (n % d === 0n) {
+      out.push(d);
+      if (d * d !== n) out.push(n / d);
+    }
+  }
+  return out.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+}
+
+export function factorByRationalRoots(poly, { maxCandidates = 120 } = {}) {
+  if (!poly || poly.tooHigh || poly.degree < 3) return null;
+  // Integer multiple, lowest first.
+  const lcmD = poly.coefficients.reduce((acc, c) => acc / bgcd(acc, c.d) * c.d, 1n);
+  let ints = poly.coefficients.map((c) => c.s * c.n * (lcmD / c.d));
+  let xPower = 0;
+  while (ints.length > 1 && ints[0] === 0n) {
+    ints.shift();
+    xPower += 1;
+  }
+  const g = ints.reduce((acc, c) => bgcd(acc, c), 0n);
+  if (g > 1n) ints = ints.map((c) => c / g);
+  const degree = ints.length - 1;
+  const highest = [...ints].reverse();
+  const result = {
+    xPower,
+    degree,
+    coefficients: highest.map(String),
+    constant: String(ints[0]),
+    leading: String(ints[ints.length - 1]),
+    candidates: [],
+    rounds: [],
+    remaining: highest.map((c) => F(c)),
+  };
+  if (degree < 3) return result;
+  if (abs(ints[0]) > 10n ** 12n || abs(ints[ints.length - 1]) > 10n ** 12n) return null;
+
+  // Candidates ±p/q, reduced, smallest magnitude first.
+  const ps = divisorsOf(ints[0]);
+  const qs = divisorsOf(ints[ints.length - 1]);
+  const seen = new Set();
+  const candidates = [];
+  for (const q of qs) {
+    for (const p of ps) {
+      const d = bgcd(p, q);
+      const key = `${p / d}/${q / d}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates.push({ m: p / d, d: q / d });
+    }
+  }
+  if (candidates.length * 2 > maxCandidates) return null;
+  candidates.sort((a, b) => {
+    const va = Number(a.m) / Number(a.d);
+    const vb = Number(b.m) / Number(b.d);
+    return va - vb;
+  });
+  const signed = [];
+  for (const c of candidates) {
+    signed.push({ m: c.m, d: c.d });
+    signed.push({ m: -c.m, d: c.d });
+  }
+  const text = ({ m, d }) => (d === 1n ? String(m) : `${m}/${d}`);
+  result.candidates = signed.map(text);
+
+  // Divide down while a rational root exists and the degree is still ≥ 3.
+  let current = highest.map((c) => F(c)); // Fractions, highest first
+  let integerCurrent = [...ints]; // lowest first, for exact testing
+  const untried = [...signed];
+  for (let guard = 0; guard < 100 && current.length - 1 >= 3; guard += 1) {
+    const trials = [];
+    let found = null;
+    for (const c of untried) {
+      const value = valueAtRational(integerCurrent, c.m, c.d);
+      const isRoot = value.equals(0);
+      trials.push({ text: text(c), value: fracText(value), isRoot });
+      if (isRoot) { found = c; break; }
+    }
+    if (!found) break;
+    // Synthetic division by (x − r): bring down the lead, then multiply by r
+    // and add, column by column.
+    const r = exact.fraction(found.m, found.d);
+    const bottom = [current[0]];
+    const products = [];
+    for (let i = 1; i < current.length; i += 1) {
+      const prod = bottom[i - 1].mul(r);
+      products.push(prod);
+      bottom.push(current[i].add(prod));
+    }
+    const quotient = bottom.slice(0, -1);
+    result.rounds.push({
+      trials,
+      root: { m: found.m, d: found.d, text: text(found) },
+      top: current.map(fracText),
+      products: products.map(fracText),
+      bottom: bottom.map(fracText),
+      quotient: quotient.map(fracText),
+    });
+    current = quotient;
+    // Exact integer multiple of the quotient for the next round of testing.
+    const lcm = current.reduce((acc, c) => acc / bgcd(acc, c.d) * c.d, 1n);
+    integerCurrent = [...current].reverse().map((c) => c.s * c.n * (lcm / c.d));
+    // A candidate that failed stays failed for the quotient's factor set
+    // only if it is still a candidate; re-test the same list (a root can
+    // repeat) — the list is short.
+  }
+  result.remaining = current;
+  return result;
+}

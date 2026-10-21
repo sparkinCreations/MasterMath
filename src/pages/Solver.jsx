@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useLocation } from "react-router-dom";
 import { revealElement } from "@/lib/reveal";
 import ProblemInput from "@/components/solver/ProblemInput";
 import SolutionDisplay from "@/components/solver/SolutionDisplay";
@@ -18,8 +19,11 @@ const MAX_HISTORY = 20;
 
 export default function Solver() {
   usePageTitle("Solver - Step-by-Step Math Solutions");
-  const [problem, setProblem] = useState("");
-  const [topic, setTopic] = useState("");
+  // The landing page's worked example links here with the problem to try.
+  const location = useLocation();
+  const prefill = location.state && typeof location.state.problem === 'string' ? location.state : null;
+  const [problem, setProblem] = useState(prefill ? prefill.problem : "");
+  const [topic, setTopic] = useState(prefill && typeof prefill.topic === 'string' ? prefill.topic : "");
   const [solution, setSolution] = useState(null);
   // What the displayed solution was actually produced from. Kept separate from
   // the live `problem`/`topic` state so the exports describe the solution on

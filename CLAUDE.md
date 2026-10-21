@@ -97,11 +97,14 @@ Each file documents its own methods at the top. Shared invariants:
 
 Modules: `arithmeticSolver` (PEMDAS working, exact fractions), `algebraSolver`
 (equations: linear → `linearEquationSolver` in exact fractions; quadratics with
-factoring or the formula; exp/log/radical/abs substitutions; Algebrite roots
-checked for completeness against the degree, shortfalls and anything above
-degree 12 to `polynomialRoots`; simplification; factoring), `polynomialRoots`
-(exact reader, Sturm counting, exact bisection, verified complex roots, cap
-`MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,
+factoring or the formula; cubics and higher by the Rational Root Theorem and
+synthetic division (`solveByRationalRoots`, shown step by step) down to a
+quadratic, the rest to `polynomialRoots` without calling Algebrite — its
+`roots()` grinds for seconds on an irreducible quintic; exp/log/radical/abs
+substitutions; Algebrite roots checked for completeness against the degree,
+anything above degree 12 to `polynomialRoots`; simplification; factoring),
+`polynomialRoots` (exact reader, `factorByRationalRoots`, Sturm counting,
+exact bisection, verified complex roots, cap `MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,
 non-linear by substitution), `inequalitiesSolver` (sign charts, compound),
 `trigonometrySolver` (values, identities; exports `detectTrigAsymptote`),
 `trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
@@ -132,7 +135,12 @@ needs `eval`; `tests/linearEquation.test.js` checks.
 `graph` may carry `expression` / `secondaryExpression` (re-sampled by the
 viewer, 400 points per window, gaps at `breaks`), `annotations` (extrema,
 intercepts, asymptotes, holes, limit guideline/point, shaded regions,
-intersection, open points) and `initialWindow`. Vertical-line and marker
+intersection, open points) and `initialWindow`. The viewer opens on
+`initialWindow`, else the window framing the annotations, else `growthWindow`
+(the widest ±w in which max|y| ≤ 25× the median — eˣ opens on ±3), else ±10.
+Drag pans (horizontal on touch, both axes with a mouse; `touch-action: pan-y`
+so the page still scrolls); the tooltip names series as `f'(x)`, never by
+the whole expression. Vertical-line and marker
 labels are drawn inside the plot by `LineLabels`/`PointLabel` — never
 Recharts' `position: 'top'`, which is clipped. Every graph gets a text
 description (`graphDescription.js`).

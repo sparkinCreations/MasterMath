@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Calculator, Download, History, Lightbulb, TrendingUp } from "lucide-react";
+import { BookOpen, Calculator, Download, History, Lightbulb, TrendingUp, ListChecks, Settings as SettingsIcon, TimerOff } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function UserManual() {
@@ -29,10 +29,10 @@ export default function UserManual() {
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
             MasterMath is a step-by-step math solver that runs entirely in your browser — powered by
             open-source math libraries, not AI. Whether you're working on derivatives, integrals, limits,
-            algebra, trigonometry, or basic arithmetic, MasterMath walks through each expression or
-            equation with clear explanations, helpful tips, and warnings about common mistakes. The app
-            works fully offline after your first visit — a service worker caches everything so you can
-            study anywhere.
+            algebra (including systems and inequalities), trigonometry, function analysis, or arithmetic,
+            MasterMath walks through each expression or equation with the method a textbook would use,
+            helpful tips, and warnings about common mistakes. The app works fully offline after your
+            first visit — a service worker caches everything so you can study anywhere.
           </p>
         </CardContent>
       </Card>
@@ -53,11 +53,11 @@ export default function UserManual() {
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
               <li><strong>Derivatives:</strong> Finding rates of change and slopes</li>
-              <li><strong>Integrals:</strong> Finding areas under curves and antiderivatives</li>
+              <li><strong>Integrals:</strong> Antiderivatives, definite integrals, and improper integrals</li>
               <li><strong>Limits:</strong> Understanding behavior as values approach infinity or specific points</li>
               <li><strong>Functions:</strong> Analyzing and graphing mathematical functions</li>
               <li><strong>Trigonometry:</strong> Solving problems with sine, cosine, tangent, etc.</li>
-              <li><strong>Algebra:</strong> Solving equations and simplifying expressions</li>
+              <li><strong>Algebra:</strong> Equations (linear through cubic and higher, radical, absolute-value, exponential, logarithmic), systems of equations, inequalities, simplifying, expanding and factoring</li>
               <li><strong>Arithmetic:</strong> Basic calculations and operations</li>
             </ul>
           </div>
@@ -83,6 +83,45 @@ export default function UserManual() {
               MasterMath will analyze your problem and provide a complete solution with step-by-step explanations!
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* What you can enter, by topic */}
+      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <CardHeader className="bg-linear-to-r from-indigo-50 to-blue-50 dark:from-gray-700 dark:to-gray-700">
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <ListChecks className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            What You Can Enter
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-4">
+          <p className="text-gray-700 dark:text-gray-300">
+            The topic you pick is a hint, not a rule: an equation typed under Derivatives is solved as algebra,
+            and <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">d/dx</code>,{' '}
+            <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">∫</code> or{' '}
+            <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">lim</code> in the
+            problem routes it to the right solver from any topic. The first step says so when that happens.
+          </p>
+          <dl className="space-y-3 text-gray-700 dark:text-gray-300">
+            {[
+              ['Algebra — equations', 'Linear equations are worked in exact fractions (clear the denominators, distribute, collect). Quadratics are factored when they factor, or solved by the discriminant and the formula. Cubics and higher use the Rational Root Theorem and synthetic division down to a quadratic; what has no rational root is found numerically with every root accounted for.', '2x + 5 = 11 · x^2 - 5x + 6 = 0 · x^3 - 6x^2 + 11x - 6 = 0'],
+              ['Algebra — special equations', 'Square roots are isolated and squared, with the extraneous root rejected and the reason shown. Absolute values split into two cases. Exponential equations substitute u = e^x or u = a^x; logarithmic ones combine the logs and rewrite in exponential form. A bare log means base 10; write ln for the natural log.', 'sqrt(x+2) = x · |2x - 3| = 5 · 2^x = 10 · ln(x) + ln(x-1) = 0'],
+              ['Systems of equations', 'Separate the equations with a semicolon. Two linear equations use Cramer\'s rule in exact fractions; three use elimination with every row operation shown; a line with a parabola or circle is solved by substitution. Dependent and inconsistent systems are shown, not just named.', '2x + 3y = 6; x - y = 4 · x + y + z = 6; x - y = 1; y + z = 5'],
+              ['Inequalities', 'Linear, polynomial and rational inequalities by the sign-chart method, with correct open and closed endpoints. Compound inequalities — chains and "and"/"or" pairs — are solved part by part and combined. The graph shades where the inequality holds.', 'x^2 - 4 > 0 · -1 < 2x + 1 <= 5 · x > 1 and x < 4'],
+              ['Derivatives', 'Every rule is named and worked (product, quotient, chain, logarithmic differentiation). Ask for a higher order ("second derivative of"), a value ("at x = 2"), or another variable. Absolute values are differentiated piecewise with the corner stated; the answer carries its domain where one applies.', 'x^2 + 3x · derivative of sin(3x^2) · second derivative of x*e^x · |x| at x = 0'],
+              ['Integrals', 'Indefinite integrals by direct rules, u-substitution, integration by parts, or partial fractions, each verified by differentiation. Definite integrals use the Fundamental Theorem and are cross-checked numerically; an endpoint singularity or an infinite bound is taken as a limit, and divergence is reported with its sign.', '2x + 1 · ∫_0^1 x^2 dx · integral of x^2 from 0 to 1 · ∫_0^∞ e^(-x^2) dx'],
+              ['Limits', 'Two-sided and one-sided limits (0+, 0-), limits at infinity, and the standard limits — each technique named (factor and cancel, conjugate, leading terms, squeeze) and the answer verified numerically.', 'lim x->0 sin(x)/x · lim x->0+ 1/x · lim x->infinity x/e^x'],
+              ['Functions', 'Domain, intercepts, extrema, inflection points, asymptotes and holes, found exactly rather than read off the picture, with the range for recognised families and a graph that opens on the interesting part of the curve.', 'x^3 - 3x · (x^2 - 1)/(x - 1) · tan(x)'],
+              ['Trigonometry', 'Exact values at special angles, identities, and equations of the form A·f(kx) + B = C with the general solution and the solutions on one period. Plain numbers are read in the angle unit from Settings; sin(45) is taken as degrees.', 'sin(pi/4) · cos(60) · sin(x) = 1/2 · 2sin^2(x) - sin(x) - 1 = 0'],
+              ['Arithmetic', 'Order of operations worked one step at a time, fractions added by the least common denominator, percentages, factorials, roots, and plain-English phrasings such as "add 1/3 and 1/7".', '3 + 4 * 2^3 · 1/3 + 1/6 · 15% of 80 · 7!'],
+            ].map(([topic, text, examples]) => (
+              <div key={topic} className="p-3 rounded-lg bg-indigo-50/60 dark:bg-gray-700/60">
+                <dt className="font-semibold text-gray-800 dark:text-gray-200">{topic}</dt>
+                <dd className="mt-1">{text}</dd>
+                <dd className="mt-1 text-sm text-indigo-700 dark:text-indigo-300">Try: <code className="bg-white dark:bg-gray-600 dark:text-gray-200 px-1 rounded">{examples}</code></dd>
+              </div>
+            ))}
+          </dl>
         </CardContent>
       </Card>
 
@@ -183,12 +222,23 @@ export default function UserManual() {
               When applicable, MasterMath displays an interactive graph to help you visualize the function or solution.
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-              <li><strong>Zoom:</strong> Use the + and - buttons to zoom in and out</li>
-              <li><strong>Pan:</strong> Use the left/right arrow buttons to slide the view</li>
-              <li><strong>Reset:</strong> Click the reset button to return to the default view</li>
-              <li><strong>Dual curves:</strong> For derivatives and integrals, the graph shows both the original function and the result overlaid together</li>
-              <li><strong>Hover:</strong> Move your mouse over the graph to see exact coordinate values</li>
+              <li><strong>Zoom:</strong> Use the + and - buttons to zoom in and out; the curve is redrawn for every window, so it stays smooth</li>
+              <li><strong>Pan:</strong> Drag the graph with a mouse or finger, or use the arrow buttons</li>
+              <li><strong>Fit key features:</strong> The target button frames the marked roots, turning points and asymptotes</li>
+              <li><strong>Reset:</strong> Click the reset button to return to the starting view</li>
+              <li><strong>Dual curves:</strong> For derivatives and integrals, the graph shows the original function and the result together; when their sizes differ a lot the dashed curve gets its own right-hand axis, which you can toggle</li>
+              <li><strong>Hover or tap:</strong> See the coordinates at any point</li>
+              <li><strong>Key features:</strong> Open the panel under the graph for the same features in words</li>
             </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Checks, ≈ and Refusals</h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              Every equation solution is substituted back into the original before it is shown, every antiderivative
+              is differentiated back, and a root that was located numerically is written with ≈ rather than =. When
+              a problem is outside what the solver can do honestly, it says so instead of guessing.
+            </p>
           </div>
 
           <div>
@@ -199,6 +249,43 @@ export default function UserManual() {
               automatically treated as sin(45°) and results are shown in both degrees and radians.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Settings */}
+      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <CardHeader className="bg-linear-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <SettingsIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-3">
+          <p className="text-gray-700 dark:text-gray-300">Open <strong>Settings</strong> from the sidebar. Choices are saved in your browser and apply to every solve.</p>
+          <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
+            <li><strong>Angle unit:</strong> Auto (special values such as 30, 45 and 60 read as degrees, everything else as radians), Degrees, or Radians. It decides how plain-number angles are read and how angle results are reported — including the general solution of a trig equation. Calculus always works in radians.</li>
+            <li><strong>Decimal places:</strong> How many decimals a numeric result shows. Exact forms (fractions, radicals, π) are kept regardless, with the decimal alongside.</li>
+            <li><strong>Dark mode:</strong> The sun/moon button in the header.</li>
+            <li><strong>History:</strong> Export or clear everything from the Settings or Progress page.</li>
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* Time limit */}
+      <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <CardHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-gray-700 dark:to-gray-700">
+          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
+            <TimerOff className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+            The 10-Second Limit and Cancel
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-3">
+          <p className="text-gray-700 dark:text-gray-300">
+            Solving runs in the background, so the page never freezes. A solve that passes ten seconds is stopped and
+            reported as "Stopped after 10 seconds" — never a late or partial answer — and the <strong>Cancel</strong>{' '}
+            button ends one sooner. Very high-degree polynomials with dozens of real roots are the usual cause; factoring
+            out a common factor first often helps.
+          </p>
         </CardContent>
       </Card>
 
@@ -286,7 +373,7 @@ export default function UserManual() {
       {/* Footer */}
       <div className="text-center py-6 text-gray-500 dark:text-gray-400">
         <p>MasterMath by sparkinCreations™</p>
-        <p className="text-sm mt-1">Master math with confidence — step-by-step, solved locally, not by AI</p>
+        <p className="text-sm mt-1">Master math with confidence — step-by-step, solved locally</p>
       </div>
     </div>
   );

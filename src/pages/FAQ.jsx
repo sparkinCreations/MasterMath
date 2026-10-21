@@ -30,7 +30,31 @@ export default function FAQ() {
     },
     {
       question: "What types of math problems can I solve?",
-      answer: "MasterMath supports derivatives, integrals, limits, functions (graphing), trigonometry, algebra (equations, simplification, factoring), and basic arithmetic. We're continuously working to add more topics!"
+      answer: "Derivatives (any order, at a point, with every rule worked), integrals (indefinite, definite, and improper, by substitution, parts, or partial fractions), limits (one-sided and at infinity), function analysis with graphs, trigonometry (values, identities, and equations), algebra (linear through higher-degree equations, radical, absolute-value, exponential and logarithmic equations, systems of two or three equations, inequalities, simplifying and factoring), and arithmetic (order of operations, fractions, percentages). The User Manual lists what to type for each."
+    },
+    {
+      question: "Can I solve a system of equations?",
+      answer: "Yes. Type the equations separated by a semicolon, under any topic: \"2x + 3y = 6; x - y = 4\". Two linear equations are solved by Cramer's rule in exact fractions, three by elimination with every row operation shown, and a line with a parabola or circle by substitution. A system with no solution or infinitely many is shown as such, with the reason."
+    },
+    {
+      question: "Can I solve an inequality?",
+      answer: "Yes. Anything with <, >, ≤ or ≥ is solved by the sign-chart method, including compound forms like \"-1 < 2x + 1 <= 5\" and \"x > 1 and x < 4\". The answer gives the interval with the right open or closed endpoints, and the graph shades where it holds."
+    },
+    {
+      question: "How do I enter a definite integral?",
+      answer: "Either \"∫_0^1 x^2 dx\" or in words: \"integral of x^2 from 0 to 1\". The steps apply the Fundamental Theorem of Calculus and the value is cross-checked numerically. Improper integrals — an infinite bound such as \"∫_0^∞ e^(-x^2) dx\", or an integrand that blows up at an endpoint — are taken as limits, and a divergent one is reported as divergent with its sign."
+    },
+    {
+      question: "Does log mean base 10 or the natural log?",
+      answer: "A bare log(…) is the common logarithm, base 10, as on a calculator; write ln(…) for the natural logarithm, or log(x, b) / log_b(x) for another base. When a solution relied on that reading, a tip says so."
+    },
+    {
+      question: "What do the Settings do?",
+      answer: "Angle unit (Auto, Degrees or Radians) decides how plain-number angles are read and how angle results are shown, including the general solution of a trig equation; calculus always works in radians. Decimal places sets how many decimals numeric results show — exact fractions, radicals and π are kept regardless. Both are saved in your browser."
+    },
+    {
+      question: "Why did my solve stop after 10 seconds?",
+      answer: "Solving runs in the background with a 10-second limit, so the page never freezes and you never get a late or partial answer. The usual cause is a very high-degree polynomial with many real roots. Factor out a common factor first, or simplify the equation, and try again. The Cancel button stops a solve sooner."
     },
     {
       question: "How accurate are the solutions?",
@@ -54,15 +78,15 @@ export default function FAQ() {
     },
     {
       question: "Can I zoom and pan on graphs?",
-      answer: "Yes! The graph viewer includes zoom in/out buttons and left/right pan controls. There's also a reset button to return to the default view. This helps you examine specific parts of a function in detail."
+      answer: "Yes. Drag the graph with a mouse or finger to pan, use the zoom buttons, and press the target button to frame the marked roots, turning points and asymptotes. The curve is redrawn for every window, so it stays smooth however far you zoom in; a reset button returns to the starting view."
     },
     {
       question: "Why do I see two curves on my graph?",
-      answer: "For derivatives and integrals, MasterMath shows both the original function (blue/indigo curve) and the result (green dashed curve) overlaid on the same graph. This helps you visualize the relationship between a function and its derivative or integral."
+      answer: "For derivatives and integrals, MasterMath shows both the original function (blue/indigo curve) and the result (green dashed curve) on the same graph. When the two differ a lot in size, the dashed curve gets its own right-hand axis so neither is squashed; a button toggles that."
     },
     {
       question: "Does MasterMath handle degree inputs for trigonometry?",
-      answer: "Yes! MasterMath auto-detects common degree values (like 30, 45, 60, 90) when using trigonometric functions. For example, sin(45) is automatically interpreted as sin(45°) and shows results in both degrees and radians."
+      answer: "Yes. With the angle unit on Auto, common degree values (30, 45, 60, 90, …) are read as degrees, so sin(45) means sin(45°), and results are shown in both units. Set Degrees or Radians in Settings to fix the reading for every input, including the general solution of a trig equation."
     },
     {
       question: "Can I use MasterMath for homework or exams?",

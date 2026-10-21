@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot, ReferenceArea, usePlotArea, useXAxisScale } from "recharts";
 import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Focus, Rows3 } from "lucide-react";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
-import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
+import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, growthWindow, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
 
 // A ReferenceDot label placed where it fits inside the plot (placePointLabel).
 // Recharts renders this with the dot's box as `viewBox`; the props are named
@@ -69,6 +69,9 @@ function startWindow(functionData) {
   if (functionData?.expression) {
     const fitted = featureWindow(annotationFeatureXs(functionData));
     if (fitted) return fitted;
+    // Nothing marked (e^x): a window the curve's shape actually fills.
+    const grown = growthWindow(functionData.expression, functionData.variable || 'x');
+    if (grown) return grown;
   }
   return DEFAULT_RANGE;
 }
@@ -248,6 +251,45 @@ export default function GraphViewer({ functionData }) {
     setYDomain(null);
   };
 
+  // Drag to pan. A horizontal drag slides the x-window (touch and mouse);
+  // a mouse drag also slides the y-window. On touch the vertical direction
+  // is left to the page (touch-action: pan-y), so the graph never traps a
+  // scroll — the pan buttons still move y. Distances are converted with the
+  // plot's width, which is the wrapper minus the axes.
+  const drag = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const onPointerDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    drag.current = { x: e.clientX, y: e.clientY, range, yWin: yDomain || autoY, pointerType: e.pointerType, moved: false };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not supported */ }
+  };
+  const onPointerMove = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    if (!d.moved && Math.hypot(dx, dy) < 4) return;
+    if (!d.moved) { d.moved = true; setDragging(true); }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const plotW = Math.max(50, rect.width - 60 - (useRightAxis ? 60 : 0) - 10);
+    const span = d.range.xMax - d.range.xMin;
+    let xMin = d.range.xMin - (dx / plotW) * span;
+    let xMax = d.range.xMax - (dx / plotW) * span;
+    if (xMin < xExtent.min) { xMin = xExtent.min; xMax = xMin + span; }
+    if (xMax > xExtent.max) { xMax = xExtent.max; xMin = xMax - span; }
+    setRange({ xMin, xMax });
+    if (d.pointerType === 'mouse' && d.yWin) {
+      const plotH = Math.max(50, rect.height - 40);
+      const ySpan = d.yWin.yMax - d.yWin.yMin;
+      const yShift = (dy / plotH) * ySpan;
+      setYDomain({ yMin: d.yWin.yMin + yShift, yMax: d.yWin.yMax + yShift });
+    }
+  };
+  const onPointerUp = () => {
+    drag.current = null;
+    setDragging(false);
+  };
+
   // Theme-aware colors
   const gridColor = isDarkMode ? '#374151' : '#c7d2fe';
   const axisColor = isDarkMode ? '#9ca3af' : '#4f46e5';
@@ -334,7 +376,15 @@ export default function GraphViewer({ functionData }) {
             accessibility tree, which is what we want: they carry no usable
             semantics, and the "Key features" panel below is the readable
             version of the same information. */}
-        <div role="img" aria-label={chartLabel}>
+        <div
+          role="img"
+          aria-label={chartLabel}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          style={{ touchAction: 'pan-y', cursor: dragging ? 'grabbing' : 'grab' }}
+        >
           <ResponsiveContainer width="100%" height={HEIGHTS[heightIdx]}>
             <LineChart data={mergedPoints}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -376,8 +426,12 @@ export default function GraphViewer({ functionData }) {
                   padding: '8px',
                   color: tooltipText
                 }}
+                // Short series names ("f'(x)", not the whole derivative): on a
+                // phone the full label pushed the tooltip past the chart's
+                // edge. The legend below carries the expression.
+                wrapperStyle={{ maxWidth: 'min(240px, 70vw)', whiteSpace: 'normal' }}
                 formatter={(value, name) => {
-                  const label = name === 'y2' ? (functionData.secondaryLabel || 'Secondary') : 'f(x)';
+                  const label = name === 'y2' ? secondaryAxisName : 'f(x)';
                   return [typeof value === 'number' ? value.toFixed(4) : value, label];
                 }}
                 labelFormatter={(label) => `x = ${typeof label === 'number' ? label.toFixed(2) : label}`}
