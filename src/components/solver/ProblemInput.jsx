@@ -1,10 +1,13 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { revealElement } from "@/lib/reveal";
+import MathText from "@/components/MathText";
+import SymbolStrip from "@/components/solver/SymbolStrip";
+import { insertSymbol, readSymbolStripOpen, writeSymbolStripOpen } from "@/lib/symbolInsert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calculator, Lightbulb, AlertCircle } from "lucide-react";
+import { Calculator, Lightbulb, AlertCircle, Keyboard, ChevronUp, ChevronDown } from "lucide-react";
 import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validation";
 
 const TOPICS = [
@@ -44,6 +47,35 @@ const EXAMPLE_PROBLEMS = [
 export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, onCancel, isLoading, onNavigateHistory, hasHistory }) {
   const [validationError, setValidationError] = useState(null);
   const textareaRef = useRef(null);
+  // The symbol strip is hidden until asked for, and stays the way it was
+  // left (the choice is saved on this device).
+  const [symbolsOpen, setSymbolsOpen] = useState(() => readSymbolStripOpen(globalThis.localStorage));
+  const toggleSymbols = () => {
+    setSymbolsOpen((open) => {
+      writeSymbolStripOpen(globalThis.localStorage, !open);
+      return !open;
+    });
+  };
+  // Selection to apply once React has rendered the inserted text: setting
+  // it on the DOM before the controlled value updates would be overwritten.
+  const pendingSelection = useRef(null);
+  useEffect(() => {
+    const sel = pendingSelection.current;
+    const el = textareaRef.current;
+    if (!sel || !el) return;
+    pendingSelection.current = null;
+    el.focus({ preventScroll: true });
+    el.setSelectionRange(sel.start, sel.end);
+  }, [problem]);
+  const handleInsert = (symbol) => {
+    const el = textareaRef.current;
+    const start = el ? el.selectionStart : problem.length;
+    const end = el ? el.selectionEnd : problem.length;
+    const next = insertSymbol(problem, start, end, symbol);
+    pendingSelection.current = { start: next.selectionStart, end: next.selectionEnd };
+    setProblem(next.value);
+    setValidationError(null);
+  };
 
   const loadExample = (exampleProblem) => {
     setProblem(exampleProblem.problem);
@@ -131,9 +163,23 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="problem" className="text-lg font-semibold text-gray-700 dark:text-gray-200">
-          Enter your problem
-        </Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="problem" className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+            Enter your problem
+          </Label>
+          <button
+            type="button"
+            onClick={toggleSymbols}
+            aria-expanded={symbolsOpen}
+            aria-controls="symbol-strip"
+            className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+          >
+            <Keyboard className="w-4 h-4" aria-hidden="true" />
+            Symbols
+            {symbolsOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
+          </button>
+        </div>
+        {symbolsOpen && <SymbolStrip id="symbol-strip" onInsert={handleInsert} />}
         <Textarea
           ref={textareaRef}
           id="problem"
@@ -148,6 +194,16 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           aria-invalid={validationError ? true : undefined}
           aria-describedby={validationError ? 'problem-error' : undefined}
         />
+        {/* What the typed text means, typeset: a ^2 shows raised, √( shows
+            a radical. Decorative for assistive tech — the textarea's own
+            text is the accessible content, and announcing every keystroke's
+            re-render would be noise. */}
+        {problem.trim() && (
+          <div aria-hidden="true" className="flex items-baseline gap-2 px-1 text-gray-800 dark:text-gray-100 min-h-7">
+            <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 shrink-0">Preview</span>
+            <span className="text-lg leading-snug break-words min-w-0"><MathText text={problem} /></span>
+          </div>
+        )}
         <div className="flex justify-between">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {problem.length}/1000 characters
