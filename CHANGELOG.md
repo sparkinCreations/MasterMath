@@ -26,7 +26,8 @@ The October student review's top five, and the slow quintic.
 - **A worked example on the landing page**, the solver's own output for
   `x² − 5x + 6 = 0` (a test keeps it identical), with a button that opens
   the solver with that problem filled in; and a line saying who the app is
-  for. The "not AI" disclaimer appears twice rather than five times.
+  for. The "not AI" disclaimer appears twice (the hero line and the feature
+  card's heading) rather than five times.
 - **Drag to pan the graph** with a mouse or a finger. A horizontal drag
   slides the window; a mouse drag slides vertically too; on touch the
   vertical direction is left to the page, so the graph never traps a
