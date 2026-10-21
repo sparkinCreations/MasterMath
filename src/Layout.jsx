@@ -204,7 +204,7 @@ export default function Layout({ children }) {
                 href="https://sparkincreations.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
+                className="inline-flex items-center min-h-6 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
               >
                 sparkinCreations
               </a>
@@ -212,21 +212,21 @@ export default function Layout({ children }) {
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("PrivacyPolicy")}
-              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
+              className="inline-flex items-center min-h-6 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
             >
               Privacy Policy
             </Link>
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("TermsOfService")}
-              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
+              className="inline-flex items-center min-h-6 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
             >
               Terms of Service
             </Link>
             <span className="hidden sm:inline">|</span>
             <Link
               to={createPageUrl("Feedback")}
-              className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
+              className="inline-flex items-center min-h-6 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400"
             >
               Feedback
             </Link>

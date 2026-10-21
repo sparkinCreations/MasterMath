@@ -347,3 +347,50 @@ export function growthWindow(expression, variable, { widths = [10, 8, 6, 5, 4, 3
   }
   return fallback;
 }
+
+
+// A window chosen to frame a curve's features can still be unreadable when
+// the curve explodes at one edge: sin(x²)·eˣ has zeros out to ±13, and on
+// that window the y-axis runs to ±124 000 with everything else flat on the
+// axis. Shrink the window symmetrically about its centre until the largest
+// |y| is within `maxSpread` times the typical |y| (the median), as
+// growthWindow does, but only when the blow-up is at an edge — a pole in the
+// interior (tan) is not growth and no window cures it. Returns the window
+// unchanged when it is already fine or cannot be sampled.
+export function tameWindow(expression, variable, window, { maxSpread = 40, minWidth = 4, count = 200 } = {}) {
+  if (!window || !Number.isFinite(window.xMin) || !Number.isFinite(window.xMax)) return window;
+  let compiled;
+  try {
+    compiled = math.parse(realOddRoots(String(expression))).compile();
+  } catch {
+    return window;
+  }
+  const spread = (xMin, xMax) => {
+    const ys = [];
+    let peakAt = null;
+    for (let i = 0; i <= count; i += 1) {
+      const x = xMin + ((xMax - xMin) * i) / count;
+      try {
+        const y = compiled.evaluate({ [variable]: x });
+        if (typeof y === 'number' && Number.isFinite(y)) {
+          ys.push(Math.abs(y));
+          if (peakAt === null || Math.abs(y) > peakAt.y) peakAt = { x, y: Math.abs(y) };
+        }
+      } catch { /* undefined here */ }
+    }
+    if (ys.length < 10) return null;
+    const sorted = [...ys].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    return { ok: peakAt.y <= maxSpread * Math.max(median, 1e-9), edge: Math.min(peakAt.x - xMin, xMax - peakAt.x) <= 0.1 * (xMax - xMin) };
+  };
+  const centre = (window.xMin + window.xMax) / 2;
+  let half = (window.xMax - window.xMin) / 2;
+  let current = window;
+  for (let i = 0; i < 40 && half * 2 > minWidth; i += 1) {
+    const s = spread(current.xMin, current.xMax);
+    if (!s || s.ok || !s.edge) return current;
+    half *= 0.85;
+    current = { xMin: centre - half, xMax: centre + half };
+  }
+  return current;
+}

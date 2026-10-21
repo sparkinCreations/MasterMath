@@ -38,6 +38,14 @@ export function validateMathInput(input) {
   // pattern `/on\w+\s*=/i` matched the "on" inside "constant", so
   // "constant = 5" came back as "Invalid input detected" with no hint why.
 
+  // LaTeX markup is not an input format here. Without this, "\\int x^2 dx"
+  // lost its backslash and its space downstream and came back as
+  // '"intx" is not a known function', which explains nothing.
+  const latexCommand = trimmed.match(/\\([a-zA-Z]+)/);
+  if (latexCommand) {
+    return { isValid: false, error: `LaTeX commands such as \\${latexCommand[1]} are not supported. Type the math directly: 1/2 for a fraction, sqrt(x) for a root, x^2 for a power, ∫_0^1 x^2 dx or "integral of x^2 from 0 to 1" for an integral.` };
+  }
+
   // Check if input contains at least one mathematical character or word
   const hasMathContent = /[0-9+\-*/^()=.xyzabc]|sin|cos|tan|log|ln|sqrt|derivative|integral|limit|solve/i.test(trimmed);
 

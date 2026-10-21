@@ -31,6 +31,8 @@ import {
   formatRestriction,
   realOddRoots,
   piForm,
+  structuralPeriod,
+  definedEverywhere,
 } from './solverUtils.js';
 import { featureWindow } from '../graphSampling.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
@@ -217,7 +219,11 @@ function parseRoots(raw) {
 // --- feature extraction -------------------------------------------------------
 
 function analyzeFunction(func, variable, Algebrite) {
-  const isPeriodic = /\b(?:sin|cos|tan|sec|csc|cot)\s*\(/i.test(func);
+  // "Periodic" is a claim about every x, so it is proved from the structure
+  // (trig functions of linear arguments, commensurately combined), never
+  // read off the presence of a sin: sin(x²)·eˣ has a sin and is not periodic.
+  const isPeriodic = (structuralPeriod(func, variable) || 0) > 0;
+  const provedEverywhere = definedEverywhere(func, variable);
 
   // Fine-grained sample of definedness across the window. Built by index with
   // rounding so grid points land EXACTLY on values like 0 — accumulating
@@ -263,6 +269,7 @@ function analyzeFunction(func, variable, Algebrite) {
     verticalAsymptotes,
     horizontalAsymptote,
     isPeriodic,
+    provedEverywhere,
     quadratic,
   };
 }
@@ -467,8 +474,12 @@ function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
     }
   }
 
-  found.sort((p, q) => p.numeric - q.numeric);
-  return { list: found.slice(0, isPeriodic ? 8 : 6), truncated: found.length > (isPeriodic ? 8 : 6) };
+  // Keep the ones nearest the origin (listed left to right): the first six
+  // from x = −10 of sin(x²)·eˣ are a cluster of near-identical decimals.
+  const keep = isPeriodic ? 8 : 6;
+  found.sort((p, q) => Math.abs(p.numeric) - Math.abs(q.numeric) || p.numeric - q.numeric);
+  const list = found.slice(0, keep).sort((p, q) => p.numeric - q.numeric);
+  return { list, truncated: found.length > keep };
 }
 
 // How an extremum arises. The step text used to say "(from f′(x) = 0)" for
@@ -559,8 +570,9 @@ function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
     if (neg > 0 && pos === 0) monotonic = 'decreasing';
   }
 
-  extrema.sort((a, b) => a.x - b.x);
-  return { extrema: extrema.slice(0, isPeriodic ? 6 : 4), monotonic };
+  const keep = isPeriodic ? 6 : 4;
+  extrema.sort((a, b) => Math.abs(a.x) - Math.abs(b.x) || a.x - b.x);
+  return { extrema: extrema.slice(0, keep).sort((a, b) => a.x - b.x), monotonic };
 }
 
 function findInflections(func, variable, Algebrite) {
@@ -716,8 +728,13 @@ function buildSteps(func, variable, f) {
     // The grid never landed on the poles (tan at π/2), so no undefined
     // region was measured — but the asymptotes ARE excluded from the domain.
     steps.push(`Domain: all real numbers except where the function blows up — ${variable} ≠ ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')} (in the analyzed window ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}${f.isPeriodic ? '; the pattern repeats' : ''}).`);
+  } else if (f.domain.length === 0 && f.provedEverywhere) {
+    // Proved from the structure: no quotient, root, log or tan to exclude
+    // anything. The ±10 window is where features were searched, not the
+    // domain — the two used to be run together in one sentence.
+    steps.push('Domain: all real numbers — polynomials, sin, cos, eˣ and absolute values, and their sums, products and compositions, are defined for every real input.');
   } else if (f.domain.length === 0) {
-    steps.push(`Domain: all real numbers (defined everywhere in the analyzed window ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}).`);
+    steps.push(`Domain: no restrictions found — the function is defined at every point checked for ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max} (that window is where the features below were searched; it is not a statement about the whole real line).`);
   } else {
     // "undefined for x ≤ 0" (ln: the edge itself is undefined) vs
     // "undefined for x < 2" (sqrt: defined at the edge) — the closed/open
@@ -916,7 +933,7 @@ function summarizeAnalysis(func, variable, f) {
   const interceptPattern = f.isPeriodic ? generalForm(f.xIntercepts.list.map((r) => r.numeric), variable) : null;
   if (f.domain.length === 0 && asymptotePattern) parts.push(`domain: all real numbers except ${asymptotePattern} (n any integer)`);
   else if (f.domain.length === 0 && f.verticalAsymptotes.length > 0) parts.push(`domain: all real numbers except ${variable} = ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}${f.isPeriodic ? ' (repeating)' : ''}`);
-  else if (f.domain.length === 0) parts.push('domain: all real numbers');
+  else if (f.domain.length === 0) parts.push(f.provedEverywhere ? 'domain: all real numbers' : 'domain: no restrictions found');
   else {
     const extraPoles = f.verticalAsymptotes.filter((a) => !f.domain.some((r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.from - a) < 1e-6));
     parts.push(`domain: ${formatDomain(f.domain, variable, extraPoles)}`);

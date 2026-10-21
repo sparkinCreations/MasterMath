@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-10-21
+
+Third outside review, every claim reproduced before it was fixed.
+
+### Fixed
+
+- **Functions: "periodic" is now proved, not guessed.** sin(x²)·eˣ was called
+  periodic because it contains a sin. Periodicity is read off the parse tree
+  (`structuralPeriod`: trig functions of linear arguments, commensurately
+  combined, under any outer function); anything else is not called periodic.
+  The listed intercepts and extrema are now the ones nearest the origin, not
+  the first six from x = −10 (a cluster of ±0.0001 values).
+- **Functions: the domain is no longer confused with the ±10 window.** When
+  the structure proves the function is defined everywhere (polynomials, sin,
+  cos, eˣ, |…|, odd roots and their combinations) the step says so and why;
+  otherwise it says "no restrictions found" for the window that was scanned,
+  rather than "all real numbers (… in the analyzed window)".
+- **Graphs: a curve that explodes at the edge of its window is shrunk to a
+  readable one.** sin(x²)·eˣ opened on ±13 with a y-axis to ±124 000; the
+  viewer now tames such a window (`tameWindow`: shrink about the centre until
+  the largest |y| is within 40× the median, only when the blow-up is at an
+  edge). Curves with poles keep their window.
+- **Derivative steps with several math clauses are typeset.** "Let u = sin(x²)
+  and w = eˣ" and "Then u′ = 2x·cos(x²) and w′ = eˣ" were plain text because
+  they contain words; the segmenter now splits prose at connector words and
+  typesets each clause that is math.
+- **Cubic tips are about cubics.** An equation solved by the Rational Root
+  Theorem and synthetic division gets tips and mistakes about that method,
+  not the quadratic set.
+- **ln(sin x) is a chain rule.** A function of a function (ln(sin x),
+  √(cos x)) was filed under the inner function's rule ("Trig rule") with no
+  chain-rule working. It is now classified and worked as a chain rule, and
+  cos/sin and sin/cos of the same argument are written cot and tan after a
+  numeric check: d/dx ln(sin x) = cot x, d/dx ln(cos x) = −tan x.
+- **A trig identity excludes where it is undefined.** tan(x) = sin(x)/cos(x)
+  answered "all real numbers"; tan, sec, cot, csc and divisions by sin or cos
+  of linear arguments now exclude their poles (x = π/2 + nπ), read off the
+  structure. The opening step no longer says an identity was "solved
+  numerically".
+- **LaTeX input gets a useful message.** `\int x^2 dx` reported that "intx"
+  is not a known function (the backslash and a space were lost); any
+  `\command` now says LaTeX is not supported and shows what to type instead.
+- **Footer links meet the 24 px tap-target minimum** (WCAG 2.2) on every
+  screen size.
+
 ## [1.42.0] - 2026-10-21
 
 ### Added

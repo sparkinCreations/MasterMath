@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
-import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, growthWindow, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
+import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
 
 // A ReferenceDot label placed where it fits inside the plot (placePointLabel).
 // Recharts renders this with the dot's box as `viewBox`; the props are named
@@ -68,15 +68,23 @@ const DEFAULT_RANGE = { xMin: -10, xMax: 10 };
 // three roots and two turning points, not ±10 with the shape squashed into
 // a strip); else the default.
 function startWindow(functionData) {
-  if (functionData?.initialWindow) return functionData.initialWindow;
-  if (functionData?.expression) {
-    const fitted = featureWindow(annotationFeatureXs(functionData));
-    if (fitted) return fitted;
-    // Nothing marked (e^x): a window the curve's shape actually fills.
-    const grown = growthWindow(functionData.expression, functionData.variable || 'x');
-    if (grown) return grown;
-  }
-  return DEFAULT_RANGE;
+  const chosen = () => {
+    if (functionData?.initialWindow) return functionData.initialWindow;
+    if (functionData?.expression) {
+      const fitted = featureWindow(annotationFeatureXs(functionData));
+      if (fitted) return fitted;
+      // Nothing marked (e^x): a window the curve's shape actually fills.
+      const grown = growthWindow(functionData.expression, functionData.variable || 'x');
+      if (grown) return grown;
+    }
+    return DEFAULT_RANGE;
+  };
+  const window = chosen();
+  // A curve that explodes at the edge of its window (sin(x²)·eˣ) is shrunk
+  // to a readable one; a curve with poles keeps its window.
+  const hasPoles = (functionData?.annotations?.verticalAsymptotes || []).length > 0 || (functionData?.breaks || []).length > 0;
+  if (functionData?.expression && !hasPoles) return tameWindow(functionData.expression, functionData.variable || 'x', window);
+  return window;
 }
 const HEIGHTS = [240, 320, 400, 480, 560];
 const DEFAULT_HEIGHT_IDX = 1; // 320px

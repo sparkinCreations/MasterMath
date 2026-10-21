@@ -61,12 +61,14 @@ export async function solveDerivative(expression, options = {}) {
         return expr;
       }
     };
-    // Authoritative, fully-simplified derivative.
-    let derivative = shorten(Algebrite.derivative(forAlgebrite, variable).toString());
+    // Authoritative, fully-simplified derivative. cos/sin and sin/cos of the
+    // same argument are written as cot and tan (ln(sin x) → cot x), after a
+    // numeric check that nothing changed.
+    let derivative = trigRatioForm(shorten(Algebrite.derivative(forAlgebrite, variable).toString()), variable);
     // Higher orders: differentiate the previous result again, showing each.
     const orderChain = [derivative];
     for (let k = 2; k <= order; k += 1) {
-      derivative = shorten(Algebrite.derivative(derivative, variable).toString());
+      derivative = trigRatioForm(shorten(Algebrite.derivative(rewriteReciprocalTrig(derivative), variable).toString()), variable);
       orderChain.push(derivative);
     }
 
@@ -305,6 +307,7 @@ function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
       }
     }
     if (termDerivative !== null) {
+      termDerivative = trigRatioForm(termDerivative, variable);
       steps.push(`${ddx}(${beautify(signed)}) = ${lnify(termDerivative)}`);
       if (terms.length === 1) simplest = termDerivative;
     } else {
@@ -603,6 +606,22 @@ function workedRuleSteps(term, variable, label, Algebrite) {
   return [];
 }
 
+// cos(u)/sin(u) → cot(u), sin(u)/cos(u) → tan(u), for a quotient of the two
+// with the same argument and no power on the denominator. Applied only when
+// the two forms agree numerically, so a mis-read leaves the original alone.
+function trigRatioForm(expr, variable) {
+  const s = String(expr);
+  const out = s
+    .replace(/\bcos\(([^()]*)\)\s*\/\s*sin\(\1\)(?!\s*\^)/g, 'cot($1)')
+    .replace(/\bsin\(([^()]*)\)\s*\/\s*cos\(\1\)(?!\s*\^)/g, 'tan($1)');
+  if (out === s) return s;
+  try {
+    return expressionsNumericallyEqual(rewriteReciprocalTrig(out), rewriteReciprocalTrig(s), variable) ? out : s;
+  } catch {
+    return s;
+  }
+}
+
 function stripOuterSign(term) {
   return term.replace(/^[-+]/, '');
 }
@@ -623,6 +642,10 @@ function isChain(term, variable) {
   // e^(expr) or a^(expr) with a non-trivial exponent: e^(x^2), 2^(3x).
   const expArg = term.match(/\^\s*\(([^()]*)\)/);
   if (expArg && hasVariable(expArg[1], variable) && /[+\-*/^]/.test(expArg[1])) return true;
+  // function(function(...)): ln(sin(x)), sqrt(cos(x)) — a composition even
+  // though the inner argument has no operator. Used to be filed under the
+  // inner function's rule ("Trig rule" for ln(sin x)), skipping the chain.
+  if (/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh)\s*\(\s*(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh|abs)\s*\(/i.test(term)) return true;
   // function( ...variable...with an operator... )
   const fnInner = term.match(/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt)\s*\(([^()]*)\)/i);
   if (fnInner) {
