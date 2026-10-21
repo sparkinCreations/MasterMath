@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
-import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
+import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, niceTicks, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
 
 // A ReferenceDot label placed where it fits inside the plot (placePointLabel).
 // Recharts renders this with the dot's box as `viewBox`; the props are named
@@ -192,6 +192,18 @@ export default function GraphViewer({ functionData }) {
   // Current y-window when auto (used as the pan seed).
   const autoYWindow = () => autoY || { yMin: -10, yMax: 10 };
 
+  // Round tick values. The fitted windows end on raw sample values, and a
+  // chart that spreads ticks across −9.63…4.41 labels them −9.6, −5.6, −1.6,
+  // 2.4, 4.4; the y-axes are widened to round numbers and the x-axis keeps
+  // its window with round ticks inside it.
+  const yBase = yDomain || autoY;
+  const yNice = yBase ? niceTicks(yBase.yMin, yBase.yMax) : null;
+  const y2Nice = autoY2 ? niceTicks(autoY2.yMin, autoY2.yMax) : null;
+  const xNice = niceTicks(range.xMin, range.xMax, { count: 7, extend: false });
+  const tickText = (decimals) => (v) => (decimals === undefined
+    ? (Number.isInteger(v) ? String(v) : Number(v).toFixed(1))
+    : String(Number(Number(v).toFixed(decimals))));
+
   const zoomIn = () => {
     setRange(prev => {
       const center = (prev.xMin + prev.xMax) / 2;
@@ -346,7 +358,7 @@ export default function GraphViewer({ functionData }) {
     <Card className="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-gray-700 shadow-lg rounded-xl">
       <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="flex items-center gap-2 text-xl">
+          <CardTitle className="flex items-center gap-2 text-xl text-gray-900 dark:text-gray-100">
             <TrendingUp className="w-6 h-6 text-indigo-600" />
             {functionData.title || "Graph View"}
           </CardTitle>
@@ -404,7 +416,8 @@ export default function GraphViewer({ functionData }) {
                 stroke={axisColor}
                 type="number"
                 domain={[range.xMin, range.xMax]}
-                tickFormatter={(v) => Number.isInteger(v) ? v : v.toFixed(1)}
+                ticks={xNice ? xNice.ticks : undefined}
+                tickFormatter={tickText(xNice?.decimals)}
                 tick={{ fill: axisColor }}
                 allowDataOverflow
                 label={{ value: 'x', position: 'insideBottomRight', offset: -5, fill: axisColor }}
@@ -412,8 +425,9 @@ export default function GraphViewer({ functionData }) {
               <YAxis
                 stroke={axisColor}
                 tick={{ fill: axisColor }}
-                domain={yDomain ? [yDomain.yMin, yDomain.yMax] : autoY ? [autoY.yMin, autoY.yMax] : ['auto', 'auto']}
-                tickFormatter={(v) => Number.isInteger(v) ? v : Number(v).toFixed(1)}
+                domain={yNice ? [yNice.min, yNice.max] : yDomain ? [yDomain.yMin, yDomain.yMax] : autoY ? [autoY.yMin, autoY.yMax] : ['auto', 'auto']}
+                ticks={yNice ? yNice.ticks : undefined}
+                tickFormatter={tickText(yNice?.decimals)}
                 allowDataOverflow
                 label={{ value: 'y', angle: -90, position: 'insideLeft', fill: axisColor }}
               />
@@ -423,8 +437,9 @@ export default function GraphViewer({ functionData }) {
                   orientation="right"
                   stroke={secondaryColor}
                   tick={{ fill: secondaryColor }}
-                  domain={autoY2 ? [autoY2.yMin, autoY2.yMax] : ['auto', 'auto']}
-                  tickFormatter={(v) => Number.isInteger(v) ? v : Number(v).toFixed(1)}
+                  domain={y2Nice ? [y2Nice.min, y2Nice.max] : autoY2 ? [autoY2.yMin, autoY2.yMax] : ['auto', 'auto']}
+                  ticks={y2Nice ? y2Nice.ticks : undefined}
+                  tickFormatter={tickText(y2Nice?.decimals)}
                   allowDataOverflow
                   label={{ value: secondaryAxisName, angle: 90, position: 'insideRight', fill: secondaryColor }}
                 />
@@ -621,8 +636,10 @@ export default function GraphViewer({ functionData }) {
 
               <defs>
                 <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="100%" stopColor="#4f46e5" />
+                  {/* Lighter stops on the dark card: blue-600/indigo-600 measured
+                      2.3:1 there; blue-400/indigo-400 are about 5:1. */}
+                  <stop offset="0%" stopColor={isDarkMode ? '#60a5fa' : '#3b82f6'} />
+                  <stop offset="100%" stopColor={isDarkMode ? '#818cf8' : '#4f46e5'} />
                 </linearGradient>
               </defs>
             </LineChart>

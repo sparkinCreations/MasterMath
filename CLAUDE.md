@@ -23,7 +23,7 @@ the logo; green = answer, amber = tips.
 ```
 src/
   App.jsx, Layout.jsx          providers, routes, sidebar/header/footer
-  pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback
+  pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback, NotFound (the `*` route)
   components/solver/           ProblemInput, SolutionDisplay, GraphViewer, GraphEmptyState
   components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
   components/MathText.jsx      KaTeX rendering of solver text (lib/latex.js segments prose from math, clause by clause)
@@ -111,8 +111,9 @@ non-linear by substitution), `inequalitiesSolver` (sign charts, compound),
 `functionsSolver` (exact extrema/intercepts/asymptotes), `limitsSolver`
 (named techniques, each verified; numeric estimate last), `derivativesSolver`
 (rule classification and worked rule steps, orders 1–4, evalAt),
-`integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` / partial
-fractions / definite / improper).
+`integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` /
+`trigSubstitutionSolver` (√(a² − b²x²)) / partial fractions / definite /
+improper).
 
 `solverUtils.js` owns the shared helpers — `beautify`, `formatNumber`,
 `splitTerms`, `splitTopLevel`, `stripOuterParens`, `gcd`, `runAlgebrite`,
@@ -143,6 +144,7 @@ intersection, open points) and `initialWindow`. The viewer opens on
 (the widest ±w in which max|y| ≤ 25× the median — eˣ opens on ±3), else ±10;
 whichever is chosen is then passed through `tameWindow` (shrunk about its
 centre while the curve explodes at an edge; curves with poles are exempt).
+Axis ticks come from `niceTicks` (round steps; y-axes widen to round ends).
 Drag pans (horizontal on touch, both axes with a mouse; `touch-action: pan-y`
 so the page still scrolls); the tooltip names series as `f'(x)`, never by
 the whole expression. Vertical-line and marker

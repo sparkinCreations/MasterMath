@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './Layout';
 import Home from './pages/Home';
 import { ToastProvider } from './components/ui/toast';
@@ -21,6 +21,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const Feedback = lazy(() => import('./pages/Feedback'));
 const Settings = lazy(() => import('./pages/Settings'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Shown while a route chunk is in flight. Deliberately quiet: the sidebar and
 // header are already painted by Layout, so a spinner in the content area is
@@ -84,7 +85,7 @@ function AppContent() {
               <Route path="/settings" element={<Settings />} />
               {/* Anything else — a mistyped or stale URL — goes home rather than
                   rendering an empty page. */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
         </Layout>
