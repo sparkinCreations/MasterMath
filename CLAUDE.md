@@ -43,7 +43,7 @@ src/
     solvers/                   one module per topic (below) + solverUtils.js shared helpers
 tests/        node --test unit suite; tests/corpus/harness.mjs grades the evaluation corpora
 e2e/          Playwright smoke test of the production build
-docs/         evaluations/ (graded CSVs + audits), future-work/, HOW_THE_APP_WORKS.md, REACT_GUIDE.md
+docs/         evaluations/ (graded CSVs + audits, 2026-10/REVIEW-LOG is the claim log), future-work/ (ROADMAP-2026-10.md is the open list), HOW_THE_APP_WORKS.md, REACT_GUIDE.md
 public/       _headers (CSP), sw.js (service worker), manifest, icons, robots, sitemap
 ```
 
