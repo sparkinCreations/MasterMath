@@ -17,8 +17,15 @@ const BUTTON_CLASS =
 // different targets, and the accessible name comes out of the wrong node.
 // shadcn does this with Radix's Slot; cloning the child is the whole of it,
 // and this project has no Radix dependency to add for it.
+// The one variant with colours of its own. A ghost button draws its icon in
+// the inherited text colour, and the page sets none, so in dark mode the
+// graph controls were browser-default black on the dark card (1.4:1).
+const VARIANT_CLASS = {
+  ghost: "text-gray-700 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700",
+}
+
 const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
-  const classes = cn(BUTTON_CLASS, className)
+  const classes = cn(BUTTON_CLASS, VARIANT_CLASS[variant], className)
 
   if (asChild) {
     const { children, ...rest } = props
