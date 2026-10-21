@@ -5,6 +5,7 @@ import { structuralPeriod, definedEverywhere, linearCoefficients, trigUndefinedP
 import { tameWindow } from '../src/lib/graphSampling.js';
 import { segmentMathText } from '../src/lib/latex.js';
 import { validateMathInput } from '../src/lib/validation.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
 // Third outside review (October 2026): every claim reproduced, then fixed.
 
@@ -83,13 +84,13 @@ test('a cubic solved by the Rational Root Theorem gets tips about that method', 
 });
 
 test('ln(sin x) is a chain rule, shown as one, with the answer written as cot x', async () => {
-  const r = await solveProblem('ln(sin(x))', 'derivatives');
+  const r = await solvePlain('ln(sin(x))', 'derivatives');
   assert.equal(r.answer, "f'(x) = cot(x)");
   assert.match(r.steps.join('\n'), /Chain rule/);
   assert.match(r.steps.join('\n'), /Let u = sin\(x\) \(the inside\), so the outer function is ln\(u\)/);
   assert.match(r.steps.join('\n'), /Inner derivative: u′ = d\/dx\[sin\(x\)\] = cos\(x\)/);
   assert.doesNotMatch(r.steps.join('\n'), /Trig rule/);
-  const c = await solveProblem('ln(cos(x))', 'derivatives');
+  const c = await solvePlain('ln(cos(x))', 'derivatives');
   assert.equal(c.answer, "f'(x) = -tan(x)");
   // The graph still samples: cot is in the maths instance.
   assert.equal(r.graph.secondaryExpression, 'cot(x)');

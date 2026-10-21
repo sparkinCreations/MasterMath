@@ -20,7 +20,7 @@
 // curve, and F_y = 0 there means a vertical tangent (or, with F_x = 0 too,
 // a singular point) — dy/dx is undefined, and the answer says why.
 
-import { math, beautify, splitTerms, loadAlgebrite, runAlgebrite, formatNumber, rewriteReciprocalTrig } from './solverUtils.js';
+import { math, beautify, splitTerms, loadAlgebrite, runAlgebrite, formatNumber, rewriteReciprocalTrig, mark } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
 import { solved, unsupported, undefinedValue } from '../solutionEnvelope.js';
 
@@ -169,7 +169,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
   }
 
   const steps = [
-    `Differentiate both sides of ${shownEquation} with respect to ${ind}, treating ${dep} as a function of ${ind}: by the chain rule, every term that contains ${dep} picks up a factor d${dep}/d${ind}.`,
+    `Differentiate both sides of ${mark(shownEquation)} with respect to ${mark(ind)}, treating ${mark(dep)} as a function of ${mark(ind)}: by the chain rule, every term that contains ${mark(dep)} picks up a factor ${mark(`d${dep}/d${ind}`)}.`,
   ];
 
   // Term by term, both sides.
@@ -184,7 +184,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
       if (rule.startsWith('product')) usedProduct = true;
       // Label first: "Chain rule: d/dx(y^2) = …" typesets the formula whole.
       const label = rule ? `${rule[0].toUpperCase()}${rule.slice(1)}: ` : '';
-      steps.push(`${label}d/d${ind}(${show(signed)}) = ${totalDerivative(tx, ty, dep, ind)}`);
+      steps.push(`${label}${mark(`d/d${ind}(${show(signed)}) = ${totalDerivative(tx, ty, dep, ind)}`)}`);
       pieces.push({ tx, ty });
     }
     return pieces;
@@ -197,22 +197,22 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
     return parts.length ? parts.join(' + ').replace(/\+ -/g, '- ') : '0';
   };
   const together = `${sum(left)} = ${sum(right)}`;
-  steps.push(`So: ${together}`);
+  steps.push(`So: ${mark(together)}`);
 
   const minusFx = run(`simplify(-(${fx}))`);
   const collected = `${timesDydx(fy, dep, ind)} = ${show(minusFx)}`;
-  if (collected !== together) steps.push(`Collect the d${dep}/d${ind} terms on the left and everything else on the right: ${collected}`);
+  if (collected !== together) steps.push(`Collect the ${mark(`d${dep}/d${ind}`)} terms on the left and everything else on the right: ${mark(collected)}`);
 
   const raw = `(${minusFx})/(${fy})`;
   const result = run(`simplify(${raw})`);
   if (result === null || /\bd\(/.test(result)) return refuse(`The engine could not simplify d${dep}/d${ind} for ${shownEquation}.`);
   const rawShown = `${splitTerms(minusFx).length > 1 ? `(${show(minusFx)})` : show(minusFx)}/${splitTerms(fy).length > 1 || /[*/]/.test(fy) ? `(${show(fy)})` : show(fy)}`;
   const dydx = `d${dep}/d${ind}`;
-  if (fy === '-1') steps.push(`Multiply both sides by −1: ${dydx} = ${show(result)}`);
-  else if (fy !== '1') steps.push(`Divide by ${show(fy)}: ${dydx} = ${rawShown === show(result) ? show(result) : `${rawShown} = ${show(result)}`}`);
+  if (fy === '-1') steps.push(`Multiply both sides by ${mark('−1')}: ${mark(`${dydx} = ${show(result)}`)}`);
+  else if (fy !== '1') steps.push(`Divide by ${mark(show(fy))}: ${mark(`${dydx} = ${rawShown === show(result) ? show(result) : `${rawShown} = ${show(result)}`}`)}`);
   const denominator = run(`denominator(${result})`);
   if (denominator && denominator !== '1' && /[a-z]/.test(denominator)) {
-    steps.push(`This holds wherever ${show(denominator)} ≠ 0. At a point of the curve where it is 0 the tangent is vertical, or the curve has no single tangent there.`);
+    steps.push(`This holds wherever ${mark(`${show(denominator)} ≠ 0`)}. At a point of the curve where it is 0 the tangent is vertical, or the curve has no single tangent there.`);
   }
 
   // Verification along the curve.
@@ -254,7 +254,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
     return refuse(`No point on ${shownEquation} could be found to check ${dydx} against (the curve may have no real points), so the formula is not reported.`);
   }
   const c = checks[0];
-  steps.push(`Check: (${formatNumber(c.x)}, ${formatNumber(c.y)}) is on the curve; following the curve a short step either side gives a slope of ${formatNumber(c.slope)}, and the formula gives the same.`);
+  steps.push(`Check: ${mark(`(${formatNumber(c.x)}, ${formatNumber(c.y)})`)} is on the curve; following the curve a short step either side gives a slope of ${mark(formatNumber(c.slope))}, and the formula gives the same.`);
 
   const tips = [
     `Treat ${dep} as an unknown function of ${ind}: differentiate a ${dep}-term as you would f(${ind}), so ${dep}² gives 2${dep}·${dydx}.`,
@@ -279,11 +279,11 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
     if (xv !== null && !hasDep) {
       const value = Rnum(xv, 0);
       if (Number.isFinite(value)) {
-        steps.push(`The formula has no ${dep} in it, so ${ind} alone fixes the slope: at ${ind} = ${options.point.x}, ${dydx} = ${formatNumber(value)}`);
+        steps.push(`The formula has no ${mark(dep)} in it, so ${mark(ind)} alone fixes the slope: at ${mark(`${ind} = ${options.point.x}`)}, ${mark(`${dydx} = ${formatNumber(value)}`)}`);
         return solved({ steps, answer: `${dydx} at ${ind} = ${options.point.x} = ${formatNumber(value)}`, tips, common_mistakes });
       }
     }
-    steps.push(`${dydx} = ${show(result)} depends on ${dep} as well as ${ind}, and the curve can pass through ${ind} = ${options.point.x} more than once, so a slope needs the whole point: give it as (${options.point.x}, ${dep}).`);
+    steps.push(`${mark(`${dydx} = ${show(result)}`)} depends on ${mark(dep)} as well as ${mark(ind)}, and the curve can pass through ${mark(`${ind} = ${options.point.x}`)} more than once, so a slope needs the whole point: give it as ${mark(`(${options.point.x}, ${dep})`)}.`);
     tips.unshift(`To evaluate an implicit derivative, give the point as (${ind}, ${dep}) — for example "at (3, 4)".`);
     return solved({ steps, answer: `${dydx} = ${show(result)}`, tips, common_mistakes });
   }
@@ -303,7 +303,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
     return undefinedValue({
       input,
       reason: `${pointShown} is not on the curve ${shownEquation}`,
-      steps: [...steps, `Substitute ${pointShown}: the two sides of ${shownEquation} are not equal there, so the point is not on the curve and the curve has no slope there.`],
+      steps: [...steps, `Substitute ${mark(pointShown)}: the two sides of ${mark(shownEquation)} are not equal there, so the point is not on the curve and the curve has no slope there.`],
       tips: [`Check the point first: substitute it into the equation — both sides must be equal. On this curve ${dydx} = ${show(result)}.`],
     });
   }
@@ -315,7 +315,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
     return undefinedValue({
       input,
       reason: singular ? `both partial derivatives are 0 at ${pointShown} (a singular point of the curve)` : `the tangent at ${pointShown} is vertical`,
-      steps: [...steps, `At ${pointShown}: ${show(fy)} = 0, so ${dydx} = ${show(result)} has a zero denominator there${singular ? ', and the numerator is 0 too: the curve has a singular point there, with no single tangent' : ': the tangent line is vertical, and a vertical line has no slope'}.`],
+      steps: [...steps, `At ${mark(pointShown)}: ${mark(`${show(fy)} = 0`)}, so ${mark(`${dydx} = ${show(result)}`)} has a zero denominator there${singular ? ', and the numerator is 0 too: the curve has a singular point there, with no single tangent' : ': the tangent line is vertical, and a vertical line has no slope'}.`],
       tips: [`${dydx} is undefined exactly where ${show(fy)} = 0.`],
     });
   }
@@ -325,8 +325,8 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
   const dec = formatNumber(value);
   const exactText = exact && numericValue(exact) !== null && Math.abs(numericValue(exact) - value) < 1e-9 * (1 + Math.abs(value)) ? show(exact) : null;
   const shownValue = exactText && exactText !== dec && !/^-?\d+$/.test(exactText) ? `${exactText} ≈ ${dec}` : (exactText || dec);
-  steps.push(`At ${pointShown} (on the curve: both sides agree there), substitute ${ind} = ${show(px)}, ${dep} = ${show(py)}: ${dydx} = ${shownValue}`);
-  steps.push(`That is the slope of the tangent line to the curve at ${pointShown}.`);
+  steps.push(`At ${mark(pointShown)} (on the curve: both sides agree there), substitute ${mark(`${ind} = ${show(px)}, ${dep} = ${show(py)}`)}: ${mark(`${dydx} = ${shownValue}`)}`);
+  steps.push(`That is the slope of the tangent line to the curve at ${mark(pointShown)}.`);
   tips.unshift(`An implicit ${dydx} usually involves both ${ind} and ${dep}, so evaluating it needs the whole point (${ind}, ${dep}), not just ${ind}.`);
   return solved({ steps, answer: `${dydx} at ${pointShown} = ${shownValue}`, tips, common_mistakes });
 }

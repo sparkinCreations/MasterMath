@@ -33,6 +33,7 @@ import {
   piForm,
   structuralPeriod,
   definedEverywhere,
+  mark,
 } from './solverUtils.js';
 import { featureWindow } from '../graphSampling.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
@@ -667,8 +668,8 @@ function detectRange(func, variable, quadratic) {
   if (quadratic) {
     const k = quadratic.vertex.y;
     return quadratic.opensUpward
-      ? { text: `y ≥ ${fmt(k)}`, why: `the parabola opens upward, so its lowest value is the vertex height ${fmt(k)} and it takes every value above it.` }
-      : { text: `y ≤ ${fmt(k)}`, why: `the parabola opens downward, so its highest value is the vertex height ${fmt(k)} and it takes every value below it.` };
+      ? { text: `y ≥ ${fmt(k)}`, why: `the parabola opens upward, so its lowest value is the vertex height ${mark(fmt(k))} and it takes every value above it.` }
+      : { text: `y ≤ ${fmt(k)}`, why: `the parabola opens downward, so its highest value is the vertex height ${mark(fmt(k))} and it takes every value below it.` };
   }
 
   const linear = t.match(new RegExp(`^${COEF}${v}${SHIFT}$`));
@@ -677,10 +678,10 @@ function detectRange(func, variable, quadratic) {
   }
 
   const halfLine = (a, k, fn) => {
-    const zeroText = fn === 'sqrt' ? 'the square root is 0 at the edge of the domain and grows without bound' : 'the absolute value is 0 at its corner and grows without bound';
+    const zeroText = fn === 'sqrt' ? `the square root is ${mark('0')} at the edge of the domain and grows without bound` : `the absolute value is ${mark('0')} at its corner and grows without bound`;
     return a > 0
-      ? { text: `y ≥ ${fmt(k)}`, why: `${zeroText}, so a·${fn === 'sqrt' ? '√(…)' : '|…|'} ${k < 0 ? '− ' + fmt(-k) : '+ ' + fmt(k)} with a = ${fmt(a)} > 0 starts at ${fmt(k)} and rises.` }
-      : { text: `y ≤ ${fmt(k)}`, why: `${zeroText}, so a·${fn === 'sqrt' ? '√(…)' : '|…|'} ${k < 0 ? '− ' + fmt(-k) : '+ ' + fmt(k)} with a = ${fmt(a)} < 0 starts at ${fmt(k)} and falls.` };
+      ? { text: `y ≥ ${fmt(k)}`, why: `${zeroText}, so ${mark(`a·${fn === 'sqrt' ? '√(…)' : '|…|'} ${k < 0 ? '− ' + fmt(-k) : '+ ' + fmt(k)}`)} with ${mark(`a = ${fmt(a)} > 0`)} starts at ${mark(fmt(k))} and rises.` }
+      : { text: `y ≤ ${fmt(k)}`, why: `${zeroText}, so ${mark(`a·${fn === 'sqrt' ? '√(…)' : '|…|'} ${k < 0 ? '− ' + fmt(-k) : '+ ' + fmt(k)}`)} with ${mark(`a = ${fmt(a)} < 0`)} starts at ${mark(fmt(k))} and falls.` };
   };
   const root = t.match(new RegExp(`^${COEF}sqrt\\(([^()]+)\\)${SHIFT}$`));
   if (root && linearInV(root[2]) && num(root[1]) !== null && num(root[1]) !== 0) return halfLine(num(root[1]), num(root[3]) === 1 && !root[3] ? 0 : num(root[3]), 'sqrt');
@@ -691,7 +692,7 @@ function detectRange(func, variable, quadratic) {
   if (recip && recip[3]) recip[2] = recip[3];
   if (recip && linearInV(recip[2]) && num(recip[1]) !== 0) {
     const k = recip[4] ? num(recip[4]) : 0;
-    return { text: `y ≠ ${fmt(k)}`, why: `a/(…) is never 0 but comes arbitrarily close, so the shifted curve takes every value except its horizontal asymptote y = ${fmt(k)}.` };
+    return { text: `y ≠ ${fmt(k)}`, why: `${mark('a/(…)')} is never ${mark('0')} but comes arbitrarily close, so the shifted curve takes every value except its horizontal asymptote ${mark(`y = ${fmt(k)}`)}.` };
   }
 
   const expo = t.match(new RegExp(`^${COEF}(\\d+(?:\\.\\d+)?|e)\\^\\(?([^()]+?)\\)?${SHIFT}$`));
@@ -712,7 +713,7 @@ function detectRange(func, variable, quadratic) {
   if (wave && linearInV(wave[3]) && num(wave[1]) !== null && num(wave[1]) !== 0) {
     const a = Math.abs(num(wave[1]));
     const k = wave[4] ? num(wave[4]) : 0;
-    return { text: `${fmt(k - a)} ≤ y ≤ ${fmt(k + a)}`, why: `${wave[2]} swings between −1 and 1, so a·${wave[2]}(…) + k swings between k − |a| = ${fmt(k - a)} and k + |a| = ${fmt(k + a)}.` };
+    return { text: `${fmt(k - a)} ≤ y ≤ ${fmt(k + a)}`, why: `${mark(wave[2])} swings between ${mark('−1')} and ${mark('1')}, so ${mark(`a·${wave[2]}(…) + k`)} swings between ${mark(`k − |a| = ${fmt(k - a)}`)} and ${mark(`k + |a| = ${fmt(k + a)}`)}.` };
   }
   return null;
 }
@@ -720,21 +721,24 @@ function detectRange(func, variable, quadratic) {
 // --- presentation -------------------------------------------------------------
 
 function buildSteps(func, variable, f) {
+  // A domain or range is marked as math when it is a condition (x > 0,
+  // y ≠ 0), and left as words when it is "all real numbers".
+  const condition = (t) => (/^all real/i.test(String(t).trim()) ? t : mark(t));
   const steps = [];
-  steps.push(`Analyze the function: f(${variable}) = ${beautify(func)}`);
+  steps.push(`Analyze the function: ${mark(`f(${variable}) = ${beautify(func)}`)}`);
 
   // Domain
   if (f.domain.length === 0 && f.verticalAsymptotes.length > 0) {
     // The grid never landed on the poles (tan at π/2), so no undefined
     // region was measured — but the asymptotes ARE excluded from the domain.
-    steps.push(`Domain: all real numbers except where the function blows up — ${variable} ≠ ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')} (in the analyzed window ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}${f.isPeriodic ? '; the pattern repeats' : ''}).`);
+    steps.push(`Domain: all real numbers except where the function blows up — ${mark(`${variable} ≠ ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}`)} (in the analyzed window ${mark(`${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}`)}${f.isPeriodic ? '; the pattern repeats' : ''}).`);
   } else if (f.domain.length === 0 && f.provedEverywhere) {
     // Proved from the structure: no quotient, root, log or tan to exclude
     // anything. The ±10 window is where features were searched, not the
     // domain — the two used to be run together in one sentence.
     steps.push('Domain: all real numbers — polynomials, sin, cos, eˣ and absolute values, and their sums, products and compositions, are defined for every real input.');
   } else if (f.domain.length === 0) {
-    steps.push(`Domain: no restrictions found — the function is defined at every point checked for ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max} (that window is where the features below were searched; it is not a statement about the whole real line).`);
+    steps.push(`Domain: no restrictions found — the function is defined at every point checked for ${mark(`${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}`)} (that window is where the features below were searched; it is not a statement about the whole real line).`);
   } else {
     // "undefined for x ≤ 0" (ln: the edge itself is undefined) vs
     // "undefined for x < 2" (sqrt: defined at the edge) — the closed/open
@@ -744,36 +748,36 @@ function buildSteps(func, variable, f) {
     const undefinedFor = f.domain.map((r) => formatRestriction(r, variable)).join(' and for ');
     const extraPoles = f.verticalAsymptotes.filter((a) => !f.domain.some((r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.from - a) < 1e-6));
     const allowed = formatDomain(f.domain, variable, extraPoles);
-    const undefinedAll = undefinedFor + (extraPoles.length ? ` and for ${extraPoles.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')}` : '');
-    steps.push(`Domain restriction: f is undefined for ${undefinedAll} — so the domain is ${allowed}.`);
+    const undefinedAll = condition(undefinedFor) + (extraPoles.length ? ` and for ${extraPoles.map((a) => mark(`${variable} = ${formatNumber(a)}`)).join(', ')}` : '');
+    steps.push(`Domain restriction: ${mark('f')} is undefined for ${undefinedAll} — so the domain is ${condition(allowed)}.`);
   }
 
   // Range, only for families where it is known exactly (never read off the
   // sampled window). September 2026 review, batch 3.
-  if (f.range) steps.push(`Range: ${f.range.text} — ${f.range.why}`);
+  if (f.range) steps.push(`Range: ${condition(f.range.text)} — ${f.range.why}`);
 
   // Holes (removable discontinuities) — explained, not just "undefined at".
   for (const h of f.holes) {
     const why = h.simplified
       ? ` Simplifying, f(${variable}) = ${beautify(h.simplified)} for every ${variable} ≠ ${formatNumber(h.x)}: a common factor cancels, but the original is still undefined at ${variable} = ${formatNumber(h.x)}.`
       : '';
-    steps.push(`Hole (removable discontinuity) at (${formatNumber(h.x)}, ${formatNumber(h.y)}): the function is undefined at ${variable} = ${formatNumber(h.x)}, but it does not blow up there — the graph is a single point short of continuous.${why}`);
+    steps.push(`Hole (removable discontinuity) at ${mark(`(${formatNumber(h.x)}, ${formatNumber(h.y)})`)}: the function is undefined at ${mark(`${variable} = ${formatNumber(h.x)}`)}, but it does not blow up there — the graph is a single point short of continuous.${why}`);
   }
 
   // Quadratic-specific insights (exact)
   if (f.quadratic) {
-    steps.push(`This is a quadratic (parabola). Leading coefficient a = ${formatNumber(f.quadratic.a)}, so it opens ${f.quadratic.opensUpward ? 'upward' : 'downward'}.`);
-    steps.push(`Axis of symmetry: ${variable} = −b/(2a) = ${formatNumber(f.quadratic.axis)}.`);
-    steps.push(`Vertex: (${formatNumber(f.quadratic.vertex.x)}, ${formatNumber(f.quadratic.vertex.y)}) — the ${f.quadratic.opensUpward ? 'minimum' : 'maximum'} point.`);
+    steps.push(`This is a quadratic (parabola). Leading coefficient ${mark(`a = ${formatNumber(f.quadratic.a)}`)}, so it opens ${f.quadratic.opensUpward ? 'upward' : 'downward'}.`);
+    steps.push(`Axis of symmetry: ${mark(`${variable} = −b/(2a) = ${formatNumber(f.quadratic.axis)}`)}.`);
+    steps.push(`Vertex: ${mark(`(${formatNumber(f.quadratic.vertex.x)}, ${formatNumber(f.quadratic.vertex.y)})`)} — the ${f.quadratic.opensUpward ? 'minimum' : 'maximum'} point.`);
   }
 
   // Intercepts
   if (f.yIntercept) {
-    steps.push(`y-intercept: f(0) = ${formatNumber(f.yIntercept.y)}, so the graph crosses the y-axis at (0, ${formatNumber(f.yIntercept.y)}).`);
+    steps.push(`y-intercept: ${mark(`f(0) = ${formatNumber(f.yIntercept.y)}`)}, so the graph crosses the y-axis at ${mark(`(0, ${formatNumber(f.yIntercept.y)})`)}.`);
   }
   if (f.xIntercepts.list.length > 0) {
     const xs = f.xIntercepts.list.map((r) => r.display).join(', ');
-    steps.push(`x-intercept${f.xIntercepts.list.length > 1 ? 's' : ''}: ${variable} = ${xs}${f.xIntercepts.truncated ? ' (and more outside/inside the window — pattern continues)' : ''}.`);
+    steps.push(`x-intercept${f.xIntercepts.list.length > 1 ? 's' : ''}: ${mark(`${variable} = ${xs}`)}${f.xIntercepts.truncated ? ' (and more outside/inside the window — pattern continues)' : ''}.`);
   } else {
     steps.push('x-intercepts: none — the graph never crosses the x-axis.');
   }
@@ -784,9 +788,9 @@ function buildSteps(func, variable, f) {
       for (const e of f.extrema) {
         const name = e.kind === 'max' ? 'maximum' : 'minimum';
         if (e.origin === 'cusp') {
-          steps.push(`Local ${name} at (${formatNumber(e.x)}, ${formatNumber(e.y)}) — at a corner/cusp: f′(${variable}) does not exist there (the slopes on either side disagree), yet it is still a critical point and an extremum. Not a stationary point: this does NOT come from f′(${variable}) = 0.`);
+          steps.push(`Local ${name} at ${mark(`(${formatNumber(e.x)}, ${formatNumber(e.y)})`)} — at a corner/cusp: ${mark(`f′(${variable})`)} does not exist there (the slopes on either side disagree), yet it is still a critical point and an extremum. Not a stationary point: this does NOT come from ${mark(`f′(${variable}) = 0`)}.`);
         } else {
-          steps.push(`Local ${name} at (${formatNumber(e.x)}, ${formatNumber(e.y)}) (from f′(${variable}) = 0).`);
+          steps.push(`Local ${name} at ${mark(`(${formatNumber(e.x)}, ${formatNumber(e.y)})`)} (from ${mark(`f′(${variable}) = 0`)}).`);
         }
       }
     } else if (f.monotonic) {
@@ -804,21 +808,21 @@ function buildSteps(func, variable, f) {
       // begins ⇒ decreases from it; min where it ends ⇒ f decreases toward
       // it; max where it ends ⇒ increases toward it.
       const dir = (e.kind === 'min') === begins ? 'increasing' : 'decreasing';
-      steps.push(`${which.charAt(0).toUpperCase() + which.slice(1)} at the domain endpoint (${formatNumber(e.x)}, ${formatNumber(e.y)}): f is undefined ${begins ? 'to the left' : 'to the right'}, so this is where the graph ${begins ? 'begins' : 'ends'}${e.absolute ? ` — and since f is ${dir} ${begins ? 'from' : 'toward'} there, no other value is ${e.kind === 'min' ? 'lower' : 'higher'}` : ''}. There is no stationary point here (f′ ≠ 0); the extremum comes from the edge of the domain.`);
+      steps.push(`${which.charAt(0).toUpperCase() + which.slice(1)} at the domain endpoint ${mark(`(${formatNumber(e.x)}, ${formatNumber(e.y)})`)}: ${mark('f')} is undefined ${begins ? 'to the left' : 'to the right'}, so this is where the graph ${begins ? 'begins' : 'ends'}${e.absolute ? ` — and since ${mark('f')} is ${dir} ${begins ? 'from' : 'toward'} there, no other value is ${e.kind === 'min' ? 'lower' : 'higher'}` : ''}. There is no stationary point here (${mark('f′ ≠ 0')}); the extremum comes from the edge of the domain.`);
     }
   }
 
   // Inflection points
   if (f.inflections.length > 0) {
-    steps.push(`Inflection point${f.inflections.length > 1 ? 's' : ''} (concavity changes): ${variable} = ${f.inflections.map((i) => i.display).join(', ')}.`);
+    steps.push(`Inflection point${f.inflections.length > 1 ? 's' : ''} (concavity changes): ${mark(`${variable} = ${f.inflections.map((i) => i.display).join(', ')}`)}.`);
   }
 
   // Asymptotes
   if (f.verticalAsymptotes.length > 0) {
-    steps.push(`Vertical asymptote${f.verticalAsymptotes.length > 1 ? 's' : ''}: ${f.verticalAsymptotes.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')} — the function blows up there.`);
+    steps.push(`Vertical asymptote${f.verticalAsymptotes.length > 1 ? 's' : ''}: ${mark(f.verticalAsymptotes.map((a) => `${variable} = ${formatNumber(a)}`).join(', '))} — the function blows up there.`);
   }
   if (f.horizontalAsymptote !== null && typeof f.horizontalAsymptote === 'number') {
-    steps.push(`Horizontal asymptote: y = ${formatNumber(f.horizontalAsymptote)} as ${variable} → ±∞.`);
+    steps.push(`Horizontal asymptote: ${mark(`y = ${formatNumber(f.horizontalAsymptote)}`)} as ${mark(`${variable} → ±∞`)}.`);
   }
 
   if (f.isPeriodic) {

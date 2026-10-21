@@ -4,11 +4,13 @@ import { solveProblem } from '../src/lib/api.js';
 import { growthWindow } from '../src/lib/graphSampling.js';
 import { factorByRationalRoots, readPolynomial } from '../src/lib/solvers/polynomialRoots.js';
 import { WORKED_EXAMPLE } from '../src/lib/workedExample.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
 // October 2026 student review: cubics jumped to the answer; exploding
 // functions were unreadable; the landing page shows a worked example.
 
-const solve = (p) => solveProblem(p, 'algebra');
+// Wording is checked on the text a reader sees, without the ⟦…⟧ math markers.
+const solve = (p) => solvePlain(p, 'algebra');
 
 test('a cubic is worked by the Rational Root Theorem and synthetic division', async () => {
   const r = await solve('x^3 - 6x^2 + 11x - 6 = 0');
@@ -78,7 +80,7 @@ test('growthWindow shrinks the window for e^x and keeps ±10 for a bounded or po
 });
 
 test('the landing page example is exactly what the solver produces', async () => {
-  const r = await solveProblem(WORKED_EXAMPLE.problem, WORKED_EXAMPLE.topic);
+  const r = await solvePlain(WORKED_EXAMPLE.problem, WORKED_EXAMPLE.topic);
   assert.deepEqual(r.steps, WORKED_EXAMPLE.steps);
   assert.equal(r.answer, WORKED_EXAMPLE.answer);
   assert.equal(r.tips[0], WORKED_EXAMPLE.tip);

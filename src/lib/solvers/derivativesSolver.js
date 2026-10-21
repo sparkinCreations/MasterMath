@@ -13,6 +13,7 @@ import {
   expressionsNumericallyEqual,
   splitTopLevel,
   stripOuterParens,
+  mark,
 } from './solverUtils.js';
 import { extractVariable, matchingParen } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -102,7 +103,7 @@ export async function solveDerivative(expression, options = {}) {
     // sgn(u) in a derivative marks a corner of |u|: say where f′ does not exist.
     const corners = sgnArguments(derivative);
     if (corners.length > 0) {
-      steps.push(`sgn(u) is +1 where u > 0 and −1 where u < 0; where u = 0 the graph of |u| has a corner and the derivative does not exist. So f${primes}(${variable}) does not exist where ${corners.map((u) => `${beautify(u)} = 0`).join(' or ')}.`);
+      steps.push(`sgn(u) is +1 where u > 0 and −1 where u < 0; where u = 0 the graph of |u| has a corner and the derivative does not exist. So ${mark(`f${primes}(${variable})`)} does not exist where ${mark(corners.map((u) => `${beautify(u)} = 0`).join(' or '))}.`);
     }
     // Where f′ is defined: poles of f′, and any root or logarithm restriction
     // carried over from f. Stated on the answer (1/x → −1/x², x ≠ 0).
@@ -112,7 +113,7 @@ export async function solveDerivative(expression, options = {}) {
       const names = ['', 'first', 'second', 'third', 'fourth'];
       steps.push(`That is the first derivative. The ${names[order]} derivative differentiates ${order - 1} more time${order > 2 ? 's' : ''}:`);
       for (let k = 2; k <= order; k += 1) {
-        steps.push(`f${"'".repeat(k)}(${variable}) = d/d${variable}[${lnify(orderChain[k - 2])}] = ${lnify(orderChain[k - 1])}`);
+        steps.push(mark(`f${"'".repeat(k)}(${variable}) = d/d${variable}[${lnify(orderChain[k - 2])}] = ${lnify(orderChain[k - 1])}`));
       }
     }
 
@@ -126,7 +127,7 @@ export async function solveDerivative(expression, options = {}) {
       if (/^[a-df-z]$/i.test(String(valueText).trim()) && String(valueText).trim().toLowerCase() !== variable) {
         const sym = Algebrite.run(`simplify(subst(${valueText}, ${variable}, ${derivative}))`).toString();
         if (sym && !isAlgebriteFailure(sym) && !/Stop|nil/.test(sym)) {
-          steps.push(`Evaluate at ${variable} = ${valueText}: f${primes}(${valueText}) = ${lnify(sym)}`);
+          steps.push(`Evaluate at ${mark(`${variable} = ${valueText}`)}: ${mark(`f${primes}(${valueText}) = ${lnify(sym)}`)}`);
           answer = `f${primes}(${valueText}) = ${lnify(sym)}`;
         }
         return { steps, answer, tips: [`f${primes}(a) is the slope of the tangent line at ${variable} = a; here a is left as a symbol.`], common_mistakes: [], graph: generateDerivativeGraph(expression, derivative, variable) };
@@ -154,13 +155,13 @@ export async function solveDerivative(expression, options = {}) {
       // A vertical asymptote of f′ (tan at π/2) evaluates to a huge float,
       // not ∞ — treat anything beyond 1e12 as undefined there.
       if (typeof numeric !== 'number' || !Number.isFinite(numeric) || Math.abs(numeric) > 1e12) {
-        steps.push(`Evaluate at ${variable} = ${valueText}: f${primes}(${valueText}) is undefined there${Number.isFinite(numeric) ? ' (the derivative has a vertical asymptote at that point)' : ''}.`);
+        steps.push(`Evaluate at ${mark(`${variable} = ${valueText}`)}: ${mark(`f${primes}(${valueText})`)} is undefined there${Number.isFinite(numeric) ? ' (the derivative has a vertical asymptote at that point)' : ''}.`);
         answer = `f${primes}(${valueText}) is undefined`;
       } else {
         const dec = formatNumber(numeric);
         const exactShown = exact && !/^-?\d+(?:\.\d+)?$/.test(exact) && lnify(exact) !== dec ? `${lnify(exact)} ≈ ${dec}` : (exact && /^-?\d+$/.test(exact) ? exact : dec);
-        steps.push(`Evaluate at ${variable} = ${valueText}: f${primes}(${valueText}) = ${exactShown}`);
-        if (order === 1) steps.push(`That is the slope of the tangent line to f at ${variable} = ${valueText}.`);
+        steps.push(`Evaluate at ${mark(`${variable} = ${valueText}`)}: ${mark(`f${primes}(${valueText}) = ${exactShown}`)}`);
+        if (order === 1) steps.push(`That is the slope of the tangent line to f at ${mark(`${variable} = ${valueText}`)}.`);
         answer = `f${primes}(${valueText}) = ${exactShown}`;
         evalPoint = { x: value, y: numeric };
       }
@@ -264,7 +265,7 @@ function derivativeGuidance(expression, variable) {
 function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
   const steps = [];
   const ddx = `d/d${variable}`;
-  steps.push(`Identify the function to differentiate: f(${variable}) = ${beautify(expression)}`);
+  steps.push(`Identify the function to differentiate: ${mark(`f(${variable}) = ${beautify(expression)}`)}`);
 
   const terms = splitTerms(expression);
   let simplest = null;
@@ -308,17 +309,17 @@ function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
     }
     if (termDerivative !== null) {
       termDerivative = trigRatioForm(termDerivative, variable);
-      steps.push(`${ddx}(${beautify(signed)}) = ${lnify(termDerivative)}`);
+      steps.push(mark(`${ddx}(${beautify(signed)}) = ${lnify(termDerivative)}`));
       if (terms.length === 1) simplest = termDerivative;
     } else {
-      steps.push(`Differentiate ${beautify(signed)} using the ${label.toLowerCase()}.`);
+      steps.push(`Differentiate ${mark(beautify(signed))} using the ${label.toLowerCase()}.`);
     }
   }
 
   if (terms.length > 1) {
-    steps.push(`Add the term derivatives and simplify: f'(${variable}) = ${lnify(derivative)}`);
+    steps.push(`Add the term derivatives and simplify: ${mark(`f'(${variable}) = ${lnify(derivative)}`)}`);
   } else if (simplest === null) {
-    steps.push(`So f'(${variable}) = ${lnify(derivative)}`);
+    steps.push(`So ${mark(`f'(${variable}) = ${lnify(derivative)}`)}`);
   }
   // With one term, the term line IS the result; restating it in another form
   // reads as a step backward, so it is not repeated.
@@ -347,27 +348,27 @@ function classifyDerivativeRule(term, variable) {
     hasVariable(divParts[0], v) &&
     hasVariable(divParts.slice(1).join('/'), v)
   ) {
-    return { label: 'Quotient rule', hint: `d/d${v}(u/w) = (u′w − u·w′) / w²` };
+    return { label: 'Quotient rule', hint: mark(`d/d${v}(u/w) = (u′w − u·w′) / w²`) };
   }
 
   // Product: two variable-bearing factors multiplied (excludes constant · f).
   if (isProduct(inner, v)) {
-    return { label: 'Product rule', hint: `d/d${v}(u·w) = u′·w + u·w′` };
+    return { label: 'Product rule', hint: mark(`d/d${v}(u·w) = u′·w + u·w′`) };
   }
 
   // x^x, x^(sin x): the variable in both base and exponent — neither the
   // power rule nor the exponential rule applies on its own.
   const powParts = splitTopLevel(inner, '^');
   if (powParts.length === 2 && hasVariable(powParts[0], v) && hasVariable(powParts[1], v)) {
-    return { label: 'Logarithmic differentiation', hint: `write ${beautify(inner)} = e^(${beautify(powParts[1])}·ln(${beautify(powParts[0])})) and use the chain rule, or take ln of both sides and differentiate implicitly` };
+    return { label: 'Logarithmic differentiation', hint: `write ${mark(`${beautify(inner)} = e^(${beautify(powParts[1])}·ln(${beautify(powParts[0])}))`)} and use the chain rule, or take ${mark('ln')} of both sides and differentiate implicitly` };
   }
   // a^x: constant base, variable exponent.
   if (powParts.length === 2 && !hasVariable(powParts[0], v) && hasVariable(powParts[1], v) && !/^\(?e\)?$/.test(powParts[0].trim())) {
     const u = stripOuterParens(powParts[1]);
     if (/[+\-*/^]/.test(u)) {
-      return { label: 'Exponential rule with the chain rule', hint: `d/d${v}(a^u) = a^u·ln(a)·u′ with u = ${beautify(u)}` };
+      return { label: 'Exponential rule with the chain rule', hint: `${mark(`d/d${v}(a^u) = a^u·ln(a)·u′`)} with ${mark(`u = ${beautify(u)}`)}` };
     }
-    return { label: 'Exponential rule', hint: `d/d${v}(a^${v}) = a^${v}·ln(a) — the base is a constant, so this is not the power rule` };
+    return { label: 'Exponential rule', hint: `${mark(`d/d${v}(a^${v}) = a^${v}·ln(a)`)} — the base is a constant, so this is not the power rule` };
   }
   // c/x^n: a constant over a power of the variable — the power rule with a
   // negative exponent, not the linear rule.
@@ -378,34 +379,34 @@ function classifyDerivativeRule(term, variable) {
     if (pow) {
       const n = pow[1] || '1';
       const coef = divOnce[0].trim() === '1' ? '' : `${beautify(divOnce[0])}·`;
-      return { label: 'Power rule (negative exponent)', hint: `rewrite ${beautify(inner)} as ${coef}${v}^(−${n}), then d/d${v}(${v}^n) = n·${v}^(n−1)` };
+      return { label: 'Power rule (negative exponent)', hint: `rewrite ${mark(beautify(inner))} as ${mark(`${coef}${v}^(−${n})`)}, then ${mark(`d/d${v}(${v}^n) = n·${v}^(n−1)`)}` };
     }
     // c/u for a whole expression u: the reciprocal is u^(−1), chain rule.
     const c = divOnce[0].trim() === '1' ? '' : `${beautify(divOnce[0])}·`;
-    return { label: 'Chain rule (reciprocal)', hint: `${beautify(inner)} = ${c}(${beautify(den)})^(−1), so the derivative is −${c}u′/u² with u = ${beautify(den)}` };
+    return { label: 'Chain rule (reciprocal)', hint: `${mark(`${beautify(inner)} = ${c}(${beautify(den)})^(−1)`)}, so the derivative is ${mark(`−${c}u′/u²`)} with ${mark(`u = ${beautify(den)}`)}` };
   }
 
 
   // Chain: a function applied to a non-trivial inner expression, or (…)^n.
   if (isChain(inner, v)) {
-    return { label: 'Chain rule', hint: `d/d${v}[f(g(${v}))] = f′(g(${v}))·g′(${v})` };
+    return { label: 'Chain rule', hint: mark(`d/d${v}[f(g(${v}))] = f′(g(${v}))·g′(${v})`) };
   }
 
   // log(x) is the common logarithm: the parser wrote it as log(x)/log(10).
-  if (/\blog\(/i.test(inner) && /log\(10\)/.test(inner)) return { label: 'Logarithmic rule', hint: `log(${v}) is the base-10 logarithm, log(${v}) = ln(${v})/ln(10), so d/d${v}[log(${v})] = 1/(${v}·ln(10))` };
+  if (/\blog\(/i.test(inner) && /log\(10\)/.test(inner)) return { label: 'Logarithmic rule', hint: `${mark(`log(${v})`)} is the base-10 logarithm, ${mark(`log(${v}) = ln(${v})/ln(10)`)}, so ${mark(`d/d${v}[log(${v})] = 1/(${v}·ln(10))`)}` };
   // Single trig / exponential / logarithmic / root functions.
-  if (/\bsin\b/i.test(inner)) return { label: 'Trig rule', hint: `d/d${v}[sin(${v})] = cos(${v})` };
-  if (/\bcos\b/i.test(inner)) return { label: 'Trig rule', hint: `d/d${v}[cos(${v})] = -sin(${v})` };
-  if (/\btan\b/i.test(inner)) return { label: 'Trig rule', hint: `d/d${v}[tan(${v})] = sec²(${v})` };
-  if (/\b(?:exp)\b|e\^/i.test(inner)) return { label: 'Exponential rule', hint: `d/d${v}[e^${v}] = e^${v}` };
-  if (/\bln\b/i.test(inner)) return { label: 'Logarithmic rule', hint: `d/d${v}[ln(${v})] = 1/${v}` };
-  if (/\bsqrt\b|√/i.test(inner)) return { label: 'Power rule', hint: `rewrite √${v} as ${v}^(1/2), then use the power rule` };
+  if (/\bsin\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[sin(${v})] = cos(${v})`) };
+  if (/\bcos\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[cos(${v})] = -sin(${v})`) };
+  if (/\btan\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[tan(${v})] = sec²(${v})`) };
+  if (/\b(?:exp)\b|e\^/i.test(inner)) return { label: 'Exponential rule', hint: mark(`d/d${v}[e^${v}] = e^${v}`) };
+  if (/\bln\b/i.test(inner)) return { label: 'Logarithmic rule', hint: mark(`d/d${v}[ln(${v})] = 1/${v}`) };
+  if (/\bsqrt\b|√/i.test(inner)) return { label: 'Power rule', hint: `rewrite ${mark(`√${v}`)} as ${mark(`${v}^(1/2)`)}, then use the power rule` };
 
   // Power / constant-multiple of a power.
-  if (/\^/.test(inner)) return { label: 'Power rule', hint: `d/d${v}(${v}^n) = n·${v}^(n-1)` };
+  if (/\^/.test(inner)) return { label: 'Power rule', hint: mark(`d/d${v}(${v}^n) = n·${v}^(n-1)`) };
 
   // Linear term (a·x or x): power rule with n = 1.
-  return { label: 'Power rule', hint: `d/d${v}(${v}) = 1, so d/d${v}(a·${v}) = a` };
+  return { label: 'Power rule', hint: `${mark(`d/d${v}(${v}) = 1`)}, so ${mark(`d/d${v}(a·${v}) = a`)}` };
 }
 
 // Derivative of a single piece as clean text, or null.
@@ -483,9 +484,9 @@ function workedRuleSteps(term, variable, label, Algebrite) {
     if (!du || !dw) return [];
     const c = constFactors.length ? `${constFactors.map(b).join('·')}·` : '';
     return [
-      `Let ${U} = ${b(first)} and ${W} = ${b(rest)}${c ? ` (the constant factor ${constFactors.map(b).join('·')} carries through)` : ''}.`,
-      `Then ${U}′ = ${du} and ${W}′ = ${dw}.`,
-      `${U}′·${W} + ${U}·${W}′ = ${paren(du)}·${paren(rest)} + ${paren(first)}·${paren(dw)}${sign ? `, with the leading minus sign${c ? ' and constant' : ''} kept in front` : c ? `, times ${constFactors.map(b).join('·')}` : ''}.`,
+      `Let ${mark(`${U} = ${b(first)}`)} and ${mark(`${W} = ${b(rest)}`)}${c ? ` (the constant factor ${mark(constFactors.map(b).join('·'))} carries through)` : ''}.`,
+      `Then ${mark(`${U}′ = ${du}`)} and ${mark(`${W}′ = ${dw}`)}.`,
+      `${mark(`${U}′·${W} + ${U}·${W}′ = ${paren(du)}·${paren(rest)} + ${paren(first)}·${paren(dw)}`)}${sign ? `, with the leading minus sign${c ? ' and constant' : ''} kept in front` : c ? `, times ${mark(constFactors.map(b).join('·'))}` : ''}.`,
     ];
   }
 
@@ -504,11 +505,11 @@ function workedRuleSteps(term, variable, label, Algebrite) {
     if (!rhs) return [];
     const productForm = `${dv === '1' ? '' : `${paren(dv)}·`}ln(${bB}) + ${bE === v ? v : paren(expo)}·${du === '1' ? '' : `${paren(du)}`}${du === '1' ? '' : '/'}${du === '1' ? `1/${paren(base)}` : paren(base)}`;
     return [
-      `Let y = ${b(inner)}, with ${bB} > 0 so that ln(${bB}) is defined. The variable is in both the base and the exponent, so neither the power rule nor the exponential rule applies on its own.`,
-      `Take ln of both sides: ln(y) = ln(${paren(base)}^${parenExp(expo)}) = ${bE === v ? v : paren(expo)}·ln(${bB})  (the log rule ln(a^b) = b·ln(a) brings the exponent down).`,
-      `Differentiate both sides with respect to ${v}. The left side is implicit: d/d${v} ln(y) = y′/y. The right side is a product: d/d${v}[${bE === v ? v : paren(expo)}·ln(${bB})] = ${productForm} = ${rhs}.`,
-      `So y′/y = ${rhs}. Multiply both sides by y: y′ = y·(${rhs}).`,
-      `Substitute y = ${b(inner)} back: y′ = ${b(inner)}·(${rhs})${sign ? ', with the leading minus sign kept in front' : ''}.`,
+      `Let ${mark(`y = ${b(inner)}`)}, with ${mark(`${bB} > 0`)} so that ${mark(`ln(${bB})`)} is defined. The variable is in both the base and the exponent, so neither the power rule nor the exponential rule applies on its own.`,
+      `Take ${mark('ln')} of both sides: ${mark(`ln(y) = ln(${paren(base)}^${parenExp(expo)}) = ${bE === v ? v : paren(expo)}·ln(${bB})`)} (the log rule ${mark('ln(a^b) = b·ln(a)')} brings the exponent down).`,
+      `Differentiate both sides with respect to ${mark(v)}. The left side is implicit: ${mark(`d/d${v} ln(y) = y′/y`)}. The right side is a product: ${mark(`d/d${v}[${bE === v ? v : paren(expo)}·ln(${bB})] = ${productForm} = ${rhs}`)}.`,
+      `So ${mark(`y′/y = ${rhs}`)}. Multiply both sides by ${mark('y')}: ${mark(`y′ = y·(${rhs})`)}.`,
+      `Substitute ${mark(`y = ${b(inner)}`)} back: ${mark(`y′ = ${b(inner)}·(${rhs})`)}${sign ? ', with the leading minus sign kept in front' : ''}.`,
     ];
   }
 
@@ -521,9 +522,9 @@ function workedRuleSteps(term, variable, label, Algebrite) {
     const dw = derivText(den, v, Algebrite);
     if (!du || !dw) return [];
     return [
-      `Let ${U} = ${b(num)} (numerator) and ${W} = ${b(den)} (denominator).`,
-      `Then ${U}′ = ${du} and ${W}′ = ${dw}.`,
-      `(${U}′·${W} − ${U}·${W}′)/${W}² = (${paren(du)}·${paren(den)} − ${paren(num)}·${paren(dw)})/${paren(den)}².`,
+      `Let ${mark(`${U} = ${b(num)}`)} (numerator) and ${mark(`${W} = ${b(den)}`)} (denominator).`,
+      `Then ${mark(`${U}′ = ${du}`)} and ${mark(`${W}′ = ${dw}`)}.`,
+      `${mark(`(${U}′·${W} − ${U}·${W}′)/${W}² = (${paren(du)}·${paren(den)} − ${paren(num)}·${paren(dw)})/${paren(den)}²`)}.`,
     ];
   }
 
@@ -593,13 +594,13 @@ function workedRuleSteps(term, variable, label, Algebrite) {
       .replace(new RegExp(`\\b${U}\\b`, 'g'), gParen);
     const c = coef.replace(/[\s*]/g, '');
     const notes = [];
-    if (c) notes.push(`The constant factor ${c} carries through.`);
+    if (c) notes.push(`The constant factor ${mark(c)} carries through.`);
     if (sign) notes.push('The leading minus sign carries through.');
     const coefNote = notes.length ? ` ${notes.join(' ')}` : '';
     return [
-      `Let ${U} = ${gShown} (the inside), so the outer function is ${outerText}.`,
-      `Outer derivative: d/d${U}[${outerText.split(' = ')[0]}] = ${outerDerivText}. Inner derivative: ${U}′ = d/d${v}[${gShown}] = ${dg}.`,
-      `Chain rule: multiply them and put ${U} = ${gShown} back: ${back} · ${paren(dg)}.${coefNote}`,
+      `Let ${mark(`${U} = ${gShown}`)} (the inside), so the outer function is ${mark(outerText)}.`,
+      `Outer derivative: ${mark(`d/d${U}[${outerText.split(' = ')[0]}] = ${outerDerivText}`)}. Inner derivative: ${mark(`${U}′ = d/d${v}[${gShown}] = ${dg}`)}.`,
+      `Chain rule: multiply them and put ${mark(`${U} = ${gShown}`)} back: ${mark(`${back} · ${paren(dg)}`)}.${coefNote}`,
     ];
   }
 
@@ -756,14 +757,14 @@ function solveAbsLinear(expression, variable, options, Algebrite) {
   const lt = a > 0 ? '<' : '>';
 
   const steps = [
-    `Identify the function to differentiate: f(${v}) = ${kShown}|${innerShown}|`,
+    `Identify the function to differentiate: ${mark(`f(${v}) = ${kShown}|${innerShown}|`)}`,
     innerShown === v
-      ? `An absolute value is not a power, so the power rule does not apply. Rewrite it piecewise: |${v}| = ${v} when ${v} ≥ 0, and |${v}| = −${v} when ${v} < 0.`
-      : `An absolute value is not a power, so the power rule does not apply. Rewrite it piecewise: |${innerShown}| = ${innerShown} when ${innerShown} ≥ 0, that is ${v} ${geq} ${x0Text}; and |${innerShown}| = −(${innerShown}) when ${innerShown} < 0, that is ${v} ${lt} ${x0Text}.`,
-    `So f(${v}) = ${branchPos} for ${v} ${geq} ${x0Text}, and f(${v}) = ${branchNeg} for ${v} ${lt} ${x0Text}.`,
-    `Differentiate each branch (each is a line, so its derivative is its slope): for ${v} > ${x0Text}, f'(${v}) = ${fmt(right)}; for ${v} < ${x0Text}, f'(${v}) = ${fmt(left)}.`,
-    `At ${v} = ${x0Text} compare the one-sided derivatives: from the left the slope is ${fmt(left)}, from the right it is ${fmt(right)}. They differ, so f'(${x0Text}) does not exist — the graph has a corner there.`,
-    `Conclusion: f'(${v}) = ${fmt(left)} for ${v} < ${x0Text}, f'(${v}) = ${fmt(right)} for ${v} > ${x0Text}, and f'(${x0Text}) does not exist.`,
+      ? `An absolute value is not a power, so the power rule does not apply. Rewrite it piecewise: ${mark(`|${v}| = ${v}`)} when ${mark(`${v} ≥ 0`)}, and ${mark(`|${v}| = −${v}`)} when ${mark(`${v} < 0`)}.`
+      : `An absolute value is not a power, so the power rule does not apply. Rewrite it piecewise: ${mark(`|${innerShown}| = ${innerShown}`)} when ${mark(`${innerShown} ≥ 0`)}, that is ${mark(`${v} ${geq} ${x0Text}`)}; and ${mark(`|${innerShown}| = −(${innerShown})`)} when ${mark(`${innerShown} < 0`)}, that is ${mark(`${v} ${lt} ${x0Text}`)}.`,
+    `So ${mark(`f(${v}) = ${branchPos}`)} for ${mark(`${v} ${geq} ${x0Text}`)}, and ${mark(`f(${v}) = ${branchNeg}`)} for ${mark(`${v} ${lt} ${x0Text}`)}.`,
+    `Differentiate each branch (each is a line, so its derivative is its slope): for ${mark(`${v} > ${x0Text}`)}, ${mark(`f'(${v}) = ${fmt(right)}`)}; for ${mark(`${v} < ${x0Text}`)}, ${mark(`f'(${v}) = ${fmt(left)}`)}.`,
+    `At ${mark(`${v} = ${x0Text}`)} compare the one-sided derivatives: from the left the slope is ${mark(fmt(left))}, from the right it is ${mark(fmt(right))}. They differ, so ${mark(`f'(${x0Text})`)} does not exist — the graph has a corner there.`,
+    `Conclusion: ${mark(`f'(${v}) = ${fmt(left)}`)} for ${mark(`${v} < ${x0Text}`)}, ${mark(`f'(${v}) = ${fmt(right)}`)} for ${mark(`${v} > ${x0Text}`)}, and ${mark(`f'(${x0Text})`)} does not exist.`,
   ];
   let answer = `f'(${v}) = ${fmt(left)} for ${v} < ${x0Text}, ${fmt(right)} for ${v} > ${x0Text}; f'(${x0Text}) does not exist`;
 
@@ -774,12 +775,12 @@ function solveAbsLinear(expression, variable, options, Algebrite) {
       return parseError({ input: expression, hint: `The evaluation point ${v} = ${valueText} is not a number.` });
     }
     if (Math.abs(value - x0) < 1e-12) {
-      steps.push(`Evaluate at ${v} = ${valueText}: this is the corner. The one-sided derivatives are ${fmt(left)} (from the left) and ${fmt(right)} (from the right), so f'(${valueText}) does not exist.`);
+      steps.push(`Evaluate at ${mark(`${v} = ${valueText}`)}: this is the corner. The one-sided derivatives are ${mark(fmt(left))} (from the left) and ${mark(fmt(right))} (from the right), so ${mark(`f'(${valueText})`)} does not exist.`);
       answer = `f'(${valueText}) does not exist`;
     } else {
       const slope = value > x0 ? right : left;
-      steps.push(`Evaluate at ${v} = ${valueText}: ${valueText} ${value > x0 ? '>' : '<'} ${x0Text}, so f'(${valueText}) = ${fmt(slope)}.`);
-      steps.push(`That is the slope of the tangent line to f at ${v} = ${valueText}.`);
+      steps.push(`Evaluate at ${mark(`${v} = ${valueText}`)}: ${mark(`${valueText} ${value > x0 ? '>' : '<'} ${x0Text}`)}, so ${mark(`f'(${valueText}) = ${fmt(slope)}`)}.`);
+      steps.push(`That is the slope of the tangent line to f at ${mark(`${v} = ${valueText}`)}.`);
       answer = `f'(${valueText}) = ${fmt(slope)}`;
     }
   }
@@ -883,8 +884,8 @@ function derivativeDomain(original, derivative, variable, Algebrite) {
     const sym = dir > 0 ? (strict ? '>' : '≥') : (strict ? '<' : '≤');
     const rText = formatNumber(r);
     const reason = kind === 'log'
-      ? `ln(${beautify(arg)}) is defined only for ${beautify(arg)} > 0`
-      : `√(${beautify(arg)}) is defined only for ${beautify(arg)} ≥ 0${strict ? `, and f' has it in a denominator, so ${v} = ${rText} is excluded too` : ''}`;
+      ? `${mark(`ln(${beautify(arg)})`)} is defined only for ${mark(`${beautify(arg)} > 0`)}`
+      : `${mark(`√(${beautify(arg)})`)} is defined only for ${mark(`${beautify(arg)} ≥ 0`)}${strict ? `, and ${mark("f'")} has it in a denominator, so ${mark(`${v} = ${rText}`)} is excluded too` : ''}`;
     push(`${v} ${sym} ${rText}`, reason);
   }
 
@@ -897,7 +898,7 @@ function derivativeDomain(original, derivative, variable, Algebrite) {
         const poles = rootsRaw.replace(/^\[|\]$/g, '').split(',').map((t) => toNumber(t.trim())).filter(Number.isFinite);
         for (const p of [...new Set(poles.map((x) => Math.round(x * 1e9) / 1e9))]) {
           const excluded = restrictions.some(({ r, dir }) => (dir > 0 ? p <= r + 1e-12 : p >= r - 1e-12));
-          if (!excluded) push(`${v} ≠ ${formatNumber(p)}`, `the denominator of f' is 0 at ${v} = ${formatNumber(p)}`);
+          if (!excluded) push(`${v} ≠ ${formatNumber(p)}`, `the denominator of ${mark("f'")} is 0 at ${mark(`${v} = ${formatNumber(p)}`)}`);
         }
       }
     }
@@ -906,6 +907,6 @@ function derivativeDomain(original, derivative, variable, Algebrite) {
   if (conditions.length === 0) return null;
   return {
     text: conditions.join(', '),
-    step: `Domain of f'(${v}): ${conditions.join(' and ')} — ${reasons.join('; ')}.`,
+    step: `Domain of ${mark(`f'(${v})`)}: ${mark(conditions.join(' and '))} — ${reasons.join('; ')}.`,
   };
 }

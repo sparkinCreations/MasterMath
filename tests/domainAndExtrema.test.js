@@ -5,8 +5,11 @@ import { solveProblem } from '../src/lib/api.js';
 import { findUndefinedRegions, formatRestriction } from '../src/lib/solvers/solverUtils.js';
 import { describeGraphFeatures } from '../src/lib/graphDescription.js';
 import { STATUS } from '../src/lib/solutionEnvelope.js';
+import { stripMathMarkers } from '../src/lib/mathMarkers.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
-const stepsText = (r) => r.steps.join('\n');
+// The text a reader sees, without the ⟦…⟧ math markers.
+const stepsText = (r) => stripMathMarkers(r.steps.join('\n'));
 
 // ── The shared domain helper.
 
@@ -67,7 +70,7 @@ test('identities on restricted domains carry the restriction; unrestricted ones 
 // ── QA report (High): abs(x) minimum is a cusp, not f′ = 0.
 
 test('abs(x): the minimum at (0, 0) is reported as a corner/cusp, not from f′ = 0', async () => {
-  const r = await solveProblem('abs(x)', 'functions');
+  const r = await solvePlain('abs(x)', 'functions');
   const line = r.steps.find((s) => /minimum at \(0, 0\)/i.test(s));
   assert.ok(line, 'minimum must be reported');
   assert.match(line, /cusp|corner/i);
@@ -77,7 +80,7 @@ test('abs(x): the minimum at (0, 0) is reported as a corner/cusp, not from f′ 
 });
 
 test('smooth extrema still say f′ = 0', async () => {
-  const r = await solveProblem('x^3 - 3*x', 'functions');
+  const r = await solvePlain('x^3 - 3*x', 'functions');
   const lines = r.steps.filter((s) => /Local (maximum|minimum)/.test(s));
   assert.equal(lines.length, 2);
   for (const l of lines) assert.match(l, /\(from f′\(x\) = 0\)/);
@@ -86,7 +89,7 @@ test('smooth extrema still say f′ = 0', async () => {
 // ── QA report (Medium): sqrt(x-2) endpoint minimum.
 
 test('sqrt(x-2): absolute minimum at the domain endpoint (2, 0)', async () => {
-  const r = await solveProblem('sqrt(x-2)', 'functions');
+  const r = await solvePlain('sqrt(x-2)', 'functions');
   const line = r.steps.find((s) => /domain endpoint \(2, 0\)/.test(s));
   assert.ok(line, 'endpoint minimum must be reported');
   assert.match(line, /^Absolute minimum/);

@@ -8,6 +8,7 @@ import { solveIntegral } from '../src/lib/solvers/integralsSolver.js';
 import { solveFunctions } from '../src/lib/solvers/functionsSolver.js';
 import { solveLimit } from '../src/lib/solvers/limitsSolver.js';
 import { solveTrigonometry } from '../src/lib/solvers/trigonometrySolver.js';
+import { solveLimitPlain } from './helpers/solvePlain.js';
 
 function extractNumericAnswer(answer) {
   const match = String(answer).match(/=\s*(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)/i);
@@ -104,12 +105,12 @@ test('solveLimit returns Undefined when the expression itself sits on an asympto
 });
 
 test('solveLimit reports divergence at a vertical asymptote instead of a huge float', async () => {
-  const twoSided = await solveLimit('lim x->pi/2 tan(x)');
+  const twoSided = await solveLimitPlain('lim x->pi/2 tan(x)');
   assert.match(twoSided.answer, /Does not exist$/);
   assert.ok(twoSided.steps.some((step) => /diverges to ∞/.test(step)));
   assert.ok(twoSided.steps.some((step) => /diverges to -∞/.test(step)));
 
-  const infinite = await solveLimit('lim x->0 1/x^2');
+  const infinite = await solveLimitPlain('lim x->0 1/x^2');
   assert.match(infinite.answer, /=\s*∞$/);
 });
 

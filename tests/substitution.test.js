@@ -5,13 +5,14 @@ import { solveProblem } from '../src/lib/api.js';
 import { integrateAbsLinear, derivativeMatchesNumerically } from '../src/lib/solvers/substitutionSolver.js';
 import { isAlgebriteFailure, expressionsNumericallyEqual } from '../src/lib/solvers/solverUtils.js';
 import { STATUS } from '../src/lib/solutionEnvelope.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
 const antiderivativeOf = (r) => r.answer.split(' = ')[1].replace(/ \+ C$/, '');
 
 // ── QA report (High): x·cos(x²) was "non-elementary or beyond the engine".
 
 test('∫ x·cos(x²) dx = ½ sin(x²) + C, by u-substitution with a worked walkthrough', async () => {
-  const r = await solveProblem('x*cos(x^2)', 'integrals');
+  const r = await solvePlain('x*cos(x^2)', 'integrals');
   assert.equal(r.status, STATUS.SOLVED);
   assert.equal(antiderivativeOf(r), '1/2*sin(x^2)');
   const s = r.steps.join('\n');
@@ -46,7 +47,7 @@ test('every substitution result differentiates back to its integrand', async () 
 });
 
 test('products that are substitutions in disguise no longer go by parts via erf(ix)', async () => {
-  const r = await solveProblem('2*x*e^(x^2)', 'integrals');
+  const r = await solvePlain('2*x*e^(x^2)', 'integrals');
   assert.doesNotMatch(r.steps.join('\n'), /erf/);
   assert.match(r.steps.join('\n'), /Let u = x\^2/);
 });
@@ -65,7 +66,7 @@ test('genuinely non-elementary integrands are still refused, not mis-solved', as
 // ── QA report (High): ∫|x| dx.
 
 test('∫ |x| dx = x·|x|/2 + C, with the piecewise reasoning', async () => {
-  const r = await solveProblem('abs(x)', 'integrals');
+  const r = await solvePlain('abs(x)', 'integrals');
   assert.equal(r.status, STATUS.SOLVED);
   assert.equal(antiderivativeOf(r), '1/2*x*abs(x)');
   const s = r.steps.join('\n');

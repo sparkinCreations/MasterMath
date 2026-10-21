@@ -26,7 +26,7 @@ src/
   pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback, NotFound (the `*` route)
   components/solver/           ProblemInput (+ SymbolStrip: one-tap symbols from lib/symbolInsert.js, a live KaTeX preview, and the NotationGuide dialog), SolutionDisplay, GraphViewer, GraphEmptyState
   components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
-  components/MathText.jsx      KaTeX rendering of solver text (lib/latex.js segments prose from math, clause by clause)
+  components/MathText.jsx      KaTeX rendering of solver text (lib/latex.js typesets ⟦…⟧-marked math exactly; unmarked text by clause heuristics)
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
   hooks/                       usePageTitle, useServiceWorker
   lib/
@@ -127,6 +127,18 @@ improper).
 `trigUndefinedPoints` (facts read off the parse tree: use these for any
 "periodic" / "defined everywhere" / "undefined at" claim) — import them,
 never copy them. Never strip parentheses with `/^\((.*)\)$/`.
+
+**Mark the math in a step.** Wrap every formula in step text with
+`mark()` (from `solverUtils.js`): `` `Let ${mark(`u = ${g}`)} (the inside).` ``.
+The renderer typesets exactly the marked runs, so mark whole formulas and
+never a word (KaTeX sets words as italic letters). Markers belong to steps
+only: `finalizeResult` strips them from answers, tips and mistakes, the
+exporters strip them, and code that reads step text (guidance regexes)
+reads `stripMathMarkers(...)`. Tests about wording use
+`tests/helpers/solvePlain.js`; `tests/typesetting.test.js` fails on math
+left in a plain-text run of a converted solver, or a run KaTeX rejects.
+Not yet converted: systems, inequalities, trigonometry, trig equations,
+arithmetic.
 
 Algebrite: always through `loadAlgebrite()` (a throwing direct call poisons
 every later call; the worker's termination also clears it). mathjs: add a

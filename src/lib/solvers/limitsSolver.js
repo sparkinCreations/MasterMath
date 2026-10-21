@@ -15,6 +15,8 @@ import {
   isAlgebriteFailure,
   stripOuterParens,
   gcd,
+  mark,
+  stripMathMarkers,
 } from './solverUtils.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
@@ -25,7 +27,7 @@ import { detectTrigAsymptote, EXPLODED_MAGNITUDE } from './trigonometrySolver.js
 // limit. September 2026 review, batch 3.
 function limitGuidance(result) {
   const method = String(result.verificationMethod || '');
-  const text = (result.steps || []).join('\n');
+  const text = stripMathMarkers((result.steps || []).join('\n'));
   if (/^logarithms/.test(method)) {
     return {
       tips: [
@@ -229,9 +231,9 @@ export async function solveLimit(expression) {
     if (hit) {
       return {
         steps: [
-          `Evaluate lim (${variable}→${displayTarget}) ${beautify(func)}`,
-          `${hit.func}(${hit.argDisplay}) is undefined — ${hit.identity}, and ${hit.denom}(${hit.argDisplay}) = 0, so the graph has a vertical asymptote there.`,
-          `The expression inside the limit is undefined for every ${variable}, so the limit is undefined as well.`,
+          `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}`,
+          `${mark(`${hit.func}(${hit.argDisplay})`)} is undefined — ${hit.identity}, and ${mark(`${hit.denom}(${hit.argDisplay}) = 0`)}, so the graph has a vertical asymptote there.`,
+          `The expression inside the limit is undefined for every ${mark(variable)}, so the limit is undefined as well.`,
         ],
         answer: 'Undefined',
         tips: [
@@ -263,9 +265,9 @@ export async function solveLimit(expression) {
       if (sym) {
         return {
           steps: [
-            `Evaluate lim (${variable}→${displayTarget}) ${beautify(func)}`,
-            `The expression also contains ${otherSymbol}, which stays symbolic — so simplify first: ${beautify(func)} = ${beautify(sym.simplified)}`,
-            `Now substitute ${variable} = ${displayTarget}: ${beautify(sym.substituted)}`,
+            `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}`,
+            `The expression also contains ${mark(otherSymbol)}, which stays symbolic — so simplify first: ${mark(`${beautify(func)} = ${beautify(sym.simplified)}`)}`,
+            `Now substitute ${mark(`${variable} = ${displayTarget}`)}: ${mark(beautify(sym.substituted))}`,
           ],
           answer: `lim (${variable}→${displayTarget}) ${beautify(func)} = ${beautify(sym.substituted)}`,
           tips: ['When the expression has a parameter, simplify algebraically until the limit variable can be substituted directly.', 'This is exactly the difference-quotient limit that defines the derivative.'],
@@ -288,7 +290,7 @@ export async function solveLimit(expression) {
         : await evaluateFiniteLimit(func, variable, target);
 
     const steps = [
-      `Evaluate lim (${variable}→${displayTarget}) ${beautify(func)}`,
+      `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}`,
       ...result.steps,
     ];
 
@@ -370,7 +372,7 @@ async function evaluateFiniteLimit(func, variable, target) {
   const direct = evalAt(func, variable, target);
   if (Number.isFinite(direct) && Math.abs(direct) < EXPLODED_MAGNITUDE) {
     return {
-      steps: [`Substitute directly: at ${variable} = ${formatNumber(target)}, the function is defined and equals ${formatNumber(direct)}.`],
+      steps: [`Substitute directly: at ${mark(`${variable} = ${formatNumber(target)}`)}, the function is defined and equals ${mark(formatNumber(direct))}.`],
       answer: formatNumber(direct),
       verified: true,
       verificationMethod: 'direct substitution',
@@ -590,12 +592,12 @@ function tryStandardLimit(func, variable, target) {
     const shown = formatLimitAnswer(value, rationalText(value));
     const u = k === 1 ? v : `${formatNumber(k)}${v}`;
     const steps = [
-      `Direct substitution gives 0/0. This is the standard limit ${fn}(u)/u → 1 as u → 0.`,
+      `Direct substitution gives ${mark('0/0')}. This is the standard limit ${mark(`${fn}(u)/u → 1`)} as ${mark('u → 0')}.`,
     ];
     if (k !== 1 || m !== 1) {
-      steps.push(`Rewrite so the argument matches the denominator: ${fn}(${u})/${beautify(den)} = (${rationalText(value) ?? formatNumber(value)}) · ${fn}(${u})/(${u}). With u = ${u}, u → 0 as ${v} → 0.`);
+      steps.push(`Rewrite so the argument matches the denominator: ${mark(`${fn}(${u})/${beautify(den)} = (${rationalText(value) ?? formatNumber(value)}) · ${fn}(${u})/(${u})`)}. With ${mark(`u = ${u}`)}, ${mark('u → 0')} as ${mark(`${v} → 0`)}.`);
     }
-    steps.push(`${fn}(${u})/(${u}) → 1, so the limit is ${shown}.`);
+    steps.push(`${mark(`${fn}(${u})/(${u}) → 1`)}, so the limit is ${mark(shown)}.`);
     return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'standard limit + numeric check' };
   }
 
@@ -612,19 +614,19 @@ function tryStandardLimit(func, variable, target) {
       const shown = formatLimitAnswer(value, rationalText(value));
       const u = k === 1 ? v : `${formatNumber(k)}${v}`;
       const steps = [
-        'Direct substitution gives 0/0. This is the standard limit (1 − cos u)/u² → 1/2 as u → 0 — which comes from the sine limit:',
-        `Use the half-angle identity 1 − cos(u) = 2sin²(u/2). Then (1 − cos(u))/u² = 2sin²(u/2)/u² = (1/2)·[sin(u/2)/(u/2)]².`,
-        'As u → 0, u/2 → 0 too, so sin(u/2)/(u/2) → 1 (the standard limit sin(w)/w → 1), and the bracket squared → 1. Hence (1 − cos u)/u² → 1/2.',
+        `Direct substitution gives ${mark('0/0')}. This is the standard limit ${mark('(1 − cos u)/u² → 1/2')} as ${mark('u → 0')} — which comes from the sine limit:`,
+        `Use the half-angle identity ${mark('1 − cos(u) = 2sin²(u/2)')}. Then ${mark('(1 − cos(u))/u² = 2sin²(u/2)/u² = (1/2)·[sin(u/2)/(u/2)]²')}.`,
+        `As ${mark('u → 0')}, ${mark('u/2 → 0')} too, so ${mark('sin(u/2)/(u/2) → 1')} (the standard limit ${mark('sin(w)/w → 1')}), and the bracket squared ${mark('→ 1')}. Hence ${mark('(1 − cos u)/u² → 1/2')}.`,
       ];
-      if (k !== 1 || m !== 1) steps.push(`With u = ${u}: (1 − cos(${u}))/${beautify(den)} = (${rationalText((k * k) / m) ?? formatNumber((k * k) / m)}) · (1 − cos(${u}))/(${u})².`);
-      steps.push(`(1 − cos(${u}))/(${u})² → 1/2, so the limit is ${shown}.`);
+      if (k !== 1 || m !== 1) steps.push(`With ${mark(`u = ${u}`)}: ${mark(`(1 − cos(${u}))/${beautify(den)} = (${rationalText((k * k) / m) ?? formatNumber((k * k) / m)}) · (1 − cos(${u}))/(${u})²`)}.`);
+      steps.push(`${mark(`(1 − cos(${u}))/(${u})² → 1/2`)}, so the limit is ${mark(shown)}.`);
       return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'standard limit + numeric check' };
     }
     if (linear !== null && linear !== 0) {
       const u = k === 1 ? v : `${formatNumber(k)}${v}`;
       const steps = [
-        'Direct substitution gives 0/0. This is the standard limit (1 − cos u)/u → 0 as u → 0.',
-        `With u = ${u}, (1 − cos(${u}))/${beautify(den)} is a constant multiple of (1 − cos(${u}))/(${u}), which → 0. So the limit is 0.`,
+        `Direct substitution gives ${mark('0/0')}. This is the standard limit ${mark('(1 − cos u)/u → 0')} as ${mark('u → 0')}.`,
+        `With ${mark(`u = ${u}`)}, ${mark(`(1 − cos(${u}))/${beautify(den)}`)} is a constant multiple of ${mark(`(1 − cos(${u}))/(${u})`)}, which ${mark('→ 0')}. So the limit is ${mark('0')}.`,
       ];
       return { steps, answer: '0', verified: verifyLimitNumerically(func, v, target, 0), verificationMethod: 'standard limit + numeric check' };
     }
@@ -643,9 +645,9 @@ function trySqueezeAtZero(func, variable, target) {
   const nText = (m[1] && /^\d+$/.test(m[1])) ? m[1] : (m[2] && /^\d+$/.test(m[2]) ? m[2] : '1');
   const power = nText === '1' ? v : `${v}^${nText}`;
   const steps = [
-    `${fn}(1/${v}) oscillates faster and faster as ${v} → 0 and has no limit of its own — but it is bounded: −1 ≤ ${fn}(1/${v}) ≤ 1.`,
-    `Multiply through by |${power}|: −|${power}| ≤ ${power}·${fn}(1/${v}) ≤ |${power}|.`,
-    `Both bounds → 0 as ${v} → 0, so by the squeeze theorem the limit is 0.`,
+    `${mark(`${fn}(1/${v})`)} oscillates faster and faster as ${mark(`${v} → 0`)} and has no limit of its own — but it is bounded: ${mark(`−1 ≤ ${fn}(1/${v}) ≤ 1`)}.`,
+    `Multiply through by ${mark(`|${power}|`)}: ${mark(`−|${power}| ≤ ${power}·${fn}(1/${v}) ≤ |${power}|`)}.`,
+    `Both bounds ${mark('→ 0')} as ${mark(`${v} → 0`)}, so by the squeeze theorem the limit is ${mark('0')}.`,
   ];
   return { steps, answer: '0', verified: verifyLimitNumerically(func, v, target, 0), verificationMethod: 'squeeze theorem + numeric check' };
 }
@@ -675,10 +677,10 @@ function tryConjugate(Algebrite, func, variable, target) {
     const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `(${simplified})`, v, target));
     const where = radicalIsNumerator ? 'numerator' : 'denominator';
     const steps = [
-      `Direct substitution gives 0/0. The ${where} is a difference involving a square root, so multiply top and bottom by its conjugate, ${beautify(conjugate)}.`,
-      `(a − b)(a + b) = a² − b², so the ${where} becomes ${beautify(product)} — the square root is gone.`,
-      `Cancel the common factor: the expression simplifies to ${beautify(simplified)}.`,
-      `Substitute ${v} = ${formatNumber(target)}: the limit is ${shown}.`,
+      `Direct substitution gives ${mark('0/0')}. The ${where} is a difference involving a square root, so multiply top and bottom by its conjugate, ${mark(beautify(conjugate))}.`,
+      `${mark('(a − b)(a + b) = a² − b²')}, so the ${where} becomes ${mark(beautify(product))} — the square root is gone.`,
+      `Cancel the common factor: the expression simplifies to ${mark(beautify(simplified))}.`,
+      `Substitute ${mark(`${v} = ${formatNumber(target)}`)}: the limit is ${mark(shown)}.`,
     ];
     return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'conjugate + numeric check' };
   };
@@ -711,11 +713,11 @@ function tryFactorAndCancel(Algebrite, func, variable, target) {
   const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `(${cancelled})`, v, target));
   const factorShown = target < 0 ? `${v} + ${rationalText(-target)}` : `${v} − ${root}`;
   const steps = [
-    'Direct substitution gives 0/0, so factor the numerator and the denominator.',
-    `Numerator: ${beautify(factoredNum)}.  Denominator: ${beautify(factoredDen)}.`,
-    `Both contain the factor (${factorShown}), which is what makes the 0/0. Cancel it: ${beautify(cancelled)}.`,
-    `Cancelling is allowed only for ${v} ≠ ${formatNumber(target)}: at ${v} = ${formatNumber(target)} the factor is 0, and 0/0 has no value. That is fine here, because a limit asks what the function approaches for ${v} NEAR ${formatNumber(target)}, never at it — and away from ${formatNumber(target)} the original and ${beautify(cancelled)} are the same function.`,
-    `Now substitute ${v} = ${formatNumber(target)} into the simplified form: the limit is ${shown}. On a graph the original is the curve ${beautify(cancelled)} with a single hole at (${formatNumber(target)}, ${shown}) — a removable discontinuity.`,
+    `Direct substitution gives ${mark('0/0')}, so factor the numerator and the denominator.`,
+    `Numerator: ${mark(beautify(factoredNum))}.  Denominator: ${mark(beautify(factoredDen))}.`,
+    `Both contain the factor ${mark(`(${factorShown})`)}, which is what makes the ${mark('0/0')}. Cancel it: ${mark(beautify(cancelled))}.`,
+    `Cancelling is allowed only for ${mark(`${v} ≠ ${formatNumber(target)}`)}: at ${mark(`${v} = ${formatNumber(target)}`)} the factor is ${mark('0')}, and ${mark('0/0')} has no value. That is fine here, because a limit asks what the function approaches for ${mark(v)} NEAR ${mark(formatNumber(target))}, never at it — and away from ${mark(formatNumber(target))} the original and ${mark(beautify(cancelled))} are the same function.`,
+    `Now substitute ${mark(`${v} = ${formatNumber(target)}`)} into the simplified form: the limit is ${mark(shown)}. On a graph the original is the curve ${mark(beautify(cancelled))} with a single hole at ${mark(`(${formatNumber(target)}, ${shown})`)} — a removable discontinuity.`,
   ];
   return { steps, answer: shown, verified: verifyLimitNumerically(func, v, target, value), verificationMethod: 'factor and cancel + numeric check' };
 }
@@ -757,7 +759,7 @@ function tryLeadingTerms(Algebrite, func, variable, target) {
   if (dn < dd) {
     const steps = [
       `For a limit at ${toward}, only the highest powers matter. The numerator has degree ${dn} and the denominator degree ${dd}.`,
-      `Divide numerator and denominator by ${pow(dd)}: every numerator term becomes a multiple of 1/${v}^k and → 0, while the denominator → ${beautify(cd)}.`,
+      `Divide numerator and denominator by ${mark(pow(dd))}: every numerator term becomes a multiple of ${mark(`1/${v}^k`)} and ${mark('→ 0')}, while the denominator ${mark(`→ ${beautify(cd)}`)}.`,
       'So the limit is 0 — the denominator grows faster.',
     ];
     return { steps, answer: '0', verified: verifyInfiniteLimit(func, v, target, 0), verificationMethod: method };
@@ -770,8 +772,8 @@ function tryLeadingTerms(Algebrite, func, variable, target) {
     const shown = exact && !Number.isInteger(value) ? `${exact} (≈ ${formatNumber(value)})` : formatNumber(value);
     const steps = [
       `For a limit at ${toward}, only the highest powers matter. Numerator and denominator both have degree ${dn}.`,
-      `Divide numerator and denominator by ${pow(dn)}: every lower term becomes a multiple of 1/${v}^k and → 0, leaving the leading coefficients ${beautify(cn)}/${beautify(cd)}.`,
-      `So the limit is ${shown}.`,
+      `Divide numerator and denominator by ${mark(pow(dn))}: every lower term becomes a multiple of ${mark(`1/${v}^k`)} and ${mark('→ 0')}, leaving the leading coefficients ${mark(`${beautify(cn)}/${beautify(cd)}`)}.`,
+      `So the limit is ${mark(shown)}.`,
     ];
     return { steps, answer: shown, verified: verifyInfiniteLimit(func, v, target, value), verificationMethod: method };
   }
@@ -780,8 +782,8 @@ function tryLeadingTerms(Algebrite, func, variable, target) {
   const answer = ratioSign * parity > 0 ? '∞' : '-∞';
   const steps = [
     `For a limit at ${toward}, only the highest powers matter. The numerator has degree ${dn}, the denominator degree ${dd}.`,
-    `Divide numerator and denominator by ${pow(dd)}: the quotient behaves like (${beautify(cn)}/${beautify(cd)})·${pow(dn - dd)}, which grows without bound.`,
-    `As ${v} → ${toward}, that goes to ${answer}, so the limit is ${answer}.`,
+    `Divide numerator and denominator by ${mark(pow(dd))}: the quotient behaves like ${mark(`(${beautify(cn)}/${beautify(cd)})·${pow(dn - dd)}`)}, which grows without bound.`,
+    `As ${mark(`${v} → ${toward}`)}, that goes to ${mark(answer)}, so the limit is ${mark(answer)}.`,
   ];
   return { steps, answer, verified: verifyInfiniteLimit(func, v, target, answer), verificationMethod: method };
 }
@@ -799,9 +801,9 @@ function trySqueezeAtInfinity(func, variable, target) {
   if (!new RegExp(`^\\(?\\d*\\*?${v}(?:\\^\\d+)?\\)?$`).test(den)) return null;
   const toward = target === Infinity ? '∞' : '−∞';
   const steps = [
-    `${fn}(${beautify(call.arg)}) never settles, but it is bounded: −1 ≤ ${fn}(${beautify(call.arg)}) ≤ 1.`,
-    `Divide through by ${beautify(den)}: −1/${beautify(den)} ≤ ${beautify(func)} ≤ 1/${beautify(den)}.`,
-    `Both bounds → 0 as ${v} → ${toward}, so by the squeeze theorem the limit is 0.`,
+    `${mark(`${fn}(${beautify(call.arg)})`)} never settles, but it is bounded: ${mark(`−1 ≤ ${fn}(${beautify(call.arg)}) ≤ 1`)}.`,
+    `Divide through by ${mark(beautify(den))}: ${mark(`−1/${beautify(den)} ≤ ${beautify(func)} ≤ 1/${beautify(den)}`)}.`,
+    `Both bounds ${mark('→ 0')} as ${mark(`${v} → ${toward}`)}, so by the squeeze theorem the limit is ${mark('0')}.`,
   ];
   return { steps, answer: '0', verified: verifyInfiniteLimit(func, v, target, 0), verificationMethod: 'squeeze theorem + numeric check' };
 }
@@ -846,7 +848,7 @@ function tryOneToInfinity(Algebrite, func, variable, target) {
 
   // c = lim E·u, exactly.
   const grouped = (t) => (/^[a-z0-9^]+$/i.test(noSpaces(t)) ? beautify(t) : `(${beautify(t)})`);
-  const cSteps = [`E·u = ${grouped(exponent)}·${grouped(u)} = ${beautify(product)}${hasVariable(product, v) ? '' : ', a constant'}.`];
+  const cSteps = [`${mark(`E·u = ${grouped(exponent)}·${grouped(u)} = ${beautify(product)}`)}${hasVariable(product, v) ? '' : ', a constant'}.`];
   let c = null;
   if (!hasVariable(product, v)) {
     c = algebriteNumber(Algebrite, product, v);
@@ -862,8 +864,8 @@ function tryOneToInfinity(Algebrite, func, variable, target) {
     c = ratio === null ? null : algebriteNumber(Algebrite, ratio, v);
     const toward = target === Infinity ? '∞' : '−∞';
     cSteps.push(dn < dd
-      ? `As a single fraction its denominator has the higher degree, so as ${v} → ${toward} it → 0.`
-      : `As a single fraction, ${beautify(num)} over ${beautify(den)}, numerator and denominator both have degree ${dn}; only the leading coefficients survive as ${v} → ${toward}, so it → ${beautify(ratio)}.`);
+      ? `As a single fraction its denominator has the higher degree, so as ${mark(`${v} → ${toward}`)} it ${mark('→ 0')}.`
+      : `As a single fraction, ${mark(beautify(num))} over ${mark(beautify(den))}, numerator and denominator both have degree ${dn}; only the leading coefficients survive as ${mark(`${v} → ${toward}`)}, so it ${mark(`→ ${beautify(ratio)}`)}.`);
   }
   if (c === null || !Number.isFinite(c)) return null;
 
@@ -875,11 +877,11 @@ function tryOneToInfinity(Algebrite, func, variable, target) {
   const towardShown = Number.isFinite(target) ? '0' : target === Infinity ? '∞' : '−∞';
   const exponentGoes = Number.isFinite(target) ? '±∞ (the sign depends on the side)' : evalAt(exponent, v, near[0]) > 0 ? '∞' : '−∞';
   const steps = [
-    `As ${v} → ${towardShown} the base ${beautify(base)} → 1 while the exponent ${beautify(exponent)} → ${exponentGoes}: the indeterminate form 1^∞. A power with a moving exponent is handled by taking logarithms.`,
-    `Let L be the limit, and write the power as B^E with B = ${beautify(base)} and E = ${beautify(exponent)}. Then ln L is the limit of ln(B^E) = E·ln(B).`,
-    `Write the base as 1 + u, with u = B − 1 = ${beautify(u)}; u → 0 as ${v} → ${towardShown}. Then E·ln(1 + u) = (E·u)·[ln(1 + u)/u], and the standard limit ln(1 + u)/u → 1 as u → 0 leaves ln L equal to the limit of E·u.`,
+    `As ${mark(`${v} → ${towardShown}`)} the base ${mark(`${beautify(base)} → 1`)} while the exponent ${mark(`${beautify(exponent)} → ${exponentGoes}`)}: the indeterminate form ${mark('1^∞')}. A power with a moving exponent is handled by taking logarithms.`,
+    `Let ${mark('L')} be the limit, and write the power as ${mark('B^E')} with ${mark(`B = ${beautify(base)}`)} and ${mark(`E = ${beautify(exponent)}`)}. Then ${mark('ln L')} is the limit of ${mark('ln(B^E) = E·ln(B)')}.`,
+    `Write the base as ${mark('1 + u')}, with ${mark(`u = B − 1 = ${beautify(u)}`)}; ${mark('u → 0')} as ${mark(`${v} → ${towardShown}`)}. Then ${mark('E·ln(1 + u) = (E·u)·[ln(1 + u)/u]')}, and the standard limit ${mark('ln(1 + u)/u → 1')} as ${mark('u → 0')} leaves ${mark('ln L')} equal to the limit of ${mark('E·u')}.`,
     ...cSteps,
-    `So ln L = ${exactC}, and L = e^${/^\d+$/.test(exactC) ? exactC : `(${exactC})`}${power.startsWith('e^') ? '' : ` = ${power}`}. The limit is ${shown}.`,
+    `So ${mark(`ln L = ${exactC}`)}, and ${mark(`L = e^${/^\d+$/.test(exactC) ? exactC : `(${exactC})`}${power.startsWith('e^') ? '' : ` = ${power}`}`)}. The limit is ${mark(shown)}.`,
   ];
   const verified = Number.isFinite(target)
     ? verifyLimitNumerically(func, v, target, value)
@@ -924,8 +926,8 @@ function tryAlgebriteSimplify(Algebrite, func, variable, target) {
     return {
       steps: [
         `Direct substitution gives an indeterminate form, so simplify first.`,
-        `Simplify the expression: ${beautify(simplified)}.`,
-        `Now substitute ${variable} = ${formatNumber(target)}: the limit is ${shown}.`,
+        `Simplify the expression: ${mark(beautify(simplified))}.`,
+        `Now substitute ${mark(`${variable} = ${formatNumber(target)}`)}: the limit is ${mark(shown)}.`,
       ],
       answer: shown,
       verified: verifyLimitNumerically(func, variable, target, value),
@@ -972,9 +974,9 @@ function trySeriesLimit(Algebrite, func, variable, target) {
 
     return {
       steps: [
-        `Direct substitution gives 0/0, so expand the numerator and denominator as Taylor series about ${variable} = ${formatNumber(target)}.`,
-        `Numerator ≈ ${beautify(numExp)}; denominator ≈ ${beautify(denExp)}.`,
-        `Divide the series and cancel the common factor; the limit is ${shown}.`,
+        `Direct substitution gives ${mark('0/0')}, so expand the numerator and denominator as Taylor series about ${mark(`${variable} = ${formatNumber(target)}`)}.`,
+        `Numerator ${mark(`≈ ${beautify(numExp)}`)}; denominator ${mark(`≈ ${beautify(denExp)}`)}.`,
+        `Divide the series and cancel the common factor; the limit is ${mark(shown)}.`,
       ],
       answer: shown,
       verified: verifyLimitNumerically(func, variable, target, value),
@@ -990,9 +992,9 @@ function trySeriesLimit(Algebrite, func, variable, target) {
 
   return {
     steps: [
-      `Expand as a Taylor series about ${variable} = ${formatNumber(target)}.`,
-      `Series: ${beautify(expanded)}.`,
-      `Evaluating the leading behaviour gives ${shown}.`,
+      `Expand as a Taylor series about ${mark(`${variable} = ${formatNumber(target)}`)}.`,
+      `Series: ${mark(beautify(expanded))}.`,
+      `Evaluating the leading behaviour gives ${mark(shown)}.`,
     ],
     answer: shown,
     verified: verifyLimitNumerically(func, variable, target, value),
@@ -1023,7 +1025,7 @@ function tryLHopital(Algebrite, func, variable, target) {
       if (dAtTarget === 0) return null; // n/0 with n≠0: not a finite limit here
       const value = nAtTarget / dAtTarget;
       const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `(${num})/(${den})`, variable, target));
-      steps.push(`After ${i} differentiation${i === 1 ? '' : 's'}, substitution gives ${shown}.`);
+      steps.push(`After ${i} differentiation${i === 1 ? '' : 's'}, substitution gives ${mark(shown)}.`);
       return {
         steps,
         answer: shown,
@@ -1037,7 +1039,7 @@ function tryLHopital(Algebrite, func, variable, target) {
     } catch {
       return null;
     }
-    steps.push(`Differentiate: numerator → ${beautify(num)}, denominator → ${beautify(den)}.`);
+    steps.push(`Differentiate: numerator ${mark(`→ ${beautify(num)}`)}, denominator ${mark(`→ ${beautify(den)}`)}.`);
   }
 
   return null; // Did not resolve within the iteration cap.
@@ -1096,14 +1098,14 @@ function estimateFiniteLimitNumeric(func, variable, target) {
   // A huge magnitude means the point sits on a vertical asymptote and the
   // float value is rounding noise, not a real function value.
   if (Number.isFinite(direct) && Math.abs(direct) < EXPLODED_MAGNITUDE) {
-    steps.push(`Substitute directly: at ${variable} = ${formatNumber(target)}, the function is defined and equals ${formatNumber(direct)}.`);
+    steps.push(`Substitute directly: at ${mark(`${variable} = ${formatNumber(target)}`)}, the function is defined and equals ${mark(formatNumber(direct))}.`);
     return { steps, answer: formatNumber(direct) };
   }
 
   if (Number.isNaN(direct)) {
-    steps.push(`Direct substitution at ${variable} = ${formatNumber(target)} is undefined (an indeterminate form), so approach from both sides.`);
+    steps.push(`Direct substitution at ${mark(`${variable} = ${formatNumber(target)}`)} is undefined (an indeterminate form), so approach from both sides.`);
   } else {
-    steps.push(`Direct substitution at ${variable} = ${formatNumber(target)} blows up instead of settling on a value, so approach from both sides.`);
+    steps.push(`Direct substitution at ${mark(`${variable} = ${formatNumber(target)}`)} blows up instead of settling on a value, so approach from both sides.`);
   }
 
   // Oscillation: if a side never settles — the values keep swinging across a
@@ -1111,20 +1113,20 @@ function estimateFiniteLimitNumeric(func, variable, target) {
   // the function oscillates*, which is a different reason than two one-sided
   // values disagreeing. Say so specifically (sin(1/x) is the classic case).
   if (sideOscillates(func, variable, target, 1) || sideOscillates(func, variable, target, -1)) {
-    steps.push(`Sampling ever closer to ${variable} = ${formatNumber(target)}, the values keep swinging between roughly the same high and low values instead of settling toward any number.`);
+    steps.push(`Sampling ever closer to ${mark(`${variable} = ${formatNumber(target)}`)}, the values keep swinging between roughly the same high and low values instead of settling toward any number.`);
     steps.push('The function oscillates infinitely often near this point, so the limit does not exist.');
     return { steps, answer: 'Does not exist' };
   }
 
   const left = sampleSide(func, variable, target, -1);
   const right = sampleSide(func, variable, target, 1);
-  steps.push(`From the left (${variable} → ${formatNumber(target)}⁻): ${describeSide(left)}`);
-  steps.push(`From the right (${variable} → ${formatNumber(target)}⁺): ${describeSide(right)}`);
+  steps.push(`From the left (${mark(`${variable} → ${formatNumber(target)}⁻`)}): ${sideText(left)}`);
+  steps.push(`From the right (${mark(`${variable} → ${formatNumber(target)}⁺`)}): ${sideText(right)}`);
 
   if (left.diverges && right.diverges) {
     if (left.sign === right.sign) {
       const answer = left.sign > 0 ? '∞' : '-∞';
-      steps.push(`Both sides grow without bound in the same direction, so the limit diverges to ${answer}.`);
+      steps.push(`Both sides grow without bound in the same direction, so the limit diverges to ${mark(answer)}.`);
       return { steps, answer };
     }
     steps.push('The two sides run off to opposite infinities (a vertical asymptote), so the limit does not exist.');
@@ -1134,7 +1136,7 @@ function estimateFiniteLimitNumeric(func, variable, target) {
   const bothConverge = left.value !== undefined && right.value !== undefined;
   if (bothConverge && Math.abs(left.value - right.value) < 1e-4) {
     const value = formatLimitConstant((left.value + right.value) / 2);
-    steps.push(`Both sides approach ${value}, so the limit exists.`);
+    steps.push(`Both sides approach ${mark(value)}, so the limit exists.`);
     return { steps, answer: value };
   }
 
@@ -1190,6 +1192,13 @@ function describeSide(side) {
   return formatNumber(side.value);
 }
 
+// describeSide for a step: the value or the infinity typeset, the words not.
+function sideText(side) {
+  if (side.diverges) return `diverges to ${mark(side.sign > 0 ? '∞' : '-∞')}`;
+  if (side.outOfDomain) return 'not defined on this side';
+  return mark(formatNumber(side.value));
+}
+
 // Evaluate a one-sided limit (side: 1 = from the right, -1 = from the left)
 // by sampling a log-spaced ladder of offsets shrinking toward the point.
 // Numeric by nature — like estimateFiniteLimitNumeric, it does not fabricate
@@ -1198,9 +1207,9 @@ function describeSide(side) {
 // as the exact value and marked verified by direct substitution.
 function evaluateOneSidedLimit(func, variable, target, side) {
   const dirWord = side > 0 ? 'right' : 'left';
-  const mark = side > 0 ? '⁺' : '⁻';
+  const sideMark = side > 0 ? '⁺' : '⁻';
   const steps = [
-    `This is a one-sided limit: only the ${dirWord}-hand behaviour (${variable} → ${formatNumber(target)}${mark}) matters.`,
+    `This is a one-sided limit: only the ${dirWord}-hand behaviour (${mark(`${variable} → ${formatNumber(target)}${sideMark}`)}) matters.`,
   ];
 
   const offsets = [1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9];
@@ -1214,10 +1223,10 @@ function evaluateOneSidedLimit(func, variable, target, side) {
     const infinities = samples.filter((y) => !Number.isFinite(y));
     if (infinities.length >= 2) {
       const answer = infinities[infinities.length - 1] > 0 ? '∞' : '-∞';
-      steps.push(`Approaching from the ${dirWord}, the values grow without bound — the limit is ${answer}.`);
+      steps.push(`Approaching from the ${dirWord}, the values grow without bound — the limit is ${mark(answer)}.`);
       return { steps, answer };
     }
-    steps.push(`The function is not defined on the ${dirWord} side of ${variable} = ${formatNumber(target)}, so this one-sided limit does not exist.`);
+    steps.push(`The function is not defined on the ${dirWord} side of ${mark(`${variable} = ${formatNumber(target)}`)}, so this one-sided limit does not exist.`);
     return { steps, answer: 'Does not exist' };
   }
 
@@ -1225,12 +1234,12 @@ function evaluateOneSidedLimit(func, variable, target, side) {
   const last = values[values.length - 1];
   const preview = [values[0], values[Math.floor(values.length / 2)], last]
     .map((v) => formatNumber(v));
-  steps.push(`Sample ever closer on the ${dirWord} side: the values run ${preview.join(' → ')}.`);
+  steps.push(`Sample ever closer on the ${dirWord} side: the values run ${mark(preview.join(' → '))}.`);
 
   // Explosive growth: magnitudes climbing steadily to something huge.
   if (Math.abs(last) > 1e4 && Math.abs(last) > 5 * Math.abs(first)) {
     const answer = last > 0 ? '∞' : '-∞';
-    steps.push(`The values grow without bound, so the one-sided limit is ${answer}.`);
+    steps.push(`The values grow without bound, so the one-sided limit is ${mark(answer)}.`);
     return { steps, answer };
   }
 
@@ -1246,10 +1255,10 @@ function evaluateOneSidedLimit(func, variable, target, side) {
       Math.abs(direct) < EXPLODED_MAGNITUDE &&
       Math.abs(direct - last) < 1e-3 * (1 + Math.abs(direct))
     ) {
-      steps.push(`The values settle onto the function's own value there: f(${formatNumber(target)}) = ${formatNumber(direct)}.`);
+      steps.push(`The values settle onto the function's own value there: ${mark(`f(${formatNumber(target)}) = ${formatNumber(direct)}`)}.`);
       return { steps, answer: formatNumber(direct), verified: true, verificationMethod: 'direct substitution' };
     }
-    steps.push(`The values settle toward ${formatLimitConstant(last)}, so that is the one-sided limit.`);
+    steps.push(`The values settle toward ${mark(formatLimitConstant(last))}, so that is the one-sided limit.`);
     return { steps, answer: formatLimitConstant(last) };
   }
 
@@ -1259,7 +1268,7 @@ function evaluateOneSidedLimit(func, variable, target, side) {
   const sameSign = deltas.every((d) => d !== 0 && Math.sign(d) === Math.sign(deltas[0]));
   if (sameSign && lastDelta >= 0.5 * Math.abs(deltas[0])) {
     const answer = deltas[0] > 0 ? '∞' : '-∞';
-    steps.push(`The values keep marching in the same direction without settling — a slow divergence to ${answer}.`);
+    steps.push(`The values keep marching in the same direction without settling — a slow divergence to ${mark(answer)}.`);
     return { steps, answer };
   }
 
@@ -1312,13 +1321,13 @@ function estimateInfiniteLimit(func, variable, target) {
     return v !== 0 && /^-?0(?:\.0+)?$/.test(text) ? v.toExponential(2) : text;
   });
   const underflowed = samples.some((v, i) => v === 0 && i > 0 && samples[i - 1] !== 0 && Math.abs(samples[i - 1]) < 1e-30);
-  steps.push(`Samples: ${shown.join(', ')}${underflowed ? ' (a value smaller than about 1e-308 cannot be represented in double precision and is computed as exactly 0)' : ''}`);
+  steps.push(`Samples: ${mark(shown.join(', '))}${underflowed ? ' (a value smaller than about 1e-308 cannot be represented in double precision and is computed as exactly 0)' : ''}`);
 
   if (finite.length < 2) {
     // Growing without bound — base the sign on the last value we could evaluate.
     const reference = finite.length ? finite[finite.length - 1] : samples[samples.length - 1];
     const answer = reference > 0 ? '∞' : '-∞';
-    steps.push(`The values grow without bound, so the limit is ${answer}.`);
+    steps.push(`The values grow without bound, so the limit is ${mark(answer)}.`);
     return { steps, answer };
   }
 
@@ -1331,13 +1340,13 @@ function estimateInfiniteLimit(func, variable, target) {
   const shrinking = diffs.length >= 3 && diffs.slice(-3).every((d, i, arr) => i === 0 || d <= arr[i - 1] * 1.01);
   if (Math.abs(last - prev) < 1e-3 || (shrinking && Math.abs(last - prev) < 1e-4 * (1 + Math.abs(last)))) {
     const value = formatLimitConstant(last);
-    steps.push(`The values settle toward ${value}, so that is the limit.`);
+    steps.push(`The values settle toward ${mark(value)}, so that is the limit.`);
     return { steps, answer: value };
   }
 
   if (Math.abs(last) > Math.abs(prev) * 5) {
     const answer = last > 0 ? '∞' : '-∞';
-    steps.push(`The values keep growing, so the limit is ${answer}.`);
+    steps.push(`The values keep growing, so the limit is ${mark(answer)}.`);
     return { steps, answer };
   }
 

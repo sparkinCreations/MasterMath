@@ -13,6 +13,7 @@ import { solveAlgebra } from '../src/lib/solvers/algebraSolver.js';
 import { solveProblem } from '../src/lib/api.js';
 import { parseMathExpression } from '../src/lib/mathParser.js';
 import { toLatex } from '../src/lib/latex.js';
+import { solvePlain, solveLimitPlain } from './helpers/solvePlain.js';
 
 // ---------------------------------------------------------------------------
 // Limits: cancellation-prone 0/0 forms (fixed July 2026, v1.3.1)
@@ -1039,14 +1040,14 @@ test('audit: ∞ in arithmetic is an indeterminate form or "not a number", never
 // ---------------------------------------------------------------------------
 
 test('limits: sin(kx)/x and (1 − cos x)/x² are named standard limits', async () => {
-  const s = await solveLimit('lim x->0 sin(3x)/x');
+  const s = await solveLimitPlain('lim x->0 sin(3x)/x');
   assert.match(s.answer, /=\s*3$/);
   assert.equal(s.verificationMethod, 'standard limit + numeric check');
   assert.ok(s.steps.some((t) => /standard limit sin\(u\)\/u → 1/.test(t)), s.steps.join(' | '));
-  const c = await solveLimit('lim x->0 (1-cos(x))/x^2');
+  const c = await solveLimitPlain('lim x->0 (1-cos(x))/x^2');
   assert.match(c.answer, /=\s*1\/2$/);
   assert.ok(c.steps.some((t) => /\(1 − cos u\)\/u² → 1\/2/.test(t)));
-  const t = await solveLimit('lim x->0 tan(2x)/(5x)');
+  const t = await solveLimitPlain('lim x->0 tan(2x)/(5x)');
   assert.match(t.answer, /=\s*2\/5$/);
 });
 
@@ -1063,38 +1064,38 @@ test('limits: x·sin(1/x) at 0 and sin(x)/x at ∞ use the squeeze theorem with 
 });
 
 test('limits: a radical difference is rationalized with the conjugate', async () => {
-  const a = await solveLimit('lim x->0 (sqrt(x+1)-1)/x');
+  const a = await solveLimitPlain('lim x->0 (sqrt(x+1)-1)/x');
   assert.match(a.answer, /=\s*1\/2$/);
   assert.equal(a.verificationMethod, 'conjugate + numeric check');
   assert.ok(a.steps.some((t) => /conjugate, sqrt\(x \+ 1\) \+ 1/.test(t)), a.steps.join(' | '));
-  const b = await solveLimit('lim x->4 (sqrt(x)-2)/(x-4)');
+  const b = await solveLimitPlain('lim x->4 (sqrt(x)-2)/(x-4)');
   assert.match(b.answer, /=\s*1\/4$/);
   assert.ok(b.steps.some((t) => /conjugate/.test(t)));
 });
 
 test('limits: a removable rational 0/0 is factored and the common factor cancelled', async () => {
-  const r = await solveLimit('lim x->2 (x^2-4)/(x-2)');
+  const r = await solveLimitPlain('lim x->2 (x^2-4)/(x-2)');
   assert.match(r.answer, /=\s*4$/);
   assert.equal(r.verificationMethod, 'factor and cancel + numeric check');
   assert.ok(r.steps.some((t) => /Both contain the factor \(x − 2\)/.test(t)), r.steps.join(' | '));
-  const n = await solveLimit('lim x->-3 (x^2+5x+6)/(x+3)');
+  const n = await solveLimitPlain('lim x->-3 (x^2+5x+6)/(x+3)');
   assert.match(n.answer, /=\s*-1$/);
   assert.ok(n.steps.some((t) => /factor \(x \+ 3\)/.test(t)));
 });
 
 test('limits at ±∞ of rational functions compare leading terms, exactly and with sign', async () => {
-  const same = await solveLimit('lim x->infinity (3x^2+1)/(2x^2-5)');
+  const same = await solveLimitPlain('lim x->infinity (3x^2+1)/(2x^2-5)');
   assert.match(same.answer, /=\s*3\/2 \(≈ 1\.5\)$/);
   assert.equal(same.verificationMethod, 'leading terms + numeric check');
   assert.ok(same.steps.some((t) => /leading coefficients 3\/2/.test(t)), same.steps.join(' | '));
-  const lower = await solveLimit('lim x->infinity (x+1)/(x^2+1)');
+  const lower = await solveLimitPlain('lim x->infinity (x+1)/(x^2+1)');
   assert.match(lower.answer, /=\s*0$/);
   assert.ok(lower.steps.some((t) => /denominator grows faster/.test(t)));
-  const higher = await solveLimit('lim x->infinity x^3/(x^2+1)');
+  const higher = await solveLimitPlain('lim x->infinity x^3/(x^2+1)');
   assert.match(higher.answer, /=\s*∞$/);
-  const negative = await solveLimit('lim x->-infinity x^3/(x^2+1)');
+  const negative = await solveLimitPlain('lim x->-infinity x^3/(x^2+1)');
   assert.match(negative.answer, /=\s*-∞$/);
-  const bare = await solveLimit('lim x->-infinity 2x^3 - x');
+  const bare = await solveLimitPlain('lim x->-infinity 2x^3 - x');
   assert.match(bare.answer, /=\s*-∞$/);
 });
 
@@ -1334,7 +1335,7 @@ test('sin(1) says it is reading radians, the way sin(45) says it is reading degr
 });
 
 test('sum-product factoring shows the search for the pair and checks by expanding', async () => {
-  const r = await solveProblem('x^2 - 5x + 6 = 0', 'algebra');
+  const r = await solvePlain('x^2 - 5x + 6 = 0', 'algebra');
   assert.equal(r.answer, 'x = 2  or  x = 3');
   const work = r.steps.join('\n');
   assert.match(work, /two numbers whose product is 6 \(the constant term\) and whose sum is -5/);
@@ -1346,15 +1347,15 @@ test('sum-product factoring shows the search for the pair and checks by expandin
   const zeroAt = r.steps.findIndex((s) => /zero-product property\): x - 2 = 0 or x - 3 = 0, so x = 2 or x = 3/.test(s));
   assert.ok(searchAt >= 0 && zeroAt > searchAt);
   // Mixed signs.
-  assert.match((await solveProblem('x^2 - x - 6 = 0', 'algebra')).steps.join('\n'), /the pair 2 and -3 sums to -1/);
+  assert.match((await solvePlain('x^2 - x - 6 = 0', 'algebra')).steps.join('\n'), /the pair 2 and -3 sums to -1/);
   // A non-monic quadratic gets no fabricated search.
-  const nonMonic = await solveProblem('2x^2 - 5x + 2 = 0', 'algebra');
+  const nonMonic = await solvePlain('2x^2 - 5x + 2 = 0', 'algebra');
   assert.doesNotMatch(nonMonic.steps.join('\n'), /look for two numbers/);
   assert.equal(nonMonic.answer, 'x = 1/2  or  x = 2');
 });
 
 test('limit cancellation explains the excluded point and the hole', async () => {
-  const r = await solveProblem('lim x->1 (x^2-1)/(x-1)', 'limits');
+  const r = await solvePlain('lim x->1 (x^2-1)/(x-1)', 'limits');
   assert.match(r.answer, /= 2$/);
   const work = r.steps.join('\n');
   assert.match(work, /Cancelling is allowed only for x ≠ 1/);
@@ -1387,7 +1388,7 @@ test('derivative tips and mistakes are chosen from the rules the solution used',
 });
 
 test('u-substitution substitutes the whole du factor instead of isolating dx', async () => {
-  const r = await solveProblem('∫2x cos(x^2) dx', 'integrals');
+  const r = await solvePlain('∫2x cos(x^2) dx', 'integrals');
   assert.match(r.answer, /sin\(x\^2\) \+ C$/);
   const work = r.steps.join('\n');
   assert.match(work, /Let u = x\^2\. Then du = 2x dx — so wherever 2x dx appears in the integrand it becomes du/);
@@ -1466,7 +1467,7 @@ test('integration methods are named from the integrand, never "Power rule" as a 
     ['∫ 1/(2x+1) dx', /1\/2\*ln\|2x \+ 1\| \+ C$/, /Linear substitution/],
   ];
   for (const [input, answer, method] of cases) {
-    const r = await solveProblem(input, 'integrals');
+    const r = await solvePlain(input, 'integrals');
     assert.equal(r.status, 'solved', input);
     assert.match(r.answer, answer, input);
     const work = r.steps.join('\n');
@@ -1475,21 +1476,21 @@ test('integration methods are named from the integrand, never "Power rule" as a 
     assert.doesNotMatch(r.tips.join('\n'), /^Power rule/, `${input}: power-rule tip`);
   }
   // Positivity note only where the log argument is always positive.
-  assert.match((await solveProblem('∫ x/(x^2+1) dx', 'integrals')).steps.join('\n'), /x\^2 \+ 1 > 0 for every x, the absolute-value bars/);
-  assert.doesNotMatch((await solveProblem('∫ 3x^2/(x^3+7) dx', 'integrals')).steps.join('\n'), /absolute-value bars/);
+  assert.match((await solvePlain('∫ x/(x^2+1) dx', 'integrals')).steps.join('\n'), /x\^2 \+ 1 > 0 for every x, the absolute-value bars/);
+  assert.doesNotMatch((await solvePlain('∫ 3x^2/(x^3+7) dx', 'integrals')).steps.join('\n'), /absolute-value bars/);
   // Genuine power-rule integrals keep the label; unknown table results are named honestly.
-  assert.match((await solveProblem('∫ x^2 dx', 'integrals')).steps[1], /\(Power rule\)/);
-  assert.match((await solveProblem('∫ 5x dx', 'integrals')).steps[1], /\(Power rule\)/);
-  assert.match((await solveProblem('∫ 1/(x^2-1) dx', 'integrals')).steps[1], /partial|factors into distinct linear factors/i);
-  assert.match((await solveProblem('∫ 1/(x^2+1) dx', 'integrals')).steps.join('\n'), /arctan/);
+  assert.match((await solvePlain('∫ x^2 dx', 'integrals')).steps[1], /\(Power rule\)/);
+  assert.match((await solvePlain('∫ 5x dx', 'integrals')).steps[1], /\(Power rule\)/);
+  assert.match((await solvePlain('∫ 1/(x^2-1) dx', 'integrals')).steps[1], /partial|factors into distinct linear factors/i);
+  assert.match((await solvePlain('∫ 1/(x^2+1) dx', 'integrals')).steps.join('\n'), /arctan/);
   // The first tip follows the rule that was used.
-  assert.match((await solveProblem('∫ e^x dx', 'integrals')).tips[0], /its own antiderivative/);
-  assert.match((await solveProblem('∫ 1/x dx', 'integrals')).tips[0], /ln\|x\|/);
-  assert.match((await solveProblem('∫ sec(x)^2 dx', 'integrals')).tips[0], /∫sec² = tan/);
+  assert.match((await solvePlain('∫ e^x dx', 'integrals')).tips[0], /its own antiderivative/);
+  assert.match((await solvePlain('∫ 1/x dx', 'integrals')).tips[0], /ln\|x\|/);
+  assert.match((await solvePlain('∫ sec(x)^2 dx', 'integrals')).tips[0], /∫sec² = tan/);
 });
 
 test('a quotient-rule derivative never steps backward to an expanded form', async () => {
-  const r = await solveProblem('d/dx (x^2+1)/(x-1)', 'derivatives');
+  const r = await solvePlain('d/dx (x^2+1)/(x-1)', 'derivatives');
   assert.equal(r.answer, "f'(x) = (x^2 - 2x - 1)/((x - 1)^2), x ≠ 1");
   const work = r.steps.join('\n');
   assert.match(work, /\(2x·\(x - 1\) − \(x\^2 \+ 1\)·1\)\/\(x - 1\)²/);
@@ -1500,12 +1501,12 @@ test('a quotient-rule derivative never steps backward to an expanded form', asyn
   const last = r.steps.filter((s) => /^d\/dx\(/.test(s)).pop();
   assert.match(last, /\(x\^2 - 2x - 1\)\/\(\(x - 1\)\^2\)$/);
   // Higher orders differentiate the simplified form, and show it.
-  const second = await solveProblem('second derivative of (x^2+1)/(x-1)', 'derivatives');
+  const second = await solvePlain('second derivative of (x^2+1)/(x-1)', 'derivatives');
   assert.match(second.answer, /4\/\(\(x - 1\)\^3\)/);
   assert.match(second.steps.join('\n'), /f''\(x\) = d\/dx\[\(x\^2 - 2x - 1\)\/\(\(x - 1\)\^2\)\] = 4\/\(\(x - 1\)\^3\)/);
   // Sums still close with the combined line; single terms are not restated.
-  assert.match((await solveProblem('d/dx x^3 + 2x', 'derivatives')).steps.join('\n'), /Add the term derivatives and simplify: f'\(x\) = 3x\^2 \+ 2/);
-  assert.doesNotMatch((await solveProblem('d/dx sin(x)', 'derivatives')).steps.join('\n'), /So f'\(x\)/);
+  assert.match((await solvePlain('d/dx x^3 + 2x', 'derivatives')).steps.join('\n'), /Add the term derivatives and simplify: f'\(x\) = 3x\^2 \+ 2/);
+  assert.doesNotMatch((await solvePlain('d/dx sin(x)', 'derivatives')).steps.join('\n'), /So f'\(x\)/);
 });
 
 // ---------------------------------------------------------------------------
@@ -1541,7 +1542,7 @@ test('every solved equation ends with a substitution check', async () => {
 });
 
 test('logarithmic differentiation is derived in full, not just named', async () => {
-  const r = await solveProblem('d/dx x^x', 'derivatives');
+  const r = await solvePlain('d/dx x^x', 'derivatives');
   assert.equal(r.answer, "f'(x) = x^x*(1 + ln(x)), x > 0");
   const work = r.steps.join('\n');
   assert.match(work, /Let y = x\^x, with x > 0/);
@@ -1551,10 +1552,10 @@ test('logarithmic differentiation is derived in full, not just named', async () 
   assert.match(work, /y′ = y·\(1 \+ ln\(x\)\)/);
   assert.match(work, /Substitute y = x\^x back: y′ = x\^x·\(1 \+ ln\(x\)\)/);
   // The general u^v form, and a scaled exponent.
-  const general = await solveProblem('d/dx (x+1)^x', 'derivatives');
+  const general = await solvePlain('d/dx (x+1)^x', 'derivatives');
   assert.match(general.answer, /\(x \+ 1\)\^x\*\(ln\(x \+ 1\) \+ x\/\(x \+ 1\)\), x > -1$/);
   assert.match(general.steps.join('\n'), /with x \+ 1 > 0/);
-  assert.match((await solveProblem('d/dx x^(2x)', 'derivatives')).steps.join('\n'), /ln\(y\) = ln\(x\^\(2x\)\) = 2x·ln\(x\)/);
+  assert.match((await solvePlain('d/dx x^(2x)', 'derivatives')).steps.join('\n'), /ln\(y\) = ln\(x\^\(2x\)\) = 2x·ln\(x\)/);
 });
 
 test('a negative exponent is taught as a reciprocal', async () => {
@@ -1635,7 +1636,7 @@ test('the range is stated for recognised function families, and only for them', 
     ['f(x) = cos(2x) - 3', '-4 ≤ y ≤ -2'],
   ];
   for (const [input, range] of cases) {
-    const r = await solveProblem(input, 'functions');
+    const r = await solvePlain(input, 'functions');
     const line = r.steps.find((s) => /^Range: /.test(s));
     assert.ok(line, `${input}: no range line`);
     assert.ok(line.startsWith(`Range: ${range} — `), `${input}: ${line}`);
@@ -1643,7 +1644,7 @@ test('the range is stated for recognised function families, and only for them', 
   }
   // Outside the recognised families nothing is claimed — never read off the window.
   for (const input of ['f(x) = x^3 - x', 'f(x) = x^4 - x^2', 'f(x) = x*e^x']) {
-    const r = await solveProblem(input, 'functions');
+    const r = await solvePlain(input, 'functions');
     assert.ok(!r.steps.some((s) => /^Range/.test(s)), `${input}: fabricated range`);
     assert.doesNotMatch(r.answer, /range:/, input);
   }
@@ -1661,13 +1662,13 @@ test('division followed by implicit multiplication carries a warning naming both
 });
 
 test('the cosine standard limit is derived from the sine limit', async () => {
-  const r = await solveProblem('lim x->0 (1-cos(x))/x^2', 'limits');
+  const r = await solvePlain('lim x->0 (1-cos(x))/x^2', 'limits');
   assert.match(r.answer, /= 1\/2$/);
   const work = r.steps.join('\n');
   assert.match(work, /half-angle identity 1 − cos\(u\) = 2sin²\(u\/2\)/);
   assert.match(work, /\(1\/2\)·\[sin\(u\/2\)\/\(u\/2\)\]²/);
   assert.match(work, /sin\(u\/2\)\/\(u\/2\) → 1/);
-  const scaled = await solveProblem('lim x->0 (1-cos(3x))/x^2', 'limits');
+  const scaled = await solvePlain('lim x->0 (1-cos(3x))/x^2', 'limits');
   assert.match(scaled.answer, /= 9\/2$/);
   assert.match(scaled.steps.join('\n'), /With u = 3x: .* = \(9\) · \(1 − cos\(3x\)\)\/\(3x\)²/);
 });
@@ -1703,7 +1704,7 @@ test('guidance follows the concept: limits by technique, trig by function, fract
 // ---------------------------------------------------------------------------
 
 test('an integral walkthrough never switches between log and ln, or exp and e^', async () => {
-  const sub = await solveProblem('∫ x/(x^2+1) dx', 'integrals');
+  const sub = await solvePlain('∫ x/(x^2+1) dx', 'integrals');
   const work = sub.steps.join('\n');
   assert.doesNotMatch(work, /(?<![a-z])log\(/, 'raw log() in the steps');
   assert.match(work, /Integrate in u: ∫\(1\/\(2u\)\) du = 1\/2\*ln\|u\|/);
@@ -1711,17 +1712,17 @@ test('an integral walkthrough never switches between log and ln, or exp and e^',
   assert.equal(sub.answer, '∫(x/(x^2 + 1)) dx = 1/2*ln(x^2 + 1) + C');
   assert.match(sub.graph.description, /F\(x\) = 1\/2\*ln\(x\^2 \+ 1\)/);
   // Bars stay where the argument can be negative.
-  assert.match((await solveProblem('∫ 2x/(x^2-4) dx', 'integrals')).answer, /ln\|x\^2 - 4\| \+ C$/);
+  assert.match((await solvePlain('∫ 2x/(x^2-4) dx', 'integrals')).answer, /ln\|x\^2 - 4\| \+ C$/);
   // exp() is written e^ in by-parts steps and answers alike.
-  const parts = await solveProblem('∫ x*e^x dx', 'integrals');
+  const parts = await solvePlain('∫ x*e^x dx', 'integrals');
   assert.doesNotMatch(parts.steps.join('\n'), /exp\(/);
   assert.match(parts.steps.join('\n'), /Choose the parts: u = x, dv = e\^x dx/);
   assert.equal(parts.answer, '∫(x*e^x) dx = e^x*(x - 1) + C');
-  assert.match((await solveProblem('∫ x e^(-x^2) dx', 'integrals')).answer, /= -1\/2\*e\^\(-x\^2\) \+ C$/);
+  assert.match((await solvePlain('∫ x e^(-x^2) dx', 'integrals')).answer, /= -1\/2\*e\^\(-x\^2\) \+ C$/);
 });
 
 test('divergence is stated with its sign, and the principal value is named for a symmetric odd pole', async () => {
-  const interior = await solveProblem('∫_-1^1 1/x dx', 'integrals');
+  const interior = await solvePlain('∫_-1^1 1/x dx', 'integrals');
   const work = interior.steps.join('\n');
   assert.match(work, /Left piece, ∫_\{-1\}\^\{0\} = lim \(s→0⁻\) \[F\(s\) − F\(-1\)\]: as s → 0⁻, F\(s\) → −∞ \(samples: -4\.6052/);
   assert.match(work, /Right piece, ∫_\{0\}\^\{1\} = lim \(t→0⁺\) \[F\(1\) − F\(t\)\]: as t → 0⁺, F\(t\) → −∞/);
@@ -1729,15 +1730,15 @@ test('divergence is stated with its sign, and the principal value is named for a
   assert.match(work, /Cauchy principal value, is 0\. It is not the value of the improper integral/);
   assert.doesNotMatch(work, /grows without bound/);
   // 1/x² is even about the pole: both pieces run to +∞ on the left... and no principal-value note.
-  const even = await solveProblem('∫_-1^1 1/x^2 dx', 'integrals');
+  const even = await solvePlain('∫_-1^1 1/x^2 dx', 'integrals');
   assert.match(even.steps.join('\n'), /as s → 0⁻, F\(s\) → \+∞ .*\n.*as t → 0⁺, F\(t\) → −∞/);
   assert.doesNotMatch(even.steps.join('\n'), /principal value/);
   // Endpoint and infinite-bound wording carry the sign too.
-  assert.match((await solveProblem('∫_0^1 1/x dx', 'integrals')).steps.join('\n'), /the integrand → \+∞ as x → 0⁺.*\n.*\n.*\n.*F\(s\) → −∞/);
-  assert.match((await solveProblem('∫_0^1 ln(x) dx', 'integrals')).steps[1], /the integrand → −∞ as x → 0⁺/);
-  assert.match((await solveProblem('∫_1^∞ 1/x dx', 'integrals')).steps.join('\n'), /F\(t\) → ∞ — slowly, but steadily/);
+  assert.match((await solvePlain('∫_0^1 1/x dx', 'integrals')).steps.join('\n'), /the integrand → \+∞ as x → 0⁺.*\n.*\n.*\n.*F\(s\) → −∞/);
+  assert.match((await solvePlain('∫_0^1 ln(x) dx', 'integrals')).steps[1], /the integrand → −∞ as x → 0⁺/);
+  assert.match((await solvePlain('∫_1^∞ 1/x dx', 'integrals')).steps.join('\n'), /F\(t\) → ∞ — slowly, but steadily/);
   // A divergent integral's graph never says "signed area NaN".
-  assert.match((await solveProblem('∫_1^∞ 1/x dx', 'integrals')).graph.description, /diverges — the shaded region has no finite area/);
+  assert.match((await solvePlain('∫_1^∞ 1/x dx', 'integrals')).graph.description, /diverges — the shaded region has no finite area/);
 });
 
 test('equation guidance follows the method: absolute value, radical, log, exponential, quadratic, rational, linear', async () => {
@@ -1768,7 +1769,7 @@ test('arithmetic guidance follows the feature: negative exponent, factorial, per
 });
 
 test('the common-log rewrite never reaches the screen', async () => {
-  const r = await solveProblem('d/dx log(x)', 'derivatives');
+  const r = await solvePlain('d/dx log(x)', 'derivatives');
   assert.equal(r.steps[0], 'Identify the function to differentiate: f(x) = log(x)');
   assert.match(r.steps[1], /^Logarithmic rule — log\(x\) is the base-10 logarithm/);
   assert.doesNotMatch(r.steps.join('\n') + r.graph.description, /log\(10\)\)/);

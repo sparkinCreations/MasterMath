@@ -13,6 +13,7 @@ import {
   rewriteReciprocalTrig,
   expressionsNumericallyEqual,
   isAlgebriteFailure,
+  stripMathMarkers,
 } from './solverUtils.js';
 import { getSettings } from '../settings.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -78,7 +79,7 @@ export function detectTrigAsymptote(expression, result, treatAsDegrees) {
 // evaluated and by whether a unit or a special angle came up — instead of
 // the same four lines (all about sin and degrees) for every input.
 function trigGuidance(expression, steps) {
-  const text = steps.join('\n');
+  const text = stripMathMarkers(steps.join('\n'));
   const fn = (expression.match(/\b(arcsin|arccos|arctan|asin|acos|atan|sin|cos|tan|sec|csc|cot)\b/i) || [])[1]?.toLowerCase();
   const tips = [];
   const mistakes = [];

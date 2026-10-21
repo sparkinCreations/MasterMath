@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.50.0] - 2026-10-21
+
+October 2026 roadmap P1, first increment: typeset every step.
+
+### Added
+
+- **Explicit math markers in step text.** Solvers wrap the math in a step
+  in ⟦…⟧ (`mark()`, `src/lib/mathMarkers.js`), and the renderer typesets
+  exactly what is marked. Steps that interleave words and math — "write
+  the coefficients 1, (−6), 11, (−6); bring down 1", "Let u = 3x² (the
+  inside), so the outer function is sin(u)" — used to render partly as
+  KaTeX and partly as plain text, because the renderer had to guess where
+  the math was. Unmarked text keeps the old heuristics; unbalanced or
+  nested markers are dropped and the plain text goes to the heuristics.
+
+### Changed
+
+- **Converted solvers:** derivatives (every rule, the worked chain,
+  product, quotient and logarithmic-differentiation steps, |x|, domains,
+  evaluation at a point), implicit differentiation, limits (every named
+  technique, the one-sided and numeric paths), integrals (rule labels,
+  u-substitution, parts, trig substitution, partial fractions, power
+  reduction, inverse-trig patterns, definite and improper integrals at
+  ±∞), algebra (factoring, the discriminant and formula, the Rational
+  Root Theorem and synthetic division, radical, exponential and log
+  equations) and the Functions analysis. On 51 typical problems, steps
+  with math left in a plain-text run went from 96 of 331 to 9; the 9 are
+  in systems, inequalities, trigonometry and arithmetic, the next
+  increment. Every marked run renders in KaTeX (860 checked).
+- Markers never reach an answer, a tip, a common mistake, a warning, an
+  export (Markdown, JSON, CSV, PDF) or the input box: `finalizeResult`,
+  `downloadFile` and `pdfSafe` strip them, and `sanitizeInput` removes
+  them from typed input.
+
 ## [1.49.0] - 2026-10-21
 
 October 2026 roadmap: P1 implicit differentiation and P2 the 1^∞ limits,

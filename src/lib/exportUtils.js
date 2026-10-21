@@ -1,5 +1,6 @@
 // Export utilities for MasterMath
 import { statusLabel, isFailureStatus, countsAsSolved } from './solutionEnvelope.js';
+import { stripMathMarkers } from './mathMarkers.js';
 
 // jsPDF (plus its html2canvas/dompurify dependencies) is ~600 kB — larger than
 // the rest of the app combined. Importing it at module scope pulled it into
@@ -35,7 +36,7 @@ const PDF_TRANSLITERATIONS = [
   ['…', '...'], ['‘', "'"], ['’', "'"], ['“', '"'], ['”', '"'], ['•', '-'], ['⋅', '*'], ['∀', 'for all'], ['∃', 'there exists'],
 ];
 export function pdfSafe(text) {
-  let out = String(text ?? '');
+  let out = stripMathMarkers(text);
   for (const [from, to] of PDF_TRANSLITERATIONS) out = out.split(from).join(to);
   // Anything still outside Latin-1 becomes '?', which is at least honest and
   // visible — never a silent wrong glyph.
@@ -426,8 +427,11 @@ export async function exportSolutionAsPDF(problem, topic, solution, topicLabels)
 }
 
 // Helper function to trigger file download
+// Every file export passes through here, so this is where the ⟦…⟧ math
+// markers of step text (mathMarkers.js) are removed: they are a hint for the
+// on-screen renderer, never part of the exported text.
 function downloadFile(content, filename, contentType) {
-  const blob = new Blob([content], { type: contentType });
+  const blob = new Blob([stripMathMarkers(content)], { type: contentType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

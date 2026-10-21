@@ -4,6 +4,7 @@ import { validateProblemHistory } from './validation.js';
 import { extractFunctionFromProblem, parseMathExpression, usesCommonLog, matchingParen } from './mathParser.js';
 import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
 import { bareFunctionName, math, formatNumber, beautify } from './solvers/solverUtils.js';
+import { stripMathMarkers } from './mathMarkers.js';
 
 // The storage wrappers below replace the underlying error with a message fit
 // for a toast. That message is all the user should see, but it is not all a
@@ -394,7 +395,9 @@ export function finalizeResult(result, input) {
     });
   }
   // Numbers are fine as answers, but the UI and exports expect a string.
-  if (typeof result.answer !== 'string') result.answer = String(result.answer);
+  // The ⟦…⟧ math markers (mathMarkers.js) belong to step text only: the
+  // answer is graded, saved to history and shown in Progress as text.
+  result.answer = stripMathMarkers(result.answer);
   result.steps = result.steps.map((s) => (typeof s === 'string' ? s : String(s)));
   if (!result.tips || !Array.isArray(result.tips)) {
     result.tips = [];
@@ -402,6 +405,9 @@ export function finalizeResult(result, input) {
   if (!result.common_mistakes || !Array.isArray(result.common_mistakes)) {
     result.common_mistakes = [];
   }
+  result.tips = result.tips.map(stripMathMarkers);
+  result.common_mistakes = result.common_mistakes.map(stripMathMarkers);
+  if (Array.isArray(result.warnings)) result.warnings = result.warnings.map(stripMathMarkers);
   if (!isValidStatus(result.status)) {
     // Legacy shim: the pre-envelope failure convention was an answer string
     // starting with "Unable to". Anything else counts as solved. Only an

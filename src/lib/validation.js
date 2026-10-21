@@ -107,6 +107,9 @@ export function sanitizeInput(input) {
     // Null bytes can truncate strings in downstream consumers (file exports,
     // IndexedDB values).
     .replace(/\0/g, '')
+    // ⟦ ⟧ mark math in solver step text (mathMarkers.js); typed into the
+    // input they would be echoed into a parse-error step and typeset.
+    .replace(/[⟦⟧]/g, '')
     // Collapse runs of whitespace, including newlines, to a single space so
     // the solvers see a predictable expression.
     .replace(/\s+/g, ' ')

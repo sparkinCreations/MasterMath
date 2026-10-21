@@ -17,6 +17,8 @@ import {
   splitTerms,
   splitTopLevel,
   trigUndefinedPoints,
+  stripMathMarkers,
+  mark,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -46,7 +48,7 @@ const SIMPLIFY_MISTAKES = [
 // close an absolute-value, a radical, and a logarithmic equation alike
 // (September 2026 review, 1.38.1).
 function equationGuidance(steps, expression) {
-  const text = steps.join('\n');
+  const text = stripMathMarkers(steps.join('\n'));
   const variableInDenominator = /\/\s*\(?[0-9.]*[a-z]/i.test(expression);
   if (/absolute-value equation/.test(text)) {
     return {
@@ -198,9 +200,9 @@ function factoringLines(B, C, v, expanded) {
   const [p, q] = hit;
   const factored = p === q ? `(${factor(p)})^2` : `(${factor(p)})(${factor(q)})`;
   return [
-    `To factor ${expanded}, look for two numbers whose product is ${C} (the constant term) and whose sum is ${B} (the coefficient of ${v}).`,
-    `Factor pairs of ${C}: ${pairs.map(([m, n]) => `${sign(m)}·${sign(n)}`).join(', ')}. Their sums: ${pairs.map(([m, n]) => m + n).join(', ')} — the pair ${p} and ${q} sums to ${B}.`,
-    `So ${expanded} = ${factored}. Check by expanding: ${v}·${v} + ${sign(q)}${v} + ${sign(p)}${v} + ${sign(p)}·${sign(q)} = ${expanded}. ✓`,
+    `To factor ${mark(expanded)}, look for two numbers whose product is ${mark(C)} (the constant term) and whose sum is ${mark(B)} (the coefficient of ${mark(v)}).`,
+    `Factor pairs of ${mark(C)}: ${mark(pairs.map(([m, n]) => `${sign(m)}·${sign(n)}`).join(', '))}. Their sums: ${mark(pairs.map(([m, n]) => m + n).join(', '))} — the pair ${mark(p)} and ${mark(q)} sums to ${mark(B)}.`,
+    `So ${mark(`${expanded} = ${factored}`)}. Check by expanding: ${mark(`${v}·${v} + ${sign(q)}${v} + ${sign(p)}${v} + ${sign(p)}·${sign(q)} = ${expanded}`)}. ✓`,
     p === q
       ? `Set the factor to zero: ${factor(p)} = 0, so ${v} = ${-p} (a repeated root).`
       : `Set each factor to zero (zero-product property): ${factor(p)} = 0 or ${factor(q)} = 0, so ${v} = ${-p} or ${v} = ${-q}.`,
@@ -753,12 +755,12 @@ async function solveViaExpSubstitution(equation, variable) {
       numeric.push(value);
     }
     const answer = shown.length > 0 ? shown.join('  or  ') : `No real solution (${base}^${v} is always positive, so no listed u is reachable)`;
-    const takeLog = base === 'e' ? 'take ln of both sides' : `take the logarithm of both sides: ${v} = ln(u)/ln(${base}) = log_${base}(u)`;
+    const takeLog = base === 'e' ? `take ${mark('ln')} of both sides` : `take the logarithm of both sides, ${mark(`${v} = ln(u)/ln(${base}) = log_${base}(u)`)}`;
     const steps = [
       `Rewrite as an equation set to zero: ${beautify(zeroForm)} = 0`,
-      `Let u = ${base}^${v} (so ${base}^(2${v}) = u², ${base}^(3${v}) = u³): ${beautify(inU)} = 0`,
+      `Let ${mark(`u = ${base}^${v}`)} (so ${mark(`${base}^(2${v}) = u², ${base}^(3${v}) = u³`)}): ${mark(`${beautify(inU)} = 0`)}`,
       `Solve for u: ${formatSolutions(roots, 'u')}`,
-      `Back-substitute u = ${base}^${v} and ${takeLog}: ${lines.join('; ')}`,
+      `Back-substitute ${mark(`u = ${base}^${v}`)} and ${takeLog}: ${lines.map(mark).join('; ')}`,
       `Solution: ${answer}`,
     ];
     return { steps, answer, solutions: numeric };
@@ -870,13 +872,13 @@ async function solveViaLogSubstitution(equation, variable) {
       if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) return null;
       const uRoots = parseRootsList(rootsRaw);
       if (uRoots.length === 0) return null;
-      steps.push(`Let u = ${logName}(${beautify(g)}): ${beautify(inOneU)} = 0`);
+      steps.push(`Let ${mark(`u = ${logName}(${beautify(g)})`)}: ${mark(`${beautify(inOneU)} = 0`)}`);
       steps.push(`Solve for u: ${formatSolutions(uRoots, 'u')}`);
       const lines = [];
       for (const r of uRoots) {
         const uText = formatSolutions([r], 'u').replace(/^u\s*=\s*/, '');
         if (!Number.isFinite(r.numeric)) {
-          lines.push(`u = ${uText} is not real, so it gives no real ${v}`);
+          lines.push(`${mark(`u = ${uText}`)} is not real, so it gives no real ${mark(v)}`);
           continue;
         }
         const raw = String(Algebrite.run(`roots((${g}) - ${powText(r.display)}, ${v})`)).trim();
@@ -886,10 +888,10 @@ async function solveViaLogSubstitution(equation, variable) {
         if (/\(-.*\)\^\(1\/\d+\)/.test(raw)) return null;
         const xs = parseRootsList(raw);
         if (xs.length === 0) return null;
-        lines.push(`u = ${uText} means ${logName}(${beautify(g)}) = ${uText}, so ${beautify(g)} = ${base}^${/^[\w.]+$/.test(uText) ? uText : `(${uText})`} → ${xs.map((x) => `${v} = ${prettyExp(prettyRadicals(x.display))}`).join(' or ')}`);
+        lines.push(`${mark(`u = ${uText}`)} means ${mark(`${logName}(${beautify(g)}) = ${uText}`)}, so ${mark(`${beautify(g)} = ${base}^${/^[\w.]+$/.test(uText) ? uText : `(${uText})`} → ${xs.map((x) => `${v} = ${prettyExp(prettyRadicals(x.display))}`).join(' or ')}`)}`);
         candidates.push(...xs);
       }
-      steps.push(`Back-substitute (${logName}(a) = u means a = ${base}^u): ${lines.join('; ')}`);
+      steps.push(`Back-substitute (${mark(`${logName}(a) = u`)} means ${mark(`a = ${base}^u`)}): ${lines.join('; ')}`);
     } else {
       // Linear in the logarithms with integer coefficients?
       const coeffs = [];
@@ -914,7 +916,7 @@ async function solveViaLogSubstitution(equation, variable) {
       const denText = denominator.length ? denominator.join('*') : '';
       const combined = denText ? `(${numText})/(${denText})` : numText;
       const rhsValue = String(Algebrite.run(`simplify(${powText(rhsExp)})`)).trim();
-      steps.push(`Every term is a logarithm with the same base, so combine them with the log rules (k·${logName}(a) = ${logName}(a^k), ${logName}(a) + ${logName}(b) = ${logName}(ab), ${logName}(a) − ${logName}(b) = ${logName}(a/b)): ${logName}(${beautify(combined)}) = ${beautify(rhsExp)}`);
+      steps.push(`Every term is a logarithm with the same base, so combine them with the log rules (${mark(`k·${logName}(a) = ${logName}(a^k)`)}, ${mark(`${logName}(a) + ${logName}(b) = ${logName}(ab)`)}, ${mark(`${logName}(a) − ${logName}(b) = ${logName}(a/b)`)}): ${mark(`${logName}(${beautify(combined)}) = ${beautify(rhsExp)}`)}`);
       steps.push(`Rewrite in exponential form: ${beautify(combined)} = ${base}^${/^[\w.]+$/.test(rhsExp) ? rhsExp : `(${rhsExp})`}${prettyExp(rhsValue) !== beautify(rhsExp) && !/^\d+(?:\.\d+)?$/.test(rhsExp) ? ` = ${prettyExp(beautify(rhsValue))}` : ''}`);
       const poly = denText ? `(${numText}) - (${rhsValue})*(${denText})` : `(${numText}) - (${rhsValue})`;
       const rootsRaw = String(Algebrite.run(`roots(${poly}, ${v})`)).trim();
@@ -922,7 +924,7 @@ async function solveViaLogSubstitution(equation, variable) {
       if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) return null;
       candidates = parseRootsList(rootsRaw);
       if (candidates.length === 0) return null;
-      steps.push(`Solve ${beautify(poly)} = 0: ${candidates.map((x) => `${v} = ${prettyExp(prettyRadicals(x.display))}`).join(' or ')}`);
+      steps.push(`Solve ${mark(`${beautify(poly)} = 0`)}: ${mark(candidates.map((x) => `${v} = ${prettyExp(prettyRadicals(x.display))}`).join(' or '))}`);
     }
 
     // Domain and verification: every argument positive, and the original
@@ -931,9 +933,9 @@ async function solveViaLogSubstitution(equation, variable) {
     const rejected = [];
     for (const c of candidates) {
       const show = prettyExp(prettyRadicals(c.display));
-      if (!Number.isFinite(c.numeric)) { rejected.push(`${v} = ${show} is not real`); continue; }
-      if (!argumentPositive(c.numeric)) { rejected.push(`${v} = ${show} makes a logarithm's argument zero or negative`); continue; }
-      if (!satisfiesEquation(equation, v, c.numeric)) { rejected.push(`${v} = ${show} does not balance the original equation`); continue; }
+      if (!Number.isFinite(c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} is not real`); continue; }
+      if (!argumentPositive(c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} makes a logarithm's argument zero or negative`); continue; }
+      if (!satisfiesEquation(equation, v, c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} does not balance the original equation`); continue; }
       if (kept.some((k) => Math.abs(k.numeric - c.numeric) < 1e-9)) continue;
       kept.push({ display: show, numeric: c.numeric });
     }
@@ -1000,7 +1002,7 @@ function solveByRationalRoots(Algebrite, target, v, read, leadingSteps) {
   if (fac.degree >= 3) {
     const name = fac.degree === 3 ? 'a cubic' : fac.degree === 4 ? 'a quartic' : `degree ${fac.degree}`;
     const list = fac.candidates.length > 16 ? `${fac.candidates.slice(0, 16).join(', ')}, …` : fac.candidates.join(', ');
-    steps.push(`${afterX} = 0 is ${name}. Rational Root Theorem: any rational root p/q has p dividing the constant term ${fac.constant} and q dividing the leading coefficient ${fac.leading}, so the only possible rational roots are ${list}.`);
+    steps.push(`${mark(`${afterX} = 0`)} is ${name}. Rational Root Theorem: any rational root ${mark('p/q')} has ${mark('p')} dividing the constant term ${mark(fac.constant)} and ${mark('q')} dividing the leading coefficient ${mark(fac.leading)}, so the only possible rational roots are ${mark(list)}.`);
     let currentText = afterX;
     for (const round of fac.rounds) {
       const failed = round.trials.filter((t) => !t.isRoot);
@@ -1009,17 +1011,17 @@ function solveByRationalRoots(Algebrite, target, v, read, leadingSteps) {
       const r = round.root.text;
       // (x − r) reads as (x + 3) for r = −3.
       const factorText = r.startsWith('-') ? `(${v} + ${r.slice(1)})` : `(${v} − ${r})`;
-      steps.push(`Test the candidates in p(${v}) = ${currentText}: ${shownFailed.length ? `${shownFailed.join(', ')}${more}; ` : ''}p(${r}) = 0 ✓ — so ${v} = ${r} is a root and ${factorText} is a factor.`);
-      const work = round.products.map((prod, i) => `${signedList([r])[0]}·${signedList([round.bottom[i]])[0]} = ${prod}, then ${signedList([round.top[i + 1]])[0]} + ${signedList([prod])[0]} = ${round.bottom[i + 1]}`);
+      steps.push(`Test the candidates in ${mark(`p(${v}) = ${currentText}`)}: ${shownFailed.length ? `${shownFailed.map(mark).join(', ')}${more}; ` : ''}${mark(`p(${r}) = 0`)} ✓ — so ${mark(`${v} = ${r}`)} is a root and ${mark(factorText)} is a factor.`);
+      const work = round.products.map((prod, i) => `${mark(`${signedList([r])[0]}·${signedList([round.bottom[i]])[0]} = ${prod}`)}, then ${mark(`${signedList([round.top[i + 1]])[0]} + ${signedList([prod])[0]} = ${round.bottom[i + 1]}`)}`);
       const quotientText = polynomialText(round.quotient, v);
-      steps.push(`Synthetic division by ${factorText}, using r = ${r}: write the coefficients ${signedList(round.top).join(', ')}; bring down ${round.top[0]}; ${work.join('; ')}. The last number is the remainder, 0 ✓, and the rest are the quotient: ${quotientText}.`);
+      steps.push(`Synthetic division by ${mark(factorText)}, using ${mark(`r = ${r}`)}: write the coefficients ${mark(signedList(round.top).join(', '))}; bring down ${mark(round.top[0])}; ${work.join('; ')}. The last number is the remainder, ${mark('0')} ✓, and the rest are the quotient: ${mark(quotientText)}.`);
       shown.push({ display: round.root.text, numeric: Number(round.root.m) / Number(round.root.d), sign: '=' });
       currentText = quotientText;
     }
     const remDegree = fac.remaining.length - 1;
     const remText = polynomialText(fac.remaining.map((f) => (f.d === 1n ? String(f.s * f.n) : `${f.s < 0 ? '-' : ''}${f.n}/${f.d}`)), v);
     if (remDegree === 2) {
-      steps.push(`The remaining factor is a quadratic: ${remText} = 0.`);
+      steps.push(`The remaining factor is a quadratic: ${mark(`${remText} = 0`)}.`);
       let rootsRaw = '';
       try { rootsRaw = Algebrite.roots(remText, v).toString(); } catch { rootsRaw = ''; }
       const derivation = quadraticDerivation(Algebrite, remText, v);
@@ -2127,12 +2129,12 @@ function quadraticDerivation(Algebrite, poly, v) {
     }
     const D = String(Algebrite.run(`(${b})^2 - 4*(${a})*(${c})`)).trim();
     const Dn = asNumber(D);
-    lines.push(`This is a quadratic in ${v}: ${expanded} = 0, with a = ${beautify(a)}, b = ${beautify(b)}, c = ${beautify(c)}.`);
-    lines.push(`Discriminant: b² − 4ac = (${beautify(b)})² − 4(${beautify(a)})(${beautify(c)}) = ${beautify(D)}${Dn < 0 ? ' — negative, so the two roots are a complex conjugate pair' : Dn === 0 ? ' — zero, so there is one repeated root' : ''}.`);
+    lines.push(`This is a quadratic in ${mark(v)}: ${mark(`${expanded} = 0`)}, with ${mark(`a = ${beautify(a)}, b = ${beautify(b)}, c = ${beautify(c)}`)}.`);
+    lines.push(`Discriminant: ${mark(`b² − 4ac = (${beautify(b)})² − 4(${beautify(a)})(${beautify(c)}) = ${beautify(D)}`)}${Dn < 0 ? ' — negative, so the two roots are a complex conjugate pair' : Dn === 0 ? ' — zero, so there is one repeated root' : ''}.`);
     const sqrtD = prettyRadicals(beautify(String(Algebrite.run(`simplify((${D})^(1/2))`)).trim()));
     const negB = beautify(String(Algebrite.run(`-(${b})`)).trim());
     const twoA = beautify(String(Algebrite.run(`2*(${a})`)).trim());
-    lines.push(`Quadratic formula: ${v} = (−b ± √(b² − 4ac))/(2a) = (${negB} ± √(${beautify(D)}))/${twoA}${sqrtD !== `√${beautify(D)}` && sqrtD !== `√(${beautify(D)})` ? ` = (${negB} ± ${sqrtD})/${twoA}` : ''}.`);
+    lines.push(`Quadratic formula: ${mark(`${v} = (−b ± √(b² − 4ac))/(2a) = (${negB} ± √(${beautify(D)}))/${twoA}${sqrtD !== `√${beautify(D)}` && sqrtD !== `√(${beautify(D)})` ? ` = (${negB} ± ${sqrtD})/${twoA}` : ''}`)}.`);
     return lines;
   } catch {
     return null;
@@ -2179,7 +2181,7 @@ async function solveViaRadicalIsolation(equation, variable) {
     if (Number.isFinite(constantS) && constantS < 0) {
       return {
         steps: [
-          `Isolate the radical: ${beautify(zero)} = 0 rearranges to √(${beautify(R)}) = ${beautify(S)}.`,
+          `Isolate the radical: ${mark(`${beautify(zero)} = 0`)} rearranges to ${mark(`√(${beautify(R)}) = ${beautify(S)}`)}.`,
           `A square root is never negative, so √(${beautify(R)}) = ${beautify(S)} has no solution. (Squaring both sides would give ${beautify(R)} = ${formatNumber(constantS * constantS)}, but that candidate solves √(${beautify(R)}) = ${formatNumber(-constantS)}, not the original equation.)`,
           'Solution: No solution (a square root cannot equal a negative number)',
         ],
@@ -2195,26 +2197,26 @@ async function solveViaRadicalIsolation(equation, variable) {
     if (candidates.length === 0) return null;
 
     const steps = [
-      `Isolate the radical: ${beautify(zero)} = 0 rearranges to √(${beautify(R)}) = ${beautify(S)}.`,
+      `Isolate the radical: ${mark(`${beautify(zero)} = 0`)} rearranges to ${mark(`√(${beautify(R)}) = ${beautify(S)}`)}.`,
       Number.isFinite(constantS)
-        ? `Domain: the radicand must be non-negative, so ${beautify(R)} ≥ 0. Any candidate breaking this is extraneous.`
-        : `Domain: the radicand must be non-negative, so ${beautify(R)} ≥ 0; and a square root is never negative, so the other side must also satisfy ${beautify(S)} ≥ 0. Any candidate breaking either is extraneous.`,
-      `Square both sides: ${beautify(R)} = (${beautify(S)})² = ${beautify(squared)}.`,
-      `Solve the polynomial equation ${beautify(poly)} = 0: ${candidates.map((c) => `${v} = ${prettyRadicals(c.display)}`).join(' or ')}.`,
+        ? `Domain: the radicand must be non-negative, so ${mark(`${beautify(R)} ≥ 0`)}. Any candidate breaking this is extraneous.`
+        : `Domain: the radicand must be non-negative, so ${mark(`${beautify(R)} ≥ 0`)}; and a square root is never negative, so the other side must also satisfy ${mark(`${beautify(S)} ≥ 0`)}. Any candidate breaking either is extraneous.`,
+      `Square both sides: ${mark(`${beautify(R)} = (${beautify(S)})² = ${beautify(squared)}`)}.`,
+      `Solve the polynomial equation ${mark(`${beautify(poly)} = 0`)}: ${mark(candidates.map((c) => `${v} = ${prettyRadicals(c.display)}`).join(' or '))}.`,
     ];
     const kept = [];
     const checks = [];
     for (const c of candidates) {
       const show = prettyRadicals(c.display);
-      if (!Number.isFinite(c.numeric)) { checks.push(`${v} = ${show} is not real — rejected`); continue; }
+      if (!Number.isFinite(c.numeric)) { checks.push(`${mark(`${v} = ${show}`)} is not real — rejected`); continue; }
       const rVal = asNumber(R.replace(new RegExp(`(?<![a-z])${v}(?![a-z])`, 'g'), `(${c.numeric})`));
       const sVal = asNumber(S.replace(new RegExp(`(?<![a-z])${v}(?![a-z])`, 'g'), `(${c.numeric})`));
-      if (!(rVal >= -1e-9)) { checks.push(`${v} = ${show}: ${beautify(R)} = ${formatNumber(rVal)} < 0, outside the domain — rejected`); continue; }
-      if (!(sVal >= -1e-9)) { checks.push(`${v} = ${show}: the right side ${beautify(S)} = ${formatNumber(sVal)} is negative, but a square root cannot be — extraneous (it solves √(${beautify(R)}) = −(${beautify(S)}) instead) — rejected`); continue; }
-      if (!satisfiesEquation(equation, v, c.numeric)) { checks.push(`${v} = ${show} does not balance the original equation — rejected`); continue; }
+      if (!(rVal >= -1e-9)) { checks.push(`${mark(`${v} = ${show}`)}: ${mark(`${beautify(R)} = ${formatNumber(rVal)} < 0`)}, outside the domain — rejected`); continue; }
+      if (!(sVal >= -1e-9)) { checks.push(`${mark(`${v} = ${show}`)}: the right side ${mark(`${beautify(S)} = ${formatNumber(sVal)}`)} is negative, but a square root cannot be — extraneous (it solves ${mark(`√(${beautify(R)}) = −(${beautify(S)})`)} instead) — rejected`); continue; }
+      if (!satisfiesEquation(equation, v, c.numeric)) { checks.push(`${mark(`${v} = ${show}`)} does not balance the original equation — rejected`); continue; }
       checks.push(Number.isFinite(constantS)
-        ? `${v} = ${show}: √(${formatNumber(rVal)}) = ${formatNumber(Math.sqrt(Math.max(rVal, 0)))} — balances ✓`
-        : `${v} = ${show}: √(${formatNumber(rVal)}) = ${formatNumber(Math.sqrt(Math.max(rVal, 0)))} and ${beautify(S)} = ${formatNumber(sVal)} — balances ✓`);
+        ? `${mark(`${v} = ${show}`)}: ${mark(`√(${formatNumber(rVal)}) = ${formatNumber(Math.sqrt(Math.max(rVal, 0)))}`)} — balances ✓`
+        : `${mark(`${v} = ${show}`)}: ${mark(`√(${formatNumber(rVal)}) = ${formatNumber(Math.sqrt(Math.max(rVal, 0)))}`)} and ${mark(`${beautify(S)} = ${formatNumber(sVal)}`)} — balances ✓`);
       kept.push({ display: show, numeric: c.numeric });
     }
     steps.push(`Check each candidate in the original equation: ${checks.join('; ')}.`);
