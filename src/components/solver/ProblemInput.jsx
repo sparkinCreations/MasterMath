@@ -141,7 +141,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           onChange={handleProblemChange}
           onKeyDown={handleKeyDown}
           placeholder={topic ? PLACEHOLDERS[topic] : "Select a topic first, then enter your problem..."}
-          className={`min-h-32 text-lg border-2 ${
+          className={`min-h-32 text-lg border-2 scroll-mt-24 md:scroll-mt-0 ${
             validationError ? 'border-red-300 focus:border-red-400' : 'border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500'
           } rounded-xl p-4 resize-none`}
           maxLength={1000}

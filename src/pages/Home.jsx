@@ -19,6 +19,17 @@ import {
 import GithubMark from "@/components/ui/github-mark";
 import { WORKED_EXAMPLE } from "@/lib/workedExample";
 
+// Solver text for display without KaTeX: superscripts, a real minus sign and
+// a middle dot. Display only — the data stays the solver's own output.
+function prettyMath(text) {
+  return String(text)
+    .replace(/\^2\b/g, '²')
+    .replace(/\^3\b/g, '³')
+    .replace(/\s-\s/g, ' − ')
+    .replace(/(^|[\s(=])-(?=[\dx])/g, '$1−')
+    .replace(/\*/g, '·');
+}
+
 export default function Home() {
   usePageTitle("Step-by-step math, solved locally - Free Math Solver");
 
@@ -39,11 +50,11 @@ export default function Home() {
             Master math with confidence
           </p>
           <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 px-2">
-            Step-by-step calculus and algebra, solved in your browser — not by AI
+            Step-by-step calculus and algebra, solved in your browser
           </p>
           <p className="mt-3 text-sm md:text-base text-gray-600 dark:text-gray-300 px-2 max-w-2xl inline-flex items-start gap-2">
             <GraduationCap className="w-5 h-5 shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
-            <span>For high-school and early-college students, from algebra through Calculus II, and for teachers who want a solver that shows the method, not just the answer.</span>
+            <span>For students and teachers, from algebra to Calculus II, who want a solver that shows the method.</span>
           </p>
         </div>
 
@@ -118,30 +129,39 @@ export default function Home() {
           What a Solution Looks Like
         </h2>
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6 md:mb-8">
-          Algebra · <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1.5 py-0.5 rounded">x^2 - 5x + 6 = 0</code>
+          An algebra problem, exactly as the solver works it
         </p>
-        <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-          <CardContent className="p-4 md:p-8">
-            <ol className="space-y-3 text-sm md:text-base text-gray-700 dark:text-gray-300">
+        <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden">
+          {/* The equation being solved, as the card's own header. Styled
+              Unicode rather than KaTeX: the landing page deliberately loads
+              no solver library, and a test enforces that. */}
+          <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 px-6 py-5 md:px-10 md:py-6">
+            <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-indigo-500 dark:text-indigo-300 mb-1">Solve · Algebra</p>
+            <p className="text-2xl md:text-3xl font-bold text-indigo-700 dark:text-indigo-200 font-mono tracking-tight" aria-label="x squared minus 5 x plus 6 equals 0">
+              {prettyMath(WORKED_EXAMPLE.problem)}
+            </p>
+          </CardHeader>
+          <CardContent className="p-6 md:p-10">
+            <ol className="divide-y divide-gray-200 dark:divide-gray-700 text-sm md:text-base text-gray-700 dark:text-gray-300">
               {WORKED_EXAMPLE.steps.map((step, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="shrink-0 w-7 h-7 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white text-sm font-bold flex items-center justify-center" aria-hidden="true">{i + 1}</span>
-                  <span><span className="sr-only">Step {i + 1}. </span>{step}</span>
+                <li key={i} className="flex items-start gap-4 py-4 md:py-5 first:pt-0">
+                  <span className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white text-sm font-bold flex items-center justify-center shadow-sm" aria-hidden="true">{i + 1}</span>
+                  <span className="pt-1 leading-relaxed"><span className="sr-only">Step {i + 1}. </span>{prettyMath(step)}</span>
                 </li>
               ))}
             </ol>
-            <p className="mt-5 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 font-semibold">
-              Final answer: {WORKED_EXAMPLE.answer}
+            <p className="mt-6 p-4 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 font-semibold text-base md:text-lg">
+              Final answer: {prettyMath(WORKED_EXAMPLE.answer)}
             </p>
-            <p className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm text-amber-900 dark:text-amber-100">
-              <span className="font-semibold">Key insight:</span> {WORKED_EXAMPLE.tip}
+            <p className="mt-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm md:text-base text-amber-900 dark:text-amber-100">
+              <span className="font-semibold">Key insight:</span> {prettyMath(WORKED_EXAMPLE.tip)}
             </p>
-            <div className="mt-5 flex justify-center">
-              <Button asChild className="bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-semibold shadow-md">
+            <div className="mt-8 md:mt-10 mb-2 flex justify-center">
+              <Button asChild size="lg" className="h-12 md:h-14 px-6 md:px-8 text-base md:text-lg bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
                 <Link to={createPageUrl("Solver")} state={{ problem: WORKED_EXAMPLE.problem, topic: WORKED_EXAMPLE.topic }}>
-                  <Calculator className="w-4 h-4 mr-2" />
+                  <Calculator className="w-5 h-5 mr-2" />
                   Try this one in the solver
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
               </Button>
             </div>

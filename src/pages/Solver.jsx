@@ -40,9 +40,27 @@ export default function Solver() {
   // on a desktop it is already beside the input and revealElement leaves the
   // page alone. Focus lets screen readers announce the result as well.
   const solutionRef = useRef(null);
+  const graphRef = useRef(null);
   useEffect(() => {
-    if (solution) revealElement(solutionRef.current, { focus: true });
-  }, [solution]);
+    // Wait for the loading state to clear: the input card above the graph
+    // loses its Cancel row then, and a smooth scroll that started earlier
+    // would end that much too high.
+    if (!solution || isLoading) return;
+    // On a phone the page stacks input → graph → solution, so landing on the
+    // solution skipped the graph and the reader scrolled back up to it. When
+    // a graph was drawn and the layout is stacked (below Tailwind's lg
+    // breakpoint), bring the graph into view and leave the reading order to
+    // the reader; keyboard focus still goes to the solution so a screen
+    // reader announces it. Without a graph, or beside the input on a desktop,
+    // the solution is the target as before.
+    const stacked = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1023px)').matches;
+    if (stacked && graphData?.points && graphRef.current) {
+      revealElement(graphRef.current);
+      solutionRef.current?.focus?.({ preventScroll: true });
+    } else {
+      revealElement(solutionRef.current, { focus: true });
+    }
+  }, [solution, isLoading, graphData]);
 
   // Start the solver worker now, so its bundle is loading while the user
   // types rather than when they press Solve.
@@ -183,16 +201,18 @@ export default function Solver() {
             />
           </div>
 
-          {graphData?.points ? (
-            <Suspense fallback={<GraphEmptyState message="Drawing your graph..." />}>
-              <GraphViewer functionData={graphData} />
-            </Suspense>
-          ) : (
-            <GraphEmptyState />
-          )}
+          <div ref={graphRef} className="scroll-mt-20 lg:scroll-mt-0">
+            {graphData?.points ? (
+              <Suspense fallback={<GraphEmptyState message="Drawing your graph..." />}>
+                <GraphViewer functionData={graphData} />
+              </Suspense>
+            ) : (
+              <GraphEmptyState />
+            )}
+          </div>
         </div>
 
-        <div ref={solutionRef} tabIndex={-1} aria-label="Solution" className="outline-hidden">
+        <div ref={solutionRef} tabIndex={-1} aria-label="Solution" className="outline-hidden scroll-mt-20 lg:scroll-mt-0">
           <SolutionDisplay solution={solution} problem={solvedInput.problem} topic={solvedInput.topic} />
         </div>
       </div>

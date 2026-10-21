@@ -156,7 +156,12 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('heading', { name: /Welcome to MasterMath/ })).toBeVisible();
   });
 
-  test('on a phone, an example brings the textarea back and Solve brings the solution into view', async ({ page }, testInfo) => {
+  // The phone page stacks input → graph → solution. After Solve the page
+  // lands on the graph when one was drawn (it sits above the solution and
+  // used to be skipped) and on the solution otherwise; keyboard focus goes
+  // to the solution either way so a screen reader announces it. Both land
+  // below the sticky header, not under it.
+  test('on a phone, an example brings the textarea back and Solve brings the graph (or the solution) into view', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'phone', 'phone layout only');
     await openSolver(page);
     const textarea = page.getByLabel('Enter your problem');
@@ -169,6 +174,16 @@ test.describe('MasterMath smoke', () => {
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     const solution = page.locator('[aria-label="Solution"]');
     await expect(solution).toContainText('Final Answer:');
+    await expect(solution).toBeFocused();
+    const graph = page.getByRole('img', { name: /^Graph of/ });
+    await expect(graph).toBeInViewport();
+    const headerBottom = await page.locator('header[role="banner"]').evaluate((el) => el.getBoundingClientRect().bottom);
+    await expect.poll(async () => (await graph.boundingBox()).y).toBeGreaterThanOrEqual(headerBottom - 1);
+
+    // No graph: the solution itself is the target.
+    await page.getByRole('button', { name: 'Arithmetic: (5 + 3) * 4 - 2^3' }).click();
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(solution).toContainText(/Final Answer:\s*24/);
     await expect(solution).toBeFocused();
     await expect(solution).toBeInViewport();
   });
