@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import NotationGuide from "@/components/solver/NotationGuide";
 import { revealElement } from "@/lib/reveal";
 import MathText from "@/components/MathText";
 import SymbolStrip from "@/components/solver/SymbolStrip";
@@ -216,17 +216,15 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             <span className="text-lg leading-snug break-words min-w-0"><MathText text={problem} /></span>
           </div>
         )}
-        {/* A hint that stays while typing: the placeholder's examples vanish
-            at the first keystroke, and a casual user does not guess
-            "lim x->0". */}
-        <p className="text-xs text-gray-500 dark:text-gray-400 px-1">
-          Type it as you would say it: <code className="font-mono">x^2</code>, <code className="font-mono">sqrt(x)</code> or √, <code className="font-mono">∫_0^1 x^2 dx</code>, <code className="font-mono">d/dx(x^3)</code>, <code className="font-mono">{"lim x->0 (sin(x)/x)"}</code>, or "integral of x^2 from 0 to 1".{' '}
-          <Link to="/usermanual#entering-your-problem" className="underline decoration-gray-300 dark:decoration-gray-600 hover:text-indigo-700 dark:hover:text-indigo-300">Notation guide</Link>
-        </p>
         <div className="flex justify-between items-center gap-3 min-h-11">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {problem.length}/1000 characters
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {problem.length}/1000 characters
+            </p>
+            {/* How to type things, one tap away; the placeholder's examples
+                vanish at the first keystroke. */}
+            <NotationGuide />
+          </div>
           {problem && (
             // Emptying a textarea on a phone is long-press, Select All,
             // Delete; one button instead. The topic stays, the caret returns.

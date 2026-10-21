@@ -115,6 +115,10 @@ for (const scheme of ['light', 'dark']) {
       await page.getByRole('button', { name: 'Symbols' }).click();
       await page.locator('#problem').fill('x^2 - 4*x + 3');
       await audit(page, `solver with the symbol strip open and a preview (${scheme})`);
+      await page.getByRole('button', { name: 'Notation guide' }).click();
+      await expect(page.getByRole('dialog', { name: 'Notation guide' })).toBeVisible();
+      await audit(page, `solver with the notation guide open (${scheme})`);
+      await page.keyboard.press('Escape');
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
       await expect(page.getByRole('group', { name: 'Graph view controls' })).toBeVisible();

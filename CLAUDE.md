@@ -24,7 +24,7 @@ the logo; green = answer, amber = tips.
 src/
   App.jsx, Layout.jsx          providers, routes, sidebar/header/footer
   pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback, NotFound (the `*` route)
-  components/solver/           ProblemInput (+ SymbolStrip: one-tap symbols from lib/symbolInsert.js, and a live KaTeX preview), SolutionDisplay, GraphViewer, GraphEmptyState
+  components/solver/           ProblemInput (+ SymbolStrip: one-tap symbols from lib/symbolInsert.js, a live KaTeX preview, and the NotationGuide dialog), SolutionDisplay, GraphViewer, GraphEmptyState
   components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
   components/MathText.jsx      KaTeX rendering of solver text (lib/latex.js segments prose from math, clause by clause)
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
