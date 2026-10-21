@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap (October 2026)
 
-**Version referenced:** 1.48.0
+**Version referenced:** 1.49.0 (written against 1.48.0)
 **By:** sparkinCreations™
 **Last Updated:** October 21, 2026
 **Supersedes:** [`ROADMAP.md`](ROADMAP.md) (September 2026; 11/13 shipped, the two P4 items carry over below)
@@ -49,8 +49,8 @@ purpose, so the next reviewer does not re-raise them.
 | Priority | Item | Why it matters | Effort |
 |---|---|---|---|
 | P1 | Typeset every step (explicit math markers) | About one step in ten still mixes plain-text math with typeset math; the renderer guesses which fragments are math | 1–2 days |
-| P1 | Implicit differentiation | `x^2 + y^2 = 25` under Derivatives is routed to Algebra and solved for x; a student asking for dy/dx gets the wrong kind of answer | 1 day |
-| P2 | `(1 + a/x)^(bx)` limits by a named technique | The answer e is found by sampling, which the steps admit; the other limit families have proofs | 1 day |
+| ~~P1~~ | ~~Implicit differentiation~~ | **Shipped in 1.49.0** | — |
+| ~~P2~~ | ~~`(1 + a/x)^(bx)` limits by a named technique~~ | **Shipped in 1.49.0** | — |
 | P2 | PDF export with typeset steps and the graph | The PDF is plain text: ± as "+/-", x² as x^2, no graph; Markdown and JSON are complete | 1 day |
 | P3 | Tips chosen by method, everywhere | Reviews still find generic or off-topic tips on some paths | ½ day sweep |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
@@ -98,6 +98,16 @@ marker ever reaches an export (Markdown/JSON/PDF strip them).
 
 ## P1 — Implicit Differentiation
 
+> **Shipped in 1.49.0** (`src/lib/solvers/implicitDerivativeSolver.js`).
+> Every acceptance case passes, with corpus rows; also "find dy/dx if …"
+> from any topic, `xy` read as x·y, and "at (a, b)" with off-curve,
+> vertical-tangent and singular-point answers. Verified by following the
+> curve numerically rather than at a solved-for y. One change from the plan:
+> **no graph** — a tangent line drawn without its curve explained nothing,
+> and plotting an implicit curve is a separate piece of work (below).
+> The same sweep found y = f(x) and f(x) = … under Derivatives answered
+> "already in simplest form"; fixed too.
+
 **Finding (review 6).** `x^2 + y^2 = 25` under Derivatives is routed to
 Algebra ("the input is an equation to solve") and solved for x in terms
 of y. The routed step says what happened, so it is honest, but it is not
@@ -128,6 +138,11 @@ added.
 ---
 
 ## P2 — Limits of the Form (1 + a/x)^(bx): a Named Technique
+
+> **Shipped in 1.49.0** (`tryOneToInfinity` in `limitsSolver.js`). Any B^E
+> with B → 1 and E → ±∞ at 0 or ±∞ where E·(B − 1) simplifies to a
+> constant or an equal-degree rational: e, e², 1/e, √e, e^(−6), e⁹ and 1
+> all proved; the sampling fallback is no longer reached for the family.
 
 **Finding (review 6).** `lim x->∞ (1 + 1/x)^x` returns e with the steps
 *"Evaluate the function at increasingly large positive values … The values
@@ -209,6 +224,15 @@ Recorded so they are not re-opened without a new argument.
 | Sticky header "a quarter of the phone screen" | **No** | 74 px of a 664 px phone viewport, 11%. |
 | Privacy and Terms "Last updated" dates differ | **Not a bug** | Privacy changed in October for the security-header work; Terms has not changed since March. Both dates are true. |
 
+## Found in the 1.49.0 Sweep, Not Yet Done
+
+| Item | What happens | Note |
+|---|---|---|
+| Two-variable inequalities | `x + y > 2` was answered "No solution" | **Fixed in 1.49.0**: refused honestly. Graphing the region is new work. |
+| Periodic inequalities | `sin(x) > 1/2` lists intervals only inside ±50, without saying the pattern repeats | Should give the general solution (π/6 + 2πk < x < 5π/6 + 2πk), as trig equations do |
+| Exact inequality endpoints | `e^x > 2` gives `x > 0.6931` | Should be x > ln 2 (≈ 0.6931); the endpoint is exact, and a located one needs ≈ |
+| Implicit curve plot | Implicit derivatives have no graph | A contour plot of F(x, y) = 0 with the tangent at the point |
+
 **Not reproduced, fixed anyway:** the topic list "stuck open until Escape"
 (closed only on losing focus; now closes on an outside tap, v1.47.0).
 
@@ -222,11 +246,12 @@ Honest refusals, each with a message that says so:
   v1.48.0; before that the algebra path answered 0.
 - **Matrices** (determinants, inverses, eigenvalues, products) — refused
   since v1.48.0.
-- **Implicit differentiation** — routed to Algebra today; P1 above.
 - **Trig equations outside the reducible families** — solved numerically
   under Trigonometry, with the steps saying so.
 - **Limits outside the named techniques** — numeric estimate, stated as
-  such; the `(1 + a/x)^(bx)` family is P2 above.
+  such.
+- **Inequalities in two variables** — refused since v1.49.0; before that
+  they were answered "No solution".
 - **Integrals the engine cannot do** — `unsupported`, with the
   non-elementary note where one applies (erf, Si, Fresnel).
 - **Polynomials above degree 100** — refused.

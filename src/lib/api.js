@@ -202,6 +202,121 @@ function extractEvalPoint(problem) {
   return { rest: m[1].trim(), variable, valueText: m[3].trim() };
 }
 
+// dy/dx of an equation in two variables: "x^2 + y^2 = 25" under Derivatives,
+// or "find dy/dx if x^2 + y^2 = 25" / "differentiate implicitly: xy = 1"
+// under any topic. The equation used to go to Algebra and be solved for x
+// (October 2026 review); "dy/dx" in the request was refused as a
+// differential equation. Returns null when the input is not such a request;
+// { explicit, variable, point } for y = f(x) and f(x) = …, which are
+// ordinary derivatives; else { lhs, rhs, independent, dependent, point }.
+const IMPLICIT_FUNCTIONS = /(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp|pi|e)(?![a-z])/gi;
+function implicitDerivativeRequest(problem, topic) {
+  let t = String(problem).trim();
+  if (/[<>≤≥]/.test(t)) return null;
+  let wanted = null; // [dependent, independent] from a typed dy/dx
+  let asked = false;
+  let withRespectTo = null;
+
+  // The point, at the end: "at (3, 4)", "at x = 3, y = 4", "at x = 3".
+  const VAL = '((?:[^,()=]|\\([^()]*\\))+?)';
+  let point = null;
+  let m = t.match(new RegExp(`[\\s,]+(?:at|when|where)\\s+(?:the\\s+point\\s+)?\\(\\s*${VAL}\\s*,\\s*${VAL}\\s*\\)\\s*[.?!]?\\s*$`, 'i'));
+  if (m) {
+    point = { first: m[1].trim(), second: m[2].trim() };
+  } else if ((m = t.match(new RegExp(`[\\s,]+(?:at|when|where)\\s+([a-z])\\s*=\\s*${VAL}\\s*(?:,|and)\\s*([a-z])\\s*=\\s*${VAL}\\s*[.?!]?\\s*$`, 'i')))) {
+    point = { named: { [m[1].toLowerCase()]: m[2].trim(), [m[3].toLowerCase()]: m[4].trim() } };
+  } else if ((m = t.match(new RegExp(`[\\s,]+(?:at|when|where)\\s+([a-z])\\s*=\\s*${VAL}\\s*[.?!]?\\s*$`, 'i')))) {
+    point = { named: { [m[1].toLowerCase()]: m[2].trim() } };
+  }
+  if (m && point) t = t.slice(0, m.index).trim();
+
+  // The request words around the equation.
+  const LEAD = [
+    /^(?:please\s+)?(?:find|compute|calculate|determine|get|what\s+is|use|using|by)\s+/i,
+    /^the\s+/i,
+    /^(?:implicit\s+)?(?:derivative|slope)\s*/i,
+    /^implicit(?:ly)?\s+(?:differentiat(?:e|ion)\s*)?/i,
+    /^differentiat(?:e|ion)\s+(?:implicitly\s*)?/i,
+    /^(?:to\s+find|for|of|if|given|when|where|from|on|the\s+curve)\s+/i,
+    /^[:,]\s*/,
+  ];
+  for (let changed = true; changed;) {
+    changed = false;
+    const leibniz = t.match(/^d([a-z])\s*\/\s*d([a-z])\s*/i);
+    if (leibniz) {
+      wanted = [leibniz[1].toLowerCase(), leibniz[2].toLowerCase()];
+      t = t.slice(leibniz[0].length);
+      asked = true;
+      changed = true;
+      continue;
+    }
+    for (const re of LEAD) {
+      const lead = t.match(re);
+      if (lead && lead[0]) {
+        if (/deriv|differentiat|implicit|slope/i.test(lead[0])) asked = true;
+        t = t.slice(lead[0].length);
+        changed = true;
+        break;
+      }
+    }
+  }
+  const TRAIL = /[\s,;]+(?:(?:and\s+)?(?:find|compute)\s+)?(?:d([a-z])\s*\/\s*d([a-z])|the\s+derivative|the\s+slope|implicitly|by\s+implicit\s+differentiation|with\s+respect\s+to\s+([a-z]))\s*[.?!]?\s*$/i;
+  for (let trail = t.match(TRAIL); trail; trail = t.match(TRAIL)) {
+    if (trail[1]) wanted = [trail[1].toLowerCase(), trail[2].toLowerCase()];
+    if (trail[3]) withRespectTo = trail[3].toLowerCase();
+    asked = true;
+    t = t.slice(0, trail.index).trim();
+  }
+  if (!asked && topic !== 'derivatives') return null;
+
+  // One equation, both sides present, nothing left of a derivative in it
+  // (dy/dx + y = x is a differential equation, and stays refused).
+  const sides = t.split(/(?<![<>!=])=(?!=)/);
+  if (sides.length !== 2) return null;
+  const [lhs, rhs] = sides.map((s) => s.trim());
+  if (!lhs || !rhs || /^[+\-*/^]/.test(lhs) || /['′″‴]|\bd[a-z]\s*\/\s*d[a-z]\b/i.test(t)) return null;
+
+  // f(x) = …: a named function, differentiated as usual.
+  const named = lhs.match(/^([a-z])\s*\(\s*([a-z])\s*\)$/i);
+  if (named && !/(?<![a-z])[a-z]\s*\(\s*[a-z]\s*\)/i.test(rhs.replace(IMPLICIT_FUNCTIONS, ''))) {
+    const v = named[2].toLowerCase();
+    return { explicit: rhs, variable: v, point: point?.named?.[v] ?? point?.first ?? null };
+  }
+
+  // The variables: single letters, with xy / 2xy read as products.
+  const letters = new Set();
+  for (const word of t.replace(IMPLICIT_FUNCTIONS, ' ').match(/[a-z]+/gi) || []) {
+    const lower = word.toLowerCase();
+    if (lower.length > 1 && !/^[xy]+$/.test(lower) && !(wanted && [...lower].every((c) => wanted.includes(c)))) return null;
+    for (const c of lower) letters.add(c);
+  }
+  if (letters.size !== 2) return null;
+  let dependent;
+  let independent;
+  if (wanted && letters.has(wanted[0]) && letters.has(wanted[1])) [dependent, independent] = wanted;
+  else if (letters.has('x') && letters.has('y')) [dependent, independent] = ['y', 'x'];
+  else return null;
+  if (withRespectTo && withRespectTo !== independent) return null;
+
+  let at = null;
+  if (point?.first !== undefined) at = { x: point.first, y: point.second };
+  else if (point?.named) {
+    if (Object.keys(point.named).some((k) => k !== independent && k !== dependent)) return null;
+    at = { x: point.named[independent] ?? null, y: point.named[dependent] ?? null };
+    if (at.x === null) return null;
+  }
+
+  // y = f(x), either way round: an ordinary derivative, unless a full point
+  // was given (then the point is checked against the curve).
+  const varRe = (v) => new RegExp(`(?<![a-z])${v}(?![a-z])`, 'i');
+  for (const [alone, other] of [[lhs, rhs], [rhs, lhs]]) {
+    if (alone.toLowerCase() === dependent && !varRe(dependent).test(other.replace(IMPLICIT_FUNCTIONS, ' ')) && !(at && at.y !== null)) {
+      return { explicit: other, variable: independent, point: at ? at.x : null };
+    }
+  }
+  return { lhs, rhs, independent, dependent, point: at };
+}
+
 const TOPIC_NAMES = { derivatives: 'Derivatives', integrals: 'Integrals', limits: 'Limits', functions: 'Functions', trigonometry: 'Trigonometry', algebra: 'Algebra', other: 'Arithmetic' };
 
 // A solved result that was routed away from the chosen topic says so, first.
@@ -391,6 +506,22 @@ export async function solveProblem(problem, topic) {
     }
 
     let result;
+
+    // dy/dx of an equation in x and y, before the differential-equation
+    // check below: "find dy/dx if x^2 + y^2 = 25" names dy/dx but is not one.
+    const implicit = implicitDerivativeRequest(problem, topic);
+    if (implicit) {
+      if (implicit.explicit) {
+        const { solveDerivative } = await import('./solvers/derivativesSolver.js');
+        const expression = extractFunctionFromProblem(implicit.explicit);
+        const evalAt = implicit.point !== null ? { variable: implicit.variable, valueText: implicit.point } : undefined;
+        result = await solveDerivative(expression, { variable: implicit.variable, evalAt });
+      } else {
+        const { solveImplicitDerivative } = await import('./solvers/implicitDerivativeSolver.js');
+        result = await solveImplicitDerivative(implicit.lhs, implicit.rhs, implicit);
+      }
+      return finalizeResult(topic === 'derivatives' ? result : noteRouting(result, topic, 'derivatives', `the input asks for the derivative of an equation in ${implicit.explicit ? implicit.variable : `${implicit.independent} and ${implicit.dependent}`}`), problem);
+    }
 
     // Differential equations (y'' + y = 0, dy/dx = 2x) and matrices are
     // outside every solver family. Refused up front, honestly: the algebra

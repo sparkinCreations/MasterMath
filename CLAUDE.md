@@ -64,7 +64,9 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    on that line.
 3. `solveProblem` (`api.js`) routes by **intent, not topic**: derivative /
    integral / limit notation goes to that solver under any topic; a single
-   equation goes to Algebra; two `=` signs go to systems; a comparison operator
+   equation goes to Algebra — except an equation in x and y under Derivatives
+   (or with "find dy/dx"), which goes to implicit differentiation, checked
+   before the differential-equation refusal; two `=` signs go to systems; a comparison operator
    to inequalities; a trailing "at x = a" is stripped first (`extractEvalPoint`).
    A routed result's first step says so (`routedTopic`).
 4. The solver returns `{ steps[], answer, tips[], common_mistakes[], graph? }`
@@ -106,12 +108,14 @@ substitutions; Algebrite roots checked for completeness against the degree,
 anything above degree 12 to `polynomialRoots`; simplification; factoring),
 `polynomialRoots` (exact reader, `factorByRationalRoots`, Sturm counting,
 exact bisection, verified complex roots, cap `MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,
-non-linear by substitution), `inequalitiesSolver` (sign charts, compound),
+non-linear by substitution), `inequalitiesSolver` (sign charts, compound; refuses two variables),
 `trigonometrySolver` (values, identities; exports `detectTrigAsymptote`),
 `trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
 `functionsSolver` (exact extrema/intercepts/asymptotes), `limitsSolver`
-(named techniques, each verified; numeric estimate last), `derivativesSolver`
+(named techniques incl. 1^∞ by logarithms, each verified; numeric estimate last), `derivativesSolver`
 (rule classification and worked rule steps, orders 1–4, evalAt),
+`implicitDerivativeSolver` (dy/dx of F(x, y) = 0 term by term, checked by
+following the curve; "at (a, b)"),
 `integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` /
 `trigSubstitutionSolver` (√(a² − b²x²)) / partial fractions / definite /
 improper).
@@ -169,7 +173,7 @@ description (`graphDescription.js`).
 ## Tests and verification
 
 - `npm test` — unit suite (node --test), includes the corpus harness
-  (`tests/corpus/`: July + September 2026 evaluations, 277 graded problems,
+  (`tests/corpus/`: July + September 2026 evaluations, 288 graded problems,
   0 confidently-wrong is the bar) and a build-preload check.
 - `npm run smoke` — Playwright against the production build, desktop and
   phone: pages, every example, worker + budget + Cancel, CSP, accessibility
