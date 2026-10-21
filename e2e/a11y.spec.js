@@ -77,6 +77,33 @@ for (const scheme of ['light', 'dark']) {
       expect(low, 'icon buttons below 3:1').toEqual([]);
     });
 
+    // axe reports an element over a gradient background as "incomplete",
+    // not as a violation, which is how a black card title on a dark gradient
+    // header shipped. Measure headings against the nearest solid background.
+    test('headings meet 4.5:1 against the nearest solid background', async ({ page }) => {
+      await page.goto('/solver');
+      await expect(page.getByRole('heading', { name: 'Graph View' })).toBeVisible();
+      const low = await page.evaluate(() => {
+        const cv = document.createElement('canvas'); cv.width = cv.height = 1; const cx = cv.getContext('2d');
+        const rgb = (css) => { cx.clearRect(0, 0, 1, 1); cx.fillStyle = css; cx.fillRect(0, 0, 1, 1); return [...cx.getImageData(0, 0, 1, 1).data]; };
+        const lum = ([r, g, b]) => { const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+        const contrast = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+        const bgOf = (el) => { let e = el; while (e) { const c = rgb(getComputedStyle(e).backgroundColor); if (c[3] > 128) return c; e = e.parentElement; } return rgb(getComputedStyle(document.body).backgroundColor); };
+        const out = [];
+        for (const h of document.querySelectorAll('h1, h2, h3')) {
+          if (!h.offsetParent) continue;
+          // Gradient text (background-clip: text) has a transparent colour;
+          // its contrast is the gradient's, which axe measures elsewhere.
+          const fg = rgb(getComputedStyle(h).color);
+          if (fg[3] < 128) continue;
+          const ratio = contrast(fg, bgOf(h));
+          if (ratio < 4.5) out.push(`${h.textContent.trim().slice(0, 40)}: ${ratio.toFixed(2)}`);
+        }
+        return out;
+      });
+      expect(low, 'headings below 4.5:1').toEqual([]);
+    });
+
     test('the solver with a validation error, and with a solution and graph', async ({ page }) => {
       await page.goto('/solver');
       await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();

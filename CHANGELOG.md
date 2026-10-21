@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.1] - 2026-10-21
+
+### Fixed
+
+- **"Graph View" on the empty graph card was black in dark mode.** The
+  1.44.0 fix covered the card with a graph, not the placeholder card. Card
+  titles now carry their own text colour (gray-900 / dark gray-100) in the
+  shared component, so no card can inherit black again; the placeholder's
+  header border and icon circle get dark-mode colours too. The
+  accessibility smoke test now measures every heading against its nearest
+  solid background (axe reports text over a gradient as "incomplete", not
+  as a violation, which is how this shipped twice).
+
 ## [1.45.0] - 2026-10-21
 
 ### Added
