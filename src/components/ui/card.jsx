@@ -26,7 +26,9 @@ CardHeader.displayName = "CardHeader"
 const CardTitle = React.forwardRef(({ className, as: Tag = "h2", ...props }, ref) => (
   <Tag
     ref={ref}
-    className={cn("text-2xl font-semibold leading-none tracking-tight", className)}
+    // A text colour of its own: a title that inherits gets browser-default
+    // black on a dark card (the empty graph card's "Graph View" did).
+    className={cn("text-2xl font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-100", className)}
     {...props}
   />
 ))

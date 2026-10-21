@@ -85,3 +85,16 @@ test('katex renders converted solver answers without throwing', async () => {
     assert.doesNotThrow(() => katex.renderToString(toLatex(s), { throwOnError: true }), `failed on: ${s}`);
   }
 });
+
+// The live preview typesets what is typed, so the typed forms must convert:
+// "lim x->0 (…)" rendered as "limx−>0(…)" (a minus and a greater-than, and
+// math mode drops the spaces).
+test('typed limits and arrows convert: lim x->0 and x->2', () => {
+  assert.equal(toLatex('lim x->0 (sin(x)/x)'), '\\lim_{x \\to 0} (\\sin(x)/x)');
+  assert.equal(toLatex('lim x→0 (sin(x)/x)'), '\\lim_{x \\to 0} (\\sin(x)/x)');
+  assert.match(toLatex('lim x->∞ (1/x)'), /^\\lim_\{x \\to \\infty\} /);
+  assert.match(toLatex('lim x->-∞ (1/x)'), /^\\lim_\{x \\to -\\infty\} /);
+  assert.equal(toLatex('x -> 2'), 'x \\to 2');
+  // The solver's own form is unchanged.
+  assert.equal(toLatex('lim (x→0) (sin(x)/x) = 1'), '\\lim_{x \\to 0} (\\sin(x)/x) = 1');
+});
