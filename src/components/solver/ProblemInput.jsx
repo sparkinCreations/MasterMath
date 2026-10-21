@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { revealElement } from "@/lib/reveal";
 import MathText from "@/components/MathText";
 import SymbolStrip from "@/components/solver/SymbolStrip";
-import { insertSymbol, readSymbolStripOpen, writeSymbolStripOpen } from "@/lib/symbolInsert";
+import { insertSymbol, groupForTopic, readSymbolStripOpen, writeSymbolStripOpen } from "@/lib/symbolInsert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calculator, Lightbulb, AlertCircle, Keyboard, ChevronUp, ChevronDown } from "lucide-react";
+import { Calculator, Lightbulb, AlertCircle, Keyboard, ChevronUp, ChevronDown, X } from "lucide-react";
 import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validation";
 
 const TOPICS = [
@@ -55,6 +55,15 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       writeSymbolStripOpen(globalThis.localStorage, !open);
       return !open;
     });
+  };
+  // The topic picks the strip's group; a group chosen by hand holds until
+  // the topic changes.
+  const [symbolGroup, setSymbolGroup] = useState(() => groupForTopic(topic));
+  useEffect(() => { setSymbolGroup(groupForTopic(topic)); }, [topic]);
+  const clearProblem = () => {
+    setProblem('');
+    setValidationError(null);
+    textareaRef.current?.focus?.({ preventScroll: true });
   };
   // Selection to apply once React has rendered the inserted text: setting
   // it on the DOM before the controlled value updates would be overwritten.
@@ -179,7 +188,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             {symbolsOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
           </button>
         </div>
-        {symbolsOpen && <SymbolStrip id="symbol-strip" onInsert={handleInsert} />}
+        {symbolsOpen && <SymbolStrip id="symbol-strip" group={symbolGroup} onGroupChange={setSymbolGroup} onInsert={handleInsert} />}
         <Textarea
           ref={textareaRef}
           id="problem"
@@ -204,10 +213,22 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             <span className="text-lg leading-snug break-words min-w-0"><MathText text={problem} /></span>
           </div>
         )}
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center gap-3 min-h-11">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {problem.length}/1000 characters
           </p>
+          {problem && (
+            // Emptying a textarea on a phone is long-press, Select All,
+            // Delete; one button instead. The topic stays, the caret returns.
+            <button
+              type="button"
+              onClick={clearProblem}
+              className="inline-flex items-center gap-1 min-h-11 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700 hover:text-indigo-700 dark:hover:text-indigo-300 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+            >
+              <X className="w-4 h-4" aria-hidden="true" />
+              Clear
+            </button>
+          )}
           {hasHistory && (
             <p className="text-xs text-gray-500 dark:text-gray-400">
               ↑↓ to recall previous problems

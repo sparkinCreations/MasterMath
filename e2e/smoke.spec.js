@@ -155,7 +155,19 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('group', { name: 'Insert a math symbol' })).toBeVisible();
     await page.getByRole('combobox').first().click();
     await page.getByRole('option', { name: 'Algebra' }).click();
+    // The topic picks the group; every group stays a tap away.
+    await expect(page.getByRole('button', { name: 'Algebra', pressed: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Calculus' }).click();
+    await expect(page.getByRole('button', { name: 'Insert an indefinite integral' })).toBeVisible();
+    await page.getByRole('button', { name: 'Basic' }).click();
     await page.locator('#problem').click();
+    await page.getByRole('button', { name: 'Insert plus' }).click();
+    await expect(page.locator('#problem')).toHaveValue(' + ');
+    // Clear empties the box and keeps the topic.
+    await page.getByRole('button', { name: 'Clear' }).click();
+    await expect(page.locator('#problem')).toHaveValue('');
+    await expect(page.getByRole('button', { name: 'Clear' })).toHaveCount(0);
+    await expect(page.getByRole('combobox').first()).toContainText('Algebra');
     await page.getByRole('button', { name: 'Insert a square root' }).click();
     // The caret is inside the parentheses, so typing continues there.
     await page.keyboard.type('x+1');
