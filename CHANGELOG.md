@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.44.1] - 2026-10-21
+
+### Fixed
+
+- **Graph controls and the navigation toggle were black in dark mode.** The
+  pan, zoom, height, fit and reset buttons and the header's menu arrow draw
+  their icons in the inherited text colour, and nothing set one, so on the
+  dark card they were browser-default black (1.4:1). The Button's `ghost`
+  variant now carries gray-700 / dark gray-200, and so does the sidebar
+  trigger. The accessibility smoke test now measures icon-stroke contrast
+  on every icon-only button in both themes (axe covers text only).
+
 ## [1.44.0] - 2026-10-21
 
 Fourth outside review.

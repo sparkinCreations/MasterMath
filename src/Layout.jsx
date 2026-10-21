@@ -147,7 +147,7 @@ export default function Layout({ children }) {
                 sidebar's overlay (z-30). */}
             <header className="sticky top-0 z-20 md:static bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-xs" role="banner">
               <div className="flex items-center justify-between">
-                <SidebarTrigger className="hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
+                <SidebarTrigger className="text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
                 <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">
                   <img
                     src="/favicon.png"
