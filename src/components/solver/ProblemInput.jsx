@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { revealElement } from "@/lib/reveal";
 import MathText from "@/components/MathText";
 import SymbolStrip from "@/components/solver/SymbolStrip";
@@ -44,7 +45,7 @@ const EXAMPLE_PROBLEMS = [
   { topic: "other", problem: "(5 + 3) * 4 - 2^3" }
 ];
 
-export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, onCancel, isLoading, onNavigateHistory, hasHistory }) {
+export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, onInvalid, onCancel, isLoading, onNavigateHistory, hasHistory }) {
   const [validationError, setValidationError] = useState(null);
   const textareaRef = useRef(null);
   // The symbol strip is hidden until asked for, and stays the way it was
@@ -126,6 +127,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
     const topicValidation = validateTopic(topic);
     if (!topicValidation.isValid) {
       setValidationError(topicValidation.error);
+      onInvalid?.();
       return;
     }
 
@@ -134,6 +136,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
     const inputValidation = validateMathInput(sanitized);
     if (!inputValidation.isValid) {
       setValidationError(inputValidation.error);
+      onInvalid?.();
       return;
     }
 
@@ -213,6 +216,13 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             <span className="text-lg leading-snug break-words min-w-0"><MathText text={problem} /></span>
           </div>
         )}
+        {/* A hint that stays while typing: the placeholder's examples vanish
+            at the first keystroke, and a casual user does not guess
+            "lim x->0". */}
+        <p className="text-xs text-gray-500 dark:text-gray-400 px-1">
+          Type it as you would say it: <code className="font-mono">x^2</code>, <code className="font-mono">sqrt(x)</code> or √, <code className="font-mono">∫_0^1 x^2 dx</code>, <code className="font-mono">d/dx(x^3)</code>, <code className="font-mono">{"lim x->0 (sin(x)/x)"}</code>, or "integral of x^2 from 0 to 1".{' '}
+          <Link to="/usermanual#entering-your-problem" className="underline decoration-gray-300 dark:decoration-gray-600 hover:text-indigo-700 dark:hover:text-indigo-300">Notation guide</Link>
+        </p>
         <div className="flex justify-between items-center gap-3 min-h-11">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {problem.length}/1000 characters
@@ -262,6 +272,10 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           </>
         )}
       </Button>
+      {!problem.trim() && !isLoading && (
+        // Why Solve is disabled, instead of a silent grey button.
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center -mt-3">Type a problem above, or pick an example below, to enable Solve.</p>
+      )}
       {/* The button's label changes to "Calculating…" but a label change is
           not announced; this polite live region is, and it empties when the
           solve ends (the outcome is announced by the toast). */}

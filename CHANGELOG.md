@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.47.0] - 2026-10-21
+
+Fifth outside review: the solver-page items, each reproduced first.
+
+### Added
+
+- **Step-through is the default for a new visitor.** The app teaches the
+  method, so the first thing a new user sees is the working unfolding one
+  step at a time, with the answer, tips and mistakes held back until the
+  last step; Show all is one tap away and the choice is remembered.
+- **A standing notation hint** under the problem box (x^2, sqrt(x) or √,
+  ∫_0^1 x^2 dx, d/dx(…), lim x->0 (…), or plain English), with a link to
+  the manual's "Enter Your Problem" section. The placeholder's examples
+  vanished at the first keystroke.
+- **A nudge for a bare expression.** "x^2 + 3x" under Algebra or Arithmetic
+  came back as itself. The result now carries "This looks like an
+  expression rather than an equation…" with Differentiate it / Integrate
+  it / Analyse it as a function buttons that re-solve under that topic.
+
+### Changed
+
+- **The solver opens on a topic**: the last one used, else Algebra, instead
+  of an empty form with a greyed-out Solve button. When Solve is disabled
+  for an empty box, a line under it says so.
+
+### Fixed
+
+- **A validation error clears the previous answer and graph**, which used
+  to stay on screen under the error looking current.
+- **The topic list closes on a tap outside it.** It closed only when the
+  trigger lost focus, and a tap on blank page does not move focus on a
+  touch screen, so the list stayed open until Escape.
+
 ## [1.46.0] - 2026-10-21
 
 ### Added

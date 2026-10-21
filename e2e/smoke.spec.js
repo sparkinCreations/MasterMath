@@ -58,6 +58,11 @@ test.describe('MasterMath smoke', () => {
   let errors;
   test.beforeEach(async ({ page }) => {
     errors = armErrorCapture(page);
+    // Step-through is the default for a new visitor; most tests want the
+    // whole solution at once. The one test of the default opts out.
+    await page.addInitScript(() => {
+      try { if (!sessionStorage.getItem('e2e-keep-default-mode') && !localStorage.getItem('solutionMode')) localStorage.setItem('solutionMode', 'all'); } catch { /* no storage */ }
+    });
   });
   test.afterEach(async () => {
     expect(errors, 'the page raised an error or rendered the error boundary').toEqual([]);
@@ -146,6 +151,76 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'System' }).click();
     await expect(page.locator('html')).not.toHaveClass(/dark/);
+  });
+
+  test('a new visitor steps through the solution, and Show all is remembered', async ({ page }) => {
+    await page.addInitScript(() => { try { sessionStorage.setItem('e2e-keep-default-mode', '1'); } catch { /* no storage */ } });
+    await openSolver(page);
+    // Init scripts run in registration order, so the suite's "Show all"
+    // script ran before this test's opt-out on the first load; clear what it
+    // wrote and load again as a true first visit.
+    await page.evaluate(() => localStorage.removeItem('solutionMode'));
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeVisible();
+    await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const solution = page.locator('[aria-label="Solution"]');
+    await expect(page.getByRole('button', { name: 'Step through' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(solution).toContainText(/Step 1 of \d+/);
+    await expect(solution).not.toContainText('Final Answer:');
+    await page.getByRole('button', { name: 'Show all' }).click();
+    await expect(solution).toContainText('Final Answer:');
+    await page.reload();
+    await page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }).click();
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(page.getByRole('button', { name: 'Show all' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(solution).toContainText('Final Answer:');
+  });
+
+  test('the solver opens on a topic, remembers it, explains a disabled Solve, and shows a notation hint', async ({ page }) => {
+    await openSolver(page);
+    await expect(page.getByRole('combobox').first()).toContainText('Algebra');
+    await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeDisabled();
+    await expect(page.getByText('Type a problem above, or pick an example below, to enable Solve.')).toBeVisible();
+    await expect(page.getByText(/Type it as you would say it/)).toBeVisible();
+    await page.getByRole('combobox').first().click();
+    await page.getByRole('option', { name: 'Integrals' }).click();
+    await page.reload();
+    await expect(page.getByRole('combobox').first()).toContainText('Integrals');
+    await page.getByRole('link', { name: 'Notation guide' }).click();
+    await expect(page).toHaveURL(/usermanual#entering-your-problem/);
+    await expect(page.getByRole('heading', { name: 'Step 2: Enter Your Problem' })).toBeInViewport();
+  });
+
+  test('a validation error clears the previous answer and graph', async ({ page }) => {
+    await openSolver(page);
+    const solution = await solveExample(page, 'Algebra: 2*x + 5 = 11');
+    await expect(page.locator('[role="img"][aria-label] svg.recharts-surface').first()).toBeVisible();
+    await page.locator('#problem').fill('hello world');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(page.getByRole('alert')).toContainText('valid math problem');
+    await expect(solution).not.toContainText('Final Answer:');
+    await expect(page.getByRole('heading', { name: 'Graph View' })).toBeVisible();
+  });
+
+  test('the topic list closes on a tap outside it', async ({ page }) => {
+    await openSolver(page);
+    await page.getByRole('combobox').first().click();
+    await expect(page.getByRole('option', { name: 'Limits' })).toBeVisible();
+    // A pointerdown on blank page, as a touch screen delivers it (no focus change).
+    await page.locator('h1').dispatchEvent('pointerdown', { bubbles: true });
+    await expect(page.getByRole('option', { name: 'Limits' })).toHaveCount(0);
+  });
+
+  test('a bare expression under Algebra offers to differentiate, integrate or analyse it', async ({ page }) => {
+    await openSolver(page);
+    await page.locator('#problem').fill('x^2 + 3x');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(page.getByRole('note')).toContainText('looks like an expression');
+    await page.getByRole('button', { name: 'Differentiate it' }).click();
+    await expect(page.getByRole('combobox').first()).toContainText('Derivatives');
+    await expect(page.locator('[aria-label="Solution"]')).toContainText(/2x \+ 3/);
+    await expect(page.getByRole('note')).toHaveCount(0);
   });
 
   test('the Symbols strip inserts at the caret, previews the typed math, and remembers being open', async ({ page }) => {
