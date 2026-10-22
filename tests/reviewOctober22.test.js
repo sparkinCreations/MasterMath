@@ -47,7 +47,7 @@ test('factor, expand, simplify and solve go to Algebra from any topic', async ()
     ['factor x^2-5x+6', 'integrals', '(x - 3)(x - 2)'],
     ['factorise x^2-9', 'derivatives', '(x - 3)(x + 3)'],
     ['expand (x+1)^2', 'limits', 'x^2 + 2x + 1'],
-    ['simplify (x^2-1)/(x-1)', 'functions', 'x + 1'],
+    ['simplify (x^2-1)/(x-1)', 'functions', 'x + 1, for x ≠ 1'], // the cancelled factor's zero, since 1.53.1
   ];
   for (const [p, topic, answer] of cases) {
     const r = await solveProblem(p, topic);

@@ -138,8 +138,10 @@ for (const scheme of ['light', 'dark']) {
 
       // While solving: the Cancel button and the spinner. (The outline Cancel
       // text was black on the dark card until 1.52.4; no audit ran mid-solve.)
-      // This integral runs to the 10-second budget, so the state holds.
-      await page.locator('#problem').fill('∫ (x+1)/((x-1)^2*(x^2+1)) dx');
+      // This integral runs to the 10-second budget, so the state holds. (Not
+      // (x+1)/((x-1)^2*(x^2+1)) any more: since 1.53.1 that solves in under a
+      // second, by partial fractions.)
+      await page.locator('#problem').fill('∫ 1/(x^6+x+1) dx');
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible();
       await audit(page, `solver while solving (${scheme})`);

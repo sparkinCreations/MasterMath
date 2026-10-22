@@ -88,7 +88,8 @@ test('one equation in two unknowns is solved for one in terms of the other, and 
   assert.match(r.steps[0], /infinitely many solutions/);
   assert.equal((await solveProblem('a*b = 12', 'algebra')).answer, 'a = 12/b');
   // real form for radicals
-  assert.equal((await solveProblem('x^2 + y^2 = 25', 'algebra')).answer, 'x = -(-y^2+25)^(1/2)  or  x = (-y^2+25)^(1/2)');
+  // Since 1.53.1 in textbook form (was x = -(-y^2+25)^(1/2)  or  x = (-y^2+25)^(1/2)).
+  assert.equal((await solveProblem('x^2 + y^2 = 25', 'algebra')).answer, 'x = ±√(25 - y^2)');
 });
 
 // ── Degenerate input.

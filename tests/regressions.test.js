@@ -552,12 +552,13 @@ test('regression: audit polish — a jump limit still reads "sides disagree", no
 // removed) split (x^2-9)/(x+3) into x^2/(x+3) - 9/(x+3); Algebrite cancels it.
 test('regression: audit polish — (x^2-9)/(x+3) simplifies to x - 3, not a split fraction', async () => {
   const r = await solveProblem('(x^2-9)/(x+3)', 'algebra');
-  assert.equal(r.answer, 'x - 3');
+  // Since 1.53.1 the cancelled factor's zero is stated: equal only for x ≠ −3.
+  assert.equal(r.answer, 'x - 3, for x ≠ -3');
 });
 
 test('regression: audit polish — rational simplifications cancel fully', async () => {
-  assert.equal((await solveProblem('(x^2-1)/(x-1)', 'algebra')).answer, 'x + 1');
-  assert.equal((await solveProblem('(2x^2-8)/(x-2)', 'algebra')).answer, '2(x + 2)');
+  assert.equal((await solveProblem('(x^2-1)/(x-1)', 'algebra')).answer, 'x + 1, for x ≠ 1');
+  assert.equal((await solveProblem('(2x^2-8)/(x-2)', 'algebra')).answer, '2(x + 2), for x ≠ 2');
 });
 
 test('regression: audit polish — like terms combine with a worked step', async () => {

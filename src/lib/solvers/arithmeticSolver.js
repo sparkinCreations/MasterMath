@@ -49,7 +49,7 @@ export function solveArithmetic(expression) {
       let principal = '';
       try { principal = math.format(math.evaluate(whole), { precision: 5 }); } catch { /* no note */ }
       const real = Number(p) % 2 ? `-(${base}^(${p}/${q}))` : `(${base}^(${p}/${q}))`;
-      rootNotes.push(`${whole}: the base is negative and the root is odd (${q}), so it has a real value — rewrite it as ${real}.${principal ? ` (A calculator that answers ${principal} is showing the principal complex root instead.)` : ''}`);
+      rootNotes.push(`${mark(whole)}: the base is negative and the root is odd (${mark(q)}), so it has a real value — rewrite it as ${mark(real)}.${principal ? ` (A calculator that answers ${mark(principal)} is showing the principal complex root instead.)` : ''}`);
       return `(${real})`;
     });
 
