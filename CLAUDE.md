@@ -80,7 +80,8 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    record with the dropdown so the answer is not cleared) and hides that
    first step; exports and history keep it. A trig function or ° under
    Arithmetic goes to Trigonometry (angle units live there); a leading
-   factor / expand / simplify / solve goes to Algebra; a constant that
+   factor / expand / simplify / solve goes to Algebra (to Trigonometry
+   when the input has a trig function: it knows the identities); a constant that
    divides by zero (and any plain number under Limits) goes to Arithmetic. A word no engine
    knows is a parse error on every path, never a constant: the single-
    expression paths check the extracted expression (`unknownWord`), the

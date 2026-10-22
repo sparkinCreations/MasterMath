@@ -655,10 +655,14 @@ export async function solveProblem(problem, topic) {
     // "factor x^2-5x+6", "expand (x+1)^2", "simplify …", "solve …": the verb
     // is the intent, as "derivative of" is. Under Integrals "factor …" was
     // a parse error ("factor" is not a known function; October 2026 review).
-    const verb = !calculus && topic !== 'algebra' && String(problem).match(/^\s*(factor(?:i[sz]e)?|expand|simplify|solve)\b/i);
-    if (verb) {
-      const routed = await solveProblem(problem, 'algebra');
-      return noteRouting(routed, topic, 'algebra', `the input asks to ${verb[1].toLowerCase().replace(/^factori[sz]e$/, 'factor')} it`);
+    // With a trig function in it, the verb's home is Trigonometry, which
+    // knows the identities: under Algebra "simplify tan(x)*cos(x)" came back
+    // unchanged, where Trigonometry gives sin(x).
+    const verb = !calculus && String(problem).match(/^\s*(factor(?:i[sz]e)?|expand|simplify|solve)\b/i);
+    const verbHome = verb && (/(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*[(^]/i.test(problem) ? 'trigonometry' : 'algebra');
+    if (verb && topic !== verbHome) {
+      const routed = await solveProblem(problem, verbHome);
+      return noteRouting(routed, topic, verbHome, `the input asks to ${verb[1].toLowerCase().replace(/^factori[sz]e$/, 'factor')} it`);
     }
     if (['integrals', 'derivatives', 'functions', 'limits'].includes(topic) && constantDividesByZero(problem)) {
       const routed = await solveProblem(problem, 'other');

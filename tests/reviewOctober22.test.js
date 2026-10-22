@@ -56,6 +56,15 @@ test('factor, expand, simplify and solve go to Algebra from any topic', async ()
   }
 });
 
+test('a verb with a trig function goes to Trigonometry, which knows the identities', async () => {
+  // Under Algebra "simplify tan(x)*cos(x)" came back unchanged; Trigonometry gives sin(x).
+  for (const topic of ['trigonometry', 'integrals', 'algebra']) {
+    assert.equal((await solveProblem('simplify tan(x)*cos(x)', topic)).answer, 'sin(x)', topic);
+  }
+  assert.equal((await solveProblem('simplify tan(x)*cos(x)', 'trigonometry')).routing, undefined);
+  assert.equal((await solveProblem('simplify sin(2x)/cos(x)', 'trigonometry')).answer, '2sin(x)');
+});
+
 test('a bare polynomial under Algebra shows its factored form when it has one', async () => {
   assert.equal((await solveProblem('x^2-5x+6', 'algebra')).answer, 'x^2 - 5x + 6 = (x - 3)(x - 2)');
   assert.equal((await solveProblem('x^3-x', 'algebra')).answer, 'x^3 - x = x(x - 1)(x + 1)');

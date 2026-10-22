@@ -28,7 +28,8 @@ remembers the last topic used; and Progress and the exports both read
   like terms" step. ∫(x − x) dx is "C", not "0 + C".
 - **"factor x^2-5x+6" under any topic but Algebra** was a parse error
   ("factor" is not a known function). factor / expand / simplify / solve
-  now go to Algebra, with the "Solved as" notice.
+  now go to Algebra, with the "Solved as" notice, or to Trigonometry when
+  the input has a trig function ("simplify tan(x)*cos(x)" is sin(x)).
 - **The Cancel button was black on the dark card** while solving: outline
   buttons had no text colour of their own in dark mode. The `outline`
   variant now has one (every outline button), and the accessibility test
