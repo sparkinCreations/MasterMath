@@ -43,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in its development server and its `launch-editor` dependency. The built
   site never ran either, so mastermath.app was not exposed; `npm audit`
   is now clean for dev dependencies too.
+- **DOMPurify 3.4.16 → 3.4.17** (a dependency of jsPDF), for a critical
+  advisory published on 22 October (GHSA-cg2g-xh64-v4q7 and two related).
+  The app does not use jsPDF's HTML rendering, where DOMPurify runs, but
+  the package ships, and CI's dependency audit failed on it.
 
 ### Fixed
 
