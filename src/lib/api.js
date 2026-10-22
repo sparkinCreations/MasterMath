@@ -99,6 +99,31 @@ function isAlgebraUnderArithmetic(problem, topic) {
   return /(?<![a-z])[a-df-z](?![a-z])/i.test(t) && !/^\s*\d+(?:\.\d+)?\s*x\s*\d/i.test(String(problem)); // "2 x 3" is multiplication
 }
 
+// A constant that divides by zero — "1/0", "5/(3-3)", "0/0" — typed under a
+// calculus or Functions topic. Those solvers answered it as if it were a
+// function: "f(x) = 2/0: a constant function", "lim (x→0) 2/0 = ∞" (an
+// approach point nobody typed), or "beyond this solver" (October 2026
+// review). Arithmetic says what it is: undefined, or indeterminate.
+// A number with no variable and no limit notation, typed under Limits.
+// "1/2" was answered "lim (x→0) 1/2 = 0.5", with an approach point nobody
+// typed; a number is just evaluated.
+function isConstantInput(problem) {
+  const t = String(problem).trim();
+  return t.length > 0 && !/[a-z=<>≤≥∫]/i.test(t.replace(/\b(?:pi|e)\b/gi, '')) && /\d/.test(t);
+}
+
+function constantDividesByZero(problem) {
+  const t = String(problem).trim();
+  if (/[a-z=<>≤≥]/i.test(t.replace(/\b(?:pi|e)\b/gi, ''))) return false;
+  if (!/\/\s*\(?\s*[-\d(]/.test(t)) return false;
+  try {
+    const v = math.evaluate(parseMathExpression(t));
+    return typeof v === 'number' && !Number.isFinite(v);
+  } catch {
+    return false;
+  }
+}
+
 // An expression of pure numbers under Trigonometry — "(5+3)*4 - 2^3" — is
 // arithmetic: there is no angle, no function call, nothing trigonometric to
 // say about it. It used to be evaluated by the trig path and served with trig
@@ -626,6 +651,26 @@ export async function solveProblem(problem, topic) {
         hint: `Two numbers with a space between them — did you mean to multiply (${a}*${b}) or to write one number (${a}${b})?`,
         tips: [`Use * for multiplication: ${a}*${b}. To write one number, remove the space.`],
       }), problem);
+    }
+    // "factor x^2-5x+6", "expand (x+1)^2", "simplify …", "solve …": the verb
+    // is the intent, as "derivative of" is. Under Integrals "factor …" was
+    // a parse error ("factor" is not a known function; October 2026 review).
+    // With a trig function in it, the verb's home is Trigonometry, which
+    // knows the identities: under Algebra "simplify tan(x)*cos(x)" came back
+    // unchanged, where Trigonometry gives sin(x).
+    const verb = !calculus && String(problem).match(/^\s*(factor(?:i[sz]e)?|expand|simplify|solve)\b/i);
+    const verbHome = verb && (/(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*[(^]/i.test(problem) ? 'trigonometry' : 'algebra');
+    if (verb && topic !== verbHome) {
+      const routed = await solveProblem(problem, verbHome);
+      return noteRouting(routed, topic, verbHome, `the input asks to ${verb[1].toLowerCase().replace(/^factori[sz]e$/, 'factor')} it`);
+    }
+    if (['integrals', 'derivatives', 'functions', 'limits'].includes(topic) && constantDividesByZero(problem)) {
+      const routed = await solveProblem(problem, 'other');
+      return noteRouting(routed, topic, 'other', 'the input is a number, not a function, and it divides by zero');
+    }
+    if (topic === 'limits' && !calculus && isConstantInput(problem)) {
+      const routed = await solveProblem(problem, 'other');
+      return noteRouting(routed, topic, 'other', 'the input is a number with no limit in it (a limit needs "lim x->a")');
     }
     if (!calculus && isArithmeticUnderTrigonometry(problem, topic)) {
       const routed = await solveProblem(problem, 'other');

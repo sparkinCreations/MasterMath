@@ -17,11 +17,15 @@ const BUTTON_CLASS =
 // different targets, and the accessible name comes out of the wrong node.
 // shadcn does this with Radix's Slot; cloning the child is the whole of it,
 // and this project has no Radix dependency to add for it.
-// The one variant with colours of its own. A ghost button draws its icon in
-// the inherited text colour, and the page sets none, so in dark mode the
-// graph controls were browser-default black on the dark card (1.4:1).
+// Variants with colours of their own. A ghost or outline button draws its
+// text in the inherited colour, and the page sets none, so in dark mode it
+// was browser-default black on the dark card: the graph controls (1.4:1),
+// and — until 1.52.4, when `outline` got its own entry — the solver's
+// Cancel button and every other outline button. A caller's own text
+// classes still win (cn merges them last).
 const VARIANT_CLASS = {
   ghost: "text-gray-700 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700",
+  outline: "text-gray-800 hover:bg-indigo-50 dark:text-gray-100 dark:hover:bg-gray-700",
 }
 
 const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {

@@ -10,6 +10,17 @@
 
 import { MATH_OPEN, MATH_CLOSE, hasMathMarkers, stripMathMarkers } from './mathMarkers.js';
 
+// True when the text between a "(" and a ")" is balanced on its own — the
+// two brackets around it are a pair — so they can be dropped.
+function wrapsWhole(body) {
+  let depth = 0;
+  for (const ch of body) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')' && --depth < 0) return false;
+  }
+  return depth === 0;
+}
+
 const FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'asin', 'acos', 'atan', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'ln', 'log', 'exp'];
 
 // Words allowed to appear inside a "math" fragment without making it prose.
@@ -62,10 +73,14 @@ export function toLatex(ascii) {
   s = s.replace(/\blim\s+([a-z])\s*\\to\s*((?:[-+]\s*)?(?:\\infty|[^\s()]+))/g, (_, a, b) => `\\lim_{${a} \\to ${b.replace(/\s+/g, '')}}`);
 
   // ∫_a^b (expr) dx → \int_{a}^{b} expr \, dx  (definite; bounds before body)
-  s = s.replace(/∫\s*_\s*([^\s^]+)\s*\^\s*(\S+?)\s*\(([^]*?)\)\s*d([a-z])\b/g,
-    (_, a, b, body, v) => `\\int_{${a}}^{${b}} ${body} \\, d${v}`);
   // ∫(expr) dx = → \int expr \, dx =
-  s = s.replace(/∫\s*\(([^]*?)\)\s*d([a-z])\b/g, (_, body, v) => `\\int ${body} \\, d${v}`);
+  // The brackets go only when they wrap the whole integrand: in
+  // "∫ (x+1)/((x-1)^2) dx" the first "(" and the last ")" are not a pair,
+  // and dropping them showed "∫ x+1)/((x−1)²" (October 2026 review).
+  const unwrap = (body) => (wrapsWhole(body) ? body : `(${body})`);
+  s = s.replace(/∫\s*_\s*([^\s^]+)\s*\^\s*(\S+?)\s*\(([^]*?)\)\s*d([a-z])\b/g,
+    (_, a, b, body, v) => `\\int_{${a}}^{${b}} ${unwrap(body)} \\, d${v}`);
+  s = s.replace(/∫\s*\(([^]*?)\)\s*d([a-z])\b/g, (_, body, v) => `\\int ${unwrap(body)} \\, d${v}`);
   s = s.replace(/∫/g, '\\int ');
 
   // ln|x| style bars first — must run BEFORE abs() conversion, or the bars
@@ -181,7 +196,27 @@ export function isMathFragment(s) {
  *   "Label — math tail."  (split at " — ")
  * plus fully-math strings. Anything else stays one text segment.
  */
+// Quotation marks around a typeset run are prose: an error step quotes the
+// input ("“∫ (x+1) dx” is valid mathematical input"), and KaTeX set the
+// opening “ as a closing ” at the start of the formula.
+function liftQuotes(segments) {
+  const out = [];
+  const push = (type, value) => { if (value) out.push({ type, value }); };
+  for (const seg of segments) {
+    if (seg.type !== 'math') { push(seg.type, seg.value); continue; }
+    const m = seg.value.match(/^([“‘"]*)([^]*?)([”’"]*)$/);
+    push('text', m[1]);
+    push('math', m[2]);
+    push('text', m[3]);
+  }
+  return out;
+}
+
 export function segmentMathText(step) {
+  return liftQuotes(segmentRaw(step));
+}
+
+function segmentRaw(step) {
   let s = String(step);
   // Explicit markers (mathMarkers.js): typeset exactly what is marked.
   // Malformed markers (unbalanced, nested) are dropped and the heuristics

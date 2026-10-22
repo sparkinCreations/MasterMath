@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.52.4] - 2026-10-22
+
+From an outside review (8.5/10). Each claim was reproduced first; two did
+not hold (a new visitor starts on Algebra, not Integrals — the app
+remembers the last topic used; and Progress and the exports both read
+"15 of 19 in history"), and the sweep around the rest found more.
+
+### Fixed
+
+- **Wrong answers for a constant that divides by zero**, marked Solved:
+  "2/0" under Functions was "a constant function, equal to 2/0", under
+  Limits "lim (x→0) 2/0 = ∞" (an approach point nobody typed); under
+  Integrals and Derivatives it was "beyond this solver". It is now
+  "Undefined — division by zero" (0/0: indeterminate) under every topic,
+  "lim x→0 1/0" is undefined, and a plain number under Limits is evaluated
+  rather than given an invented x → 0.
+- **Antiderivatives combine like terms**: ∫(2 + 3) dx was "2x + 3x + C",
+  ∫(x + 2x) dx "½x² + x² + C"; now 5x + C and 3/2·x² + C, with a "Combine
+  like terms" step. ∫(x − x) dx is "C", not "0 + C".
+- **"factor x^2-5x+6" under any topic but Algebra** was a parse error
+  ("factor" is not a known function). factor / expand / simplify / solve
+  now go to Algebra, with the "Solved as" notice, or to Trigonometry when
+  the input has a trig function ("simplify tan(x)*cos(x)" is sin(x)).
+- **The Cancel button was black on the dark card** while solving: outline
+  buttons had no text colour of their own in dark mode. The `outline`
+  variant now has one (every outline button), and the accessibility test
+  audits the page mid-solve.
+- **The preview and steps dropped brackets after ∫**: "∫ (x+1)/((x−1)²…)"
+  showed as "∫ x+1)/((x−1)²…" (the first "(" and last ")" are not a pair).
+  Quotation marks around a quoted input are no longer typeset into the
+  formula.
+
+### Changed
+
+- **A bare polynomial under Algebra shows its factored form**:
+  "x^2 - 5x + 6 = (x − 3)(x − 2)"; it was echoed back as already simplest.
+- **The Privacy Policy lists everything kept in the browser**: theme, angle
+  unit and decimal places, how solutions are shown, the last topic, the
+  Symbols panel, a copy of sent feedback, and a temporary update marker.
+  It had listed only the dark-mode preference.
+
 ## [1.52.3] - 2026-10-22
 
 ### Added

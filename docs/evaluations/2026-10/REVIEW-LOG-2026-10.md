@@ -104,3 +104,57 @@ in dark mode (1.44.1); "Graph View" title black on the empty card
 | Mixed formatting (u = x^3) | Confirmed | open (P1 markers) |
 | PDF plain text, no graph | Confirmed | open (P2) |
 | Policy dates differ | Not a bug | — |
+
+## Round 7 (against v1.50.0, release readiness)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Old result stays after the input or topic changes | Confirmed | 1.49.1 (cleared) |
+| Progress and the exports count history differently | Confirmed | 1.49.1 ("M of N in history" in both) |
+| Real-phone check needed | Agreed; not testable here (no WebKit) | open |
+
+## Round 8 (against v1.52.0, Lighthouse page speed)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Solver page loads ~345 kB JS, mostly mathjs and KaTeX | Confirmed, different cause: mathjs loaded twice — the worker's (deliberate pre-warm) and the page's own, pulled in by importing history helpers from api.js | 1.52.1 (problemHistory.js; 595 → 390 kB) |
+| Favicon is 119 kB | Confirmed — and it was also the logo on every page | 1.52.1 (logo-192, favicon-32, apple-touch-icon) |
+| max-age=0, returning visitors re-download everything | Header confirmed; re-download not (service worker serves /assets cache-first) | 1.52.1 (/assets immutable) |
+| Solver CLS 0.176 | Confirmed exactly; cause was the footer below a short route placeholder | 1.52.1 (CLS 0) |
+| CLS explains the home page flashing | Not reproduced (home CLS 0) | — |
+
+## Round 9 (against v1.52.1, power notation)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| "x squared", "x cubed", "to the power of" fail | Confirmed — 7 of 56 everyday phrasings solved | 1.52.2 (plainEnglish.js: 56 of 56) |
+| x**3 fails | Confirmed, worse: Algebrite's raw error shown; x**2 − 4 = 0 called "beyond this solver" | 1.52.2 |
+| x² button inserts ^2 | Not a bug (^2 is the notation; the preview shows x²) | — |
+| Warn in the preview before Solve | Partly: the preview now shows how the words were read | 1.52.2 |
+| Found in the sweep: an unknown word read as a constant on the integral, limit and inequality paths, answered and marked Solved | — | 1.52.2 (refused on every path) |
+| Owner: numbers written as words | — | 1.52.2 |
+
+## Round 10 (against v1.52.2, owner: topic routing)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| A topic switch should be visible | Agreed | 1.52.3 ("Solved as …" notice + switch button) |
+| "x^2 + 3x" under Limits says it could not be read | Confirmed | 1.52.3 |
+| Found: sin(30) under Arithmetic ignored the angle setting (−0.988); sin(30°) a syntax error | — | 1.52.3 (to Trigonometry) |
+| With radians, sin(30) = −0.99 beside the tip "sin(30°) = 1/2" | Confirmed | 1.52.3 (the tip explains) |
+
+## Round 11 (against v1.52.3, 8.5/10)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Starts on Integrals | Not reproduced: a new visitor starts on Algebra; the last topic used is remembered | — |
+| x^2-5x+6 typed under Integrals is integrated | By design (no intent of its own: the chosen topic decides) | — |
+| "factor …" under another topic fails | Confirmed (parse error) | 1.52.4 (verbs go to Algebra, or Trigonometry with a trig function) |
+| x^2-5x+6 under Algebra comes back unchanged | Confirmed | 1.52.4 (with its factored form) |
+| "32x − 8x + C" unsimplified | Confirmed, general: like terms never combined in an antiderivative | 1.52.4 |
+| 1/0 says "Beyond this solver" | Confirmed, worse: wrong answers marked Solved under Functions and Limits | 1.52.4 (undefined on every topic) |
+| Progress 15, export 19 | Not a bug: both read "15 of 19 in history" | — |
+| Privacy Policy omits saved settings | Confirmed | 1.52.4 |
+| Owner: text black in dark mode while solving | Confirmed: the Cancel button (no `outline` variant) | 1.52.4 |
+| Found: brackets after ∫ dropped in the preview and steps | — | 1.52.4 |
+| Found before shipping: "simplify tan(x)·cos(x)" under Trigonometry sent to Algebra, unchanged | — | 1.52.4 (verb + trig → Trigonometry) |

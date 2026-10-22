@@ -4,6 +4,7 @@ import {
   beautify,
   formatNumber,
   splitTerms,
+  runAlgebrite,
   sampleFunction,
   hasVariable,
   rewriteReciprocalTrig,
@@ -118,10 +119,22 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       integral = perTerm.some((r) => r.method === 'partial fractions' || r.method === 'trig substitution') || polynomial
         ? perTerm.map((r) => r.antideriv.trim()).join(' + ').replace(/\+\s*-\s*/g, '- ')
         : (simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) || perTerm.map((r) => r.antideriv).join(' + '));
+      // Like terms from separate pieces are combined: ∫(2 + 3) dx was
+      // "2x + 3x + C", ∫(x + 2x) dx "1/2x^2 + x^2 + C" (October 2026
+      // review). Algebrite's plain evaluation collects them without the
+      // factoring simplify does; taken only when it leaves fewer terms.
+      let combinedFrom = null;
+      if (polynomial && terms.length > 1) {
+        const collected = runAlgebrite(Algebrite, integral);
+        if (collected && splitTerms(collected).length < splitTerms(integral).length && expressionsNumericallyEqual(collected, integral, variable)) {
+          combinedFrom = integral;
+          integral = collected;
+        }
+      }
       // Algebrite's simplify re-expands log arguments into partial fractions;
       // polish after combining, not before.
       integral = polishLogArguments(Algebrite, integral);
-      steps = buildPerTermSteps(expression, terms, perTerm, variable, integral);
+      steps = buildPerTermSteps(expression, terms, perTerm, variable, integral, combinedFrom);
     } else {
       // Fallback: authoritative antiderivative for the whole expression.
       const forAlgebrite = rewriteReciprocalTrig(expression);
@@ -218,7 +231,8 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     const shownIntegral = usesErf ? prettyErf(integral) : dropBarsOnPositiveArguments(lnify(integral), integral, variable);
     return {
       steps,
-      answer: `∫(${beautify(expression)}) d${variable} = ${shownIntegral} + C`,
+      // ∫(x − x) dx: the antiderivative is the constant alone, not "0 + C".
+      answer: `∫(${beautify(expression)}) d${variable} = ${shownIntegral.trim() === '0' ? 'C' : `${shownIntegral} + C`}`,
       tips: [...new Set(tips)],
       common_mistakes: [...new Set(common_mistakes)],
       graph: generateIntegralGraph(expression, integral, variable, shownIntegral),
@@ -727,7 +741,7 @@ function splitTopLevelSlash(term) {
 // Assemble the worked steps from the per-term results. Multi-term integrals get
 // a header per term; a single term shows its steps directly. The closing line
 // states the combined antiderivative with +C.
-function buildPerTermSteps(expression, terms, perTerm, variable, total) {
+function buildPerTermSteps(expression, terms, perTerm, variable, total, combinedFrom = null) {
   const steps = [`Identify the function to integrate: ${mark(`∫(${beautify(expression)}) d${variable}`)}.`];
   const multi = terms.length > 1;
   if (multi) steps.push('Apply the sum rule: integrate each term separately, then add the results.');
@@ -740,7 +754,8 @@ function buildPerTermSteps(expression, terms, perTerm, variable, total) {
     steps.push(...res.steps);
   });
 
-  steps.push(`Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} = ${lnify(total)} + C`)}.`);
+  if (combinedFrom) steps.push(`Combine like terms: ${mark(`${beautify(combinedFrom)} = ${beautify(total)}`)}.`);
+  steps.push(`Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} = ${String(total).trim() === '0' ? 'C' : `${lnify(total)} + C`}`)}.`);
   return steps;
 }
 

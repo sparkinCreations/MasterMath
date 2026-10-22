@@ -129,6 +129,15 @@ for (const scheme of ['light', 'dark']) {
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.getByRole('button', { name: 'Switch topic to Derivatives' })).toBeVisible();
       await audit(page, `solver with a routed solution (${scheme})`);
+
+      // While solving: the Cancel button and the spinner. (The outline Cancel
+      // text was black on the dark card until 1.52.4; no audit ran mid-solve.)
+      // This integral runs to the 10-second budget, so the state holds.
+      await page.locator('#problem').fill('∫ (x+1)/((x-1)^2*(x^2+1)) dx');
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible();
+      await audit(page, `solver while solving (${scheme})`);
+      await page.getByRole('button', { name: 'Cancel' }).click();
     });
   });
 }
