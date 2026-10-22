@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sin(π/6) lost its exact 1/2. A trig function or a degree sign under
   Arithmetic is now solved as Trigonometry (with the notice above);
   "sin(x)" goes there too, not to Algebra.
+- With the angle unit on Radians, sin(30) answered −0.988 (correct) with
+  "Remember: sin(30°) = 1/2" as its first tip, which read as a
+  contradiction. A degree-looking angle (a multiple of 15) read as radians
+  now leads with why: "Here sin(30) is 30 radians (about 1718.9°), not
+  30° … For degrees, write sin(30°) or set the angle unit to Degrees."
 - A limit with no approach point ("x^2 + 3x" under Limits) began "Could not
   read 'x^2 + 3x' as a math expression"; it now says the expression reads
   fine and the approach point is missing.

@@ -109,6 +109,14 @@ function trigGuidance(expression, steps) {
     tips.push('π radians = 180°: multiply degrees by π/180 to get radians. Write pi for π (sin(pi/6)) or set the angle unit in Settings.');
     mistakes.unshift('Mixing up radians and degrees — sin(30) in radians is −0.988, not 1/2.');
   }
+  // A degree-looking angle (a multiple of 15) read as radians: sin(30) with
+  // the angle unit on Radians is −0.988, and the table tip "sin(30°) = 1/2"
+  // beside it read as the app contradicting itself. Lead with why.
+  const arg = expression.match(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\(\s*(-?\d+)\s*\)/i);
+  const n = arg ? Number(arg[1]) : NaN;
+  if (fn && Number.isInteger(n) && n !== 0 && n % 15 === 0 && /treated as -?\d+ radians|Interpreting -?\d+ as radians/.test(text)) {
+    tips.unshift(`Here ${fn}(${n}) is ${n} radians (about ${Math.round((n * 1800) / Math.PI) / 10}°), not ${n}° — which is why the answer is not the value of ${fn}(${n}°). For degrees, write ${fn}(${n}°) or set the angle unit to Degrees in Settings.`);
+  }
   return { tips: tips.slice(0, 3), common_mistakes: mistakes.slice(0, 3) };
 }
 

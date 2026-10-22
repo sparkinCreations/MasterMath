@@ -52,3 +52,14 @@ test('a limit with no approach point says what is missing, not that the input wa
   assert.match(r.steps[0], /x\^2 \+ 3x reads fine as an expression, but no approach point was given/);
   assert.match(r.answer, /No approach point was given/);
 });
+
+test('with the angle unit on radians, sin(30) explains why it is not sin(30°) instead of listing sin(30°) = 1/2 beside −0.988', async () => {
+  const { solveTrigonometry } = await import('../src/lib/solvers/trigonometrySolver.js');
+  const r = await solveTrigonometry('sin(30)', { angleUnit: 'radians' });
+  assert.equal(r.answer, '-0.988');
+  assert.equal(r.tips[0], 'Here sin(30) is 30 radians (about 1718.9°), not 30° — which is why the answer is not the value of sin(30°). For degrees, write sin(30°) or set the angle unit to Degrees in Settings.');
+  // Only for a degree-looking angle read as radians: not sin(1), not degrees.
+  assert.doesNotMatch((await solveTrigonometry('sin(1)', { angleUnit: 'radians' })).tips.join('\n'), /Here sin/);
+  assert.doesNotMatch((await solveTrigonometry('sin(30)', { angleUnit: 'auto' })).tips.join('\n'), /Here sin/);
+  assert.doesNotMatch((await solveTrigonometry('sin(30°)', { angleUnit: 'radians' })).tips.join('\n'), /Here sin/);
+});
