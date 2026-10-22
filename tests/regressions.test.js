@@ -568,8 +568,9 @@ test('regression: audit polish — like terms combine with a worked step', async
 
 test('regression: audit polish — an already-simple expression is left alone', async () => {
   const r = await solveProblem('x^2 + 2x + 1', 'algebra');
-  assert.match(r.answer, /x\^2 \+ 2x \+ 1/);
-  assert.ok(r.steps.some((s) => /already in simplest form/i.test(s)));
+  assert.match(r.answer, /^x\^2 \+ 2x \+ 1/);
+  // Since 1.52.4 the factored form is given beside it (x^2 + 2x + 1 = (x + 1)^2).
+  assert.ok(r.steps.some((s) => /already simplified/i.test(s)));
 });
 
 // ---------------------------------------------------------------------------

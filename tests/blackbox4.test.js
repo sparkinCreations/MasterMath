@@ -48,7 +48,8 @@ test('an equation in one unknown routes to Algebra under any topic (except where
 
 test('a variable expression under Arithmetic goes to Algebra; "2 x 3" stays arithmetic', async () => {
   const r = await solveProblem('x^2 + 3x', 'other');
-  assert.equal(r.answer, 'x^2 + 3x');
+  // Algebra keeps the expression and, since 1.52.4, gives its factored form too.
+  assert.equal(r.answer, 'x^2 + 3x = x(x + 3)');
   assert.match(r.steps[0], /^Solved as Algebra/);
   assert.equal((await solveProblem('2 x 3', 'other')).answer, '6');
 });
