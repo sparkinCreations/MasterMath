@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap (October 2026)
 
-**Version referenced:** 1.49.1 (written against 1.48.0)
+**Version referenced:** 1.50.0 (written against 1.48.0)
 **By:** sparkinCreations™
 **Last Updated:** October 21, 2026
 **Supersedes:** [`ROADMAP.md`](ROADMAP.md) (September 2026; 11/13 shipped, the two P4 items carry over below)
@@ -48,7 +48,7 @@ purpose, so the next reviewer does not re-raise them.
 
 | Priority | Item | Why it matters | Effort |
 |---|---|---|---|
-| P1 | Typeset every step (explicit math markers) | About one step in ten still mixes plain-text math with typeset math; the renderer guesses which fragments are math | 1–2 days |
+| P1 | Typeset every step (explicit math markers) | **First increment shipped in 1.50.0** (renderer + calculus, algebra, Functions). Left: systems, inequalities, trigonometry, trig equations, arithmetic | ½ day |
 | ~~P1~~ | ~~Implicit differentiation~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~`(1 + a/x)^(bx)` limits by a named technique~~ | **Shipped in 1.49.0** | — |
 | P2 | PDF export with typeset steps and the graph | The PDF is plain text: ± as "+/-", x² as x^2, no graph; Markdown and JSON are complete | 1 day |
@@ -58,6 +58,23 @@ purpose, so the next reviewer does not re-raise them.
 ---
 
 ## P1 — Typeset Every Step: Explicit Math Markers
+
+> **First increment shipped in 1.50.0.** The renderer honours ⟦…⟧
+> (`src/lib/mathMarkers.js`, `mark()` from `solverUtils.js`); malformed
+> markers fall back to the heuristics; `finalizeResult`, the exporters and
+> `sanitizeInput` keep markers out of answers, tips, files and input.
+> Converted: derivatives, implicit derivatives, limits, integrals (with
+> substitution, parts, trig substitution, partial fractions), algebra
+> (factoring, formula, Rational Root Theorem, synthetic division, radical,
+> exp and log equations) and Functions. Measured on 51 typical problems:
+> steps with math in a plain-text run, 96 of 331 → 9. Every marked run
+> renders in KaTeX. `tests/typesetting.test.js` guards the converted set.
+>
+> **Left for the next increment:** `systemsSolver`, `inequalitiesSolver`,
+> `trigonometrySolver`, `trigEquationSolver`, `arithmeticSolver`,
+> `linearEquationSolver`, and the rarer integral paths (erf, an endpoint
+> singularity, an interior asymptote, the general partial-fraction pieces).
+> Add each converted solver's problems to `tests/typesetting.test.js`.
 
 **Finding (reviews 3, 5 and 6).** Steps such as *"The integrand has the
 form √(a² − x²) with a = 1: substitute x = sin θ …"* or *"write the

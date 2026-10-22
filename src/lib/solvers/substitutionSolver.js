@@ -17,7 +17,7 @@
 // The steps show the substitution the way it is taught: choose u, compute
 // du, rewrite, integrate in u, substitute back.
 
-import { math, beautify, lnify, splitTopLevel, runAlgebrite } from './solverUtils.js';
+import { math, beautify, lnify, splitTopLevel, runAlgebrite, mark } from './solverUtils.js';
 
 // Does d/dx F numerically equal f at several points? Central differences at
 // h = 1e-5; points where either side is undefined are skipped, and at least
@@ -148,12 +148,12 @@ export function integrateBySubstitution(term, variable, Algebrite) {
     if (check !== '0' && !derivativeMatchesNumerically(back, term, v)) continue;
 
     const steps = [
-      `The integrand contains ${beautify(u)} inside a function, and its derivative d/d${v}(${beautify(u)}) = ${beautify(du)} appears as a factor (up to a constant) — the shape g′(${v})·h(g(${v})) that u-substitution is made for.`,
-      `Let u = ${beautify(u)}. Then du = ${beautify(du)} d${v} — so wherever ${beautify(du)} d${v} appears in the integrand it becomes du, and a constant multiple of it becomes the same multiple of du.`,
-      `Rewrite the integrand in terms of u: ∫(${beautify(term)}) d${v} = ∫(${lnify(inU)}) du.`,
-      `Integrate in u: ∫(${lnify(inU)}) du = ${lnify(H)}.`,
-      `Substitute back u = ${beautify(u)}: ${lnify(back)}.`,
-      `Check by differentiating: d/d${v}[${lnify(back)}] = ${beautify(term)} ✓`,
+      `The integrand contains ${mark(beautify(u))} inside a function, and its derivative ${mark(`d/d${v}(${beautify(u)}) = ${beautify(du)}`)} appears as a factor (up to a constant) — the shape ${mark(`g′(${v})·h(g(${v}))`)} that u-substitution is made for.`,
+      `Let ${mark(`u = ${beautify(u)}`)}. Then ${mark(`du = ${beautify(du)} d${v}`)} — so wherever ${mark(`${beautify(du)} d${v}`)} appears in the integrand it becomes ${mark('du')}, and a constant multiple of it becomes the same multiple of ${mark('du')}.`,
+      `Rewrite the integrand in terms of ${mark('u')}: ${mark(`∫(${beautify(term)}) d${v} = ∫(${lnify(inU)}) du`)}.`,
+      `Integrate in ${mark('u')}: ${mark(`∫(${lnify(inU)}) du = ${lnify(H)}`)}.`,
+      `Substitute back ${mark(`u = ${beautify(u)}`)}: ${mark(lnify(back))}.`,
+      `Check by differentiating: ${mark(`d/d${v}[${lnify(back)}] = ${beautify(term)}`)} ✓`,
     ];
     return { antiderivative: back, steps, u };
   }
@@ -242,11 +242,11 @@ export function integrateAbsLinear(term, variable) {
   }
 
   const steps = [
-    `|${g}| is not differentiable at ${g} = 0, but it is continuous, so it has an antiderivative — one has to be found piecewise or by a known formula, since the usual rules don't apply directly.`,
-    `Split at the corner: |${g}| = ${g} where ${g} ≥ 0 and −(${g}) where ${g} < 0. Integrating each piece and matching them at the corner gives the single formula ∫|${g}| d${v} = (${g})·|${g}| / (2·${fmt(a)}) + C.`,
-    ...(c !== 1 ? [`Carry the constant factor ${fmt(c)} through.`] : []),
-    `So ∫(${beautify(term)}) d${v} = ${beautify(antiderivative)} + C.`,
-    `Check by differentiating: d/d${v}[${beautify(antiderivative)}] = ${beautify(term)} ✓ (the product rule with d/d${v}|${g}| = ${fmt(a)}·sgn(${g}) gives it).`,
+    `${mark(`|${g}|`)} is not differentiable at ${mark(`${g} = 0`)}, but it is continuous, so it has an antiderivative — one has to be found piecewise or by a known formula, since the usual rules don't apply directly.`,
+    `Split at the corner: ${mark(`|${g}| = ${g}`)} where ${mark(`${g} ≥ 0`)} and ${mark(`−(${g})`)} where ${mark(`${g} < 0`)}. Integrating each piece and matching them at the corner gives the single formula ${mark(`∫|${g}| d${v} = (${g})·|${g}| / (2·${fmt(a)}) + C`)}.`,
+    ...(c !== 1 ? [`Carry the constant factor ${mark(fmt(c))} through.`] : []),
+    `So ${mark(`∫(${beautify(term)}) d${v} = ${beautify(antiderivative)} + C`)}.`,
+    `Check by differentiating: ${mark(`d/d${v}[${beautify(antiderivative)}] = ${beautify(term)}`)} ✓ (the product rule with ${mark(`d/d${v}|${g}| = ${fmt(a)}·sgn(${g})`)} gives it).`,
   ];
   return { antiderivative, steps };
 }

@@ -16,7 +16,7 @@
 // One loop handles both "the polynomial fizzles out" and "the integral comes
 // back around." Every result is differentiated and checked before it is trusted.
 
-import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, lnify, runAlgebrite, splitTopLevel } from './solverUtils.js';
+import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, lnify, runAlgebrite, splitTopLevel, mark } from './solverUtils.js';
 
 const MAX_ROUNDS = 8;
 
@@ -230,28 +230,28 @@ function finalize(Algebrite, F, term, v, steps, cyclic) {
 // text otherwise.
 function roundStep(round, u, dv, du, vAnti, current, uv, remaining, v) {
   const header = round === 1
-    ? 'Apply integration by parts (∫u dv = uv − ∫v du):'
+    ? `Apply integration by parts (${mark('∫u dv = uv − ∫v du')}):`
     : `Apply integration by parts again (round ${round}):`;
   return [
     header,
-    `Choose the parts: u = ${lnify(u)}, dv = ${lnify(dv)} d${v}`,
-    `Differentiate u and integrate dv: du = ${lnify(du)} d${v}, v = ${lnify(vAnti)}`,
-    `This gives: ∫(${lnify(current)}) d${v} = ${lnify(uv)} − ∫(${lnify(remaining)}) d${v}`,
+    `Choose the parts: ${mark(`u = ${lnify(u)}`)}, ${mark(`dv = ${lnify(dv)} d${v}`)}`,
+    `Differentiate ${mark('u')} and integrate ${mark('dv')}: ${mark(`du = ${lnify(du)} d${v}`)}, ${mark(`v = ${lnify(vAnti)}`)}`,
+    `This gives: ${mark(`∫(${lnify(current)}) d${v} = ${lnify(uv)} − ∫(${lnify(remaining)}) d${v}`)}`,
   ];
 }
 
 function baseStep(current, base, F, v) {
   return [
-    `The remaining integral is direct: ∫(${lnify(current)}) d${v} = ${lnify(base)}`,
-    `Collect the pieces: ${lnify(F)}`,
+    `The remaining integral is direct: ${mark(`∫(${lnify(current)}) d${v} = ${lnify(base)}`)}`,
+    `Collect the pieces: ${mark(lnify(F))}`,
   ];
 }
 
 function cyclicStep(current, k, denom, boundary, F, v) {
   const kStr = String(k) === '-1' ? '−I' : String(k) === '1' ? 'I' : `${String(k).startsWith('-') ? `(${k})` : k}·I`;
   return [
-    `The original integral reappears (I is the integral we want): ∫(${lnify(current)}) d${v} = ${kStr}`,
-    `Move it to the left and solve: (${lnify(denom)})·I = ${lnify(boundary)}`,
-    `Therefore: I = ${lnify(F)}`,
+    `The original integral reappears (${mark('I')} is the integral we want): ${mark(`∫(${lnify(current)}) d${v} = ${kStr}`)}`,
+    `Move it to the left and solve: ${mark(`(${lnify(denom)})·I = ${lnify(boundary)}`)}`,
+    `Therefore: ${mark(`I = ${lnify(F)}`)}`,
   ];
 }

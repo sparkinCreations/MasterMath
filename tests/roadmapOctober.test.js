@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { solveProblem } from '../src/lib/api.js';
 import { splitVariableProducts } from '../src/lib/solvers/implicitDerivativeSolver.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
 // October 2026 roadmap, P1 and P2 (1.49.0): implicit differentiation, and
 // the 1^∞ limits proved by logarithms instead of sampled.
@@ -9,7 +10,7 @@ import { splitVariableProducts } from '../src/lib/solvers/implicitDerivativeSolv
 // --- Implicit differentiation ------------------------------------------------
 
 test('x^2 + y^2 = 25 under Derivatives is differentiated implicitly, not solved for x', async () => {
-  const r = await solveProblem('x^2 + y^2 = 25', 'derivatives');
+  const r = await solvePlain('x^2 + y^2 = 25', 'derivatives');
   assert.equal(r.status, 'solved');
   assert.equal(r.answer, 'dy/dx = -x/y');
   const text = r.steps.join('\n');
@@ -69,29 +70,29 @@ test('"find dy/dx if …" is an implicit derivative under any topic, not a diffe
 
 test('dy/dx at a point: exact value, and honest answers off the curve and at a vertical tangent', async () => {
   for (const p of ['x^2 + y^2 = 25 at (3, 4)', 'x^2 + y^2 = 25 at x = 3, y = 4', 'find the slope of x^2 + y^2 = 25 at (3, 4)']) {
-    const r = await solveProblem(p, 'derivatives');
+    const r = await solvePlain(p, 'derivatives');
     assert.equal(r.status, 'solved', p);
     assert.equal(r.answer, 'dy/dx at (3, 4) = -3/4 ≈ -0.75', p);
     assert.match(r.steps.join('\n'), /slope of the tangent line to the curve at \(3, 4\)/);
   }
-  const radical = await solveProblem('x^2 - y^2 = 1 at (sqrt(2), 1)', 'derivatives');
+  const radical = await solvePlain('x^2 - y^2 = 1 at (sqrt(2), 1)', 'derivatives');
   assert.equal(radical.answer, 'dy/dx at (√2, 1) = √2 ≈ 1.4142');
 
-  const off = await solveProblem('x^2 + y^2 = 25 at (3, 5)', 'derivatives');
+  const off = await solvePlain('x^2 + y^2 = 25 at (3, 5)', 'derivatives');
   assert.equal(off.status, 'undefined');
   assert.match(off.answer, /\(3, 5\) is not on the curve/);
 
-  const vertical = await solveProblem('x^2 + y^2 = 25 at (5, 0)', 'derivatives');
+  const vertical = await solvePlain('x^2 + y^2 = 25 at (5, 0)', 'derivatives');
   assert.equal(vertical.status, 'undefined');
   assert.match(vertical.answer, /tangent at \(5, 0\) is vertical/);
 
-  const cusp = await solveProblem('y^2 = x^3 at (0, 0)', 'derivatives');
+  const cusp = await solvePlain('y^2 = x^3 at (0, 0)', 'derivatives');
   assert.equal(cusp.status, 'undefined');
   assert.match(cusp.answer, /singular point/);
 
   // x alone does not fix a point on a circle: the general formula, and a
   // step that asks for the whole point.
-  const xOnly = await solveProblem('x^2 + y^2 = 25 at x = 3', 'derivatives');
+  const xOnly = await solvePlain('x^2 + y^2 = 25 at x = 3', 'derivatives');
   assert.equal(xOnly.answer, 'dy/dx = -x/y');
   assert.match(xOnly.steps.join('\n'), /give it as \(3, y\)/);
 });
@@ -131,7 +132,7 @@ test('splitVariableProducts reads xy as x*y but never touches function names', (
 // --- 1^∞ limits --------------------------------------------------------------
 
 test('(1 + 1/x)^x → e by logarithms and ln(1 + u)/u → 1, never by sampling', async () => {
-  const r = await solveProblem('lim x->inf (1 + 1/x)^x', 'limits');
+  const r = await solvePlain('lim x->inf (1 + 1/x)^x', 'limits');
   assert.equal(r.status, 'solved');
   assert.equal(r.answer, 'lim (x→∞) (1 + 1/x)^x = e (≈ 2.7183)');
   const text = r.steps.join('\n');
@@ -159,7 +160,7 @@ test('the 1^∞ family: e, e², e^(−1), √e, e^(ab) at 0, and the base x/(x +
     ['lim x->inf (1 + 1/x^2)^x', '1'],
   ];
   for (const [p, value] of cases) {
-    const r = await solveProblem(p, 'limits');
+    const r = await solvePlain(p, 'limits');
     assert.equal(r.status, 'solved', p);
     assert.ok(r.answer.endsWith(`= ${value}`), `${p} → ${r.answer}`);
     assert.match(r.steps.join('\n'), /indeterminate form 1\^∞/, p);

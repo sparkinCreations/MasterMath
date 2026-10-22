@@ -1,5 +1,5 @@
 import { createMath } from '../mathInstance.js';
-import { math, formatNumber, beautify, gcd } from './solverUtils.js';
+import { math, formatNumber, beautify, gcd, stripMathMarkers } from './solverUtils.js';
 import { parseError, overflow, undefinedValue, indeterminate } from '../solutionEnvelope.js';
 
 // A second mathjs instance that computes in exact rational arithmetic. Where
@@ -415,7 +415,7 @@ function fractionSteps(expr) {
 // expression actually used — a negative exponent, a factorial, a percent, a
 // root or function — instead of the PEMDAS list for everything.
 function arithmeticGuidance(steps, expr) {
-  const text = steps.join('\n');
+  const text = stripMathMarkers(steps.join('\n'));
   if (/negative exponent means a reciprocal/.test(text)) {
     return {
       tips: [

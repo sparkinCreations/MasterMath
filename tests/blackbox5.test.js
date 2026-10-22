@@ -2,6 +2,7 @@
 // places), "at x = a" evaluation, and the routed-topic bookkeeping.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { solvePlain } from './helpers/solvePlain.js';
 
 // settings.js reads localStorage; give node one so saveSettings takes effect.
 const store = {};
@@ -248,16 +249,16 @@ test('an Algebrite error in one problem does not poison the next (x/0 = 1, then 
 
 // ── Pass 7 features: worked rules, reducible trig equations, improper integrals, 3×3.
 test('worked derivative steps name u/w (product, quotient) and the inner u (chain)', async () => {
-  const p = await solveProblem('x^2*sin(x)', 'derivatives');
+  const p = await solvePlain('x^2*sin(x)', 'derivatives');
   assert.ok(p.steps.some((s) => s === 'Let u = x^2 and w = sin(x).'), p.steps.join(' | '));
   assert.ok(p.steps.some((s) => /Then u′ = 2x and w′ = cos\(x\)/.test(s)));
-  const q = await solveProblem('(x+1)/(x-1)', 'derivatives');
+  const q = await solvePlain('(x+1)/(x-1)', 'derivatives');
   assert.ok(q.steps.some((s) => /Let u = x \+ 1 \(numerator\) and w = x - 1 \(denominator\)/.test(s)));
   assert.equal(q.answer, "f'(x) = -2/((x - 1)^2), x ≠ 1");
-  const c = await solveProblem('sin(x^2)', 'derivatives');
+  const c = await solvePlain('sin(x^2)', 'derivatives');
   assert.ok(c.steps.some((s) => /Let u = x\^2 \(the inside\), so the outer function is sin\(u\)/.test(s)));
   assert.ok(c.steps.some((s) => /put u = x\^2 back: cos\(x\^2\) · 2x/.test(s)));
-  const e = await solveProblem('3*cos(2x)', 'derivatives');
+  const e = await solvePlain('3*cos(2x)', 'derivatives');
   assert.ok(e.steps.some((s) => /The constant factor 3 carries through/.test(s)));
 });
 

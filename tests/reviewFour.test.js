@@ -4,11 +4,13 @@ import { solveProblem } from '../src/lib/api.js';
 import { integrateByTrigSubstitution } from '../src/lib/solvers/trigSubstitutionSolver.js';
 import { lnify, expressionsNumericallyEqual } from '../src/lib/solvers/solverUtils.js';
 import { niceTicks } from '../src/lib/graphSampling.js';
+import { stripMathMarkers } from '../src/lib/mathMarkers.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
 // Fourth outside review (October 2026).
 
 test('∫√(1 − x²) dx is worked as a trigonometric substitution and written with a root', async () => {
-  const r = await solveProblem('∫√(1−x²) dx', 'integrals');
+  const r = await solvePlain('∫√(1−x²) dx', 'integrals');
   assert.equal(r.answer, '∫(sqrt(1 - x^2)) dx = 1/2*arcsin(x) + 1/2*x*√(1 - x^2) + C');
   const text = r.steps.join('\n');
   assert.match(text, /substitute x = sin θ \(−π\/2 ≤ θ ≤ π\/2\), so dx = cos θ dθ/);
@@ -25,7 +27,7 @@ test('trig substitution handles a² and b²x² with exact coefficients, and decl
   assert.ok(expressionsNumericallyEqual('2*asin(x/2) + 1/2*x*sqrt(4 - x^2)', '2*asin(x/2) + x/2*sqrt(4-x^2)', 'x'));
   const mixed = integrateByTrigSubstitution('3*sqrt(9 - 4*x^2)', 'x');
   assert.equal(mixed.antiderivative, '27/4*arcsin(2*x/3) + 3/2*x*sqrt(9 - 4*x^2)');
-  assert.match(mixed.steps[0], /a = 3 and b = 2: substitute x = \(3\/2\)·sin θ/);
+  assert.match(stripMathMarkers(mixed.steps[0]), /a = 3 and b = 2: substitute x = \(3\/2\)·sin θ/);
   assert.equal(integrateByTrigSubstitution('sqrt(x^2 - 1)', 'x'), null);
   assert.equal(integrateByTrigSubstitution('sqrt(1 + x^2)', 'x'), null);
   assert.equal(integrateByTrigSubstitution('x*sqrt(1 - x^2)', 'x'), null);
@@ -33,7 +35,7 @@ test('trig substitution handles a² and b²x² with exact coefficients, and decl
 
 test('the trig-substitution antiderivative passes the differentiate-back gate for several radicands', async () => {
   for (const p of ['sqrt(4 - x^2)', '3*sqrt(9 - 4x^2)', 'sqrt(1-x^2) + x']) {
-    const r = await solveProblem(p, 'integrals');
+    const r = await solvePlain(p, 'integrals');
     assert.equal(r.status, 'solved', p);
     assert.match(r.steps.join('\n'), /trigonometric substitution|substitute x = /);
   }

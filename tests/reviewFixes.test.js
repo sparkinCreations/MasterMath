@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { solveProblem } from '../src/lib/api.js';
 import { describeGraphFeatures } from '../src/lib/graphDescription.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
 // September 2026 review: one derivative error (|x|), several thin step
 // templates, and graph legibility. Each finding has a test here.
 
 test('|x|: piecewise derivation, one-sided derivatives compared, f′(0) does not exist', async () => {
-  const r = await solveProblem('abs(x)', 'derivatives');
+  const r = await solvePlain('abs(x)', 'derivatives');
   assert.equal(r.answer, "f'(x) = -1 for x < 0, 1 for x > 0; f'(0) does not exist");
   assert.ok(r.steps.some((s) => /power rule does not apply/.test(s)));
   assert.ok(r.steps.some((s) => /\|x\| = x when x ≥ 0, and \|x\| = −x when x < 0/.test(s)));
@@ -37,24 +38,24 @@ test('other uses of abs keep sgn but state where the derivative does not exist',
 });
 
 test('derivative answers state their domain: 1/x, sqrt(x), ln(x), sqrt(x − 3)', async () => {
-  assert.equal((await solveProblem('1/x', 'derivatives')).answer, "f'(x) = -1/(x^2), x ≠ 0");
-  assert.equal((await solveProblem('sqrt(x)', 'derivatives')).answer, "f'(x) = 1/(2x^(1/2)), x > 0");
-  assert.equal((await solveProblem('ln(x)', 'derivatives')).answer, "f'(x) = 1/x, x > 0");
-  assert.equal((await solveProblem('sqrt(x-3)', 'derivatives')).answer, "f'(x) = 1/(2(x - 3)^(1/2)), x > 3");
-  assert.equal((await solveProblem('1/(x-2)', 'derivatives')).answer, "f'(x) = -1/((x - 2)^2), x ≠ 2");
+  assert.equal((await solvePlain('1/x', 'derivatives')).answer, "f'(x) = -1/(x^2), x ≠ 0");
+  assert.equal((await solvePlain('sqrt(x)', 'derivatives')).answer, "f'(x) = 1/(2x^(1/2)), x > 0");
+  assert.equal((await solvePlain('ln(x)', 'derivatives')).answer, "f'(x) = 1/x, x > 0");
+  assert.equal((await solvePlain('sqrt(x-3)', 'derivatives')).answer, "f'(x) = 1/(2(x - 3)^(1/2)), x > 3");
+  assert.equal((await solvePlain('1/(x-2)', 'derivatives')).answer, "f'(x) = -1/((x - 2)^2), x ≠ 2");
   // Nothing restricts a polynomial: no suffix, no fabricated condition.
-  assert.equal((await solveProblem('x^3 - 3*x', 'derivatives')).answer, "f'(x) = 3x^2 - 3");
-  const r = await solveProblem('1/x', 'derivatives');
+  assert.equal((await solvePlain('x^3 - 3*x', 'derivatives')).answer, "f'(x) = 3x^2 - 3");
+  const r = await solvePlain('1/x', 'derivatives');
   assert.ok(r.steps.some((s) => /Domain of f'\(x\): x ≠ 0 — the denominator of f' is 0 at x = 0/.test(s)));
 });
 
 test('∫sin²x shows the half-angle identity and term-by-term integration', async () => {
-  const r = await solveProblem('sin(x)^2', 'integrals');
+  const r = await solvePlain('sin(x)^2', 'integrals');
   assert.match(r.answer, /1\/2\*\(x - 1\/2\*sin\(2x\)\) \+ C$/);
   assert.ok(r.steps.some((s) => /sin²\(u\) = \(1 − cos\(2u\)\)\/2 with u = x/.test(s)));
   assert.ok(r.steps.some((s) => /∫1 dx = x, and ∫cos\(2x\) dx = sin\(2x\)\/2/.test(s)));
   assert.ok(!r.steps.some((s) => /Trig rule/.test(s)));
-  const c = await solveProblem('3*cos(2x)^2', 'integrals');
+  const c = await solvePlain('3*cos(2x)^2', 'integrals');
   assert.ok(c.steps.some((s) => /cos²\(u\) = \(1 \+ cos\(2u\)\)\/2 with u = 2x/.test(s)));
 });
 
@@ -67,7 +68,7 @@ test('x² + 1 = 0 shows x² = −1 and x = ±√(−1) = ±i', async () => {
 });
 
 test('a general quadratic shows a, b, c, the discriminant and the formula', async () => {
-  const r = await solveProblem('x^2 - 2x - 1 = 0', 'algebra');
+  const r = await solvePlain('x^2 - 2x - 1 = 0', 'algebra');
   assert.equal(r.answer, 'x = 1 - √2  or  x = 1 + √2');
   assert.ok(r.steps.some((s) => /with a = 1, b = -2, c = -1/.test(s)));
   assert.ok(r.steps.some((s) => /Discriminant: b² − 4ac = \(-2\)² − 4\(1\)\(-1\) = 8/.test(s)));
@@ -75,7 +76,7 @@ test('a general quadratic shows a, b, c, the discriminant and the formula', asyn
 });
 
 test('sqrt(x + 2) = x: domain, squaring, both candidates, the extraneous one rejected with the reason', async () => {
-  const r = await solveProblem('sqrt(x+2) = x', 'algebra');
+  const r = await solvePlain('sqrt(x+2) = x', 'algebra');
   assert.equal(r.answer, 'x = 2');
   assert.ok(r.steps.some((s) => /Isolate the radical:.*√\(x \+ 2\) = x/.test(s)));
   assert.ok(r.steps.some((s) => /x \+ 2 ≥ 0; and a square root is never negative, so the other side must also satisfy x ≥ 0/.test(s)));
@@ -83,13 +84,13 @@ test('sqrt(x + 2) = x: domain, squaring, both candidates, the extraneous one rej
   assert.ok(r.steps.some((s) => /x = -1 or x = 2/.test(s)));
   assert.ok(r.steps.some((s) => /x = -1: the right side x = -1 is negative.*extraneous.*x = 2: √\(4\) = 2 and x = 2 — balances ✓/.test(s)));
   assert.ok(!r.steps.some((s) => /Search for values where the expression crosses zero/.test(s)));
-  assert.equal((await solveProblem('sqrt(x) = 5', 'algebra')).answer, 'x = 25');
-  assert.equal((await solveProblem('sqrt(2x+3) = x', 'algebra')).answer, 'x = 3');
-  assert.match((await solveProblem('sqrt(x) = -2', 'algebra')).answer, /^No solution \(a square root cannot equal a negative number\)/);
+  assert.equal((await solvePlain('sqrt(x) = 5', 'algebra')).answer, 'x = 25');
+  assert.equal((await solvePlain('sqrt(2x+3) = x', 'algebra')).answer, 'x = 3');
+  assert.match((await solvePlain('sqrt(x) = -2', 'algebra')).answer, /^No solution \(a square root cannot equal a negative number\)/);
 });
 
 test('lim x/e^x samples are shown at their true size, with the underflow explained', async () => {
-  const r = await solveProblem('lim x->infinity x/exp(x)', 'limits');
+  const r = await solvePlain('lim x->infinity x/exp(x)', 'limits');
   assert.match(r.answer, /= 0$/);
   const samples = r.steps.find((s) => /^Samples:/.test(s));
   assert.match(samples, /^Samples: 3\.72e-42, 0, 0/);

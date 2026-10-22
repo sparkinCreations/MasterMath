@@ -9,6 +9,10 @@ import { getSettings } from '../settings.js';
 
 export const math = createMath();
 
+// ⟦…⟧ around the math in a step: `Let ${mark(`u = ${inner}`)} (the inside).`
+// The renderer typesets exactly what is marked (see mathMarkers.js).
+export { mark, stripMathMarkers } from '../mathMarkers.js';
+
 // mathjs names the natural log `log`; students (and Algebrite) write `ln`.
 // Alias it so every numeric evaluation — graphs, sampling, arithmetic —
 // understands `ln(x)` instead of throwing "Undefined function ln".

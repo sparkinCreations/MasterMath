@@ -14,6 +14,7 @@ import {
   lnify,
   splitTopLevel,
   stripOuterParens,
+  mark,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
@@ -427,7 +428,7 @@ async function integrateTerm(term, variable, Algebrite) {
     const halfAngle = halfAngleSteps(term, variable, anti);
     if (halfAngle) return { antideriv: anti, steps: halfAngle, method: 'direct', term };
     const { label, hint } = classifyIntegralRule(term, variable);
-    const steps = [`∫(${beautify(term)}) d${variable} = ${lnify(anti)}${hint ? `  (${label})` : ''}.`];
+    const steps = [`${mark(`∫(${beautify(term)}) d${variable} = ${lnify(anti)}`)}${hint ? ` (${label})` : ''}.`];
     return { antideriv: anti, steps, method: 'direct', term, label };
   }
 
@@ -507,9 +508,9 @@ function integrateByPartialFractions(term, variable, Algebrite) {
   const fracText = rootList.map((r, i) => { const c = beautify(coefs[i]); return `${c === '1' ? '' : c === '-1' ? '-' : `${c}·`}1/${factorText(r)}`; }).join(' + ').replace(/\+ -/g, '− ');
   const denFactored = rootList.map(factorText).join('');
   const steps = [
-    `∫(${beautify(term)}) d${v} — a proper rational function whose denominator factors into distinct linear factors: ${beautify(den)} = ${denFactored}.`,
-    `Partial fractions: ${beautify(term)} = ${fracText}. Each coefficient is N(r)/D′(r) at the root r (the cover-up method).`,
-    `Integrate each piece (∫ 1/(${v} − r) d${v} = ln|${v} − r|): ${lnify(antiSimple)}.`,
+    `${mark(`∫(${beautify(term)}) d${v}`)} — a proper rational function whose denominator factors into distinct linear factors: ${mark(`${beautify(den)} = ${denFactored}`)}.`,
+    `Partial fractions: ${mark(`${beautify(term)} = ${fracText}`)}. Each coefficient is ${mark('N(r)/D′(r)')} at the root ${mark('r')} (the cover-up method).`,
+    `Integrate each piece (${mark(`∫ 1/(${v} − r) d${v} = ln|${v} − r|`)}): ${mark(lnify(antiSimple))}.`,
   ];
   return { antiderivative: antiSimple, steps };
 }
@@ -727,19 +728,19 @@ function splitTopLevelSlash(term) {
 // a header per term; a single term shows its steps directly. The closing line
 // states the combined antiderivative with +C.
 function buildPerTermSteps(expression, terms, perTerm, variable, total) {
-  const steps = [`Identify the function to integrate: ∫(${beautify(expression)}) d${variable}.`];
+  const steps = [`Identify the function to integrate: ${mark(`∫(${beautify(expression)}) d${variable}`)}.`];
   const multi = terms.length > 1;
   if (multi) steps.push('Apply the sum rule: integrate each term separately, then add the results.');
 
   perTerm.forEach((res, i) => {
     if (multi) {
       const suffix = res.method === 'byparts' ? ' by parts' : res.method === 'substitution' ? ' by substitution' : res.method === 'trig substitution' ? ' by trigonometric substitution' : '';
-      steps.push(`Term ${i + 1} — ∫(${beautify(res.term)}) d${variable}${suffix}:`);
+      steps.push(`Term ${i + 1} — ${mark(`∫(${beautify(res.term)}) d${variable}`)}${suffix}:`);
     }
     steps.push(...res.steps);
   });
 
-  steps.push(`Add the constant of integration: ∫(${beautify(expression)}) d${variable} = ${lnify(total)} + C.`);
+  steps.push(`Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} = ${lnify(total)} + C`)}.`);
   return steps;
 }
 
@@ -887,9 +888,9 @@ async function solveImproperInfinite(parsed, notation) {
   const Algebrite = await loadAlgebrite();
   const lowerInf = isInfiniteBound(lowerRaw);
   const upperInf = isInfiniteBound(upperRaw);
-  const steps = [`Evaluate the improper integral ${notation}.`];
+  const steps = [`Evaluate the improper integral ${mark(notation)}.`];
   const which = lowerInf && upperInf ? 'both limits are infinite' : `the ${upperInf ? 'upper' : 'lower'} limit is ${upperInf ? upperLabel : lowerLabel}`;
-  steps.push(`This is an improper integral — ${which}. It is defined as a limit of proper integrals: ${lowerInf && upperInf ? `∫_{-∞}^{∞} f d${v} = lim_{s→-∞} ∫_s^0 f d${v} + lim_{t→∞} ∫_0^t f d${v}` : upperInf ? `∫_${lowerLabel}^∞ f d${v} = lim_{t→∞} ∫_${lowerLabel}^t f d${v}` : `∫_{-∞}^${upperLabel} f d${v} = lim_{s→-∞} ∫_s^${upperLabel} f d${v}`}.`);
+  steps.push(`This is an improper integral — ${which}. It is defined as a limit of proper integrals: ${mark(lowerInf && upperInf ? `∫_{-∞}^{∞} f d${v} = lim_{s→-∞} ∫_s^0 f d${v} + lim_{t→∞} ∫_0^t f d${v}` : upperInf ? `∫_${lowerLabel}^∞ f d${v} = lim_{t→∞} ∫_${lowerLabel}^t f d${v}` : `∫_{-∞}^${upperLabel} f d${v} = lim_{s→-∞} ∫_s^${upperLabel} f d${v}`)}.`);
 
   const F = await antiderivativeViaTerms(integrand, v, Algebrite);
   if (!F) {
@@ -901,7 +902,7 @@ async function solveImproperInfinite(parsed, notation) {
     });
   }
   const showF = (t) => lnify(t).replace(/\bexp\(([^()]+)\)/g, 'e^($1)');
-  steps.push(`Antiderivative: F(${v}) = ${showF(F)}.`);
+  steps.push(`Antiderivative: ${mark(`F(${v}) = ${showF(F)}`)}.`);
 
   // Each infinite end contributes lim F; each finite end contributes F(bound).
   const ends = [];
@@ -910,9 +911,9 @@ async function solveImproperInfinite(parsed, notation) {
     const arrow = sign > 0 ? 't → ∞' : 's → -∞';
     const shown = (res.samples || []).slice(0, 4).map((x) => (Number.isFinite(x) ? formatNumber(x) : '±∞')).join(', ');
     const at = sign > 0 ? '10², 10³, 10⁴, 10⁵' : '-10², -10³, -10⁴, -10⁵';
-    if (res.value !== undefined) steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)} (samples at ${at}: ${shown}).`);
-    else if (res.diverges) steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) → ${res.diverges}${res.slow ? ' — slowly, but steadily' : ''} (samples: ${shown}): the limit is not a finite number.`);
-    else steps.push(`As ${arrow}, F(${sign > 0 ? 't' : 's'}) does not settle (samples: ${shown}).`);
+    if (res.value !== undefined) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)} (samples at ${at}: ${shown}).`);
+    else if (res.diverges) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${res.diverges}`)}${res.slow ? ' — slowly, but steadily' : ''} (samples: ${shown}): the limit is not a finite number.`);
+    else steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'})`)} does not settle (samples: ${shown}).`);
   };
 
   let upperPart;
@@ -926,7 +927,7 @@ async function solveImproperInfinite(parsed, notation) {
     const exact = evalAntiderivAt(Algebrite, F, v, upperRaw);
     const num = evalAntiderivNumeric(F, v, val);
     upperPart = { value: num, exact, raw: rawSubst(Algebrite, F, v, upperRaw) };
-    steps.push(`F(${upperLabel}) = ${exact ?? formatNumber(num)}.`);
+    steps.push(`${mark(`F(${upperLabel}) = ${exact ?? formatNumber(num)}`)}.`);
   }
   if (lowerInf) {
     const res = limitAtInfinity(F, v, boundSign(lowerRaw));
@@ -937,7 +938,7 @@ async function solveImproperInfinite(parsed, notation) {
     const exact = evalAntiderivAt(Algebrite, F, v, lowerRaw);
     const num = evalAntiderivNumeric(F, v, val);
     lowerPart = { value: num, exact, raw: rawSubst(Algebrite, F, v, lowerRaw) };
-    steps.push(`F(${lowerLabel}) = ${exact ?? formatNumber(num)}.`);
+    steps.push(`${mark(`F(${lowerLabel}) = ${exact ?? formatNumber(num)}`)}.`);
   }
 
   if ([upperPart, lowerPart].some((p) => p.unreadable)) {
@@ -992,7 +993,7 @@ async function solveImproperInfinite(parsed, notation) {
   } catch { exactText = null; }
   const approx = formatNumber(value);
   const valueText = exactText && exactText !== approx ? `${exactText} (≈ ${approx})` : (exactText || approx);
-  steps.push(`Subtract: ${upText} − (${lowText}) = ${valueText}. The limit is finite, so the integral converges.`);
+  steps.push(`Subtract: ${mark(`${upText} − (${lowText}) = ${valueText}`)}. The limit is finite, so the integral converges.`);
 
   // Cross-check by quadrature over a long finite stretch.
   const lo = lowerInf ? -200 : finiteBoundVal(lowerRaw);
@@ -1006,7 +1007,7 @@ async function solveImproperInfinite(parsed, notation) {
       return refuseDefinite('The limit value and a numeric check disagree, so I am not reporting a value.', notation);
     }
   }
-  steps.push(`Check: integrating numerically over a long finite stretch gives ≈ ${typeof check === 'number' ? formatNumber(check) : '—'}, consistent with the limit.`);
+  steps.push(`Check: integrating numerically over a long finite stretch gives ${mark(`≈ ${typeof check === 'number' ? formatNumber(check) : '—'}`)}, consistent with the limit.`);
 
   return {
     steps,
@@ -1192,23 +1193,23 @@ async function solveDefiniteIntegral(parsed) {
     const approx = formatNumber(exactValue);
     const valueText = isCleanValue || exactDisplay === approx ? exactDisplay : `${exactDisplay} (≈ ${approx})`;
 
-    const steps = [`Evaluate the definite integral ${notation}.`];
+    const steps = [`Evaluate the definite integral ${mark(notation)}.`];
     if (hasAntideriv) {
-      steps.push(`First find the antiderivative: F(${v}) = ${lnify(F)}.`);
-      steps.push(`Apply the Fundamental Theorem of Calculus: ∫_a^b f d${v} = F(b) − F(a).`);
+      steps.push(`First find the antiderivative: ${mark(`F(${v}) = ${lnify(F)}`)}.`);
+      steps.push(`Apply the Fundamental Theorem of Calculus: ${mark(`∫_a^b f d${v} = F(b) − F(a)`)}.`);
       const Fb = evalAntiderivAt(Algebrite, F, v, upperRaw);
       const Fa = evalAntiderivAt(Algebrite, F, v, lowerRaw);
       if (Fb !== null && Fa !== null) {
-        steps.push(`Evaluate at the bounds: F(${upperLabel}) = ${Fb} and F(${lowerLabel}) = ${Fa}.`);
-        steps.push(`Subtract: F(${upperLabel}) − F(${lowerLabel}) = ${valueText}.`);
+        steps.push(`Evaluate at the bounds: ${mark(`F(${upperLabel}) = ${Fb}`)} and ${mark(`F(${lowerLabel}) = ${Fa}`)}.`);
+        steps.push(`Subtract: ${mark(`F(${upperLabel}) − F(${lowerLabel}) = ${valueText}`)}.`);
       } else {
-        steps.push(`Evaluate F at the two bounds and subtract to get ${valueText}.`);
+        steps.push(`Evaluate ${mark('F')} at the two bounds and subtract to get ${mark(valueText)}.`);
       }
     } else {
       steps.push('Find the antiderivative, then subtract its values at the two bounds.');
-      steps.push(`The definite integral equals ${valueText}.`);
+      steps.push(`The definite integral equals ${mark(valueText)}.`);
     }
-    steps.push(`Verified numerically (Simpson's rule): ≈ ${formatNumber(numeric)}.`);
+    steps.push(`Verified numerically (Simpson's rule): ${mark(`≈ ${formatNumber(numeric)}`)}.`);
 
     return {
       steps,
@@ -1791,7 +1792,7 @@ function generateDefiniteGraph(integrand, variable, a, b, lowerLabel, upperLabel
  */
 function generateIntegralSteps(expression, integral, variable, Algebrite) {
   const steps = [];
-  steps.push(`Identify the function to integrate: ∫(${beautify(expression)}) d${variable}`);
+  steps.push(`Identify the function to integrate: ${mark(`∫(${beautify(expression)}) d${variable}`)}`);
 
   const terms = splitTerms(expression);
 
@@ -1813,17 +1814,17 @@ function generateIntegralSteps(expression, integral, variable, Algebrite) {
     }
 
     if (termIntegral !== null) {
-      steps.push(`∫(${beautify(signed)}) d${variable} = ${lnify(termIntegral)}`);
+      steps.push(mark(`∫(${beautify(signed)}) d${variable} = ${lnify(termIntegral)}`));
     } else {
-      steps.push(`Integrate ${beautify(signed)} using the ${label.toLowerCase()}.`);
+      steps.push(`Integrate ${mark(beautify(signed))} using the ${label.toLowerCase()}.`);
     }
   }
 
   if (terms.length > 1) {
-    steps.push(`Add the term integrals: ${lnify(integral)}`);
+    steps.push(`Add the term integrals: ${mark(lnify(integral))}`);
   }
 
-  steps.push(`Add the constant of integration: ∫(${beautify(expression)}) d${variable} = ${lnify(integral)} + C`);
+  steps.push(`Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} = ${lnify(integral)} + C`)}`);
 
   return steps;
 }
@@ -1850,10 +1851,10 @@ function halfAngleSteps(term, variable, anti) {
   const op = fn === 'sin' ? '−' : '+';
   const halfC = c === 1 ? '1/2' : c === -1 ? '-1/2' : `${formatNumber(c)}/2`;
   return [
-    `An even power of ${fn} has no direct rule. Use the power-reduction (half-angle) identity ${fn}²(u) = (1 ${op} cos(2u))/2 with u = ${arg}: ∫${cText}${fn}²(${arg}) d${v} = ∫${cText}(1 ${op} cos(${doubled}))/2 d${v}.`,
-    `Split it into two integrals: ${halfC}·∫1 d${v} ${fn === 'sin' ? '−' : '+'} ${halfC.replace(/^-/, '')}·∫cos(${doubled}) d${v}.`,
-    `Integrate term by term: ∫1 d${v} = ${v}, and ∫cos(${doubled}) d${v} = sin(${doubled})/${formatNumber(2 * k)} (the chain rule in reverse: the inner derivative ${formatNumber(2 * k)} is divided out).`,
-    `So ∫${cText}${fn}²(${arg}) d${v} = ${lnify(anti)}.`,
+    `An even power of ${mark(fn)} has no direct rule. Use the power-reduction (half-angle) identity ${mark(`${fn}²(u) = (1 ${op} cos(2u))/2`)} with ${mark(`u = ${arg}`)}: ${mark(`∫${cText}${fn}²(${arg}) d${v} = ∫${cText}(1 ${op} cos(${doubled}))/2 d${v}`)}.`,
+    `Split it into two integrals: ${mark(`${halfC}·∫1 d${v} ${fn === 'sin' ? '−' : '+'} ${halfC.replace(/^-/, '')}·∫cos(${doubled}) d${v}`)}.`,
+    `Integrate term by term: ${mark(`∫1 d${v} = ${v}`)}, and ${mark(`∫cos(${doubled}) d${v} = sin(${doubled})/${formatNumber(2 * k)}`)} (the chain rule in reverse: the inner derivative ${mark(formatNumber(2 * k))} is divided out).`,
+    `So ${mark(`∫${cText}${fn}²(${arg}) d${v} = ${lnify(anti)}`)}.`,
   ];
 }
 
@@ -1861,14 +1862,14 @@ function classifyIntegralRule(term, variable) {
   const v = variable;
 
   if (!hasVariable(term, v)) {
-    return { label: 'Constant rule', hint: `∫c d${v} = c·${v}` };
+    return { label: 'Constant rule', hint: mark(`∫c d${v} = c·${v}`) };
   }
 
   const inner = term.replace(/^[-+]/, '');
 
   // Reciprocal: 1/x or x^-1.
   if (new RegExp(`(?:^|[^a-z])1\\s*/\\s*${v}\\b`, 'i').test(inner) || new RegExp(`${v}\\s*\\^\\s*-\\s*1\\b`, 'i').test(inner)) {
-    return { label: 'Reciprocal rule', hint: `∫1/${v} d${v} = ln|${v}|` };
+    return { label: 'Reciprocal rule', hint: mark(`∫1/${v} d${v} = ln|${v}|`) };
   }
 
   // Products mixing function families usually need integration by parts.
@@ -1880,32 +1881,32 @@ function classifyIntegralRule(term, variable) {
   if (mixesFamilies) {
     return {
       label: 'Integration by parts',
-      hint: '∫u dv = uv − ∫v du (choose u by LIATE: Log, Inverse-trig, Algebraic, Trig, Exponential)',
+      hint: `${mark('∫u dv = uv − ∫v du')} (choose ${mark('u')} by LIATE: Log, Inverse-trig, Algebraic, Trig, Exponential)`,
     };
   }
 
   // Composite function → u-substitution.
   if (isComposite(inner, v)) {
-    return { label: 'u-substitution', hint: `let u = the inner function, then du = u′ d${v}` };
+    return { label: 'u-substitution', hint: `let ${mark('u')} = the inner function, then ${mark(`du = u′ d${v}`)}` };
   }
 
   const t = inner.replace(/\s+/g, '');
-  if (new RegExp(`^(?:[\\d./*]+\\*?)?sec\\(${v}\\)\\^2$`, 'i').test(t)) return { label: 'Trig rule', hint: `∫sec²(${v}) d${v} = tan(${v}), since d/d${v} tan(${v}) = sec²(${v})` };
-  if (new RegExp(`^(?:[\\d./*]+\\*?)?csc\\(${v}\\)\\^2$`, 'i').test(t)) return { label: 'Trig rule', hint: `∫csc²(${v}) d${v} = -cot(${v}), since d/d${v} cot(${v}) = -csc²(${v})` };
-  if (new RegExp(`^(?:[\\d./*]+\\*?)?sec\\(${v}\\)\\*tan\\(${v}\\)$|^(?:[\\d./*]+\\*?)?tan\\(${v}\\)\\*sec\\(${v}\\)$`, 'i').test(t)) return { label: 'Trig rule', hint: `∫sec(${v})tan(${v}) d${v} = sec(${v})` };
-  if (/\bsin\b/i.test(inner)) return { label: 'Trig rule', hint: `∫sin(${v}) d${v} = -cos(${v})` };
-  if (/\bcos\b/i.test(inner)) return { label: 'Trig rule', hint: `∫cos(${v}) d${v} = sin(${v})` };
-  if (/\bexp\b|e\^/i.test(inner)) return { label: 'Exponential rule', hint: `∫e^${v} d${v} = e^${v}` };
-  if (/\bsqrt\b|√/i.test(inner)) return { label: 'Power rule', hint: `rewrite √${v} as ${v}^(1/2), then use the power rule` };
+  if (new RegExp(`^(?:[\\d./*]+\\*?)?sec\\(${v}\\)\\^2$`, 'i').test(t)) return { label: 'Trig rule', hint: `${mark(`∫sec²(${v}) d${v} = tan(${v})`)}, since ${mark(`d/d${v} tan(${v}) = sec²(${v})`)}` };
+  if (new RegExp(`^(?:[\\d./*]+\\*?)?csc\\(${v}\\)\\^2$`, 'i').test(t)) return { label: 'Trig rule', hint: `${mark(`∫csc²(${v}) d${v} = -cot(${v})`)}, since ${mark(`d/d${v} cot(${v}) = -csc²(${v})`)}` };
+  if (new RegExp(`^(?:[\\d./*]+\\*?)?sec\\(${v}\\)\\*tan\\(${v}\\)$|^(?:[\\d./*]+\\*?)?tan\\(${v}\\)\\*sec\\(${v}\\)$`, 'i').test(t)) return { label: 'Trig rule', hint: mark(`∫sec(${v})tan(${v}) d${v} = sec(${v})`) };
+  if (/\bsin\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`∫sin(${v}) d${v} = -cos(${v})`) };
+  if (/\bcos\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`∫cos(${v}) d${v} = sin(${v})`) };
+  if (/\bexp\b|e\^/i.test(inner)) return { label: 'Exponential rule', hint: mark(`∫e^${v} d${v} = e^${v}`) };
+  if (/\bsqrt\b|√/i.test(inner)) return { label: 'Power rule', hint: `rewrite ${mark(`√${v}`)} as ${mark(`${v}^(1/2)`)}, then use the power rule` };
 
   // c/(ax + b): a linear substitution, not a power of x.
   if (new RegExp(`^[\\d./]+/\\(?[\\d./]*\\*?${v}[+-][\\d./]+\\)?$`, 'i').test(t)) {
-    return { label: 'Linear substitution', hint: `∫1/(a${v} + b) d${v} = (1/a)·ln|a${v} + b| — let u = a${v} + b, so du = a d${v}` };
+    return { label: 'Linear substitution', hint: `${mark(`∫1/(a${v} + b) d${v} = (1/a)·ln|a${v} + b|`)} — let ${mark(`u = a${v} + b`)}, so ${mark(`du = a d${v}`)}` };
   }
 
   // Power rule only for a genuine power of the variable: x^n, c·x^n, x, c·x.
-  if (new RegExp(`^(?:[\\d./*()-]+\\*)?${v}\\^\\(?-?[\\d./]+\\)?$`, 'i').test(t)) return { label: 'Power rule', hint: `∫${v}^n d${v} = ${v}^(n+1)/(n+1)` };
-  if (new RegExp(`^(?:[\\d./*()-]+\\*)?${v}$`, 'i').test(t)) return { label: 'Power rule', hint: `∫${v} d${v} = ${v}²/2` };
+  if (new RegExp(`^(?:[\\d./*()-]+\\*)?${v}\\^\\(?-?[\\d./]+\\)?$`, 'i').test(t)) return { label: 'Power rule', hint: mark(`∫${v}^n d${v} = ${v}^(n+1)/(n+1)`) };
+  if (new RegExp(`^(?:[\\d./*()-]+\\*)?${v}$`, 'i').test(t)) return { label: 'Power rule', hint: mark(`∫${v} d${v} = ${v}²/2`) };
 
   // Anything else the engine integrates directly is a table antiderivative
   // — say so, never "Power rule" (which used to be the fallback label).
@@ -1954,27 +1955,27 @@ function integrateInverseTrig(term, variable, Algebrite) {
   const steps = [];
   const shown = beautify(term);
   if (shape === 'arctan') {
-    steps.push(`Recognize the inverse-tangent pattern: d/d${v} arctan(${v}) = 1/(1 + ${v}²), so ∫1/(1 + ${v}²) d${v} = arctan(${v}) + C. The integrand ${shown} has that shape — a constant over (constant + constant·${v}²) — and the power rule does not apply (it is not a power of ${v}).`);
+    steps.push(`Recognize the inverse-tangent pattern: ${mark(`d/d${v} arctan(${v}) = 1/(1 + ${v}²)`)}, so ${mark(`∫1/(1 + ${v}²) d${v} = arctan(${v}) + C`)}. The integrand ${mark(shown)} has that shape — a constant over (constant + constant·${mark(`${v}²`)}) — and the power rule does not apply (it is not a power of ${mark(v)}).`);
     if (p !== '1' || k !== '1') {
-      steps.push(`Match it to the pattern: ${beautify(den)} = ${p === '1' ? '' : `${beautify(p)}·`}(1 + (${kx})²)${p === '1' ? '' : `, factoring out ${beautify(p)}`}${k === '1' ? '' : `, since (${kx})² = ${beautify(qAbs)}${p === '1' ? '' : `/${beautify(p)}`}·${v}²`}.`);
+      steps.push(`Match it to the pattern: ${mark(`${beautify(den)} = ${p === '1' ? '' : `${beautify(p)}·`}(1 + (${kx})²)`)}${p === '1' ? '' : `, factoring out ${mark(beautify(p))}`}${k === '1' ? '' : `, since ${mark(`(${kx})² = ${beautify(qAbs)}${p === '1' ? '' : `/${beautify(p)}`}·${v}²`)}`}.`);
       const coef = run(`simplify((${c})/((${p})*(${k})))`) || `${c}/(${p}·${k})`;
       const recip = run(`simplify(1/(${k}))`) || `1/(${k})`;
-      steps.push(`Let u = ${kx}, so du = ${beautify(k)} d${v} and d${v} = ${recip === '1' ? '' : `${beautify(recip)}·`}du: ∫${shown} d${v} = ${beautify(c)}/(${beautify(p)}·${beautify(k)}) · ∫1/(1 + u²) du = ${coef === '1' ? '' : `${beautify(coef)}·`}arctan(u).`);
-      steps.push(`Substitute back u = ${kx}: ${lnify(antiderivative)}.`);
+      steps.push(`Let ${mark(`u = ${kx}`)}, so ${mark(`du = ${beautify(k)} d${v}`)} and ${mark(`d${v} = ${recip === '1' ? '' : `${beautify(recip)}·`}du`)}: ${mark(`∫${shown} d${v} = ${beautify(c)}/(${beautify(p)}·${beautify(k)}) · ∫1/(1 + u²) du = ${coef === '1' ? '' : `${beautify(coef)}·`}arctan(u)`)}.`);
+      steps.push(`Substitute back ${mark(`u = ${kx}`)}: ${mark(lnify(antiderivative))}.`);
     } else if (c !== '1') {
-      steps.push(`The constant factor ${beautify(c)} comes out front: ∫${shown} d${v} = ${beautify(c)}·arctan(${v}).`);
+      steps.push(`The constant factor ${mark(beautify(c))} comes out front: ${mark(`∫${shown} d${v} = ${beautify(c)}·arctan(${v})`)}.`);
     }
   } else {
-    steps.push(`Recognize the inverse-sine pattern: d/d${v} arcsin(${v}) = 1/√(1 − ${v}²), so ∫1/√(1 − ${v}²) d${v} = arcsin(${v}) + C. The integrand ${shown} has that shape, and no substitution u = 1 − ${v}² will work (there is no ${v} factor to absorb du).`);
+    steps.push(`Recognize the inverse-sine pattern: ${mark(`d/d${v} arcsin(${v}) = 1/√(1 − ${v}²)`)}, so ${mark(`∫1/√(1 − ${v}²) d${v} = arcsin(${v}) + C`)}. The integrand ${mark(shown)} has that shape, and no substitution ${mark(`u = 1 − ${v}²`)} will work (there is no ${mark(v)} factor to absorb ${mark('du')}).`);
     if (p !== '1' || k !== '1') {
-      steps.push(`Match it to the pattern: √(${beautify(arcsinDen[1])}) = ${p === '1' ? '' : `√${beautify(p)}·`}√(1 − (${kx})²)${p === '1' ? '' : `, factoring out ${beautify(p)}`}.`);
+      steps.push(`Match it to the pattern: ${mark(`√(${beautify(arcsinDen[1])}) = ${p === '1' ? '' : `√${beautify(p)}·`}√(1 − (${kx})²)`)}${p === '1' ? '' : `, factoring out ${mark(beautify(p))}`}.`);
       const coef = run(`simplify((${c})/(sqrt(${p})*(${k})))`) || `${c}/(√${p}·${k})`;
-      steps.push(`Let u = ${kx}, so du = ${beautify(k)} d${v}: ∫${shown} d${v} = ${beautify(c)}/(√${beautify(p)}·${beautify(k)}) · ∫1/√(1 − u²) du = ${coef === '1' ? '' : `${beautify(coef)}·`}arcsin(u); substituting back gives ${lnify(antiderivative)}.`);
+      steps.push(`Let ${mark(`u = ${kx}`)}, so ${mark(`du = ${beautify(k)} d${v}`)}: ${mark(`∫${shown} d${v} = ${beautify(c)}/(√${beautify(p)}·${beautify(k)}) · ∫1/√(1 − u²) du = ${coef === '1' ? '' : `${beautify(coef)}·`}arcsin(u)`)}; substituting back gives ${mark(lnify(antiderivative))}.`);
     } else if (c !== '1') {
-      steps.push(`The constant factor ${beautify(c)} comes out front: ∫${shown} d${v} = ${beautify(c)}·arcsin(${v}).`);
+      steps.push(`The constant factor ${mark(beautify(c))} comes out front: ${mark(`∫${shown} d${v} = ${beautify(c)}·arcsin(${v})`)}.`);
     }
   }
-  steps.push(`Check by differentiating: d/d${v}[${lnify(antiderivative)}] = ${shown} ✓`);
+  steps.push(`Check by differentiating: ${mark(`d/d${v}[${lnify(antiderivative)}] = ${shown}`)} ✓`);
   return { antiderivative, steps };
 }
 

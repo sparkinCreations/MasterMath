@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { solveProblem } from '../src/lib/api.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
 // Equations in logarithms used to fall to the numeric root scan, so ln(x) = 1
 // was reported as x = 2.7183. They are now solved exactly: one logarithm
@@ -8,7 +8,8 @@ import { solveProblem } from '../src/lib/api.js';
 // log rules into one, rewrite in exponential form, solve the polynomial.
 // Exponentials with a numeric base (2^x = 10) join the e^x substitution path.
 
-const solve = (p) => solveProblem(p, 'algebra');
+// Wording is checked on the text a reader sees, without the ⟦…⟧ math markers.
+const solve = (p) => solvePlain(p, 'algebra');
 
 test('ln(x) = c is exact: e, e^2, 1/e — with the decimal alongside', async () => {
   assert.equal((await solve('ln(x) = 1')).answer, 'x = e (≈ 2.7183)');

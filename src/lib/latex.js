@@ -8,6 +8,8 @@
 // Rendering falls back to plain text whenever KaTeX rejects the output, so a
 // conversion miss degrades to exactly what users see today — never worse.
 
+import { MATH_OPEN, MATH_CLOSE, hasMathMarkers, stripMathMarkers } from './mathMarkers.js';
+
 const FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'asin', 'acos', 'atan', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'ln', 'log', 'exp'];
 
 // Words allowed to appear inside a "math" fragment without making it prose.
@@ -172,7 +174,15 @@ export function isMathFragment(s) {
  * plus fully-math strings. Anything else stays one text segment.
  */
 export function segmentMathText(step) {
-  const s = String(step);
+  let s = String(step);
+  // Explicit markers (mathMarkers.js): typeset exactly what is marked.
+  // Malformed markers (unbalanced, nested) are dropped and the heuristics
+  // below get the plain text — never a half-typeset step.
+  if (hasMathMarkers(s)) {
+    const marked = markedSegments(s);
+    if (marked) return marked;
+    s = stripMathMarkers(s);
+  }
   const trimmed = s.trim();
 
   if (isMathFragment(trimmed)) {
@@ -201,6 +211,32 @@ export function segmentMathText(step) {
   if (clauses.some((c) => c.type === 'math')) return clauses;
 
   return [{ type: 'text', value: s }];
+}
+
+// "Let ⟦u = x^2⟧ (the inside)." → text, math, text. Null when the markers
+// do not pair up (an open without a close, a close without an open, or one
+// open inside another).
+function markedSegments(s) {
+  const out = [];
+  let i = 0;
+  while (i < s.length) {
+    const open = s.indexOf(MATH_OPEN, i);
+    const stray = s.indexOf(MATH_CLOSE, i);
+    if (open === -1) {
+      if (stray !== -1) return null;
+      out.push({ type: 'text', value: s.slice(i) });
+      break;
+    }
+    if (stray !== -1 && stray < open) return null;
+    const close = s.indexOf(MATH_CLOSE, open + 1);
+    if (close === -1) return null;
+    const inner = s.slice(open + 1, close);
+    if (inner.includes(MATH_OPEN)) return null;
+    if (open > i) out.push({ type: 'text', value: s.slice(i, open) });
+    if (inner.trim()) out.push({ type: 'math', value: inner.trim() });
+    i = close + 1;
+  }
+  return out.filter((seg) => seg.value !== '');
 }
 
 // Connector words and punctuation that separate clauses. A comma is not
