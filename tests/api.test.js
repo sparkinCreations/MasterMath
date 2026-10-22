@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createProblemHistory, updateProblemHistory } from '../src/lib/api.js';
+import { createProblemHistory, updateProblemHistory } from '../src/lib/problemHistory.js';
 
 const VALID = {
   problem: '2*x + 5 = 11',

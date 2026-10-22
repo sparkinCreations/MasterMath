@@ -30,7 +30,8 @@ src/
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
   hooks/                       usePageTitle, useServiceWorker
   lib/
-    api.js                     solveProblem (intent routing) + IndexedDB wrappers + finalizeResult gate
+    api.js                     solveProblem (intent routing) + finalizeResult gate (worker side: imports mathjs)
+    problemHistory.js          the history store's IndexedDB wrappers — what pages import; never import api.js from a page
     budgetedSolver.js          the page's entry point: worker, 10 s budget, Cancel, in-thread fallback
     solver.worker.js           runs solveProblem off the main thread
     mathParser.js              notation → mathjs/Algebrite syntax; expression extraction
@@ -202,6 +203,18 @@ the worker load.
 - The only outbound request is the Feedback form (Web3Forms), only on submit.
   Privacy wording anywhere must name that exception.
 - `npm audit --omit=dev` runs in CI and must stay clean.
+- `/assets/*` is served `max-age=31536000, immutable` (hashed names); nothing
+  else gets a Cache-Control rule, so `sw.js` and the shell always revalidate
+  (`tests/securityHeaders.test.js`).
+
+## Page weight
+
+The maths libraries load in the solver worker, never on a page's main
+thread: a page that imports `api.js` (even for one helper) pulls mathjs in
+with it. The smoke test checks /solver, /progress and /settings. Images
+shown in the UI use `logo-192.png` (23 kB); `favicon.png` is the 500 px
+original for the manifest only, the tab uses `favicon-32.png`. The route
+placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
 
 ## Tests and verification
 

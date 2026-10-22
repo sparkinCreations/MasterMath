@@ -39,7 +39,7 @@ export default function Home() {
       <div className="max-w-6xl mx-auto mb-8 md:mb-16 text-center">
         <div className="mb-6 md:mb-8 flex flex-col items-center">
           <img
-            src="/favicon.png"
+            src="/logo-192.png"
             alt="MasterMath Logo"
             className="w-20 h-20 md:w-24 md:h-24 mb-4 md:mb-6"
           />

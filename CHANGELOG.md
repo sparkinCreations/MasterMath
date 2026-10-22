@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.52.1] - 2026-10-22
+
+Page speed, from an outside Lighthouse review (each finding reproduced
+first; measured on a throttled phone and on desktop).
+
+### Fixed
+
+- **The Solver, Progress and Settings pages no longer download mathjs.**
+  They imported the history functions from `api.js`, the solve router,
+  which pulled mathjs (79 kB gzipped) onto the main thread although solving
+  runs in the worker. The history store is its own module
+  (`lib/problemHistory.js`). Solver page: 595 → 390 kB transferred;
+  Progress and Settings: 345 → 140 kB.
+- **The logo and tab icon were one 119 kB, 500 px PNG**, half of the home
+  page's download. The UI shows `logo-192.png` (23 kB), the tab
+  `favicon-32.png` (1.8 kB), iOS `apple-touch-icon.png`. Home page:
+  222 → 131 kB.
+- **The footer jumped as the Solver page loaded** (layout shift 0.176 on a
+  throttled phone, 0.07 on desktop): the loading placeholder was short, so
+  the footer painted mid-screen and was pushed away. The placeholder is a
+  screen tall; the Solver page's shift is 0 and its main content appears
+  in 2.2 s instead of 3.1 s on the throttled phone.
+
+### Changed
+
+- Hashed files under `/assets/` are served with
+  `Cache-Control: public, max-age=31536000, immutable`. (Returning visitors
+  were already served from the service worker's cache; this removes the
+  revalidation requests and helps before the worker installs.)
+- A smoke test checks that the Solver, Progress and Settings pages fetch no
+  maths library on the main thread.
+
 ## [1.52.0] - 2026-10-22
 
 October 2026 roadmap P2: the PDF export is typeset and includes the graph.
