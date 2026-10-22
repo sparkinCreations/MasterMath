@@ -65,6 +65,15 @@ const STATUS_THEMES = {
   [STATUS.DIVERGES]: AMBER_THEME,
 };
 
+// The chart on the page (GraphViewer marks its wrapper), for the PDF: the
+// window the user is looking at, and its text description as the caption.
+function graphOnScreen() {
+  const host = document.querySelector('[data-export-graph]');
+  const svg = host?.querySelector('svg.recharts-surface');
+  if (!svg) return null;
+  return { svg, label: host.getAttribute('aria-label'), dark: document.documentElement.classList.contains('dark') };
+}
+
 export default function SolutionDisplay({ solution, problem, topic }) {
   const toast = useToast();
 
@@ -113,7 +122,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
         case 'pdf':
           // Awaited: the PDF writer is fetched on demand, so a failure to load
           // it must surface as an export error rather than a silent no-op.
-          await exportSolutionAsPDF(problem, topic, solution, TOPIC_LABELS);
+          await exportSolutionAsPDF(problem, topic, solution, TOPIC_LABELS, { graph: graphOnScreen() });
           toast.success("Solution exported as PDF");
           break;
         case 'markdown':

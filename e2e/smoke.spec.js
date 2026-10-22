@@ -19,7 +19,7 @@ const EXAMPLES = [
   { label: 'Arithmetic: (5 + 3) * 4 - 2^3', answer: /24/, graph: false },
 ];
 
-const HEAVY_CHUNK = /\/assets\/(mathjs|algebrite|charts|pdf|html2canvas|purify|shared)-/;
+const HEAVY_CHUNK = /\/assets\/(mathjs|algebrite|charts|pdf|html2canvas|purify|shared|katex)-/;
 
 // Fail the test on anything the app would show its "Something went wrong"
 // boundary for, and on any uncaught exception. Solver-level console.error
@@ -454,4 +454,40 @@ test.describe('MasterMath smoke', () => {
     const solution = await solveExample(page, 'Algebra: 2*x + 5 = 11');
     await expect(solution).toContainText(/x = 3/);
   });
+
+  // October 2026 roadmap P2: the PDF is the typeset solution and the graph
+  // (images of the page, pdfTypeset.js) with a searchable text layer — not
+  // the plain-text fallback. Dark mode too: the PDF is printed light.
+  for (const scheme of ['light', 'dark']) {
+    test(`Export as PDF saves the typeset solution with its graph (${scheme} mode)`, async ({ page }) => {
+      const fellBack = [];
+      page.on('console', (msg) => { if (/Typeset PDF failed/.test(msg.text())) fellBack.push(msg.text()); });
+      await page.emulateMedia({ colorScheme: scheme });
+      await openSolver(page);
+      await pickExample(page, 'Algebra: 2*x + 5 = 11');
+      await page.getByLabel('Enter your problem').fill('x^3 - 6x^2 + 11x - 6 = 0');
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
+      await expect(page.locator('[data-export-graph] svg.recharts-surface')).toBeVisible();
+
+      await page.getByRole('button', { name: /^Export/ }).click();
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('menuitem', { name: 'Export as PDF' }).click(),
+      ]);
+      const pdf = readFileSync(await download.path()).toString('latin1');
+      expect(fellBack, 'the typeset PDF fell back to plain text').toEqual([]);
+      expect(pdf.startsWith('%PDF-')).toBe(true);
+      expect(pdf.length, 'a typical solution stays under 1 MB').toBeLessThan(1_000_000);
+      const pages = (pdf.match(/\/Type\s*\/Page\b/g) || []).length;
+      expect(pages).toBeGreaterThanOrEqual(1);
+      expect(pages).toBeLessThanOrEqual(3);
+      // One page image each (the graph is inside a page's image)...
+      expect((pdf.match(/\/Subtype\s*\/Image/g) || []).length).toBe(pages);
+      // ...and the words underneath, for search and copy.
+      expect(pdf).toContain('Step-by-Step Solution');
+      expect(pdf).toMatch(/Final Answer: x = 1\s+or\s+x = 2\s+or\s+x = 3/);
+      expect(pdf).toContain(`Page ${pages} of ${pages}`);
+    });
+  }
 });

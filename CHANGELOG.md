@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.52.0] - 2026-10-22
+
+October 2026 roadmap P2: the PDF export is typeset and includes the graph.
+
+### Added
+
+- **Typeset PDF export.** Export as PDF now produces the solution as it
+  looks on screen: steps, answer, tips and mistakes typeset with KaTeX
+  (± and x² as themselves, fractions stacked) and the graph as shown,
+  always printed light, even from dark mode. Pages break between steps,
+  never through one; every page carries the words as an invisible text
+  layer, so the PDF can still be searched and copied from. The cubic
+  example is 2 pages and about 550 kB. If the page capture fails (a
+  blocked canvas), the export falls back to the plain-text PDF as before.
+- The PDF's title names the topic the problem was solved as (an integral
+  typed under Algebra is an "Integrals Problem").
+- A smoke test that exports the PDF in light and dark mode, on desktop and
+  phone, and checks its pages, page images, text layer and size.
+
+### Changed
+
+- New dependency **html2canvas-pro** 2.5.0 (MIT; the maintained fork of
+  html2canvas), loaded only when a PDF is exported. Pinned: 2.5.1+
+  requires Node 24.
+- KaTeX rendering lives in `lib/mathRender.js`, shared by the page and the
+  PDF; the graph's theme colours in `lib/graphPalette.js`. KaTeX and
+  html2canvas-pro have their own lazy chunks; the chunks every solve loads
+  are unchanged.
+- The Privacy Policy lists KaTeX and html2canvas-pro among the libraries
+  that run locally.
+
 ## [1.51.0] - 2026-10-22
 
 October 2026 roadmap P1, finished: every solver typesets its steps.
