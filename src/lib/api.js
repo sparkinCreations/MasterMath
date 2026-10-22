@@ -212,7 +212,7 @@ function unknownWordInProblem(problem) {
 const unknownWordError = (problem, word) => parseError({
   input: problem,
   hint: `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`,
-  tips: ['Type the mathematics itself — an expression or an equation, such as 2x + 5 = 11 or x^2 - 4.'],
+  tips: ['Type the mathematics itself — an expression or an equation, such as "2x + 5 = 11" or "x^2 - 4".'],
 });
 
 // "… at x = 2" / "… when x = π/4": an evaluation point tacked onto the end
@@ -397,7 +397,7 @@ export function isPresentable(value) {
 // screen: an answer or step that is not presentable text is replaced with an
 // honest "unsupported" envelope, never rendered — and never marked solved.
 // Shown whenever a solved input relied on the base-10 reading of a bare `log`.
-export const COMMON_LOG_TIP = 'log(…) is read as the common logarithm, base 10, as on a calculator. Write ln(…) for the natural logarithm, or log(x, b) / log_b(x) for another base.';
+export const COMMON_LOG_TIP = '"log(…)" is read as the common logarithm, base 10, as on a calculator. Write "ln(…)" for the natural logarithm, or "log(x, b)" / "log_b(x)" for another base.';
 
 export function finalizeResult(result, input) {
   if (!result || typeof result !== 'object') {
@@ -424,8 +424,9 @@ export function finalizeResult(result, input) {
     });
   }
   // Numbers are fine as answers, but the UI and exports expect a string.
-  // The ⟦…⟧ math markers (mathMarkers.js) belong to step text only: the
-  // answer is graded, saved to history and shown in Progress as text.
+  // The ⟦…⟧ math markers (mathMarkers.js) belong to steps, tips and
+  // mistakes, which the page typesets by them; the answer is graded, saved
+  // to history and shown in Progress as text.
   result.answer = stripMathMarkers(result.answer);
   result.steps = result.steps.map((s) => (typeof s === 'string' ? s : String(s)));
   if (!result.tips || !Array.isArray(result.tips)) {
@@ -434,8 +435,10 @@ export function finalizeResult(result, input) {
   if (!result.common_mistakes || !Array.isArray(result.common_mistakes)) {
     result.common_mistakes = [];
   }
-  result.tips = result.tips.map(stripMathMarkers);
-  result.common_mistakes = result.common_mistakes.map(stripMathMarkers);
+  // Tips and mistakes keep their markers (1.53.0): the page typesets only
+  // the marked runs ('marked' mode), and every export strips them.
+  result.tips = result.tips.map(String);
+  result.common_mistakes = result.common_mistakes.map(String);
   if (Array.isArray(result.warnings)) result.warnings = result.warnings.map(stripMathMarkers);
   if (!isValidStatus(result.status)) {
     // Legacy shim: the pre-envelope failure convention was an answer string
@@ -595,8 +598,8 @@ export async function solveProblem(problem, topic) {
           reason: `${beautify(t)} is a differential equation: it relates a function to its own derivative${primed ? " (the ' marks a derivative)" : ' (dy/dx is the derivative of y)'}. Solving differential equations is not supported; the solver differentiates and integrates functions you give it.`,
           answer: 'Differential equations are not supported',
           tips: [
-            'To differentiate a function, enter it under Derivatives: x^3, or d/dx(x^3).',
-            'To find a function from its derivative, integrate it under Integrals: ∫ 2x dx.',
+            'To differentiate a function, enter it under Derivatives: "x^3", or "d/dx(x^3)".',
+            'To find a function from its derivative, integrate it under Integrals: "∫ 2x dx".',
           ],
         }), problem);
       }
@@ -605,7 +608,7 @@ export async function solveProblem(problem, topic) {
           input: problem,
           reason: 'Matrices (determinants, inverses, eigenvalues, products) are not supported yet. The solver covers arithmetic, algebra, systems of equations, inequalities, trigonometry, functions, limits, derivatives and integrals.',
           answer: 'Matrices are not supported yet',
-          tips: ['A system of linear equations can be solved as equations: 2x + 3y = 6; x - y = 4.'],
+          tips: ['A system of linear equations can be solved as equations: "2x + 3y = 6; x - y = 4".'],
         }), problem);
       }
     }
@@ -704,7 +707,7 @@ export async function solveProblem(problem, topic) {
       return finalizeResult(parseError({
         input: problem,
         hint: `Two numbers with a space between them — did you mean to multiply (${a}*${b}) or to write one number (${a}${b})?`,
-        tips: [`Use * for multiplication: ${a}*${b}. To write one number, remove the space.`],
+        tips: [`Use "*" for multiplication: "${a}*${b}". To write one number, remove the space.`],
       }), problem);
     }
     // "factor x^2-5x+6", "expand (x+1)^2", "simplify …", "solve …": the verb
@@ -805,7 +808,7 @@ export async function solveProblem(problem, topic) {
               hint: twoLetters
                 ? `"${word}" — two variables side by side. For a product, write ${word[0]}*${word[word.length - 1]}.`
                 : `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`,
-              tips: ['Type the mathematics itself — an expression or an equation, such as 2x + 5 = 11 or x^2 - 4.'],
+              tips: ['Type the mathematics itself — an expression or an equation, such as "2x + 5 = 11" or "x^2 - 4".'],
             }), problem);
           }
         }
@@ -818,14 +821,14 @@ export async function solveProblem(problem, topic) {
             return finalizeResult(parseError({
               input: problem,
               hint: `Unbalanced parentheses: ${opens} opening "(" and ${closes} closing ")".`,
-              tips: ['Every "(" needs a matching ")": sin(x), (x + 1)^2.'],
+              tips: ['Every "(" needs a matching ")": "sin(x)", "(x + 1)^2".'],
             }), problem);
           }
           if (/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sinh|cosh|tanh|sqrt|abs|ln|log|exp)\s*\(\s*\)/i.test(expression)) {
             const fn = expression.match(/\b(sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sinh|cosh|tanh|sqrt|abs|ln|log|exp)\s*\(\s*\)/i)[1];
             return finalizeResult(parseError({
               input: problem,
-              hint: `${fn}() has nothing inside it — ${fn} needs an argument: ${fn}(x), ${fn}(30).`,
+              hint: `"${fn}()" has nothing inside it — ${fn} needs an argument: "${fn}(x)", "${fn}(30)".`,
             }), problem);
           }
         }
@@ -839,7 +842,7 @@ export async function solveProblem(problem, topic) {
             return finalizeResult(parseError({
               input: problem,
               hint: `${bare} needs an argument in parentheses — ${bare}(x), ${bare}(2), ${bare}^2(x).`,
-              tips: [`Every function call needs parentheses: ${bare}(x), not ${bare} x or ${bare} alone.`],
+              tips: [`Every function call needs parentheses: "${bare}(x)", not "${bare} x" or "${bare}" alone.`],
             }), problem);
           }
         }
@@ -872,8 +875,8 @@ export async function solveProblem(problem, topic) {
       input: problem,
       hint: error.message || 'An unexpected error occurred',
       tips: [
-        'Use * for multiplication (e.g., 2*x instead of 2x)',
-        'Use ^ for exponents (e.g., x^2 instead of x²)',
+        'Use "*" for multiplication (e.g., "2*x" instead of "2x")',
+        'Use "^" for exponents (e.g., "x^2" instead of "x²")',
         'Check that all parentheses are balanced and function names are spelled out (sin, cos, sqrt, ...)',
       ],
     });

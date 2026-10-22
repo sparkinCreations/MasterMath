@@ -1365,25 +1365,25 @@ test('limit cancellation explains the excluded point and the hole', async () => 
 });
 
 test('derivative tips and mistakes are chosen from the rules the solution used', async () => {
-  const poly = await solveProblem('x^3 + 2x', 'derivatives');
+  const poly = await solvePlain('x^3 + 2x', 'derivatives');
   assert.match(poly.tips.join('\n'), /Power rule/);
   assert.doesNotMatch(poly.tips.join('\n'), /product, quotient, or chain rule/);
   assert.doesNotMatch(poly.common_mistakes.join('\n'), /chain rule|inside function/);
 
-  const chain = await solveProblem('sin(x^2)', 'derivatives');
+  const chain = await solvePlain('sin(x^2)', 'derivatives');
   assert.match(chain.tips.join('\n'), /Chain rule/);
   assert.match(chain.common_mistakes.join('\n'), /derivative of the inside function/);
   assert.doesNotMatch(chain.tips.join('\n'), /Power rule/);
 
-  const product = await solveProblem('x*e^x', 'derivatives');
+  const product = await solvePlain('x*e^x', 'derivatives');
   assert.match(product.tips.join('\n'), /Product rule/);
-  const quotient = await solveProblem('ln(x)/x', 'derivatives');
+  const quotient = await solvePlain('ln(x)/x', 'derivatives');
   assert.match(quotient.tips.join('\n'), /Quotient rule/);
-  const trig = await solveProblem('cos(x)', 'derivatives');
+  const trig = await solvePlain('cos(x)', 'derivatives');
   assert.match(trig.common_mistakes.join('\n'), /minus sign in d\/dx cos\(x\)/);
   // Every derivative still has at least one tip and one mistake.
   for (const input of ['7', 'x^x', '1/x^2 + 5', 'e^(3x)', 'ln(x)']) {
-    const r = await solveProblem(input, 'derivatives');
+    const r = await solvePlain(input, 'derivatives');
     assert.ok(r.tips.length >= 1 && r.common_mistakes.length >= 1, input);
   }
 });
@@ -1675,26 +1675,26 @@ test('the cosine standard limit is derived from the sine limit', async () => {
 });
 
 test('guidance follows the concept: limits by technique, trig by function, fractions by operation', async () => {
-  assert.match((await solveProblem('lim x->0 sin(3x)/x', 'limits')).tips[0], /standard limits sin\(u\)\/u → 1/);
-  assert.match((await solveProblem('lim x->1 (x^2-1)/(x-1)', 'limits')).tips[0], /common factor is hiding/);
-  assert.match((await solveProblem('lim x->infinity (3x^2+1)/(x^2-4)', 'limits')).tips[0], /highest power dominates/);
-  assert.match((await solveProblem('lim x->2 x^2+1', 'limits')).tips[0], /substituting the value directly/);
+  assert.match((await solvePlain('lim x->0 sin(3x)/x', 'limits')).tips[0], /standard limits sin\(u\)\/u → 1/);
+  assert.match((await solvePlain('lim x->1 (x^2-1)/(x-1)', 'limits')).tips[0], /common factor is hiding/);
+  assert.match((await solvePlain('lim x->infinity (3x^2+1)/(x^2-4)', 'limits')).tips[0], /highest power dominates/);
+  assert.match((await solvePlain('lim x->2 x^2+1', 'limits')).tips[0], /substituting the value directly/);
 
-  const cosine = await solveProblem('cos(pi/3)', 'trigonometry');
+  const cosine = await solvePlain('cos(pi/3)', 'trigonometry');
   assert.match(cosine.tips[0], /^Remember: cos\(0°\) = 1/);
-  const arc = await solveProblem('arcsin(0.5)', 'trigonometry');
+  const arc = await solvePlain('arcsin(0.5)', 'trigonometry');
   assert.match(arc.tips[0], /returns an ANGLE/);
   assert.match(arc.common_mistakes.join('\n'), /Reading arcsin\(x\) as 1\/sin\(x\)/);
-  const tangent = await solveProblem('tan(pi/4)', 'trigonometry');
+  const tangent = await solvePlain('tan(pi/4)', 'trigonometry');
   assert.match(tangent.tips[0], /tan = sin\/cos/);
 
-  const product = await solveProblem('1/2 * 3/4', 'other');
+  const product = await solvePlain('1/2 * 3/4', 'other');
   assert.doesNotMatch(product.tips.join('\n'), /divide by a fraction|reciprocal/i);
-  const quotient = await solveProblem('(1/2)/(3/4)', 'other');
+  const quotient = await solvePlain('(1/2)/(3/4)', 'other');
   assert.match(quotient.tips[0], /keep, change, flip/);
   // An integral that used no power rule is not warned about 1/x.
-  assert.doesNotMatch((await solveProblem('∫ sec(x)^2 dx', 'integrals')).common_mistakes.join('\n'), /power rule to 1\/x/);
-  assert.match((await solveProblem('∫ x^2 dx', 'integrals')).common_mistakes.join('\n'), /power rule to 1\/x/);
+  assert.doesNotMatch((await solvePlain('∫ sec(x)^2 dx', 'integrals')).common_mistakes.join('\n'), /power rule to 1\/x/);
+  assert.match((await solvePlain('∫ x^2 dx', 'integrals')).common_mistakes.join('\n'), /power rule to 1\/x/);
 });
 
 // ---------------------------------------------------------------------------
@@ -1743,7 +1743,7 @@ test('divergence is stated with its sign, and the principal value is named for a
 });
 
 test('equation guidance follows the method: absolute value, radical, log, exponential, quadratic, rational, linear', async () => {
-  const pick = async (input) => (await solveProblem(input, 'algebra'));
+  const pick = async (input) => (await solvePlain(input, 'algebra'));
   assert.match((await pick('abs(2x-3) = 5')).tips[0], /\|A\| = b splits into two equations/);
   assert.match((await pick('abs(2x-3) = 5')).common_mistakes[0], /only the positive case/);
   assert.match((await pick('sqrt(x+1) = 3')).tips[0], /square both sides/);

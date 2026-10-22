@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Trash2, Download, ChevronDown } from "lucide-react";
@@ -7,6 +7,16 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { exportAsCSV, exportAsJSON, exportAsMarkdown, exportAsPDF } from "@/lib/exportUtils";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { readPlainEnglish } from "@/lib/plainEnglish";
+
+// History entries typeset like the Solver's input preview (1.53.0). KaTeX
+// loads after the list has drawn: until then each entry shows as typed.
+const MathText = lazy(() => import("@/components/MathText"));
+const Typeset = ({ text, mode }) => (
+  <Suspense fallback={text}>
+    <MathText mode={mode} text={mode === "input" ? readPlainEnglish(text) : text} />
+  </Suspense>
+);
 import { historyStats } from "@/lib/historyStats";
 import { statusLabel, countsAsSolved } from "@/lib/solutionEnvelope";
 import {
@@ -205,9 +215,11 @@ export default function Progress() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            // A list, one item per problem: a screen reader hears "list, 3
+            // items", and each entry's topic and date belong to it.
+            <ul className="space-y-4">
               {problems.map((p, idx) => (
-                <div
+                <li
                   key={idx}
                   className="p-4 rounded-lg border-2 border-indigo-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700/60 dark:to-gray-700/60 hover:shadow-md transition-shadow"
                 >
@@ -228,15 +240,15 @@ export default function Progress() {
                       {new Date(p.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-gray-800 dark:text-gray-100 font-medium">{p.problem}</p>
+                  <p className="text-gray-800 dark:text-gray-100 font-medium"><Typeset mode="input" text={p.problem} /></p>
                   {p.solution && (
                     <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-                      {countsAsSolved(p) ? 'Solution' : 'Result'}: {typeof p.solution === 'string' ? p.solution : p.solution.answer}
+                      {countsAsSolved(p) ? 'Solution' : 'Result'}: <Typeset mode="auto" text={String(typeof p.solution === 'string' ? p.solution : p.solution.answer)} />
                     </p>
                   )}
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </CardContent>
       </Card>

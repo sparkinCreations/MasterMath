@@ -31,27 +31,27 @@ function limitGuidance(result) {
   if (/^logarithms/.test(method)) {
     return {
       tips: [
-        '1^∞ is indeterminate: a base just above 1 raised to a huge power can go anywhere. Take logarithms to bring the exponent down: ln(B^E) = E·ln(B).',
-        'ln(1 + u) ≈ u for small u (the standard limit ln(1 + u)/u → 1), so lim B^E = e^(lim E·(B − 1)).',
-        'The family to know: (1 + a/x)^(bx) → e^(ab) as x → ∞, and (1 + ax)^(b/x) → e^(ab) as x → 0.',
+        `${mark('1^∞')} is indeterminate: a base just above ${mark('1')} raised to a huge power can go anywhere. Take logarithms to bring the exponent down: ${mark('ln(B^E) = E·ln(B)')}.`,
+        `${mark('ln(1 + u) ≈ u')} for small ${mark('u')} (the standard limit ${mark('ln(1 + u)/u → 1')}), so ${mark('lim B^E = e^(lim E·(B − 1))')}.`,
+        `The family to know: ${mark('(1 + a/x)^(bx) → e^(ab)')} as ${mark('x → ∞')}, and ${mark('(1 + ax)^(b/x) → e^(ab)')} as ${mark('x → 0')}.`,
       ],
       common_mistakes: [
-        'Saying 1^∞ = 1: the base is only approaching 1, and the exponent magnifies the difference.',
-        'Forgetting to undo the logarithm at the end: ln L = 2 means L = e², not 2.',
-        'Dropping the constant in the exponent: (1 + 1/x)^(2x) → e², not e.',
+        `Saying ${mark('1^∞ = 1')}: the base is only approaching ${mark('1')}, and the exponent magnifies the difference.`,
+        `Forgetting to undo the logarithm at the end: ${mark('ln L = 2')} means ${mark('L = e²')}, not ${mark('2')}.`,
+        `Dropping the constant in the exponent: ${mark('(1 + 1/x)^(2x) → e²')}, not ${mark('e')}.`,
       ],
     };
   }
   if (/standard limit/.test(method)) {
     return {
       tips: [
-        'The standard limits sin(u)/u → 1 and (1 − cos u)/u² → 1/2 (as u → 0) are the building blocks: rewrite so the argument of the trig function matches the denominator.',
-        'A constant factor comes out: sin(3x)/x = 3·sin(3x)/(3x).',
-        'These limits are the reason d/dx sin(x) = cos(x) — they sit under every trig derivative.',
+        `The standard limits ${mark('sin(u)/u → 1')} and ${mark('(1 − cos u)/u² → 1/2')} (as ${mark('u → 0')}) are the building blocks: rewrite so the argument of the trig function matches the denominator.`,
+        `A constant factor comes out: ${mark('sin(3x)/x = 3·sin(3x)/(3x)')}.`,
+        `These limits are the reason ${mark('d/dx sin(x) = cos(x)')} — they sit under every trig derivative.`,
       ],
       common_mistakes: [
-        'Substituting x = 0 and stopping at 0/0 — the form is indeterminate, not an answer.',
-        'Forgetting the constant factor when the argument is scaled (sin(3x)/x → 3, not 1).',
+        `Substituting ${mark('x = 0')} and stopping at ${mark('0/0')} — the form is indeterminate, not an answer.`,
+        `Forgetting the constant factor when the argument is scaled (${mark('sin(3x)/x → 3')}, not ${mark('1')}).`,
         'Applying the standard limit when the argument does not match the denominator.',
       ],
     };
@@ -59,12 +59,12 @@ function limitGuidance(result) {
   if (/factor and cancel/.test(method) || /Cancel it/.test(text)) {
     return {
       tips: [
-        '0/0 means a common factor is hiding in numerator and denominator: factor both and cancel it.',
+        `${mark('0/0')} means a common factor is hiding in numerator and denominator: factor both and cancel it.`,
         'The cancelled form equals the original everywhere except at the point itself — that is exactly what a limit needs.',
         'On the graph, a cancelled factor is a hole (removable discontinuity), not an asymptote.',
       ],
       common_mistakes: [
-        'Substituting the value before cancelling and stopping at 0/0.',
+        `Substituting the value before cancelling and stopping at ${mark('0/0')}.`,
         'Claiming the function "equals" the simplified form at the point — it is undefined there.',
         'Cancelling terms instead of factors.',
       ],
@@ -75,11 +75,11 @@ function limitGuidance(result) {
       tips: [
         'When direct substitution blows up, check each side separately: the two-sided limit exists only if both sides agree.',
         'A vertical asymptote gives infinite one-sided limits; opposite signs on the two sides mean the limit does not exist.',
-        'Write "does not exist" (DNE) rather than a number when the sides disagree; write +∞ or −∞ when they agree on an infinity.',
+        `Write "does not exist" (DNE) rather than a number when the sides disagree; write ${mark('+∞')} or ${mark('−∞')} when they agree on an infinity.`,
       ],
       common_mistakes: [
-        'Writing ∞ for a limit whose two sides go to +∞ and −∞.',
-        'Treating 1/0 as a number instead of describing how the function behaves nearby.',
+        `Writing ${mark('∞')} for a limit whose two sides go to ${mark('+∞')} and ${mark('−∞')}.`,
+        `Treating ${mark('1/0')} as a number instead of describing how the function behaves nearby.`,
         'Checking only one side of the point.',
       ],
     };
@@ -88,26 +88,26 @@ function limitGuidance(result) {
     return {
       tips: [
         'For a limit at infinity, the highest power dominates: divide numerator and denominator by it.',
-        'Equal degrees → the ratio of leading coefficients; lower degree on top → 0; higher on top → ±∞.',
+        `Equal degrees → the ratio of leading coefficients; lower degree on top → ${mark('0')}; higher on top → ${mark('±∞')}.`,
         'Exponentials outgrow every polynomial, and polynomials outgrow every logarithm.',
       ],
       common_mistakes: [
         'Plugging in a large number and rounding — that suggests the value but does not prove it.',
-        'Forgetting the sign when the leading term is odd and x → −∞.',
-        'Treating ∞/∞ as 1.',
+        `Forgetting the sign when the leading term is odd and ${mark('x → −∞')}.`,
+        `Treating ${mark('∞/∞')} as ${mark('1')}.`,
       ],
     };
   }
   return {
     tips: [
       'Try substituting the value directly first — if the function is continuous there, that is the limit.',
-      'A 0/0 or ∞/∞ result is indeterminate: factor, rationalize, or use L\'Hôpital\'s rule.',
+      `A ${mark('0/0')} or ${mark('∞/∞')} result is indeterminate: factor, rationalize, or use L'Hôpital's rule.`,
       'For limits at infinity, compare the growth rates of the numerator and denominator.',
     ],
     common_mistakes: [
       'Assuming the limit equals the function value even at a discontinuity.',
       'Only checking one side when the two sides can disagree.',
-      'Stopping at a 0/0 form instead of simplifying first.',
+      `Stopping at a ${mark('0/0')} form instead of simplifying first.`,
     ],
   };
 }
@@ -166,7 +166,7 @@ export async function solveLimit(expression) {
         return parseError({
           input: expression,
           hint: 'There is no expression to take the limit of.',
-          tips: ['Write limits like: lim x->0 (sin(x)/x).'],
+          tips: ['Write limits like: "lim x->0 (sin(x)/x)".'],
         });
       }
       if (hasVariable(func, variable)) {
@@ -179,8 +179,8 @@ export async function solveLimit(expression) {
             `A limit needs one: the same expression has different limits at different points (where does ${mark(variable)} go?).`,
           ],
           hint: `No approach point was given — a limit needs one (where does ${variable} go?).`,
-          tips: ['Write limits like: lim x->0 (sin(x)/x), or (x^2-1)/(x-1) as x approaches 1, or lim x->infinity 1/x.'],
-          common_mistakes: ['Leaving out the "x → a" part — the same expression has different limits at different points.'],
+          tips: ['Write limits like: "lim x->0 (sin(x)/x)", or "(x^2-1)/(x-1) as x approaches 1", or "lim x->infinity 1/x".'],
+          common_mistakes: [`Leaving out the "${mark('x → a')}" part — the same expression has different limits at different points.`],
         });
       }
     }
@@ -192,7 +192,7 @@ export async function solveLimit(expression) {
       return parseError({
         input: expression,
         hint: 'The limit notation could not be separated from the function.',
-        tips: ['Write limits like: lim x->0 (sin(x)/x), or sin(x)/x as x approaches 0.'],
+        tips: ['Write limits like: "lim x->0 (sin(x)/x)", or "sin(x)/x as x approaches 0".'],
       });
     }
 
@@ -224,7 +224,7 @@ export async function solveLimit(expression) {
       return parseError({
         input: expression,
         hint: `"${func}" could not be read as a function of ${variable}.`,
-        tips: ['Write limits like: lim x->0 (sin(x)/x), or (x^2-1)/(x-1) as x approaches 1.'],
+        tips: ['Write limits like: "lim x->0 (sin(x)/x)", or "(x^2-1)/(x-1) as x approaches 1".'],
       });
     }
 
@@ -243,11 +243,11 @@ export async function solveLimit(expression) {
         ],
         answer: 'Undefined',
         tips: [
-          `${hit.func}(x) has a vertical asymptote wherever ${hit.denom}(x) = 0 — the value grows without bound instead of settling on a number.`,
+          `${mark(`${hit.func}(x)`)} has a vertical asymptote wherever ${mark(`${hit.denom}(x) = 0`)} — the value grows without bound instead of settling on a number.`,
           'A limit can only exist where the expression takes real values near the point.',
         ],
         common_mistakes: [
-          `Assuming ${hit.func} is defined everywhere — it blows up wherever ${hit.denom}(x) = 0.`,
+          `Assuming ${hit.func} is defined everywhere — it blows up wherever ${mark(`${hit.denom}(x) = 0`)}.`,
           'Reading the huge floating-point number near an asymptote as the actual answer.',
         ],
         graph: null,
@@ -268,7 +268,7 @@ export async function solveLimit(expression) {
             `The expression has no ${mark(variable)} in it, and it divides by zero: it is undefined for every ${mark(variable)}, not just near ${mark(displayTarget)}.`,
             'A limit describes what a function approaches near a point where it is defined around it. Here it is defined nowhere, so the limit does not exist.',
           ],
-          tips: ['Division by zero is undefined; a limit can only say what happens as a denominator APPROACHES zero (lim x→0 1/x), not when it is zero.'],
+          tips: [`Division by zero is undefined; a limit can only say what happens as a denominator APPROACHES zero (${mark('lim x→0 1/x')}), not when it is zero.`],
         });
       }
     }
@@ -296,7 +296,7 @@ export async function solveLimit(expression) {
           ],
           answer: `lim (${variable}→${displayTarget}) ${beautify(func)} = ${beautify(sym.substituted)}`,
           tips: ['When the expression has a parameter, simplify algebraically until the limit variable can be substituted directly.', 'This is exactly the difference-quotient limit that defines the derivative.'],
-          common_mistakes: ['Substituting before simplifying and stopping at 0/0.'],
+          common_mistakes: [`Substituting before simplifying and stopping at ${mark('0/0')}.`],
           graph: null,
         };
       }
@@ -304,7 +304,7 @@ export async function solveLimit(expression) {
         input: expression,
         reason: `The expression contains another symbol (${otherSymbol}) as well as ${variable}, and it did not simplify to something ${variable} = ${displayTarget} can be substituted into. Limits with a symbolic parameter are only supported when they simplify algebraically.`,
         answer: 'This limit is beyond what this solver can compute',
-        tips: ['Give the parameter a value (e.g. replace x with 3) to evaluate the limit numerically.'],
+        tips: [`Give the parameter a value (e.g. replace ${mark('x')} with ${mark('3')}) to evaluate the limit numerically.`],
       });
     }
 
@@ -330,7 +330,7 @@ export async function solveLimit(expression) {
         'One-sided limits are the right tool at domain boundaries, jump discontinuities, and vertical asymptotes.',
       ] : limitGuidance(result).tips,
       common_mistakes: side !== 0 ? [
-        'Mixing up the notation: x → a⁺ approaches from the right (values above a), x → a⁻ from the left.',
+        `Mixing up the notation: ${mark('x → a⁺')} approaches from the right (values above ${mark('a')}), ${mark('x → a⁻')} from the left.`,
         'Reporting a two-sided limit when only one side was asked for (or exists).',
         'Assuming a one-sided limit exists where the function is not even defined on that side.',
       ] : limitGuidance(result).common_mistakes,
@@ -341,7 +341,7 @@ export async function solveLimit(expression) {
     return parseError({
       input: expression,
       hint: error.message,
-      tips: ['Write limits like: lim x->0 (sin(x)/x), or (x^2-1)/(x-1) as x approaches 1.'],
+      tips: ['Write limits like: "lim x->0 (sin(x)/x)", or "(x^2-1)/(x-1) as x approaches 1".'],
     });
   }
 }

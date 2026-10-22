@@ -65,7 +65,7 @@ export async function solveFunctions(expression) {
       return parseError({
         input: expression,
         hint: 'This could not be read as a function of one variable.',
-        tips: ['Write the function in terms of x, e.g. x^2 - 4*x + 3 or 1/(x-2).'],
+        tips: [`Write the function in terms of ${mark('x')}, e.g. "x^2 - 4*x + 3" or "1/(x-2)".`],
       });
     }
 
@@ -86,7 +86,7 @@ export async function solveFunctions(expression) {
           'No extrema in the usual sense (every point is both a maximum and a minimum), no asymptotes, no periodicity — a constant is the same everywhere.',
         ],
         answer: `f(${variable}) = ${beautify(func)}: a constant function, equal to ${shown} for every ${variable}; its graph is the horizontal line y = ${shown}.`,
-        tips: ['A constant function has derivative 0 — its graph has slope zero everywhere.', 'For a constant c, ∫c dx = c·x + C.'],
+        tips: [`A constant function has derivative ${mark('0')} — its graph has slope zero everywhere.`, `For a constant ${mark('c')}, ${mark('∫c dx = c·x + C')}.`],
         common_mistakes: ['Looking for x-intercepts or turning points on a horizontal line.'],
         graph: points.length > 0 ? { points, title: `Graph of f(${variable}) = ${beautify(func)}`, description: `A horizontal line at y = ${shown}.`, annotations: { yIntercept: typeof value === 'number' ? { x: 0, y: value } : null } } : null,
       };
@@ -112,7 +112,7 @@ export async function solveFunctions(expression) {
       common_mistakes: [
         'Assuming every function has a vertex — only some (like parabolas) do.',
         'Reading a graph where the function is undefined (holes and asymptotes).',
-        'Confusing an x-intercept (f(x) = 0) with the y-intercept (x = 0).',
+        `Confusing an x-intercept (${mark('f(x) = 0')}) with the y-intercept (${mark('x = 0')}).`,
       ],
       graph: points.length > 0 ? {
         points,
@@ -153,7 +153,7 @@ export async function solveFunctions(expression) {
     return parseError({
       input: expression,
       hint: error.message,
-      tips: ['Write the function in terms of x, e.g. x^2 - 4*x + 3 or 1/(x-2).'],
+      tips: [`Write the function in terms of ${mark('x')}, e.g. "x^2 - 4*x + 3" or "1/(x-2)".`],
     });
   }
 }
@@ -836,10 +836,10 @@ function buildSteps(func, variable, f) {
 function buildTips(f) {
   const tips = [];
   if (f.quadratic) {
-    tips.push('For ax² + bx + c, the axis of symmetry is always x = −b/(2a).');
-    tips.push('The sign of a tells you the opening: a > 0 opens upward, a < 0 downward.');
+    tips.push(`For ${mark('ax² + bx + c')}, the axis of symmetry is always ${mark('x = −b/(2a)')}.`);
+    tips.push(`The sign of ${mark('a')} tells you the opening: ${mark('a > 0')} opens upward, ${mark('a < 0')} downward.`);
   } else {
-    tips.push('Critical points come from solving f′(x) = 0 — not from eyeballing the graph.');
+    tips.push(`Critical points come from solving ${mark('f′(x) = 0')} — not from eyeballing the graph.`);
   }
   if (f.verticalAsymptotes.length > 0) {
     tips.push('A vertical asymptote is not part of the graph — the function is undefined there.');

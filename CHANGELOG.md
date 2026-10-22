@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   notation. Not what you meant? Choose a topic above." History and exports
   file the problem under the detected topic, never "Auto-detect". The User
   Manual, FAQ and home page explain it.
+- **Tips, mistakes, the example buttons and the history list are
+  typeset**, as the steps and answers are. Every solver marks the formulas
+  in its Key Insights and Common Mistakes, which render only what is marked
+  (the step heuristics, tried first, left a formula plain in 75 of 276 tips
+  and typeset half a phrase in others). The example cards show the maths as
+  a textbook would, and clicking one puts the typed form in the box, beside
+  the preview. Progress shows each problem and answer typeset (KaTeX loads
+  after the list has drawn). The PDF typesets tips and mistakes too.
 
 ### Changed
 
@@ -38,6 +46,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Typed pi was set as the letters p·i** ("sin(pi/4)" on screen, and
+  read "p i" by screen readers), wherever typed input is shown: the input
+  preview, and the answer of an integral that repeats its integrand. It is
+  π. "infinity", "theta" and "cbrt(…)" render as their symbols too, and a
+  number times a letter or bracket shows as in a textbook (2x, not 2·x).
+- **The input preview missed maths beside words and in plain
+  expressions**: "derivative of x^3", "factor x^2-5x+6", "sin(pi/4)" and
+  "2*x + 1" showed untypeset. A typed problem is now read as words around
+  maths.
+- **Screen readers**: the steps are an ordered list (a reader announces how
+  many and moves step by step), as is the Progress history (each entry's
+  topic and date belong to its problem). Example buttons are named by the
+  typed problem. See docs/ACCESSIBILITY.md.
+- **"x*y = 1" was answered "1", marked Solved**, and so were x + y = 1
+  (1), x − y = 0 (0) and x/y = 2 (2): a y after an operator was read as the
+  start of a definition "y = …". Each now solves for x (x = 1/y, x = −y + 1,
+  x = y, x = 2y); one with no closed form is refused.
 - **"y = 2y + 3" was read as a definition of y** and answered "2y + 3"
   (under Algebra and Functions); y on both sides makes it an equation, so
   it is now y = −3.

@@ -147,3 +147,61 @@ for (const scheme of ['light', 'dark']) {
     });
   });
 }
+
+// 1.53.0: the example buttons, tips, mistakes and the history list are
+// typeset. What a screen reader gets for typeset maths is KaTeX's MathML;
+// its visual HTML is aria-hidden. axe does not check any of this.
+test.describe('typeset maths for screen readers', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('solutionMode', 'all'));
+  });
+
+  test('every typeset run is MathML to assistive tech, buttons are named by what they type, and steps and history are lists', async ({ page }) => {
+    await page.goto('/solver');
+    await page.getByText('Try an example:').waitFor();
+    const more = page.getByRole('button', { name: /Show all \d+ examples/ });
+    if (await more.isVisible()) await more.click();
+    // An example button's name is the typed problem, not flattened MathML.
+    const example = page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11', exact: true });
+    await expect(example.locator('math')).toHaveCount(1);
+    await example.click();
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const solution = page.locator('[aria-label="Solution"]');
+    await expect(solution).toContainText('Final Answer:');
+    // The steps are an ordered list, one item per step.
+    const steps = solution.getByRole('list').first();
+    await expect(steps.getByRole('listitem').first()).toBeVisible();
+    // Every KaTeX run on the page: visual HTML hidden, MathML present.
+    const runs = await page.locator('.katex').evaluateAll((els) => els.map((e) => ({
+      mathml: !!e.querySelector('.katex-mathml math'),
+      hidden: e.querySelector('.katex-html')?.getAttribute('aria-hidden') === 'true',
+    })));
+    expect(runs.length).toBeGreaterThan(5);
+    expect(runs.filter((r) => !r.mathml || !r.hidden)).toEqual([]);
+    // A tip's formula is typeset too (Key Insights).
+    await page.locator('#problem').fill('x^2 - 5x + 6 = 0');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const insights = solution.locator('h3:has-text("Key Insights") + div');
+    await expect(insights.locator('math').first()).toBeAttached();
+    // History: a list, each problem typeset.
+    await page.goto('/progress');
+    const history = page.getByRole('list').filter({ has: page.locator('math') });
+    await expect(history.getByRole('listitem')).toHaveCount(2);
+    await expect(history.locator('.katex-html[aria-hidden="true"]').first()).toBeAttached();
+  });
+
+  for (const scheme of ['light', 'dark']) {
+    test(`/progress with history has no WCAG A/AA violations (${scheme})`, async ({ page }) => {
+      await page.addInitScript((dark) => localStorage.setItem('darkMode', String(dark)), scheme === 'dark');
+      await page.goto('/solver');
+      for (const p of ['x^2 - 5x + 6 = 0', 'derivative of x^3']) {
+        await page.locator('#problem').fill(p);
+        await page.getByRole('button', { name: 'Solve Problem' }).click();
+        await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
+      }
+      await page.goto('/progress');
+      await expect(page.locator('main .katex').first()).toBeVisible();
+      await audit(page, `/progress with history (${scheme})`);
+    });
+  }
+});

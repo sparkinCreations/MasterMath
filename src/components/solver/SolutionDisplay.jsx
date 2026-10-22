@@ -300,9 +300,11 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                   </div>
                 )}
               </div>
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {/* An ordered list, so a screen reader announces "list, 6 items"
+                  and can move step by step. */}
+              <ol className="divide-y divide-gray-200 dark:divide-gray-700">
                 {(stepThrough ? steps.slice(0, revealed) : steps).map((step, idx) => (
-                  <motion.div
+                  <motion.li
                     key={idx}
                     {...stepMotion(idx)}
                     className="py-4 first:pt-1"
@@ -313,9 +315,9 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                       </div>
                       <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
                     </div>
-                  </motion.div>
+                  </motion.li>
                 ))}
-              </div>
+              </ol>
               {stepThrough && !allRevealed && (
                 <div className="flex flex-col items-center gap-3 pt-4">
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
@@ -379,7 +381,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     key={idx}
                     className="p-3 rounded-lg bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border border-amber-200 dark:border-amber-700/60"
                   >
-                    <p className="text-gray-700 dark:text-gray-200">{tip}</p>
+                    <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={tip} /></p>
                   </div>
                 ))}
               </div>
@@ -398,7 +400,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     key={idx}
                     className="p-3 rounded-lg bg-linear-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border border-red-200 dark:border-red-800/60"
                   >
-                    <p className="text-gray-700 dark:text-gray-200">{mistake}</p>
+                    <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={mistake} /></p>
                   </div>
                 ))}
               </div>

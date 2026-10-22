@@ -82,3 +82,17 @@ test('an integrand keeps brackets that are not a pair, and quotation marks stay 
   assert.deepEqual(segs.filter((s) => s.type === 'math').map((s) => s.value), ['∫ (x+1) dx']);
   assert.equal(segs.map((s) => s.value).join(''), '“∫ (x+1) dx” is valid mathematical input.');
 });
+
+test('a y after an operator is part of an equation, never a "y = …" definition', async () => {
+  // "x*y = 1" was read as the definition "y = 1" and answered "1", Solved;
+  // so were x + y = 1, x - y = 0 and x/y = 2 (1.53.0).
+  for (const [p, answer] of [['x*y = 1', 'x = 1/y'], ['x + y = 1', 'x = -y + 1'], ['x - y = 0', 'x = y'], ['x/y = 2', 'x = 2y'], ['2*x*y = 4', 'x = 2/y']]) {
+    const r = await solveProblem(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+  }
+  // One equation in two unknowns with no closed form is refused, not "1".
+  assert.equal((await solveProblem('x^5 + y^5 + x*y = 1', 'algebra')).status, 'unsupported');
+  // A definition is still a definition.
+  for (const p of ['y = x^2', 'graph y = x^2']) assert.match((await solveProblem(p, 'functions')).answer, /^f\(x\) = x\^2: domain/, p);
+});

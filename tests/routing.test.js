@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { solveProblem } from '../src/lib/api.js';
-import { solvePlain } from './helpers/solvePlain.js';
+import { solvePlain, plain } from './helpers/solvePlain.js';
 
 // 1.52.3: a routed solve carries { from, to, reason } for the page's
 // "Solved as …" notice; trig under Arithmetic goes to Trigonometry; a limit
@@ -55,7 +55,8 @@ test('a limit with no approach point says what is missing, not that the input wa
 
 test('with the angle unit on radians, sin(30) explains why it is not sin(30°) instead of listing sin(30°) = 1/2 beside −0.988', async () => {
   const { solveTrigonometry } = await import('../src/lib/solvers/trigonometrySolver.js');
-  const r = await solveTrigonometry('sin(30)', { angleUnit: 'radians' });
+  // (The tips' wording, without the ⟦…⟧ math markers.)
+  const r = plain(await solveTrigonometry('sin(30)', { angleUnit: 'radians' }));
   assert.equal(r.answer, '-0.988');
   assert.equal(r.tips[0], 'Here sin(30) is 30 radians (about 1718.9°), not 30° — which is why the answer is not the value of sin(30°). For degrees, write sin(30°) or set the angle unit to Degrees in Settings.');
   // Only for a degree-looking angle read as radians: not sin(1), not degrees.

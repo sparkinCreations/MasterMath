@@ -243,7 +243,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
         {problem.trim() && (
           <div aria-hidden="true" className="flex items-baseline gap-2 px-1 text-gray-800 dark:text-gray-100 min-h-7">
             <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 shrink-0">Preview</span>
-            <span className="text-lg leading-snug break-words min-w-0"><MathText text={readPlainEnglish(problem)} /></span>
+            <span className="text-lg leading-snug break-words min-w-0"><MathText mode="input" text={readPlainEnglish(problem)} /></span>
           </div>
         )}
         <div className="flex justify-between items-center gap-3 min-h-11">
@@ -332,11 +332,16 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           {EXAMPLE_PROBLEMS.map((ex, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={() => loadExample(ex)}
+              // The card shows the example typeset; clicking puts the typed
+              // form in the box. Its accessible name is that typed form, not
+              // KaTeX's MathML flattened into a button name.
+              aria-label={`${TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}: ${ex.problem}`}
               className={`text-left p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
             >
               <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
-              <span className="text-gray-700 dark:text-gray-300">{ex.problem}</span>
+              <span className="text-gray-700 dark:text-gray-300"><MathText mode="input" text={readPlainEnglish(ex.problem)} /></span>
             </button>
           ))}
         </div>

@@ -33,12 +33,12 @@ const BARE_FUNCTION_NAME = /(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sin
 
 const SIMPLIFY_TIPS = [
   'Distribute first, then collect like terms — terms with exactly the same variable part.',
-  'Like terms combine by adding their coefficients: 3x − 6 + 4 → 3x − 2.',
+  `Like terms combine by adding their coefficients: ${mark('3x − 6 + 4 → 3x − 2')}.`,
   'Check by substituting a value for the variable into both the original and the simplified form.',
 ];
 
 const SIMPLIFY_MISTAKES = [
-  'Combining unlike terms (adding x and x²).',
+  `Combining unlike terms (adding ${mark('x')} and ${mark('x²')}).`,
   'Forgetting to distribute a factor across every term in the parentheses.',
   'Losing a sign when distributing a negative.',
 ];
@@ -53,13 +53,13 @@ function equationGuidance(steps, expression) {
   if (/absolute-value equation/.test(text)) {
     return {
       tips: [
-        '|A| = b splits into two equations, A = b or A = −b — two candidate solutions.',
-        'If b < 0 there is no solution at all (an absolute value is never negative); if b = 0 there is exactly one case, A = 0.',
-        'Isolate the absolute value first: 2|x − 1| + 1 = 7 becomes |x − 1| = 3 before the cases are written.',
+        `${mark('|A| = b')} splits into two equations, ${mark('A = b')} or ${mark('A = −b')} — two candidate solutions.`,
+        `If ${mark('b < 0')} there is no solution at all (an absolute value is never negative); if ${mark('b = 0')} there is exactly one case, ${mark('A = 0')}.`,
+        `Isolate the absolute value first: ${mark('2|x − 1| + 1 = 7')} becomes ${mark('|x − 1| = 3')} before the cases are written.`,
       ],
       common_mistakes: [
         'Solving only the positive case and missing the second solution.',
-        'Dropping the bars as if |A| = b meant A = b.',
+        `Dropping the bars as if ${mark('|A| = b')} meant ${mark('A = b')}.`,
         'Splitting into cases before the absolute value is isolated, or not checking both answers in the original.',
       ],
     };
@@ -68,11 +68,11 @@ function equationGuidance(steps, expression) {
     return {
       tips: [
         'Isolate the root, then square both sides. Squaring can create extraneous solutions, so every candidate must be checked in the original.',
-        'The radicand must be ≥ 0, and √(…) itself is ≥ 0: √(x + 1) = −3 has no solution before any algebra.',
+        `The radicand must be ${mark('≥ 0')}, and ${mark('√(…)')} itself is ${mark('≥ 0')}: ${mark('√(x + 1) = −3')} has no solution before any algebra.`,
         'If a root remains after squaring once, isolate it and square again.',
       ],
       common_mistakes: [
-        'Squaring term by term: (√x + 1)² is not x + 1.',
+        `Squaring term by term: ${mark('(√x + 1)²')} is not ${mark('x + 1')}.`,
         'Keeping a candidate that fails the check in the original equation.',
         'Forgetting that the radicand cannot be negative.',
       ],
@@ -81,28 +81,28 @@ function equationGuidance(steps, expression) {
   if (/Let u = ln|Let u = log|ln\(a\) = u|exponential form/.test(text)) {
     return {
       tips: [
-        'ln(x) = c means x = e^c: undo a logarithm by exponentiating with its base.',
-        'Combine several logs with the log rules first (ln a + ln b = ln(ab), ln a − ln b = ln(a/b)), then rewrite in exponential form.',
+        `${mark('ln(x) = c')} means ${mark('x = e^c')}: undo a logarithm by exponentiating with its base.`,
+        `Combine several logs with the log rules first (${mark('ln a + ln b = ln(ab)')}, ${mark('ln a − ln b = ln(a/b)')}), then rewrite in exponential form.`,
         'Every solution must keep every log argument positive — check each one.',
       ],
       common_mistakes: [
-        'Reading ln(x) = c as x = c, forgetting the exponential.',
+        `Reading ${mark('ln(x) = c')} as ${mark('x = c')}, forgetting the exponential.`,
         'Keeping a candidate that makes a log argument zero or negative.',
-        'Splitting ln(a + b) into ln a + ln b — there is no such rule.',
+        `Splitting ${mark('ln(a + b)')} into ${mark('ln a + ln b')} — there is no such rule.`,
       ],
     };
   }
   if (/take the logarithm of both sides|Let u = \d+\^|Let u = e\^|Let u = \w+\^/.test(text)) {
     return {
       tips: [
-        'a^x = b is solved by taking a logarithm of both sides: x = ln(b)/ln(a) = log_a(b).',
+        `${mark('a^x = b')} is solved by taking a logarithm of both sides: ${mark('x = ln(b)/ln(a) = log_a(b)')}.`,
         'Any log base works as long as it is the same on both sides; ln is the usual choice.',
-        'A polynomial in a^x (e^(2x) − 3e^x + 2) is a quadratic in u = a^x — solve for u first, then for x.',
+        `A polynomial in ${mark('a^x')} (${mark('e^(2x) − 3e^x + 2')}) is a quadratic in ${mark('u = a^x')} — solve for ${mark('u')} first, then for ${mark('x')}.`,
       ],
       common_mistakes: [
-        'Dividing instead of taking a log: 2^x = 10 does not give x = 5.',
-        'Writing ln(10)/ln(2) as ln(10/2).',
-        'Losing a solution of the quadratic in u, or keeping a negative u (a^x is always positive).',
+        `Dividing instead of taking a log: ${mark('2^x = 10')} does not give ${mark('x = 5')}.`,
+        `Writing ${mark('ln(10)/ln(2)')} as ${mark('ln(10/2)')}.`,
+        `Losing a solution of the quadratic in ${mark('u')}, or keeping a negative ${mark('u')} (${mark('a^x')} is always positive).`,
       ],
     };
   }
@@ -127,12 +127,12 @@ function equationGuidance(steps, expression) {
     return {
       tips: [
         'Rational Root Theorem: every rational root is ±(a factor of the constant term)/(a factor of the leading coefficient) — a finite list to test, so test it before anything else.',
-        'Once p(r) = 0, divide by (x − r): synthetic division must leave remainder 0, and the quotient has degree one less. Repeat until a quadratic remains, then factor or use the formula.',
-        'A degree-n polynomial has at most n real roots; count them (with multiplicity) and stop when the degree is used up.',
+        `Once ${mark('p(r) = 0')}, divide by ${mark('(x − r)')}: synthetic division must leave remainder ${mark('0')}, and the quotient has degree one less. Repeat until a quadratic remains, then factor or use the formula.`,
+        `A degree-${mark('n')} polynomial has at most ${mark('n')} real roots; count them (with multiplicity) and stop when the degree is used up.`,
       ],
       common_mistakes: [
         'Testing only positive candidates — the negatives are on the list too.',
-        'An arithmetic slip in synthetic division: a non-zero remainder means r was not a root (or the division went wrong), not that the method failed.',
+        `An arithmetic slip in synthetic division: a non-zero remainder means ${mark('r')} was not a root (or the division went wrong), not that the method failed.`,
         'Stopping after one root: the quotient still has to be solved, and a root can repeat.',
       ],
     };
@@ -140,14 +140,14 @@ function equationGuidance(steps, expression) {
   if (/sum-product|zero-product|Factor out the common|Set the factor to zero|Take the square root of both sides|discriminant|quadratic formula|Factor using|difference of squares|perfect square|Find the roots/i.test(text)) {
     return {
       tips: [
-        'A quadratic has up to two solutions: factor, take square roots, or use x = (−b ± √(b² − 4ac))/(2a).',
-        'Set the equation to 0 before factoring — (x − 2)(x − 3) = 0 gives the roots; (x − 2)(x − 3) = 6 does not.',
+        `A quadratic has up to two solutions: factor, take square roots, or use ${mark('x = (−b ± √(b² − 4ac))/(2a)')}.`,
+        `Set the equation to ${mark('0')} before factoring — ${mark('(x − 2)(x − 3) = 0')} gives the roots; ${mark('(x − 2)(x − 3) = 6')} does not.`,
         'Check by substituting each root into the original equation.',
       ],
       common_mistakes: [
-        'Taking only the positive square root: x² = 9 has x = −3 as well.',
-        'Dividing both sides by x and losing the x = 0 solution.',
-        'Reading (x − 2)(x − 3) = 0 as x = −2 or −3 — the roots are 2 and 3.',
+        `Taking only the positive square root: ${mark('x² = 9')} has ${mark('x = −3')} as well.`,
+        `Dividing both sides by ${mark('x')} and losing the ${mark('x = 0')} solution.`,
+        `Reading ${mark('(x − 2)(x − 3) = 0')} as ${mark('x = −2')} or ${mark('−3')} — the roots are ${mark('2')} and ${mark('3')}.`,
       ],
     };
   }
@@ -167,7 +167,7 @@ function equationGuidance(steps, expression) {
 
 const COMMON_MISTAKES = [
   'Forgetting to distribute a factor across every term in the parentheses.',
-  'Combining unlike terms (e.g., adding x and x²).',
+  `Combining unlike terms (e.g., adding ${mark('x')} and ${mark('x²')}).`,
   'Sign errors when moving a term across the equals sign.',
 ];
 
@@ -262,7 +262,7 @@ export async function solveAlgebra(expression, options = {}) {
         'Apply algebraic rules to simplify',
       ],
       answer: beautify(expression),
-      tips: ['Use * for multiplication (e.g., 2*x)', 'Use ^ for exponents (e.g., x^2)'],
+      tips: ['Use "*" for multiplication (e.g., "2*x")', 'Use "^" for exponents (e.g., "x^2")'],
       common_mistakes: ['Using incorrect notation', 'Missing operators'],
       graph: isEquation(expression) ? null : generateAlgebraGraph(expression),
     };
@@ -282,7 +282,7 @@ async function solveEquation(expression, options = {}) {
     return parseError({
       input: expression,
       hint: 'An equation needs an expression on both sides of "=".',
-      tips: ['For example: 2x + 5 = 11, or x^2 - 4 = 0.'],
+      tips: [`For example: ${mark('2x + 5 = 11')}, or ${mark('x^2 - 4 = 0')}.`],
     });
   }
 
@@ -1543,7 +1543,7 @@ function solveNumerically(equation, variable) {
         reason: `${beautify(expression)} could not be evaluated at any real value of ${variable}, so its solutions cannot be determined here.`,
         answer: 'This equation is beyond what this solver can compute',
         tips: [
-          'Check the notation: powers use ^ (x^2), multiplication uses * (2*x), and every function call needs parentheses — sin(x), not sin x.',
+          'Check the notation: powers use "^" ("x^2"), multiplication uses "*" ("2*x"), and every function call needs parentheses — "sin(x)", not "sin x".',
           'This is a limitation of the solver, not necessarily of the equation — it may well have solutions.',
         ],
       }),
@@ -1703,8 +1703,8 @@ async function expandExpression(expression) {
         `Result: ${beautify(expanded)} (confirmed numerically at several values).`,
       ],
       answer: beautify(expanded),
-      tips: ['Expanding is the reverse of factoring; each term of one bracket multiplies each term of the other.', '(a + b)² = a² + 2ab + b² — the middle term is the one students drop.'],
-      common_mistakes: ['Writing (a + b)² as a² + b².', 'Losing a sign when a bracket is subtracted.'],
+      tips: ['Expanding is the reverse of factoring; each term of one bracket multiplies each term of the other.', `${mark('(a + b)² = a² + 2ab + b²')} — the middle term is the one students drop.`],
+      common_mistakes: [`Writing ${mark('(a + b)²')} as ${mark('a² + b²')}.`, 'Losing a sign when a bracket is subtracted.'],
       graph: generateAlgebraGraph(expression),
     };
   } catch {
@@ -1724,13 +1724,13 @@ async function factorExpression(expression) {
 
     const tips = [
       'Always pull out the greatest common factor first.',
-      'a² − b² = (a − b)(a + b) — the difference-of-squares pattern.',
+      `${mark('a² − b² = (a − b)(a + b)')} — the difference-of-squares pattern.`,
       'Check a factorization by expanding it back out.',
     ];
     const commonMistakes = [
       'Stopping before the expression is fully factored.',
       'Sign errors inside the factors — expand to verify.',
-      'Treating a sum of squares like a difference: a² + b² does not factor over the reals.',
+      `Treating a sum of squares like a difference: ${mark('a² + b²')} does not factor over the reals.`,
     ];
 
     if (!changed) {
@@ -1979,14 +1979,14 @@ function equivalentOrConstant(a, b, variable) {
 }
 
 const RADICAL_TIPS = [
-  'Factor out the largest perfect square: √50 = √25 · √2 = 5√2.',
+  `Factor out the largest perfect square: ${mark('√50 = √25 · √2 = 5√2')}.`,
   'A radical is in simplest form when nothing under it has a square factor left.',
-  '√(a·b) = √a · √b, but √(a + b) is NOT √a + √b.',
+  `${mark('√(a·b) = √a · √b')}, but ${mark('√(a + b)')} is NOT ${mark('√a + √b')}.`,
 ];
 
 const RADICAL_MISTAKES = [
-  'Splitting a radical across addition: √(a + b) ≠ √a + √b.',
-  'Missing the largest square factor (√72 = 6√2, not 2√18).',
+  `Splitting a radical across addition: ${mark('√(a + b) ≠ √a + √b')}.`,
+  `Missing the largest square factor (${mark('√72 = 6√2')}, not ${mark('2√18')}).`,
   'Stopping at a decimal when the exact simplified radical was the point.',
 ];
 

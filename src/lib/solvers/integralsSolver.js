@@ -68,7 +68,7 @@ export async function solveIntegral(rawInput) {
     return parseError({
       input: rawInput,
       hint: 'There is nothing to integrate — the integrand is empty.',
-      tips: ['Write the function after the integral sign, e.g. ∫ x^2 dx, or just x^2.'],
+      tips: [`Write the function after the integral sign, e.g. ${mark('∫ x^2 dx')}, or just ${mark('x^2')}.`],
     });
   }
   return solveIndefiniteIntegral(expression, dvar ? dvar[1].toLowerCase() : undefined);
@@ -183,48 +183,48 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
 
     const anyPartial = perTerm.some((r) => r.method === 'partial fractions');
     const tips = usesErf ? [
-      'erf is a "special function": a named antiderivative, the way ln is the name for ∫1/x dx. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.',
-      'Whole-line and half-line definite versions do have closed forms: ∫₋∞^∞ e^(−x²) dx = √π, and ∫₀^∞ e^(−x²) dx = √π/2.',
-      'Always add the constant of integration (+C) for an indefinite integral.',
+      `erf is a "special function": a named antiderivative, the way ln is the name for ${mark('∫1/x dx')}. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.`,
+      `Whole-line and half-line definite versions do have closed forms: ${mark('∫_{−∞}^∞ e^(−x²) dx = √π')}, and ${mark('∫₀^∞ e^(−x²) dx = √π/2')}.`,
+      `Always add the constant of integration (${mark('+C')}) for an indefinite integral.`,
     ] : [
       anyByParts
-        ? 'Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).'
+        ? `Integration by parts: ${mark('∫u dv = uv − ∫v du')}. Pick ${mark('u')} by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).`
         : anyTrigSub
-          ? `Trigonometric substitution: √(a² − ${variable}²) calls for ${variable} = a·sin θ (√(a² + ${variable}²) for ${variable} = a·tan θ, √(${variable}² − a²) for ${variable} = a·sec θ); the root becomes a·cos θ and the integral is one in θ. Convert back with a right triangle.`
+          ? `Trigonometric substitution: ${mark(`√(a² − ${variable}²)`)} calls for ${mark(`${variable} = a·sin θ`)} (${mark(`√(a² + ${variable}²)`)} for ${mark(`${variable} = a·tan θ`)}, ${mark(`√(${variable}² − a²)`)} for ${mark(`${variable} = a·sec θ`)}); the root becomes ${mark('a·cos θ')} and the integral is one in ${mark('θ')}. Convert back with a right triangle.`
         : anyInverseTrig
-          ? `Inverse-trig antiderivatives come from derivatives you know: d/d${variable} arctan(${variable}) = 1/(1 + ${variable}²) and d/d${variable} arcsin(${variable}) = 1/√(1 − ${variable}²). A constant a² in the pattern is factored out first.`
+          ? `Inverse-trig antiderivatives come from derivatives you know: ${mark(`d/d${variable} arctan(${variable}) = 1/(1 + ${variable}²)`)} and ${mark(`d/d${variable} arcsin(${variable}) = 1/√(1 − ${variable}²)`)}. A constant ${mark('a²')} in the pattern is factored out first.`
         : anyPartial
           ? 'Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece to a logarithm.'
         : anySubstitution
-          ? 'u-substitution: look for an inner function whose derivative appears as a factor — ∫g′(x)·h(g(x)) dx = ∫h(u) du with u = g(x).'
+          ? `u-substitution: look for an inner function whose derivative appears as a factor — ${mark('∫g′(x)·h(g(x)) dx = ∫h(u) du')} with ${mark('u = g(x)')}.`
           : anyAbs
-            ? '∫|ax + b| dx = (ax + b)·|ax + b| / (2a) + C — split at the corner, integrate each piece, and the two pieces match up into one formula.'
+            ? `${mark('∫|ax + b| dx = (ax + b)·|ax + b| / (2a) + C')} — split at the corner, integrate each piece, and the two pieces match up into one formula.`
             : directTip(directLabels, variable),
-      'Always add the constant of integration (+C) for an indefinite integral.',
-      'Constant factors pull out front: ∫c·f dx = c·∫f dx.',
+      `Always add the constant of integration (${mark('+C')}) for an indefinite integral.`,
+      `Constant factors pull out front: ${mark('∫c·f dx = c·∫f dx')}.`,
     ];
 
     const common_mistakes = usesErf ? [
-      'Trying u = −x²: then du = −2x dx, and there is no x factor in the integrand to absorb it — the substitution does not close.',
-      'Reading e^(−x²) as (e^(−x))² — the square is on x, not on e^(−x). (e^(−x))² = e^(−2x), which IS elementary.',
-      'Forgetting the constant of integration (+C).',
+      `Trying ${mark('u = −x²')}: then ${mark('du = −2x dx')}, and there is no ${mark('x')} factor in the integrand to absorb it — the substitution does not close.`,
+      `Reading ${mark('e^(−x²)')} as ${mark('(e^(−x))²')} — the square is on ${mark('x')}, not on ${mark('e^(−x)')}. ${mark('(e^(−x))² = e^(−2x)')}, which IS elementary.`,
+      `Forgetting the constant of integration (${mark('+C')}).`,
     ] : [
-      'Forgetting the constant of integration (+C).',
+      `Forgetting the constant of integration (${mark('+C')}).`,
       anyByParts
-        ? 'Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.'
+        ? `Choosing ${mark('u')} and ${mark('dv')} the wrong way round — LIATE picks the ${mark('u')} that gets simpler when differentiated.`
         : anyTrigSub
-          ? 'Forgetting to change d' + variable + ' as well as the integrand (dx = a·cos θ dθ), or leaving the answer in θ instead of converting back to ' + variable + '.'
+          ? `Forgetting to change ${mark(`d${variable}`)} as well as the integrand (${mark('dx = a·cos θ dθ')}), or leaving the answer in ${mark('θ')} instead of converting back to ${mark(variable)}.`
         : anyInverseTrig
-          ? `Reading 1/(1 + ${variable}²) as a power of ${variable} — it is not ${variable}^(−2), and the power rule does not apply.`
+          ? `Reading ${mark(`1/(1 + ${variable}²)`)} as a power of ${mark(variable)} — it is not ${mark(`${variable}^(−2)`)}, and the power rule does not apply.`
         : anyPartial
-          ? 'Splitting 1/(a·b) into 1/a + 1/b — the decomposition needs constants found from the factors, not a guess.'
+          ? `Splitting ${mark('1/(a·b)')} into ${mark('1/a + 1/b')} — the decomposition needs constants found from the factors, not a guess.`
         : anySubstitution
-          ? 'Forgetting to divide by g′(x) when changing to du — the constant from du = g′(x) dx must be carried.'
+          ? `Forgetting to divide by ${mark('g′(x)')} when changing to ${mark('du')} — the constant from ${mark('du = g′(x) dx')} must be carried.`
           : anyAbs
-            ? 'Integrating |x| as if it were x, giving x²/2 — that is only right for x ≥ 0.'
+            ? `Integrating ${mark('|x|')} as if it were ${mark('x')}, giving ${mark('x²/2')} — that is only right for ${mark('x ≥ 0')}.`
             : directMistake(directLabels, variable),
       directLabels.has('Power rule') || (!anyByParts && !anySubstitution && !anyAbs && !anyInverseTrig && directLabels.size === 0)
-        ? 'Applying the power rule to 1/x — that integrates to ln|x|, not x⁰/0.'
+        ? `Applying the power rule to ${mark('1/x')} — that integrates to ${mark('ln|x|')}, not ${mark('x⁰/0')}.`
         : 'Skipping the check: differentiate the result and compare it with the integrand.',
     ];
 
@@ -253,11 +253,11 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
         tips: note
           ? [
               'The input is valid — not every elementary function has an elementary antiderivative.',
-              'A definite version can still be computed numerically, e.g. ∫_0^1 of the same integrand.',
+              `A definite version can still be computed numerically, e.g. ${mark('∫_0^1')} of the same integrand.`,
             ]
           : [
               'This is a limitation of the solver, not a statement about the mathematics.',
-              'A definite version can still be computed numerically, e.g. ∫_0^1 of the same integrand.',
+              `A definite version can still be computed numerically, e.g. ${mark('∫_0^1')} of the same integrand.`,
               'Try rewriting the integrand (expand, split a fraction, use an identity) — a different form may be one the engine handles.',
             ],
       });
@@ -265,7 +265,7 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     return parseError({
       input: expression,
       hint: error.message,
-      tips: ['Use ^ for powers and * for products (e.g., x^2 * sin(x)).'],
+      tips: ['Use "^" for powers and "*" for products (e.g., "x^2 * sin(x)").'],
     });
   }
 }
@@ -274,20 +274,20 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
 // rule(s) its terms actually used; "Power rule" used to be served with
 // sec²(x) → tan(x) and ln|2x + 1| alike.
 function directTip(labels, v) {
-  if (labels.has('Power rule') || labels.size === 0) return `Power rule: ∫${v}^n d${v} = ${v}^(n+1)/(n+1) + C  (n ≠ -1)`;
-  if (labels.has('Trig rule')) return `The trig antiderivatives are the trig derivatives read backwards: ∫cos = sin, ∫sin = −cos, ∫sec² = tan, ∫sec·tan = sec.`;
-  if (labels.has('Exponential rule')) return `∫e^${v} d${v} = e^${v} — the exponential is its own antiderivative; ∫a^${v} d${v} = a^${v}/ln(a).`;
-  if (labels.has('Reciprocal rule')) return `∫1/${v} d${v} = ln|${v}| + C — the one power the power rule cannot do (n = −1 would divide by 0).`;
-  if (labels.has('Linear substitution')) return `For 1/(a${v} + b), let u = a${v} + b: the 1/a from du = a d${v} is the only extra factor.`;
+  if (labels.has('Power rule') || labels.size === 0) return `Power rule: ${mark(`∫${v}^n d${v} = ${v}^(n+1)/(n+1) + C`)}  (${mark('n ≠ -1')})`;
+  if (labels.has('Trig rule')) return `The trig antiderivatives are the trig derivatives read backwards: ${mark('∫cos = sin')}, ${mark('∫sin = −cos')}, ${mark('∫sec² = tan')}, ${mark('∫sec·tan = sec')}.`;
+  if (labels.has('Exponential rule')) return `${mark(`∫e^${v} d${v} = e^${v}`)} — the exponential is its own antiderivative; ${mark(`∫a^${v} d${v} = a^${v}/ln(a)`)}.`;
+  if (labels.has('Reciprocal rule')) return `${mark(`∫1/${v} d${v} = ln|${v}| + C`)} — the one power the power rule cannot do (${mark('n = −1')} would divide by ${mark('0')}).`;
+  if (labels.has('Linear substitution')) return `For ${mark(`1/(a${v} + b)`)}, let ${mark(`u = a${v} + b`)}: the ${mark('1/a')} from ${mark(`du = a d${v}`)} is the only extra factor.`;
   return 'Every antiderivative can be checked by differentiating it — the derivative must give back the integrand exactly.';
 }
 
 function directMistake(labels, v) {
-  if (labels.has('Power rule') || labels.size === 0) return 'Mishandling the (n+1) denominator in the power rule.';
-  if (labels.has('Trig rule')) return `Sign slips: ∫sin(${v}) d${v} = −cos(${v}), while ∫cos(${v}) d${v} = +sin(${v}).`;
-  if (labels.has('Exponential rule')) return `Treating e^${v} like a power and writing e^(${v}+1)/(${v}+1).`;
-  if (labels.has('Reciprocal rule')) return `Writing ∫1/${v} d${v} as ${v}⁰/0 — use ln|${v}| instead, with the absolute value.`;
-  if (labels.has('Linear substitution')) return 'Forgetting the 1/a factor that comes from du = a dx.';
+  if (labels.has('Power rule') || labels.size === 0) return `Mishandling the ${mark('(n+1)')} denominator in the power rule.`;
+  if (labels.has('Trig rule')) return `Sign slips: ${mark(`∫sin(${v}) d${v} = −cos(${v})`)}, while ${mark(`∫cos(${v}) d${v} = +sin(${v})`)}.`;
+  if (labels.has('Exponential rule')) return `Treating ${mark(`e^${v}`)} like a power and writing ${mark(`e^(${v}+1)/(${v}+1)`)}.`;
+  if (labels.has('Reciprocal rule')) return `Writing ${mark(`∫1/${v} d${v}`)} as ${mark(`${v}⁰/0`)} — use ${mark(`ln|${v}|`)} instead, with the absolute value.`;
+  if (labels.has('Linear substitution')) return `Forgetting the ${mark('1/a')} factor that comes from ${mark('du = a dx')}.`;
   return 'Skipping the check: differentiate the result and compare it with the integrand.';
 }
 
@@ -977,8 +977,8 @@ async function solveImproperInfinite(parsed, notation) {
       steps,
       answer: `${notation} diverges`,
       status: 'diverges',
-      tips: ['An improper integral converges only if the limit defining it is a finite number.', 'Compare with ∫₁^∞ 1/x^p dx: it converges for p > 1 and diverges for p ≤ 1.'],
-      common_mistakes: ['Treating ∞ as a number and "plugging it in" — the integral is a limit, and it can fail to exist.', 'Assuming a function that tends to 0 has a convergent integral (1/x → 0 but ∫₁^∞ 1/x dx = ∞).'],
+      tips: ['An improper integral converges only if the limit defining it is a finite number.', `Compare with ${mark('∫₁^∞ 1/x^p dx')}: it converges for ${mark('p > 1')} and diverges for ${mark('p ≤ 1')}.`],
+      common_mistakes: [`Treating ${mark('∞')} as a number and "plugging it in" — the integral is a limit, and it can fail to exist.`, `Assuming a function that tends to ${mark('0')} has a convergent integral (${mark('1/x → 0')} but ${mark('∫₁^∞ 1/x dx = ∞')}).`],
       graph: generateDefiniteGraph(integrand, v, lowerInf ? -10 : finiteBoundVal(lowerRaw), upperInf ? 10 : finiteBoundVal(upperRaw), lowerLabel, upperLabel, NaN),
     };
   }
@@ -1028,10 +1028,10 @@ async function solveImproperInfinite(parsed, notation) {
     steps,
     answer: `${notation} = ${valueText}`,
     tips: [
-      'An improper integral is a limit: replace the infinite bound by t, integrate, then let t → ∞.',
-      'It converges when that limit is finite; ∫₁^∞ 1/x^p dx converges exactly when p > 1.',
+      `An improper integral is a limit: replace the infinite bound by ${mark('t')}, integrate, then let ${mark('t → ∞')}.`,
+      `It converges when that limit is finite; ${mark('∫₁^∞ 1/x^p dx')} converges exactly when ${mark('p > 1')}.`,
     ],
-    common_mistakes: ['Plugging ∞ into F as if it were a number.', 'Forgetting that a limit can fail to exist even when the integrand tends to 0.'],
+    common_mistakes: [`Plugging ${mark('∞')} into ${mark('F')} as if it were a number.`, `Forgetting that a limit can fail to exist even when the integrand tends to ${mark('0')}.`],
     graph: generateDefiniteGraph(integrand, v, lowerInf ? Math.min(-10, hi - 10) : finiteBoundVal(lowerRaw), upperInf ? Math.max(10, lo + 10) : finiteBoundVal(upperRaw), lowerLabel, upperLabel, value),
   };
 }
@@ -1232,14 +1232,14 @@ async function solveDefiniteIntegral(parsed) {
       verified: true,
       verificationMethod: 'Fundamental Theorem of Calculus + numeric quadrature',
       tips: [
-        'The Fundamental Theorem of Calculus: ∫_a^b f d' + v + ' = F(b) − F(a), where F is any antiderivative.',
-        'No “+C” for a definite integral — the constant cancels in the subtraction.',
-        'A definite integral is the signed area between the curve and the x-axis over [a, b].',
+        `The Fundamental Theorem of Calculus: ${mark(`∫_a^b f d${v} = F(b) − F(a)`)}, where ${mark('F')} is any antiderivative.`,
+        `No “${mark('+C')}” for a definite integral — the constant cancels in the subtraction.`,
+        `A definite integral is the signed area between the curve and the x-axis over ${mark('[a, b]')}.`,
       ],
       common_mistakes: [
-        'Keeping the +C — it cancels when you subtract F(a) from F(b).',
-        'Swapping the bounds: ∫_a^b = −∫_b^a.',
-        'Integrating across a discontinuity (e.g. 1/x on [−1, 1]) as if the integral were proper.',
+        `Keeping the ${mark('+C')} — it cancels when you subtract ${mark('F(a)')} from ${mark('F(b)')}.`,
+        `Swapping the bounds: ${mark('∫_a^b = −∫_b^a')}.`,
+        `Integrating across a discontinuity (e.g. ${mark('1/x')} on ${mark('[−1, 1]')}) as if the integral were proper.`,
       ],
       graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, exactValue),
     };
@@ -1388,7 +1388,7 @@ function refuseDefinite(reason, notation, kind = 'unsupported') {
   const fields = {
     steps,
     answer: reason,
-    tips: ['A definite integral needs a lower and an upper bound, e.g. ∫_0^1 x^2 dx.'],
+    tips: [`A definite integral needs a lower and an upper bound, e.g. ${mark('∫_0^1 x^2 dx')}.`],
     common_mistakes: ['Bounds that cannot be parsed as numbers.', 'An integrand with no elementary antiderivative.'],
   };
   return kind === 'parse' ? parseError(fields) : unsupported(fields);
@@ -1407,10 +1407,10 @@ function refuseImproperAt(notation, variable, at, integrand) {
       'That limit does not exist as a finite number — the area grows without bound — so the integral diverges.',
     ],
     tips: [
-      'An improper integral converges only if the limit toward the singular endpoint is finite: ∫₀¹ 1/√x dx = 2 converges, ∫₀¹ 1/x dx diverges.',
-      'Compare with a p-integral: ∫₀¹ 1/xᵖ dx converges for p < 1 and diverges for p ≥ 1.',
+      `An improper integral converges only if the limit toward the singular endpoint is finite: ${mark('∫₀¹ 1/√x dx = 2')} converges, ${mark('∫₀¹ 1/x dx')} diverges.`,
+      `Compare with a p-integral: ${mark('∫₀¹ 1/xᵖ dx')} converges for ${mark('p < 1')} and diverges for ${mark('p ≥ 1')}.`,
     ],
-    common_mistakes: ['Applying F(b) − F(a) at a point where F is not defined.'],
+    common_mistakes: [`Applying ${mark('F(b) − F(a)')} at a point where ${mark('F')} is not defined.`],
   });
 }
 
@@ -1427,7 +1427,7 @@ function refuseImproper(notation, variable) {
       `For example, ${mark(`∫ 1/${variable}`)} over an interval containing ${mark('0')} diverges — it has no finite value.`,
     ],
     common_mistakes: [
-      'Blindly applying F(b) − F(a) across a vertical asymptote — that gives a confident but meaningless number.',
+      `Blindly applying ${mark('F(b) − F(a)')} across a vertical asymptote — that gives a confident but meaningless number.`,
     ],
   });
 }
@@ -1544,10 +1544,10 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
         answer: `Diverges — the integral has no finite value (unbounded at ${v} = ${divergent.label})`,
         steps,
         tips: [
-          `An improper integral converges only if the limit toward the singular endpoint is finite: ∫₀¹ 1/√x d${v} = 2 converges, ∫₀¹ 1/${v} d${v} diverges.`,
-          `Compare with a p-integral: ∫₀¹ 1/${v}ᵖ d${v} converges for p < 1 and diverges for p ≥ 1.`,
+          `An improper integral converges only if the limit toward the singular endpoint is finite: ${mark(`∫₀¹ 1/√${v} d${v} = 2`)} converges, ${mark(`∫₀¹ 1/${v} d${v}`)} diverges.`,
+          `Compare with a p-integral: ${mark(`∫₀¹ 1/${v}ᵖ d${v}`)} converges for ${mark('p < 1')} and diverges for ${mark('p ≥ 1')}.`,
         ],
-        common_mistakes: ['Applying F(b) − F(a) at a point where F is not defined.', 'Assuming an integral is finite because the interval is.'],
+        common_mistakes: [`Applying ${mark('F(b) − F(a)')} at a point where ${mark('F')} is not defined.`, 'Assuming an integral is finite because the interval is.'],
         graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, NaN),
       });
     }
@@ -1615,11 +1615,11 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
       verificationMethod: 'one-sided limit of the antiderivative + graded numeric quadrature',
       tips: [
         'An integral whose integrand blows up at an endpoint is improper: replace that endpoint with a variable, integrate, then take the one-sided limit.',
-        'It converges only if that limit is a finite number — the area can be finite even though the curve is unbounded (1/√x on (0, 1]).',
-        `Compare with a p-integral: ∫₀¹ 1/${v}ᵖ d${v} converges for p < 1 and diverges for p ≥ 1.`,
+        `It converges only if that limit is a finite number — the area can be finite even though the curve is unbounded (${mark('1/√x')} on ${mark('(0, 1]')}).`,
+        `Compare with a p-integral: ${mark(`∫₀¹ 1/${v}ᵖ d${v}`)} converges for ${mark('p < 1')} and diverges for ${mark('p ≥ 1')}.`,
       ],
       common_mistakes: [
-        'Substituting the singular endpoint straight into F as if the Fundamental Theorem applied there.',
+        `Substituting the singular endpoint straight into ${mark('F')} as if the Fundamental Theorem applied there.`,
         'Assuming an unbounded integrand always gives an infinite area.',
       ],
       graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, signed),
@@ -1713,9 +1713,9 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
         ],
         tips: [
           'An integral across a vertical asymptote is a sum of two one-sided limits; if either fails to exist, the integral diverges.',
-          'Do not apply F(b) − F(a) across the asymptote: for 1/x² on [−1, 1] that gives −2 for a positive integrand.',
+          `Do not apply ${mark('F(b) − F(a)')} across the asymptote: for ${mark('1/x²')} on ${mark('[−1, 1]')} that gives ${mark('−2')} for a positive integrand.`,
         ],
-        common_mistakes: ['Applying F(b) − F(a) straight across the asymptote and reporting the (meaningless) number.'],
+        common_mistakes: [`Applying ${mark('F(b) − F(a)')} straight across the asymptote and reporting the (meaningless) number.`],
       });
     }
 
@@ -1741,9 +1741,9 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
       verificationMethod: 'one-sided limits of F + numeric quadrature on each side',
       tips: [
         'An improper integral across an interior asymptote converges only if both one-sided pieces converge.',
-        'Compare with a p-integral: near the asymptote, |x − c|^(−p) is integrable only for p < 1.',
+        `Compare with a p-integral: near the asymptote, ${mark('|x − c|^(−p)')} is integrable only for ${mark('p < 1')}.`,
       ],
-      common_mistakes: ['Applying F(b) − F(a) across the asymptote without checking the one-sided limits.'],
+      common_mistakes: [`Applying ${mark('F(b) − F(a)')} across the asymptote without checking the one-sided limits.`],
       graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, signed),
     };
   } catch {

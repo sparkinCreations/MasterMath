@@ -122,10 +122,10 @@ export async function solveSystem(rawText) {
           answer: `Infinitely many solutions — the two equations describe the same line: ${param}, t any real number`,
           tips: [
             'When one equation is a constant multiple of the other, the system is dependent.',
-            'A dependent system has infinitely many solutions: describe them with a parameter, one point for each value of t.',
+            `A dependent system has infinitely many solutions: describe them with a parameter, one point for each value of ${mark('t')}.`,
           ],
           common_mistakes: [
-            'Reading “0 = 0” after elimination as “no solution” — it actually means infinitely many.',
+            `Reading “${mark('0 = 0')}” after elimination as “no solution” — it actually means infinitely many.`,
             'Stopping at "infinitely many" without saying which points: the parameterised form is the answer.',
           ],
           graph: buildGraph([r1], v1, v2, null, 'The two equations graph as the same line.'),
@@ -253,8 +253,8 @@ async function solveNonlinear2x2(equations, first, second) {
     'Always substitute each pair back into BOTH original equations.',
   ];
   const mistakes = [
-    'Finding the x-values and forgetting to compute the matching y for each one.',
-    'Pairing every x with every y instead of the y that belongs to each x.',
+    `Finding the ${mark('x')}-values and forgetting to compute the matching ${mark('y')} for each one.`,
+    `Pairing every ${mark('x')} with every ${mark('y')} instead of the ${mark('y')} that belongs to each ${mark('x')}.`,
     'Reporting a complex root as an intersection point.',
   ];
 
@@ -565,7 +565,7 @@ function solve3x3(equations, vars) {
     return {
       steps,
       answer: 'No solution — the equations are inconsistent',
-      tips: ['A row of the form 0 = c with c ≠ 0 after elimination means no triple satisfies all three equations.'],
+      tips: [`A row of the form ${mark('0 = c')} with ${mark('c ≠ 0')} after elimination means no triple satisfies all three equations.`],
       common_mistakes: ['Dividing by a zero pivot instead of swapping rows.'],
       graph: null,
     };
@@ -577,7 +577,7 @@ function solve3x3(equations, vars) {
       steps,
       answer: 'Infinitely many solutions — the equations are dependent (a line or plane of solutions)',
       tips: ['With fewer independent equations than unknowns, the solution set is a line or a plane, not a point.'],
-      common_mistakes: ['Reporting "no solution" when a row becomes 0 = 0 — that row is simply redundant.'],
+      common_mistakes: [`Reporting "no solution" when a row becomes ${mark('0 = 0')} — that row is simply redundant.`],
       graph: null,
     };
   }
@@ -752,8 +752,8 @@ function refuse(reason, hint, kind = 'parse') {
   const fields = {
     steps: ['Read the input as a system of equations.', reason, hint],
     answer: reason,
-    tips: ['A 2×2 linear system looks like: 2x + 3y = 6; x − y = 4. A non-linear one needs an equation that can be solved for a variable: y = x + 1; x² + y² = 25.'],
-    common_mistakes: ['Mixing more than two equations or variables.', 'Two general curves with no equation linear in a variable (x² + y² = 1; x² + y² = 4).'],
+    tips: [`A 2×2 linear system looks like: ${mark('2x + 3y = 6')}; ${mark('x − y = 4')}. A non-linear one needs an equation that can be solved for a variable: ${mark('y = x + 1')}; ${mark('x² + y² = 25')}.`],
+    common_mistakes: ['Mixing more than two equations or variables.', `Two general curves with no equation linear in a variable (${mark('x² + y² = 1')}; ${mark('x² + y² = 4')}).`],
   };
   return kind === 'parse' ? parseError(fields) : unsupported(fields);
 }

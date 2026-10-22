@@ -378,8 +378,8 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
         return {
           steps: outerSteps,
           answer: `${general} (n ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
-          tips: ['a·sin θ + b·cos θ is a single sine wave of amplitude R = √(a² + b²), shifted by φ — combining them turns the equation into the basic form.', 'If |c| > R the equation has no solution: the combined wave never reaches c.'],
-          common_mistakes: ['Squaring both sides to remove the mixed terms — that introduces extraneous solutions.', 'Forgetting to subtract φ after solving for θ.'],
+          tips: [`${mark('a·sin θ + b·cos θ')} is a single sine wave of amplitude ${mark('R = √(a² + b²)')}, shifted by ${mark('φ')} — combining them turns the equation into the basic form.`, `If ${mark('|c| > R')} the equation has no solution: the combined wave never reaches ${mark('c')}.`],
+          common_mistakes: ['Squaring both sides to remove the mixed terms — that introduces extraneous solutions.', `Forgetting to subtract ${mark('φ')} after solving for ${mark('θ')}.`],
           graph: null,
         };
       }
@@ -474,12 +474,12 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
     steps: outerSteps,
     answer: `${familyTexts.join('  or  ')} (n ∈ ℤ);  on ${RANGE_TEXT()}: ${listText}`,
     tips: [
-      `A quadratic in ${fn} is solved like any quadratic — substitute ${U} = ${fn}(${argShown}), solve for ${U}, then solve each ${fn}(${argShown}) = value separately.`,
-      `Discard any ${U} outside [−1, 1] for sine and cosine before looking for angles.`,
+      `A quadratic in ${fn} is solved like any quadratic — substitute ${mark(`${U} = ${fn}(${argShown})`)}, solve for ${mark(U)}, then solve each ${mark(`${fn}(${argShown})`)} = value separately.`,
+      `Discard any ${mark(U)} outside ${mark('[−1, 1]')} for sine and cosine before looking for angles.`,
     ],
     common_mistakes: [
-      `Dividing both sides by ${fn}(${argShown}) and losing the ${fn}(${argShown}) = 0 solutions.`,
-      'Solving for u and reporting u as the answer — the angle still has to be found.',
+      `Dividing both sides by ${mark(`${fn}(${argShown})`)} and losing the ${mark(`${fn}(${argShown}) = 0`)} solutions.`,
+      `Solving for ${mark('u')} and reporting ${mark('u')} as the answer — the angle still has to be found.`,
     ],
     graph,
   };
@@ -578,8 +578,8 @@ function solveEqualArguments(rawEquation, equation, variable, shown, calls) {
   return {
     steps,
     answer: `${general} (n ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
-    tips: ['sin A = sin B has TWO branches (equal or supplementary angles); cos A = cos B has A = ±B; tan A = tan B has one branch with period π.', 'Cofunctions convert: cos B = sin(π/2 − B).'],
-    common_mistakes: ['Cancelling the function on both sides as if it were a factor — sin A = sin B does not mean A = B only.', 'Forgetting the second branch.'],
+    tips: [`${mark('sin A = sin B')} has TWO branches (equal or supplementary angles); ${mark('cos A = cos B')} has ${mark('A = ±B')}; ${mark('tan A = tan B')} has one branch with period ${mark('π')}.`, `Cofunctions convert: ${mark('cos B = sin(π/2 − B)')}.`],
+    common_mistakes: [`Cancelling the function on both sides as if it were a factor — ${mark('sin A = sin B')} does not mean ${mark('A = B')} only.`, 'Forgetting the second branch.'],
     graph: null,
   };
 }
@@ -603,8 +603,8 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
       reason: 'Exact solving covers A·f(kx + b) + B = C for sin, cos and tan (sec, csc and cot via their reciprocals); quadratics in one trig function; a·sin(u) + b·cos(u) = c; sin(u)·cos(u) products; and f(A) = f(B) with two linear arguments. This equation is none of those — a non-linear argument, a power above 2, a non-trig term, or a mix of functions that does not reduce — so no exact reduction applies.',
       answer: 'This trig equation has no exact reduction here',
       tips: [
-        'Solved exactly: sin(x) = 1/2, 2cos(x) − 1 = 0, tan(2x) = 1, sec(x) = 2, 2sin²(x) − sin(x) − 1 = 0, sin²(x) + cos(x) = 1, sin(x) + cos(x) = 1, sin(x)cos(x) = 1/4, sin(x) = sin(2x), sin(2x) = cos(x).',
-        'No exact reduction (under Trigonometry these are solved numerically instead): sin(x²) = 0, sin(x) + x = 1, sin(x)·cos(2x) = 1/3, sin³(x) = 1/8, sin(x) + cos(2x) = 1.',
+        `Solved exactly: ${['sin(x) = 1/2', '2cos(x) − 1 = 0', 'tan(2x) = 1', 'sec(x) = 2', '2sin²(x) − sin(x) − 1 = 0', 'sin²(x) + cos(x) = 1', 'sin(x) + cos(x) = 1', 'sin(x)cos(x) = 1/4', 'sin(x) = sin(2x)', 'sin(2x) = cos(x)'].map(mark).join(', ')}.`,
+        `No exact reduction (under Trigonometry these are solved numerically instead): ${['sin(x²) = 0', 'sin(x) + x = 1', 'sin(x)·cos(2x) = 1/3', 'sin³(x) = 1/8', 'sin(x) + cos(2x) = 1'].map(mark).join(', ')}.`,
       ],
     });
   }
@@ -630,8 +630,8 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
       input: rawEquation,
       reason: `${fn}(θ) = ${cShown} has no real solution — the ${fn === 'sin' ? 'sine' : 'cosine'} of a real angle is never outside [−1, 1].`,
       steps,
-      tips: ['Check the equation for a sign or coefficient slip; values beyond ±1 usually mean the trig term wasn\'t isolated correctly.'],
-      common_mistakes: ['Applying arcsin/arccos to a number outside [−1, 1] and reading the calculator error as a value.'],
+      tips: [`Check the equation for a sign or coefficient slip; values beyond ${mark('±1')} usually mean the trig term wasn't isolated correctly.`],
+      common_mistakes: [`Applying arcsin/arccos to a number outside ${mark('[−1, 1]')} and reading the calculator error as a value.`],
     });
     result.answer = 'No real solution';
     return result;
@@ -760,12 +760,12 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
     steps,
     answer: `${generalText} (${nSym} ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
     tips: [
-      `A trig equation has infinitely many solutions because the functions repeat — the general solution captures all of them; the ${RANGE_TEXT()} list is one period's worth.`,
-      fn === 'tan' ? `tan has period ${PERIOD_HALF()}, so its general solution steps by ${PERIOD_HALF()}n rather than ${PERIOD_FULL()}n.` : `Remember both quadrants where ${fn} takes the value ${cShown} — a calculator\'s inverse function only returns one of them.`,
+      `A trig equation has infinitely many solutions because the functions repeat — the general solution captures all of them; the ${mark(RANGE_TEXT())} list is one period's worth.`,
+      fn === 'tan' ? `tan has period ${mark(PERIOD_HALF())}, so its general solution steps by ${mark(`${PERIOD_HALF()}n`)} rather than ${mark(`${PERIOD_FULL()}n`)}.` : `Remember both quadrants where ${fn} takes the value ${mark(cShown)} — a calculator's inverse function only returns one of them.`,
     ],
     common_mistakes: [
-      'Reporting only the calculator\'s principal value (e.g. arcsin(1/2) = π/6) and missing the second solution in the period.',
-      'Forgetting to divide by k when the argument is kx — sin(2x) = 1/2 has twice as many solutions in [0, 2π) as sin(x) = 1/2.',
+      `Reporting only the calculator's principal value (e.g. ${mark('arcsin(1/2) = π/6')}) and missing the second solution in the period.`,
+      `Forgetting to divide by ${mark('k')} when the argument is ${mark('kx')} — ${mark('sin(2x) = 1/2')} has twice as many solutions in ${mark('[0, 2π)')} as ${mark('sin(x) = 1/2')}.`,
     ],
     graph,
   };

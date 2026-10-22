@@ -144,8 +144,8 @@ function sheetBlocks({ title, problem, status, solution, graph }) {
   const list = (items, title, bg, border, color) => {
     items.forEach((item, i) => {
       blocks.push({
-        html: `${i === 0 ? `<div style="margin-top:12px">${heading(title, color)}</div>` : ''}<div style="padding:3px 0">${note(escapeHtml(item), bg, border)}</div>`,
-        text: `${i === 0 ? `${title}\n` : ''}- ${item}`,
+        html: `${i === 0 ? `<div style="margin-top:12px">${heading(title, color)}</div>` : ''}<div style="padding:3px 0">${note(mathTextToHtml(item, { mode: 'marked' }), bg, border)}</div>`,
+        text: `${i === 0 ? `${title}\n` : ''}- ${stripMathMarkers(item)}`,
       });
     });
   };

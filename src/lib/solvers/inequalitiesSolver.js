@@ -81,13 +81,13 @@ export async function solveInequality(rawText) {
     verified: true,
     verificationMethod: 'each part by sign chart, then set intersection/union',
     tips: [
-      '"and" — or a chain a < x < b — keeps only the values that satisfy every part; "or" keeps the values that satisfy any part.',
+      `"and" — or a chain ${mark('a < x < b')} — keeps only the values that satisfy every part; "or" keeps the values that satisfy any part.`,
       'Solve each part on its own first, then combine them on a number line.',
     ],
     common_mistakes: [
       'Working on only one side of a chain.',
       'Taking the union for "and", or the intersection for "or".',
-      'Writing a chain whose inequalities point in different directions (a < x > b) — that is two separate statements, not a chain.',
+      `Writing a chain whose inequalities point in different directions (${mark('a < x > b')}) — that is two separate statements, not a chain.`,
     ],
     graph,
   };
@@ -317,14 +317,14 @@ async function solveSingle(rawText) {
       verified: true,
       verificationMethod: 'sign chart over the critical points',
       tips: [
-        'Move everything to one side so the inequality compares an expression with 0.',
+        `Move everything to one side so the inequality compares an expression with ${mark('0')}.`,
         'The sign can only change at a zero (numerator) or a break (denominator).',
         'Test one point in each interval; the whole interval shares that sign.',
       ],
       common_mistakes: [
         'Multiplying both sides by a variable expression — its sign may flip the inequality.',
         'Including a value where the expression is undefined (a denominator zero).',
-        'Forgetting that ≤ / ≥ include the roots, while < / > exclude them.',
+        `Forgetting that ${mark('≤')} / ${mark('≥')} include the roots, while ${mark('<')} / ${mark('>')} exclude them.`,
       ],
       graph: buildGraph(fExpr, variable, critical, zeros, poles, solution),
       pieces: solution,
@@ -517,12 +517,12 @@ function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simplified, p
     verified: true,
     verificationMethod: 'sign chart on one period + numeric check across many periods',
     tips: [
-      `A periodic inequality has infinitely many solution intervals: solve on one period, then add every multiple of the period (here ${Tshown}).`,
-      'Find where the expression equals 0 on that period first; the sign can only change there.',
+      `A periodic inequality has infinitely many solution intervals: solve on one period, then add every multiple of the period (here ${mark(Tshown)}).`,
+      `Find where the expression equals ${mark('0')} on that period first; the sign can only change there.`,
     ],
     common_mistakes: [
       'Giving only the solutions in one period and leaving out "+ a multiple of the period".',
-      'Forgetting the second solution in the period: sin(x) = 1/2 at π/6 and at 5π/6.',
+      `Forgetting the second solution in the period: ${mark('sin(x) = 1/2')} at ${mark('π/6')} and at ${mark('5π/6')}.`,
     ],
     graph,
     periodic: true,
@@ -606,12 +606,12 @@ function solveLinear({ Algebrite, lhs, rhs, op, variable, fExpr, simplified }) {
     tips: [
       'Solve a linear inequality like a linear equation, with one extra rule: multiplying or dividing both sides by a negative number reverses the inequality sign.',
       'Adding or subtracting the same quantity on both sides never changes the direction.',
-      'Polynomial and rational inequalities (x² − 4 > 0) need a sign chart instead: move everything to one side and test each interval.',
+      `Polynomial and rational inequalities (${mark('x² − 4 > 0')}) need a sign chart instead: move everything to one side and test each interval.`,
     ],
     common_mistakes: [
       'Forgetting to reverse the sign when dividing by a negative number.',
       'Reversing the sign when adding or subtracting — only multiplying or dividing by a negative flips it.',
-      'Using a closed endpoint (≤, bracket) for a strict inequality, or vice versa.',
+      `Using a closed endpoint (${mark('≤')}, bracket) for a strict inequality, or vice versa.`,
     ],
     graph: buildGraph(fExpr, variable, [root], [root], [], solution),
     pieces: solution,
@@ -808,7 +808,7 @@ function buildTrivial(all, variable, op) {
       all ? 'Since equality is allowed, every value works.' : 'Since it is strict, no value works.',
     ],
     answer: all ? 'All real numbers satisfy the inequality' : 'No solution — no value satisfies the inequality',
-    tips: ['When both sides are identical, a ≤/≥ inequality holds everywhere and a </> holds nowhere.'],
+    tips: [`When both sides are identical, a ${mark('≤')}/${mark('≥')} inequality holds everywhere and a ${mark('<')}/${mark('>')} holds nowhere.`],
     common_mistakes: [],
     graph: null,
   };
@@ -873,8 +873,8 @@ function refuse(reason, hint, kind = 'parse') {
   const fields = {
     steps: ['Read the input as an inequality.', reason, hint].filter(Boolean),
     answer: reason,
-    tips: ['An inequality uses <, >, ≤, or ≥, e.g. x^2 - 4 > 0.'],
-    common_mistakes: ['A chain must point one way (a < x < b, not a < x > b); separate conditions are joined with "and" or "or".'],
+    tips: [`An inequality uses ${mark('<')}, ${mark('>')}, ${mark('≤')}, or ${mark('≥')}, e.g. ${mark('x^2 - 4 > 0')}.`],
+    common_mistakes: [`A chain must point one way (${mark('a < x < b')}, not ${mark('a < x > b')}); separate conditions are joined with "and" or "or".`],
   };
   return kind === 'parse' ? parseError(fields) : unsupported(fields);
 }

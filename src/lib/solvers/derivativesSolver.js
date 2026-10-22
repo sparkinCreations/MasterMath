@@ -103,7 +103,7 @@ export async function solveDerivative(expression, options = {}) {
     // sgn(u) in a derivative marks a corner of |u|: say where f′ does not exist.
     const corners = sgnArguments(derivative);
     if (corners.length > 0) {
-      steps.push(`sgn(u) is +1 where u > 0 and −1 where u < 0; where u = 0 the graph of |u| has a corner and the derivative does not exist. So ${mark(`f${primes}(${variable})`)} does not exist where ${mark(corners.map((u) => `${beautify(u)} = 0`).join(' or '))}.`);
+      steps.push(`${mark('sgn(u)')} is ${mark('+1')} where ${mark('u > 0')} and ${mark('−1')} where ${mark('u < 0')}; where ${mark('u = 0')} the graph of ${mark('|u|')} has a corner and the derivative does not exist. So ${mark(`f${primes}(${variable})`)} does not exist where ${mark(corners.map((u) => `${beautify(u)} = 0`).join(' or '))}.`);
     }
     // Where f′ is defined: poles of f′, and any root or logarithm restriction
     // carried over from f. Stated on the answer (1/x → −1/x², x ≠ 0).
@@ -130,7 +130,7 @@ export async function solveDerivative(expression, options = {}) {
           steps.push(`Evaluate at ${mark(`${variable} = ${valueText}`)}: ${mark(`f${primes}(${valueText}) = ${lnify(sym)}`)}`);
           answer = `f${primes}(${valueText}) = ${lnify(sym)}`;
         }
-        return { steps, answer, tips: [`f${primes}(a) is the slope of the tangent line at ${variable} = a; here a is left as a symbol.`], common_mistakes: [], graph: generateDerivativeGraph(expression, derivative, variable) };
+        return { steps, answer, tips: [`${mark(`f${primes}(a)`)} is the slope of the tangent line at ${mark(`${variable} = a`)}; here ${mark('a')} is left as a symbol.`], common_mistakes: [], graph: generateDerivativeGraph(expression, derivative, variable) };
       }
       let value;
       try { value = math.evaluate(String(valueText).replace(/π/g, 'pi').replace(/√/g, 'sqrt')); } catch { value = NaN; }
@@ -173,7 +173,7 @@ export async function solveDerivative(expression, options = {}) {
     // (September 2026 teaching-quality review).
     const { tips, common_mistakes } = derivativeGuidance(expression, variable);
 
-    if (evalPoint) tips.unshift(`f'(a) is a number — the slope at one point — while f'(${variable}) is a function giving the slope everywhere.`);
+    if (evalPoint) tips.unshift(`${mark("f'(a)")} is a number — the slope at one point — while ${mark(`f'(${variable})`)} is a function giving the slope everywhere.`);
 
     return {
       steps,
@@ -193,7 +193,7 @@ export async function solveDerivative(expression, options = {}) {
     return parseError({
       input: expression,
       hint: error.message,
-      tips: ['Use ^ for powers and * for products (e.g., x^2 * sin(x)).'],
+      tips: ['Use "^" for powers and "*" for products (e.g., "x^2 * sin(x)").'],
     });
   }
 }
@@ -212,44 +212,44 @@ function derivativeGuidance(expression, variable) {
   const mistakes = [];
 
   if (used('Power') || labels.length === 0) {
-    tips.push(`Power rule: d/d${v}(${v}^n) = n·${v}^(n-1) — bring the exponent down as a factor, then lower it by one.`);
+    tips.push(`Power rule: ${mark(`d/d${v}(${v}^n) = n·${v}^(n-1)`)} — bring the exponent down as a factor, then lower it by one.`);
     mistakes.push('Forgetting to lower the exponent by one after bringing it down as a factor.');
   }
   if (used('negative exponent')) {
-    tips.push(`Rewrite reciprocals as powers before differentiating: 1/${v}^n = ${v}^(-n), so the power rule applies.`);
-    mistakes.push(`Lowering a negative exponent the wrong way: d/d${v}(${v}^-2) = -2${v}^-3, not -2${v}^-1.`);
+    tips.push(`Rewrite reciprocals as powers before differentiating: ${mark(`1/${v}^n = ${v}^(-n)`)}, so the power rule applies.`);
+    mistakes.push(`Lowering a negative exponent the wrong way: ${mark(`d/d${v}(${v}^-2) = -2${v}^-3`)}, not ${mark(`-2${v}^-1`)}.`);
   }
   if (used('Chain')) {
-    tips.push(`Chain rule: d/d${v} f(g(${v})) = f′(g(${v}))·g′(${v}) — differentiate the outside function, keep the inside as it is, then multiply by the inside's derivative.`);
+    tips.push(`Chain rule: ${mark(`d/d${v} f(g(${v})) = f′(g(${v}))·g′(${v})`)} — differentiate the outside function, keep the inside as it is, then multiply by the inside's derivative.`);
     mistakes.push('Forgetting to multiply by the derivative of the inside function.');
   }
   if (used('Product')) {
-    tips.push('Product rule: (u·w)′ = u′·w + u·w′ — the derivative of a product is NOT the product of the derivatives.');
-    mistakes.push('Differentiating each factor and multiplying the results — (u·w)′ is not u′·w′.');
+    tips.push(`Product rule: ${mark('(u·w)′ = u′·w + u·w′')} — the derivative of a product is NOT the product of the derivatives.`);
+    mistakes.push(`Differentiating each factor and multiplying the results — ${mark('(u·w)′')} is not ${mark('u′·w′')}.`);
   }
   if (used('Quotient')) {
-    tips.push('Quotient rule: (u/w)′ = (u′·w − u·w′)/w² — "low d-high minus high d-low, over low squared".');
+    tips.push(`Quotient rule: ${mark('(u/w)′ = (u′·w − u·w′)/w²')} — "low d-high minus high d-low, over low squared".`);
     mistakes.push('Swapping the order in the numerator of the quotient rule; the subtraction makes the order matter.');
   }
   if (used('Exponential')) {
-    tips.push(`d/d${v} e^${v} = e^${v} (the exponential is its own derivative), and d/d${v} a^${v} = a^${v}·ln(a) for any other base.`);
-    mistakes.push(`Treating e^${v} like a power and writing ${v}·e^(${v}-1) — the power rule is for a variable BASE, not a variable exponent.`);
+    tips.push(`${mark(`d/d${v} e^${v} = e^${v}`)} (the exponential is its own derivative), and ${mark(`d/d${v} a^${v} = a^${v}·ln(a)`)} for any other base.`);
+    mistakes.push(`Treating ${mark(`e^${v}`)} like a power and writing ${mark(`${v}·e^(${v}-1)`)} — the power rule is for a variable BASE, not a variable exponent.`);
   }
   if (used('Logarithmic rule')) {
-    tips.push(`d/d${v} ln(${v}) = 1/${v}, valid on the domain ${v} > 0; for log base b, divide by ln(b).`);
-    mistakes.push(`Writing d/d${v} ln(${v}) as 1/ln(${v}) or as ln(${v})/${v}.`);
+    tips.push(`${mark(`d/d${v} ln(${v}) = 1/${v}`)}, valid on the domain ${mark(`${v} > 0`)}; for log base ${mark('b')}, divide by ${mark('ln(b)')}.`);
+    mistakes.push(`Writing ${mark(`d/d${v} ln(${v})`)} as ${mark(`1/ln(${v})`)} or as ${mark(`ln(${v})/${v}`)}.`);
   }
   if (used('Logarithmic differentiation')) {
-    tips.push(`For ${v}^${v}-type terms, take ln of both sides first: ln(y) = ${v}·ln(${v}), differentiate implicitly, then multiply back by y.`);
+    tips.push(`For ${mark(`${v}^${v}`)}-type terms, take ln of both sides first: ${mark(`ln(y) = ${v}·ln(${v})`)}, differentiate implicitly, then multiply back by ${mark('y')}.`);
     mistakes.push('Applying the power rule or the exponential rule to a term where BOTH the base and the exponent contain the variable.');
   }
   if (used('Trig')) {
-    tips.push(`d/d${v} sin(${v}) = cos(${v}), d/d${v} cos(${v}) = −sin(${v}), d/d${v} tan(${v}) = sec²(${v}) — the trig derivatives are worth memorising as a set.`);
-    mistakes.push(`Losing the minus sign in d/d${v} cos(${v}) = −sin(${v}).`);
+    tips.push(`${mark(`d/d${v} sin(${v}) = cos(${v})`)}, ${mark(`d/d${v} cos(${v}) = −sin(${v})`)}, ${mark(`d/d${v} tan(${v}) = sec²(${v})`)} — the trig derivatives are worth memorising as a set.`);
+    mistakes.push(`Losing the minus sign in ${mark(`d/d${v} cos(${v}) = −sin(${v})`)}.`);
   }
   if (labels.some((l) => l === 'Constant rule') || labels.length > 1) {
-    tips.push('The derivative of a constant is 0, and constant factors carry straight through.');
-    mistakes.push('Dropping a constant factor when differentiating terms like 3x, or keeping a lone constant instead of sending it to 0.');
+    tips.push(`The derivative of a constant is ${mark('0')}, and constant factors carry straight through.`);
+    mistakes.push(`Dropping a constant factor when differentiating terms like ${mark('3x')}, or keeping a lone constant instead of sending it to ${mark('0')}.`);
   }
   if (labels.length > 1) {
     mistakes.push('Sign slips when differentiating negative or subtracted terms.');
@@ -803,13 +803,13 @@ function solveAbsLinear(expression, variable, options, Algebrite) {
     steps,
     answer,
     tips: [
-      `|u| = u for u ≥ 0 and −u for u < 0: an absolute value is a piecewise function, and each piece is differentiated on its own.`,
+      `${mark('|u| = u')} for ${mark('u ≥ 0')} and ${mark('−u')} for ${mark('u < 0')}: an absolute value is a piecewise function, and each piece is differentiated on its own.`,
       'A derivative exists at a point only if the left and right derivatives agree. At a corner they do not, so there is no tangent line there.',
-      `Away from the corner, d/d${v}|u| = sgn(u)·u′ — the sign of u times the inner derivative.`,
+      `Away from the corner, ${mark(`d/d${v}|u| = sgn(u)·u′`)} — the sign of ${mark('u')} times the inner derivative.`,
     ],
     common_mistakes: [
-      'Applying the power rule to |x| as if it were x.',
-      `Reporting f'(${x0Text}) = 0 because sgn(0) = 0 on a calculator — the derivative does not exist there.`,
+      `Applying the power rule to ${mark('|x|')} as if it were ${mark('x')}.`,
+      `Reporting ${mark(`f'(${x0Text}) = 0`)} because ${mark('sgn(0) = 0')} on a calculator — the derivative does not exist there.`,
     ],
     graph,
   };

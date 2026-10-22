@@ -26,7 +26,7 @@ src/
   pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback, NotFound (the `*` route)
   components/solver/           ProblemInput (+ SymbolStrip: one-tap symbols from lib/symbolInsert.js, a live KaTeX preview, and the NotationGuide dialog), SolutionDisplay, GraphViewer, GraphEmptyState
   components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
-  components/MathText.jsx      KaTeX rendering of solver text (lib/mathRender.js, shared with the PDF; lib/latex.js typesets ⟦…⟧-marked math exactly, unmarked text by clause heuristics)
+  components/MathText.jsx      KaTeX rendering of solver text (lib/mathRender.js, shared with the PDF; lib/latex.js `mode`: 'auto' = ⟦…⟧-marked math exactly, else clause heuristics (steps, answers); 'marked' = marked runs only (tips, mistakes); 'input' = a typed problem)
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
   hooks/                       usePageTitle, useServiceWorker
   lib/
@@ -149,17 +149,23 @@ improper).
 "periodic" / "defined everywhere" / "undefined at" claim) — import them,
 never copy them. Never strip parentheses with `/^\((.*)\)$/`.
 
-**Mark the math in a step.** Wrap every formula in step text with
-`mark()` (from `solverUtils.js`): `` `Let ${mark(`u = ${g}`)} (the inside).` ``.
-The renderer typesets exactly the marked runs, so mark whole formulas and
-never a word (KaTeX sets words as italic letters). Markers belong to steps
-only: `finalizeResult` strips them from answers, tips and mistakes, the
-exporters strip them, and code that reads step text (guidance regexes)
+**Mark the math in a step, a tip and a mistake.** Wrap every formula in
+step, tip and mistake text with `mark()` (from `solverUtils.js`):
+`` `Let ${mark(`u = ${g}`)} (the inside).` ``. The renderer typesets exactly
+the marked runs, so mark whole formulas and never a word (KaTeX sets words
+as italic letters). Tips and mistakes render in `'marked'` mode: unmarked
+text there stays prose, never guessed at. In a tip about what to type, the
+typed form goes in quotes ("2*x") and stays literal. Markers belong to steps,
+tips and mistakes: `finalizeResult` strips them from answers and warnings,
+the exporters strip them, and code that reads that text (guidance regexes)
 reads `stripMathMarkers(...)`. Tests about wording use
-`tests/helpers/solvePlain.js`; `tests/typesetting.test.js` fails on math
-left in a plain-text run, or a run KaTeX rejects; every solver is
-converted (1.51.0), so a new step template needs its marks and a problem
-in that test.
+`tests/helpers/solvePlain.js`; `tests/typesetting.test.js` (steps) and
+`tests/typesettingTips.test.js` (tips and mistakes) fail on math left in a
+plain-text run, a word inside a math run, or a run KaTeX rejects; every
+solver is converted (steps 1.51.0, tips and mistakes 1.53.0), so a new
+template needs its marks and a problem in `tests/helpers/typesetProblems.js`.
+A typed problem (the input preview, the example buttons, the Progress
+history) renders in `'input'` mode: words are prose, the rest is math.
 
 Algebrite: always through `loadAlgebrite()` (a throwing direct call poisons
 every later call; the worker's termination also clears it). mathjs: add a
