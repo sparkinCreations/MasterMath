@@ -33,6 +33,10 @@ export default function FAQ() {
       answer: "Derivatives (any order, at a point, implicit dy/dx for an equation in x and y, with every rule worked), integrals (indefinite, definite, and improper, by substitution, parts, or partial fractions), limits (one-sided and at infinity), function analysis with graphs, trigonometry (values, identities, and equations), algebra (linear through higher-degree equations, radical, absolute-value, exponential and logarithmic equations, systems of two or three equations, inequalities, simplifying and factoring), and arithmetic (order of operations, fractions, percentages). The User Manual lists what to type for each."
     },
     {
+      question: "Do I have to pick a topic?",
+      answer: "No. The solver starts on Auto-detect, which reads the topic from what you type: d/dx, ∫ or lim for calculus, an equation, inequality or system for algebra, a trig function or ° for trigonometry, \"f(x) = …\" for functions, and plain numbers for arithmetic. A notice above the steps says what was detected. An expression on its own, like x² + 3x, is simplified and factored, and buttons offer to differentiate, integrate or analyse it instead. Choosing a topic yourself still works, and the solver remembers the one you used last."
+    },
+    {
       question: "Can I solve a system of equations?",
       answer: "Yes. Type the equations separated by a semicolon, under any topic: \"2x + 3y = 6; x - y = 4\". Two linear equations are solved by Cramer's rule in exact fractions, three by elimination with every row operation shown, and a line with a parabola or circle by substitution. A system with no solution or infinitely many is shown as such, with the reason."
     },

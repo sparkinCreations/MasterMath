@@ -129,6 +129,12 @@ for (const scheme of ['light', 'dark']) {
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.getByRole('button', { name: 'Switch topic to Derivatives' })).toBeVisible();
       await audit(page, `solver with a routed solution (${scheme})`);
+      // Under Auto-detect: the "Detected as" notice.
+      await page.getByRole('combobox').first().click();
+      await page.getByRole('option', { name: 'Auto-detect' }).click();
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await expect(page.locator('[aria-label="Solution"]')).toContainText('Detected as Derivatives.');
+      await audit(page, `solver with an auto-detected solution (${scheme})`);
 
       // While solving: the Cancel button and the spinner. (The outline Cancel
       // text was black on the dark card until 1.52.4; no audit ran mid-solve.)

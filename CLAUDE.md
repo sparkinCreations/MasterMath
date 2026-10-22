@@ -68,7 +68,10 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    on that line.
 3. `solveProblem` (`api.js`) first reads plain English as notation
    (`readPlainEnglish`: "of" takes one term, a power binds to its term),
-   then routes by **intent, not topic**: derivative /
+   then, under Auto-detect (`auto`, the default topic), picks the topic
+   with `detectTopic` and solves under it: the result's notice reads
+   "Detected as …" (`routing.from === 'auto'`, no switch button, none on
+   a parse error). Every topic then routes by **intent, not topic**: derivative /
    integral / limit notation goes to that solver under any topic; a single
    equation goes to Algebra — except an equation in x and y under Derivatives
    (or with "find dy/dx"), which goes to implicit differentiation, checked
@@ -267,7 +270,9 @@ choosing a version number: releases land from other sessions and PRs.
 
 - Math input: `*` and `^` explicit, standard function names; the parser also
   accepts natural notation (`x²`, `2x`, `∫`, `d/dx`).
-- Topic values: `derivatives`, `integrals`, `limits`, `functions`,
+- Topic values: `auto` (Auto-detect, the default for a new visitor:
+  `detectTopic` in `api.js`; never saved to history, which files under the
+  detected topic), `derivatives`, `integrals`, `limits`, `functions`,
   `trigonometry`, `algebra`, `other` (= Arithmetic).
 - Dark mode support on every component; respect `prefers-reduced-motion`;
   a `Button` variant without its own text colours (`VARIANT_CLASS` in

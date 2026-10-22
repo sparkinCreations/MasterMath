@@ -457,9 +457,11 @@ export function extractFunctionFromProblem(problemText) {
 
     // f(x) = ... notation, and "y = …" as a function definition — only a
     // standalone y, not the y in "2x + 3y = 6" (that is an equation, and
-    // grabbing "= 6" out of it turned a two-unknown equation into "6").
+    // grabbing "= 6" out of it turned a two-unknown equation into "6") —
+    // and only when y is not on the right too: "y = 2y + 3" is an equation
+    // (y = −3); read as a definition it was answered "2y + 3", Solved.
     /f\(.\)\s*=\s*(.+)/i,
-    /(?<![a-z0-9])y\s*=\s*(.+)/i,
+    /(?<![a-z0-9])y\s*=\s*(?!.*(?<![a-z])y(?![a-z]))(.+)/i,
   ];
 
   for (const pattern of patterns) {

@@ -179,18 +179,19 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('button', { name: 'Step through' })).toHaveAttribute('aria-pressed', 'true');
     await expect(solution).toContainText(/Step 1 of \d+/);
     await expect(solution).not.toContainText('Final Answer:');
-    await page.getByRole('button', { name: 'Show all' }).click();
+    await page.getByRole('button', { name: 'Show all', exact: true }).click();
     await expect(solution).toContainText('Final Answer:');
     await page.reload();
     await pickExample(page, 'Algebra: 2*x + 5 = 11');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
-    await expect(page.getByRole('button', { name: 'Show all' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Show all', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(solution).toContainText('Final Answer:');
   });
 
   test('the solver opens on a topic, remembers it, explains a disabled Solve, and shows a notation hint', async ({ page }) => {
     await openSolver(page);
-    await expect(page.getByRole('combobox').first()).toContainText('Algebra');
+    // A new visitor starts on Auto-detect (1.53.0).
+    await expect(page.getByRole('combobox').first()).toContainText('Auto-detect');
     await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeDisabled();
     await expect(page.getByText('Type a problem above, or pick an example below, to enable Solve.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Notation guide' })).toBeVisible();
@@ -278,7 +279,7 @@ test.describe('MasterMath smoke', () => {
     await expect(page.locator('#problem')).toHaveValue('x + 2 = 5');
     await page.keyboard.press('ArrowDown');
     await expect(page.locator('#problem')).toHaveValue('');
-    await expect(page.getByRole('combobox').first()).toContainText('Algebra');
+    await expect(page.getByRole('combobox').first()).toContainText('Auto-detect');
     // A parse error leaves a red toast that stays; the next solve clears it.
     await page.locator('#problem').fill('sin()');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
@@ -303,12 +304,13 @@ test.describe('MasterMath smoke', () => {
   test('on a phone four example cards show and the rest open on demand', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'phone layout only');
     await openSolver(page);
-    await expect(page.getByRole('button', { name: 'Derivatives: x^2 + 3*x' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Arithmetic: (5 + 3) * 4 - 2^3' })).toBeHidden();
-    await page.getByRole('button', { name: /Show all \d+ examples/ }).click();
+    // Easiest first: the four that show are arithmetic and precalculus.
     await expect(page.getByRole('button', { name: 'Arithmetic: (5 + 3) * 4 - 2^3' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Derivatives: x^2 + 3*x' })).toBeHidden();
+    await page.getByRole('button', { name: /Show all \d+ examples/ }).click();
+    await expect(page.getByRole('button', { name: 'Derivatives: x^2 + 3*x' })).toBeVisible();
     await page.getByRole('button', { name: 'Fewer examples' }).click();
-    await expect(page.getByRole('button', { name: 'Arithmetic: (5 + 3) * 4 - 2^3' })).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Derivatives: x^2 + 3*x' })).toBeHidden();
   });
 
   test('the Symbols strip inserts at the caret, previews the typed math, and remembers being open', async ({ page }) => {
@@ -470,6 +472,31 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).toContainText('Final Answer:');
     await expect(solution).toContainText('The topic is now Derivatives.');
     await expect(page.getByRole('button', { name: 'Switch topic to Derivatives' })).toHaveCount(0);
+  });
+
+  test('Auto-detect solves by the input and says what it detected, with no topic to switch', async ({ page }) => {
+    await openSolver(page);
+    await expect(page.getByRole('combobox').first()).toContainText('Auto-detect');
+    const solution = page.locator('[aria-label="Solution"]');
+    for (const [p, notice, answer] of [
+      ['derivative of x^3', 'Detected as Derivatives. Your input uses derivative notation. Not what you meant? Choose a topic above.', /3x/],
+      ['2x + 5 = 11', 'Detected as Algebra. Your input is an equation.', /x = 3/],
+      ['sin(pi/6)', 'Detected as Trigonometry.', /1\/2|0\.5/],
+      ['two plus one', 'Detected as Arithmetic.', /3/],
+    ]) {
+      await page.locator('#problem').fill(p);
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await expect(solution).toContainText(notice);
+      await expect(solution).toContainText(answer);
+      await expect(page.getByRole('button', { name: /Switch topic to/ })).toHaveCount(0);
+      // The topic stays on Auto-detect.
+      await expect(page.getByRole('combobox').first()).toContainText('Auto-detect');
+    }
+    // A bare expression is simplified and factored, with the offer to do more.
+    await page.locator('#problem').fill('x^2 + 3x');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(solution).toContainText(/x\s*\(\s*x\s*\+\s*3\s*\)/);
+    await expect(page.getByRole('button', { name: 'Differentiate it' })).toBeVisible();
   });
 
   // October 2026 roadmap P2: the PDF is the typeset solution and the graph

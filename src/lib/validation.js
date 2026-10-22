@@ -2,6 +2,8 @@
  * Input validation utilities for MasterMath
  */
 
+import { readPlainEnglish } from './plainEnglish.js';
+
 /**
  * Validates mathematical input
  * @param {string} input - The user's input
@@ -46,8 +48,11 @@ export function validateMathInput(input) {
     return { isValid: false, error: `LaTeX commands such as \\${latexCommand[1]} are not supported. Type the math directly: 1/2 for a fraction, sqrt(x) for a root, x^2 for a power, ∫_0^1 x^2 dx or "integral of x^2 from 0 to 1" for an integral.` };
   }
 
-  // Check if input contains at least one mathematical character or word
-  const hasMathContent = /[0-9+\-*/^()=.xyzabc]|sin|cos|tan|log|ln|sqrt|derivative|integral|limit|solve/i.test(trimmed);
+  // Check if input contains at least one mathematical character or word.
+  // Read as notation first, as the solver does: "two plus one" has none of
+  // these characters until its number words are read (1.53.0; it was refused
+  // here although the solver answers it).
+  const hasMathContent = /[0-9+\-*/^()=.xyzabc]|sin|cos|tan|log|ln|sqrt|derivative|integral|limit|solve/i.test(readPlainEnglish(trimmed));
 
   if (!hasMathContent) {
     return { isValid: false, error: 'Please enter a valid math problem' };
@@ -63,6 +68,7 @@ export function validateMathInput(input) {
  */
 export function validateTopic(topic) {
   const validTopics = [
+    'auto',
     'derivatives',
     'integrals',
     'limits',

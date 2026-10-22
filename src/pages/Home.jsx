@@ -286,7 +286,7 @@ export default function Home() {
                 <div>
                   <h3 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-gray-200 mb-1 md:mb-2">Select Your Topic</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm md:text-lg">
-                    Choose from derivatives, integrals, limits, functions, trigonometry, algebra, or arithmetic.
+                    Leave it on Auto-detect, or choose from derivatives, integrals, limits, functions, trigonometry, algebra, or arithmetic.
                   </p>
                 </div>
               </div>

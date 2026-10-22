@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const TOPIC_LABELS = {
+  auto: "Auto-detect",
   derivatives: "Derivatives",
   integrals: "Integrals",
   limits: "Limits",
@@ -83,6 +84,19 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
   const from = TOPIC_LABELS[routing.from] || routing.from;
   const reason = String(routing.reason || '').replace(/^the input\b/i, 'Your input');
   const switched = currentTopic === routing.to;
+  // Under Auto-detect nothing was overridden: say what was detected and
+  // that a topic can still be chosen, with no switch to offer.
+  if (routing.from === 'auto') {
+    return (
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+        <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
+        <p className="text-gray-800 dark:text-gray-100">
+          <strong>Detected as {to}.</strong>{reason ? ` ${reason.charAt(0).toUpperCase()}${reason.slice(1)}.` : ''}{' '}
+          Not what you meant? Choose a topic above.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -151,21 +165,23 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
 
   const handleExportSolution = async (format) => {
     if (!solution || !problem || !topic) return;
+    // An export names the topic the problem was solved as, never "Auto-detect".
+    const exportTopic = topic === 'auto' ? solution.routedTopic || topic : topic;
 
     try {
       switch (format) {
         case 'pdf':
           // Awaited: the PDF writer is fetched on demand, so a failure to load
           // it must surface as an export error rather than a silent no-op.
-          await exportSolutionAsPDF(problem, topic, solution, TOPIC_LABELS, { graph: graphOnScreen() });
+          await exportSolutionAsPDF(problem, exportTopic, solution, TOPIC_LABELS, { graph: graphOnScreen() });
           toast.success("Solution exported as PDF");
           break;
         case 'markdown':
-          exportSolutionAsMarkdown(problem, topic, solution, TOPIC_LABELS);
+          exportSolutionAsMarkdown(problem, exportTopic, solution, TOPIC_LABELS);
           toast.success("Solution exported as Markdown");
           break;
         case 'json':
-          exportSolutionAsJSON(problem, topic, solution);
+          exportSolutionAsJSON(problem, exportTopic, solution);
           toast.success("Solution exported as JSON");
           break;
       }

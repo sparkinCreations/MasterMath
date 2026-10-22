@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.53.0] - 2026-10-22
+
+### Added
+
+- **Auto-detect**, the first entry in the topic list and where a new
+  visitor starts (a returning one keeps the topic used last). The input
+  decides: d/dx, ∫ or lim → that calculus topic; an equation, inequality
+  or system → Algebra; a leading factor / expand / simplify / solve →
+  Algebra (Trigonometry for a trig expression); a trig function or ° →
+  Trigonometry; "f(x) = …" or "y = …" → Functions; plain numbers,
+  including "two plus one" and "20% of 50" → Arithmetic. An expression on
+  its own ("x² + 3x") is simplified and factored, with the offer to
+  differentiate, integrate or analyse it — never a guess. A notice above
+  the steps says "Detected as Derivatives. Your input uses derivative
+  notation. Not what you meant? Choose a topic above." History and exports
+  file the problem under the detected topic, never "Auto-detect". The User
+  Manual, FAQ and home page explain it.
+
+### Changed
+
+- **"Try an example" runs from easiest to hardest**: arithmetic, a linear
+  equation, a trig value, an inequality, a function, a system, a trig
+  equation, then derivative, integral, limit and definite integral. A
+  phone shows the first four.
+
+### Fixed
+
+- **"y = 2y + 3" was read as a definition of y** and answered "2y + 3"
+  (under Algebra and Functions); y on both sides makes it an equation, so
+  it is now y = −3.
+- **"two plus one" was refused on the page** ("Please enter a valid math
+  problem") under every topic, although the solver has answered it since
+  1.52.2: the input check looked for digits and operators before the
+  number words were read. It now checks the same reading the solver and
+  the preview use.
+
 ## [1.52.4] - 2026-10-22
 
 From an outside review (8.5/10). Each claim was reproduced first; two did

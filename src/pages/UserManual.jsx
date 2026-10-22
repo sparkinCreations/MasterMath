@@ -58,9 +58,10 @@ export default function UserManual() {
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Step 1: Select Your Topic</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-2">
-              Choose what type of problem you're working on from the dropdown menu:
+              Choose what type of problem you're working on from the dropdown menu, or leave it on Auto-detect:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
+              <li><strong>Auto-detect</strong> (where a new visitor starts): the topic is read from what you type — d/dx, ∫ or lim for calculus, an equation, inequality or system for Algebra, a trig function or ° for Trigonometry, "f(x) = …" for Functions, plain numbers for Arithmetic. A notice above the steps says what was detected. An expression on its own, like x² + 3x, is simplified and factored, with buttons to differentiate, integrate or analyse it instead. The solver remembers the topic you used last.</li>
               <li><strong>Derivatives:</strong> Finding rates of change and slopes</li>
               <li><strong>Integrals:</strong> Antiderivatives, definite integrals, and improper integrals</li>
               <li><strong>Limits:</strong> Understanding behavior as values approach infinity or specific points</li>
@@ -110,7 +111,7 @@ export default function UserManual() {
             and <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">d/dx</code>,{' '}
             <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">∫</code> or{' '}
             <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">lim</code> in the
-            problem routes it to the right solver from any topic. The first step says so when that happens.
+            problem routes it to the right solver from any topic. A notice above the steps says so when that happens, with a button to switch the topic. Under Auto-detect the notice says what was detected instead.
           </p>
           <dl className="space-y-3 text-gray-700 dark:text-gray-300">
             {[

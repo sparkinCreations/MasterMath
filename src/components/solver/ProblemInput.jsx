@@ -13,6 +13,7 @@ import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validatio
 import { readPlainEnglish } from "@/lib/plainEnglish";
 
 const TOPICS = [
+  { value: "auto", label: "Auto-detect" },
   { value: "derivatives", label: "Derivatives" },
   { value: "integrals", label: "Integrals" },
   { value: "limits", label: "Limits" },
@@ -23,6 +24,7 @@ const TOPICS = [
 ];
 
 const PLACEHOLDERS = {
+  auto: "e.g., 2*x + 5 = 11, sin(pi/4), d/dx x^3, or ∫_0^1 x^2 dx (the topic is detected)",
   derivatives: "e.g., x^2 + 3*x or Find the derivative of x^3 - 2*x",
   integrals: "e.g., 2*x + 1, Integrate x^2, or ∫_0^1 x^2 dx (definite)",
   limits: "e.g., lim x->0 (sin(x)/x) or (x^2 - 4)/(x - 2) as x->2",
@@ -32,18 +34,20 @@ const PLACEHOLDERS = {
   other: "e.g., 15 + 23, 8 * 7, (5 + 3) * 4, 2^3 + 10/2"
 };
 
+// Easiest first: arithmetic and a linear equation, then the precalculus
+// topics, then calculus. (A phone shows the first four.)
 const EXAMPLE_PROBLEMS = [
+  { topic: "other", problem: "(5 + 3) * 4 - 2^3" },
+  { topic: "algebra", problem: "2*x + 5 = 11" },
+  { topic: "trigonometry", problem: "sin(pi/4)" },
+  { topic: "algebra", problem: "x^2 - 4 > 0" },
+  { topic: "functions", problem: "x^2 - 4*x + 3" },
+  { topic: "algebra", problem: "2x + 3y = 6; x - y = 4" },
+  { topic: "trigonometry", problem: "sin(x) = 1/2" },
   { topic: "derivatives", problem: "x^2 + 3*x" },
   { topic: "integrals", problem: "2*x + 1" },
-  { topic: "integrals", problem: "∫_0^1 x^2 dx" },
   { topic: "limits", problem: "lim x->0 (sin(x)/x)" },
-  { topic: "functions", problem: "x^2 - 4*x + 3" },
-  { topic: "algebra", problem: "2*x + 5 = 11" },
-  { topic: "algebra", problem: "2x + 3y = 6; x - y = 4" },
-  { topic: "algebra", problem: "x^2 - 4 > 0" },
-  { topic: "trigonometry", problem: "sin(pi/4)" },
-  { topic: "trigonometry", problem: "sin(x) = 1/2" },
-  { topic: "other", problem: "(5 + 3) * 4 - 2^3" }
+  { topic: "integrals", problem: "∫_0^1 x^2 dx" }
 ];
 
 export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, onInvalid, onCancel, isLoading, onNavigateHistory, hasHistory }) {

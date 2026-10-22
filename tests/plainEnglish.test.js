@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { readPlainEnglish } from '../src/lib/plainEnglish.js';
 import { solveProblem } from '../src/lib/api.js';
+import { validateMathInput } from '../src/lib/validation.js';
 
 // 1.52.2: "Type it as you would say it". Before it, 7 of 56 everyday
 // phrasings solved ("x squared" was '"squared" is not a known function'),
@@ -95,4 +96,11 @@ test('an unknown word is refused on every path, never read as a constant', async
     assert.equal(r.status, 'parse_error', `${p}: ${r.status} ${r.answer}`);
     assert.match(r.answer, /"(apples|dogs)" is not a known function/, p);
   }
+});
+
+test('the input check reads number words too, so the page sends them to the solver', () => {
+  // Until 1.53.0 "two plus one" was "Please enter a valid math problem" on
+  // the page (no digit, operator or x in it), although the solver answers it.
+  for (const s of ['two plus one', 'ten minus four', 'one half plus one third']) assert.equal(validateMathInput(s).isValid, true, s);
+  assert.equal(validateMathInput('hello world').isValid, false);
 });

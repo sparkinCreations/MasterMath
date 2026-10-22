@@ -75,6 +75,43 @@ function detectCalculusIntent(problem) {
   return null;
 }
 
+// Auto-detect (1.53.0, the default topic for a new visitor): which topic the
+// input itself asks for. Only the input's own signals decide; an expression
+// with no intent of its own ("x^2 + 3x") is Algebra — simplified, factored
+// where it can be — and the page offers to differentiate, integrate or
+// analyse it instead (expressionNudge). Never a guess.
+const TRIG_CALL = /(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan)(?:\s*[(^]|\s+(?=[a-z0-9π]))/i;
+export function detectTopic(problem) {
+  const t = String(problem);
+  const calculus = detectCalculusIntent(t);
+  if (calculus) {
+    return { topic: calculus, reason: `your input uses ${calculus === 'limits' ? 'limit' : calculus === 'integrals' ? 'integral' : 'derivative'} notation` };
+  }
+  // A leading verb says what to do: "factor x^2 - 5x + 6", "simplify tan(x)*cos(x)".
+  const verb = t.match(/^\s*(factor(?:i[sz]e)?|expand|simplify|solve)\b/i);
+  if (verb) {
+    const action = verb[1].toLowerCase().replace(/^factori[sz]e$/, 'factor');
+    return TRIG_CALL.test(t)
+      ? { topic: 'trigonometry', reason: `your input asks to ${action} a trig expression` }
+      : { topic: 'algebra', reason: `your input asks to ${action} it` };
+  }
+  if (looksLikeSystem(t)) return { topic: 'algebra', reason: 'your input is a system of equations' };
+  if (looksLikeInequality(t)) return { topic: 'algebra', reason: 'your input is an inequality' };
+  // "f(x) = …" / "y = …" with y not on the right: a definition, not an equation.
+  const definition = t.match(/^\s*(?:f\s*\(\s*[a-z]\s*\)|y)\s*=(?!=)(.*)$/i);
+  if (definition && !/(?<![a-z])y(?![a-z])/i.test(definition[1])) {
+    return { topic: 'functions', reason: 'your input defines a function' };
+  }
+  if (TRIG_CALL.test(t)) return { topic: 'trigonometry', reason: 'your input uses a trig function' };
+  if (/°/.test(t)) return { topic: 'trigonometry', reason: 'your input is an angle in degrees' };
+  if (/(?<![><!=])=(?!=)/.test(t)) return { topic: 'algebra', reason: 'your input is an equation' };
+  // Function names and words that only say how to combine numbers ("two plus
+  // one", "what is 20% of 50") are not variables.
+  const letters = t.replace(/\b(?:sqrt|cbrt|abs|log|ln|exp|pi|e|mod|choose|plus|minus|times|divided|multiplied|by|over|add|subtract|multiply|divide|sum|product|difference|quotient|of|and|from|what|is|the|calculate|compute|evaluate)\b/gi, '');
+  if (!/[a-z]/i.test(letters)) return { topic: 'other', reason: 'your input is a calculation with numbers' };
+  return { topic: 'algebra', reason: 'your input is an expression, so it is simplified (and factored where it can be)' };
+}
+
 // One equation in one unknown, with no calculus intent, is an algebra
 // problem whatever topic it was typed under — except where the topic has
 // its own equation semantics: a trig equation under Trigonometry, and the
@@ -87,7 +124,8 @@ function isPlainEquationForAlgebra(problem, topic) {
   if (topic === 'algebra') return false;
   // (?<![a-z]) not \b: "2cos(x) - 1 = 0" has no word boundary before "cos".
   if (topic === 'trigonometry' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*[(^a-z0-9]/i.test(t)) return false;
-  if (topic === 'functions' && /(?<![a-z0-9])(?:f\(.\)|y)\s*=/i.test(t)) return false;
+  // (A definition only when y is not on the right too: "y = 2y + 3" is an equation.)
+  if (topic === 'functions' && /(?<![a-z0-9])(?:f\(.\)|y)\s*=(?!.*(?<![a-z])y(?![a-z]))/i.test(t)) return false;
   return true;
 }
 
@@ -305,7 +343,7 @@ function implicitDerivativeRequest(problem, topic) {
   return { lhs, rhs, independent, dependent, point: at };
 }
 
-const TOPIC_NAMES = { derivatives: 'Derivatives', integrals: 'Integrals', limits: 'Limits', functions: 'Functions', trigonometry: 'Trigonometry', algebra: 'Algebra', other: 'Arithmetic' };
+const TOPIC_NAMES = { auto: 'Auto-detect', derivatives: 'Derivatives', integrals: 'Integrals', limits: 'Limits', functions: 'Functions', trigonometry: 'Trigonometry', algebra: 'Algebra', other: 'Arithmetic' };
 
 // A solved result that was routed away from the chosen topic says so, first.
 function noteRouting(result, from, to, why) {
@@ -505,6 +543,23 @@ export async function solveProblem(problem, topic) {
     // "x squared", "e to the x", "is greater than", "x**3" → notation,
     // before routing reads it (plainEnglish.js).
     problem = readPlainEnglish(problem);
+
+    // Auto-detect: solve under the topic the input asks for, and say which.
+    // The detected topic's own routing may move it again (a verb, a constant
+    // that divides by zero); the final topic is the one reported and saved.
+    if (topic === 'auto') {
+      const detected = detectTopic(problem);
+      const result = await solveProblem(problem, detected.topic);
+      // A parse error was not solved as anything: no notice.
+      if (!result || !Array.isArray(result.steps) || result.status === 'parse_error') return result;
+      const to = result.routing?.to || detected.topic;
+      const reason = result.routing?.reason ? result.routing.reason.replace(/^the input\b/i, 'your input') : detected.reason;
+      const steps = result.routing ? result.steps.slice(1) : result.steps;
+      result.steps = [`Detected as ${TOPIC_NAMES[to]}: ${reason}.`, ...steps];
+      result.routing = { from: 'auto', to, reason, detected: true };
+      result.routedTopic = to;
+      return result;
+    }
 
     let result;
 
