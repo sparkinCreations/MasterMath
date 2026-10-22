@@ -246,7 +246,7 @@ Recorded so they are not re-opened without a new argument.
 | Item | What happens | Note |
 |---|---|---|
 | Two-variable inequalities | `x + y > 2` was answered "No solution" | **Fixed in 1.49.0**: refused honestly. Graphing the region is new work. |
-| Periodic inequalities | `sin(x) > 1/2` lists intervals only inside ±50, without saying the pattern repeats | Should give the general solution (π/6 + 2πk < x < 5π/6 + 2πk), as trig equations do |
+| Periodic inequalities | `sin(x) > 1/2` listed intervals only inside ±50, without saying the pattern repeats | **Fixed in 1.49.1**: solved on one period and stated for every period. Periodic with breaks (tan) is refused. |
 | Exact inequality endpoints | `e^x > 2` gives `x > 0.6931` | Should be x > ln 2 (≈ 0.6931); the endpoint is exact, and a located one needs ≈ |
 | Implicit curve plot | Implicit derivatives have no graph | A contour plot of F(x, y) = 0 with the tangent at the point |
 

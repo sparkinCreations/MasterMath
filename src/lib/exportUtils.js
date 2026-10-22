@@ -1,5 +1,6 @@
 // Export utilities for MasterMath
-import { statusLabel, isFailureStatus, countsAsSolved } from './solutionEnvelope.js';
+import { statusLabel, isFailureStatus } from './solutionEnvelope.js';
+import { historyTotalsText } from './historyStats.js';
 import { stripMathMarkers } from './mathMarkers.js';
 
 // jsPDF (plus its html2canvas/dompurify dependencies) is ~600 kB — larger than
@@ -62,21 +63,8 @@ function exportStatus(solution) {
   };
 }
 
-// History can hold entries that are not solves ("undefined", "indeterminate",
-// and refusals saved before v1.33.1). Counting them all as "solved" overstated
-// what the user had done; the Progress page uses the same rule.
-function solvedCount(problems) {
-  return problems.filter(countsAsSolved).length;
-}
-
-// Summary line shared by the Markdown and PDF history exports. The breakdown
-// only appears when there is something to break down.
-function totalsLine(problems) {
-  const solved = solvedCount(problems);
-  return solved === problems.length
-    ? `Total Problems: ${problems.length}`
-    : `Total Problems: ${problems.length} (solved: ${solved})`;
-}
+// The totals line in the Markdown and PDF history exports is
+// historyTotalsText (historyStats.js): the same words as the Progress page.
 
 // Spreadsheet applications treat a cell beginning with '=', '+', '-', '@' or
 // a control character as a formula. A maths app is unusually likely to produce
@@ -137,7 +125,7 @@ export function exportAsJSON(problems) {
 // Export progress history as Markdown
 export function exportAsMarkdown(problems, topicLabels) {
   let markdown = '# MasterMath Progress\n\n';
-  markdown += `**${totalsLine(problems)}**\n\n`;
+  markdown += `**${historyTotalsText(problems)}**\n\n`;
 
   // Group by topic
   const byTopic = {};
@@ -233,7 +221,7 @@ export async function exportAsPDF(problems, topicLabels) {
   doc.text('MasterMath Progress', 20, 20);
 
   doc.setFontSize(12);
-  doc.text(pdfSafe(totalsLine(problems)), 20, 35);
+  doc.text(pdfSafe(historyTotalsText(problems)), 20, 35);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
 
   let yPos = 60;

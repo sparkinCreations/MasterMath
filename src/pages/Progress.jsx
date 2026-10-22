@@ -115,10 +115,17 @@ export default function Progress() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="bg-linear-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/40 dark:to-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-700/60">
           <CardHeader>
-            <CardTitle className="text-indigo-700 dark:text-indigo-300 text-lg">Total Problems</CardTitle>
+            <CardTitle className="text-indigo-700 dark:text-indigo-300 text-lg">Problems Solved</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-5xl font-bold text-indigo-600 dark:text-indigo-200" aria-busy={loading}>{loading ? '—' : stats.total}</p>
+            {/* The exports print the same count in the same words
+                (historyTotalsText); entries that are not solves are said
+                to be there, so the list below never outnumbers the card
+                without a reason. */}
+            {!loading && stats.notSolved > 0 && (
+              <p className="mt-1 text-sm text-indigo-700 dark:text-indigo-300">of {problems.length} in history</p>
+            )}
           </CardContent>
         </Card>
 
