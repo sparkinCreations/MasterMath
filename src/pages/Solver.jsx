@@ -8,6 +8,7 @@ import SolutionDisplay from "@/components/solver/SolutionDisplay";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { createProblemHistory } from "@/lib/api";
 import { solveWithBudget, warmSolver } from "@/lib/budgetedSolver";
+import { sanitizeInput } from "@/lib/validation";
 import { STATUS, statusLabel, shouldSaveToHistory } from "@/lib/solutionEnvelope";
 import { useToast } from "@/components/ui/toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -70,6 +71,21 @@ export default function Solver() {
       revealElement(solutionRef.current, { focus: true });
     }
   }, [solution, isLoading, graphData]);
+
+  // An answer belongs to the problem it solved. Once the input or the topic
+  // no longer matches it, the old steps and graph would read as the answer
+  // to what is now in the form, so they go (October 2026 release review).
+  // Compared through sanitizeInput, as the solve was: a stray space is the
+  // same problem.
+  useEffect(() => {
+    if (!solution || isLoading) return;
+    if (sanitizeInput(problem) !== solvedInput.problem || topic !== solvedInput.topic) {
+      setSolution(null);
+      setGraphData(null);
+      setNudge(null);
+      setSolvedInput({ problem: "", topic: "" });
+    }
+  }, [problem, topic, solution, isLoading, solvedInput]);
 
   // Start the solver worker now, so its bundle is loading while the user
   // types rather than when they press Solve.

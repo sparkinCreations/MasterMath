@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { STATUS, shouldSaveToHistory, countsAsSolved } from '../src/lib/solutionEnvelope.js';
-import { historyStats } from '../src/lib/historyStats.js';
+import { historyStats, historyTotalsText } from '../src/lib/historyStats.js';
 
 test('history keeps solves and the honest mathematical non-values, not tool failures', () => {
   assert.equal(shouldSaveToHistory(STATUS.SOLVED), true);
@@ -44,4 +44,15 @@ test('Progress statistics count solved problems only', () => {
   assert.equal(stats.topics, 3);     // integrals and "other" are not covered by a refusal or an undefined value
   assert.equal(stats.notSolved, 2);
   assert.deepEqual(historyStats([]), { total: 0, thisWeek: 0, topics: 0, notSolved: 0 });
+});
+
+test('the Progress card and the exports state the count in the same words', () => {
+  // The card said "Total Problems: 1" while the export said "Total
+  // Problems: 2 (solved: 1)" for the same history (October 2026 release review).
+  const solved = { topic: 'algebra', solution: { status: STATUS.SOLVED, answer: 'x = 3' } };
+  const diverges = { topic: 'integrals', solution: { status: STATUS.DIVERGES, answer: 'Diverges' } };
+  assert.equal(historyTotalsText([solved, solved]), 'Problems solved: 2');
+  assert.equal(historyTotalsText([solved, diverges]), 'Problems solved: 1 of 2 in history');
+  assert.equal(historyStats([solved, diverges]).total, 1); // the card's number
+  assert.equal(historyTotalsText([]), 'Problems solved: 0');
 });

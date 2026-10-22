@@ -108,7 +108,7 @@ substitutions; Algebrite roots checked for completeness against the degree,
 anything above degree 12 to `polynomialRoots`; simplification; factoring),
 `polynomialRoots` (exact reader, `factorByRationalRoots`, Sturm counting,
 exact bisection, verified complex roots, cap `MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,
-non-linear by substitution), `inequalitiesSolver` (sign charts, compound; refuses two variables),
+non-linear by substitution), `inequalitiesSolver` (sign charts, compound; periodic ones on one period + every period; refuses two variables),
 `trigonometrySolver` (values, identities; exports `detectTrigAsymptote`),
 `trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
 `functionsSolver` (exact extrema/intercepts/asymptotes), `limitsSolver`

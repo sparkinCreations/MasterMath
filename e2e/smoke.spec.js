@@ -119,8 +119,8 @@ test.describe('MasterMath smoke', () => {
     const solution = page.locator('[aria-label="Solution"]');
     await expect(solution).toContainText('Beyond this solver');
     await page.goto('/progress');
-    await expect(page.getByText('Total Problems')).toBeVisible();
-    await expect(page.getByText('Total Problems').locator('..').locator('..')).toContainText('0');
+    await expect(page.getByText('Problems Solved', { exact: true })).toBeVisible();
+    await expect(page.getByText('Problems Solved', { exact: true }).locator('..').locator('..')).toContainText('0');
     await expect(page.getByText('sin(x^2)', { exact: true })).toHaveCount(0);
   });
 
@@ -133,7 +133,7 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByText('Problem solved!')).toBeVisible();
     await page.goto('/progress');
     await expect(page.getByText('2*x + 5 = 11', { exact: true })).toBeVisible();
-    const totalCard = page.getByText('Total Problems').locator('..').locator('..');
+    const totalCard = page.getByText('Problems Solved', { exact: true }).locator('..').locator('..');
     await expect(totalCard).toContainText('1');
     await page.getByRole('button', { name: /Clear History/ }).click();
     await page.getByRole('button', { name: 'Confirm' }).click();
@@ -221,6 +221,24 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('alert')).toContainText('valid math problem');
     await expect(solution).not.toContainText('Final Answer:');
     await expect(page.getByRole('heading', { name: 'Graph View' })).toBeVisible();
+  });
+
+  test('an answer goes away once the input or the topic no longer matches it', async ({ page }) => {
+    await openSolver(page);
+    const solution = await solveExample(page, 'Algebra: 2*x + 5 = 11');
+    // A stray space is the same problem: the answer stays.
+    await page.locator('#problem').fill('2*x + 5 = 11 ');
+    await expect(solution).toContainText('Final Answer:');
+    // A different problem: the old steps and graph would read as its answer.
+    await page.locator('#problem').fill('2*x + 5 = 13');
+    await expect(solution).not.toContainText('Final Answer:');
+    await expect(page.getByRole('heading', { name: 'Graph View' })).toBeVisible();
+    // Solve again, then change only the topic.
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(solution).toContainText('Final Answer:');
+    await page.getByRole('combobox').first().click();
+    await page.getByRole('option', { name: 'Functions' }).click();
+    await expect(solution).not.toContainText('Final Answer:');
   });
 
   test('the topic list closes on a tap outside it', async ({ page }) => {

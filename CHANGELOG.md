@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.49.1] - 2026-10-21
+
+Fixes from the pre-release review; each reproduced first.
+
+### Fixed
+
+- **An answer goes away once it no longer matches the form.** Editing the
+  problem or changing the topic left the previous steps and graph on
+  screen, where they read as the answer to the new input (the card does
+  not repeat the problem). They now clear as soon as the input or the
+  topic differs from what was solved; whitespace-only edits keep them.
+- **My Progress and the exports count the history the same way.** The
+  card said "Total Problems: 1" while an export of the same history said
+  "Total Problems: 2 (solved: 1)": one name for two numbers. The card is
+  now "Problems Solved", with "of N in history" beneath it when the
+  history also holds results that are not solves (an "Undefined" or
+  "Diverges" result, or an older refusal); the Markdown and PDF exports
+  print the same words from the same function (`historyTotalsText`).
+- **Periodic inequalities are solved for every period.** sin(x) > 1/2
+  listed the intervals between −50 and 50 as if they were the whole
+  answer. A trigonometric inequality without breaks is now solved on one
+  period (the period proved from the expression) and stated for every
+  period: π/6 + 2πn < x < 5π/6 + 2πn. Endpoints are multiples of π only
+  when Algebrite confirms them exactly, otherwise decimals marked ≈, and
+  the answer is cross-checked across many periods. tan(x) > 1 (periodic
+  with breaks) and a periodic part inside a compound inequality are
+  refused instead of truncated.
+
 ## [1.49.0] - 2026-10-21
 
 October 2026 roadmap: P1 implicit differentiation and P2 the 1^∞ limits,
