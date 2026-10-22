@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Calculator, Lightbulb, AlertCircle, Keyboard, ChevronUp, ChevronDown, X } from "lucide-react";
 import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validation";
+import { readPlainEnglish } from "@/lib/plainEnglish";
 
 const TOPICS = [
   { value: "derivatives", label: "Derivatives" },
@@ -230,13 +231,15 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           aria-describedby={validationError ? 'problem-error' : undefined}
         />
         {/* What the typed text means, typeset: a ^2 shows raised, √( shows
-            a radical. Decorative for assistive tech — the textarea's own
-            text is the accessible content, and announcing every keystroke's
-            re-render would be noise. */}
+            a radical, and plain English is shown as the solver will read it
+            ("x squared" as x², "sine of x" as sin(x); plainEnglish.js).
+            Decorative for assistive tech — the textarea's own text is the
+            accessible content, and announcing every keystroke's re-render
+            would be noise. */}
         {problem.trim() && (
           <div aria-hidden="true" className="flex items-baseline gap-2 px-1 text-gray-800 dark:text-gray-100 min-h-7">
             <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 shrink-0">Preview</span>
-            <span className="text-lg leading-snug break-words min-w-0"><MathText text={problem} /></span>
+            <span className="text-lg leading-snug break-words min-w-0"><MathText text={readPlainEnglish(problem)} /></span>
           </div>
         )}
         <div className="flex justify-between items-center gap-3 min-h-11">
