@@ -136,9 +136,9 @@ only: `finalizeResult` strips them from answers, tips and mistakes, the
 exporters strip them, and code that reads step text (guidance regexes)
 reads `stripMathMarkers(...)`. Tests about wording use
 `tests/helpers/solvePlain.js`; `tests/typesetting.test.js` fails on math
-left in a plain-text run of a converted solver, or a run KaTeX rejects.
-Not yet converted: systems, inequalities, trigonometry, trig equations,
-arithmetic.
+left in a plain-text run, or a run KaTeX rejects; every solver is
+converted (1.51.0), so a new step template needs its marks and a problem
+in that test.
 
 Algebrite: always through `loadAlgebrite()` (a throwing direct call poisons
 every later call; the worker's termination also clears it). mathjs: add a

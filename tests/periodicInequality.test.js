@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { solveProblem } from '../src/lib/api.js';
+import { solvePlain } from './helpers/solvePlain.js';
 
 // October 2026 release review: sin(x) > 1/2 listed the intervals between
 // −50 and 50 as if they were the whole answer. A periodic inequality is now
 // solved on one period and stated for every period.
 
-const solve = (p, topic = 'algebra') => solveProblem(p, topic);
+// Step wording is checked on the text a reader sees, without the ⟦…⟧ markers.
+const solve = (p, topic = 'algebra') => solvePlain(p, topic);
 
 test('sin(x) > 1/2 is solved on one period and repeated, with exact endpoints', async () => {
   const r = await solve('sin(x) > 1/2');

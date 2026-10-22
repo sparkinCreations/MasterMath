@@ -98,7 +98,7 @@ test('lim x/e^x samples are shown at their true size, with the underflow explain
 });
 
 test('arithmetic steps show the expression after every operation, in PEMDAS order', async () => {
-  const r = await solveProblem('3 + 4 * 2^3', 'other');
+  const r = await solvePlain('3 + 4 * 2^3', 'other');
   assert.equal(r.answer, '35');
   assert.deepEqual(r.steps, [
     'Evaluate: 3+4*2^3',
@@ -107,14 +107,14 @@ test('arithmetic steps show the expression after every operation, in PEMDAS orde
     'Addition and subtraction last, left to right: 3 + 32 = 35',
     'Final answer: 35',
   ]);
-  const m = await solveProblem('-2^2', 'other');
+  const m = await solvePlain('-2^2', 'other');
   assert.equal(m.answer, '-4');
   assert.ok(m.steps.some((s) => /Exponents first: 2 \^ 2 = 4/.test(s)));
   assert.ok(m.steps.some((s) => /apply the sign afterwards: -\(4\) = -4/.test(s)));
-  const d = await solveProblem('8/2*4', 'other');
+  const d = await solvePlain('8/2*4', 'other');
   assert.ok(d.steps.some((s) => /left to right: 8 \/ 2 = 4  →  4 \* 4/.test(s)));
   // A chain of fractions is exact fraction work (v1.37.0), not PEMDAS on decimals.
-  const f = await solveProblem('1/3 + 1/6', 'other');
+  const f = await solvePlain('1/3 + 1/6', 'other');
   assert.equal(f.answer, '1/2 (= 0.5)');
   assert.ok(f.steps.some((s) => /1\/3 = 2\/6/.test(s)));
   assert.ok(f.steps.some((s) => /2\/6 \+ 1\/6 = \(2 \+ 1\)\/6 = 3\/6/.test(s)));
@@ -122,7 +122,7 @@ test('arithmetic steps show the expression after every operation, in PEMDAS orde
 });
 
 test('cos(x) = −1/2: the second angle is named on [0, 2π), not called "within one period"', async () => {
-  const r = await solveProblem('cos(x) = -1/2', 'trigonometry');
+  const r = await solvePlain('cos(x) = -1/2', 'trigonometry');
   assert.ok(!r.steps.some((s) => /both work within one period/.test(s)));
   assert.ok(r.steps.some((s) => /−2π\/3 is the same angle as 2π − 2π\/3 = 4π\/3/.test(s)));
   assert.match(r.answer, /on \[0, 2π\): 2π\/3, 4π\/3$/);

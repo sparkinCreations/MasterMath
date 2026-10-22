@@ -11,7 +11,7 @@
 // original equations before it is reported — the same "verify before you
 // claim" gate the rest of the solver uses.
 
-import { math, sampleFunction, beautify, formatNumber, loadAlgebrite, isAlgebriteFailure } from './solverUtils.js';
+import { math, sampleFunction, beautify, formatNumber, loadAlgebrite, isAlgebriteFailure, mark } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 import { splitRootsList, prettyRadicals } from './algebraSolver.js';
@@ -96,11 +96,11 @@ export async function solveSystem(rawText) {
 
       if (dependent) {
         // Show the proportionality, then parameterise the line.
-        const steps = [`Write the system: ${eq1Disp};  ${eq2Disp}.`];
+        const steps = [`Write the system: ${mark(eq1Disp)};  ${mark(eq2Disp)}.`];
         steps.push(Number(k.n) === Number(k.d) && Number(k.s) > 0
           ? 'The two equations are identical, so they describe the same line.'
-          : `Compare the equations: equation 2 is ${kText} × equation 1 — divide equation 2 by ${kText} and it becomes ${eq1Disp}. Both describe the same line.`);
-        steps.push(`That leaves one equation in two unknowns, ${eq1Disp}, so one variable is free.`);
+          : `Compare the equations: equation 2 is ${mark(kText)} × equation 1 — divide equation 2 by ${mark(kText)} and it becomes ${mark(eq1Disp)}. Both describe the same line.`);
+        steps.push(`That leaves one equation in two unknowns, ${mark(eq1Disp)}, so one variable is free.`);
         let param;
         if (!isZero(a1)) {
           // v1 = (c1 − b1·t)/a1
@@ -109,14 +109,14 @@ export async function solveSystem(rawText) {
           const tTerm = isZero(p1) ? '' : `${Number(p1.s) < 0 ? ' + ' : ' − '}${Number(p1.n) === Number(p1.d) ? '' : fmtFrac(math.abs(p1))}t`;
           const x = isZero(p0) && tTerm ? tTerm.replace(/^ [+−] /, (m) => (m.includes('−') ? '-' : '')) : `${fmtFrac(p0)}${tTerm}`;
           const minusB = Number(b1.s) < 0 ? `+ ${fmtFrac(math.abs(b1))}` : `− ${fmtFrac(b1)}`;
-          steps.push(`Let ${v2} = t (any real number). Then from ${eq1Disp}: ${v1} = (${fmtFrac(c1)} ${minusB}·t)/${fmtFrac(a1)} = ${x}.`);
+          steps.push(`Let ${mark(`${v2} = t`)} (any real number). Then from ${mark(eq1Disp)}: ${mark(`${v1} = (${fmtFrac(c1)} ${minusB}·t)/${fmtFrac(a1)} = ${x}`)}.`);
           param = `(${v1}, ${v2}) = (${x}, t)`;
         } else {
           const yFixed = div(c1, b1);
-          steps.push(`Equation 1 has no ${v1} term: it fixes ${v2} = ${fmtFrac(yFixed)} and leaves ${v1} free. Let ${v1} = t (any real number).`);
+          steps.push(`Equation 1 has no ${mark(v1)} term: it fixes ${mark(`${v2} = ${fmtFrac(yFixed)}`)} and leaves ${mark(v1)} free. Let ${mark(`${v1} = t`)} (any real number).`);
           param = `(${v1}, ${v2}) = (t, ${fmtFrac(yFixed)})`;
         }
-        steps.push(`Solutions: ${param} for every real t — every point on the line.`);
+        steps.push(`Solutions: ${mark(param)} for every real ${mark('t')} — every point on the line.`);
         return {
           steps,
           answer: `Infinitely many solutions — the two equations describe the same line: ${param}, t any real number`,
@@ -135,11 +135,11 @@ export async function solveSystem(rawText) {
       const gap = sub(c2, mul(k, c1));
       return {
         steps: [
-          `Write the system: ${eq1Disp};  ${eq2Disp}.`,
+          `Write the system: ${mark(eq1Disp)};  ${mark(eq2Disp)}.`,
           Number(k.n) === Number(k.d) && Number(k.s) > 0
-            ? `The left sides are identical. Subtract equation 1 from equation 2: (${eq2Disp.split(' = ')[0]}) − (${eq1Disp.split(' = ')[0]}) = ${fmtFrac(c2)} − ${fmtFrac(c1)}, which gives 0 = ${fmtFrac(gap)}.`
-            : `Try elimination: multiply equation 1 by ${kText} so the ${isZero(a1) ? v2 : v1} terms match — ${scaledEq1} — then subtract it from equation 2. Both variables cancel: 0 = ${fmtFrac(c2)} − (${fmtFrac(mul(k, c1))}) = ${fmtFrac(gap)}.`,
-          `0 = ${fmtFrac(gap)} is false for every (${v1}, ${v2}): a contradiction. No pair satisfies both equations.`,
+            ? `The left sides are identical. Subtract equation 1 from equation 2: ${mark(`(${eq2Disp.split(' = ')[0]}) − (${eq1Disp.split(' = ')[0]}) = ${fmtFrac(c2)} − ${fmtFrac(c1)}`)}, which gives ${mark(`0 = ${fmtFrac(gap)}`)}.`
+            : `Try elimination: multiply equation 1 by ${mark(kText)} so the ${mark(isZero(a1) ? v2 : v1)} terms match — ${mark(scaledEq1)} — then subtract it from equation 2. Both variables cancel: ${mark(`0 = ${fmtFrac(c2)} − (${fmtFrac(mul(k, c1))}) = ${fmtFrac(gap)}`)}.`,
+          `${mark(`0 = ${fmtFrac(gap)}`)} is false for every ${mark(`(${v1}, ${v2})`)}: a contradiction. No pair satisfies both equations.`,
           'Geometrically the two lines have the same slope but different intercepts — they are parallel and never meet.',
         ],
         answer: 'No solution — the two lines are parallel',
@@ -244,9 +244,9 @@ async function solveNonlinear2x2(equations, first, second) {
   const substituted = algebrite(Algebrite, `simplify(subst(${isolated}, ${w}, ${zeroForm(other)}))`);
   if (!substituted || new RegExp(`\\b${w}\\b`).test(substituted)) return null;
 
-  const systemLine = `Write the system: ${eqs[0].text};  ${eqs[1].text}.`;
-  const isolateLine = `Equation ${iso.i + 1} is linear in ${w}, so solve it for ${w}: ${w} = ${prettyRadicals(beautify(isolated))}.`;
-  const substLine = `Substitute into equation ${2 - iso.i}: ${prettyRadicals(beautify(rawSubst || substituted))} = 0, which simplifies to ${prettyRadicals(beautify(substituted))} = 0.`;
+  const systemLine = `Write the system: ${mark(eqs[0].text)};  ${mark(eqs[1].text)}.`;
+  const isolateLine = `Equation ${iso.i + 1} is linear in ${mark(w)}, so solve it for ${mark(w)}: ${mark(`${w} = ${prettyRadicals(beautify(isolated))}`)}.`;
+  const substLine = `Substitute into equation ${2 - iso.i}: ${mark(`${prettyRadicals(beautify(rawSubst || substituted))} = 0`)}, which simplifies to ${mark(`${prettyRadicals(beautify(substituted))} = 0`)}.`;
   const tips = [
     'Substitution: solve the simpler equation for one variable and put that into the other — what remains is an equation in one variable.',
     'A line can meet a parabola or a circle at 0, 1 or 2 points; find every root, then the partner value for each.',
@@ -322,8 +322,8 @@ async function solveNonlinear2x2(equations, first, second) {
   const pairText = (p) => (u === v1 ? `(${p.uShown}, ${p.wShown})` : `(${p.wShown}, ${p.uShown})`);
   const steps = [systemLine, isolateLine, substLine];
   const realRoots = pairs.map((p) => `${u} = ${p.uShown}`);
-  if (realRoots.length) steps.push(`Solve for ${u}: ${realRoots.join('  or  ')}.`);
-  if (complex.length) steps.push(`The root${complex.length > 1 ? 's' : ''} ${complex.join(', ')} ${complex.length > 1 ? 'are' : 'is'} not real, so ${complex.length > 1 ? 'they give' : 'it gives'} no real intersection.`);
+  if (realRoots.length) steps.push(`Solve for ${mark(u)}: ${mark(realRoots.join('  or  '))}.`);
+  if (complex.length) steps.push(`The root${complex.length > 1 ? 's' : ''} ${mark(complex.join(', '))} ${complex.length > 1 ? 'are' : 'is'} not real, so ${complex.length > 1 ? 'they give' : 'it gives'} no real intersection.`);
   if (pairs.length === 0) {
     steps.push('No real root survives, so the curves do not meet.');
     return {
@@ -332,8 +332,8 @@ async function solveNonlinear2x2(equations, first, second) {
       tips, common_mistakes: mistakes, graph: buildCurveGraph(Algebrite, eqs, v1, v2, []),
     };
   }
-  steps.push(`Back-substitute into ${w} = ${prettyRadicals(beautify(isolated))}: ${pairs.map((p) => `${u} = ${p.uShown} → ${w} = ${p.wShown}`).join(';  ')}.`);
-  steps.push(`Check: each pair satisfies both original equations. Solutions (${v1}, ${v2}): ${pairs.map(pairText).join('  or  ')}.`);
+  steps.push(`Back-substitute into ${mark(`${w} = ${prettyRadicals(beautify(isolated))}`)}: ${pairs.map((p) => mark(`${u} = ${p.uShown} → ${w} = ${p.wShown}`)).join(';  ')}.`);
+  steps.push(`Check: each pair satisfies both original equations. Solutions ${mark(`(${v1}, ${v2})`)}: ${mark(pairs.map(pairText).join('  or  '))}.`);
 
   return {
     steps,
@@ -522,8 +522,8 @@ function solve3x3(equations, vars) {
   let M = rows.map((r) => [...r.coeffs.map(F), F(r.c)]);
   const eqText = (m) => formatLinearEqN(m.slice(0, 3), m[3], vars);
   const steps = [];
-  steps.push(`Read the input as a system of three linear equations in ${vars.join(', ')}:`);
-  M.forEach((m, i) => steps.push(`  (${i + 1})  ${eqText(m)}`));
+  steps.push(`Read the input as a system of three linear equations in ${mark(vars.join(', '))}:`);
+  M.forEach((m, i) => steps.push(`  (${i + 1})  ${mark(eqText(m))}`));
   steps.push('Solve by elimination: use one equation to remove a variable from the others, then repeat, then substitute back.');
 
   const label = ['(1)', '(2)', '(3)'];
@@ -534,7 +534,7 @@ function solve3x3(equations, vars) {
     if (isZero(factor)) return;
     M[target] = M[target].map((val, j) => sub(val, mul(factor, M[pivot][j])));
     const fTxt = fr(factor);
-    steps.push(`  ${label[target]} ← ${label[target]} − (${fTxt})·${label[pivot]}:  ${eqText(M[target])}`);
+    steps.push(`  ${mark(`${label[target]} ← ${label[target]} − (${fTxt})·${label[pivot]}`)}:  ${mark(eqText(M[target]))}`);
   };
   // Column 0 pivot
   const swapForPivot = (col, startRow) => {
@@ -542,18 +542,18 @@ function solve3x3(equations, vars) {
     for (let r = startRow + 1; r < 3; r += 1) {
       if (!isZero(M[r][col])) {
         [M[startRow], M[r]] = [M[r], M[startRow]];
-        steps.push(`  Swap ${label[startRow]} and ${label[r]} so the pivot for ${vars[col]} is nonzero.`);
+        steps.push(`  Swap ${label[startRow]} and ${label[r]} so the pivot for ${mark(vars[col])} is nonzero.`);
         return true;
       }
     }
     return false;
   };
-  steps.push(`Eliminate ${vars[0]} from (2) and (3) using (1):`);
+  steps.push(`Eliminate ${mark(vars[0])} from (2) and (3) using (1):`);
   if (swapForPivot(0, 0)) {
     applyElim(1, 0, 0);
     applyElim(2, 0, 0);
   }
-  steps.push(`Eliminate ${vars[1]} from (3) using (2):`);
+  steps.push(`Eliminate ${mark(vars[1])} from (3) using (2):`);
   const pivot2 = swapForPivot(1, 1);
   if (pivot2) applyElim(2, 1, 1);
 
@@ -561,7 +561,7 @@ function solve3x3(equations, vars) {
   const rowAllZero = (m) => m.slice(0, 3).every(isZero);
   const inconsistent = M.some((m) => rowAllZero(m) && !isZero(m[3]));
   if (inconsistent) {
-    steps.push('One row has become 0 = (nonzero) — the equations contradict each other.');
+    steps.push(`One row has become ${mark('0 = c')} with ${mark('c ≠ 0')} — the equations contradict each other.`);
     return {
       steps,
       answer: 'No solution — the equations are inconsistent',
@@ -584,11 +584,11 @@ function solve3x3(equations, vars) {
 
   // Back-substitution.
   const z = div(M[2][3], M[2][2]);
-  steps.push(`Back-substitute. From (3): ${vars[2]} = ${fr(M[2][3])} ÷ ${fr(M[2][2])} = ${fr(z)}.`);
+  steps.push(`Back-substitute. From (3): ${mark(`${vars[2]} = ${fr(M[2][3])} ÷ ${fr(M[2][2])} = ${fr(z)}`)}.`);
   const y = div(sub(M[1][3], mul(M[1][2], z)), M[1][1]);
-  steps.push(`From (2): ${vars[1]} = (${fr(M[1][3])} − (${fr(M[1][2])})·${fr(z)}) ÷ ${fr(M[1][1])} = ${fr(y)}.`);
+  steps.push(`From (2): ${mark(`${vars[1]} = (${fr(M[1][3])} − (${fr(M[1][2])})·${fr(z)}) ÷ ${fr(M[1][1])} = ${fr(y)}`)}.`);
   const x = div(sub(sub(M[0][3], mul(M[0][1], y)), mul(M[0][2], z)), M[0][0]);
-  steps.push(`From (1): ${vars[0]} = (${fr(M[0][3])} − (${fr(M[0][1])})·${fr(y)} − (${fr(M[0][2])})·${fr(z)}) ÷ ${fr(M[0][0])} = ${fr(x)}.`);
+  steps.push(`From (1): ${mark(`${vars[0]} = (${fr(M[0][3])} − (${fr(M[0][1])})·${fr(y)} − (${fr(M[0][2])})·${fr(z)}) ÷ ${fr(M[0][0])} = ${fr(x)}`)}.`);
 
   // Verify against the ORIGINAL equations before reporting.
   const sol = { [vars[0]]: num(x), [vars[1]]: num(y), [vars[2]]: num(z) };
@@ -604,7 +604,7 @@ function solve3x3(equations, vars) {
       steps,
     });
   }
-  steps.push(`Check: substituting ${vars[0]} = ${fr(x)}, ${vars[1]} = ${fr(y)}, ${vars[2]} = ${fr(z)} into all three original equations balances each one.`);
+  steps.push(`Check: substituting ${mark(`${vars[0]} = ${fr(x)}, ${vars[1]} = ${fr(y)}, ${vars[2]} = ${fr(z)}`)} into all three original equations balances each one.`);
   return {
     steps,
     answer: `${vars[0]} = ${fr(x)},  ${vars[1]} = ${fr(y)},  ${vars[2]} = ${fr(z)}`,
@@ -674,22 +674,22 @@ function formatLinearEq(a, b, c, v1, v2) {
 }
 
 function buildSubstitutionSteps({ a1, b1, c1, a2, b2, c2, x, y, v1, v2, eq1Disp, eq2Disp }) {
-  const steps = [`Write the system:  ${eq1Disp};   ${eq2Disp}.`];
+  const steps = [`Write the system: ${mark(eq1Disp)};  ${mark(eq2Disp)}.`];
 
   // Isolate a variable from equation 1 — prefer one with a nonzero coefficient.
   if (!isZero(a1)) {
     // v1 = (c1 - b1·v2) / a1
-    steps.push(`From equation 1, solve for ${v1}:  ${v1} = (${fmtFrac(c1)} − ${fmtFrac(b1)}·${v2}) / ${fmtFrac(a1)}.`);
-    steps.push(`Substitute that into equation 2 and simplify to a single equation in ${v2}.`);
-    steps.push(`Solve it:  ${v2} = ${fmtFrac(y)}.`);
-    steps.push(`Back-substitute:  ${v1} = ${fmtFrac(x)}.`);
+    steps.push(`From equation 1, solve for ${mark(v1)}: ${mark(`${v1} = (${fmtFrac(c1)} − ${fmtFrac(b1)}·${v2}) / ${fmtFrac(a1)}`)}.`);
+    steps.push(`Substitute that into equation 2 and simplify to a single equation in ${mark(v2)}.`);
+    steps.push(`Solve it: ${mark(`${v2} = ${fmtFrac(y)}`)}.`);
+    steps.push(`Back-substitute: ${mark(`${v1} = ${fmtFrac(x)}`)}.`);
   } else {
     // a1 == 0 means equation 1 already gives v2 directly.
-    steps.push(`Equation 1 has no ${v1} term, so it gives ${v2} directly:  ${v2} = ${fmtFrac(y)}.`);
-    steps.push(`Substitute into equation 2 and solve:  ${v1} = ${fmtFrac(x)}.`);
+    steps.push(`Equation 1 has no ${mark(v1)} term, so it gives ${mark(v2)} directly: ${mark(`${v2} = ${fmtFrac(y)}`)}.`);
+    steps.push(`Substitute into equation 2 and solve: ${mark(`${v1} = ${fmtFrac(x)}`)}.`);
   }
 
-  steps.push(`Check: substituting (${v1} = ${fmtFrac(x)}, ${v2} = ${fmtFrac(y)}) satisfies both equations.`);
+  steps.push(`Check: substituting ${mark(`${v1} = ${fmtFrac(x)}, ${v2} = ${fmtFrac(y)}`)} satisfies both equations.`);
   return steps;
 }
 

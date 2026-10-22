@@ -1114,7 +1114,7 @@ test('limits: non-matching cases still take the ladder unchanged', async () => {
 // ---------------------------------------------------------------------------
 
 test('systems: a line and a parabola / circle / hyperbola solve by substitution, every pair verified', async () => {
-  const circle = await solveProblem('x^2 + y^2 = 25; y = x + 1', 'algebra');
+  const circle = await solvePlain('x^2 + y^2 = 25; y = x + 1', 'algebra');
   assert.equal(circle.status, 'solved');
   assert.match(circle.answer, /\(x, y\) = /);
   assert.match(circle.answer, /\(3, 4\)/);
@@ -1123,21 +1123,21 @@ test('systems: a line and a parabola / circle / hyperbola solve by substitution,
   assert.ok(circle.steps.some((s) => /solve it for y: y = x \+ 1/.test(s)), circle.steps.join(' | '));
   assert.ok(circle.steps.some((s) => /Substitute into equation 1/.test(s)));
 
-  const parabola = await solveProblem('y = x^2; y = 2x + 3', 'algebra');
+  const parabola = await solvePlain('y = x^2; y = 2x + 3', 'algebra');
   assert.match(parabola.answer, /\(3, 9\)/);
   assert.match(parabola.answer, /\(-1, 1\)/);
   assert.ok(parabola.graph && parabola.graph.secondaryPoints, 'both curves are functions of x, so both are drawn');
 
-  const hyperbola = await solveProblem('x*y = 6; x + y = 5', 'algebra');
+  const hyperbola = await solvePlain('x*y = 6; x + y = 5', 'algebra');
   assert.match(hyperbola.answer, /\(2, 3\)/);
   assert.match(hyperbola.answer, /\(3, 2\)/);
 
-  const irrational = await solveProblem('x^2 + y = 1; x - y = 0', 'algebra');
+  const irrational = await solvePlain('x^2 + y = 1; x - y = 0', 'algebra');
   assert.match(irrational.answer, /√5/);
   assert.match(irrational.answer, /  or  /);
 
   // Not linear in either variable on its own, but explicit in y.
-  const two = await solveProblem('x^2 + y^2 = 1; x^2 - y = 1', 'algebra');
+  const two = await solvePlain('x^2 + y^2 = 1; x^2 - y = 1', 'algebra');
   assert.match(two.answer, /\(0, -1\)/);
   assert.match(two.answer, /\(1, 0\)/);
   assert.match(two.answer, /\(-1, 0\)/);
@@ -1158,7 +1158,7 @@ test('systems: no real intersection is said, two general conics are refused, lin
 });
 
 test('inequalities: a chain is solved as the intersection of its two halves', async () => {
-  const chain = await solveProblem('-1 < 2x + 1 <= 5', 'algebra');
+  const chain = await solvePlain('-1 < 2x + 1 <= 5', 'algebra');
   assert.equal(chain.status, 'solved');
   assert.equal(chain.answer, '-1 < x ≤ 2');
   assert.ok(chain.steps.some((s) => /Part 1: -1 < 2x \+ 1/.test(s)), chain.steps.join(' | '));
@@ -1166,10 +1166,10 @@ test('inequalities: a chain is solved as the intersection of its two halves', as
   assert.ok(chain.steps.some((s) => /\(-1, 2\]/.test(s)));
   assert.ok(chain.graph && chain.graph.annotations.shadedRegions.length === 1);
 
-  const squares = await solveProblem('1 < x^2 < 9', 'algebra');
+  const squares = await solvePlain('1 < x^2 < 9', 'algebra');
   assert.equal(squares.answer, '-3 < x < -1  or  1 < x < 3');
 
-  const wrongWay = await solveProblem('1 < x > 0', 'algebra');
+  const wrongWay = await solvePlain('1 < x > 0', 'algebra');
   assert.equal(wrongWay.status, 'unsupported');
   assert.match(wrongWay.answer, /different directions/);
 });
@@ -1199,7 +1199,7 @@ test('inequalities: "and" intersects, "or" unites, and the trivial outcomes are 
 
 test('fractions: sums and differences are taught by common denominators, never via decimals', async () => {
   for (const input of ['1/3 + 1/7', '(1/3) + (1/7)', 'add 1/3 and 1/7', 'what is the sum of 1/3 and 1/7?']) {
-    const r = await solveProblem(input, 'other');
+    const r = await solvePlain(input, 'other');
     assert.equal(r.answer, '10/21 (= 0.4762)', input);
     const work = r.steps.join('\n');
     assert.match(work, /least common denominator is 21/, input);
@@ -1208,13 +1208,13 @@ test('fractions: sums and differences are taught by common denominators, never v
     assert.doesNotMatch(work, /0\.3333|0\.1429|2381/, `${input}: rounded decimals must never appear in exact fraction work`);
   }
   // Reduction is shown, whole numbers are named, and a difference keeps its sign.
-  const reduce = await solveProblem('1/3+1/6', 'other');
+  const reduce = await solvePlain('1/3+1/6', 'other');
   assert.equal(reduce.answer, '1/2 (= 0.5)');
   assert.match(reduce.steps.join('\n'), /Reduce by the common factor 3: 3\/6 = 1\/2/);
-  const mixed = await solveProblem('2 - 1/4 + 1/2', 'other');
+  const mixed = await solvePlain('2 - 1/4 + 1/2', 'other');
   assert.match(mixed.steps.join('\n'), /2 = 8\/4/);
   assert.match(mixed.steps.join('\n'), /\(8 - 1 \+ 2\)\/4 = 9\/4/);
-  const negative = await solveProblem('-1/3 + 1/7', 'other');
+  const negative = await solvePlain('-1/3 + 1/7', 'other');
   assert.match(negative.steps.join('\n'), /\(-7 \+ 3\)\/21 = -4\/21/);
   assert.equal(negative.answer, '-4/21 (= -0.1905)');
   // Fraction-relevant guidance, not PEMDAS boilerplate.
@@ -1223,28 +1223,28 @@ test('fractions: sums and differences are taught by common denominators, never v
 });
 
 test('fractions: products multiply across and quotients use the reciprocal', async () => {
-  const product = await solveProblem('multiply 2/3 by 3/4', 'other');
+  const product = await solvePlain('multiply 2/3 by 3/4', 'other');
   assert.equal(product.answer, '1/2 (= 0.5)');
   assert.match(product.steps.join('\n'), /\(2 × 3\)\/\(3 × 4\) = 6\/12/);
-  const quotient = await solveProblem('(1/2)/(3/4)', 'other');
+  const quotient = await solvePlain('(1/2)/(3/4)', 'other');
   assert.equal(quotient.answer, '2/3 (= 0.6667)');
   assert.match(quotient.steps.join('\n'), /reciprocal: 1\/2 ÷ 3\/4 = 1\/2 × 4\/3/);
   // A parenthesised group that works out to a fraction is shown as one.
-  const grouped = await solveProblem('(1/3 + 1/7)*21', 'other');
+  const grouped = await solvePlain('(1/3 + 1/7)*21', 'other');
   assert.equal(grouped.answer, '10');
   assert.match(grouped.steps[1], /\(1\/3\+1\/7\) = 10\/21/);
   assert.doesNotMatch(grouped.steps.join('\n'), /0\.476/);
 });
 
 test('fractions: the PEMDAS narration still runs for everything else', async () => {
-  const r = await solveProblem('(5 + 3) * 4 - 2^3', 'other');
+  const r = await solvePlain('(5 + 3) * 4 - 2^3', 'other');
   assert.equal(r.answer, '24');
   assert.match(r.steps.join('\n'), /Exponents first: 2 \^ 3 = 8/);
-  assert.equal((await solveProblem('0.1+0.2', 'other')).answer, '3/10 (= 0.3)');
+  assert.equal((await solvePlain('0.1+0.2', 'other')).answer, '3/10 (= 0.3)');
 });
 
 test('linear inequalities take the two-line method, and say when the sign reverses', async () => {
-  const r = await solveProblem('-2x > 4', 'algebra');
+  const r = await solvePlain('-2x > 4', 'algebra');
   assert.equal(r.answer, 'x < -2');
   assert.equal(r.verified, true);
   assert.ok(r.steps.length <= 5, `expected a short solution, got ${r.steps.length} steps`);
@@ -1252,37 +1252,37 @@ test('linear inequalities take the two-line method, and say when the sign revers
   assert.doesNotMatch(r.steps.join('\n'), /Test the sign/);
   assert.match(r.tips.join('\n'), /negative number reverses/);
 
-  const positive = await solveProblem('2x + 3 < 7', 'algebra');
+  const positive = await solvePlain('2x + 3 < 7', 'algebra');
   assert.equal(positive.answer, 'x < 2');
   assert.match(positive.steps.join('\n'), /2x < 4/);
   assert.match(positive.steps.join('\n'), /direction stays the same/);
 
-  const bothSides = await solveProblem('3x + 2 > 5x - 4', 'algebra');
+  const bothSides = await solvePlain('3x + 2 > 5x - 4', 'algebra');
   assert.equal(bothSides.answer, 'x < 3');
   assert.match(bothSides.steps.join('\n'), /-2x > -6/);
 
-  const fractional = await solveProblem('x/2 + 1 <= 3', 'algebra');
+  const fractional = await solvePlain('x/2 + 1 <= 3', 'algebra');
   assert.equal(fractional.answer, 'x ≤ 4');
   assert.match(fractional.steps.join('\n'), /Multiply both sides by 2, the reciprocal of 1\/2/);
 
   // A chain of two linear halves still combines.
-  assert.equal((await solveProblem('-1 < 2x + 1 <= 5', 'algebra')).answer, '-1 < x ≤ 2');
+  assert.equal((await solvePlain('-1 < 2x + 1 <= 5', 'algebra')).answer, '-1 < x ≤ 2');
   // Non-linear inequalities keep the sign chart.
-  const quadratic = await solveProblem('x^2 - 4 > 0', 'algebra');
+  const quadratic = await solvePlain('x^2 - 4 > 0', 'algebra');
   assert.equal(quadratic.answer, 'x < -2  or  x > 2');
   assert.match(quadratic.steps.join('\n'), /Test the sign/);
-  const rational = await solveProblem('(x-1)/(x+2) >= 0', 'algebra');
+  const rational = await solvePlain('(x-1)/(x+2) >= 0', 'algebra');
   assert.equal(rational.answer, 'x < -2  or  x ≥ 1');
   assert.match(rational.steps.join('\n'), /Test the sign/);
 });
 
 test('∫e^(−x²) dx explains the error function instead of calling it a rule', async () => {
-  const r = await solveProblem('∫e^(-x^2) dx', 'integrals');
+  const r = await solvePlain('∫e^(-x^2) dx', 'integrals');
   assert.equal(r.status, 'solved');
   assert.equal(r.answer, '∫(e^(-x^2)) dx = (√π/2)·erf(x) + C');
   const work = r.steps.join('\n');
   assert.match(work, /no elementary antiderivative/);
-  assert.match(work, /erf\(x\) = \(2\/√π\)·∫₀\^x e\^\(−t²\) dt/);
+  assert.match(work, /erf\(x\) = \(2\/√π\)·∫_0\^x e\^\(−t²\) dt/);
   assert.match(work, /Check by differentiating/);
   assert.doesNotMatch(work, /Exponential rule|u-substitution|pi\^\(1\/2\)/);
   assert.match(r.tips.join('\n'), /special function/);
@@ -1293,7 +1293,7 @@ test('∫e^(−x²) dx explains the error function instead of calling it a rule'
   assert.equal((await solveProblem('∫ e^(-4x^2) dx', 'integrals')).answer, '∫(e^(-4x^2)) dx = (√π/4)·erf(2x) + C');
   // Elementary neighbours are untouched.
   assert.match((await solveProblem('∫ x e^(-x^2) dx', 'integrals')).answer, /-1\/2\*e\^\(-x\^2\) \+ C$/);
-  assert.match((await solveProblem('∫ e^x dx', 'integrals')).steps[1], /Exponential rule/);
+  assert.match((await solvePlain('∫ e^x dx', 'integrals')).steps[1], /Exponential rule/);
 });
 
 test('word arithmetic is read as arithmetic: add / subtract from / times / divided by / sum of', async () => {
@@ -1321,17 +1321,17 @@ test('word arithmetic is read as arithmetic: add / subtract from / times / divid
 });
 
 test('sin(1) says it is reading radians, the way sin(45) says it is reading degrees', async () => {
-  const radians = await solveProblem('sin(1)', 'trigonometry');
+  const radians = await solvePlain('sin(1)', 'trigonometry');
   assert.equal(radians.answer, '0.8415');
-  assert.match(radians.steps.join('\n'), /Interpreting 1 as radians: 1 rad = 1 × 180\/π ≈ 57\.2958°/);
-  const half = await solveProblem('sin(0.5)', 'trigonometry');
+  assert.match(radians.steps.join('\n'), /Interpreting 1 as radians, which is 1 × 180\/π ≈ 57\.2958°/);
+  const half = await solvePlain('sin(0.5)', 'trigonometry');
   assert.match(half.steps.join('\n'), /Interpreting 0\.5 as radians/);
   // The degrees branch, an explicit π, and inverse trig are untouched.
-  const degrees = await solveProblem('sin(45)', 'trigonometry');
+  const degrees = await solvePlain('sin(45)', 'trigonometry');
   assert.match(degrees.steps.join('\n'), /Detected input as degrees/);
   assert.doesNotMatch(degrees.steps.join('\n'), /Interpreting 45 as radians/);
-  assert.doesNotMatch((await solveProblem('sin(pi/6)', 'trigonometry')).steps.join('\n'), /Interpreting/);
-  assert.doesNotMatch((await solveProblem('arcsin(0.5)', 'trigonometry')).steps.join('\n'), /Interpreting/);
+  assert.doesNotMatch((await solvePlain('sin(pi/6)', 'trigonometry')).steps.join('\n'), /Interpreting/);
+  assert.doesNotMatch((await solvePlain('arcsin(0.5)', 'trigonometry')).steps.join('\n'), /Interpreting/);
 });
 
 test('sum-product factoring shows the search for the pair and checks by expanding', async () => {
@@ -1401,7 +1401,7 @@ test('u-substitution substitutes the whole du factor instead of isolating dx', a
 // ---------------------------------------------------------------------------
 
 test('improper integrals at an endpoint are taken as one-sided limits, never F(a) at the singularity', async () => {
-  const root = await solveProblem('∫_0^1 1/sqrt(x) dx', 'integrals');
+  const root = await solvePlain('∫_0^1 1/sqrt(x) dx', 'integrals');
   assert.equal(root.status, 'solved');
   assert.match(root.answer, /= 2$/);
   const work = root.steps.join('\n');
@@ -1412,14 +1412,14 @@ test('improper integrals at an endpoint are taken as one-sided limits, never F(a
   assert.doesNotMatch(work, /F\(0\) = 0|Apply the Fundamental Theorem of Calculus: ∫_a\^b/, 'no direct F(0) substitution');
   assert.doesNotMatch(work, /Simpson's rule\)/);
 
-  const log = await solveProblem('∫_0^1 ln(x) dx', 'integrals');
+  const log = await solvePlain('∫_0^1 ln(x) dx', 'integrals');
   assert.equal(log.status, 'solved');
   assert.match(log.answer, /= -1$/);
   assert.match(log.steps.join('\n'), /lim \(s→0⁺\)/);
 
   // Divergent endpoint singularities say so, with the divergent status.
   for (const [input, at] of [['∫_0^1 1/x dx', 'x = 0'], ['∫_0^1 1/x^2 dx', 'x = 0']]) {
-    const r = await solveProblem(input, 'integrals');
+    const r = await solvePlain(input, 'integrals');
     assert.equal(r.status, 'diverges', input);
     assert.match(r.answer, new RegExp(`^Diverges.*unbounded at ${at}`), input);
     assert.match(r.steps.join('\n'), /F\(s\) → [−+]∞ .* so the limit is not a finite number/, input);
@@ -1430,7 +1430,7 @@ test('improper integrals at an endpoint are taken as one-sided limits, never F(a
   assert.doesNotMatch(interior.answer, /dx = 0|= 0$/);
   // The singular upper end, reversed bounds, and both ends singular.
   assert.match((await solveProblem('∫_0^4 1/sqrt(4-x) dx', 'integrals')).answer, /= 4$/);
-  const reversed = await solveProblem('∫_1^0 1/sqrt(x) dx', 'integrals');
+  const reversed = await solvePlain('∫_1^0 1/sqrt(x) dx', 'integrals');
   assert.match(reversed.answer, /= -2$/);
   assert.match(reversed.steps.join('\n'), /Reversing the bounds changes the sign/);
   const both = await solveProblem('∫_-1^1 1/sqrt(1-x^2) dx', 'integrals');
@@ -1559,35 +1559,35 @@ test('logarithmic differentiation is derived in full, not just named', async () 
 });
 
 test('a negative exponent is taught as a reciprocal', async () => {
-  const r = await solveProblem('2^-3', 'other');
+  const r = await solvePlain('2^-3', 'other');
   assert.equal(r.answer, '1/8 (= 0.125)');
   assert.match(r.steps[1], /a negative exponent means a reciprocal, a\^\(-n\) = 1\/a\^n \(the base cannot be 0\): 2\^\(-3\) = 1\/2\^3 = 1\/8/);
-  assert.match((await solveProblem('(-2)^-3', 'other')).steps[1], /1\/\(-2\)\^3 = 1\/\(-8\) = -1\/8/);
-  assert.equal((await solveProblem('10^-2', 'other')).answer, '1/100 (= 0.01)');
-  assert.equal((await solveProblem('0^-1', 'other')).status, 'undefined');
-  const unary = await solveProblem('-2^-2', 'other');
+  assert.match((await solvePlain('(-2)^-3', 'other')).steps[1], /1\/\(-2\)\^3 = 1\/\(-8\) = -1\/8/);
+  assert.equal((await solvePlain('10^-2', 'other')).answer, '1/100 (= 0.01)');
+  assert.equal((await solvePlain('0^-1', 'other')).status, 'undefined');
+  const unary = await solvePlain('-2^-2', 'other');
   assert.equal(unary.answer, '-1/4 (= -0.25)');
   assert.match(unary.steps.join('\n'), /apply the sign afterwards/);
   // A positive exponent gets no note.
-  assert.equal((await solveProblem('2^3', 'other')).steps[1], 'Exponents first: 2 ^ 3 = 8');
+  assert.equal((await solvePlain('2^3', 'other')).steps[1], 'Exponents first: 2 ^ 3 = 8');
 });
 
 test('linear equations show the distribution and the combining of constants', async () => {
-  const r = await solveProblem('3(x-2)+4 = 2x+1', 'algebra');
+  const r = await solvePlain('3(x-2)+4 = 2x+1', 'algebra');
   assert.equal(r.answer, 'x = 3');
   assert.equal(r.steps[0], 'Distribute to remove the parentheses: 3x - 6 + 4 = 2x + 1');
   assert.equal(r.steps[1], 'Combine like terms: 3x - 2 = 2x + 1');
   assert.match(r.steps.join('\n'), /Check in the original equation: x = 3 gives 3\(x - 2\) \+ 4 = 7 and 2x \+ 1 = 7 ✓/);
-  const negative = await solveProblem('-2(x-3)+1=7', 'algebra');
+  const negative = await solvePlain('-2(x-3)+1=7', 'algebra');
   assert.equal(negative.steps[0], 'Distribute to remove the parentheses: -2x + 6 + 1 = 7');
   assert.equal(negative.answer, 'x = 0');
   // A subtracted product distributes the negative sign too, and the answer
   // is an exact fraction.
-  const subtracted = await solveProblem('4-3(2x+1)=10', 'algebra');
+  const subtracted = await solvePlain('4-3(2x+1)=10', 'algebra');
   assert.equal(subtracted.steps[0], 'Distribute to remove the parentheses: 4 - 6x - 3 = 10');
   assert.equal(subtracted.steps[1], 'Combine like terms: -6x + 1 = 10');
   assert.equal(subtracted.answer, 'x = -3/2');
-  const simplified = await solveProblem('simplify 3(x-2)+4', 'algebra');
+  const simplified = await solvePlain('simplify 3(x-2)+4', 'algebra');
   assert.deepEqual(simplified.steps, ['Multiply out the parentheses: 3x - 6 + 4', 'Combine like terms: 3x - 2']);
 });
 
@@ -1598,25 +1598,25 @@ test('linear equations show the distribution and the combining of constants', as
 // ---------------------------------------------------------------------------
 
 test('a dependent 2×2 system shows the proportionality and parameterises the line', async () => {
-  const r = await solveProblem('x + y = 2; 2x + 2y = 4', 'algebra');
+  const r = await solvePlain('x + y = 2; 2x + 2y = 4', 'algebra');
   assert.equal(r.answer, 'Infinitely many solutions — the two equations describe the same line: (x, y) = (2 − t, t), t any real number');
   const work = r.steps.join('\n');
   assert.match(work, /equation 2 is 2 × equation 1 — divide equation 2 by 2 and it becomes x \+ y = 2/);
   assert.match(work, /Let y = t \(any real number\)\. Then from x \+ y = 2: x = \(2 − 1·t\)\/1 = 2 − t/);
   assert.match(work, /Solutions: \(x, y\) = \(2 − t, t\) for every real t/);
-  const scaled = await solveProblem('2x - 4y = 6; -x + 2y = -3', 'algebra');
+  const scaled = await solvePlain('2x - 4y = 6; -x + 2y = -3', 'algebra');
   assert.match(scaled.steps.join('\n'), /x = \(6 \+ 4·t\)\/2 = 3 \+ 2t/);
 });
 
 test('an inconsistent 2×2 system displays the contradiction', async () => {
-  const same = await solveProblem('x + y = 2; x + y = 3', 'algebra');
+  const same = await solvePlain('x + y = 2; x + y = 3', 'algebra');
   assert.equal(same.answer, 'No solution — the two lines are parallel');
   assert.match(same.steps.join('\n'), /Subtract equation 1 from equation 2: \(x \+ y\) − \(x \+ y\) = 3 − 2, which gives 0 = 1/);
   assert.match(same.steps.join('\n'), /0 = 1 is false for every \(x, y\): a contradiction/);
-  const scaled = await solveProblem('2x + 3y = 6; 4x + 6y = 7', 'algebra');
+  const scaled = await solvePlain('2x + 3y = 6; 4x + 6y = 7', 'algebra');
   assert.match(scaled.steps.join('\n'), /multiply equation 1 by 2 .* 4x \+ 6y = 12 .* 0 = 7 − \(12\) = -5/);
   // A unique solution is untouched.
-  assert.equal((await solveProblem('x + y = 2; x - y = 4', 'algebra')).answer, 'x = 3,  y = -1');
+  assert.equal((await solvePlain('x + y = 2; x - y = 4', 'algebra')).answer, 'x = 3,  y = -1');
 });
 
 test('the range is stated for recognised function families, and only for them', async () => {
@@ -1758,14 +1758,14 @@ test('equation guidance follows the method: absolute value, radical, log, expone
 });
 
 test('arithmetic guidance follows the feature: negative exponent, factorial, percent, root, else PEMDAS', async () => {
-  assert.match((await solveProblem('2^-3', 'other')).tips[0], /a\^\(−n\) = 1\/a\^n/);
-  assert.match((await solveProblem('2^-3', 'other')).common_mistakes[1], /minus sign is in the exponent/);
-  const fact = await solveProblem('7!', 'other');
+  assert.match((await solvePlain('2^-3', 'other')).tips[0], /a\^\(−n\) = 1\/a\^n/);
+  assert.match((await solvePlain('2^-3', 'other')).common_mistakes[1], /minus sign is in the exponent/);
+  const fact = await solvePlain('7!', 'other');
   assert.equal(fact.steps[1], '7! means the product of every whole number from 7 down to 1: 7 × 6 × 5 × 4 × 3 × 2 × 1 = 5040.');
   assert.match(fact.tips[1], /0! = 1 by definition/);
-  assert.match((await solveProblem('50% of 80', 'other')).answer, /^40$/);
-  assert.match((await solveProblem('sqrt(2)', 'other')).tips[0], /√2 is irrational/);
-  assert.match((await solveProblem('(5 + 3) * 4 - 2^3', 'other')).tips[0], /^PEMDAS/);
+  assert.match((await solvePlain('50% of 80', 'other')).answer, /^40$/);
+  assert.match((await solvePlain('sqrt(2)', 'other')).tips[0], /√2 is irrational/);
+  assert.match((await solvePlain('(5 + 3) * 4 - 2^3', 'other')).tips[0], /^PEMDAS/);
 });
 
 test('the common-log rewrite never reaches the screen', async () => {

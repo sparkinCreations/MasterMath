@@ -14,6 +14,7 @@ import {
   expressionsNumericallyEqual,
   isAlgebriteFailure,
   stripMathMarkers,
+  mark,
 } from './solverUtils.js';
 import { getSettings } from '../settings.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -161,7 +162,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
     }
 
     const steps = [];
-    steps.push(`Evaluate the trigonometric expression: ${beautify(expression)}`);
+    steps.push(`Evaluate the trigonometric expression: ${mark(beautify(expression))}`);
 
     // 'auto' (default) guesses degrees for bare common angles like sin(30);
     // 'degrees'/'radians' pin the interpretation from the Settings page.
@@ -242,12 +243,12 @@ export async function solveTrigonometry(expression, settingsOverride) {
 
     if (looksLikeDegrees && degreeResult !== null) {
       if (angleUnit === 'degrees') {
-        steps.push(`Angle unit is set to degrees (Settings): ${argValue}° = ${argValue} × π/180 radians`);
+        steps.push(`Angle unit is set to degrees (Settings): ${mark(`${argValue}° = ${argValue} × π/180`)} radians`);
       } else {
-        steps.push(`Detected input as degrees: ${argValue}° = ${argValue} × π/180 radians`);
+        steps.push(`Detected input as degrees: ${mark(`${argValue}° = ${argValue} × π/180`)} radians`);
       }
       result = degreeResult;
-      steps.push(`Converting: ${argValue}° = ${formatNumber(argValue * Math.PI / 180)} radians`);
+      steps.push(`Converting: ${mark(`${argValue}° = ${formatNumber(argValue * Math.PI / 180)}`)} radians`);
     } else if (hasDegreeSymbol && degreeResult !== null) {
       result = degreeResult;
       steps.push('Input is in degrees (° symbol detected), converting to radians.');
@@ -259,7 +260,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
         // Say which unit was assumed EVERY time a plain number is read as an
         // angle. sin(45) announced "detected as degrees" while sin(1) went
         // silently to radians (September 2026 teaching-quality review).
-        steps.push(`Interpreting ${argValue} as radians: ${argValue} rad = ${argValue} × 180/π ≈ ${formatNumber(argValue * 180 / Math.PI)}°. For degrees, write ${argValue}° or set the angle unit to degrees in Settings.`);
+        steps.push(`Interpreting ${mark(argValue)} as radians, which is ${mark(`${argValue} × 180/π ≈ ${formatNumber(argValue * 180 / Math.PI)}°`)}. For degrees, write ${mark(`${argValue}°`)} or set the angle unit to degrees in Settings.`);
       }
     }
 
@@ -318,13 +319,13 @@ export async function solveTrigonometry(expression, settingsOverride) {
 
     const normalized = expression.replace(/\s/g, '').toLowerCase();
     if (commonAngles[normalized]) {
-      steps.push(`This is a special angle. Common value: ${commonAngles[normalized]}`);
+      steps.push(`This is a special angle. Common value: ${mark(commonAngles[normalized])}`);
     } else if (looksLikeDegrees && degreeArgMatch) {
       const funcName = expression.match(/(sin|cos|tan)/i)?.[1]?.toLowerCase();
       const radianKey = degreeToRadianAngles[argValue];
       const lookupKey = funcName && radianKey ? `${funcName}(${radianKey})` : null;
       if (lookupKey && commonAngles[lookupKey]) {
-        steps.push(`This is a special angle: ${argValue}°. Common value: ${commonAngles[lookupKey]}`);
+        steps.push(`This is a special angle: ${mark(`${argValue}°`)}. Common value: ${mark(commonAngles[lookupKey])}`);
       }
     }
 
@@ -333,12 +334,12 @@ export async function solveTrigonometry(expression, settingsOverride) {
     if (asymptote) {
       const { func, denom, identity, argDisplay } = asymptote;
       if (argDisplay !== null) {
-        steps.push(`${func}(${argDisplay}) is undefined — ${identity}, and ${denom}(${argDisplay}) = 0, so the graph has a vertical asymptote there.`);
+        steps.push(`${mark(`${func}(${argDisplay})`)} is undefined — ${mark(identity)}, and ${mark(`${denom}(${argDisplay}) = 0`)}, so the graph has a vertical asymptote there.`);
       } else {
-        steps.push(`The expression is undefined — ${identity}, and ${denom} hits 0 at this input, so ${func} has a vertical asymptote there.`);
+        steps.push(`The expression is undefined — ${mark(identity)}, and ${mark(denom)} hits ${mark('0')} at this input, so ${mark(func)} has a vertical asymptote there.`);
       }
       if (treatAsDegrees && Number.isFinite(radianResult) && Math.abs(radianResult) < EXPLODED_MAGNITUDE) {
-        steps.push(`Note: if you meant radians, the result would be ${formatNumber(radianResult)}.`);
+        steps.push(`Note: if you meant radians, the result would be ${mark(formatNumber(radianResult))}.`);
       }
 
       return {
@@ -367,22 +368,22 @@ export async function solveTrigonometry(expression, settingsOverride) {
       const degrees = result * 180 / Math.PI;
       const degShown = `${formatNumber(degrees)}°`;
       if (angleUnit === 'degrees') {
-        steps.push(`The result is an angle. Angle unit is set to degrees (Settings): ${formatNumber(result)} rad × 180/π = ${degShown}`);
-        steps.push(`Note: in radians the result would be ${formattedResult}.`);
+        steps.push(`The result is an angle. Angle unit is set to degrees (Settings), so convert from radians: ${mark(`${formatNumber(result)} × 180/π = ${degShown}`)}`);
+        steps.push(`Note: in radians the result would be ${mark(formattedResult)}.`);
         formattedResult = degShown;
       } else {
-        steps.push(`The result is an angle, in radians: ${formattedResult} (= ${degShown}).`);
+        steps.push(`The result is an angle, in radians: ${mark(formattedResult)} (${mark(`= ${degShown}`)}).`);
       }
     }
 
     if (looksLikeDegrees && radianResult !== null && degreeResult !== null) {
-      steps.push(`Result (treating input as degrees): ${formattedResult}`);
-      steps.push(`Note: if you meant radians, the result would be ${formatNumber(radianResult)}.`);
+      steps.push(`Result (treating input as degrees): ${mark(formattedResult)}`);
+      steps.push(`Note: if you meant radians, the result would be ${mark(formatNumber(radianResult))}.`);
     } else if (angleUnit === 'radians' && autoDegrees && degreeResult !== null) {
-      steps.push(`Calculate the value: ${formattedResult}`);
-      steps.push(`Note: if you meant ${argValue}°, the result would be ${formatNumber(degreeResult)} (switch the angle unit in Settings).`);
+      steps.push(`Calculate the value: ${mark(formattedResult)}`);
+      steps.push(`Note: if you meant ${mark(`${argValue}°`)}, the result would be ${mark(formatNumber(degreeResult))} (switch the angle unit in Settings).`);
     } else {
-      steps.push(`Calculate the value: ${formattedResult}`);
+      steps.push(`Calculate the value: ${mark(formattedResult)}`);
     }
 
     return {
@@ -429,22 +430,22 @@ async function simplifyTrigExpression(expression, variable) {
     // the input; each is verified before it is claimed, never assumed.
     const v = variable;
     const targets = [
-      [`sin(2*${v})`, 'double-angle identity sin(2θ) = 2·sin(θ)·cos(θ)'],
-      [`-sin(2*${v})`, 'double-angle identity sin(2θ) = 2·sin(θ)·cos(θ)'],
-      [`cos(2*${v})`, 'double-angle identity cos(2θ) = cos²(θ) − sin²(θ) = 1 − 2sin²(θ) = 2cos²(θ) − 1'],
-      [`-cos(2*${v})`, 'double-angle identity cos(2θ) = cos²(θ) − sin²(θ)'],
-      [`tan(2*${v})`, 'double-angle identity tan(2θ) = 2tan(θ)/(1 − tan²(θ))'],
-      [`sin(${v})^2`, 'Pythagorean identity sin²(θ) = 1 − cos²(θ)'],
-      [`cos(${v})^2`, 'Pythagorean identity cos²(θ) = 1 − sin²(θ)'],
-      [`sec(${v})^2`, 'Pythagorean identity 1 + tan²(θ) = sec²(θ)'],
-      [`csc(${v})^2`, 'Pythagorean identity 1 + cot²(θ) = csc²(θ)'],
-      [`tan(${v})`, 'quotient identity tan(θ) = sin(θ)/cos(θ)'],
-      [`cot(${v})`, 'quotient identity cot(θ) = cos(θ)/sin(θ)'],
-      [`2*cos(${v})`, 'double-angle identity sin(2θ) = 2·sin(θ)·cos(θ)'],
-      [`2*sin(${v})`, 'double-angle identity sin(2θ) = 2·sin(θ)·cos(θ)'],
+      [`sin(2*${v})`, `double-angle identity ${mark('sin(2θ) = 2·sin(θ)·cos(θ)')}`],
+      [`-sin(2*${v})`, `double-angle identity ${mark('sin(2θ) = 2·sin(θ)·cos(θ)')}`],
+      [`cos(2*${v})`, `double-angle identity ${mark('cos(2θ) = cos²(θ) − sin²(θ) = 1 − 2sin²(θ) = 2cos²(θ) − 1')}`],
+      [`-cos(2*${v})`, `double-angle identity ${mark('cos(2θ) = cos²(θ) − sin²(θ)')}`],
+      [`tan(2*${v})`, `double-angle identity ${mark('tan(2θ) = 2tan(θ)/(1 − tan²(θ))')}`],
+      [`sin(${v})^2`, `Pythagorean identity ${mark('sin²(θ) = 1 − cos²(θ)')}`],
+      [`cos(${v})^2`, `Pythagorean identity ${mark('cos²(θ) = 1 − sin²(θ)')}`],
+      [`sec(${v})^2`, `Pythagorean identity ${mark('1 + tan²(θ) = sec²(θ)')}`],
+      [`csc(${v})^2`, `Pythagorean identity ${mark('1 + cot²(θ) = csc²(θ)')}`],
+      [`tan(${v})`, `quotient identity ${mark('tan(θ) = sin(θ)/cos(θ)')}`],
+      [`cot(${v})`, `quotient identity ${mark('cot(θ) = cos(θ)/sin(θ)')}`],
+      [`2*cos(${v})`, `double-angle identity ${mark('sin(2θ) = 2·sin(θ)·cos(θ)')}`],
+      [`2*sin(${v})`, `double-angle identity ${mark('sin(2θ) = 2·sin(θ)·cos(θ)')}`],
       [`sin(${v})`, 'trigonometric identities'],
       [`cos(${v})`, 'trigonometric identities'],
-      ['1', 'Pythagorean identity sin²(θ) + cos²(θ) = 1'],
+      ['1', `Pythagorean identity ${mark('sin²(θ) + cos²(θ) = 1')}`],
       ['0', 'trigonometric identities'],
     ];
     const len = (e) => normalizeForCompare(e).length;
@@ -467,15 +468,15 @@ async function simplifyTrigExpression(expression, variable) {
       normalizeForCompare(simplified).length < normalizeForCompare(expression).length;
 
     if (usable && verified && changed) {
-      const steps = [`Simplify the trigonometric expression: ${display}`];
+      const steps = [`Simplify the trigonometric expression: ${mark(display)}`];
       if (identityUsed) {
         steps.push(`Apply the ${identityUsed}.`);
       } else if (simplified === '1' && isPythagoreanIdentity(expression)) {
-        steps.push('Apply the Pythagorean identity: sin²(θ) + cos²(θ) = 1 for every angle θ.');
+        steps.push(`Apply the Pythagorean identity: ${mark('sin²(θ) + cos²(θ) = 1')} for every angle ${mark('θ')}.`);
       } else {
         steps.push('Apply trigonometric identities and combine terms.');
       }
-      steps.push(`Result: ${beautify(simplified)} (confirmed numerically at several values of ${variable}).`);
+      steps.push(`Result: ${mark(beautify(simplified))} (confirmed numerically at several values of ${mark(variable)}).`);
       return {
         steps,
         answer: beautify(simplified),
@@ -489,7 +490,7 @@ async function simplifyTrigExpression(expression, variable) {
     // be honest rather than guessing.
     return {
       steps: [
-        `Simplify the trigonometric expression: ${display}`,
+        `Simplify the trigonometric expression: ${mark(display)}`,
         verified
           ? 'No simpler equivalent form was found — the expression is already in simplest terms.'
           : 'No trustworthy simplification was found for this expression.',

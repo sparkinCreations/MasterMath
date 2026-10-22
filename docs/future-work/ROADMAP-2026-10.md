@@ -48,11 +48,12 @@ purpose, so the next reviewer does not re-raise them.
 
 | Priority | Item | Why it matters | Effort |
 |---|---|---|---|
-| P1 | Typeset every step (explicit math markers) | **First increment shipped in 1.50.0** (renderer + calculus, algebra, Functions). Left: systems, inequalities, trigonometry, trig equations, arithmetic | ½ day |
+| ~~P1~~ | ~~Typeset every step (explicit math markers)~~ | **Shipped in 1.50.0 and 1.51.0** (every solver) | — |
 | ~~P1~~ | ~~Implicit differentiation~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~`(1 + a/x)^(bx)` limits by a named technique~~ | **Shipped in 1.49.0** | — |
 | P2 | PDF export with typeset steps and the graph | The PDF is plain text: ± as "+/-", x² as x^2, no graph; Markdown and JSON are complete | 1 day |
 | P3 | Tips chosen by method, everywhere | Reviews still find generic or off-topic tips on some paths | ½ day sweep |
+| P3 | General partial fractions within the budget | `∫ (x+1)/((x−1)²(x²+1)) dx` takes ~115 s, so the app stops it at 10 s (found in 1.51.0; see P1) | ½ day |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
 
 ---
@@ -70,11 +71,18 @@ purpose, so the next reviewer does not re-raise them.
 > steps with math in a plain-text run, 96 of 331 → 9. Every marked run
 > renders in KaTeX. `tests/typesetting.test.js` guards the converted set.
 >
-> **Left for the next increment:** `systemsSolver`, `inequalitiesSolver`,
+> **Finished in 1.51.0.** `systemsSolver`, `inequalitiesSolver`,
 > `trigonometrySolver`, `trigEquationSolver`, `arithmeticSolver`,
-> `linearEquationSolver`, and the rarer integral paths (erf, an endpoint
-> singularity, an interior asymptote, the general partial-fraction pieces).
-> Add each converted solver's problems to `tests/typesetting.test.js`.
+> `linearEquationSolver` and the rarer integral paths (erf, an endpoint
+> singularity, an interior asymptote, the general partial-fraction pieces)
+> are converted. Measured on 66 more problems: leaky steps 80 of 342 → 0
+> (KaTeX failures 0). `tests/typesetting.test.js` now covers 107 problems
+> across every solver.
+>
+> **Found on the way (open):** `∫ (x+1)/((x−1)²(x²+1)) dx` takes about
+> 115 s in Node (the same on 1.50.0), so in the app the 10 s budget stops
+> it and the answer is "could not finish". The general partial-fraction
+> path needs profiling; it is not in the typesetting test for that reason.
 
 **Finding (reviews 3, 5 and 6).** Steps such as *"The integrand has the
 form √(a² − x²) with a = 1: substitute x = sin θ …"* or *"write the

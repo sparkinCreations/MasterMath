@@ -46,8 +46,14 @@ export function toLatex(ascii) {
     .replace(/°/g, '^{\\circ}')
     .replace(/√\(([^()]*)\)/g, '\\sqrt{$1}')
     .replace(/√(\w+)/g, '\\sqrt{$1}')
+    // √π (the erf constants): π has become \pi by now.
+    .replace(/√ \\pi /g, '\\sqrt{\\pi} ')
     .replace(/″/g, "''")
-    .replace(/′/g, "'");
+    .replace(/′/g, "'")
+    // % opens a comment in TeX: 15% would swallow the rest of the run.
+    .replace(/%/g, '\\%')
+    // a mod b is an operator, not the italic letters m·o·d.
+    .replace(/\s*\bmod\b\s*/g, ' \\bmod ');
 
   // lim (x→0) → \lim_{x \to 0}
   s = s.replace(/\blim\s*\(([^()]*?)\\to([^()]*?)\)/g, (_, a, b) => `\\lim_{${a.trim()} \\to ${b.trim()}}`);
@@ -87,6 +93,8 @@ export function toLatex(ascii) {
     s = s.replace(new RegExp(`\\b${fn}\\b`, 'g'), `\\${fn === 'arcsin' ? 'arcsin' : fn === 'arccos' ? 'arccos' : fn === 'arctan' ? 'arctan' : fn}`);
   }
   // KaTeX has no \arcsec etc.; \arcsin/\arccos/\arctan exist. sec/csc/cot exist.
+  // The error function has no KaTeX command: upright, as a named operator.
+  s = s.replace(/\berf\b/g, '\\operatorname{erf}');
 
   // Explicit multiplication that survived beautify: a*b → a \cdot b
   s = s.replace(/\*/g, ' \\cdot ');

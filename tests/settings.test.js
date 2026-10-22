@@ -9,6 +9,7 @@ import {
 } from '../src/lib/settings.js';
 import { solveTrigonometry } from '../src/lib/solvers/trigonometrySolver.js';
 import { formatNumber } from '../src/lib/solvers/solverUtils.js';
+import { plain } from './helpers/solvePlain.js';
 
 // node:test runs without localStorage, so the module must fall back to
 // defaults instead of throwing.
@@ -51,7 +52,7 @@ test('angle unit preference changes how bare numbers are interpreted', async () 
   assert.match(auto.answer, /^1\/2 \(≈ 0\.5\)/); // exact-first (v1.19.0); value is 0.5
 
   // radians: sin(30) is 30 radians, with a cross-check note offered
-  const rad = await solveTrigonometry('sin(30)', { angleUnit: 'radians' });
+  const rad = plain(await solveTrigonometry('sin(30)', { angleUnit: 'radians' }));
   assert.match(rad.answer, /^-0\.988/);
   assert.ok(rad.steps.some((s) => /set to radians/i.test(s)));
   assert.ok(rad.steps.some((s) => /if you meant 30°/i.test(s)));

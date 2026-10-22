@@ -8,7 +8,7 @@ import { solveIntegral } from '../src/lib/solvers/integralsSolver.js';
 import { solveFunctions } from '../src/lib/solvers/functionsSolver.js';
 import { solveLimit } from '../src/lib/solvers/limitsSolver.js';
 import { solveTrigonometry } from '../src/lib/solvers/trigonometrySolver.js';
-import { solveLimitPlain } from './helpers/solvePlain.js';
+import { solveLimitPlain, plain } from './helpers/solvePlain.js';
 
 function extractNumericAnswer(answer) {
   const match = String(answer).match(/=\s*(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)/i);
@@ -22,7 +22,7 @@ test('solveArithmetic evaluates PEMDAS-style expressions', () => {
 });
 
 test('solveAlgebra solves a simple linear equation with inverse-operation steps', async () => {
-  const result = await solveAlgebra('2*x + 5 = 11');
+  const result = plain(await solveAlgebra('2*x + 5 = 11'));
   assert.match(result.answer, /x\s*=\s*3/);
   assert.equal(result.steps[0], 'Subtract 5 from both sides: 2x = 6');
   assert.equal(result.steps[1], 'Divide both sides by 2: x = 6/2 = 3');

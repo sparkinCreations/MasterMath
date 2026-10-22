@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { solveProblem, finalizeResult, isPresentable } from '../src/lib/api.js';
-import { solveTrigEquation } from '../src/lib/solvers/trigEquationSolver.js';
+import { solveTrigEquation as solveTrigMarked } from '../src/lib/solvers/trigEquationSolver.js';
+import { plain } from './helpers/solvePlain.js';
 import { STATUS } from '../src/lib/solutionEnvelope.js';
 
+// Step wording is checked on the text a reader sees, without the ⟦…⟧ math markers.
+const solveTrigEquation = (input) => plain(solveTrigMarked(input));
 const CODE = /\bfunction\b\s*[\w$]*\s*\([^)]*\)\s*\{|=>|\[native code\]|\[object \w+\]/;
 const textOf = (r) => [r.answer, ...r.steps, ...(r.tips || []), ...(r.common_mistakes || [])].join('\n');
 

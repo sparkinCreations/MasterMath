@@ -15,7 +15,7 @@
 // function called sin and hands back the function object; the previous code
 // stringified it and displayed minified JavaScript as the final answer.
 
-import { math, formatNumber, beautify } from './solverUtils.js';
+import { math, formatNumber, beautify, mark } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
 import { unsupported, undefinedValue } from '../solutionEnvelope.js';
 import { getSettings } from '../settings.js';
@@ -243,7 +243,7 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
     const c = -g0 / (g1 - g0); // fnR(arg) = c
     const partner = { sec: 'cos', csc: 'sin', cot: 'tan' }[fnR];
     const argShownR = argR.replace(/\*/g, '');
-    const outer = [`Solve the equation: ${shown}`];
+    const outer = [`Solve the equation: ${mark(shown)}`];
     if (DEGREES) outer.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
     outer.push(`Isolate: ${fnR}(${argShownR}) = ${fmtValue(c)}. Since ${fnR}(θ) = 1/${partner}(θ), this is ${partner}(${argShownR}) = ${Math.abs(c) < 1e-12 ? '1/0' : fmtValue(1 / c)}.`);
     if (Math.abs(c) < 1e-12) {
@@ -269,7 +269,7 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
   }
   const fns = [...new Set(calls.map((c) => c[1]))];
   const argShown = arg.replace(/\*/g, '');
-  const outerSteps = [`Solve the equation: ${shown}`];
+  const outerSteps = [`Solve the equation: ${mark(shown)}`];
   if (DEGREES) outerSteps.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
 
   // Evaluate the expression with each trig call replaced by a symbol.
@@ -298,8 +298,8 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
         if (Number.isFinite(km) && km !== 0 && Math.abs(d0) < 1e-12) {
           const target = -2 * k / a;
           const aTxt = Math.abs(a - 1) < 1e-9 ? '' : Math.abs(a + 1) < 1e-9 ? '−' : `${niceNumber(a)}·`;
-          outerSteps.push(`The equation is ${aTxt}sin(${argShown})·cos(${argShown})${Math.abs(k) < 1e-9 ? '' : ` ${k < 0 ? '−' : '+'} ${niceNumber(Math.abs(k))}`} = 0. Use the double-angle identity sin(2θ) = 2 sin θ cos θ: sin(${argShown})·cos(${argShown}) = ½·sin(${km === 1 ? '2' : formatNumber(2 * km)}${variable}).`);
-          outerSteps.push(`So sin(${km === 1 ? '2' : formatNumber(2 * km)}${variable}) = ${fmtValue(target)}.`);
+          outerSteps.push(`The equation is ${mark(`${aTxt}sin(${argShown})·cos(${argShown})${Math.abs(k) < 1e-9 ? '' : ` ${k < 0 ? '−' : '+'} ${niceNumber(Math.abs(k))}`} = 0`)}. Use the double-angle identity ${mark('sin(2θ) = 2 sin θ cos θ')}: ${mark(`sin(${argShown})·cos(${argShown}) = ½·sin(${km === 1 ? '2' : formatNumber(2 * km)}${variable})`)}.`);
+          outerSteps.push(`So ${mark(`sin(${km === 1 ? '2' : formatNumber(2 * km)}${variable}) = ${fmtValue(target)}`)}.`);
           const inner = solveTrigEquation(`sin(${2 * km}*${variable}) = ${parseableValue(target)}`, variable, undefined, true);
           if (inner && inner.status !== 'unsupported' && Array.isArray(inner.steps)) {
             return { ...inner, steps: [...outerSteps, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t) && !/^Angle unit/.test(t)).map((t) => t.replace(String(target), fmtValue(target)))] };
@@ -315,10 +315,10 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
     let rewritten = null;
     if (isQuadIn('S') && onlySquared('S') && isLinIn('C')) {
       rewritten = expr.replace(new RegExp(`(?:\\(\\s*sin\\s*\\(\\s*${rx(arg)}\\s*\\)\\s*\\)|\\bsin\\s*\\(\\s*${rx(arg)}\\s*\\))\\s*\\^\\s*2`, 'g'), `(1 - cos(${arg})^2)`);
-      outerSteps.push(`Use sin²(θ) = 1 − cos²(θ) so only cosine remains: ${beautify(rewritten)} = 0`);
+      outerSteps.push(`Use ${mark('sin²(θ) = 1 − cos²(θ)')} so only cosine remains: ${mark(`${beautify(rewritten)} = 0`)}`);
     } else if (isQuadIn('C') && onlySquared('C') && isLinIn('S')) {
       rewritten = expr.replace(new RegExp(`(?:\\(\\s*cos\\s*\\(\\s*${rx(arg)}\\s*\\)\\s*\\)|\\bcos\\s*\\(\\s*${rx(arg)}\\s*\\))\\s*\\^\\s*2`, 'g'), `(1 - sin(${arg})^2)`);
-      outerSteps.push(`Use cos²(θ) = 1 − sin²(θ) so only sine remains: ${beautify(rewritten)} = 0`);
+      outerSteps.push(`Use ${mark('cos²(θ) = 1 − sin²(θ)')} so only sine remains: ${mark(`${beautify(rewritten)} = 0`)}`);
     }
     if (rewritten && !new RegExp(`\\b(?:sin|cos)\\s*\\(\\s*${rx(arg)}\\s*\\)`).test(rewritten.replace(new RegExp(`\\b(?:${isQuadIn('S') && onlySquared('S') ? 'cos' : 'sin'})\\s*\\(\\s*${rx(arg)}\\s*\\)`, 'g'), 'Q'))) {
       const inner = solveTrigEquation(`${rewritten} = 0`, variable, undefined, true);
@@ -338,22 +338,22 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
         const phi = Math.atan2(b, a); // a sinθ + b cosθ = R sin(θ + φ)
         const rShown = fmtValue(R) === formatNumber(R) ? (Math.abs(R - Math.round(R)) < 1e-9 ? String(Math.round(R)) : `√${niceNumber(R * R)}`) : fmtValue(R);
         const cf = (v) => (Math.abs(Math.abs(v) - 1) < 1e-9 ? '' : `${fmtValue(Math.abs(v))}·`);
-        outerSteps.push(`Sine and cosine both appear to the first power with a nonzero constant: ${a < 0 ? '−' : ''}${cf(a)}sin(${argShown}) ${b < 0 ? '−' : '+'} ${cf(b)}cos(${argShown}) = ${fmtValue(c)}.`);
-        outerSteps.push(`Combine them into one sine: a·sin θ + b·cos θ = R·sin(θ + φ) with R = √(a² + b²) = ${rShown} and φ = arctan(b/a) = ${fmtRad(phi)}.`);
+        outerSteps.push(`Sine and cosine both appear to the first power with a nonzero constant: ${mark(`${a < 0 ? '−' : ''}${cf(a)}sin(${argShown}) ${b < 0 ? '−' : '+'} ${cf(b)}cos(${argShown}) = ${fmtValue(c)}`)}.`);
+        outerSteps.push(`Combine them into one sine: ${mark('a·sin θ + b·cos θ = R·sin(θ + φ)')} with ${mark(`R = √(a² + b²) = ${rShown}`)} and ${mark(`φ = arctan(b/a) = ${fmtRad(phi)}`)}.`);
         if (Math.abs(c) > R + 1e-9) {
-          outerSteps.push(`So ${rShown}·sin(${argShown} ${phi < 0 ? `− ${fmtRad(-phi)}` : `+ ${fmtRad(phi)}`}) = ${fmtValue(c)} would need sin to be ${fmtValue(c / R)}, outside [−1, 1] — no real solution.`);
+          outerSteps.push(`So ${mark(`${rShown}·sin(${argShown} ${phi < 0 ? `− ${fmtRad(-phi)}` : `+ ${fmtRad(phi)}`}) = ${fmtValue(c)}`)} would need ${mark('sin')} to be ${mark(fmtValue(c / R))}, outside ${mark('[−1, 1]')} — no real solution.`);
           const result = undefinedValue({ input: rawEquation, reason: `|${fmtValue(c)}| exceeds R = ${rShown}, so no angle works.`, steps: outerSteps });
           result.answer = 'No real solution';
           return result;
         }
         const shift = phi < 0 ? `− ${fmtRad(-phi)}` : `+ ${fmtRad(phi)}`;
         const ratioText = `${fmtValue(c)}/${rShown}`;
-        outerSteps.push(`So sin(${argShown} ${shift}) = ${ratioText}${ratioText === fmtValue(c / R) ? '' : ` = ${fmtValue(c / R)}`}. Let θ = ${argShown} ${shift}.`);
+        outerSteps.push(`So ${mark(`sin(${argShown} ${shift}) = ${ratioText}${ratioText === fmtValue(c / R) ? '' : ` = ${fmtValue(c / R)}`}`)}. Let ${mark(`θ = ${argShown} ${shift}`)}.`);
         const inner = solveTrigEquation(`sin(t) = ${parseableValue(c / R)}`, 't', undefined, true);
         if (!inner || inner.status === 'unsupported' || !Array.isArray(inner.graph?.solutions)) return null;
         // θ solutions on [0, 2π) → subtract φ, then account for k in arg (k·x).
         const thetaList = inner.graph.solutions.map((t) => (DEGREES ? t * Math.PI / 180 : t));
-        outerSteps.push(`Solve for θ: ${inner.answer.replace(/\bt\b/g, 'θ')}`);
+        outerSteps.push(`Solve for ${mark('θ')}: ${mark(inner.answer.replace(/\bt\b/g, 'θ'))}`);
         // arg = k·x (bare x → k = 1)
         const km = arg === variable ? 1 : (() => { try { return math.evaluate(arg, { [variable]: 1 }) - math.evaluate(arg, { [variable]: 0 }); } catch { return NaN; } })();
         if (!Number.isFinite(km) || km === 0) return null;
@@ -372,9 +372,9 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
         if (!ok) return null;
         const per = TWO_PI / Math.abs(km);
         const general = bases.map((b0) => familyText(variable, ((b0 / km) % per + per) % per, per)).join('  or  ');
-        outerSteps.push(`Then ${argShown} = θ ${phi < 0 ? `+ ${fmtRad(-phi)}` : `− ${fmtRad(phi)}`}${km !== 1 ? `, and divide by ${formatNumber(km)}` : ''}: ${general}`);
-        outerSteps.push(`On ${RANGE_TEXT()}: ${list.map((x) => `${variable} = ${fmtRad(x)}`).join(',  ')}`);
-        outerSteps.push(`Check: substituting each value back into ${shown} balances both sides.`);
+        outerSteps.push(`Then ${mark(`${argShown} = θ ${phi < 0 ? `+ ${fmtRad(-phi)}` : `− ${fmtRad(phi)}`}`)}${km !== 1 ? `, and divide by ${mark(formatNumber(km))}` : ''}: ${mark(general)}`);
+        outerSteps.push(`On ${mark(RANGE_TEXT())}: ${mark(list.map((x) => `${variable} = ${fmtRad(x)}`).join(',  '))}`);
+        outerSteps.push(`Check: substituting each value back into ${mark(shown)} balances both sides.`);
         return {
           steps: outerSteps,
           answer: `${general} (n ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
@@ -393,8 +393,8 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
       if (Math.abs(b) > 1e-9 && Math.abs(a) > 1e-9) {
         const ratio = -a / b;
         const cf = (v) => (Math.abs(Math.abs(v) - 1) < 1e-9 ? (v < 0 ? '−' : '') : `${fmtValue(v)}·`);
-        outerSteps.push(`Both sine and cosine appear, each to the first power and with no constant term: ${cf(a)}sin(${argShown}) ${b < 0 ? '−' : '+'} ${cf(Math.abs(b))}cos(${argShown}) = 0.`);
-        outerSteps.push(`cos(${argShown}) = 0 would force sin(${argShown}) = 0 too, which is impossible — so divide through by cos(${argShown}): ${Math.abs(Math.abs(a) - 1) < 1e-9 ? '' : `${cf(a)}tan(${argShown}) = ${fmtValue(-b)}, i.e. `}tan(${argShown}) = ${fmtValue(ratio)}.`);
+        outerSteps.push(`Both sine and cosine appear, each to the first power and with no constant term: ${mark(`${cf(a)}sin(${argShown}) ${b < 0 ? '−' : '+'} ${cf(Math.abs(b))}cos(${argShown}) = 0`)}.`);
+        outerSteps.push(`${mark(`cos(${argShown}) = 0`)} would force ${mark(`sin(${argShown}) = 0`)} too, which is impossible — so divide through by ${mark(`cos(${argShown})`)}: ${Math.abs(Math.abs(a) - 1) < 1e-9 ? '' : `${mark(`${cf(a)}tan(${argShown}) = ${fmtValue(-b)}`)}, i.e. `}${mark(`tan(${argShown}) = ${fmtValue(ratio)}`)}.`);
         const inner = solveTrigEquation(`tan(${arg}) = ${parseableValue(ratio)}`, variable, undefined, true);
         if (inner && inner.status !== 'unsupported' && Array.isArray(inner.steps)) {
           return { ...inner, steps: [...outerSteps, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t)).map((t) => t.replace(String(ratio), fmtValue(ratio)))] };
@@ -424,9 +424,9 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
   const c = g0;
   const disc = b * b - 4 * a * c;
   const U = variable === 'u' ? 'v' : 'u';
-  outerSteps.push(`The equation is quadratic in ${fn}(${argShown}). Let ${U} = ${fn}(${argShown}): ${quadraticText(a, b, c, U)} = 0.`);
+  outerSteps.push(`The equation is quadratic in ${mark(`${fn}(${argShown})`)}. Let ${mark(`${U} = ${fn}(${argShown})`)}: ${mark(`${quadraticText(a, b, c, U)} = 0`)}.`);
   if (disc < -1e-9) {
-    outerSteps.push(`The discriminant b² − 4ac = ${formatNumber(disc)} is negative, so there is no real value of ${U} — and no solution.`);
+    outerSteps.push(`The discriminant ${mark(`b² − 4ac = ${formatNumber(disc)}`)} is negative, so there is no real value of ${mark(U)} — and no solution.`);
     const result = undefinedValue({ input: rawEquation, reason: `No real value of ${fn}(${argShown}) satisfies the quadratic, so the equation has no real solution.`, steps: outerSteps });
     result.answer = 'No real solution';
     return result;
@@ -434,19 +434,19 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
   const r1 = (-b - Math.sqrt(Math.max(0, disc))) / (2 * a);
   const r2 = (-b + Math.sqrt(Math.max(0, disc))) / (2 * a);
   const rootsU = Math.abs(r1 - r2) < 1e-9 ? [r1] : [r1, r2].sort((x, y) => x - y);
-  outerSteps.push(`Solve the quadratic (factor or use the quadratic formula): ${rootsU.map((r) => `${U} = ${fmtValue(r)}`).join('  or  ')}.`);
+  outerSteps.push(`Solve the quadratic (factor or use the quadratic formula): ${mark(rootsU.map((r) => `${U} = ${fmtValue(r)}`).join('  or  '))}.`);
   const parts = [];
   const allSolutions = [];
   const familyTexts = [];
   for (const r of rootsU) {
     if ((fn === 'sin' || fn === 'cos') && Math.abs(r) > 1 + 1e-9) {
-      outerSteps.push(`${fn}(${argShown}) = ${fmtValue(r)} is impossible — ${fn} never leaves [−1, 1] — so this value gives nothing.`);
+      outerSteps.push(`${mark(`${fn}(${argShown}) = ${fmtValue(r)}`)} is impossible — ${mark(fn)} never leaves ${mark('[−1, 1]')} — so this value gives nothing.`);
       continue;
     }
     const inner = solveTrigEquation(`${fn}(${arg}) = ${parseableValue(r)}`, variable, undefined, true);
     if (!inner || inner.status === 'unsupported' || !Array.isArray(inner.steps)) return null;
     if (inner.status === 'undefined') { outerSteps.push(...inner.steps.filter((t) => !/^Solve the equation:/.test(t))); continue; }
-    outerSteps.push(`Case ${fn}(${argShown}) = ${fmtValue(r)}:`);
+    outerSteps.push(`Case ${mark(`${fn}(${argShown}) = ${fmtValue(r)}`)}:`);
     outerSteps.push(...inner.steps.filter((t) => !/^Solve the equation:/.test(t) && !/^Angle unit/.test(t)).map((t) => `  ${t.replace(String(r), fmtValue(r))}`));
     parts.push(inner);
     familyTexts.push(inner.answer.split(' (n ∈ ℤ)')[0]);
@@ -460,7 +460,7 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
   const merged = [...new Set(allSolutions.map((x) => Math.round(x * 1e8) / 1e8))].sort((x, y) => x - y);
   const toRad = (x) => (DEGREES ? x * Math.PI / 180 : x);
   const listText = merged.map((x) => fmtRad(toRad(x))).join(', ');
-  outerSteps.push(`Combine the cases. On ${RANGE_TEXT()}: ${merged.map((x) => `${variable} = ${fmtRad(toRad(x))}`).join(',  ')}`);
+  outerSteps.push(`Combine the cases. On ${mark(RANGE_TEXT())}: ${mark(merged.map((x) => `${variable} = ${fmtRad(toRad(x))}`).join(',  '))}`);
   const base = parts[0];
   const graph = base.graph ? {
     ...base.graph,
@@ -510,7 +510,7 @@ function solveEqualArguments(rawEquation, equation, variable, shown, calls) {
   if (!A || !B) return null;
   let f = lm[1];
   let g = rm[1];
-  const steps = [`Solve the equation: ${shown}`];
+  const steps = [`Solve the equation: ${mark(shown)}`];
   if (DEGREES) steps.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
   const Ash = lm[2].replace(/\*/g, '');
   let Bsh = rm[2].replace(/\*/g, '');
@@ -518,8 +518,8 @@ function solveEqualArguments(rawEquation, equation, variable, shown, calls) {
   let Bd = B.d;
   if (f !== g) {
     // Convert to the same function via the cofunction identity.
-    if (f === 'sin' && g === 'cos') { steps.push(`cos(${Bsh}) = sin(π/2 − (${Bsh})), so the equation is sin(${Ash}) = sin(π/2 − (${Bsh})).`); Bsh = `π/2 − (${Bsh})`; Bk = -B.k; Bd = Math.PI / 2 - B.d; g = 'sin'; }
-    else if (f === 'cos' && g === 'sin') { steps.push(`sin(${Bsh}) = cos(π/2 − (${Bsh})), so the equation is cos(${Ash}) = cos(π/2 − (${Bsh})).`); Bsh = `π/2 − (${Bsh})`; Bk = -B.k; Bd = Math.PI / 2 - B.d; g = 'cos'; }
+    if (f === 'sin' && g === 'cos') { steps.push(`${mark(`cos(${Bsh}) = sin(π/2 − (${Bsh}))`)}, so the equation is ${mark(`sin(${Ash}) = sin(π/2 − (${Bsh}))`)}.`); Bsh = `π/2 − (${Bsh})`; Bk = -B.k; Bd = Math.PI / 2 - B.d; g = 'sin'; }
+    else if (f === 'cos' && g === 'sin') { steps.push(`${mark(`sin(${Bsh}) = cos(π/2 − (${Bsh}))`)}, so the equation is ${mark(`cos(${Ash}) = cos(π/2 − (${Bsh}))`)}.`); Bsh = `π/2 − (${Bsh})`; Bk = -B.k; Bd = Math.PI / 2 - B.d; g = 'cos'; }
     else return null;
   }
   const families = []; // {base, period} for x
@@ -532,15 +532,15 @@ function solveEqualArguments(rawEquation, equation, variable, shown, calls) {
   };
   let identity = false;
   if (f === 'sin') {
-    steps.push(`Two sines are equal when their angles are equal, or supplementary, up to full turns: ${Ash} = ${Bsh} + 2πn  or  ${Ash} = π − (${Bsh}) + 2πn.`);
+    steps.push(`Two sines are equal when their angles are equal, or supplementary, up to full turns: ${mark(`${Ash} = ${Bsh} + 2πn  or  ${Ash} = π − (${Bsh}) + 2πn`)}.`);
     if (addFamily(A.k - Bk, Bd - A.d, TWO_PI) === 'identity') identity = true;
     if (addFamily(A.k + Bk, Math.PI - A.d - Bd, TWO_PI) === 'identity') identity = true;
   } else if (f === 'cos') {
-    steps.push(`Two cosines are equal when their angles are equal or opposite, up to full turns: ${Ash} = ±(${Bsh}) + 2πn.`);
+    steps.push(`Two cosines are equal when their angles are equal or opposite, up to full turns: ${mark(`${Ash} = ±(${Bsh}) + 2πn`)}.`);
     if (addFamily(A.k - Bk, Bd - A.d, TWO_PI) === 'identity') identity = true;
     if (addFamily(A.k + Bk, -A.d - Bd, TWO_PI) === 'identity') identity = true;
   } else {
-    steps.push(`Two tangents are equal when their angles differ by a multiple of π: ${Ash} = ${Bsh} + πn.`);
+    steps.push(`Two tangents are equal when their angles differ by a multiple of ${mark('π')}: ${mark(`${Ash} = ${Bsh} + πn`)}.`);
     if (addFamily(A.k - Bk, Bd - A.d, Math.PI) === 'identity') identity = true;
   }
   if (identity) {
@@ -572,9 +572,9 @@ function solveEqualArguments(rawEquation, equation, variable, shown, calls) {
   const [L, Rr] = equation.split('=');
   const ok = list.every((x) => { try { return Math.abs(math.evaluate(L, { [variable]: x }) - math.evaluate(Rr, { [variable]: x })) < 1e-6; } catch { return false; } });
   if (!ok) return null;
-  steps.push(`Solve each branch for ${variable}: ${general}`);
-  steps.push(`On ${RANGE_TEXT()}: ${list.map((x) => `${variable} = ${fmtRad(x)}`).join(',  ')}`);
-  steps.push(`Check: substituting each value back into ${shown} balances both sides.`);
+  steps.push(`Solve each branch for ${mark(variable)}: ${mark(general)}`);
+  steps.push(`On ${mark(RANGE_TEXT())}: ${mark(list.map((x) => `${variable} = ${fmtRad(x)}`).join(',  '))}`);
+  steps.push(`Check: substituting each value back into ${mark(shown)} balances both sides.`);
   return {
     steps,
     answer: `${general} (n ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
@@ -613,19 +613,19 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
   const cShown = fmtValue(c);
   const argShown = arg.replace(/\*/g, '');
   const steps = [];
-  steps.push(`Solve the equation: ${shown}`);
+  steps.push(`Solve the equation: ${mark(shown)}`);
   if (DEGREES) steps.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
   // Only narrate isolation when there was something to isolate: a coefficient
   // other than 1, a constant term, or the trig term on the right-hand side.
   const [lhsRaw] = equation.split('=');
   const alreadyIsolated = Math.abs(parsed.a - 1) < EPS && new RegExp(`^\\s*${fn}\\s*\\(`).test(lhsRaw);
   if (!alreadyIsolated) {
-    steps.push(`Isolate the trig function: ${fn}(${argShown}) = ${cShown}`);
+    steps.push(`Isolate the trig function: ${mark(`${fn}(${argShown}) = ${cShown}`)}`);
   }
 
   // Range check for sin/cos.
   if ((fn === 'sin' || fn === 'cos') && Math.abs(c) > 1 + EPS) {
-    steps.push(`${fn}(θ) always lies between −1 and 1, but here it would have to equal ${cShown}.`);
+    steps.push(`${mark(`${fn}(θ)`)} always lies between ${mark('−1')} and ${mark('1')}, but here it would have to equal ${mark(cShown)}.`);
     const result = undefinedValue({
       input: rawEquation,
       reason: `${fn}(θ) = ${cShown} has no real solution — the ${fn === 'sin' ? 'sine' : 'cosine'} of a real angle is never outside [−1, 1].`,
@@ -644,24 +644,24 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
   // General solution, first for θ = kx (or directly for x when k = 1).
   let general; // [{ base (rad), period (rad) }] for θ
   if (fn === 'sin') {
-    steps.push(`Take the inverse sine: the reference angle is arcsin(${cShown}) = ${p.exact}${p.isExact || DEGREES ? '' : ' rad'}.`);
+    steps.push(`Take the inverse sine: the reference angle is ${mark(`arcsin(${cShown}) = ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
     const second = fmtRad(Math.PI - p.rad);
-    steps.push(`Sine takes each value twice per period (quadrants I and II for positive values, III and IV for negative), so within one period: ${theta} = ${p.exact} and ${theta} = ${PERIOD_HALF()} − (${p.exact}) = ${second}.`);
+    steps.push(`Sine takes each value twice per period (quadrants I and II for positive values, III and IV for negative), so within one period: ${mark(`${theta} = ${p.exact}`)} and ${mark(`${theta} = ${PERIOD_HALF()} − (${p.exact}) = ${second}`)}.`);
     general = [
       { base: p.rad, period: TWO_PI },
       { base: Math.PI - p.rad, period: TWO_PI },
     ];
   } else if (fn === 'cos') {
-    steps.push(`Take the inverse cosine: the reference angle is arccos(${cShown}) = ${p.exact}${p.isExact || DEGREES ? '' : ' rad'}.`);
+    steps.push(`Take the inverse cosine: the reference angle is ${mark(`arccos(${cShown}) = ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
     const coterminal = fmtRad(TWO_PI - p.rad);
-    steps.push(`Cosine is even (cos(−θ) = cos θ), so ${theta} = ${p.exact} and ${theta} = −${p.exact} both work. Within one period [0, ${PERIOD_FULL()}), −${p.exact} is the same angle as ${PERIOD_FULL()} − ${p.exact} = ${coterminal}.`);
+    steps.push(`Cosine is even (${mark('cos(−θ) = cos θ')}), so ${mark(`${theta} = ${p.exact}`)} and ${mark(`${theta} = −${p.exact}`)} both work. Within one period ${mark(`[0, ${PERIOD_FULL()})`)}, ${mark(`−${p.exact}`)} is the same angle as ${mark(`${PERIOD_FULL()} − ${p.exact} = ${coterminal}`)}.`);
     general = [
       { base: p.rad, period: TWO_PI },
       { base: -p.rad, period: TWO_PI },
     ];
   } else {
-    steps.push(`Take the inverse tangent: the reference angle is arctan(${cShown}) = ${p.exact}${p.isExact || DEGREES ? '' : ' rad'}.`);
-    steps.push(`Tangent repeats every ${PERIOD_HALF()} (not ${PERIOD_FULL()}), so one solution per period suffices.`);
+    steps.push(`Take the inverse tangent: the reference angle is ${mark(`arctan(${cShown}) = ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
+    steps.push(`Tangent repeats every ${mark(PERIOD_HALF())} (not ${mark(PERIOD_FULL())}), so one solution per period suffices.`);
     general = [{ base: p.rad, period: Math.PI }];
   }
   general = mergeFamilies(general);
@@ -674,7 +674,7 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
   // If the argument was kx, convert θ-solutions to x by dividing by k.
   let generalText = thetaText;
   if (k !== 1) {
-    steps.push(`Let θ = ${argShown}. General solution for θ (${nSym} any integer): ${thetaText}`);
+    steps.push(`Let ${mark(`θ = ${argShown}`)}. General solution for ${mark('θ')} (${mark(nSym)} any integer): ${mark(thetaText)}`);
     // θ = kx ⇒ x = θ/k. When k is a reciprocal (x/2 ⇒ k = 1/2), say
     // "multiply by 2" and write 2(...) — that is how the step is taught.
     const inv = 1 / k;
@@ -687,10 +687,10 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
       })
       .join('  or  ');
     steps.push(isReciprocal
-      ? `Multiply by ${Math.round(inv)} to get ${variable}: ${generalText}`
-      : `Divide by ${kShown} to get ${variable}: ${generalText}`);
+      ? `Multiply by ${mark(Math.round(inv))} to get ${mark(variable)}: ${mark(generalText)}`
+      : `Divide by ${mark(kShown)} to get ${mark(variable)}: ${mark(generalText)}`);
   } else {
-    steps.push(`General solution (${nSym} any integer): ${generalText}`);
+    steps.push(`General solution (${mark(nSym)} any integer): ${mark(generalText)}`);
   }
 
   // Solutions for x on [0, 2π): θ = kx, so x = θ/k; enumerate.
@@ -713,7 +713,7 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
   }
   list.sort((a, b) => a - b);
   const listed = list.map((x) => `${variable} = ${fmtRad(x)}`);
-  steps.push(`On ${RANGE_TEXT()}: ${listed.join(',  ')}`);
+  steps.push(`On ${mark(RANGE_TEXT())}: ${mark(listed.join(',  '))}`);
 
   // Verify each listed solution against the original equation.
   const scopeCheck = (x) => {
@@ -730,7 +730,7 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
       answer: 'The solutions found could not be verified, so none are reported',
     });
   }
-  steps.push(`Check: substituting each value back into ${shown} balances both sides.`);
+  steps.push(`Check: substituting each value back into ${mark(shown)} balances both sides.`);
 
   // Graph: y = f(kx) with y = c and the [0, 2π) solutions marked.
   let graph = null;

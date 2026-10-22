@@ -296,12 +296,12 @@ function buildErfSteps(expression, integral, variable) {
   const shown = beautify(expression);
   return [
     `Identify the function to integrate: ∫(${shown}) d${v}.`,
-    `This integrand has no elementary antiderivative: no finite combination of polynomials, roots, exponentials, logarithms and trig functions differentiates to a Gaussian e^(−k${v}²) (Liouville's theorem). So no substitution or integration by parts will finish it — u = the exponent would need a factor of ${v} that is not there.`,
-    `Calculus handles this by NAMING the antiderivative. The error function is defined as erf(${v}) = (2/√π)·∫₀^${v} e^(−t²) dt, so by the Fundamental Theorem of Calculus d/d${v} erf(${v}) = (2/√π)·e^(−${v}²).`,
-    `Rearranging that derivative: e^(−${v}²) = (√π/2)·d/d${v} erf(${v}), so ∫e^(−${v}²) d${v} = (√π/2)·erf(${v}) + C. Constant factors and a scaled argument (e^(−k${v}²)) carry through the same way.`,
-    `For this integrand: ∫(${shown}) d${v} = ${prettyErf(integral)}.`,
-    `Check by differentiating: d/d${v}[${prettyErf(integral)}] = ${shown} ✓ (verified symbolically).`,
-    `Add the constant of integration: ∫(${shown}) d${v} = ${prettyErf(integral)} + C.`,
+    `This integrand has no elementary antiderivative: no finite combination of polynomials, roots, exponentials, logarithms and trig functions differentiates to a Gaussian ${mark(`e^(−k${v}²)`)} (Liouville's theorem). So no substitution or integration by parts will finish it — ${mark('u')} = the exponent would need a factor of ${mark(v)} that is not there.`,
+    `Calculus handles this by NAMING the antiderivative. The error function is defined as ${mark(`erf(${v}) = (2/√π)·∫_0^${v} e^(−t²) dt`)}, so by the Fundamental Theorem of Calculus ${mark(`d/d${v} erf(${v}) = (2/√π)·e^(−${v}²)`)}.`,
+    `Rearranging that derivative: ${mark(`e^(−${v}²) = (√π/2)·d/d${v} erf(${v})`)}, so ${mark(`∫e^(−${v}²) d${v} = (√π/2)·erf(${v}) + C`)}. Constant factors and a scaled argument (${mark(`e^(−k${v}²)`)}) carry through the same way.`,
+    `For this integrand: ${mark(`∫(${shown}) d${v} = ${prettyErf(integral)}`)}.`,
+    `Check by differentiating: ${mark(`d/d${v}[${prettyErf(integral)}] = ${shown}`)} ✓ (verified symbolically).`,
+    `Add the constant of integration: ${mark(`∫(${shown}) d${v} = ${prettyErf(integral)} + C`)}.`,
   ];
 }
 
@@ -637,8 +637,8 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
       const cofLn = an === 1 && R.d === 1 ? '' : `${R.d === 1 ? an : `${an}/${R.d}`}·`;
       const fracOver = (extra) => `${sgn}${an}/(${R.d === 1 ? '' : `${R.d}`}${extra})`;
       const cMach = R.d === 1 ? (an === 1 ? (R.n < 0 ? '-' : '') : `${R.n}*`) : `${R.n}/${R.d}*`;
-      if (t.j === 1) { pieces.push(`${cMach}log(${L})`); pieceSteps.push(`∫ ${fracOver(L)} d${v} = ${sgn}${cofLn}ln|${Lbare}|`); }
-      else { const dd = R.d * (t.j - 1); pieces.push(`${R.n < 0 ? '' : '-'}${an}/(${dd === 1 ? '' : `${dd}*`}${L}${t.j - 1 > 1 ? `^${t.j - 1}` : ''})`); pieceSteps.push(`∫ ${fracOver(`${L}^${t.j}`)} d${v} = ${sgn ? '' : '−'}${an}/(${dd === 1 ? '' : dd}${L}${t.j - 1 > 1 ? `^${t.j - 1}` : ''})  (power rule)`); }
+      if (t.j === 1) { pieces.push(`${cMach}log(${L})`); pieceSteps.push(mark(`∫ ${fracOver(L)} d${v} = ${sgn}${cofLn}ln|${Lbare}|`)); }
+      else { const dd = R.d * (t.j - 1); pieces.push(`${R.n < 0 ? '' : '-'}${an}/(${dd === 1 ? '' : `${dd}*`}${L}${t.j - 1 > 1 ? `^${t.j - 1}` : ''})`); pieceSteps.push(`${mark(`∫ ${fracOver(`${L}^${t.j}`)} d${v} = ${sgn ? '' : '−'}${an}/(${dd === 1 ? '' : dd}${L}${t.j - 1 > 1 ? `^${t.j - 1}` : ''})`)} (power rule)`); }
     } else {
       const B = rat[i++]; const C = rat[i++];
       const Bv = B.n / B.d; const Cv = C.n / C.d;
@@ -656,11 +656,11 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
         if (Math.abs(K) > 1e-12) { pieces.push(`${cm(K / k)}arctan(${arcArg})`); }
         const numTxt = quadNum(B, C, Q).replace(/\/\(.*$/, '');
         const arcCoef = Math.abs(K / k - 1) < 1e-12 ? '' : Math.abs(K / k + 1) < 1e-12 ? '−' : `${fmtRat(K / k)}·`;
-        pieceSteps.push(`∫ ${numTxt}/${Q} d${v}: ${h !== 0 ? `complete the square, ${Q} = ${U}^2 + ${fmtRat(k2)}; ` : ''}${Bv !== 0 ? `the ${v}-part gives ${fmtRat(Bv / 2)}·ln|${stripOuterParens(Q)}|` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${arcCoef}arctan(${U}${k === 1 ? '' : `/${kTxt}`})` : ''}`);
+        pieceSteps.push(`${mark(`∫ ${numTxt}/${Q} d${v}`)}: ${h !== 0 ? `complete the square, ${mark(`${Q} = ${U}^2 + ${fmtRat(k2)}`)}; ` : ''}${Bv !== 0 ? `the ${mark(v)}-part gives ${mark(`${fmtRat(Bv / 2)}·ln|${stripOuterParens(Q)}|`)}` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${mark(`${arcCoef}arctan(${U}${k === 1 ? '' : `/${kTxt}`})`)}` : ''}`);
       } else if (t.j === 2) {
         if (Bv !== 0) pieces.push(`${cm(-Bv / 2)}1/${Q}`);
         if (Math.abs(K) > 1e-12) pieces.push(`${cm(K / (2 * k2))}${U}/${Q} + ${cm(K / (2 * k2 * k))}arctan(${arcArg})`);
-        pieceSteps.push(`∫ (${cTxt[i - 2]}${v} + ${cTxt[i - 1]})/${Q}^2 d${v}: with u = ${U}, ${Bv !== 0 ? `∫ ${fmtRat(Bv)}u/(u² + ${fmtRat(k2)})² du = −${fmtRat(Bv / 2)}/(u² + ${fmtRat(k2)})` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ' and ' : ''}${Math.abs(K) > 1e-12 ? `∫ ${Ktxt}/(u² + k²)² du = ${Ktxt}·[u/(2k²(u² + k²)) + arctan(u/k)/(2k³)] with k = ${kTxt}` : ''}`);
+        pieceSteps.push(`${mark(`∫ (${cTxt[i - 2]}${v} + ${cTxt[i - 1]})/${Q}^2 d${v}`)}: with ${mark(`u = ${U}`)}, ${Bv !== 0 ? mark(`∫ ${fmtRat(Bv)}u/(u² + ${fmtRat(k2)})² du = −${fmtRat(Bv / 2)}/(u² + ${fmtRat(k2)})`) : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ' and ' : ''}${Math.abs(K) > 1e-12 ? `${mark(`∫ ${Ktxt}/(u² + k²)² du = ${Ktxt}·[u/(2k²(u² + k²)) + arctan(u/k)/(2k³)]`)} with ${mark(`k = ${kTxt}`)}` : ''}`);
       } else {
         return null; // (x²+1)^3 and beyond: not attempted
       }
@@ -685,10 +685,10 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
   const antiSimple = anti;
   const ansatzTxt = (() => { let k = 0; return terms.map((t) => (t.kind === 'lin' ? linNum(rat[k++], denomOf(t)) : quadNum(rat[k++], rat[k++], denomOf(t)))).join(' + ').replace(/\+ −/g, '− '); })();
   const steps = [
-    `∫(${beautify(term)}) d${v} — a proper rational function. Factor the denominator: ${beautify(den)} = ${constant !== 1 ? `${fmtNum(constant)}·` : ''}${D0.replace(/\*/g, '')}.`,
-    `Partial fractions (a repeated factor gets one term per power; an irreducible quadratic gets a linear numerator): ${beautify(term)} = ${ansatzTxt}. The coefficients come from clearing denominators and matching both sides.`,
+    `${mark(`∫(${beautify(term)}) d${v}`)} — a proper rational function. Factor the denominator: ${mark(`${beautify(den)} = ${constant !== 1 ? `${fmtNum(constant)}·` : ''}${D0.replace(/\*/g, '')}`)}.`,
+    `Partial fractions (a repeated factor gets one term per power; an irreducible quadratic gets a linear numerator): ${mark(`${beautify(term)} = ${ansatzTxt}`)}. The coefficients come from clearing denominators and matching both sides.`,
     ...pieceSteps.map((t) => `  ${t}`),
-    `Add the pieces: ${lnify(antiSimple)}.`,
+    `Add the pieces: ${mark(lnify(antiSimple))}.`,
   ];
   return { antiderivative: antiSimple, steps };
 }
@@ -1367,7 +1367,7 @@ function formatExactValue(raw) {
 // notation was fine but the value couldn't be computed trustworthily.
 function refuseDefinite(reason, notation, kind = 'unsupported') {
   const steps = [];
-  if (notation) steps.push(`Evaluate the definite integral ${notation}.`);
+  if (notation) steps.push(`Evaluate the definite integral ${mark(notation)}.`);
   steps.push(reason);
   steps.push('Tip: check the bounds and the integrand, or find the antiderivative F and compute F(upper) − F(lower).');
   const fields = {
@@ -1387,8 +1387,8 @@ function refuseImproperAt(notation, variable, at, integrand) {
     reason: `The integrand ${beautify(integrand)} is unbounded as ${variable} → ${at}, and its antiderivative has no finite value there — this improper integral diverges (it has no finite value).`,
     answer: `Diverges — the integral has no finite value (unbounded at ${variable} = ${at})`,
     steps: [
-      `Evaluate the definite integral ${notation}.`,
-      `The integrand blows up at the endpoint ${variable} = ${at}, so this is an improper integral: it means lim (t→${at}) of the integral over the rest of the interval.`,
+      `Evaluate the definite integral ${mark(notation)}.`,
+      `The integrand blows up at the endpoint ${mark(`${variable} = ${at}`)}, so this is an improper integral: it means ${mark(`lim (t→${at})`)} of the integral over the rest of the interval.`,
       'That limit does not exist as a finite number — the area grows without bound — so the integral diverges.',
     ],
     tips: [
@@ -1402,14 +1402,14 @@ function refuseImproperAt(notation, variable, at, integrand) {
 function refuseImproper(notation, variable) {
   return unsupported({
     steps: [
-      `Evaluate the definite integral ${notation}.`,
+      `Evaluate the definite integral ${mark(notation)}.`,
       'The integrand is unbounded somewhere in the interval, so this is an improper integral: it must be split at the singularity and each piece taken as a one-sided limit.',
       'MasterMath could not locate the singularity precisely or evaluate those one-sided limits reliably here, so it does not report a value rather than apply F(b) − F(a) across the break.',
     ],
     answer: 'Improper integral — MasterMath could not evaluate the one-sided limits at the singularity',
     tips: [
       `Split the integral at the discontinuity and take one-sided limits to test convergence.`,
-      `For example, ∫ 1/${variable} over an interval containing 0 diverges — it has no finite value.`,
+      `For example, ${mark(`∫ 1/${variable}`)} over an interval containing ${mark('0')} diverges — it has no finite value.`,
     ],
     common_mistakes: [
       'Blindly applying F(b) − F(a) across a vertical asymptote — that gives a confident but meaningless number.',
@@ -1509,12 +1509,12 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
     const reversed = b < a;
     const ordered = `∫_${loEnd.label}^${hiEnd.label}`;
     const innerBounds = `∫_${singularLo ? 's' : loEnd.label}^${singularHi ? 't' : hiEnd.label}`;
-    const why = singularEnds.map((e) => `${v} = ${e.label} (the integrand → ${infinity(e.integrandSign)} as ${v} → ${e.label}${e.side})`).join(' and at ');
+    const why = singularEnds.map((e) => `${mark(`${v} = ${e.label}`)} (the integrand → ${mark(infinity(e.integrandSign))} as ${mark(`${v} → ${e.label}${e.side}`)})`).join(' and at ');
     const steps = [
-      `Evaluate the definite integral ${notation}.`,
-      `The integrand ${beautify(integrand)} is undefined at the endpoint ${why}, so this is an improper integral. The Fundamental Theorem cannot be applied at that point; instead the integral is defined as a limit: ${ordered} = ${limitNotation} ${innerBounds} (${beautify(integrand)}) d${v}.${reversed ? ` (The bounds are written in reverse order: ${notation.replace(/ \(.*$/, '')} = −${ordered}.)` : ''}`,
-      `Find the antiderivative: F(${v}) = ${lnify(F)}.`,
-      `Inside the interval the Fundamental Theorem applies: ${innerBounds} = F(${singularHi ? 't' : hiEnd.label}) − F(${singularLo ? 's' : loEnd.label}) = ${singularHi ? FofT('t') : (hiEnd.exact ? formatExactValue(hiEnd.exact) : formatNumber(hiEnd.numeric))} − (${singularLo ? FofT('s') : (loEnd.exact ? formatExactValue(loEnd.exact) : formatNumber(loEnd.numeric))}).`,
+      `Evaluate the definite integral ${mark(notation)}.`,
+      `The integrand ${mark(beautify(integrand))} is undefined at the endpoint ${why}, so this is an improper integral. The Fundamental Theorem cannot be applied at that point; instead the integral is defined as a limit: ${mark(`${ordered} = ${limitNotation} ${innerBounds} (${beautify(integrand)}) d${v}`)}.${reversed ? ` (The bounds are written in reverse order: ${mark(`${notation.replace(/ \(.*$/, '')} = −${ordered}`)}.)` : ''}`,
+      `Find the antiderivative: ${mark(`F(${v}) = ${lnify(F)}`)}.`,
+      `Inside the interval the Fundamental Theorem applies: ${mark(`${innerBounds} = F(${singularHi ? 't' : hiEnd.label}) − F(${singularLo ? 's' : loEnd.label}) = ${singularHi ? FofT('t') : (hiEnd.exact ? formatExactValue(hiEnd.exact) : formatNumber(hiEnd.numeric))} − (${singularLo ? FofT('s') : (loEnd.exact ? formatExactValue(loEnd.exact) : formatNumber(loEnd.numeric))})`)}.`,
     ];
 
     const shownSamples = (e) => e.samples.slice(0, 4).map((y) => formatNumber(y)).join(', ');
@@ -1522,7 +1522,7 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
     if (divergent) {
       const finiteSamples = divergent.samples.filter(Number.isFinite);
       const direction = finiteSamples.length >= 2 ? infinity(Math.sign(finiteSamples[finiteSamples.length - 1] - finiteSamples[finiteSamples.length - 2])) : 'infinity';
-      steps.push(`Take the limit: as ${divergent.symbol} → ${divergent.label}${divergent.side}, F(${divergent.symbol}) → ${direction} (samples: ${shownSamples(divergent)}, …), so the limit is not a finite number.`);
+      steps.push(`Take the limit: as ${mark(`${divergent.symbol} → ${divergent.label}${divergent.side}`)}, ${mark(`F(${divergent.symbol}) → ${direction}`)} (samples: ${mark(`${shownSamples(divergent)}, …`)}), so the limit is not a finite number.`);
       steps.push('The integral diverges — the area under the curve near that endpoint is infinite.');
       return diverges({
         input: notation,
@@ -1570,7 +1570,7 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
     }
 
     for (const e of singularEnds) {
-      steps.push(`Take the limit: as ${e.symbol} → ${e.label}${e.side}, F(${e.symbol}) → ${formatExactValue(e.exact)} (samples: ${shownSamples(e)}, …). The limit is finite, so the integral converges.`);
+      steps.push(`Take the limit: as ${mark(`${e.symbol} → ${e.label}${e.side}`)}, ${mark(`F(${e.symbol}) → ${formatExactValue(e.exact)}`)} (samples: ${mark(`${shownSamples(e)}, …`)}). The limit is finite, so the integral converges.`);
     }
     const display = (raw, value) => {
       const shown = formatExactValue(raw);
@@ -1578,7 +1578,7 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
       return /^-?\d+$/.test(raw.replace(/\s/g, '')) || shown === approx ? shown : `${shown} (≈ ${approx})`;
     };
     const pieces = `${hiEnd.exact ? formatExactValue(hiEnd.exact) : formatNumber(hiEnd.numeric)} − (${loEnd.exact ? formatExactValue(loEnd.exact) : formatNumber(loEnd.numeric)})`;
-    steps.push(`So ${ordered} = ${pieces} = ${display(exactRaw, exactValue)}.`);
+    steps.push(`So ${mark(`${ordered} = ${pieces} = ${display(exactRaw, exactValue)}`)}.`);
     let signed = exactValue;
     let valueText = display(exactRaw, exactValue);
     if (reversed) {
@@ -1589,9 +1589,9 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
         if (!isAlgebriteFailure(out)) negRaw = out;
       } catch { /* numeric */ }
       valueText = display(negRaw || exactValueToRaw(signed), signed);
-      steps.push(`Reversing the bounds changes the sign: ${notation.replace(/ \(.*$/, '')} = −${ordered} = ${valueText}.`);
+      steps.push(`Reversing the bounds changes the sign: ${mark(`${notation.replace(/ \(.*$/, '')} = −${ordered} = ${valueText}`)}.`);
     }
-    steps.push(`Checked numerically with a mesh graded toward the singular endpoint: ≈ ${formatNumber(reversed ? -check : check)}.`);
+    steps.push(`Checked numerically with a mesh graded toward the singular endpoint: ${mark(`≈ ${formatNumber(reversed ? -check : check)}`)}.`);
 
     return {
       steps,
@@ -1688,11 +1688,11 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
         reason: `The integrand ${beautify(integrand)} is unbounded at ${v} = ${cShown}, inside the interval, and its antiderivative has no finite one-sided limit there — this improper integral diverges (it has no finite value).`,
         answer: `Diverges — the integral has no finite value (unbounded at ${v} = ${cShown} inside the interval)`,
         steps: [
-          `Evaluate the definite integral ${notation}.`,
-          `The integrand has a vertical asymptote at ${v} = ${cShown}, strictly between the bounds, so this is an improper integral. Split it there, each piece taken as a one-sided limit: ${splitText}.`,
-          `Antiderivative: F(${v}) = ${lnify(F)}.`,
-          `Left piece, ∫_{${lowerLabel}}^{${cShown}} = lim (s→${cShown}⁻) [F(s) − F(${lowerLabel})]: as s → ${cShown}⁻, F(s) → ${Number.isFinite(Lminus) ? formatNumber(Lminus) : runsTo(-1)} (samples: ${shownLadder(-1)}), so this piece ${Number.isFinite(Lminus) ? 'converges' : 'has no finite value'}.`,
-          `Right piece, ∫_{${cShown}}^{${upperLabel}} = lim (t→${cShown}⁺) [F(${upperLabel}) − F(t)]: as t → ${cShown}⁺, F(t) → ${Number.isFinite(Lplus) ? formatNumber(Lplus) : runsTo(1)} (samples: ${shownLadder(1)}), so this piece ${Number.isFinite(Lplus) ? 'converges' : 'has no finite value'}.`,
+          `Evaluate the definite integral ${mark(notation)}.`,
+          `The integrand has a vertical asymptote at ${mark(`${v} = ${cShown}`)}, strictly between the bounds, so this is an improper integral. Split it there, each piece taken as a one-sided limit: ${mark(splitText)}.`,
+          `Antiderivative: ${mark(`F(${v}) = ${lnify(F)}`)}.`,
+          `Left piece, ${mark(`∫_{${lowerLabel}}^{${cShown}} = lim (s→${cShown}⁻) [F(s) − F(${lowerLabel})]`)}: as ${mark(`s → ${cShown}⁻`)}, ${mark(`F(s) → ${Number.isFinite(Lminus) ? formatNumber(Lminus) : runsTo(-1)}`)} (samples: ${mark(shownLadder(-1))}), so this piece ${Number.isFinite(Lminus) ? 'converges' : 'has no finite value'}.`,
+          `Right piece, ${mark(`∫_{${cShown}}^{${upperLabel}} = lim (t→${cShown}⁺) [F(${upperLabel}) − F(t)]`)}: as ${mark(`t → ${cShown}⁺`)}, ${mark(`F(t) → ${Number.isFinite(Lplus) ? formatNumber(Lplus) : runsTo(1)}`)} (samples: ${mark(shownLadder(1))}), so this piece ${Number.isFinite(Lplus) ? 'converges' : 'has no finite value'}.`,
           'The one-sided improper integrals do not both converge, so the integral diverges.',
           ...(principalValueNote(integrand, v, c, lo, hi)),
         ],
@@ -1714,12 +1714,12 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
     const valueText = formatNumber(signed);
     return {
       steps: [
-        `Evaluate the definite integral ${notation}.`,
-        `The integrand has a vertical asymptote at ${v} = ${cShown}, strictly between the bounds, so this is an improper integral. Split it there and take one-sided limits: ${splitText}.`,
-        `Antiderivative: F(${v}) = ${lnify(F)}.`,
-        `Both one-sided limits of F exist: F(${v}) → ${formatNumber(Lminus)} as ${v} → ${cShown}⁻ and → ${formatNumber(Lplus)} as ${v} → ${cShown}⁺, so each piece converges.`,
-        `Add the pieces: (${formatNumber(Lminus)} − ${formatNumber(Fa)}) + (${formatNumber(Fb)} − ${formatNumber(Lplus)}) = ${valueText}.`,
-        `Verified numerically (Simpson's rule on each side): ≈ ${formatNumber(check)}.`,
+        `Evaluate the definite integral ${mark(notation)}.`,
+        `The integrand has a vertical asymptote at ${mark(`${v} = ${cShown}`)}, strictly between the bounds, so this is an improper integral. Split it there and take one-sided limits: ${mark(splitText)}.`,
+        `Antiderivative: ${mark(`F(${v}) = ${lnify(F)}`)}.`,
+        `Both one-sided limits of ${mark('F')} exist: ${mark(`F(${v}) → ${formatNumber(Lminus)}`)} as ${mark(`${v} → ${cShown}⁻`)} and ${mark(`→ ${formatNumber(Lplus)}`)} as ${mark(`${v} → ${cShown}⁺`)}, so each piece converges.`,
+        `Add the pieces: ${mark(`(${formatNumber(Lminus)} − ${formatNumber(Fa)}) + (${formatNumber(Fb)} − ${formatNumber(Lplus)}) = ${valueText}`)}.`,
+        `Verified numerically (Simpson's rule on each side): ${mark(`≈ ${formatNumber(check)}`)}.`,
       ],
       answer: `${notation} = ${valueText}`,
       verified: true,
@@ -1749,7 +1749,7 @@ function principalValueNote(integrand, v, c, lo, hi) {
     return Number.isFinite(l) && Number.isFinite(r) && Math.abs(l + r) < 1e-9 * (1 + Math.abs(r));
   });
   if (!odd) return [];
-  return [`(Because the integrand is odd about ${v} = ${formatNumber(c)} and the interval is symmetric, the two pieces cancel if they are cut off at the same distance ε on each side: that symmetric limit, the Cauchy principal value, is 0. It is not the value of the improper integral, which does not exist.)`];
+  return [`(Because the integrand is odd about ${mark(`${v} = ${formatNumber(c)}`)} and the interval is symmetric, the two pieces cancel if they are cut off at the same distance ${mark('ε')} on each side: that symmetric limit, the Cauchy principal value, is ${mark('0')}. It is not the value of the improper integral, which does not exist.)`];
 }
 
 // Graph f(x) with the integration interval [a, b] shaded — the definite
