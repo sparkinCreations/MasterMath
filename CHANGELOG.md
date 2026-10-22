@@ -59,6 +59,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   many and moves step by step), as is the Progress history (each entry's
   topic and date belong to its problem). Example buttons are named by the
   typed problem. See docs/ACCESSIBILITY.md.
+- **Screen readers announced some controls twice.** The graph controls and
+  the Symbols buttons had an aria-label and a tooltip with the same text,
+  which Chrome passes on as a description ("Zoom in, button, Zoom in");
+  the tooltip is now their only name. The typeset example buttons exposed
+  their maths after their name; it is hidden from assistive tech. The
+  selected angle unit in Settings carried the description shown below it.
+  An audit of every page and state (menus, dialogs, the topic list, the
+  phone navigation) found nothing else, and the a11y spec now checks.
 - **"x*y = 1" was answered "1", marked Solved**, and so were x + y = 1
   (1), x − y = 0 (0) and x/y = 2 (2): a y after an operator was read as the
   start of a definition "y = …". Each now solves for x (x = 1/y, x = −y + 1,

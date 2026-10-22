@@ -335,13 +335,16 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
               type="button"
               onClick={() => loadExample(ex)}
               // The card shows the example typeset; clicking puts the typed
-              // form in the box. Its accessible name is that typed form, not
-              // KaTeX's MathML flattened into a button name.
+              // form in the box. Its accessible name is that typed form, and
+              // the card's content is hidden from assistive tech, so the
+              // problem is announced once, not again as MathML.
               aria-label={`${TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}: ${ex.problem}`}
               className={`text-left p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
             >
-              <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
-              <span className="text-gray-700 dark:text-gray-300"><MathText mode="input" text={readPlainEnglish(ex.problem)} /></span>
+              <span aria-hidden="true">
+                <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
+                <span className="text-gray-700 dark:text-gray-300"><MathText mode="input" text={readPlainEnglish(ex.problem)} /></span>
+              </span>
             </button>
           ))}
         </div>

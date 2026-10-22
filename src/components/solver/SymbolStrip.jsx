@@ -36,7 +36,8 @@ export default function SymbolStrip({ id, group, onGroupChange, onInsert }) {
           <button
             key={symbol.key}
             type="button"
-            aria-label={symbol.label}
+            // The tooltip is the name: an aria-label with the same text made
+            // Chrome pass the title on as a description, read a second time.
             title={symbol.label}
             // Keep the caret in the textarea: a mousedown would move focus to
             // the button and lose the selection the insertion is based on.

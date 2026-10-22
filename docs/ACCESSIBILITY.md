@@ -73,6 +73,16 @@ the history list were typeset) the tree was read again:
   its problem. It is a list, one item per problem.
 - **Tips and mistakes** carry MathML for their formulas, like the steps.
 
+- **Double announcements**: every page and state (the topic list, the
+  Symbols strip, the notation guide, a solution with its graph, the export
+  menus, the clear-history dialog, step-through, the phone navigation) was
+  checked for a control announced twice. Three were: the graph controls
+  and Symbols buttons (an aria-label and an identical title, which Chrome
+  passes on as a description), the typeset example buttons (their MathML
+  after their name), and the selected angle unit in Settings (its tooltip
+  repeated the text below it). All fixed; "nothing on the Solver or
+  Settings is announced twice" in the a11y spec keeps it so.
+
 `e2e/a11y.spec.js` ("typeset maths for screen readers") checks that every
 KaTeX run on the page has MathML and a hidden visual layer, the button
 names, both lists, and audits Progress with history in both themes.

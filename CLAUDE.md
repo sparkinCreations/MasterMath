@@ -283,6 +283,10 @@ choosing a version number: releases land from other sessions and PRs.
 - Dark mode support on every component; respect `prefers-reduced-motion`;
   a `Button` variant without its own text colours (`VARIANT_CLASS` in
   `components/ui/button.jsx`) inherits black in dark mode;
-  every page sets its title; icon-only controls carry `aria-label`.
+  every page sets its title; icon-only controls carry `aria-label`, or a
+  `title` that is their name — never both with the same text (Chrome passes
+  the title on as a description, read a second time). A control named by
+  `aria-label` hides its visual content (`aria-hidden`), so it is announced
+  once; `e2e/a11y.spec.js` checks for double announcements.
 - UI must never look AI-powered: Calculator icon, "Calculating…", keep the
   "not AI" disclaimers.
