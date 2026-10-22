@@ -97,19 +97,6 @@ test.describe('MasterMath smoke', () => {
     expect(loads, 'the first visit reloaded itself').toBe(1);
   });
 
-  test('the Solver, Progress and Settings pages leave the maths libraries to the solver worker', async ({ page }) => {
-    // The pages need only the history store (problemHistory.js). Importing it
-    // from api.js, the solve router, pulled mathjs (79 kB gzipped) onto the
-    // main thread of all three until 1.52.1. The worker's own downloads are
-    // not in the page's resource timeline, so this sees the page alone.
-    for (const route of ['/solver', '/progress', '/settings']) {
-      await page.goto(route);
-      await page.waitForLoadState('networkidle');
-      const fetched = await page.evaluate(() => performance.getEntriesByType('resource').map((r) => r.name));
-      expect(fetched.filter((h) => /\/assets\/(mathjs|algebrite)-/.test(h)), route).toEqual([]);
-    }
-  });
-
   for (const ex of EXAMPLES) {
     test(`solves the ${ex.label.split(':')[0]} example`, async ({ page }) => {
       await openSolver(page);

@@ -211,7 +211,9 @@ the worker load.
 
 The maths libraries load in the solver worker, never on a page's main
 thread: a page that imports `api.js` (even for one helper) pulls mathjs in
-with it. The smoke test checks /solver, /progress and /settings. Images
+with it. `tests/buildPreload.test.js` walks the static import graph of the
+Solver, Progress and Settings chunks. (Resource timing cannot tell: a module
+worker's imports show up in the page's list too.) Images
 shown in the UI use `logo-192.png` (23 kB); `favicon.png` is the 500 px
 original for the manifest only, the tab uses `favicon-32.png`. The route
 placeholder (`RouteFallback`) is a screen tall so the footer never jumps.

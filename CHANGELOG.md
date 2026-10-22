@@ -36,8 +36,8 @@ first; measured on a throttled phone and on desktop).
   `Cache-Control: public, max-age=31536000, immutable`. (Returning visitors
   were already served from the service worker's cache; this removes the
   revalidation requests and helps before the worker installs.)
-- A smoke test checks that the Solver, Progress and Settings pages fetch no
-  maths library on the main thread.
+- The build test walks the Solver, Progress and Settings chunks' static
+  imports and fails if any reaches mathjs or Algebrite.
 
 ## [1.52.0] - 2026-10-22
 
