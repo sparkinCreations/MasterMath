@@ -26,7 +26,7 @@ src/
   pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback, NotFound (the `*` route)
   components/solver/           ProblemInput (+ SymbolStrip: one-tap symbols from lib/symbolInsert.js, a live KaTeX preview, and the NotationGuide dialog), SolutionDisplay, GraphViewer, GraphEmptyState
   components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
-  components/MathText.jsx      KaTeX rendering of solver text (lib/latex.js typesets ⟦…⟧-marked math exactly; unmarked text by clause heuristics)
+  components/MathText.jsx      KaTeX rendering of solver text (lib/mathRender.js, shared with the PDF; lib/latex.js typesets ⟦…⟧-marked math exactly, unmarked text by clause heuristics)
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
   hooks/                       usePageTitle, useServiceWorker
   lib/
@@ -38,7 +38,9 @@ src/
     settings.js                angleUnit, decimalPlaces (localStorage, or primed by message in the worker)
     solutionEnvelope.js        typed result statuses: solved / parse_error / unsupported / undefined / indeterminate / diverges / overflow
     mathInstance.js            mathjs built from an explicit dependency list (tree-shaken)
-    graphSampling.js, graphDescription.js, latex.js, exportUtils.js, indexedDB.js, reveal.js
+    graphSampling.js, graphDescription.js, latex.js, mathRender.js, exportUtils.js, indexedDB.js, reveal.js
+    pdfTypeset.js              the solution PDF: typeset sheet + graph → html2canvas-pro page images + invisible text layer
+    graphPalette.js            the graph's light/dark colours (GraphViewer) and the PDF's dark→light recolouring
     solverPrefs.js             solution mode (step-through default), last topic, the bare-expression nudge
     solvers/                   one module per topic (below) + solverUtils.js shared helpers
 tests/        node --test unit suite; tests/corpus/harness.mjs grades the evaluation corpora
@@ -167,7 +169,26 @@ so the page still scrolls); the tooltip names series as `f'(x)`, never by
 the whole expression. Vertical-line and marker
 labels are drawn inside the plot by `LineLabels`/`PointLabel` — never
 Recharts' `position: 'top'`, which is clipped. Every graph gets a text
-description (`graphDescription.js`).
+description (`graphDescription.js`). Theme colours come from
+`graphPalette.js`, never inline hex: the PDF recolours a dark-mode copy of
+the SVG by mapping that palette.
+
+## Exports
+
+Markdown, JSON and CSV are UTF-8 text (`exportUtils.js`, markers stripped).
+A solution's PDF is typeset (`pdfTypeset.js`): an off-screen light sheet of
+KaTeX HTML (`mathRender.js`, the same renderer as the page) and the graph's
+SVG, captured page by page with html2canvas-pro (pages break between
+blocks), placed as JPEG images with each block's words as invisible text
+for search. Any failure falls back to the plain-text jsPDF document
+(`pdfSafe` transliterates to Latin-1). The smoke test opens the PDF (light
+and dark, desktop and phone). html2canvas-pro is pinned at 2.5.0: 2.5.1+
+declares `node >= 24` and CI/Netlify run 22. The original html2canvas is
+not used directly: it measures font baselines in a box that inherits the
+page's line-height (KaTeX drew low) and cannot parse `oklch()`. KaTeX and
+html2canvas-pro have their own chunk groups in `vite.config.js`; with two
+owners each they would otherwise land in `shared`, which every solve and
+the worker load.
 
 ## Security and privacy
 

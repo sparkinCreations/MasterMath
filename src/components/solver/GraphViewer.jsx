@@ -5,6 +5,7 @@ import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, Chev
 import { Button } from "@/components/ui/button";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
+import { graphPalette } from "@/lib/graphPalette";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
 import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, niceTicks, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
 
@@ -313,19 +314,21 @@ export default function GraphViewer({ functionData }) {
     setDragging(false);
   };
 
-  // Theme-aware colors
-  const gridColor = isDarkMode ? '#374151' : '#c7d2fe';
-  const axisColor = isDarkMode ? '#9ca3af' : '#4f46e5';
-  const axisLineColor = isDarkMode ? '#4b5563' : '#cbd5e1';
-  const tooltipBg = isDarkMode ? '#1f2937' : 'white';
-  const tooltipBorder = isDarkMode ? '#4b5563' : '#c7d2fe';
-  const tooltipText = isDarkMode ? '#e5e7eb' : '#1f2937';
+  // Theme-aware colors (lib/graphPalette.js; the PDF export recolours a
+  // dark-mode copy of this SVG to the light palette)
+  const palette = graphPalette(isDarkMode);
+  const gridColor = palette.grid;
+  const axisColor = palette.axis;
+  const axisLineColor = palette.axisLine;
+  const tooltipBg = palette.tooltipBg;
+  const tooltipBorder = palette.tooltipBorder;
+  const tooltipText = palette.tooltipText;
   const descBg = isDarkMode ? '' : 'from-blue-50 to-indigo-50';
   const descBorder = isDarkMode ? 'border-gray-600' : 'border-indigo-200';
-  const extremumColor = isDarkMode ? '#818cf8' : '#4f46e5';
+  const extremumColor = palette.extremum;
   const interceptColor = '#10b981';
-  const asymptoteColor = isDarkMode ? '#f87171' : '#ef4444';
-  const markerStroke = isDarkMode ? '#1f2937' : '#ffffff';
+  const asymptoteColor = palette.asymptote;
+  const markerStroke = palette.markerStroke;
   const secondaryColor = '#10b981';
   const secondaryAxisName = functionData?.secondaryLabel ? functionData.secondaryLabel.split('=')[0].trim() : 'secondary';
 
@@ -402,6 +405,7 @@ export default function GraphViewer({ functionData }) {
         <div
           role="img"
           aria-label={chartLabel}
+          data-export-graph
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -636,10 +640,8 @@ export default function GraphViewer({ functionData }) {
 
               <defs>
                 <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
-                  {/* Lighter stops on the dark card: blue-600/indigo-600 measured
-                      2.3:1 there; blue-400/indigo-400 are about 5:1. */}
-                  <stop offset="0%" stopColor={isDarkMode ? '#60a5fa' : '#3b82f6'} />
-                  <stop offset="100%" stopColor={isDarkMode ? '#818cf8' : '#4f46e5'} />
+                  <stop offset="0%" stopColor={palette.gradientFrom} />
+                  <stop offset="100%" stopColor={palette.gradientTo} />
                 </linearGradient>
               </defs>
             </LineChart>

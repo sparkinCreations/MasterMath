@@ -85,6 +85,13 @@ const CHUNK_GROUPS = [
   { name: 'mathjs', priority: 20, test: /node_modules\/mathjs\// },
   { name: 'charts', priority: 20, test: /node_modules\/(recharts|d3-[a-z-]+)\// },
   { name: 'pdf', priority: 20, test: /node_modules\/jspdf\// },
+  // html2canvas-pro: the typeset PDF's renderer (pdfTypeset.js). jsPDF's own
+  // optional html2canvas stays in the lazy chunk jsPDF loads it into.
+  { name: 'html2canvas-pro', priority: 20, test: /node_modules\/html2canvas-pro\// },
+  // KaTeX: the Solver page and the typeset PDF both render math. Two owners,
+  // so without its own group it would land in `shared`, which the solver
+  // chunks and the worker load.
+  { name: 'katex', priority: 20, test: /node_modules\/katex\// },
   // Anything else from node_modules that two or more chunks share goes to
   // its own small chunk:
   // Babel runtime helpers, small utilities. Single-owner dependencies
@@ -94,7 +101,7 @@ const CHUNK_GROUPS = [
     priority: 25,
     // Never a heavy library's own file — those belong to their group even when
     // several solver chunks share them; only the small stuff around them.
-    test: /node_modules\/(?!(?:react|react-dom|react-router|react-router-dom|scheduler|recharts|d3-|mathjs|algebrite|jspdf)(?:\/|-))/,
+    test: /node_modules\/(?!(?:react|react-dom|react-router|react-router-dom|scheduler|recharts|d3-|mathjs|algebrite|jspdf|html2canvas|katex)(?:\/|-))/,
     minShareCount: 2,
     includeDependenciesRecursively: false,
   },

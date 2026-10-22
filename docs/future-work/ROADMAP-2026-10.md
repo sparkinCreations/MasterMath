@@ -51,7 +51,7 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P1~~ | ~~Typeset every step (explicit math markers)~~ | **Shipped in 1.50.0 and 1.51.0** (every solver) | — |
 | ~~P1~~ | ~~Implicit differentiation~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~`(1 + a/x)^(bx)` limits by a named technique~~ | **Shipped in 1.49.0** | — |
-| P2 | PDF export with typeset steps and the graph | The PDF is plain text: ± as "+/-", x² as x^2, no graph; Markdown and JSON are complete | 1 day |
+| ~~P2~~ | ~~PDF export with typeset steps and the graph~~ | **Shipped in 1.52.0** | — |
 | P3 | Tips chosen by method, everywhere | Reviews still find generic or off-topic tips on some paths | ½ day sweep |
 | P3 | General partial fractions within the budget | `∫ (x+1)/((x−1)²(x²+1)) dx` takes ~115 s, so the app stops it at 10 s (found in 1.51.0; see P1) | ½ day |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
@@ -192,6 +192,19 @@ this family.
 ---
 
 ## P2 — PDF Export With Typeset Steps and the Graph
+
+> **Shipped in 1.52.0.** `pdfTypeset.js` lays the solution out as a light
+> HTML sheet (KaTeX through `mathRender.js`, the page's own renderer, and
+> the graph's SVG recoloured to the light palette), captures it page by
+> page with html2canvas-pro and places the pages as JPEG images, breaking
+> between steps, with every block's words as an invisible text layer. The
+> plain-text PDF remains the fallback. The cubic example: 2 pages, about
+> 550 kB, ± and x² as themselves, the graph on page 2. Measured on the way:
+> html2canvas 1.4 drew KaTeX 2–3 px below the prose (its font baseline is
+> measured in a box with the page's line-height) and threw on Tailwind 4's
+> `oklch()` colours; html2canvas-pro measures on the canvas and parses
+> them. The smoke test opens the PDF in light and dark mode on desktop and
+> phone and checks its pages, images, text layer and size.
 
 **Finding (review 6).** The PDF is plain text: jsPDF's built-in fonts are
 Latin-1, so `exportUtils.js` substitutes "+/-" for ±, "x^2" for x², and

@@ -1,43 +1,17 @@
 import React, { useMemo } from "react";
-import katex from "katex";
 import "katex/dist/katex.min.css";
-import { segmentMathText, toLatex } from "@/lib/latex";
+import { renderMathSegments } from "@/lib/mathRender";
 
-// Renders solver text with embedded math typeset by KaTeX.
-// Fallback discipline: if conversion or KaTeX rendering fails for a segment,
-// that segment renders as the original plain text — output is never worse
-// than the pre-KaTeX presentation.
+// Renders solver text with embedded math typeset by KaTeX
+// (lib/mathRender.js, which the PDF export shares). A segment KaTeX cannot
+// render shows as its original plain text.
 //
 // Accessibility: the output mode must stay "htmlAndMathml" (KaTeX's default).
 // The visual `katex-html` span is marked aria-hidden by KaTeX itself, so an
 // html-only render would leave every expression silent to screen readers —
 // in a math app, that is the entire content.
 export default function MathText({ text, block = false }) {
-  const segments = useMemo(() => {
-    const segs = segmentMathText(text);
-    return segs.map((seg) => {
-      if (seg.type !== "math") return seg;
-      try {
-        const html = katex.renderToString(toLatex(seg.value), {
-          throwOnError: true,
-          displayMode: false,
-          output: "htmlAndMathml",
-          // Set explicitly rather than relying on the KaTeX default. This
-          // rendered HTML is injected with dangerouslySetInnerHTML below, and
-          // it is the app's only HTML sink; `trust: false` is what stops the
-          // HTML-extension commands (\href, \htmlClass, \includegraphics)
-          // from emitting live markup. Raw user input does reach here — a
-          // parse error embeds it in the step text — so the guarantee must be
-          // stated in the code, not inherited from a default a future KaTeX
-          // upgrade or config change could move.
-          trust: false,
-        });
-        return { type: "katex", html };
-      } catch {
-        return { type: "text", value: seg.value };
-      }
-    });
-  }, [text]);
+  const segments = useMemo(() => renderMathSegments(text), [text]);
 
   const Tag = block ? "div" : "span";
   return (

@@ -16,7 +16,7 @@ import path from 'node:path';
 
 // `shared` is the lazy chunk of node_modules code the solver chunks have in
 // common (mathjs's number types); it is heavy too.
-const HEAVY = /(mathjs|algebrite|charts|pdf|html2canvas|purify|shared)-/;
+const HEAVY = /(mathjs|algebrite|charts|pdf|html2canvas|purify|shared|katex)-/;
 
 test('the built landing page preloads none of the heavy library chunks', () => {
   const out = mkdtempSync(path.join(tmpdir(), 'mastermath-build-'));
@@ -33,7 +33,7 @@ test('the built landing page preloads none of the heavy library chunks', () => {
     // The heavy chunks still exist as separate lazy chunks (the policy
     // splits them out rather than inlining them somewhere).
     const assets = readdirSync(path.join(out, 'assets'));
-    for (const name of ['mathjs', 'algebrite', 'charts', 'pdf']) {
+    for (const name of ['mathjs', 'algebrite', 'charts', 'pdf', 'katex', 'html2canvas-pro']) {
       assert.ok(assets.some((f) => f.startsWith(`${name}-`) && f.endsWith('.js')), `no ${name} chunk emitted`);
     }
   } finally {

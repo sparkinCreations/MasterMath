@@ -324,7 +324,7 @@ After solving a problem, you can export that single solution:
 
 | Format | What You Get |
 |--------|-------------|
-| **PDF** | Formatted document with steps, answer, tips (uses jsPDF) |
+| **PDF** | The typeset solution and its graph as shown on screen, printed light, with a searchable text layer (jsPDF + html2canvas-pro; a plain-text PDF if the capture fails) |
 | **Markdown** | `.md` file with structured headings |
 | **JSON** | Raw data file with all solution fields |
 

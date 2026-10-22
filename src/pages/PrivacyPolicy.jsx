@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Last Updated: October 12, 2026
+          Last Updated: October 22, 2026
         </p>
       </div>
 
@@ -208,6 +208,7 @@ export default function PrivacyPolicy() {
             <li><strong>Recharts:</strong> For graph visualization (runs locally in your browser)</li>
             <li><strong>Framer Motion:</strong> For UI animations (runs locally in your browser)</li>
             <li><strong>jsPDF:</strong> For PDF export functionality (runs locally in your browser)</li>
+            <li><strong>KaTeX and html2canvas-pro:</strong> For typesetting the math on screen and in exported PDFs (run locally in your browser)</li>
             <li><strong>Web3Forms:</strong> Used on the Feedback page to submit your feedback messages.
               When you submit feedback, your message and optional contact information are sent to
               Web3Forms, a third-party form processing service. No feedback is sent unless you
