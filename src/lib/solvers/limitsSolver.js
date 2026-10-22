@@ -18,7 +18,7 @@ import {
   mark,
   stripMathMarkers,
 } from './solverUtils.js';
-import { parseError, unsupported } from '../solutionEnvelope.js';
+import { parseError, unsupported, undefinedValue } from '../solutionEnvelope.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
 import { detectTrigAsymptote, EXPLODED_MAGNITUDE } from './trigonometrySolver.js';
 
@@ -252,6 +252,25 @@ export async function solveLimit(expression) {
         ],
         graph: null,
       };
+    }
+
+    // A constant that divides by zero — lim x→0 1/0 — is undefined for every
+    // x, so there is no limit to take. It was answered "∞", marked Solved.
+    if (!hasVariable(func, variable)) {
+      let value;
+      try { value = math.evaluate(func); } catch { value = undefined; }
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        return undefinedValue({
+          input: expression,
+          reason: `${beautify(func)} divides by zero: it is undefined for every ${variable}, so it has no limit`,
+          steps: [
+            `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}.`,
+            `The expression has no ${mark(variable)} in it, and it divides by zero: it is undefined for every ${mark(variable)}, not just near ${mark(displayTarget)}.`,
+            'A limit describes what a function approaches near a point where it is defined around it. Here it is defined nowhere, so the limit does not exist.',
+          ],
+          tips: ['Division by zero is undefined; a limit can only say what happens as a denominator APPROACHES zero (lim x→0 1/x), not when it is zero.'],
+        });
+      }
     }
 
     // A second symbol in the expression — lim h→0 ((x+h)² − x²)/h — cannot

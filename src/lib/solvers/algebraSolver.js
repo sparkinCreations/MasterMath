@@ -1880,6 +1880,21 @@ async function simplifyExpression(expression) {
       ];
     }
   } else {
+    // A polynomial that is already expanded may still factor, and that is
+    // usually what a student typing x^2 - 5x + 6 under Algebra wants: it
+    // was echoed back unchanged (October 2026 review). Both forms are given.
+    const polynomial = !/[a-z]{2,}/i.test(expression) && !/\/\s*(?:\([^)]*[a-z]|[a-z])/i.test(expression) && /[a-z]\s*\^\s*\d/i.test(expression);
+    const factored = polynomial ? await factorExpression(expression) : null;
+    if (factored && !/no simpler factors/.test(factored.answer)) {
+      return {
+        ...factored,
+        steps: [
+          `${mark(beautify(expression))} is already simplified: expanded, with like terms combined. It does factor, though:`,
+          ...factored.steps.slice(1),
+        ],
+        answer: `${beautify(expression)} = ${factored.answer}`,
+      };
+    }
     answer = beautify(expression);
     steps = [`The expression ${beautify(expression)} is already in simplest form.`];
   }

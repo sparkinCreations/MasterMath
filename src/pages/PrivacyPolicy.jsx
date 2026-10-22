@@ -57,7 +57,6 @@ export default function PrivacyPolicy() {
               <li>Solutions and explanations generated for your problems</li>
               <li>Timestamps of when you solved each problem</li>
               <li>Selected topic categories (e.g., Derivatives, Integrals, Algebra)</li>
-              <li>Your dark mode preference</li>
             </ul>
           </div>
 
@@ -69,8 +68,15 @@ export default function PrivacyPolicy() {
               MasterMath also stores the following in your browser's localStorage:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-              <li>Your dark mode preference (light or dark theme)</li>
+              <li>Your theme: light, dark, or follow your device</li>
+              <li>Your solver settings: the angle unit (degrees, radians or automatic) and the number of decimal places</li>
+              <li>How solutions are shown (step through or show all), the last topic you used, and whether the Symbols panel is open</li>
+              <li>A copy of any feedback you send from the Feedback page, so you have a record of it</li>
             </ul>
+            <p className="text-gray-700 dark:text-gray-300 mt-2">
+              While the app is open it may also keep one temporary marker in sessionStorage, used to recover after an
+              update; it is deleted when you close the tab. None of this is sent anywhere.
+            </p>
           </div>
 
           <div>
@@ -116,7 +122,7 @@ export default function PrivacyPolicy() {
             <li>Track your learning progress (total problems solved, weekly activity, topics covered)</li>
             <li>Allow you to review past solutions for study purposes</li>
             <li>Enable export functionality so you can save solutions for offline study</li>
-            <li>Remember your display preferences (dark mode)</li>
+            <li>Remember your settings and display preferences (theme, angle unit, decimal places, how solutions are shown)</li>
           </ul>
         </CardContent>
       </Card>

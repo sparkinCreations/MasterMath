@@ -79,7 +79,9 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    above the steps (with "Switch topic to …", which moves the solved-input
    record with the dropdown so the answer is not cleared) and hides that
    first step; exports and history keep it. A trig function or ° under
-   Arithmetic goes to Trigonometry (angle units live there). A word no engine
+   Arithmetic goes to Trigonometry (angle units live there); a leading
+   factor / expand / simplify / solve goes to Algebra; a constant that
+   divides by zero (and any plain number under Limits) goes to Arithmetic. A word no engine
    knows is a parse error on every path, never a constant: the single-
    expression paths check the extracted expression (`unknownWord`), the
    limit, integral, inequality and system paths the whole problem minus
@@ -267,6 +269,8 @@ choosing a version number: releases land from other sessions and PRs.
 - Topic values: `derivatives`, `integrals`, `limits`, `functions`,
   `trigonometry`, `algebra`, `other` (= Arithmetic).
 - Dark mode support on every component; respect `prefers-reduced-motion`;
+  a `Button` variant without its own text colours (`VARIANT_CLASS` in
+  `components/ui/button.jsx`) inherits black in dark mode;
   every page sets its title; icon-only controls carry `aria-label`.
 - UI must never look AI-powered: Calculator icon, "Calculating…", keep the
   "not AI" disclaimers.

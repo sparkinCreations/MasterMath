@@ -41,6 +41,8 @@ const CONVERTED = [
   // arithmetic
   ['other', '(5 + 3) * 4 - 2^3'], ['other', '3/4 + 5/6'], ['other', '15% of 80'], ['other', '2^10'], ['other', '7!'], ['other', 'sqrt(50)'], ['other', '8/2(2+2)'], ['other', '17 mod 5'], ['other', '1/3 * 3/4'], ['other', '-3^2'],
   // rare integral paths
+  // 1.52.4: a bare polynomial under Algebra shows its factored form; like terms combine in an antiderivative.
+  ['algebra', 'x^2-5x+6'], ['algebra', 'x^3 - x'], ['integrals', 'x + 2x'], ['integrals', '2 + 3'],
   ['integrals', 'e^(-x^2)'], ['integrals', '∫_0^1 1/sqrt(x) dx'], ['integrals', '∫_0^1 1/x dx'], ['integrals', '∫_-1^1 1/x dx'], ['integrals', '∫_-1^1 1/x^2 dx'],
   ['integrals', '1/(x^3 + x)'], ['integrals', '∫_0^∞ e^(-x^2) dx'],
 ];
