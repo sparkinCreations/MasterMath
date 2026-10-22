@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Trash2, Download, ChevronDown } from "lucide-react";
-import { fetchProblemHistory, clearProblemHistory } from "@/lib/api";
+import { fetchProblemHistory, clearProblemHistory } from "@/lib/problemHistory";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { exportAsCSV, exportAsJSON, exportAsMarkdown, exportAsPDF } from "@/lib/exportUtils";

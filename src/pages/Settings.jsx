@@ -18,7 +18,7 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getSettings, saveSettings } from "@/lib/settings";
-import { fetchProblemHistory, clearProblemHistory } from "@/lib/api";
+import { fetchProblemHistory, clearProblemHistory } from "@/lib/problemHistory";
 import { exportAsCSV, exportAsJSON, exportAsMarkdown, exportAsPDF } from "@/lib/exportUtils";
 import {
   DropdownMenu,

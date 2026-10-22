@@ -36,6 +36,28 @@ test('the built landing page preloads none of the heavy library chunks', () => {
     for (const name of ['mathjs', 'algebrite', 'charts', 'pdf', 'katex', 'html2canvas-pro']) {
       assert.ok(assets.some((f) => f.startsWith(`${name}-`) && f.endsWith('.js')), `no ${name} chunk emitted`);
     }
+
+    // The pages that read or write history never reach the maths libraries
+    // through static imports: those load in the solver worker (its own
+    // entry), or on demand. Until 1.52.1 these pages imported the history
+    // functions from api.js, the solve router, and pulled in mathjs (79 kB
+    // gzipped) on the main thread.
+    const staticImports = (file) => [...readFileSync(path.join(out, 'assets', file), 'utf8')
+      .matchAll(/(?:\bimport|\bexport)\s*(?:[\w$*{},\s]*?from\s*)?"\.\/([^"]+\.js)"/g)].map((m) => m[1]);
+    for (const pageName of ['Solver', 'Progress', 'Settings']) {
+      const entry = assets.find((f) => f.startsWith(`${pageName}-`) && f.endsWith('.js'));
+      assert.ok(entry, `no ${pageName} chunk emitted`);
+      const seen = new Set();
+      const queue = [entry];
+      while (queue.length) {
+        const file = queue.pop();
+        if (seen.has(file)) continue;
+        seen.add(file);
+        queue.push(...staticImports(file));
+      }
+      const libraries = [...seen].filter((f) => /^(mathjs|algebrite)-/.test(f));
+      assert.deepEqual(libraries, [], `the ${pageName} page statically imports ${libraries.join(', ')}`);
+    }
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

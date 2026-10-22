@@ -71,7 +71,7 @@ function AppSidebar() {
             screen-reader walk). */}
         <Link to="/" onClick={closeSidebar} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <img
-            src="/favicon.png"
+            src="/logo-192.png"
             alt=""
             aria-hidden="true"
             className="w-12 h-12 rounded-2xl shadow-lg"
@@ -150,7 +150,7 @@ export default function Layout({ children }) {
                 <SidebarTrigger className="text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
                 <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">
                   <img
-                    src="/favicon.png"
+                    src="/logo-192.png"
                     alt=""
                     aria-hidden="true"
                     className="w-8 h-8 rounded-lg shadow-md"
@@ -163,7 +163,7 @@ export default function Layout({ children }) {
                 </Link>
                 <Link to="/" className="flex md:hidden items-center gap-2 hover:opacity-80 transition-opacity">
                   <img
-                    src="/favicon.png"
+                    src="/logo-192.png"
                     alt=""
                     aria-hidden="true"
                     className="w-6 h-6 rounded-lg shadow-md"

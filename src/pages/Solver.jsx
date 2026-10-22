@@ -6,7 +6,7 @@ import { readLastTopic, writeLastTopic, expressionNudge } from "@/lib/solverPref
 import { Lightbulb } from "lucide-react";
 import SolutionDisplay from "@/components/solver/SolutionDisplay";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
-import { createProblemHistory } from "@/lib/api";
+import { createProblemHistory } from "@/lib/problemHistory";
 import { solveWithBudget, warmSolver } from "@/lib/budgetedSolver";
 import { sanitizeInput } from "@/lib/validation";
 import { STATUS, statusLabel, shouldSaveToHistory } from "@/lib/solutionEnvelope";

@@ -46,3 +46,20 @@ test('the companion hardening headers are present', () => {
   assert.equal(headers['X-Frame-Options'], 'DENY');
   assert.ok(headers['Referrer-Policy']);
 });
+
+test('hashed assets are cached for a year, and nothing else is', () => {
+  const blocks = {};
+  let current = null;
+  for (const line of fs.readFileSync(path.resolve(here, '../public/_headers'), 'utf8').split('\n')) {
+    if (!line.trim() || line.trimStart().startsWith('#')) continue;
+    if (!/^\s/.test(line)) { current = line.trim(); blocks[current] = {}; continue; }
+    const colon = line.indexOf(':');
+    blocks[current][line.slice(0, colon).trim()] = line.slice(colon + 1).trim();
+  }
+  assert.equal(blocks['/assets/*']?.['Cache-Control'], 'public, max-age=31536000, immutable');
+  // Only /assets/ carries content hashes: the service worker and the shell
+  // keep Netlify's revalidating default, so every deploy reaches visitors.
+  for (const [pattern, values] of Object.entries(blocks)) {
+    if (pattern !== '/assets/*') assert.equal(values['Cache-Control'], undefined, pattern);
+  }
+});
