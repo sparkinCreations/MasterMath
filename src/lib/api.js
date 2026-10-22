@@ -108,7 +108,8 @@ function isAlgebraUnderArithmetic(problem, topic) {
 function isArithmeticUnderTrigonometry(problem, topic) {
   if (topic !== 'trigonometry') return false;
   const t = String(problem);
-  if (/[a-z=<>≤≥]/i.test(t)) return false;
+  // A degree sign is an angle: "90°" stays (Arithmetic sends it here).
+  if (/[a-z=<>≤≥°]/i.test(t)) return false;
   return /\d/.test(t);
 }
 
@@ -285,6 +286,10 @@ const TOPIC_NAMES = { derivatives: 'Derivatives', integrals: 'Integrals', limits
 function noteRouting(result, from, to, why) {
   if (result && Array.isArray(result.steps) && from !== to) {
     result.steps = [`Solved as ${TOPIC_NAMES[to]} (you chose ${TOPIC_NAMES[from]}): ${why}.`, ...result.steps];
+    // For the page: SolutionDisplay shows this as a notice above the steps
+    // (with a button to switch the topic) instead of the first step above,
+    // which stays for exports and history, where there is no notice.
+    result.routing = { from, to, reason: why };
     // The topic the problem was actually solved under — history and the
     // Progress stats file it there, not under the dropdown's guess.
     result.routedTopic = to;
@@ -597,6 +602,14 @@ export async function solveProblem(problem, topic) {
     if (!calculus && isPlainEquationForAlgebra(problem, topic)) {
       const routed = await solveProblem(problem, 'algebra');
       return noteRouting(routed, topic, 'algebra', 'the input is an equation to solve');
+    }
+    // A trig function or a degree sign under Arithmetic is a Trigonometry
+    // problem: the arithmetic evaluator knows no angle units, so sin(30) was
+    // -0.988 (radians) where the Trigonometry solver and the angle setting
+    // say 1/2, sin(30°) was a syntax error, and sin(pi/6) lost its exact 1/2.
+    if (!calculus && topic === 'other' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan)\s*\(|°/i.test(problem)) {
+      const routed = await solveProblem(problem, 'trigonometry');
+      return noteRouting(routed, topic, 'trigonometry', 'the input uses a trig function, and angles are read with your angle setting there');
     }
     if (!calculus && isAlgebraUnderArithmetic(problem, topic)) {
       const routed = await solveProblem(problem, 'algebra');

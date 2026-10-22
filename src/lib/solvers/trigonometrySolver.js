@@ -15,9 +15,10 @@ import {
   isAlgebriteFailure,
   stripMathMarkers,
   mark,
+  gcd,
 } from './solverUtils.js';
 import { getSettings } from '../settings.js';
-import { parseError, unsupported } from '../solutionEnvelope.js';
+import { parseError, unsupported, solved } from '../solutionEnvelope.js';
 
 const COMMON_DEGREE_VALUES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360];
 
@@ -159,6 +160,47 @@ export async function solveTrigonometry(expression, settingsOverride) {
     // "Undefined symbol x". Route it to the Algebrite simplification path.
     if (hasVariable(expression, variable)) {
       return await simplifyTrigExpression(expression, variable);
+    }
+
+    // Angles with no trig function ("90°", "45° + 30°") ask for a
+    // conversion, not a value: answered in degrees and in radians, exact
+    // (a fraction of π) for any terminating decimal: 22.5° = π/8. It was
+    // "1.5708", unlabelled.
+    if (expression.includes('°') && !/[a-z]/i.test(expression.replace(/\bpi\b/gi, ''))) {
+      const degrees = math.evaluate(expression.replace(/(\d+(?:\.\d+)?)\s*°/g, '($1)'));
+      if (typeof degrees === 'number' && Number.isFinite(degrees)) {
+        const radians = (degrees * Math.PI) / 180;
+        let exact = null;
+        const places = (String(degrees).split('.')[1] || '').length;
+        if (places <= 6 && !/e/i.test(String(degrees))) {
+          const scale = 10 ** places;
+          const p = Math.round(degrees * scale);
+          const g = gcd(Math.abs(p), 180 * scale) || 1;
+          const n = p / g;
+          const d = (180 * scale) / g;
+          exact = n === 0 ? '0' : `${n < 0 ? '-' : ''}${Math.abs(n) === 1 ? '' : Math.abs(n)}π${d === 1 ? '' : `/${d}`}`;
+        }
+        // The degrees exactly as they are ("=" only for an exact value), and
+        // the input as typed when it is a sum: "100° - 10° = 90°".
+        const total = `${Number(degrees.toPrecision(12))}°`;
+        // (The parser has already removed the spaces: put them back around
+        // + and − between angles.)
+        const typed = expression.trim().replace(/\s+/g, '').replace(/(?<=°)([+-])/g, ' $1 ');
+        const sum = typed.replace(/\s+/g, '') === total ? '' : `${typed} = `;
+        const radiansText = exact === '0' ? '0 rad' : exact ? `${exact} rad (≈ ${formatNumber(radians)})` : null;
+        return solved({
+          steps: [
+            ...(sum ? [`Add the angles: ${mark(`${typed} = ${total}`)}.`] : []),
+            `To convert degrees to radians, multiply by ${mark('π/180')} (a half turn is ${mark('180° = π')} radians).`,
+            exact
+              ? `${mark(`${total} × π/180 = ${exact}`)} radians${exact === '0' ? '' : ` ${mark(`≈ ${formatNumber(radians)}`)}`}.`
+              : `${mark(`${total} × π/180 ≈ ${formatNumber(radians)}`)} radians.`,
+          ],
+          answer: radiansText ? `${sum}${total} = ${radiansText}` : `${sum}${total} ≈ ${formatNumber(radians)} rad`,
+          tips: ['Degrees to radians: multiply by π/180. Radians to degrees: multiply by 180/π.', 'Common angles: 30° = π/6, 45° = π/4, 60° = π/3, 90° = π/2, 180° = π.'],
+          common_mistakes: ['Multiplying by 180/π when converting degrees to radians: that goes the other way.'],
+        });
+      }
     }
 
     const steps = [];

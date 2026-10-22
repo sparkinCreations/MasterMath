@@ -455,6 +455,23 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).toContainText(/x = 3/);
   });
 
+  test('a problem solved under another topic says so, and one tap switches the topic without losing the answer', async ({ page }) => {
+    await openSolver(page);
+    await pickExample(page, 'Algebra: 2*x + 5 = 11');
+    await page.getByLabel('Enter your problem').fill('derivative of x^3');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const solution = page.locator('[aria-label="Solution"]');
+    await expect(solution).toContainText('Final Answer:');
+    await expect(solution).toContainText('Solved as Derivatives. Your input uses derivative notation. You had Algebra selected.');
+    // The notice replaces the "Solved as …" first step on screen.
+    await expect(solution.getByText(/^Solved as Derivatives \(you chose/)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Switch topic to Derivatives' }).click();
+    await expect(page.getByRole('combobox').first()).toContainText('Derivatives');
+    await expect(solution).toContainText('Final Answer:');
+    await expect(solution).toContainText('The topic is now Derivatives.');
+    await expect(page.getByRole('button', { name: 'Switch topic to Derivatives' })).toHaveCount(0);
+  });
+
   // October 2026 roadmap P2: the PDF is the typeset solution and the graph
   // (images of the page, pdfTypeset.js) with a searchable text layer — not
   // the plain-text fallback. Dark mode too: the PDF is printed light.
