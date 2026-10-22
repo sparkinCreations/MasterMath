@@ -170,8 +170,14 @@ export async function solveLimit(expression) {
         });
       }
       if (hasVariable(func, variable)) {
+        // The expression itself reads fine — say so, rather than the generic
+        // "Could not read … as a math expression" first step.
         return parseError({
           input: expression,
+          steps: [
+            `${mark(beautify(func))} reads fine as an expression, but no approach point was given.`,
+            `A limit needs one: the same expression has different limits at different points (where does ${mark(variable)} go?).`,
+          ],
           hint: `No approach point was given — a limit needs one (where does ${variable} go?).`,
           tips: ['Write limits like: lim x->0 (sin(x)/x), or (x^2-1)/(x-1) as x approaches 1, or lim x->infinity 1/x.'],
           common_mistakes: ['Leaving out the "x → a" part — the same expression has different limits at different points.'],

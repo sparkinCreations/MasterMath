@@ -20,8 +20,11 @@ test('arithmetic: constant expressions in e and π keep the exact form', async (
   assert.equal((await solveProblem('e', 'other')).answer, 'e ≈ 2.7183');
   assert.equal((await solveProblem('pi/4', 'other')).answer, 'π/4 ≈ 0.7854');
   assert.equal((await solveProblem('2*pi', 'other')).answer, '2π ≈ 6.2832');
-  // but not when a function call is involved — that has its own exact value
-  assert.equal((await solveProblem('sin(pi/6)', 'other')).answer, '0.5');
+  // A trig call is solved as Trigonometry (1.52.3), which gives its exact
+  // value — it was the decimal 0.5 under Arithmetic.
+  const trig = await solveProblem('sin(pi/6)', 'other');
+  assert.equal(trig.answer, '1/2 (≈ 0.5)');
+  assert.equal(trig.routing?.to, 'trigonometry');
 });
 
 test('arithmetic: division by zero is undefined, not ∞', async () => {

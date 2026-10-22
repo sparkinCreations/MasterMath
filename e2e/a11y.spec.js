@@ -123,6 +123,12 @@ for (const scheme of ['light', 'dark']) {
       await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
       await expect(page.getByRole('group', { name: 'Graph view controls' })).toBeVisible();
       await audit(page, `solver with solution and graph (${scheme})`);
+
+      // A routed solve: the "Solved as Derivatives" notice and its button.
+      await page.locator('#problem').fill('derivative of x^3');
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await expect(page.getByRole('button', { name: 'Switch topic to Derivatives' })).toBeVisible();
+      await audit(page, `solver with a routed solution (${scheme})`);
     });
   });
 }

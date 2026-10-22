@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { readSolutionMode, writeSolutionMode } from "@/lib/solverPrefs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, Eye, Footprints } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import MathText from "@/components/MathText";
 import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
@@ -74,10 +74,45 @@ function graphOnScreen() {
   return { svg, label: host.getAttribute('aria-label'), dark: document.documentElement.classList.contains('dark') };
 }
 
-export default function SolutionDisplay({ solution, problem, topic }) {
+// "Solved as Derivatives": the input's own notation chose a different topic
+// from the dropdown (api.js routes by intent). Shown as a notice at the top of
+// the solution, not a toast: it stays beside the answer it explains, can be
+// read again after scrolling, and is part of what a screen reader reads.
+function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
+  const to = TOPIC_LABELS[routing.to] || routing.to;
+  const from = TOPIC_LABELS[routing.from] || routing.from;
+  const reason = String(routing.reason || '').replace(/^the input\b/i, 'Your input');
+  const switched = currentTopic === routing.to;
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
+        <p className="text-gray-800 dark:text-gray-100">
+          <strong>Solved as {to}.</strong>{reason ? ` ${reason.charAt(0).toUpperCase()}${reason.slice(1)}.` : ''}{' '}
+          {switched ? `The topic is now ${to}.` : `You had ${from} selected.`}
+        </p>
+      </div>
+      {!switched && onSwitchTopic && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onSwitchTopic(routing.to)}
+          className="shrink-0 min-h-11 border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-indigo-950 text-indigo-700 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+        >
+          Switch topic to {to}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export default function SolutionDisplay({ solution, problem, topic, currentTopic, onSwitchTopic }) {
   const toast = useToast();
 
-  const steps = solution?.steps || [];
+  // A routed solve's first step is the "Solved as …" line, which the notice
+  // shows instead (it stays in the result for exports and history).
+  const routing = solution?.routing || null;
+  const steps = (routing ? solution.steps.slice(1) : solution?.steps) || [];
   // Step-through for a new visitor (the app teaches the method; the first
   // thing a new user sees is the working unfolding); remembered once chosen.
   const [stepThrough, setStepThroughState] = useState(() => readSolutionMode(globalThis.localStorage) === 'step');
@@ -207,6 +242,7 @@ export default function SolutionDisplay({ solution, problem, topic }) {
           </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
+          {routing && <RoutingNotice routing={routing} currentTopic={currentTopic} onSwitchTopic={onSwitchTopic} />}
           {steps.length > 0 && (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">

@@ -74,7 +74,12 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    (or with "find dy/dx"), which goes to implicit differentiation, checked
    before the differential-equation refusal; two `=` signs go to systems; a comparison operator
    to inequalities; a trailing "at x = a" is stripped first (`extractEvalPoint`).
-   A routed result's first step says so (`routedTopic`). A word no engine
+   A routed result's first step says so (`routedTopic`), and it carries
+   `routing: { from, to, reason }`: the page shows a "Solved as …" notice
+   above the steps (with "Switch topic to …", which moves the solved-input
+   record with the dropdown so the answer is not cleared) and hides that
+   first step; exports and history keep it. A trig function or ° under
+   Arithmetic goes to Trigonometry (angle units live there). A word no engine
    knows is a parse error on every path, never a constant: the single-
    expression paths check the extracted expression (`unknownWord`), the
    limit, integral, inequality and system paths the whole problem minus

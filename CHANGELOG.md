@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.52.3] - 2026-10-22
+
+### Added
+
+- **A notice when a problem is solved as a different topic.** Typing
+  "derivative of x^3" with Algebra selected used to be explained only in
+  the first step. The solution now opens with "Solved as Derivatives. Your
+  input uses derivative notation. You had Algebra selected." and a "Switch
+  topic to Derivatives" button, which changes the topic and keeps the
+  answer. A notice rather than a toast: it stays beside the answer it
+  explains and is read with the solution. Exports keep the "Solved as …"
+  line.
+- An angle on its own is converted: "90°" is "90° = π/2 rad (≈ 1.5708)",
+  "22.5°" is π/8, "45° + 45°" adds first. It was a syntax error, then a bare
+  1.5708.
+
+### Fixed
+
+- **Trig under Arithmetic ignored the angle setting**: sin(30) was −0.988
+  (radians) where Trigonometry says 1/2, sin(30°) was a syntax error, and
+  sin(π/6) lost its exact 1/2. A trig function or a degree sign under
+  Arithmetic is now solved as Trigonometry (with the notice above);
+  "sin(x)" goes there too, not to Algebra.
+- With the angle unit on Radians, sin(30) answered −0.988 (correct) with
+  "Remember: sin(30°) = 1/2" as its first tip, which read as a
+  contradiction. A degree-looking angle (a multiple of 15) read as radians
+  now leads with why: "Here sin(30) is 30 radians (about 1718.9°), not
+  30° … For degrees, write sin(30°) or set the angle unit to Degrees."
+- A limit with no approach point ("x^2 + 3x" under Limits) began "Could not
+  read 'x^2 + 3x' as a math expression"; it now says the expression reads
+  fine and the approach point is missing.
+
 ## [1.52.2] - 2026-10-22
 
 Plain English, as the notation guide promises. Measured on 56 everyday

@@ -87,6 +87,14 @@ export default function Solver() {
     }
   }, [problem, topic, solution, isLoading, solvedInput]);
 
+  // "Switch topic to …" on a routed solution. The answer stays — it was
+  // solved as that topic — so the record of what was solved moves with the
+  // dropdown, and the effect above does not clear it.
+  const switchTopicTo = (to) => {
+    setTopic(to);
+    setSolvedInput((s) => ({ ...s, topic: to }));
+  };
+
   // Start the solver worker now, so its bundle is loading while the user
   // types rather than when they press Solve.
   useEffect(() => { warmSolver(); }, []);
@@ -274,7 +282,13 @@ export default function Solver() {
             </div>
           )}
           <div ref={solutionRef} tabIndex={-1} aria-label="Solution" className="outline-hidden scroll-mt-20 lg:scroll-mt-0">
-            <SolutionDisplay solution={solution} problem={solvedInput.problem} topic={solvedInput.topic} />
+            <SolutionDisplay
+              solution={solution}
+              problem={solvedInput.problem}
+              topic={solvedInput.topic}
+              currentTopic={topic}
+              onSwitchTopic={switchTopicTo}
+            />
           </div>
         </div>
       </div>
