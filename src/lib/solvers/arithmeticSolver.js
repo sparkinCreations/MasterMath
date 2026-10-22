@@ -1,5 +1,11 @@
 import { createMath } from '../mathInstance.js';
-import { math, formatNumber, beautify, gcd, stripMathMarkers } from './solverUtils.js';
+import { math, formatNumber, beautify, gcd, stripMathMarkers, mark } from './solverUtils.js';
+
+// The problem as typed is math (3/4 + 5/6) or a phrase (15% of 80): mark it
+// only when every word in it is a function name, or KaTeX sets the words as
+// italic letters.
+const MATH_NAMES = new Set(['sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'arcsin', 'arccos', 'arctan', 'sqrt', 'ln', 'log', 'exp', 'abs', 'pi', 'mod', 'e']);
+const asMath = (t) => ((String(t).match(/[a-z]{2,}/gi) || []).every((w) => MATH_NAMES.has(w.toLowerCase())) ? mark(t) : t);
 import { parseError, overflow, undefinedValue, indeterminate } from '../solutionEnvelope.js';
 
 // A second mathjs instance that computes in exact rational arithmetic. Where
@@ -64,7 +70,7 @@ export function solveArithmetic(expression) {
         input: original,
         reason: '∞ is not a number',
         steps: [
-          `Evaluate: ${original}`,
+          `Evaluate: ${asMath(original)}`,
           '∞ is not a real number, so it cannot be added to, multiplied or compared in arithmetic. It describes how a limit behaves — growing without bound — not a value.',
         ],
         tips: ['In a limit, ∞ + 1, 2·∞ and ∞² all "equal" ∞ — the quantity still grows without bound. As arithmetic, none of them has a value.'],
@@ -77,7 +83,7 @@ export function solveArithmetic(expression) {
       return undefinedValue({
         input: original,
         reason: 'the modulus is zero',
-        steps: [`Evaluate: ${original}`, 'a mod b asks for the remainder after dividing by b — and dividing by 0 has no value, so neither does the remainder.'],
+        steps: [`Evaluate: ${asMath(original)}`, `${mark('a mod b')} asks for the remainder after dividing by ${mark('b')} — and dividing by ${mark('0')} has no value, so neither does the remainder.`],
         tips: ['A remainder only makes sense for a nonzero divisor.'],
         common_mistakes: ['Reading a mod 0 as a (some calculators return the dividend unchanged).'],
       });
@@ -97,7 +103,7 @@ export function solveArithmetic(expression) {
         return undefinedValue({
           input: original,
           reason: 'the logarithm of 0 is undefined',
-          steps: [`Evaluate: ${original}`, 'ln(0) asks for the power e must be raised to in order to give 0 — and no power of e is 0, so there is no such number.'],
+          steps: [`Evaluate: ${asMath(original)}`, `${mark('ln(0)')} asks for the power ${mark('e')} must be raised to in order to give ${mark('0')} — and no power of ${mark('e')} is ${mark('0')}, so there is no such number.`],
           tips: ['ln(x) → −∞ as x → 0⁺: the values grow more and more negative, but ln(0) itself has no value.', 'The logarithm is only defined for positive numbers.'],
           common_mistakes: ['Reading ln(0) as −∞. Infinity describes how the limit behaves, not the value of ln at 0.'],
         });
@@ -114,7 +120,7 @@ export function solveArithmetic(expression) {
           input: original,
           reason: 'division by zero',
           steps: [
-            `Evaluate: ${original}`,
+            `Evaluate: ${asMath(original)}`,
             'This expression divides by zero. No number multiplied by 0 gives a nonzero result, so the quotient has no value.',
           ],
           tips: [
@@ -128,32 +134,32 @@ export function solveArithmetic(expression) {
         return overflow({ input: original });
       }
     }
-    const steps = [`Evaluate: ${original}`, ...rootNotes];
+    const steps = [`Evaluate: ${asMath(original)}`, ...rootNotes];
     // n! spelled out, so 7! = 5040 is not a bare fact.
     for (const m of cleaned.matchAll(/(?<![\d.])(\d{1,2})!/g)) {
       const n = Number(m[1]);
       if (n >= 2 && n <= 12) {
         const factors = Array.from({ length: n }, (_, i) => n - i);
-        steps.push(`${n}! means the product of every whole number from ${n} down to 1: ${factors.join(' × ')} = ${formatNumber(factors.reduce((a, b) => a * b, 1))}.`);
+        steps.push(`${mark(`${n}!`)} means the product of every whole number from ${mark(n)} down to ${mark('1')}: ${mark(`${factors.join(' × ')} = ${formatNumber(factors.reduce((a, b) => a * b, 1))}`)}.`);
       } else if (n < 2) {
-        steps.push(`${n}! = 1 by definition (the empty product), so that formulas for counting work at the edges.`);
+        steps.push(`${mark(`${n}! = 1`)} by definition (the empty product), so that formulas for counting work at the edges.`);
       }
     }
     // 0^0 is a convention, not a computation. Say so rather than presenting
     // "1" as if it were forced.
     const zeroToZero = raisesZeroToZero(cleaned);
     if (zeroToZero) {
-      steps.push('0^0 has no single forced value: x^0 = 1 for every other x, but 0^y = 0 for every positive y.');
-      steps.push('This calculator follows the usual convention 0^0 = 1 (it is what makes the binomial theorem and power series work). In a limit, 0^0 is an indeterminate form.');
+      steps.push(`${mark('0^0')} has no single forced value: ${mark('x^0 = 1')} for every other ${mark('x')}, but ${mark('0^y = 0')} for every positive ${mark('y')}.`);
+      steps.push(`This calculator follows the usual convention ${mark('0^0 = 1')} (it is what makes the binomial theorem and power series work). In a limit, ${mark('0^0')} is an indeterminate form.`);
     }
     // A complex result (sqrt(-1), ln(-1)) has no real value; name what is shown.
     if (result && typeof result === 'object' && 'im' in result && Math.abs(result.im) > 0) {
-      steps.push('There is no real number here — the result is a complex number, written with i = √(−1).');
+      steps.push(`There is no real number here — the result is a complex number, written with ${mark('i = √(−1)')}.`);
     }
     if (/%/.test(original) && cleanedBase !== original) {
-      steps.push(`Percent means "per hundred": rewrite ${original} as ${cleanedBase}.`);
+      steps.push(`Percent means "per hundred": rewrite ${asMath(original)} as ${mark(cleanedBase)}.`);
     } else if (cleanedBase !== original) {
-      steps.push(`Reading "x" between numbers as multiplication: ${cleanedBase}.`);
+      steps.push(`Reading "x" between numbers as multiplication: ${mark(cleanedBase)}.`);
     }
 
     // Show the real reduction by collapsing the innermost parentheses one at a
@@ -181,7 +187,7 @@ export function solveArithmetic(expression) {
       const substitution = asFraction || Number(value) < 0 ? `(${shown})` : shown;
       const next = working.slice(0, match.index) + substitution + working.slice(match.index + match[0].length);
       if (next === working) break;
-      steps.push(`Work inside the parentheses: ${match[0]} = ${shown}  →  ${next}`);
+      steps.push(`Work inside the parentheses: ${mark(`${match[0]} = ${shown}  →  ${next}`)}`);
       working = next;
     }
 
@@ -199,7 +205,7 @@ export function solveArithmetic(expression) {
     }
 
     const shownAnswer = formatArithmeticResult(result, cleaned) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
-    steps.push(`Final answer: ${shownAnswer}`);
+    steps.push(`Final answer: ${mark(shownAnswer)}`);
 
     const guidance = fractionWork || arithmeticGuidance(steps, cleaned);
     return {
@@ -316,7 +322,7 @@ function reduceStep(n, d, steps) {
   const g = gcd(n, d);
   if (g <= 1) return { n, d };
   const reduced = { n: n / g, d: d / g };
-  steps.push(`Reduce by the common factor ${g}: ${fractionText({ n, d })} = ${fractionText(reduced)}${reduced.d === 1 ? ', a whole number' : ''}.`);
+  steps.push(`Reduce by the common factor ${mark(g)}: ${mark(`${fractionText({ n, d })} = ${fractionText(reduced)}`)}${reduced.d === 1 ? ', a whole number' : ''}.`);
   return reduced;
 }
 
@@ -335,20 +341,20 @@ function fractionSteps(expr) {
     const converted = signed.map((f) => ({ n: f.n * (lcd / f.d), d: lcd }));
     if (denominators.length > 1) {
       const wholes = signed.filter((f) => f.d === 1);
-      steps.push(`The denominators differ (${denominators.join(', ')}), so first rewrite every term over a common denominator.`);
-      steps.push(`The least common denominator is ${lcd}${denominators.length === 2 && gcd(denominators[0], denominators[1]) === 1 && !wholes.length ? ` (${denominators[0]} × ${denominators[1]}, since they share no factor)` : ` (the least common multiple of ${denominators.join(' and ')})`}.`);
+      steps.push(`The denominators differ (${mark(denominators.join(', '))}), so first rewrite every term over a common denominator.`);
+      steps.push(`The least common denominator is ${mark(lcd)}${denominators.length === 2 && gcd(denominators[0], denominators[1]) === 1 && !wholes.length ? ` (${mark(`${denominators[0]} × ${denominators[1]}`)}, since they share no factor)` : ` (the least common multiple of ${denominators.map(mark).join(' and ')})`}.`);
       const rewrites = signed
         .map((f, i) => (f.d === lcd ? null : `${signedFraction(f)} = ${signedFraction(converted[i])}`))
         .filter(Boolean);
-      steps.push(`Rewrite each term over ${lcd}: ${rewrites.join(',  ')}.`);
+      steps.push(`Rewrite each term over ${mark(lcd)}: ${mark(rewrites.join(',  '))}.`);
     } else {
-      steps.push(`The denominators are the same (${lcd}), so add or subtract the numerators and keep the denominator.`);
+      steps.push(`The denominators are the same (${mark(lcd)}), so add or subtract the numerators and keep the denominator.`);
     }
     const total = converted.reduce((acc, f) => acc + f.n, 0);
     const numeratorWork = converted
       .map((f, i) => (i === 0 ? String(f.n) : `${f.n < 0 ? ' - ' : ' + '}${Math.abs(f.n)}`))
       .join('');
-    steps.push(`Combine the numerators over ${lcd}: ${joinSigned(converted)} = (${numeratorWork})/${lcd} = ${fractionText({ n: total, d: lcd })}.`);
+    steps.push(`Combine the numerators over ${mark(lcd)}: ${mark(`${joinSigned(converted)} = (${numeratorWork})/${lcd} = ${fractionText({ n: total, d: lcd })}`)}.`);
     reduceStep(total, lcd, steps);
     return {
       steps,
@@ -375,14 +381,14 @@ function fractionSteps(expr) {
     if (op === '*') {
       n = a.n * b.n;
       d = a.d * b.d;
-      steps.push(`To multiply fractions, multiply the numerators together and the denominators together: ${signedFraction(a)} × ${signedFraction(b)} = (${a.n} × ${b.n})/(${a.d} × ${b.d}) = ${fractionText({ n, d })}.`);
+      steps.push(`To multiply fractions, multiply the numerators together and the denominators together: ${mark(`${signedFraction(a)} × ${signedFraction(b)} = (${a.n} × ${b.n})/(${a.d} × ${b.d}) = ${fractionText({ n, d })}`)}.`);
     } else {
       if (b.n === 0) return null;
       const reciprocal = b.n < 0 ? { n: -b.d, d: -b.n } : { n: b.d, d: b.n };
-      steps.push(`Dividing by a fraction is the same as multiplying by its reciprocal: ${signedFraction(a)} ÷ ${signedFraction(b)} = ${signedFraction(a)} × ${signedFraction(reciprocal)}.`);
+      steps.push(`Dividing by a fraction is the same as multiplying by its reciprocal: ${mark(`${signedFraction(a)} ÷ ${signedFraction(b)} = ${signedFraction(a)} × ${signedFraction(reciprocal)}`)}.`);
       n = a.n * reciprocal.n;
       d = a.d * reciprocal.d;
-      steps.push(`Multiply the numerators together and the denominators together: (${a.n} × ${reciprocal.n})/(${a.d} × ${reciprocal.d}) = ${fractionText({ n, d })}.`);
+      steps.push(`Multiply the numerators together and the denominators together: ${mark(`(${a.n} × ${reciprocal.n})/(${a.d} × ${reciprocal.d}) = ${fractionText({ n, d })}`)}.`);
     }
     if (d > MAX_DENOMINATOR) return null;
     reduceStep(n, d, steps);
@@ -648,11 +654,11 @@ function showWorking(expr, steps) {
           const power = Math.pow(base, -e);
           const powerText = power < 0 ? `(${formatNumber(power)})` : formatNumber(power);
           const viaReciprocal = power < 0 ? `1/${powerText} = ` : '';
-          note = ` — a negative exponent means a reciprocal, a^(-n) = 1/a^n (the base cannot be 0): ${baseText}^(${e}) = 1/${baseText}^${-e} = ${viaReciprocal}${valueText}`;
+          note = ` — a negative exponent means a reciprocal, ${mark('a^(-n) = 1/a^n')} (the base cannot be ${mark('0')}): ${mark(`${baseText}^(${e}) = 1/${baseText}^${-e} = ${viaReciprocal}${valueText}`)}`;
         }
       } catch { /* no note */ }
     }
-    lines.push(note ? `${lead}${opText}${note}${remaining}` : `${lead}${opText} = ${valueText}${remaining}`);
+    lines.push(note ? `${lead}${mark(opText)}${note}${remaining ? mark(remaining) : ''}` : `${lead}${mark(`${opText} = ${valueText}${remaining}`)}`);
   }
   if (!isConstant(tree)) return false;
   for (const line of lines) steps.push(line);

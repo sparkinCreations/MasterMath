@@ -9,10 +9,18 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { solveLinearEquation } from '../src/lib/solvers/linearEquationSolver.js';
+import { solveLinearEquation as solveLinearMarked } from '../src/lib/solvers/linearEquationSolver.js';
+import { plain } from './helpers/solvePlain.js';
 import { solveProblem } from '../src/lib/api.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+// Step wording is checked on the text a reader sees, without the ⟦…⟧ math
+// markers (null still means "not linear").
+const solveLinearEquation = (input) => {
+  const r = solveLinearMarked(input);
+  return r && plain(r);
+};
 
 test('mathsteps is neither a dependency nor imported anywhere in src', () => {
   const pkg = JSON.parse(readFileSync(path.resolve(here, '../package.json'), 'utf8'));

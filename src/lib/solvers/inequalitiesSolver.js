@@ -9,7 +9,7 @@
 // Receives the RAW problem text (routed from api.js) so the operator and both
 // sides survive intact.
 
-import { math, beautify, formatNumber, sampleFunction, loadAlgebrite, isAlgebriteFailure, structuralPeriod, definedEverywhere, piForm } from './solverUtils.js';
+import { math, beautify, formatNumber, sampleFunction, loadAlgebrite, isAlgebriteFailure, structuralPeriod, definedEverywhere, piForm, mark } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 
@@ -49,18 +49,20 @@ export async function solveInequality(rawText) {
       ? 'All real numbers satisfy the inequality'
       : combined.map((p) => pieceToInequality(p, variable)).join('  or  ');
 
-  const steps = [`Solve the compound inequality ${compound.display}.`];
+  // A part's answer is math (x < -2  or  x > 2) or a sentence ("No solution — …").
+  const asMath = (t) => (/^(?:No |All |True|False)/.test(String(t)) ? t : mark(t));
+  const steps = [`Solve the compound inequality ${mark(compound.display)}.`];
   steps.push(compound.chained
-    ? `A chain a ${compound.ops[0]} … ${compound.ops[1]} b means BOTH comparisons must hold at once: solve each, then keep the values common to both (the intersection).`
+    ? `A chain ${mark(`a ${compound.ops[0]} … ${compound.ops[1]} b`)} means BOTH comparisons must hold at once: solve each, then keep the values common to both (the intersection).`
     : isAnd
       ? '"and" means both parts must hold: solve each, then take the intersection of the two solution sets.'
       : '"or" means either part may hold: solve each, then take the union of the two solution sets.');
-  parts.forEach((p, i) => steps.push(`Part ${i + 1}: ${p.text}  →  ${p.result.answer}.`));
+  parts.forEach((p, i) => steps.push(`Part ${i + 1}: ${mark(p.text)}  →  ${asMath(p.result.answer)}.`));
   if (combined.length === 0) steps.push(isAnd ? 'The two solution sets do not overlap, so there is no solution.' : 'Neither part has any solution.');
   else if (isAllReals(combined)) steps.push(isAnd ? 'Both parts hold everywhere.' : 'Between them the parts cover every real number.');
   else {
-    steps.push(`${isAnd ? 'Intersection' : 'Union'}: ${combined.map((p) => pieceToInequality(p, variable)).join('  or  ')}.`);
-    steps.push(`In interval notation: ${combined.map(pieceToInterval).join(' ∪ ')}.`);
+    steps.push(`${isAnd ? 'Intersection' : 'Union'}: ${mark(combined.map((p) => pieceToInequality(p, variable)).join('  or  '))}.`);
+    steps.push(`In interval notation: ${mark(combined.map(pieceToInterval).join(' ∪ '))}.`);
   }
 
   const chart = parts.find((p) => p.result.chart)?.result.chart;
@@ -203,7 +205,7 @@ async function solveSingle(rawText) {
       }
       return {
         steps: [
-          `Evaluate the comparison ${beautify(lhs)} ${op} ${beautify(rhs)}.`,
+          `Evaluate the comparison ${mark(`${beautify(lhs)} ${op.replace('<=', '≤').replace('>=', '≥')} ${beautify(rhs)}`)}.`,
           holds ? 'The statement is true.' : 'The statement is false.',
         ],
         answer: holds ? 'True — the inequality always holds' : 'False — the inequality never holds',
@@ -487,16 +489,16 @@ function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simplified, p
   // The ends of the period are 0 and T themselves, not zeros of f.
   const cut = (x) => (Math.abs(x) < 1e-12 ? '0' : Math.abs(x - T) < 1e-9 ? Tshown : show(x));
   const steps = [
-    `Solve the inequality ${beautify(lhs)} ${opShown} ${beautify(rhs)}.`,
-    `Move everything to one side: ${beautify(simplified)} ${opShown} 0.`,
-    `The left side is periodic with period ${Tshown}: its trig functions repeat every ${Tshown}. So solve on one period, 0 ≤ ${v} < ${Tshown}, and the solution repeats.`,
+    `Solve the inequality ${mark(`${beautify(lhs)} ${opShown} ${beautify(rhs)}`)}.`,
+    `Move everything to one side: ${mark(`${beautify(simplified)} ${opShown} 0`)}.`,
+    `The left side is periodic with period ${mark(Tshown)}: its trig functions repeat every ${mark(Tshown)}. So solve on one period, ${mark(`0 ≤ ${v} < ${Tshown}`)}, and the solution repeats.`,
     roots.length
-      ? `On that period it is 0 at ${v} = ${roots.map(show).join(', ')}${inexact ? ' (located numerically, to the decimals shown)' : ''}.`
-      : 'It is never 0, so it keeps one sign throughout.',
-    `Test the sign between them: ${rows.map((r) => `(${cut(r.a)}, ${cut(r.b)}) ${signWord(r.y)}`).join('; ')}.`,
+      ? `On that period it is ${mark('0')} at ${mark(`${v} = ${roots.map(show).join(', ')}`)}${inexact ? ' (located numerically, to the decimals shown)' : ''}.`
+      : `It is never ${mark('0')}, so it keeps one sign throughout.`,
+    `Test the sign between them: ${rows.map((r) => `${mark(`(${cut(r.a)}, ${cut(r.b)})`)} ${signWord(r.y)}`).join('; ')}.`,
   ];
   if (pieceTexts.length) {
-    steps.push(`Keep the ${wantPositive ? 'positive' : 'negative'} parts${nonStrict ? ' and the zeros' : ''}${wrapped ? ' (the part at the end of the period runs on into the start of the next, so the two join into one interval)' : ''}, then add any whole number of periods: ${pieceTexts.join('  or  ')}, for every integer n.`);
+    steps.push(`Keep the ${wantPositive ? 'positive' : 'negative'} parts${nonStrict ? ' and the zeros' : ''}${wrapped ? ' (the part at the end of the period runs on into the start of the next, so the two join into one interval)' : ''}, then add any whole number of periods: ${mark(pieceTexts.join('  or  '))}, for every integer ${mark('n')}.`);
   } else {
     steps.push(answer.startsWith('No') ? 'No part of the period satisfies it, so no value does.' : 'Every part of the period satisfies it, so every value does.');
   }
@@ -551,27 +553,27 @@ function solveLinear({ Algebrite, lhs, rhs, op, variable, fExpr, simplified }) {
   const negB = safeRun(Algebrite, `simplify(-(${b}))`) || `-(${b})`;
   const ax = beautify(`${a === '1' ? '' : a === '-1' ? '-' : `${a}*`}${variable}`);
 
-  const steps = [`Solve the inequality ${beautify(lhs)} ${pretty(op)} ${beautify(rhs)}.`];
+  const steps = [`Solve the inequality ${mark(`${beautify(lhs)} ${pretty(op)} ${beautify(rhs)}`)}.`];
   const collected = `${ax} ${pretty(op)} ${beautify(negB)}`;
   const alreadyCollected = beautify(lhs).replace(/\s/g, '') === ax.replace(/\s/g, '') && beautify(rhs).replace(/\s/g, '') === beautify(negB).replace(/\s/g, '');
   if (!alreadyCollected) {
-    steps.push(`Collect the ${variable} terms on the left and the constants on the right (adding or subtracting the same amount on both sides never changes the direction): ${collected}.`);
+    steps.push(`Collect the ${mark(variable)} terms on the left and the constants on the right (adding or subtracting the same amount on both sides never changes the direction): ${mark(collected)}.`);
   }
   if (aValue === 1) {
     // x op c already.
   } else if (aValue === -1) {
-    steps.push(`Multiply both sides by -1 to make ${variable} positive. Multiplying or dividing by a negative number REVERSES the inequality: ${variable} ${pretty(finalOp)} ${beautify(c)}.`);
+    steps.push(`Multiply both sides by ${mark('-1')} to make ${mark(variable)} positive. Multiplying or dividing by a negative number REVERSES the inequality: ${mark(`${variable} ${pretty(finalOp)} ${beautify(c)}`)}.`);
   } else if (/\//.test(a)) {
     // A fractional coefficient: multiply by its reciprocal rather than
     // "divide by 1/2".
     const reciprocal = safeRun(Algebrite, `simplify(1/(${a}))`) || `1/(${a})`;
     steps.push(aValue < 0
-      ? `Multiply both sides by ${beautify(reciprocal)}, the reciprocal of ${beautify(a)}. Multiplying by a negative number REVERSES the inequality, so ${pretty(op)} becomes ${pretty(finalOp)}: ${variable} ${pretty(finalOp)} ${beautify(c)}.`
-      : `Multiply both sides by ${beautify(reciprocal)}, the reciprocal of ${beautify(a)} (positive, so the direction stays the same): ${variable} ${pretty(finalOp)} ${beautify(c)}.`);
+      ? `Multiply both sides by ${mark(beautify(reciprocal))}, the reciprocal of ${mark(beautify(a))}. Multiplying by a negative number REVERSES the inequality, so ${mark(pretty(op))} becomes ${mark(pretty(finalOp))}: ${mark(`${variable} ${pretty(finalOp)} ${beautify(c)}`)}.`
+      : `Multiply both sides by ${mark(beautify(reciprocal))}, the reciprocal of ${mark(beautify(a))} (positive, so the direction stays the same): ${mark(`${variable} ${pretty(finalOp)} ${beautify(c)}`)}.`);
   } else if (aValue < 0) {
-    steps.push(`Divide both sides by ${beautify(a)}. Dividing by a negative number REVERSES the inequality, so ${pretty(op)} becomes ${pretty(finalOp)}: ${variable} ${pretty(finalOp)} ${beautify(c)}.`);
+    steps.push(`Divide both sides by ${mark(beautify(a))}. Dividing by a negative number REVERSES the inequality, so ${mark(pretty(op))} becomes ${mark(pretty(finalOp))}: ${mark(`${variable} ${pretty(finalOp)} ${beautify(c)}`)}.`);
   } else {
-    steps.push(`Divide both sides by ${beautify(a)} (positive, so the direction stays the same): ${variable} ${pretty(finalOp)} ${beautify(c)}.`);
+    steps.push(`Divide both sides by ${mark(beautify(a))} (positive, so the direction stays the same): ${mark(`${variable} ${pretty(finalOp)} ${beautify(c)}`)}.`);
   }
 
   const nonStrict = finalOp === '<=' || finalOp === '>=';
@@ -579,7 +581,7 @@ function solveLinear({ Algebrite, lhs, rhs, op, variable, fExpr, simplified }) {
     ? { lo: -Infinity, hi: root, loC: false, hiC: nonStrict }
     : { lo: root, hi: Infinity, loC: nonStrict, hiC: false };
   const solution = [piece];
-  steps.push(`Solution: ${pieceToInequality(piece, variable)}.  In interval notation: ${pieceToInterval(piece)}.`);
+  steps.push(`Solution: ${mark(pieceToInequality(piece, variable))}.  In interval notation: ${mark(pieceToInterval(piece))}.`);
 
   // Verify: a point inside the solution satisfies the original, a point
   // outside does not, and the boundary matches the operator.
@@ -594,7 +596,7 @@ function solveLinear({ Algebrite, lhs, rhs, op, variable, fExpr, simplified }) {
   const outside = piece.lo === -Infinity ? root + 1 : root - 1;
   if (holds(inside) !== true || holds(outside) !== false || holds(root) !== nonStrict) return null;
   const reads = (x) => `${formatNumber(math.evaluate(lhs, { [variable]: x }))} ${pretty(op)} ${formatNumber(math.evaluate(rhs, { [variable]: x }))}`;
-  steps.push(`Check: at ${variable} = ${formatNumber(inside)} the original reads ${reads(inside)}, true; at ${variable} = ${formatNumber(outside)} it reads ${reads(outside)}, false. ✓`);
+  steps.push(`Check: at ${mark(`${variable} = ${formatNumber(inside)}`)} the original reads ${mark(reads(inside))}, true; at ${mark(`${variable} = ${formatNumber(outside)}`)} it reads ${mark(reads(outside))}, false. ✓`);
 
   return {
     steps,
@@ -755,28 +757,29 @@ function compare(a, b, op) {
 // --- display -----------------------------------------------------------------
 
 function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles, zeros, chartRows, solution, nonStrict }) {
-  const steps = [`Solve the inequality ${beautify(lhs)} ${op} ${beautify(rhs)}.`];
+  const opShown = op.replace('<=', '≤').replace('>=', '≥');
+  const steps = [`Solve the inequality ${mark(`${beautify(lhs)} ${opShown} ${beautify(rhs)}`)}.`];
 
   if (beautify(rhs) !== '0') {
-    steps.push(`Move everything to one side: ${beautify(simplified)} ${op} 0.`);
+    steps.push(`Move everything to one side: ${mark(`${beautify(simplified)} ${opShown} 0`)}.`);
   }
 
   if (critical.length > 0) {
     const zeroList = zeros.filter((z) => !poles.some((p) => Math.abs(p - z) < 1e-9));
     if (zeroList.length) {
-      steps.push(`Find where the expression is zero: ${variable} = ${zeroList.map((z) => formatNumber(z)).join(', ')}.`);
+      steps.push(`Find where the expression is zero: ${mark(`${variable} = ${zeroList.map((z) => formatNumber(z)).join(', ')}`)}.`);
     }
     if (poles.length) {
-      steps.push(`Note where it is undefined (denominator zero): ${variable} = ${poles.map((p) => formatNumber(p)).join(', ')}.`);
+      steps.push(`Note where it is undefined (denominator zero): ${mark(`${variable} = ${poles.map((p) => formatNumber(p)).join(', ')}`)}.`);
     }
-    steps.push(`These split the number line into intervals. Test the sign of ${beautify(simplified)} in each:`);
+    steps.push(`These split the number line into intervals. Test the sign of ${mark(beautify(simplified))} in each:`);
     for (const row of chartRows) {
       const label = intervalLabel(row.lo, row.hi);
       const word = row.sign > 0 ? 'positive' : row.sign < 0 ? 'negative' : 'zero';
-      steps.push(`  • On ${label}: ${beautify(simplified)} is ${word}.`);
+      steps.push(`  • On ${mark(label)}: ${mark(beautify(simplified))} is ${word}.`);
     }
   } else {
-    steps.push(`The expression never changes sign, so check any single value of ${variable}.`);
+    steps.push(`The expression never changes sign, so check any single value of ${mark(variable)}.`);
   }
 
   if (solution.length === 0) {
@@ -784,9 +787,9 @@ function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles
   } else if (isAllReals(solution)) {
     steps.push('Every interval satisfies the inequality, so all real numbers work.');
   } else {
-    const kind = nonStrict ? 'including the boundary roots (≤/≥)' : 'excluding the boundary roots (</>) ';
-    steps.push(`Collect the satisfying intervals, ${kind}: ${solution.map((p) => pieceToInequality(p, variable)).join('  or  ')}.`);
-    steps.push(`In interval notation: ${solution.map(pieceToInterval).join(' ∪ ')}.`);
+    const kind = nonStrict ? 'including the boundary roots' : 'excluding the boundary roots';
+    steps.push(`Collect the satisfying intervals, ${kind}: ${mark(solution.map((p) => pieceToInequality(p, variable)).join('  or  '))}.`);
+    steps.push(`In interval notation: ${mark(solution.map(pieceToInterval).join(' ∪ '))}.`);
   }
 
   return steps;
@@ -801,7 +804,7 @@ function intervalLabel(lo, hi) {
 function buildTrivial(all, variable, op) {
   return {
     steps: [
-      `Simplify the inequality — both sides are equal, so it reads 0 ${op} 0.`,
+      `Simplify the inequality — both sides are equal, so it reads ${mark(`0 ${op.replace('<=', '≤').replace('>=', '≥')} 0`)}.`,
       all ? 'Since equality is allowed, every value works.' : 'Since it is strict, no value works.',
     ],
     answer: all ? 'All real numbers satisfy the inequality' : 'No solution — no value satisfies the inequality',

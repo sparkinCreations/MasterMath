@@ -232,7 +232,7 @@ export async function solveLimit(expression) {
       return {
         steps: [
           `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}`,
-          `${mark(`${hit.func}(${hit.argDisplay})`)} is undefined — ${hit.identity}, and ${mark(`${hit.denom}(${hit.argDisplay}) = 0`)}, so the graph has a vertical asymptote there.`,
+          `${mark(`${hit.func}(${hit.argDisplay})`)} is undefined — ${mark(hit.identity)}, and ${mark(`${hit.denom}(${hit.argDisplay}) = 0`)}, so the graph has a vertical asymptote there.`,
           `The expression inside the limit is undefined for every ${mark(variable)}, so the limit is undefined as well.`,
         ],
         answer: 'Undefined',

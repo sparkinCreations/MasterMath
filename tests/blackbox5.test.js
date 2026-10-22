@@ -275,14 +275,14 @@ test('improper integrals to ±∞ are evaluated as limits, or reported divergent
 });
 
 test('3×3 linear systems by elimination, exact, with the trichotomy', async () => {
-  const r = await solveProblem('x + y + z = 6; 2x - y + z = 3; x + 2y - z = 2', 'algebra');
+  const r = await solvePlain('x + y + z = 6; 2x - y + z = 3; x + 2y - z = 2', 'algebra');
   assert.equal(r.answer, 'x = 1,  y = 2,  z = 3');
   assert.ok(r.steps.some((s) => /\(2\) ← \(2\) − \(2\)·\(1\):/.test(s)));
-  assert.equal((await solveProblem('2a + 3b - c = 5; a - b + 2c = 4; 3a + b + c = 7', 'algebra')).answer, 'a = 4/5,  b = 2,  c = 13/5');
-  assert.match((await solveProblem('x + y + z = 1; x + y + z = 2; x - y = 0', 'algebra')).answer, /^No solution/);
-  assert.match((await solveProblem('x + y + z = 1; 2x + 2y + 2z = 2; x - y = 0', 'algebra')).answer, /^Infinitely many solutions/);
+  assert.equal((await solvePlain('2a + 3b - c = 5; a - b + 2c = 4; 3a + b + c = 7', 'algebra')).answer, 'a = 4/5,  b = 2,  c = 13/5');
+  assert.match((await solvePlain('x + y + z = 1; x + y + z = 2; x - y = 0', 'algebra')).answer, /^No solution/);
+  assert.match((await solvePlain('x + y + z = 1; 2x + 2y + 2z = 2; x - y = 0', 'algebra')).answer, /^Infinitely many solutions/);
   // Under any topic.
-  assert.equal((await solveProblem('y + z = 1; x + z = 2; x + y = 3', 'derivatives')).answer, 'x = 2,  y = 1,  z = 0');
+  assert.equal((await solvePlain('y + z = 1; x + z = 2; x + y = 3', 'derivatives')).answer, 'x = 2,  y = 1,  z = 0');
 });
 
 test('partial fractions over distinct real linear factors', async () => {

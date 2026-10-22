@@ -20,7 +20,7 @@
  */
 
 import { createMath } from '../mathInstance.js';
-import { beautify, formatNumber, gcd, splitTerms } from './solverUtils.js';
+import { beautify, formatNumber, gcd, splitTerms, mark } from './solverUtils.js';
 import { degreeBound } from './polynomialRoots.js';
 
 const exact = createMath({ number: 'Fraction' });
@@ -137,7 +137,7 @@ export function solveLinearEquation(expression, variable = 'x') {
   const D = decimal ? 1 : denominators.reduce(lcm, 1);
   if (D > 1) {
     [aL, cL, aR, cR] = [aL, cL, aR, cR].map((f) => exact.multiply(f, D));
-    steps.push(`Multiply both sides by ${D} (the least common denominator) to clear the fractions: ${linear(aL, cL, v)} = ${linear(aR, cR, v)}`);
+    steps.push(`Multiply both sides by ${mark(D)} (the least common denominator) to clear the fractions: ${mark(`${linear(aL, cL, v)} = ${linear(aR, cR, v)}`)}`);
   } else if (needsSimplifying(lhs, v) || needsSimplifying(rhs, v)) {
     const simplified = `${linear(aL, cL, v)} = ${linear(aR, cR, v)}`;
     if ((lhs + rhs).includes('(')) {
@@ -146,50 +146,50 @@ export function solveLinearEquation(expression, variable = 'x') {
       const distributed = `${distribute(lhs, v, linear)} = ${distribute(rhs, v, linear)}`;
       if (tight(distributed) === tight(`${beautify(lhs)} = ${beautify(rhs)}`)) {
         // Nothing distributes term by term — (x + 1)^2 − x^2 expands as a whole.
-        steps.push(`Expand and combine like terms on each side: ${simplified}`);
+        steps.push(`Expand and combine like terms on each side: ${mark(simplified)}`);
       } else {
-        steps.push(`Distribute to remove the parentheses: ${distributed}`);
-        if (tight(distributed) !== tight(simplified)) steps.push(`Combine like terms: ${simplified}`);
+        steps.push(`Distribute to remove the parentheses: ${mark(distributed)}`);
+        if (tight(distributed) !== tight(simplified)) steps.push(`Combine like terms: ${mark(simplified)}`);
       }
     } else {
-      steps.push(`Combine like terms on each side: ${simplified}`);
+      steps.push(`Combine like terms on each side: ${mark(simplified)}`);
     }
   }
 
   // 2. The variable only appears on the right: swap the sides.
   if (exact.isZero(aL)) {
     [aL, cL, aR, cR] = [aR, cR, aL, cL];
-    steps.push(`Swap the two sides so ${v} is on the left: ${linear(aL, cL, v)} = ${linear(aR, cR, v)}`);
+    steps.push(`Swap the two sides so ${mark(v)} is on the left: ${mark(`${linear(aL, cL, v)} = ${linear(aR, cR, v)}`)}`);
   }
 
   // 3. Collect the variable terms on the left.
   if (!exact.isZero(aR)) {
-    const moved = exact.isNegative(aR) ? `Add ${term(exact.abs(aR), v)} to both sides` : `Subtract ${term(aR, v)} from both sides`;
+    const moved = exact.isNegative(aR) ? `Add ${mark(term(exact.abs(aR), v))} to both sides` : `Subtract ${mark(term(aR, v))} from both sides`;
     aL = exact.subtract(aL, aR);
     aR = exact.fraction(0);
-    steps.push(`${moved}: ${linear(aL, cL, v)} = ${num(cR)}`);
+    steps.push(`${moved}: ${mark(`${linear(aL, cL, v)} = ${num(cR)}`)}`);
   }
 
   // 4. Move the constant to the right.
   if (!exact.isZero(cL)) {
-    const moved = exact.isNegative(cL) ? `Add ${num(exact.abs(cL))} to both sides` : `Subtract ${num(cL)} from both sides`;
+    const moved = exact.isNegative(cL) ? `Add ${mark(num(exact.abs(cL)))} to both sides` : `Subtract ${mark(num(cL))} from both sides`;
     cR = exact.subtract(cR, cL);
     cL = exact.fraction(0);
-    steps.push(`${moved}: ${term(aL, v)} = ${num(cR)}`);
+    steps.push(`${moved}: ${mark(`${term(aL, v)} = ${num(cR)}`)}`);
   }
 
   // 5. Divide by the coefficient.
   const solution = exact.divide(cR, aL);
   if (exact.equal(aL, -1)) {
-    steps.push(`Multiply both sides by -1: ${v} = ${num(solution)}`);
+    steps.push(`Multiply both sides by ${mark('-1')}: ${mark(`${v} = ${num(solution)}`)}`);
   } else if (!exact.equal(aL, 1)) {
     const result = num(solution);
     if (!decimal && !exact.isInteger(aL)) {
-      steps.push(`Multiply both sides by ${num(exact.divide(1, aL))}, the reciprocal of ${num(aL)}: ${v} = ${result}`);
+      steps.push(`Multiply both sides by ${mark(num(exact.divide(1, aL)))}, the reciprocal of ${mark(num(aL))}: ${mark(`${v} = ${result}`)}`);
     } else {
       const divisor = exact.isNegative(aL) ? `(${num(aL)})` : num(aL);
       const quotient = `${num(cR)}/${divisor}`;
-      steps.push(`Divide both sides by ${num(aL)}: ${v} = ${quotient === result ? result : `${quotient} = ${result}`}`);
+      steps.push(`Divide both sides by ${mark(num(aL))}: ${mark(`${v} = ${quotient === result ? result : `${quotient} = ${result}`}`)}`);
     }
   }
 

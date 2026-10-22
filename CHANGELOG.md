@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.51.0] - 2026-10-22
+
+October 2026 roadmap P1, finished: every solver typesets its steps.
+
+### Changed
+
+- **Systems, inequalities, trigonometry, trig equations, arithmetic and
+  linear equations mark their math** with ⟦…⟧, as the calculus and algebra
+  solvers have since 1.50.0. Elimination row operations
+  ("R₂ ← R₂ − 2·R₁: …"), substitution and back-substitution, sign charts,
+  compound and periodic inequalities, trig values and identities, the
+  degree/radian notes, PEMDAS working, fraction sums and products all
+  render as typeset math beside plain prose. Measured on 66 problems from
+  these solvers and the rare integral paths: steps with math left in a
+  plain-text run, 80 of 342 → 0; every marked run renders in KaTeX.
+- **The rarer integral paths are typeset too:** the error function
+  walkthrough, general partial fractions (repeated and irreducible
+  quadratic factors), improper integrals with an endpoint singularity or an
+  interior asymptote, and the principal-value note.
+- The trigonometry radians note reads "Interpreting 1 as radians, which is
+  1 × 180/π ≈ 57.2958°"; a sign chart's inequality shows ≤ / ≥.
+
+### Fixed
+
+- KaTeX rendering of `erf` (now an upright operator name), `√π`, `%` and
+  `mod` inside typeset math; before, √π showed a stray root sign and a
+  percent sign could end the formula.
+
 ## [1.50.0] - 2026-10-22
 
 October 2026 roadmap P1, first increment: typeset every step.
