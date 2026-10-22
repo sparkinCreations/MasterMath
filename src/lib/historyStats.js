@@ -20,3 +20,17 @@ export function historyStats(problems, now = new Date()) {
     notSolved: list.length - solved.length,
   };
 }
+
+// The count as words, the same on the Progress page and in every export. The
+// page's card said "Total Problems: 1" while an export of the same history
+// said "Total Problems: 2 (solved: 1)" — one name for two numbers (October
+// 2026 release review). Now both count solves, and say how many saved
+// entries are not solves (an "Undefined" or "Diverges" result, or an older
+// refusal), which the history list shows with their status.
+export function historyTotalsText(problems) {
+  const list = Array.isArray(problems) ? problems : [];
+  const { total, notSolved } = historyStats(list);
+  return notSolved === 0
+    ? `Problems solved: ${total}`
+    : `Problems solved: ${total} of ${list.length} in history`;
+}
