@@ -24,7 +24,18 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Dependency audit (shipped dependencies, high and critical)
-        run: npm audit --omit=dev --audit-level=high
+        # npm's advisory endpoint has stalled from GitHub's runners until
+        # npm's 5-minute fetch timeout, after which npm falls back to a
+        # retired endpoint that answers 400 (October 2026). Ask again with a
+        # short timeout. A real advisory fails every attempt, so the check is
+        # no weaker; an endpoint that stays down still fails the step.
+        run: |
+          for attempt in 1 2 3; do
+            npm audit --omit=dev --audit-level=high --fetch-timeout=60000 && exit 0
+            echo "npm audit attempt $attempt failed" >&2
+            [ "$attempt" -lt 3 ] && sleep 15
+          done
+          exit 1
       - name: Unit suite (includes the corpus and the build-preload test)
         run: npm test
       - name: Playwright browser
