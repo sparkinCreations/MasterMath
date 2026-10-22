@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.52.2] - 2026-10-22
+
+Plain English, as the notation guide promises. Measured on 56 everyday
+phrasings: 7 solved before, 56 after.
+
+### Added
+
+- **Spoken maths reads as notation** (`lib/plainEnglish.js`, the first step
+  of every solve): "x squared", "x cubed", "x to the power of 3", "x to
+  the 3rd power", "raised to the 4", "e to the x", `x**3`; "square root
+  of x", "cube root of 27", "sine of x", "natural log of x", "log base 2
+  of 8", "absolute value of (x − 3)"; "x over 2"; "equals", "is equal
+  to", "is greater than", "is less than or equal to", "is at least";
+  "negative 3", "20 percent of 50", "half of 10". "of" takes one term
+  (parentheses for more), and a power binds to its term: "ln of x
+  squared" is ln(x²); "sin squared x" is sin²(x).
+- **The input preview shows how the words were read**, before Solve:
+  "x squared" previews as x², "sine of x" as sin(x).
+- The notation guide gives plain-English examples for powers, roots,
+  functions and inequalities, and says how "of" is read.
+
+### Fixed
+
+- **An unknown word was read as a constant on four paths and answered,
+  marked Solved**: "the integral of x squared" gave ½·squared·x², "lim
+  x→2 x apples" "Does not exist", "x apples > 2" "No solution". The limit,
+  integral, inequality and system paths now refuse a word no engine knows,
+  as the others already did.
+- `x**3` showed the engine's raw error ("x** ? 3 Stop: syntax error");
+  `x**2 - 4 = 0` was called "beyond what this solver can compute".
+
 ## [1.52.1] - 2026-10-22
 
 Page speed, from an outside Lighthouse review (each finding reproduced

@@ -34,6 +34,7 @@ src/
     problemHistory.js          the history store's IndexedDB wrappers — what pages import; never import api.js from a page
     budgetedSolver.js          the page's entry point: worker, 10 s budget, Cancel, in-thread fallback
     solver.worker.js           runs solveProblem off the main thread
+    plainEnglish.js            spoken maths → notation ("x squared", "sine of x", "is greater than", x**3); first step of solveProblem, and the input preview; no imports
     mathParser.js              notation → mathjs/Algebrite syntax; expression extraction
     validation.js              input length/topic checks
     settings.js                angleUnit, decimalPlaces (localStorage, or primed by message in the worker)
@@ -65,13 +66,19 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    fresh worker. If the worker cannot start, the solve runs in-thread and
    `console.error("Solver worker failed …")` is logged — the smoke test fails
    on that line.
-3. `solveProblem` (`api.js`) routes by **intent, not topic**: derivative /
+3. `solveProblem` (`api.js`) first reads plain English as notation
+   (`readPlainEnglish`: "of" takes one term, a power binds to its term),
+   then routes by **intent, not topic**: derivative /
    integral / limit notation goes to that solver under any topic; a single
    equation goes to Algebra — except an equation in x and y under Derivatives
    (or with "find dy/dx"), which goes to implicit differentiation, checked
    before the differential-equation refusal; two `=` signs go to systems; a comparison operator
    to inequalities; a trailing "at x = a" is stripped first (`extractEvalPoint`).
-   A routed result's first step says so (`routedTopic`).
+   A routed result's first step says so (`routedTopic`). A word no engine
+   knows is a parse error on every path, never a constant: the single-
+   expression paths check the extracted expression (`unknownWord`), the
+   limit, integral, inequality and system paths the whole problem minus
+   instruction words (`unknownWordInProblem`).
 4. The solver returns `{ steps[], answer, tips[], common_mistakes[], graph? }`
    wrapped in an envelope status. `finalizeResult` enforces the status and
    refuses anything that is not presentable text (objects, code-shaped

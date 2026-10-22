@@ -2,6 +2,7 @@ import { extractFunctionFromProblem, parseMathExpression, usesCommonLog, matchin
 import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
 import { bareFunctionName, math, formatNumber, beautify } from './solvers/solverUtils.js';
 import { stripMathMarkers } from './mathMarkers.js';
+import { readPlainEnglish } from './plainEnglish.js';
 
 async function loadSolver(topic) {
   switch (topic) {
@@ -124,6 +125,31 @@ function unknownWord(expression) {
   const words = text.match(/[a-z]{2,}(?![a-z]|\s*\()/gi) || [];
   return words.find((w) => !KNOWN_WORDS.has(w.toLowerCase())) || null;
 }
+
+// The same question for the paths that read the whole problem — limits,
+// integrals, inequalities, systems — where the instruction words are still
+// in the text. Those paths had no check, and read an unknown word as a
+// constant: "x apples > 2" was answered "No solution", "lim x→2 x apples"
+// "Does not exist", "∫ x squared dx" ½·squared·x² (all marked Solved).
+// Two single letters side by side are not flagged here ("from a to b").
+const INSTRUCTION_WORDS = new Set(['solve', 'find', 'for', 'the', 'and', 'or', 'evaluate', 'simplify', 'compute', 'calculate',
+  'what', 'is', 'value', 'values', 'where', 'when', 'if', 'then', 'determine', 'show', 'all', 'real', 'number', 'numbers',
+  'lim', 'limit', 'as', 'approaches', 'approach', 'goes', 'tends', 'from', 'left', 'right', 'side', 'sided', 'one', 'above', 'below',
+  'integral', 'integrate', 'antiderivative', 'definite', 'indefinite', 'with', 'respect', 'to', 'area', 'under', 'curve', 'between',
+  'system', 'equations', 'equation', 'inequality', 'inequalities', 'simultaneous', 'interval', 'notation']);
+function unknownWordInProblem(problem) {
+  const words = String(problem).match(/[a-z]{2,}(?![a-z]|\s*\()/gi) || [];
+  return words.find((w) => {
+    const lower = w.toLowerCase();
+    return !KNOWN_WORDS.has(lower) && !INSTRUCTION_WORDS.has(lower) && !/^d[a-z]$/.test(lower);
+  }) || null;
+}
+
+const unknownWordError = (problem, word) => parseError({
+  input: problem,
+  hint: `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`,
+  tips: ['Type the mathematics itself — an expression or an equation, such as 2x + 5 = 11 or x^2 - 4.'],
+});
 
 // "… at x = 2" / "… when x = π/4": an evaluation point tacked onto the end
 // of a problem. Read on the raw text before any routing, because the "=" in
@@ -446,6 +472,10 @@ export async function solveProblem(problem, topic) {
       throw new Error('Invalid topic selection');
     }
 
+    // "x squared", "e to the x", "is greater than", "x**3" → notation,
+    // before routing reads it (plainEnglish.js).
+    problem = readPlainEnglish(problem);
+
     let result;
 
     // dy/dx of an equation in x and y, before the differential-equation
@@ -592,6 +622,8 @@ export async function solveProblem(problem, topic) {
     // Inequalities: a <, >, ≤, or ≥ operator. Routed from the raw text so the
     // operator and both sides stay intact for the sign-chart solver.
     if (topic === 'algebra' && looksLikeInequality(problem)) {
+      const word = unknownWordInProblem(problem);
+      if (word) return finalizeResult(unknownWordError(problem, word), problem);
       const { solveInequality } = await import('./solvers/inequalitiesSolver.js');
       result = await solveInequality(problem);
       return finalizeResult(result, problem);
@@ -601,6 +633,8 @@ export async function solveProblem(problem, topic) {
     // problem (before the single-expression extractor mangles the first
     // equation) and routed to the dedicated 2×2 linear solver.
     if (topic === 'algebra' && looksLikeSystem(problem)) {
+      const word = unknownWordInProblem(problem);
+      if (word) return finalizeResult(unknownWordError(problem, word), problem);
       const { solveSystem } = await import('./solvers/systemsSolver.js');
       result = await solveSystem(problem);
       return finalizeResult(result, problem);
@@ -616,6 +650,11 @@ export async function solveProblem(problem, topic) {
       if (trig.status !== STATUS.UNSUPPORTED) {
         return finalizeResult(trig, problem);
       }
+    }
+
+    if (topic === 'limits' || topic === 'integrals') {
+      const word = unknownWordInProblem(problem);
+      if (word) return finalizeResult(unknownWordError(problem, word), problem);
     }
 
     const solver = await resolveSolver(problem, topic);

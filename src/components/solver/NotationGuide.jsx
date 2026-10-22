@@ -10,14 +10,14 @@ import { HelpCircle, X } from "lucide-react";
 // Focus, Escape, Tab trapping and the backdrop follow confirm-dialog.jsx.
 
 const ROWS = [
-  ['Powers', 'x^2, x^(1/2) — or x²'],
-  ['Roots', 'sqrt(x) — or √(x+1)'],
+  ['Powers', 'x^2, x^(1/2) — or x², x**2, "x squared", "x to the power of 3"'],
+  ['Roots', 'sqrt(x) — or √(x+1), "square root of x"'],
   ['Fractions', '(x+1)/(x-1), 1/2'],
   ['Multiplication', '2*x or 2x, (x+1)(x-1)'],
-  ['Functions', 'sin(x), cos(2x), ln(x), log(x) is base 10, e^x'],
+  ['Functions', 'sin(x), cos(2x), ln(x), log(x) is base 10, e^x — or "sine of x", "e to the x"'],
   ['Absolute value', '|x - 2|'],
   ['Equations', '2x + 5 = 11 — a system: 2x + 3y = 6; x - y = 4'],
-  ['Inequalities', 'x^2 - 4 > 0, |x| ≤ 3'],
+  ['Inequalities', 'x^2 - 4 > 0, |x| ≤ 3 — or "2x + 1 is greater than 5"'],
   ['Derivatives', 'd/dx(x^3), or "derivative of x^3"; at a point: x^3 at x = 2; implicitly: find dy/dx if x^2 + y^2 = 25'],
   ['Integrals', '∫ x^2 dx, ∫_0^1 x^2 dx, or "integral of x^2 from 0 to 1"'],
   ['Limits', 'lim x->0 (sin(x)/x), or "limit of 1/x as x approaches infinity"'],
@@ -100,7 +100,7 @@ function NotationDialog({ onClose }) {
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Type it as you would say it. Plain English works too: "derivative of x^3", "integral of x^2 from 0 to 1".</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Type it as you would say it. Plain English works too: "x squared", "derivative of x^3", "integral of x^2 from 0 to 1". The preview under the box shows how your words were read; "of" takes one term, so write "square root of (x + 1)" for more.</p>
         <table className="w-full text-sm">
           <tbody>
             {ROWS.map(([what, how]) => (
