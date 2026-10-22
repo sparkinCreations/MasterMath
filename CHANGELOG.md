@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   equation, a trig value, an inequality, a function, a system, a trig
   equation, then derivative, integral, limit and definite integral. A
   phone shows the first four.
+- **Vite (the build tool) 8.2.2 → 8.2.4**, for high-severity advisories
+  in its development server and its `launch-editor` dependency. The built
+  site never ran either, so mastermath.app was not exposed; `npm audit`
+  is now clean for dev dependencies too.
 
 ### Fixed
 
