@@ -25,6 +25,25 @@ test('spoken powers, roots, functions and relations read as notation', () => {
   for (const [spoken, notation] of cases) assert.equal(readPlainEnglish(spoken), notation, spoken);
 });
 
+test('numbers written as words read as numbers', () => {
+  const cases = [
+    ['two plus one', '2 plus 1'], ['three squared', '3^2'], ['two x plus five equals eleven', '2x plus 5 = 11'],
+    ['twenty one minus seven', '21 minus 7'], ['twenty-one', '21'], ['one hundred and five', '105'],
+    ['one thousand two hundred and thirty four', '1234'], ['two thousand and one', '2001'],
+    ['two point five times four', '2.5 times 4'], ['three point one four', '3.14'],
+    ['one half plus one third', '(1/2) plus (1/3)'], ['three quarters of twelve', '(3/4)*12'], ['a third of nine', '(1/3)*9'],
+    ['limit as x approaches zero of sin(x)/x', 'limit as x approaches 0 of sin(x)/x'], ['ten x squared', '10x^2'],
+    // "and" joins a number only after hundred/thousand: elsewhere it is the conjunction.
+    ['add two and three', 'add 2 and 3'], ['the sum of seven and eight', 'the sum of 7 and 8'],
+    // Two numbers side by side stay two numbers (the solver refuses "2 3" as ambiguous).
+    ['two three', '2 3'],
+  ];
+  for (const [spoken, notation] of cases) assert.equal(readPlainEnglish(spoken), notation, spoken);
+  // Ordinals and "one-sided" keep their meaning; words that contain a number do not change.
+  for (const s of ['second derivative of x^3', 'one-sided limit as x approaches 0 of 1/x', 'one sided limit', 'x tends to infinity', 'someone', 'none', 'often'])
+    assert.equal(readPlainEnglish(s), s, s);
+});
+
 test('instructions and notation are left alone', () => {
   for (const s of [
     'find the tangent line to x^2 at x = 1', 'limit as x approaches 0 from the right of 1/x',
@@ -50,6 +69,13 @@ test('plain-English problems solve, under every topic they belong to', async () 
     ['the integral of x squared', 'integrals', /1\/3\*x\^3/],
     ['lim x approaches 2 of x squared', 'limits', /= 4$/],
     ['what is 20 percent of 50', 'other', /\b10\b/],
+    ['two plus one', 'other', '3'],
+    ['two x plus five equals eleven', 'algebra', 'x = 3'],
+    ['one half plus one third', 'other', /^5\/6/],
+    ['three quarters of twelve', 'other', '9'],
+    ['add two and three', 'other', '5'],
+    ['limit as x approaches zero of sin(x)/x', 'limits', /= 1$/],
+    ['second derivative of x cubed', 'derivatives', "f''(x) = 6x"],
   ];
   for (const [p, topic, answer] of cases) {
     const r = await solveProblem(p, topic);

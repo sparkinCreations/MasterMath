@@ -20,7 +20,11 @@ phrasings: 7 solved before, 56 after.
   of x", "cube root of 27", "sine of x", "natural log of x", "log base 2
   of 8", "absolute value of (x − 3)"; "x over 2"; "equals", "is equal
   to", "is greater than", "is less than or equal to", "is at least";
-  "negative 3", "20 percent of 50", "half of 10". "of" takes one term
+  "negative 3", "20 percent of 50", "half of 10". **Numbers written as
+  words** too: "two plus one", "two x plus five equals eleven",
+  "twenty-one", "one hundred and five", "two point five", "one half plus
+  one third", "three quarters of twelve", "approaches zero" (ordinals such
+  as "second derivative" and "one-sided" keep their meaning). "of" takes one term
   (parentheses for more), and a power binds to its term: "ln of x
   squared" is ln(x²); "sin squared x" is sin²(x).
 - **The input preview shows how the words were read**, before Solve:

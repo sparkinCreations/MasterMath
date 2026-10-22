@@ -100,7 +100,7 @@ function NotationDialog({ onClose }) {
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Type it as you would say it. Plain English works too: "x squared", "derivative of x^3", "integral of x^2 from 0 to 1". The preview under the box shows how your words were read; "of" takes one term, so write "square root of (x + 1)" for more.</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Type it as you would say it. Plain English works too, numbers included: "x squared", "two x plus five equals eleven", "derivative of x^3", "integral of x^2 from 0 to 1". The preview under the box shows how your words were read; "of" takes one term, so write "square root of (x + 1)" for more.</p>
         <table className="w-full text-sm">
           <tbody>
             {ROWS.map(([what, how]) => (

@@ -34,7 +34,7 @@ src/
     problemHistory.js          the history store's IndexedDB wrappers — what pages import; never import api.js from a page
     budgetedSolver.js          the page's entry point: worker, 10 s budget, Cancel, in-thread fallback
     solver.worker.js           runs solveProblem off the main thread
-    plainEnglish.js            spoken maths → notation ("x squared", "sine of x", "is greater than", x**3); first step of solveProblem, and the input preview; no imports
+    plainEnglish.js            spoken maths → notation ("x squared", "sine of x", "is greater than", x**3, "two plus one"); first step of solveProblem, and the input preview; no imports
     mathParser.js              notation → mathjs/Algebrite syntax; expression extraction
     validation.js              input length/topic checks
     settings.js                angleUnit, decimalPlaces (localStorage, or primed by message in the worker)
