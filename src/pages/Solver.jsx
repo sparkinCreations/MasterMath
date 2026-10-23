@@ -26,7 +26,7 @@ export default function Solver() {
   const location = useLocation();
   const prefill = location.state && typeof location.state.problem === 'string' ? location.state : null;
   const [problem, setProblem] = useState(prefill ? prefill.problem : "");
-  // Never an empty form: the last topic used, else Algebra.
+  // Never an empty form: the last topic used, else Auto-detect.
   const [topic, setTopic] = useState(prefill && typeof prefill.topic === 'string' ? prefill.topic : readLastTopic(globalThis.localStorage));
   useEffect(() => { writeLastTopic(globalThis.localStorage, topic); }, [topic]);
   // The bare-expression nudge for the solution on screen, if any.
@@ -226,7 +226,7 @@ export default function Solver() {
           Let's Master Some Math!
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">
-          Choose a topic and enter a supported math problem — from arithmetic and algebra through precalculus and calculus — and you'll get a step-by-step solution
+          Enter a supported math problem (the topic is detected, or choose one) — from arithmetic and algebra through precalculus and calculus — and you'll get a step-by-step solution
         </p>
       </div>
 

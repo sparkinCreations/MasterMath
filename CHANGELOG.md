@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.53.0] - 2026-10-22
+
+### Added
+
+- **Auto-detect**, the first entry in the topic list and where a new
+  visitor starts (a returning one keeps the topic used last). The input
+  decides: d/dx, ∫ or lim → that calculus topic; an equation, inequality
+  or system → Algebra; a leading factor / expand / simplify / solve →
+  Algebra (Trigonometry for a trig expression); a trig function or ° →
+  Trigonometry; "f(x) = …" or "y = …" → Functions; plain numbers,
+  including "two plus one" and "20% of 50" → Arithmetic. An expression on
+  its own ("x² + 3x") is simplified and factored, with the offer to
+  differentiate, integrate or analyse it — never a guess. A notice above
+  the steps says "Detected as Derivatives. Your input uses derivative
+  notation. Not what you meant? Choose a topic above." History and exports
+  file the problem under the detected topic, never "Auto-detect". The User
+  Manual, FAQ and home page explain it.
+- **Tips, mistakes, the example buttons and the history list are
+  typeset**, as the steps and answers are. Every solver marks the formulas
+  in its Key Insights and Common Mistakes, which render only what is marked
+  (the step heuristics, tried first, left a formula plain in 75 of 276 tips
+  and typeset half a phrase in others). The example cards show the maths as
+  a textbook would, and clicking one puts the typed form in the box, beside
+  the preview. Progress shows each problem and answer typeset (KaTeX loads
+  after the list has drawn). The PDF typesets tips and mistakes too.
+
+### Changed
+
+- **"Try an example" runs from easiest to hardest**: arithmetic, a linear
+  equation, a trig value, an inequality, a function, a system, a trig
+  equation, then derivative, integral, limit and definite integral. A
+  phone shows the first four.
+- **Vite (the build tool) 8.2.2 → 8.2.4**, for high-severity advisories
+  in its development server and its `launch-editor` dependency. The built
+  site never ran either, so mastermath.app was not exposed; `npm audit`
+  is now clean for dev dependencies too.
+- **DOMPurify 3.4.16 → 3.4.17** (a dependency of jsPDF), for a critical
+  advisory published on 22 October (GHSA-cg2g-xh64-v4q7 and two related).
+  The app does not use jsPDF's HTML rendering, where DOMPurify runs, but
+  the package ships, and CI's dependency audit failed on it.
+
+### Fixed
+
+- **Typed pi was set as the letters p·i** ("sin(pi/4)" on screen, and
+  read "p i" by screen readers), wherever typed input is shown: the input
+  preview, and the answer of an integral that repeats its integrand. It is
+  π. "infinity", "theta" and "cbrt(…)" render as their symbols too, and a
+  number times a letter or bracket shows as in a textbook (2x, not 2·x).
+- **The input preview missed maths beside words and in plain
+  expressions**: "derivative of x^3", "factor x^2-5x+6", "sin(pi/4)" and
+  "2*x + 1" showed untypeset. A typed problem is now read as words around
+  maths.
+- **Screen readers**: the steps are an ordered list (a reader announces how
+  many and moves step by step), as is the Progress history (each entry's
+  topic and date belong to its problem). Example buttons are named by the
+  typed problem. See docs/ACCESSIBILITY.md.
+- **Screen readers announced some controls twice.** The graph controls and
+  the Symbols buttons had an aria-label and a tooltip with the same text,
+  which Chrome passes on as a description ("Zoom in, button, Zoom in");
+  the tooltip is now their only name. The typeset example buttons exposed
+  their maths after their name; it is hidden from assistive tech. The
+  selected angle unit in Settings carried the description shown below it.
+  An audit of every page and state (menus, dialogs, the topic list, the
+  phone navigation) found nothing else, and the a11y spec now checks.
+- **"x*y = 1" was answered "1", marked Solved**, and so were x + y = 1
+  (1), x − y = 0 (0) and x/y = 2 (2): a y after an operator was read as the
+  start of a definition "y = …". Each now solves for x (x = 1/y, x = −y + 1,
+  x = y, x = 2y); one with no closed form is refused.
+- **"y = 2y + 3" was read as a definition of y** and answered "2y + 3"
+  (under Algebra and Functions); y on both sides makes it an equation, so
+  it is now y = −3.
+- **"two plus one" was refused on the page** ("Please enter a valid math
+  problem") under every topic, although the solver has answered it since
+  1.52.2: the input check looked for digits and operators before the
+  number words were read. It now checks the same reading the solver and
+  the preview use.
+
 ## [1.52.4] - 2026-10-22
 
 From an outside review (8.5/10). Each claim was reproduced first; two did

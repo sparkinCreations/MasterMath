@@ -16,15 +16,17 @@ test('step-through is the default solution mode and the choice is remembered', (
   assert.equal(readSolutionMode({ getItem: () => { throw new Error('blocked'); } }), 'step');
 });
 
-test('the solver opens on the last topic used, else Algebra, and ignores junk', () => {
+test('the solver opens on the last topic used, else Auto-detect, and ignores junk', () => {
   const s = memory();
-  assert.equal(readLastTopic(s), 'algebra');
+  assert.equal(readLastTopic(s), 'auto');
   writeLastTopic(s, 'integrals');
   assert.equal(readLastTopic(s), 'integrals');
   writeLastTopic(s, 'nonsense');
   assert.equal(readLastTopic(s), 'integrals');
   s.setItem('lastTopic', 'garbage');
-  assert.equal(readLastTopic(s), 'algebra');
+  assert.equal(readLastTopic(s), 'auto');
+  writeLastTopic(s, 'auto');
+  assert.equal(readLastTopic(s), 'auto');
 });
 
 test('the bare-expression nudge fires for an expression under Algebra or Arithmetic and nowhere else', async () => {

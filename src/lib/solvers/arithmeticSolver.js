@@ -63,7 +63,7 @@ export function solveArithmetic(expression) {
         return indeterminate({
           input: original,
           form,
-          note: `${form} is not a number. ∞ is not a value arithmetic can subtract, divide or multiply — it describes a limit that grows without bound, and two such limits can differ by anything. In calculus ${form} is an indeterminate form: a limit can settle it, plain arithmetic cannot.`,
+          note: `${mark(form)} is not a number. ${mark('∞')} is not a value arithmetic can subtract, divide or multiply — it describes a limit that grows without bound, and two such limits can differ by anything. In calculus ${mark(form)} is an indeterminate form: a limit can settle it, plain arithmetic cannot.`,
         });
       }
       return undefinedValue({
@@ -73,8 +73,8 @@ export function solveArithmetic(expression) {
           `Evaluate: ${asMath(original)}`,
           '∞ is not a real number, so it cannot be added to, multiplied or compared in arithmetic. It describes how a limit behaves — growing without bound — not a value.',
         ],
-        tips: ['In a limit, ∞ + 1, 2·∞ and ∞² all "equal" ∞ — the quantity still grows without bound. As arithmetic, none of them has a value.'],
-        common_mistakes: ['Treating ∞ as a very large number.'],
+        tips: [`In a limit, ${mark('∞ + 1')}, ${mark('2·∞')} and ${mark('∞²')} all "equal" ${mark('∞')} — the quantity still grows without bound. As arithmetic, none of them has a value.`],
+        common_mistakes: [`Treating ${mark('∞')} as a very large number.`],
       });
     }
 
@@ -85,7 +85,7 @@ export function solveArithmetic(expression) {
         reason: 'the modulus is zero',
         steps: [`Evaluate: ${asMath(original)}`, `${mark('a mod b')} asks for the remainder after dividing by ${mark('b')} — and dividing by ${mark('0')} has no value, so neither does the remainder.`],
         tips: ['A remainder only makes sense for a nonzero divisor.'],
-        common_mistakes: ['Reading a mod 0 as a (some calculators return the dividend unchanged).'],
+        common_mistakes: [`Reading ${mark('a mod 0')} as ${mark('a')} (some calculators return the dividend unchanged).`],
       });
     }
 
@@ -104,8 +104,8 @@ export function solveArithmetic(expression) {
           input: original,
           reason: 'the logarithm of 0 is undefined',
           steps: [`Evaluate: ${asMath(original)}`, `${mark('ln(0)')} asks for the power ${mark('e')} must be raised to in order to give ${mark('0')} — and no power of ${mark('e')} is ${mark('0')}, so there is no such number.`],
-          tips: ['ln(x) → −∞ as x → 0⁺: the values grow more and more negative, but ln(0) itself has no value.', 'The logarithm is only defined for positive numbers.'],
-          common_mistakes: ['Reading ln(0) as −∞. Infinity describes how the limit behaves, not the value of ln at 0.'],
+          tips: [`${mark('ln(x) → −∞')} as ${mark('x → 0⁺')}: the values grow more and more negative, but ${mark('ln(0)')} itself has no value.`, 'The logarithm is only defined for positive numbers.'],
+          common_mistakes: [`Reading ${mark('ln(0)')} as ${mark('−∞')}. Infinity describes how the limit behaves, not the value of ln at ${mark('0')}.`],
         });
       }
       if (dividesByZero(cleaned)) {
@@ -113,7 +113,7 @@ export function solveArithmetic(expression) {
           return indeterminate({
             input: original,
             form: '0/0',
-            note: '0/0 is not a number: every number times 0 gives 0, so no single value fits. In calculus it is an indeterminate form — a limit can settle it, plain arithmetic cannot.',
+            note: `${mark('0/0')} is not a number: every number times ${mark('0')} gives ${mark('0')}, so no single value fits. In calculus it is an indeterminate form — a limit can settle it, plain arithmetic cannot.`,
           });
         }
         return undefinedValue({
@@ -124,10 +124,10 @@ export function solveArithmetic(expression) {
             'This expression divides by zero. No number multiplied by 0 gives a nonzero result, so the quotient has no value.',
           ],
           tips: [
-            'A limit may grow without bound — 1/x → ∞ as x → 0⁺ — but the arithmetic expression 1/0 has no value at all.',
-            'Check for a denominator that works out to zero, such as 8/(3-3).',
+            `A limit may grow without bound — ${mark('1/x → ∞')} as ${mark('x → 0⁺')} — but the arithmetic expression ${mark('1/0')} has no value at all.`,
+            `Check for a denominator that works out to zero, such as ${mark('8/(3-3)')}.`,
           ],
-          common_mistakes: ['Reading 1/0 as ∞. Infinity describes how a limit behaves, not the result of a division.'],
+          common_mistakes: [`Reading ${mark('1/0')} as ${mark('∞')}. Infinity describes how a limit behaves, not the result of a division.`],
         });
       }
       if (!Number.isNaN(result)) {
@@ -222,7 +222,7 @@ export function solveArithmetic(expression) {
     return parseError({
       input: expression,
       hint: error.message,
-      tips: ['Use * for multiplication, / for division, and ^ for exponents (e.g., (2+3)*4^2).'],
+      tips: ['Use "*" for multiplication, "/" for division, and "^" for exponents (e.g., "(2+3)*4^2").'],
       common_mistakes: ['Missing operators between numbers', 'Unbalanced parentheses'],
     });
   }
@@ -360,11 +360,11 @@ function fractionSteps(expr) {
       steps,
       tips: [
         'To add or subtract fractions, rewrite them over a common denominator first, then combine only the numerators.',
-        'Work with the fractions exactly — 1/3 is not 0.3333, and rounding part-way through changes the answer.',
+        `Work with the fractions exactly — ${mark('1/3')} is not ${mark('0.3333')}, and rounding part-way through changes the answer.`,
         'Reduce the result by dividing numerator and denominator by their greatest common factor.',
       ],
       common_mistakes: [
-        'Adding the numerators and the denominators separately: 1/3 + 1/7 is not 2/10.',
+        `Adding the numerators and the denominators separately: ${mark('1/3 + 1/7')} is not ${mark('2/10')}.`,
         'Converting only some of the terms — a whole number must be rewritten over the common denominator too.',
         'Rounding a fraction to a decimal in the middle of exact work.',
       ],
@@ -425,27 +425,27 @@ function arithmeticGuidance(steps, expr) {
   if (/negative exponent means a reciprocal/.test(text)) {
     return {
       tips: [
-        'a^(−n) = 1/a^n: a negative exponent moves the power to the denominator — it does not make the result negative.',
-        'The base cannot be 0 (0^(−n) would be 1/0), and the sign of the result comes from the base: (−2)^(−3) = 1/(−8) = −1/8.',
-        'A negative exponent on a fraction flips it: (1/2)^(−2) = 2² = 4.',
+        `${mark('a^(−n) = 1/a^n')}: a negative exponent moves the power to the denominator — it does not make the result negative.`,
+        `The base cannot be ${mark('0')} (${mark('0^(−n)')} would be ${mark('1/0')}), and the sign of the result comes from the base: ${mark('(−2)^(−3) = 1/(−8) = −1/8')}.`,
+        `A negative exponent on a fraction flips it: ${mark('(1/2)^(−2) = 2² = 4')}.`,
       ],
       common_mistakes: [
-        'Writing 2^(−3) as −8 or as −2³.',
+        `Writing ${mark('2^(−3)')} as ${mark('−8')} or as ${mark('−2³')}.`,
         'Making the result negative — the minus sign is in the exponent, not in the value.',
-        'Forgetting that −2^(−2) applies the minus after the power: −(1/4).',
+        `Forgetting that ${mark('−2^(−2)')} applies the minus after the power: ${mark('−(1/4)')}.`,
       ],
     };
   }
   if (/!/.test(expr)) {
     return {
       tips: [
-        'n! = n × (n − 1) × … × 2 × 1 — the product of every whole number from n down to 1.',
-        '0! = 1 by definition, so that formulas for combinations and permutations work at the edges.',
-        'Factorials grow very fast: 10! is already 3,628,800.',
+        `${mark('n! = n × (n − 1) × … × 2 × 1')} — the product of every whole number from ${mark('n')} down to ${mark('1')}.`,
+        `${mark('0! = 1')} by definition, so that formulas for combinations and permutations work at the edges.`,
+        `Factorials grow very fast: ${mark('10!')} is already 3,628,800.`,
       ],
       common_mistakes: [
-        'Reading 7! as 7 × 1, or as 7 + 6 + … + 1.',
-        'Treating (n − 1)! as n! − 1.',
+        `Reading ${mark('7!')} as ${mark('7 × 1')}, or as ${mark('7 + 6 + … + 1')}.`,
+        `Treating ${mark('(n − 1)!')} as ${mark('n! − 1')}.`,
         'Applying ! to a fraction or a negative number.',
       ],
     };
@@ -453,27 +453,27 @@ function arithmeticGuidance(steps, expr) {
   if (/%/.test(expr) || /Percent means/.test(text)) {
     return {
       tips: [
-        '"Per cent" means per hundred: 50% = 50/100 = 1/2, and "of" means multiply.',
-        'To find p% of a number, multiply by p/100 (or move the decimal point two places).',
-        'A percent of a percent multiplies: 50% of 50% is 25%, not 100%.',
+        `"Per cent" means per hundred: ${mark('50% = 50/100 = 1/2')}, and "of" means multiply.`,
+        `To find ${mark('p%')} of a number, multiply by ${mark('p/100')} (or move the decimal point two places).`,
+        `A percent of a percent multiplies: ${mark('50%')} of ${mark('50%')} is ${mark('25%')}, not ${mark('100%')}.`,
       ],
       common_mistakes: [
-        'Multiplying by 50 instead of by 0.5.',
+        `Multiplying by ${mark('50')} instead of by ${mark('0.5')}.`,
         'Adding the percentage instead of multiplying by it.',
-        'Mixing up "50% of 80" with "50 is what percent of 80".',
+        `Mixing up "${mark('50%')} of ${mark('80')}" with "${mark('50')} is what percent of ${mark('80')}".`,
       ],
     };
   }
   if (/\b(?:sqrt|cbrt|nthRoot)\b|√|\^\s*\(?\d+\/\d+\)?/i.test(expr)) {
     return {
       tips: [
-        '√a is the non-negative number whose square is a; √2 is irrational, so its decimal never ends or repeats.',
-        'Rewrite roots as powers when combining them: √a = a^(1/2), ∛a = a^(1/3).',
-        'Simplify by pulling out perfect squares: √8 = √4·√2 = 2√2.',
+        `${mark('√a')} is the non-negative number whose square is ${mark('a')}; ${mark('√2')} is irrational, so its decimal never ends or repeats.`,
+        `Rewrite roots as powers when combining them: ${mark('√a = a^(1/2)')}, ${mark('∛a = a^(1/3)')}.`,
+        `Simplify by pulling out perfect squares: ${mark('√8 = √4·√2 = 2√2')}.`,
       ],
       common_mistakes: [
-        '√(a + b) is not √a + √b.',
-        'Reporting ±√a for a plain root — the radical symbol means the positive root.',
+        `${mark('√(a + b)')} is not ${mark('√a + √b')}.`,
+        `Reporting ${mark('±√a')} for a plain root — the radical symbol means the positive root.`,
         'Rounding too early in a longer calculation.',
       ],
     };

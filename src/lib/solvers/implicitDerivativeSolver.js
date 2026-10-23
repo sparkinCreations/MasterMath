@@ -257,16 +257,16 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
   steps.push(`Check: ${mark(`(${formatNumber(c.x)}, ${formatNumber(c.y)})`)} is on the curve; following the curve a short step either side gives a slope of ${mark(formatNumber(c.slope))}, and the formula gives the same.`);
 
   const tips = [
-    `Treat ${dep} as an unknown function of ${ind}: differentiate a ${dep}-term as you would f(${ind}), so ${dep}² gives 2${dep}·${dydx}.`,
-    `In one line: for F(${ind}, ${dep}) = 0, ${dydx} = −F_${ind}/F_${dep}, the two partial derivatives — a useful check on the term-by-term working.`,
+    `Treat ${mark(dep)} as an unknown function of ${mark(ind)}: differentiate a ${mark(dep)}-term as you would ${mark(`f(${ind})`)}, so ${mark(`${dep}²`)} gives ${mark(`2${dep}·${dydx}`)}.`,
+    `In one line: for ${mark(`F(${ind}, ${dep}) = 0`)}, ${mark(`${dydx} = −F_${ind}/F_${dep}`)}, the two partial derivatives — a useful check on the term-by-term working.`,
   ];
   const common_mistakes = [
-    `Forgetting the ${dydx} on a ${dep}-term: d/d${ind}(${dep}²) is 2${dep}·${dydx}, not 2${dep}.`,
-    'Differentiating the constant side as anything but 0.',
+    `Forgetting the ${mark(dydx)} on a ${mark(dep)}-term: ${mark(`d/d${ind}(${dep}²)`)} is ${mark(`2${dep}·${dydx}`)}, not ${mark(`2${dep}`)}.`,
+    `Differentiating the constant side as anything but ${mark('0')}.`,
   ];
   if (usedProduct) {
-    tips.push(`A term with both ${ind} and ${dep} is a product: d/d${ind}(${ind}${dep}) = ${dep} + ${ind}·${dydx}.`);
-    common_mistakes.push(`Treating ${ind}${dep} as a constant times ${ind}: d/d${ind}(${ind}${dep}) is ${dep} + ${ind}·${dydx}, not just ${dep}.`);
+    tips.push(`A term with both ${mark(ind)} and ${mark(dep)} is a product: ${mark(`d/d${ind}(${ind}${dep}) = ${dep} + ${ind}·${dydx}`)}.`);
+    common_mistakes.push(`Treating ${mark(`${ind}${dep}`)} as a constant times ${mark(ind)}: ${mark(`d/d${ind}(${ind}${dep})`)} is ${mark(`${dep} + ${ind}·${dydx}`)}, not just ${mark(dep)}.`);
   }
 
   if (!options.point) {
@@ -284,7 +284,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
       }
     }
     steps.push(`${mark(`${dydx} = ${show(result)}`)} depends on ${mark(dep)} as well as ${mark(ind)}, and the curve can pass through ${mark(`${ind} = ${options.point.x}`)} more than once, so a slope needs the whole point: give it as ${mark(`(${options.point.x}, ${dep})`)}.`);
-    tips.unshift(`To evaluate an implicit derivative, give the point as (${ind}, ${dep}) — for example "at (3, 4)".`);
+    tips.unshift(`To evaluate an implicit derivative, give the point as ${mark(`(${ind}, ${dep})`)} — for example "at (3, 4)".`);
     return solved({ steps, answer: `${dydx} = ${show(result)}`, tips, common_mistakes });
   }
 
@@ -304,7 +304,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
       input,
       reason: `${pointShown} is not on the curve ${shownEquation}`,
       steps: [...steps, `Substitute ${mark(pointShown)}: the two sides of ${mark(shownEquation)} are not equal there, so the point is not on the curve and the curve has no slope there.`],
-      tips: [`Check the point first: substitute it into the equation — both sides must be equal. On this curve ${dydx} = ${show(result)}.`],
+      tips: [`Check the point first: substitute it into the equation — both sides must be equal. On this curve ${mark(`${dydx} = ${show(result)}`)}.`],
     });
   }
   const at = (expr) => run(`simplify(subst((${py}), ${dep}, subst((${px}), ${ind}, ${expr})))`);
@@ -316,7 +316,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
       input,
       reason: singular ? `both partial derivatives are 0 at ${pointShown} (a singular point of the curve)` : `the tangent at ${pointShown} is vertical`,
       steps: [...steps, `At ${mark(pointShown)}: ${mark(`${show(fy)} = 0`)}, so ${mark(`${dydx} = ${show(result)}`)} has a zero denominator there${singular ? ', and the numerator is 0 too: the curve has a singular point there, with no single tangent' : ': the tangent line is vertical, and a vertical line has no slope'}.`],
-      tips: [`${dydx} is undefined exactly where ${show(fy)} = 0.`],
+      tips: [`${mark(dydx)} is undefined exactly where ${mark(`${show(fy)} = 0`)}.`],
     });
   }
   const exact = at(result);
@@ -327,6 +327,6 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
   const shownValue = exactText && exactText !== dec && !/^-?\d+$/.test(exactText) ? `${exactText} ≈ ${dec}` : (exactText || dec);
   steps.push(`At ${mark(pointShown)} (on the curve: both sides agree there), substitute ${mark(`${ind} = ${show(px)}, ${dep} = ${show(py)}`)}: ${mark(`${dydx} = ${shownValue}`)}`);
   steps.push(`That is the slope of the tangent line to the curve at ${mark(pointShown)}.`);
-  tips.unshift(`An implicit ${dydx} usually involves both ${ind} and ${dep}, so evaluating it needs the whole point (${ind}, ${dep}), not just ${ind}.`);
+  tips.unshift(`An implicit ${mark(dydx)} usually involves both ${mark(ind)} and ${mark(dep)}, so evaluating it needs the whole point ${mark(`(${ind}, ${dep})`)}, not just ${mark(ind)}.`);
   return solved({ steps, answer: `${dydx} at ${pointShown} = ${shownValue}`, tips, common_mistakes });
 }

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const TOPIC_LABELS = {
+  auto: "Auto-detect",
   derivatives: "Derivatives",
   integrals: "Integrals",
   limits: "Limits",
@@ -83,6 +84,19 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
   const from = TOPIC_LABELS[routing.from] || routing.from;
   const reason = String(routing.reason || '').replace(/^the input\b/i, 'Your input');
   const switched = currentTopic === routing.to;
+  // Under Auto-detect nothing was overridden: say what was detected and
+  // that a topic can still be chosen, with no switch to offer.
+  if (routing.from === 'auto') {
+    return (
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+        <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
+        <p className="text-gray-800 dark:text-gray-100">
+          <strong>Detected as {to}.</strong>{reason ? ` ${reason.charAt(0).toUpperCase()}${reason.slice(1)}.` : ''}{' '}
+          Not what you meant? Choose a topic above.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -151,21 +165,23 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
 
   const handleExportSolution = async (format) => {
     if (!solution || !problem || !topic) return;
+    // An export names the topic the problem was solved as, never "Auto-detect".
+    const exportTopic = topic === 'auto' ? solution.routedTopic || topic : topic;
 
     try {
       switch (format) {
         case 'pdf':
           // Awaited: the PDF writer is fetched on demand, so a failure to load
           // it must surface as an export error rather than a silent no-op.
-          await exportSolutionAsPDF(problem, topic, solution, TOPIC_LABELS, { graph: graphOnScreen() });
+          await exportSolutionAsPDF(problem, exportTopic, solution, TOPIC_LABELS, { graph: graphOnScreen() });
           toast.success("Solution exported as PDF");
           break;
         case 'markdown':
-          exportSolutionAsMarkdown(problem, topic, solution, TOPIC_LABELS);
+          exportSolutionAsMarkdown(problem, exportTopic, solution, TOPIC_LABELS);
           toast.success("Solution exported as Markdown");
           break;
         case 'json':
-          exportSolutionAsJSON(problem, topic, solution);
+          exportSolutionAsJSON(problem, exportTopic, solution);
           toast.success("Solution exported as JSON");
           break;
       }
@@ -284,9 +300,11 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                   </div>
                 )}
               </div>
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {/* An ordered list, so a screen reader announces "list, 6 items"
+                  and can move step by step. */}
+              <ol className="divide-y divide-gray-200 dark:divide-gray-700">
                 {(stepThrough ? steps.slice(0, revealed) : steps).map((step, idx) => (
-                  <motion.div
+                  <motion.li
                     key={idx}
                     {...stepMotion(idx)}
                     className="py-4 first:pt-1"
@@ -297,9 +315,9 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                       </div>
                       <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
                     </div>
-                  </motion.div>
+                  </motion.li>
                 ))}
-              </div>
+              </ol>
               {stepThrough && !allRevealed && (
                 <div className="flex flex-col items-center gap-3 pt-4">
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
@@ -363,7 +381,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     key={idx}
                     className="p-3 rounded-lg bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border border-amber-200 dark:border-amber-700/60"
                   >
-                    <p className="text-gray-700 dark:text-gray-200">{tip}</p>
+                    <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={tip} /></p>
                   </div>
                 ))}
               </div>
@@ -382,7 +400,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     key={idx}
                     className="p-3 rounded-lg bg-linear-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border border-red-200 dark:border-red-800/60"
                   >
-                    <p className="text-gray-700 dark:text-gray-200">{mistake}</p>
+                    <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={mistake} /></p>
                   </div>
                 ))}
               </div>

@@ -88,26 +88,26 @@ function trigGuidance(expression, steps) {
   const special = /special angle/.test(text);
   const unit = /degrees|radians/.test(text);
   if (/^arc|^a(sin|cos|tan)$/.test(fn || '')) {
-    tips.push('An inverse trig function returns an ANGLE: arcsin(1/2) asks "which angle has sine 1/2?" — the principal one, in [−π/2, π/2] for arcsin and arctan, [0, π] for arccos.');
-    tips.push('arcsin and arccos only accept inputs in [−1, 1]; arctan accepts any real number.');
-    mistakes.push('Reading arcsin(x) as 1/sin(x) — that is csc(x), a different function.');
+    tips.push(`An inverse trig function returns an ANGLE: ${mark('arcsin(1/2)')} asks "which angle has sine ${mark('1/2')}?" — the principal one, in ${mark('[−π/2, π/2]')} for arcsin and arctan, ${mark('[0, π]')} for arccos.`);
+    tips.push(`arcsin and arccos only accept inputs in ${mark('[−1, 1]')}; arctan accepts any real number.`);
+    mistakes.push(`Reading ${mark('arcsin(x)')} as ${mark('1/sin(x)')} — that is ${mark('csc(x)')}, a different function.`);
     mistakes.push('Reporting an angle outside the principal range, or in the wrong unit.');
   } else if (fn === 'tan' || fn === 'cot' || fn === 'sec' || fn === 'csc') {
-    tips.push(fn === 'tan' ? 'tan = sin/cos, so tan is undefined wherever cos = 0 (90°, 270°, …) and its period is 180°, not 360°.' : `${fn} is a reciprocal: sec = 1/cos, csc = 1/sin, cot = 1/tan — undefined wherever the function it inverts is 0.`);
-    tips.push('Key identity: 1 + tan²(x) = sec²(x).');
-    mistakes.push('Forgetting that tan(90°) is undefined — a calculator shows a huge number, not the truth.');
-    mistakes.push(fn === 'tan' ? 'Using 360° as the period of tan (it repeats every 180°).' : 'Confusing sec with 1/sin (sec = 1/cos).');
+    tips.push(fn === 'tan' ? `${mark('tan = sin/cos')}, so tan is undefined wherever ${mark('cos = 0')} (${mark('90°')}, ${mark('270°')}, …) and its period is ${mark('180°')}, not ${mark('360°')}.` : `${fn} is a reciprocal: ${mark('sec = 1/cos')}, ${mark('csc = 1/sin')}, ${mark('cot = 1/tan')} — undefined wherever the function it inverts is ${mark('0')}.`);
+    tips.push(`Key identity: ${mark('1 + tan²(x) = sec²(x)')}.`);
+    mistakes.push(`Forgetting that ${mark('tan(90°)')} is undefined — a calculator shows a huge number, not the truth.`);
+    mistakes.push(fn === 'tan' ? `Using ${mark('360°')} as the period of tan (it repeats every ${mark('180°')}).` : `Confusing sec with ${mark('1/sin')} (${mark('sec = 1/cos')}).`);
   } else {
     tips.push(fn === 'cos'
-      ? 'Remember: cos(0°) = 1, cos(30°) = √3/2, cos(45°) = √2/2, cos(60°) = 1/2, cos(90°) = 0.'
-      : 'Remember: sin(0°) = 0, sin(30°) = 1/2, sin(45°) = √2/2, sin(60°) = √3/2, sin(90°) = 1.');
-    tips.push('Key identity: sin²(x) + cos²(x) = 1 — and sin and cos are cofunctions: sin(θ) = cos(90° − θ).');
-    mistakes.push('Confusing sin and cos values for complementary angles (sin 30° = cos 60°).');
+      ? `Remember: ${mark('cos(0°) = 1')}, ${mark('cos(30°) = √3/2')}, ${mark('cos(45°) = √2/2')}, ${mark('cos(60°) = 1/2')}, ${mark('cos(90°) = 0')}.`
+      : `Remember: ${mark('sin(0°) = 0')}, ${mark('sin(30°) = 1/2')}, ${mark('sin(45°) = √2/2')}, ${mark('sin(60°) = √3/2')}, ${mark('sin(90°) = 1')}.`);
+    tips.push(`Key identity: ${mark('sin²(x) + cos²(x) = 1')} — and sin and cos are cofunctions: ${mark('sin(θ) = cos(90° − θ)')}.`);
+    mistakes.push(`Confusing sin and cos values for complementary angles (${mark('sin 30° = cos 60°')}).`);
     if (special) mistakes.push('Not memorising the special-angle values — they are expected exactly, not as decimals.');
   }
   if (unit) {
-    tips.push('π radians = 180°: multiply degrees by π/180 to get radians. Write pi for π (sin(pi/6)) or set the angle unit in Settings.');
-    mistakes.unshift('Mixing up radians and degrees — sin(30) in radians is −0.988, not 1/2.');
+    tips.push(`${mark('π')} radians = ${mark('180°')}: multiply degrees by ${mark('π/180')} to get radians. Write "pi" for ${mark('π')} ("sin(pi/6)") or set the angle unit in Settings.`);
+    mistakes.unshift(`Mixing up radians and degrees — ${mark('sin(30)')} in radians is ${mark('−0.988')}, not ${mark('1/2')}.`);
   }
   // A degree-looking angle (a multiple of 15) read as radians: sin(30) with
   // the angle unit on Radians is −0.988, and the table tip "sin(30°) = 1/2"
@@ -115,7 +115,7 @@ function trigGuidance(expression, steps) {
   const arg = expression.match(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\(\s*(-?\d+)\s*\)/i);
   const n = arg ? Number(arg[1]) : NaN;
   if (fn && Number.isInteger(n) && n !== 0 && n % 15 === 0 && /treated as -?\d+ radians|Interpreting -?\d+ as radians/.test(text)) {
-    tips.unshift(`Here ${fn}(${n}) is ${n} radians (about ${Math.round((n * 1800) / Math.PI) / 10}°), not ${n}° — which is why the answer is not the value of ${fn}(${n}°). For degrees, write ${fn}(${n}°) or set the angle unit to Degrees in Settings.`);
+    tips.unshift(`Here ${mark(`${fn}(${n})`)} is ${mark(String(n))} radians (about ${mark(`${Math.round((n * 1800) / Math.PI) / 10}°`)}), not ${mark(`${n}°`)} — which is why the answer is not the value of ${mark(`${fn}(${n}°)`)}. For degrees, write ${mark(`${fn}(${n}°)`)} or set the angle unit to Degrees in Settings.`);
   }
   return { tips: tips.slice(0, 3), common_mistakes: mistakes.slice(0, 3) };
 }
@@ -150,7 +150,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
             'An identity is true for every input where both sides are defined — check the domain: tan, sec, cot and csc have points where they do not exist.',
             'To prove an identity by hand, rewrite everything in terms of sin and cos and simplify one side until it matches the other.',
           ];
-          numeric.common_mistakes = ['Treating the points where tan(x) or sec(x) is undefined as solutions because the simplified form 0 = 0 allows them.'];
+          numeric.common_mistakes = [`Treating the points where ${mark('tan(x)')} or ${mark('sec(x)')} is undefined as solutions because the simplified form ${mark('0 = 0')} allows them.`];
           return numeric;
         }
         numeric.steps = [
@@ -205,8 +205,8 @@ export async function solveTrigonometry(expression, settingsOverride) {
               : `${mark(`${total} × π/180 ≈ ${formatNumber(radians)}`)} radians.`,
           ],
           answer: radiansText ? `${sum}${total} = ${radiansText}` : `${sum}${total} ≈ ${formatNumber(radians)} rad`,
-          tips: ['Degrees to radians: multiply by π/180. Radians to degrees: multiply by 180/π.', 'Common angles: 30° = π/6, 45° = π/4, 60° = π/3, 90° = π/2, 180° = π.'],
-          common_mistakes: ['Multiplying by 180/π when converting degrees to radians: that goes the other way.'],
+          tips: [`Degrees to radians: multiply by ${mark('π/180')}. Radians to degrees: multiply by ${mark('180/π')}.`, `Common angles: ${mark('30° = π/6')}, ${mark('45° = π/4')}, ${mark('60° = π/3')}, ${mark('90° = π/2')}, ${mark('180° = π')}.`],
+          common_mistakes: [`Multiplying by ${mark('180/π')} when converting degrees to radians: that goes the other way.`],
         });
       }
     }
@@ -264,10 +264,10 @@ export async function solveTrigonometry(expression, settingsOverride) {
         answer: `Undefined for real numbers${inv ? ` — ${fn} is only defined on [−1, 1]` : ''}`,
         status: 'undefined',
         tips: [
-          'The inverse trig functions arcsin and arccos accept inputs from −1 to 1 only; arctan accepts any real number.',
+          `The inverse trig functions arcsin and arccos accept inputs from ${mark('−1')} to ${mark('1')} only; arctan accepts any real number.`,
           'A calculator that reports a complex value here has left the real numbers — that is not the angle you were looking for.',
         ],
-        common_mistakes: ['Asking for arcsin or arccos of a value outside [−1, 1] and reading the complex result as an angle.'],
+        common_mistakes: [`Asking for arcsin or arccos of a value outside ${mark('[−1, 1]')} and reading the complex result as an angle.`],
         graph: null,
       };
     }
@@ -396,12 +396,12 @@ export async function solveTrigonometry(expression, settingsOverride) {
         steps,
         answer: 'Undefined',
         tips: [
-          `${func}(x) has a vertical asymptote wherever ${denom}(x) = 0 — the value grows without bound instead of settling on a number.`,
+          `${mark(`${func}(x)`)} has a vertical asymptote wherever ${mark(`${denom}(x) = 0`)} — the value grows without bound instead of settling on a number.`,
           'A calculator that shows a huge number here is hitting floating-point rounding, not a real value.',
-          'math.js uses radians by default (π radians = 180°).',
+          `math.js uses radians by default (${mark('π')} radians = ${mark('180°')}).`,
         ],
         common_mistakes: [
-          `Assuming ${func} is defined everywhere — it blows up wherever ${denom}(x) = 0.`,
+          `Assuming ${func} is defined everywhere — it blows up wherever ${mark(`${denom}(x) = 0`)}.`,
           'Reading the huge floating-point number near an asymptote as the actual answer.',
           'Mixing up radians and degrees (use pi for radians).',
         ],
@@ -447,7 +447,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
     return parseError({
       input: expression,
       hint: error.message,
-      tips: ['Use pi for π (e.g., sin(pi/4)).', 'For degrees, write sin(30 degrees) or multiply by pi/180.'],
+      tips: [`Use pi for ${mark('π')} (e.g., ${mark('sin(pi/4)')}).`, `For degrees, write ${mark('sin(30°)')} or multiply by ${mark('pi/180')}.`],
     });
   }
 }
@@ -458,13 +458,13 @@ export async function solveTrigonometry(expression, settingsOverride) {
 async function simplifyTrigExpression(expression, variable) {
   const display = beautify(expression);
   const tips = [
-    'Pythagorean identity: sin²(x) + cos²(x) = 1 (and its ÷cos², ÷sin² forms).',
-    'Double angle: sin(2x) = 2·sin(x)·cos(x), cos(2x) = cos²(x) − sin²(x).',
+    `Pythagorean identity: ${mark('sin²(x) + cos²(x) = 1')} (and its ${mark('÷cos²')}, ${mark('÷sin²')} forms).`,
+    `Double angle: ${mark('sin(2x) = 2·sin(x)·cos(x)')}, ${mark('cos(2x) = cos²(x) − sin²(x)')}.`,
     'Rewriting tan, sec, csc, cot in terms of sin and cos often unlocks a simplification.',
   ];
   const commonMistakes = [
-    'Cancelling across a sum: sin(x)/x is not sin — only common *factors* cancel.',
-    'Dropping the argument: sin² + cos² means nothing without the same angle inside both.',
+    `Cancelling across a sum: ${mark('sin(x)/x')} is not sin — only common *factors* cancel.`,
+    `Dropping the argument: ${mark('sin² + cos²')} means nothing without the same angle inside both.`,
     'Forgetting that an identity must hold for every angle, not just one test value.',
   ];
 

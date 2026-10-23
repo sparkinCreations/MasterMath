@@ -24,8 +24,8 @@ function wrapsWhole(body) {
 const FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'asin', 'acos', 'atan', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'ln', 'log', 'exp'];
 
 // Words allowed to appear inside a "math" fragment without making it prose.
-const MATH_WORDS = new Set([
-  ...FUNCTIONS, 'sqrt', 'abs', 'lim', 'pi', 'dx', 'dy', 'dt', 'du', 'dv', 'dd',
+export const MATH_WORDS = new Set([
+  ...FUNCTIONS, 'sqrt', 'abs', 'sgn', 'mod', 'lim', 'pi', 'dx', 'dy', 'dt', 'du', 'dv', 'dd',
   'or', 'and', 'C', 'DNE', 'e', 'i', 'd', 'f', 'F', 'x', 'y', 't', 'u', 'v', 'n', 'a', 'b', 'c',
 ]);
 
@@ -48,6 +48,12 @@ export function toLatex(ascii) {
     .replace(/≤/g, ' \\le ')
     .replace(/≥/g, ' \\ge ')
     .replace(/∞/g, ' \\infty ')
+    // Typed spellings the parser accepts (a typed problem reaches here).
+    .replace(/(?<![A-Za-z\\])(?:infinity|inf)(?![A-Za-z])/g, ' \\infty ')
+    .replace(/(?<![A-Za-z\\])theta(?![A-Za-z])/g, ' \\theta ')
+    // Typed pi: "sin(pi/4)" was set as the italic letters p·i, and screen
+    // readers said "p i".
+    .replace(/(?<![A-Za-z\\])pi(?![A-Za-z])/g, ' \\pi ')
     .replace(/⁺/g, '^{+}')
     .replace(/⁻/g, '^{-}')
     .replace(/→/g, ' \\to ')
@@ -55,6 +61,8 @@ export function toLatex(ascii) {
     .replace(/->/g, ' \\to ')
     .replace(/π/g, ' \\pi ')
     .replace(/°/g, '^{\\circ}')
+    .replace(/∛\(([^()]*)\)/g, '\\sqrt[3]{$1}')
+    .replace(/∛(\w+)/g, '\\sqrt[3]{$1}')
     .replace(/√\(([^()]*)\)/g, '\\sqrt{$1}')
     .replace(/√(\w+)/g, '\\sqrt{$1}')
     // √π (the erf constants): π has become \pi by now.
@@ -88,6 +96,7 @@ export function toLatex(ascii) {
   s = s.replace(/\|([^|]+)\|/g, '\\left|$1\\right|');
   // sqrt(...) / abs(...) with balanced nesting
   s = replaceCall(s, 'sqrt', (arg) => `\\sqrt{${arg}}`);
+  s = replaceCall(s, 'cbrt', (arg) => `\\sqrt[3]{${arg}}`);
   s = replaceCall(s, 'abs', (arg) => `\\left|${arg}\\right|`);
 
   // Exponents: ^(...) → ^{...}; ^-2 / ^12 / ^x → ^{-2} etc.
@@ -101,17 +110,24 @@ export function toLatex(ascii) {
 
   // log_2(x) (beautify's form of the parser's log(x)/log(2)) → \log_{2}(x);
   // the word-boundary loop below does not see "log" before an underscore.
-  s = s.replace(/\blog_(\d+(?:\.\d+)?)/g, '\\log_{$1}');
+  s = s.replace(/\blog_(\d+(?:\.\d+)?|[a-z](?![a-z]))/g, '\\log_{$1}');
 
   // Function names → \sin etc.
   for (const fn of FUNCTIONS) {
-    s = s.replace(new RegExp(`\\b${fn}\\b`, 'g'), `\\${fn === 'arcsin' ? 'arcsin' : fn === 'arccos' ? 'arccos' : fn === 'arctan' ? 'arctan' : fn}`);
+    // Not \b: "2sin²(x)" has no boundary between the 2 and the s.
+    s = s.replace(new RegExp(`(?<![A-Za-z\\\\])${fn}(?![A-Za-z])`, 'g'), `\\${fn === 'arcsin' ? 'arcsin' : fn === 'arccos' ? 'arccos' : fn === 'arctan' ? 'arctan' : fn}`);
   }
   // KaTeX has no \arcsec etc.; \arcsin/\arccos/\arctan exist. sec/csc/cot exist.
   // The error function has no KaTeX command: upright, as a named operator.
   s = s.replace(/\berf\b/g, '\\operatorname{erf}');
+  s = s.replace(/\bsgn\b/g, '\\operatorname{sgn}');
+  // A "lim" with no approach written under it (a tip's "lim B^E"): upright.
+  s = s.replace(/(?<!\\)\blim\b/g, '\\lim');
 
   // Explicit multiplication that survived beautify: a*b → a \cdot b
+  // A number times a letter, a function or a bracket is written the
+  // textbook way: typed "2*x + 5" shows as 2x + 5, "3*sin(x)" as 3 sin x.
+  s = s.replace(/(\d)\s*\*\s*(?=[A-Za-z(\\])/g, '$1');
   s = s.replace(/\*/g, ' \\cdot ');
 
   // Connecting words inside a math fragment are text, not a product of
@@ -212,8 +228,63 @@ function liftQuotes(segments) {
   return out;
 }
 
-export function segmentMathText(step) {
+// mode 'auto' (steps, answers): the ⟦…⟧ markers when present, else the
+// clause heuristics below. 'marked' (tips and mistakes): only what is
+// marked is math; unmarked text stays prose, never guessed at — the
+// heuristics typeset half a phrase in a tip ("as ⟦x = −2⟧ or −3"). 'input'
+// (a typed problem: the preview, the example buttons, the history list):
+// see segmentInput.
+export function segmentMathText(step, { mode = 'auto' } = {}) {
+  if (mode === 'input') return segmentInput(step);
+  if (mode === 'marked') {
+    const s = String(step);
+    const marked = hasMathMarkers(s) ? markedSegments(s) : null;
+    return marked ? liftQuotes(marked) : [{ type: 'text', value: stripMathMarkers(s) }];
+  }
   return liftQuotes(segmentRaw(step));
+}
+
+// A typed problem has no markers, and the heuristics want an equation-like
+// signal, so "sin(pi/4)", "2*x + 1" and the x^3 in "derivative of x^3"
+// stayed plain. Here English words are prose and everything between them
+// is math: "integrate ⟦x^2⟧ from ⟦0⟧ to ⟦1⟧", "⟦sin(pi/4)⟧". A word is a
+// letter run of three or more that is not a math name, or a short word
+// such as "of"; single letters and "dx" are math.
+const INPUT_MATH_WORDS = new Set(['cbrt', 'infinity', 'inf', 'theta']);
+const SHORT_PROSE = new Set(['of', 'to', 'at', 'is', 'by', 'as', 'on', 'in', 'if', 'it', 'an', 'be', 'we', 'do', 'my', 'me', 'up']);
+const isProseWord = (w) => {
+  const l = w.toLowerCase();
+  if (MATH_WORDS.has(w) || MATH_WORDS.has(l) || INPUT_MATH_WORDS.has(l)) return false;
+  return w.length >= 3 || SHORT_PROSE.has(l);
+};
+function segmentInput(text) {
+  const out = [];
+  const push = (type, value) => {
+    if (!value) return;
+    const last = out[out.length - 1];
+    if (last && last.type === 'text' && type === 'text') last.value += value;
+    else out.push({ type, value });
+  };
+  let run = '';
+  const flush = () => {
+    // Spaces and punctuation at the edges of a run are prose ("solve for x: …").
+    const m = run.match(/^([\s:,;.?!]*)([^]*?)([\s:,;.?!]*)$/);
+    push('text', m[1]);
+    push(/[0-9A-Za-zπθ∞∫√]/.test(m[2]) ? 'math' : 'text', m[2]);
+    push('text', m[3]);
+    run = '';
+  };
+  // ": " is prose too: "solve for ⟦x⟧: ⟦3x = 9⟧".
+  for (const part of String(text).split(/([A-Za-z]+|:\s+)/)) {
+    if (/^:\s+$/.test(part) || (/^[A-Za-z]+$/.test(part) && isProseWord(part))) {
+      flush();
+      push('text', part);
+    } else {
+      run += part;
+    }
+  }
+  flush();
+  return liftQuotes(out);
 }
 
 function segmentRaw(step) {

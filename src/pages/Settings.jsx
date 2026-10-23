@@ -180,7 +180,9 @@ export default function Settings() {
                 <OptionButton
                   key={opt.value}
                   active={settings.angleUnit === opt.value}
-                  title={opt.description}
+                  // The selected option's description is the text below, so
+                  // its button carries none: a reader would hear it twice.
+                  title={settings.angleUnit === opt.value ? undefined : opt.description}
                   onClick={() => updateSetting({ angleUnit: opt.value }, `Angle unit set to ${opt.label.toLowerCase()}`)}
                 >
                   {opt.label}

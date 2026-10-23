@@ -10,8 +10,11 @@ import { renderMathSegments } from "@/lib/mathRender";
 // The visual `katex-html` span is marked aria-hidden by KaTeX itself, so an
 // html-only render would leave every expression silent to screen readers —
 // in a math app, that is the entire content.
-export default function MathText({ text, block = false }) {
-  const segments = useMemo(() => renderMathSegments(text), [text]);
+//
+// `mode`: 'auto' for steps and answers, 'marked' for tips and mistakes (only
+// ⟦…⟧-marked runs are math), 'input' for a typed problem (lib/latex.js).
+export default function MathText({ text, block = false, mode = "auto" }) {
+  const segments = useMemo(() => renderMathSegments(text, { mode }), [text, mode]);
 
   const Tag = block ? "div" : "span";
   return (

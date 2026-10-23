@@ -8,8 +8,9 @@ import { segmentMathText, toLatex } from './latex.js';
 //
 // Fallback discipline: if conversion or KaTeX rendering fails for a segment,
 // that segment is the original plain text — never worse than plain text.
-export function renderMathSegments(text) {
-  return segmentMathText(text).map((seg) => {
+// `mode` is segmentMathText's: 'auto', 'marked' or 'input'.
+export function renderMathSegments(text, { mode = 'auto' } = {}) {
+  return segmentMathText(text, { mode }).map((seg) => {
     if (seg.type !== 'math') return seg;
     try {
       const html = katex.renderToString(toLatex(seg.value), {
@@ -39,8 +40,8 @@ export const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ESCAPES[c]
 
 // The same segments as one HTML string (prose escaped), for markup built
 // outside React.
-export function mathTextToHtml(text) {
-  return renderMathSegments(text)
+export function mathTextToHtml(text, { mode = 'auto' } = {}) {
+  return renderMathSegments(text, { mode })
     .map((seg) => (seg.type === 'katex' ? seg.html : `<span>${escapeHtml(seg.value)}</span>`))
     .join('');
 }

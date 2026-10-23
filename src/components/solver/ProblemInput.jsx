@@ -13,6 +13,7 @@ import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validatio
 import { readPlainEnglish } from "@/lib/plainEnglish";
 
 const TOPICS = [
+  { value: "auto", label: "Auto-detect" },
   { value: "derivatives", label: "Derivatives" },
   { value: "integrals", label: "Integrals" },
   { value: "limits", label: "Limits" },
@@ -23,6 +24,7 @@ const TOPICS = [
 ];
 
 const PLACEHOLDERS = {
+  auto: "e.g., 2*x + 5 = 11, sin(pi/4), d/dx x^3, or ∫_0^1 x^2 dx (the topic is detected)",
   derivatives: "e.g., x^2 + 3*x or Find the derivative of x^3 - 2*x",
   integrals: "e.g., 2*x + 1, Integrate x^2, or ∫_0^1 x^2 dx (definite)",
   limits: "e.g., lim x->0 (sin(x)/x) or (x^2 - 4)/(x - 2) as x->2",
@@ -32,18 +34,20 @@ const PLACEHOLDERS = {
   other: "e.g., 15 + 23, 8 * 7, (5 + 3) * 4, 2^3 + 10/2"
 };
 
+// Easiest first: arithmetic and a linear equation, then the precalculus
+// topics, then calculus. (A phone shows the first four.)
 const EXAMPLE_PROBLEMS = [
+  { topic: "other", problem: "(5 + 3) * 4 - 2^3" },
+  { topic: "algebra", problem: "2*x + 5 = 11" },
+  { topic: "trigonometry", problem: "sin(pi/4)" },
+  { topic: "algebra", problem: "x^2 - 4 > 0" },
+  { topic: "functions", problem: "x^2 - 4*x + 3" },
+  { topic: "algebra", problem: "2x + 3y = 6; x - y = 4" },
+  { topic: "trigonometry", problem: "sin(x) = 1/2" },
   { topic: "derivatives", problem: "x^2 + 3*x" },
   { topic: "integrals", problem: "2*x + 1" },
-  { topic: "integrals", problem: "∫_0^1 x^2 dx" },
   { topic: "limits", problem: "lim x->0 (sin(x)/x)" },
-  { topic: "functions", problem: "x^2 - 4*x + 3" },
-  { topic: "algebra", problem: "2*x + 5 = 11" },
-  { topic: "algebra", problem: "2x + 3y = 6; x - y = 4" },
-  { topic: "algebra", problem: "x^2 - 4 > 0" },
-  { topic: "trigonometry", problem: "sin(pi/4)" },
-  { topic: "trigonometry", problem: "sin(x) = 1/2" },
-  { topic: "other", problem: "(5 + 3) * 4 - 2^3" }
+  { topic: "integrals", problem: "∫_0^1 x^2 dx" }
 ];
 
 export default function ProblemInput({ problem, setProblem, topic, setTopic, onSolve, onInvalid, onCancel, isLoading, onNavigateHistory, hasHistory }) {
@@ -239,7 +243,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
         {problem.trim() && (
           <div aria-hidden="true" className="flex items-baseline gap-2 px-1 text-gray-800 dark:text-gray-100 min-h-7">
             <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 shrink-0">Preview</span>
-            <span className="text-lg leading-snug break-words min-w-0"><MathText text={readPlainEnglish(problem)} /></span>
+            <span className="text-lg leading-snug break-words min-w-0"><MathText mode="input" text={readPlainEnglish(problem)} /></span>
           </div>
         )}
         <div className="flex justify-between items-center gap-3 min-h-11">
@@ -328,11 +332,19 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           {EXAMPLE_PROBLEMS.map((ex, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={() => loadExample(ex)}
+              // The card shows the example typeset; clicking puts the typed
+              // form in the box. Its accessible name is that typed form, and
+              // the card's content is hidden from assistive tech, so the
+              // problem is announced once, not again as MathML.
+              aria-label={`${TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}: ${ex.problem}`}
               className={`text-left p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
             >
-              <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
-              <span className="text-gray-700 dark:text-gray-300">{ex.problem}</span>
+              <span aria-hidden="true">
+                <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
+                <span className="text-gray-700 dark:text-gray-300"><MathText mode="input" text={readPlainEnglish(ex.problem)} /></span>
+              </span>
             </button>
           ))}
         </div>

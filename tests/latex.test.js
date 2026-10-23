@@ -21,7 +21,8 @@ test('toLatex converts integrals, limits, and unicode operators', () => {
 
 test('toLatex converts definite integrals with bounds', () => {
   assert.match(toLatex('∫_0^1 (x^2) dx = 1/3'), /\\int_\{0\}\^\{1\}/);
-  assert.match(toLatex('∫_0^pi (sin(x)) dx = 2'), /\\int_\{0\}\^\{pi\} \\sin/);
+  // Typed pi is π (1.53.0; it was the italic letters p·i).
+  assert.match(toLatex('∫_0^pi (sin(x)) dx = 2'), /\\int_\{0\}\^\{\\pi\} \\sin/);
   assert.match(toLatex('∫_-2^2 (x^3) dx = 0'), /\\int_\{-2\}\^\{2\}/);
 });
 
@@ -97,4 +98,40 @@ test('typed limits and arrows convert: lim x->0 and x->2', () => {
   assert.equal(toLatex('x -> 2'), 'x \\to 2');
   // The solver's own form is unchanged.
   assert.equal(toLatex('lim (x→0) (sin(x)/x) = 1'), '\\lim_{x \\to 0} (\\sin(x)/x) = 1');
+});
+
+// 1.53.0: a typed problem (the preview, the example buttons, the history
+// list) has no markers, and the step heuristics left "sin(pi/4)", "2*x + 1"
+// and the x^3 in "derivative of x^3" plain.
+const shown = (text, mode) => segmentMathText(text, { mode }).map((s) => (s.type === 'math' ? `⟦${s.value}⟧` : s.value)).join('');
+test('a typed problem typesets its maths and keeps its words as prose', () => {
+  for (const [typed, out] of [
+    ['sin(pi/4)', '⟦sin(pi/4)⟧'], ['2*x + 1', '⟦2*x + 1⟧'], ['(5 + 3) * 4 - 2^3', '⟦(5 + 3) * 4 - 2^3⟧'],
+    ['2x + 3y = 6; x - y = 4', '⟦2x + 3y = 6; x - y = 4⟧'], ['lim x->0 (sin(x)/x)', '⟦lim x->0 (sin(x)/x)⟧'],
+    ['derivative of x^3', 'derivative of ⟦x^3⟧'], ['factor x^2-5x+6', 'factor ⟦x^2-5x+6⟧'],
+    ['integrate x^2 from 0 to 1', 'integrate ⟦x^2⟧ from ⟦0⟧ to ⟦1⟧'], ['solve for x: 3x = 9', 'solve for ⟦x⟧: ⟦3x = 9⟧'],
+    ['what is sqrt(16)?', 'what is ⟦sqrt(16)⟧?'], ['x < -1 or x > 3', '⟦x < -1 or x > 3⟧'],
+    ['find dy/dx for x^2 + y^2 = 25 at (3, 4)', 'find ⟦dy/dx⟧ for ⟦x^2 + y^2 = 25⟧ at ⟦(3, 4)⟧'],
+    ['x apples = 4', '⟦x⟧ apples ⟦= 4⟧'], ['"hello"', '"hello"'],
+  ]) assert.equal(shown(typed, 'input'), out, typed);
+});
+
+test('tips and mistakes typeset only their marked runs', () => {
+  assert.equal(shown('Reading ⟦(x − 2)(x − 3) = 0⟧ as x = −2 or −3', 'marked'), 'Reading ⟦(x − 2)(x − 3) = 0⟧ as x = −2 or −3');
+  // No markers: prose, never guessed at (the step heuristics would typeset "x = 2").
+  assert.deepEqual(segmentMathText('Check that x = 2 works.', { mode: 'marked' }), [{ type: 'text', value: 'Check that x = 2 works.' }]);
+});
+
+test('typed spellings render as their symbols', () => {
+  assert.match(toLatex('sin(pi/4)'), /\\sin\( \\pi \/4\)/);
+  assert.match(toLatex('lim x->inf 1/x'), /\\to \\infty/);
+  assert.match(toLatex('sin(theta)'), /\\theta/);
+  assert.equal(toLatex('cbrt(27)'), '\\sqrt[3]{27}');
+  // A number times a letter, function or bracket reads as in a textbook; other products keep the dot.
+  assert.equal(toLatex('2*x + 5 = 11'), '2x + 5 = 11');
+  assert.equal(toLatex('2*(x+1)'), '2(x+1)');
+  assert.equal(toLatex('2*3'), '2 \\cdot 3');
+  assert.equal(toLatex('x*e^x'), 'x \\cdot e^{x}');
+  // Words that contain the letters are left alone.
+  assert.equal(toLatex('spiral'), 'spiral');
 });

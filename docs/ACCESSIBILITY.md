@@ -59,6 +59,34 @@ tree — the data VoiceOver and NVDA consume — in reading order:
   "Clear All History", focus lands on Cancel, Escape closes it and focus
   returns to the Clear History button.
 
+On 22 October 2026 (v1.53.0, when tips, mistakes, the example buttons and
+the history list were typeset) the tree was read again:
+
+- **Example buttons** are named by the typed problem ("Algebra: 2*x + 5 =
+  11", what clicking puts in the box); the typeset maths inside is MathML.
+  The input preview stays `aria-hidden` (the textbox is the content).
+- **Typed pi was read "p i"**: "sin(pi/4)" was set as the letters p and i,
+  on the buttons, in history and in an integral's answer. It is π now.
+- **Steps were not a list**: "Step 1" then a paragraph, so a reader could
+  not hear the count or move step to step. They are an ordered list.
+- **History was not a list**: each entry's topic and date floated free of
+  its problem. It is a list, one item per problem.
+- **Tips and mistakes** carry MathML for their formulas, like the steps.
+
+- **Double announcements**: every page and state (the topic list, the
+  Symbols strip, the notation guide, a solution with its graph, the export
+  menus, the clear-history dialog, step-through, the phone navigation) was
+  checked for a control announced twice. Three were: the graph controls
+  and Symbols buttons (an aria-label and an identical title, which Chrome
+  passes on as a description), the typeset example buttons (their MathML
+  after their name), and the selected angle unit in Settings (its tooltip
+  repeated the text below it). All fixed; "nothing on the Solver or
+  Settings is announced twice" in the a11y spec keeps it so.
+
+`e2e/a11y.spec.js` ("typeset maths for screen readers") checks that every
+KaTeX run on the page has MathML and a hidden visual layer, the button
+names, both lists, and audits Progress with history in both themes.
+
 Two things this found were fixed in v1.40.5: the logo image inside the home
 links had a non-empty `alt`, so readers heard "MasterMath Logo MasterMath by
 sparkinCreations…" (now decorative), and step numbers were a bare "1" (now

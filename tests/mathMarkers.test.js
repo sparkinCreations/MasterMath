@@ -45,7 +45,7 @@ test('malformed markers are dropped and the plain text goes to the heuristics', 
   assert.deepEqual(segmentMathText('Done⟦⟧.'), [{ type: 'text', value: 'Done' }, { type: 'text', value: '.' }]);
 });
 
-test('markers never reach an answer, a tip, a mistake or a warning', () => {
+test('markers never reach an answer or a warning; steps, tips and mistakes keep them', () => {
   const r = finalizeResult({
     status: 'solved',
     steps: [`Let ${mark('u = 2x')}.`],
@@ -55,11 +55,12 @@ test('markers never reach an answer, a tip, a mistake or a warning', () => {
     warnings: [`Read as ${mark('(8/2)·4')}.`],
   }, 'x');
   assert.equal(r.answer, 'x = 2');
-  assert.equal(r.tips[0], 'Check x = 2.');
-  assert.equal(r.common_mistakes[0], 'Forgetting dx.');
   assert.equal(r.warnings[0], 'Read as (8/2)·4.');
-  // Steps keep them: they are what the renderer reads.
+  // Steps, tips and mistakes keep them: they are what the renderer reads
+  // (tips and mistakes in 'marked' mode since 1.53.0).
   assert.equal(r.steps[0], 'Let ⟦u = 2x⟧.');
+  assert.equal(r.tips[0], 'Check ⟦x = 2⟧.');
+  assert.equal(r.common_mistakes[0], 'Forgetting ⟦dx⟧.');
 });
 
 test('markers never reach an export or the input', () => {

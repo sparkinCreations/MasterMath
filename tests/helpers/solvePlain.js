@@ -5,7 +5,12 @@ import { solveProblem } from '../../src/lib/api.js';
 import { solveLimit } from '../../src/lib/solvers/limitsSolver.js';
 import { stripMathMarkers } from '../../src/lib/mathMarkers.js';
 
-export const plain = (r) => ({ ...r, steps: (r.steps || []).map(stripMathMarkers) });
+export const plain = (r) => ({
+  ...r,
+  steps: (r.steps || []).map(stripMathMarkers),
+  tips: (r.tips || []).map(stripMathMarkers),
+  common_mistakes: (r.common_mistakes || []).map(stripMathMarkers),
+});
 
 export async function solvePlain(problem, topic) {
   return plain(await solveProblem(problem, topic));

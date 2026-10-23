@@ -349,10 +349,11 @@ export default function GraphViewer({ functionData }) {
   const chartLabel = describeGraph(functionData);
   const features = describeGraphFeatures(functionData);
 
-  // Controls are icon-only, so aria-label carries the name; title keeps the
-  // hover tooltip for mouse users.
+  // Controls are icon-only: the title is both the hover tooltip and the
+  // name. (An aria-label with the same text made Chrome pass the title on
+  // as a description, so a reader said "Zoom in, button, Zoom in".)
   const ctrl = (onClick, label, Icon) => (
-    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClick} title={label} aria-label={label}>
+    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClick} title={label}>
       <Icon className="w-4 h-4" aria-hidden="true" />
     </Button>
   );
@@ -382,7 +383,6 @@ export default function GraphViewer({ functionData }) {
                 className={`h-8 w-8 ${useRightAxis ? 'bg-indigo-100 dark:bg-gray-600' : ''}`}
                 onClick={() => setSeparateAxes(!useRightAxis)}
                 title={useRightAxis ? 'Use one y-axis for both curves' : `Separate y-axis for ${functionData.secondaryLabel ? functionData.secondaryLabel.split('=')[0].trim() : 'the dashed curve'}`}
-                aria-label={useRightAxis ? 'Use one y-axis for both curves' : 'Separate y-axis for the dashed curve'}
                 aria-pressed={useRightAxis}
               >
                 <Rows3 className="w-4 h-4" aria-hidden="true" />
