@@ -143,9 +143,15 @@ for (const scheme of ['light', 'dark']) {
       // second, by partial fractions.)
       await page.locator('#problem').fill('∫ 1/(x^6+x+1) dx');
       await page.getByRole('button', { name: 'Solve Problem' }).click();
-      await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible();
+      const cancel = page.getByRole('button', { name: 'Cancel' });
+      await expect(cancel).toBeVisible();
       await audit(page, `solver while solving (${scheme})`);
-      await page.getByRole('button', { name: 'Cancel' }).click();
+      // On a loaded CI runner the audit can outlast the 10-second budget,
+      // which ends the solve by itself (October 2026: Cancel was detached
+      // mid-click). Cancel it if it is still running; either way the page
+      // must come back to Solve. (Cancel itself has its own smoke test.)
+      if (await cancel.isVisible()) await cancel.click({ timeout: 3000 }).catch(() => {});
+      await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeVisible({ timeout: 15000 });
     });
   });
 }
