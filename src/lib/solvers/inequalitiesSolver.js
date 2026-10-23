@@ -11,6 +11,7 @@
 
 import { math, beautify, formatNumber, sampleFunction, loadAlgebrite, isAlgebriteFailure, structuralPeriod, definedEverywhere, piForm, mark } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
+import { readPolynomial, allRoots } from './polynomialRoots.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 
 const OPERATORS = ['<=', '>=', '<', '>'];
@@ -38,6 +39,7 @@ export async function solveInequality(rawText) {
     return refuse(`The parts use different variables (${variables.join(', ')}).`, 'A compound inequality must be about one variable.', 'unsupported');
   }
   const variable = variables[0] || 'x';
+  const labels = new Map(parts.flatMap((p) => [...(p.result.labels || new Map())]));
   const isAnd = compound.mode === 'and';
   const combined = isAnd
     ? parts.reduce((acc, p) => intersectPieces(acc, p.result.pieces), [{ ...ALL_REALS }])
@@ -47,7 +49,7 @@ export async function solveInequality(rawText) {
     ? (isAnd ? 'No solution — no value satisfies both parts' : 'No solution — no value satisfies either part')
     : isAllReals(combined)
       ? 'All real numbers satisfy the inequality'
-      : combined.map((p) => pieceToInequality(p, variable)).join('  or  ');
+      : withApproximations(combined.map((p) => pieceToInequality(p, variable, labels)).join('  or  '), combined, labels);
 
   // A part's answer is math (x < -2  or  x > 2) or a sentence ("No solution — …").
   const asMath = (t) => (/^(?:No |All |True|False)/.test(String(t)) ? t : mark(t));
@@ -61,8 +63,8 @@ export async function solveInequality(rawText) {
   if (combined.length === 0) steps.push(isAnd ? 'The two solution sets do not overlap, so there is no solution.' : 'Neither part has any solution.');
   else if (isAllReals(combined)) steps.push(isAnd ? 'Both parts hold everywhere.' : 'Between them the parts cover every real number.');
   else {
-    steps.push(`${isAnd ? 'Intersection' : 'Union'}: ${mark(combined.map((p) => pieceToInequality(p, variable)).join('  or  '))}.`);
-    steps.push(`In interval notation: ${mark(combined.map(pieceToInterval).join(' ∪ '))}.`);
+    steps.push(`${isAnd ? 'Intersection' : 'Union'}: ${mark(combined.map((p) => pieceToInequality(p, variable, labels)).join('  or  '))}.`);
+    steps.push(`In interval notation: ${mark(combined.map((p) => pieceToInterval(p, labels)).join(' ∪ '))}.`);
   }
 
   const chart = parts.find((p) => p.result.chart)?.result.chart;
@@ -242,22 +244,29 @@ async function solveSingle(rawText) {
     const period = structuralPeriod(fExpr, variable);
     if (period && period > 0) {
       if (!definedEverywhere(fExpr, variable)) {
-        return refuse(`${beautify(simplified)} is periodic and has breaks (it is undefined at some points of every period). Inequalities of that kind are not supported yet.`, 'A periodic inequality without breaks, such as sin(x) > 1/2 or 2cos(x) - 1 ≤ 0, is solved for every period.', 'unsupported');
+        return refuse(`${shown(simplified)} is periodic and has breaks (it is undefined at some points of every period). Inequalities of that kind are not supported yet.`, 'A periodic inequality without breaks, such as sin(x) > 1/2 or 2cos(x) - 1 ≤ 0, is solved for every period.', 'unsupported');
       }
       const periodic = solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simplified, period });
       if (periodic) return periodic;
-      return refuse(`${beautify(simplified)} is periodic, and its sign changes could not be pinned down on one period.`, 'Try a simpler form such as sin(x) > 1/2.', 'unsupported');
+      return refuse(`${shown(simplified)} is periodic, and its sign changes could not be pinned down on one period.`, 'Try a simpler form such as sin(x) > 1/2.', 'unsupported');
     }
 
     const numerator = safeRun(Algebrite, `numerator(${simplified})`) || simplified;
     const denominator = safeRun(Algebrite, `denominator(${simplified})`) || '1';
 
-    const zeros = realRoots(Algebrite, numerator, variable);
-    const poles = realRoots(Algebrite, denominator, variable);
+    const labels = new Map();
+    const zeros = realRoots(Algebrite, numerator, variable, labels);
+    const poles = realRoots(Algebrite, denominator, variable, labels);
+    await labelTranscendentalZeros(numerator, variable, zeros, labels);
     const isPole = (x) => poles.some((p) => Math.abs(p - x) < 1e-9);
 
-    // Critical points: numerator zeros (that aren't cancelled poles) and poles.
-    const critical = uniqueSorted([...zeros.filter((z) => !isPole(z)), ...poles]);
+    // Critical points: numerator zeros (that aren't cancelled poles), poles,
+    // and the edges of the domain. ln(x) < 1 was answered x < e: the sign
+    // chart had one interval left of e, tested it at 1.718 and kept all of
+    // it, x ≤ 0 included, where ln(x) is undefined. With 0 as a boundary,
+    // (−∞, 0) tests undefined and drops out: 0 < x < e.
+    const edges = domainEdges(Algebrite, fExpr, variable, labels).filter((e) => !zeros.some((z) => Math.abs(z - e) < 1e-9));
+    const critical = uniqueSorted([...zeros.filter((z) => !isPole(z)), ...poles, ...edges]);
 
     const nonStrict = op === '<=' || op === '>=';
     const wantPositive = op === '>' || op === '>=';
@@ -271,6 +280,8 @@ async function solveSingle(rawText) {
         return NaN;
       }
     };
+    const testPoint = (lo, hi) => (!Number.isFinite(lo) && !Number.isFinite(hi) ? 0 : !Number.isFinite(lo) ? hi - 1 : !Number.isFinite(hi) ? lo + 1 : (lo + hi) / 2);
+    const definedOn = (lo, hi) => Number.isFinite(evalF(testPoint(lo, hi)));
     const signOn = (lo, hi) => {
       let test;
       if (!Number.isFinite(lo) && !Number.isFinite(hi)) test = 0;
@@ -291,7 +302,7 @@ async function solveSingle(rawText) {
       const hi = bounds[i + 1];
       const s = signOn(lo, hi);
       const satisfies = wantPositive ? s > 0 : s < 0;
-      chartRows.push({ lo, hi, sign: s });
+      chartRows.push({ lo, hi, sign: s, defined: s !== 0 || definedOn(lo, hi) });
       if (satisfies) pieces.push({ lo, hi, loC: false, hiC: false });
     }
     // Included isolated/boundary roots (f = 0 satisfies a non-strict operator).
@@ -305,10 +316,10 @@ async function solveSingle(rawText) {
       ? 'No solution — no value satisfies the inequality'
       : isAllReals(solution)
         ? 'All real numbers satisfy the inequality'
-        : solution.map((p) => pieceToInequality(p, variable)).join('  or  ');
+        : withApproximations(solution.map((p) => pieceToInequality(p, variable, labels)).join('  or  '), solution, labels);
 
     const steps = buildSteps({
-      lhs, rhs, op, variable, fExpr, simplified, critical, poles, zeros, chartRows, solution, nonStrict,
+      lhs, rhs, op, variable, fExpr, simplified, critical, poles, zeros, chartRows, solution, nonStrict, labels, edges,
     });
 
     return {
@@ -328,6 +339,7 @@ async function solveSingle(rawText) {
       ],
       graph: buildGraph(fExpr, variable, critical, zeros, poles, solution),
       pieces: solution,
+      labels,
       variable,
       chart: { fExpr, critical, zeros, poles },
     };
@@ -490,7 +502,7 @@ function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simplified, p
   const cut = (x) => (Math.abs(x) < 1e-12 ? '0' : Math.abs(x - T) < 1e-9 ? Tshown : show(x));
   const steps = [
     `Solve the inequality ${mark(`${beautify(lhs)} ${opShown} ${beautify(rhs)}`)}.`,
-    `Move everything to one side: ${mark(`${beautify(simplified)} ${opShown} 0`)}.`,
+    `Move everything to one side: ${mark(`${shown(simplified)} ${opShown} 0`)}.`,
     `The left side is periodic with period ${mark(Tshown)}: its trig functions repeat every ${mark(Tshown)}. So solve on one period, ${mark(`0 ≤ ${v} < ${Tshown}`)}, and the solution repeats.`,
     roots.length
       ? `On that period it is ${mark('0')} at ${mark(`${v} = ${roots.map(show).join(', ')}`)}${inexact ? ' (located numerically, to the decimals shown)' : ''}.`
@@ -644,10 +656,120 @@ function parseInequality(raw) {
 
 // --- roots -------------------------------------------------------------------
 
-// Real roots of a polynomial string, cleaned and de-duplicated. Non-polynomial
-// or constant inputs (no roots) and complex roots are handled gracefully.
-function realRoots(Algebrite, poly, variable) {
+// Real roots of a polynomial string, cleaned and de-duplicated, each with
+// its exact form in `labels` where one is known. A polynomial goes to
+// polynomialRoots (Sturm counting, verified roots): Algebrite writes the
+// real root of x³ − 2 with i and (−1)^(1/3) in it, the old filter dropped
+// every root containing i, and x³ − 2 > 0 was answered "No solution".
+// Exact forms: a rational root as a fraction; Algebrite's own form when it
+// is real and short (√2, 1/2 + 1/2·√5), matched to the root numerically;
+// ⁿ√c for a binomial a·xⁿ + b. Anything else stays a decimal.
+const labelKey = (x) => Number(x).toFixed(9);
+
+// Algebrite's notation in the app's: its log is the natural log (a bare log
+// here means base 10), exp(u) is e^u, and (u)^(1/2) is a square root. For
+// the steps a reader sees and for the exact lookup by the algebra solver.
+function inAppNotation(expr) {
+  let out = String(expr).replace(/(?<![a-z])log\(/g, 'ln(');
+  let m;
+  let guard = 0;
+  while ((m = out.match(/\(([^()]*)\)\^\(1\/2\)/)) && guard++ < 8) out = out.replace(m[0], `sqrt(${m[1]})`);
+  return out.replace(/(?<![a-z])exp\(([^()]*)\)/g, (all, u) => (/^[a-z0-9]+$/i.test(u) ? `e^${u}` : `e^(${u})`));
+}
+const shown = (expr) => beautify(inAppNotation(expr));
+
+// Where the expression's domain ends: the zeros of every logarithm's and
+// square root's argument (an even root's, generally). Each is a boundary of
+// the sign chart; whether a side is in the domain is then tested, not
+// assumed.
+function domainEdges(Algebrite, fExpr, variable, labels) {
+  const args = [];
+  try {
+    math.parse(fExpr).traverse((node) => {
+      if (node.isFunctionNode && ['log', 'ln', 'log10', 'log2', 'sqrt'].includes(node.fn?.name) && node.args[0]) args.push(node.args[0].toString());
+      if (node.isOperatorNode && node.op === '^' && node.args[1]) {
+        try {
+          const p = node.args[1].evaluate();
+          if (typeof p === 'number' && !Number.isInteger(p) && Number.isInteger(1 / p) && (1 / p) % 2 === 0) args.push(node.args[0].toString());
+        } catch { /* a symbolic exponent is not a root */ }
+      }
+    });
+  } catch {
+    return [];
+  }
+  const edges = [];
+  for (const a of args) {
+    if (!new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(a)) continue;
+    for (const e of realRoots(Algebrite, a, variable, labels)) if (!edges.some((q) => Math.abs(q - e) < 1e-9)) edges.push(e);
+  }
+  return edges;
+}
+
+// e^x − 2 = 0, ln(x) − 1 = 0: the algebra solver solves the equation
+// exactly (x = ln(2), x = e); each exact solution that equals a zero found
+// numerically labels it. A solution it could only locate numerically
+// ("x ≈ 0.7391") labels nothing.
+async function labelTranscendentalZeros(numerator, variable, zeros, labels) {
+  const missing = zeros.filter((z) => !labels.has(labelKey(z)) && !Number.isInteger(z));
+  if (!missing.length || readPolynomial(String(numerator), variable)) return;
+  try {
+    const { solveAlgebra } = await import('./algebraSolver.js');
+    // Algebrite writes the natural log as log; the solvers read a bare log
+    // as base 10 (rewriteCommonLog), so hand it back as ln.
+    const r = await solveAlgebra(`${inAppNotation(numerator)} = 0`);
+    if (!r || r.status && r.status !== 'solved') return;
+    for (const part of String(r.answer).split(/\s+or\s+/)) {
+      const m = part.match(new RegExp(`^\\s*${variable}\\s*=\\s*([^≈]+?)\\s*(?:\\(≈[^)]*\\))?\\s*$`));
+      if (!m) continue;
+      let value;
+      try { value = Number(math.evaluate(parseMathExpression(m[1]))); } catch { continue; }
+      // The zeros are rounded to six decimals (clean()).
+      const z = missing.find((q) => Math.abs(q - value) < 1e-6);
+      if (z !== undefined && !/^-?\d+(?:\.\d+)?$/.test(m[1].trim())) labels.set(labelKey(z), m[1].trim());
+    }
+  } catch {
+    // no exact form: the decimal stands
+  }
+}
+function realRoots(Algebrite, poly, variable, labels = new Map()) {
   if (!new RegExp(`\\b${variable}\\b`).test(String(poly))) return [];
+  const P = readPolynomial(String(poly), variable);
+  if (P) {
+    let found;
+    try { found = allRoots(P).real; } catch { found = null; }
+    if (found) {
+      const values = found.map((r) => clean(r.value));
+      const raw = safeRun(Algebrite, `roots(${poly})`);
+      const candidates = isAlgebriteFailure(raw) ? [] : String(raw).replace(/^\[|\]$/g, '').split(/,(?![^(]*\))/)
+        .map((t) => t.trim())
+        .filter((t) => t && !/(?<![a-z])i(?![a-z])|\(-1\)\^/.test(t) && t.length <= 40);
+      const degree = P.coefficients.length - 1;
+      const nonzero = P.coefficients.map((c, i) => ({ c, i })).filter(({ c }) => c.n !== 0n);
+      found.forEach((r, idx) => {
+        // Matched on the unrounded root (clean() rounds to six decimals),
+        // filed under the rounded one the rest of the solve uses.
+        const v = values[idx];
+        const exactValue = r.value;
+        if (r.exact) {
+          const { m, d } = r.exact;
+          labels.set(labelKey(v), d === 1n ? `${m}` : `${m}/${d}`);
+          return;
+        }
+        const match = candidates.find((t) => {
+          try { return Math.abs(Number(math.evaluate(t)) - exactValue) < 1e-7; } catch { return false; }
+        });
+        if (match) { labels.set(labelKey(v), prettyRoot(beautify(match))); return; }
+        // a·xⁿ + b = 0: x = ⁿ√(−b/a), sign carried for odd n.
+        if (nonzero.length === 2 && nonzero.some(({ i }) => i === 0)) {
+          const n = degree;
+          const c = Math.abs(exactValue) ** n;
+          const cText = Number.isInteger(Math.round(c)) && Math.abs(c - Math.round(c)) < 1e-9 ? String(Math.round(c)) : null;
+          if (cText) labels.set(labelKey(v), `${v < 0 ? '-' : ''}${n === 2 ? '√' : n === 3 ? '∛' : ''}${n > 3 ? `${cText}^(1/${n})` : cText}`);
+        }
+      });
+      return values;
+    }
+  }
   const raw = safeRun(Algebrite, `roots(${poly})`);
   if (isAlgebriteFailure(raw)) return numericRoots(poly, variable);
 
@@ -655,15 +777,37 @@ function realRoots(Algebrite, poly, variable) {
   const out = [];
   for (const part of parts) {
     const p = part.trim();
-    if (!p || /\bi\b/.test(p)) continue; // skip complex roots
+    if (!p) continue;
     try {
-      const v = Number(math.evaluate(p));
+      // A real root written in complex form keeps its real value.
+      const value = math.evaluate(p);
+      const v = typeof value === 'number' ? value
+        : value && Number.isFinite(value.re) && Math.abs(value.im) < 1e-9 ? value.re : NaN;
       if (Number.isFinite(v)) out.push(clean(v));
     } catch {
       // ignore unparseable root
     }
   }
   return out;
+}
+
+// Algebrite's radical form, as a reader writes it: 2^(1/2) → √2.
+function prettyRoot(t) {
+  // 1/2 - 1/2·√5 → (1 - √5)/2: the quadratic formula's shape.
+  const q = String(t).replace(/\s+/g, ' ').match(/^(-?\d+)\/(\d+) ([+-]) (\d+)\/\2\*?(\d+)\^\(1\/2\)$/);
+  if (q) {
+    const [, a, b, op, c, n] = q;
+    return `(${a} ${op} ${c === '1' ? '' : c}√${n})/${b}`;
+  }
+  // √3/√2 → √6/2: no radical in a denominator.
+  const r = String(t).replace(/\s+/g, '').match(/^(-?)(\d+)\^\(1\/2\)\/\(?(\d+)\^\(1\/2\)\)?$/);
+  if (r) return `${r[1]}√${Number(r[2]) * Number(r[3])}/${r[3]}`;
+  return String(t)
+    .replace(/\(([^()]*)\)\^\(1\/2\)/g, '√($1)')
+    .replace(/(\d+)\^\(1\/2\)/g, '√$1')
+    .replace(/\(([^()]*)\)\^\(1\/3\)/g, '∛($1)')
+    .replace(/(\d+)\^\(1\/3\)/g, '∛$1')
+    .replace(/\*(?=[√∛])/g, '·');
 }
 
 // Fallback: scan for sign changes when Algebrite can't factor the polynomial.
@@ -732,18 +876,39 @@ function isAllReals(sol) {
   return sol.length === 1 && !Number.isFinite(sol[0].lo) && !Number.isFinite(sol[0].hi);
 }
 
-function pieceToInequality(p, v) {
-  const lo = formatNumber(p.lo);
-  const hi = formatNumber(p.hi);
+// An endpoint as text: its exact form when one is known, else the decimal.
+const endpoint = (x, labels) => labels?.get(labelKey(x)) ?? formatNumber(x);
+
+// "x > ln(2)" → "x > ln(2) (≈ 0.6931)": every irrational or fractional
+// endpoint in the answer gets its decimal alongside, once.
+function withApproximations(answer, pieces, labels) {
+  if (!labels?.size) return answer;
+  const notes = [];
+  for (const x of pieces.flatMap((p) => [p.lo, p.hi]).filter(Number.isFinite)) {
+    const label = labels.get(labelKey(x));
+    if (!label || /^-?\d+$/.test(label)) continue;
+    // 1/2 is 0.5 exactly: a note only where the decimal is rounded.
+    if (/^-?\d+\/\d+$/.test(label) && Math.abs(Number(formatNumber(x)) - x) < 1e-12) continue;
+    // −√2 and √2: one note, for √2.
+    const shown = label.startsWith('-') && labels.get(labelKey(-x)) === label.slice(1) ? label.slice(1) : label;
+    const note = `${shown} ≈ ${formatNumber(shown === label ? x : -x)}`;
+    if (!notes.includes(note)) notes.push(note);
+  }
+  return notes.length ? `${answer}  (${notes.join(', ')})` : answer;
+}
+
+function pieceToInequality(p, v, labels) {
+  const lo = endpoint(p.lo, labels);
+  const hi = endpoint(p.hi, labels);
   if (Math.abs(p.lo - p.hi) < 1e-12 && p.loC && p.hiC) return `${v} = ${lo}`;
   if (!Number.isFinite(p.lo)) return `${v} ${p.hiC ? '≤' : '<'} ${hi}`;
   if (!Number.isFinite(p.hi)) return `${v} ${p.loC ? '≥' : '>'} ${lo}`;
   return `${lo} ${p.loC ? '≤' : '<'} ${v} ${p.hiC ? '≤' : '<'} ${hi}`;
 }
 
-function pieceToInterval(p) {
-  const left = !Number.isFinite(p.lo) ? '(-∞' : `${p.loC ? '[' : '('}${formatNumber(p.lo)}`;
-  const right = !Number.isFinite(p.hi) ? '∞)' : `${formatNumber(p.hi)}${p.hiC ? ']' : ')'}`;
+function pieceToInterval(p, labels) {
+  const left = !Number.isFinite(p.lo) ? '(-∞' : `${p.loC ? '[' : '('}${endpoint(p.lo, labels)}`;
+  const right = !Number.isFinite(p.hi) ? '∞)' : `${endpoint(p.hi, labels)}${p.hiC ? ']' : ')'}`;
   return `${left}, ${right}`;
 }
 
@@ -756,27 +921,30 @@ function compare(a, b, op) {
 
 // --- display -----------------------------------------------------------------
 
-function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles, zeros, chartRows, solution, nonStrict }) {
+function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles, zeros, chartRows, solution, nonStrict, labels, edges = [] }) {
   const opShown = op.replace('<=', '≤').replace('>=', '≥');
   const steps = [`Solve the inequality ${mark(`${beautify(lhs)} ${opShown} ${beautify(rhs)}`)}.`];
 
   if (beautify(rhs) !== '0') {
-    steps.push(`Move everything to one side: ${mark(`${beautify(simplified)} ${opShown} 0`)}.`);
+    steps.push(`Move everything to one side: ${mark(`${shown(simplified)} ${opShown} 0`)}.`);
   }
 
   if (critical.length > 0) {
     const zeroList = zeros.filter((z) => !poles.some((p) => Math.abs(p - z) < 1e-9));
     if (zeroList.length) {
-      steps.push(`Find where the expression is zero: ${mark(`${variable} = ${zeroList.map((z) => formatNumber(z)).join(', ')}`)}.`);
+      steps.push(`Find where the expression is zero: ${mark(`${variable} = ${zeroList.map((z) => endpoint(z, labels)).join(', ')}`)}${zeroList.some((z) => !labels?.has(labelKey(z)) && !Number.isInteger(z)) ? ' (located numerically, to the decimals shown)' : ''}.`);
     }
     if (poles.length) {
-      steps.push(`Note where it is undefined (denominator zero): ${mark(`${variable} = ${poles.map((p) => formatNumber(p)).join(', ')}`)}.`);
+      steps.push(`Note where it is undefined (denominator zero): ${mark(`${variable} = ${poles.map((p) => endpoint(p, labels)).join(', ')}`)}.`);
     }
-    steps.push(`These split the number line into intervals. Test the sign of ${mark(beautify(simplified))} in each:`);
+    if (edges.length) {
+      steps.push(`Note where the expression stops being defined (a logarithm or square root of a negative number): its domain ends at ${mark(`${variable} = ${edges.map((e) => endpoint(e, labels)).join(', ')}`)}.`);
+    }
+    steps.push(`These split the number line into intervals. Test the sign of ${mark(shown(simplified))} in each:`);
     for (const row of chartRows) {
-      const label = intervalLabel(row.lo, row.hi);
-      const word = row.sign > 0 ? 'positive' : row.sign < 0 ? 'negative' : 'zero';
-      steps.push(`  • On ${mark(label)}: ${mark(beautify(simplified))} is ${word}.`);
+      const label = intervalLabel(row.lo, row.hi, labels);
+      const word = row.sign > 0 ? 'positive' : row.sign < 0 ? 'negative' : row.defined === false ? 'undefined' : 'zero';
+      steps.push(`  • On ${mark(label)}: ${mark(shown(simplified))} is ${word}.`);
     }
   } else {
     steps.push(`The expression never changes sign, so check any single value of ${mark(variable)}.`);
@@ -788,16 +956,16 @@ function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles
     steps.push('Every interval satisfies the inequality, so all real numbers work.');
   } else {
     const kind = nonStrict ? 'including the boundary roots' : 'excluding the boundary roots';
-    steps.push(`Collect the satisfying intervals, ${kind}: ${mark(solution.map((p) => pieceToInequality(p, variable)).join('  or  '))}.`);
-    steps.push(`In interval notation: ${mark(solution.map(pieceToInterval).join(' ∪ '))}.`);
+    steps.push(`Collect the satisfying intervals, ${kind}: ${mark(solution.map((p) => pieceToInequality(p, variable, labels)).join('  or  '))}.`);
+    steps.push(`In interval notation: ${mark(solution.map((p) => pieceToInterval(p, labels)).join(' ∪ '))}.`);
   }
 
   return steps;
 }
 
-function intervalLabel(lo, hi) {
-  const l = !Number.isFinite(lo) ? '(-∞' : `(${formatNumber(lo)}`;
-  const r = !Number.isFinite(hi) ? '∞)' : `${formatNumber(hi)})`;
+function intervalLabel(lo, hi, labels) {
+  const l = !Number.isFinite(lo) ? '(-∞' : `(${endpoint(lo, labels)}`;
+  const r = !Number.isFinite(hi) ? '∞)' : `${endpoint(hi, labels)})`;
   return `${l}, ${r}`;
 }
 

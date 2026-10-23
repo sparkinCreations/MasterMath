@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.53.1] - 2026-10-22
+
+### Fixed
+
+- **Two wrong inequality answers.** "x^3 - 2 > 0" was answered "No
+  solution": Algebrite writes the real root of x³ − 2 with i and (−1)^(1/3)
+  in it, and every root containing i was dropped. Polynomial boundaries now
+  come from the exact root finder (polynomialRoots). "ln(x) < 1" was
+  answered x < 2.7183, including x ≤ 0 where ln(x) is undefined: the sign
+  chart now splits at the edges of the domain (where a logarithm's or
+  square root's argument is zero), giving 0 < x < e. The steps show ln,
+  not Algebrite's log, which reads as base 10 here.
+- **Partial fractions within the budget.** Rational integrals with a
+  repeated or irreducible-quadratic factor went to Algebrite's integral()
+  first, which ran past 60 s on (x + 1)/((x − 1)²(x² + 1)) (stopped at the
+  10-second budget), 10.9 s on (2x + 3)/((x + 1)(x² + 4)) and over 15 s on
+  x³/(x² + 1)². The app's own decomposition now runs first, and every
+  one of these takes under a second: the denominator as typed is read
+  exactly (no Algebrite factor() call), the log-derivative check stops on
+  degrees alone, and completing the square with an irrational constant is
+  exact: ∫ 1/(x³ + 1) dx has (1/√3)·arctan((2x − 1)/√3), not decimals.
+  An improper fraction is divided first, as it is taught:
+  (x³ + 2)/((x − 1)(x + 1)²) = 1 + (−x² + x + 3)/((x − 1)(x + 1)²) took 58 s
+  and gave up; it is solved in under a second. Each result is verified by
+  differentiation.
+
+### Changed
+
+- **One equation in two unknowns reads as a textbook writes it**:
+  x² + y² = 25 gives x = ±√(25 − y²) (was x = -(-y^2+25)^(1/2) or
+  x = (-y^2+25)^(1/2)); x³ + y³ = 1 gives x = ∛(1 − y³) alone (its two
+  complex roots are dropped, with a step saying so); x⁴ + y² = 16 gives
+  x = ±(16 − y²)^(1/4). Every root is substituted back at sample values.
+- **A cancelled factor says where it was zero**: (x² − 1)/(x − 1) is
+  "x + 1, for x ≠ 1", with a step explaining why.
+- **Inequality endpoints are exact**, the decimal alongside: x² > 2 is
+  x < −√2 or x > √2 (√2 ≈ 1.4142); e^x > 2 is x > ln(2) (≈ 0.6931);
+  x² − x − 1 > 0 has (1 ± √5)/2. A root with no closed form stays a decimal,
+  and the step says it was located numerically.
+- The arithmetic note on odd roots of negatives ((−8)^(1/3)) is typeset.
+
 ## [1.53.0] - 2026-10-22
 
 ### Added

@@ -53,7 +53,7 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P2~~ | ~~`(1 + a/x)^(bx)` limits by a named technique~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~PDF export with typeset steps and the graph~~ | **Shipped in 1.52.0** | — |
 | P3 | Tips chosen by method, everywhere | Reviews still find generic or off-topic tips on some paths | ½ day sweep |
-| P3 | General partial fractions within the budget | `∫ (x+1)/((x−1)²(x²+1)) dx` takes ~115 s, so the app stops it at 10 s (found in 1.51.0; see P1) | ½ day |
+| ~~P3~~ | ~~General partial fractions within the budget~~ | **Shipped in 1.53.1**: under a second, improper fractions divided first | — |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
 
 ---
@@ -268,7 +268,7 @@ Recorded so they are not re-opened without a new argument.
 |---|---|---|
 | Two-variable inequalities | `x + y > 2` was answered "No solution" | **Fixed in 1.49.0**: refused honestly. Graphing the region is new work. |
 | Periodic inequalities | `sin(x) > 1/2` listed intervals only inside ±50, without saying the pattern repeats | **Fixed in 1.49.1**: solved on one period and stated for every period. Periodic with breaks (tan) is refused. |
-| Exact inequality endpoints | `e^x > 2` gives `x > 0.6931` | Should be x > ln 2 (≈ 0.6931); the endpoint is exact, and a located one needs ≈ |
+| Exact inequality endpoints | `e^x > 2` gave `x > 0.6931` | **Fixed in 1.53.1**: x > ln(2) (≈ 0.6931); √2, ∛2, (1 ± √5)/2 exact; a located root is said to be one. Also fixed: x³ − 2 > 0 was "No solution", ln(x) < 1 included x ≤ 0. |
 | Implicit curve plot | Implicit derivatives have no graph | A contour plot of F(x, y) = 0 with the tangent at the point |
 
 **Not reproduced, fixed anyway:** the topic list "stuck open until Escape"

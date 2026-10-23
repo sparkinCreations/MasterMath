@@ -390,7 +390,9 @@ export function lnify(result) {
     // (…)^(1/2) and sqrt(…) → √(…), and Algebrite's −x² + 1 inside → 1 − x²
     .replace(/\(([^()]+)\)\^\(1\/2\)/g, '√($1)')
     .replace(/(?<![a-z])sqrt\(([^()]+)\)/g, '√($1)')
-    .replace(/√\(-([^()]+?) \+ (\d+(?:\.\d+)?)\)/g, '√($2 - $1)');
+    .replace(/√\(-([^()]+?) \+ (\d+(?:\.\d+)?)\)/g, '√($2 - $1)')
+    // √(3) → √3: a plain number needs no bracket.
+    .replace(/√\((\d+)\)/g, '√$1');
 }
 
 // Split on a delimiter at parenthesis depth 0: splitTopLevel('(a*b)*c', '*')

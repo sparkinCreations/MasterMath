@@ -31,6 +31,12 @@ export const CONVERTED = [
   // rare integral paths
   // 1.52.4: a bare polynomial under Algebra shows its factored form; like terms combine in an antiderivative.
   ['algebra', 'x^2-5x+6'], ['algebra', 'x^3 - x'], ['integrals', 'x + 2x'], ['integrals', '2 + 3'],
+  // 1.53.1: one equation in two unknowns, a cancelled factor, exact and domain-bounded inequality endpoints, odd roots of negatives.
+  ['algebra', 'x^2 + y^2 = 25'], ['algebra', 'x^3 + y^3 = 1'], ['algebra', 'x^4 + y^2 = 16'], ['algebra', 'x^2 + x*y = 1'],
+  ['algebra', '(x^2-1)/(x-1)'], ['algebra', '(x^3-x)/(x^2-1)'], ['algebra', 'e^x > 2'], ['algebra', 'ln(x) < 1'],
+  ['algebra', 'x^2 - x - 1 > 0'], ['algebra', 'sqrt(x - 1) < 3'], ['other', '(-8)^(1/3)'],
+  ['integrals', '(x+1)/((x-1)^2*(x^2+1))'], ['integrals', '1/(x^3+1)'], ['integrals', '(x^3+2)/((x-1)*(x+1)^2)'],
+  ['integrals', '1/((x^2+1)^2)'], ['integrals', 'x^3/((x^2+1)^2)'], ['integrals', '(x^4+1)/(x^2+1)'], ['integrals', '(2x+3)/((x+1)*(x^2+4))'],
   ['integrals', 'e^(-x^2)'], ['integrals', '∫_0^1 1/sqrt(x) dx'], ['integrals', '∫_0^1 1/x dx'], ['integrals', '∫_-1^1 1/x dx'], ['integrals', '∫_-1^1 1/x^2 dx'],
   ['integrals', '1/(x^3 + x)'], ['integrals', '∫_0^∞ e^(-x^2) dx'],
 ];

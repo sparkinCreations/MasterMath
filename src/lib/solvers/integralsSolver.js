@@ -21,6 +21,7 @@ import { extractVariable, extractFunctionFromProblem, parseMathExpression } from
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
 import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerically } from './substitutionSolver.js';
 import { integrateByTrigSubstitution } from './trigSubstitutionSolver.js';
+import { readPolynomial } from './polynomialRoots.js';
 import { parseError, unsupported, diverges } from '../solutionEnvelope.js';
 
 // Famous non-elementary integrands, so "the engine can't do this" comes with
@@ -425,14 +426,24 @@ async function integrateTerm(term, variable, Algebrite) {
 
   // A rational function over a factorable quadratic-or-higher denominator:
   // show the partial-fraction working. Algebrite integrates 1/(x² − 1)
-  // itself, as a one-line table formula, so this must come before it.
+  // itself, as a one-line table formula, so this must come before it. The
+  // general decomposition (repeated linear factors, irreducible quadratics)
+  // comes before it too: Algebrite's integral() ran past 60 s on
+  // (x + 1)/((x − 1)²(x² + 1)), so the 10-second budget stopped every such
+  // solve, while the decomposition takes well under a second (1.53.1).
   {
     const parts = splitTopLevelSlash(term);
     const den = parts ? parts[1] : '';
     const varRe = new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'g');
     if (parts && ((den.match(varRe) || []).length >= 2 || /\^/.test(den))) {
-      const pfFirst = integrateByPartialFractions(term, variable, Algebrite);
+      const pfFirst = integrateByPartialFractions(term, variable, Algebrite) || integrateByGeneralPartialFractions(term, variable, Algebrite);
       if (pfFirst) return { antideriv: pfFirst.antiderivative, steps: pfFirst.steps, method: 'partial fractions', term };
+    }
+    // Any improper polynomial fraction, whatever its denominator: divide
+    // first (x^2/(x − 1) = x + 1 + 1/(x − 1)), as it is taught.
+    if (parts) {
+      const improper = integrateImproperRational(term, variable, Algebrite);
+      if (improper) return { antideriv: improper.antiderivative, steps: improper.steps, method: 'partial fractions', term };
     }
   }
 
@@ -474,12 +485,95 @@ async function integrateTerm(term, variable, Algebrite) {
 // so ∫ = Σ Aᵢ·ln|x − rᵢ|. Repeated or complex roots are left to the caller
 // (null). Everything is checked: the decomposition numerically, the
 // antiderivative by differentiation.
+// An improper rational function — the numerator's degree is not below the
+// denominator's: (x³ + 2)/((x − 1)(x + 1)²) — is divided first, N/D = Q + R/D
+// (Algebrite's quotient, checked numerically), then ∫Q by the power rule and
+// R/D by partial fractions. The total is checked by differentiation. Before
+// 1.53.1 Algebrite's integral() ground on these for about a minute and gave up.
+function integrateImproperRational(term, v, Algebrite) {
+  const parts = splitTopLevelSlash(term);
+  if (!parts) return null;
+  const [num, den] = parts;
+  const N = readPolynomial(stripOuterParens(num), v);
+  const D = readPolynomial(stripOuterParens(den), v);
+  if (!N || !D) return null;
+  const degree = (P) => { const c = P.coefficients.map((q) => q.n); let d = c.length - 1; while (d > 0 && c[d] === 0n) d -= 1; return d; };
+  const degN = degree(N);
+  const degD = degree(D);
+  if (degD < 1 || degN < degD) return null;
+  const run = (e) => { try { const r = String(Algebrite.run(e)).trim(); return r && !isAlgebriteFailure(r) ? r : null; } catch { return null; } };
+  const Q = run(`quotient(${num}, ${den}, ${v})`);
+  if (!Q) return null;
+  const R = run(`expand((${num}) - (${Q})*(${den}))`);
+  if (R === null) return null;
+  for (const x of [0.31, 1.73, -2.41, 3.37]) {
+    let l; let r;
+    try { l = math.evaluate(`(${num})/(${den})`, { [v]: x }); r = math.evaluate(`(${Q}) + (${R})/(${den})`, { [v]: x }); } catch { return null; }
+    if (Number.isFinite(l) && Number.isFinite(r) && Math.abs(l - r) > 1e-8 * (1 + Math.abs(l))) return null;
+  }
+  const antiQ = run(`integral(${Q}, ${v})`);
+  if (!antiQ) return null;
+  const rest = R === '0' ? null : `(${R})/(${den})`;
+  const pf = rest ? (integrateByPartialFractions(rest, v, Algebrite) || integrateByGeneralPartialFractions(rest, v, Algebrite)) : null;
+  if (rest && !pf) return null;
+  const anti = pf ? `${antiQ} + ${pf.antiderivative}` : antiQ;
+  // Differentiate back at points where the integrand and the logarithms are real.
+  const dnum = (x) => { try { const hh = 1e-5; return (math.evaluate(anti, { [v]: x + hh }) - math.evaluate(anti, { [v]: x - hh })) / (2 * hh); } catch { return NaN; } };
+  let checked = 0;
+  for (const x of [0.37, 1.13, 2.29, 3.71, 5.17, 7.43].map((d) => d + 4)) {
+    let expected; try { expected = math.evaluate(`(${num})/(${den})`, { [v]: x }); } catch { continue; }
+    const got = dnum(x);
+    if (!Number.isFinite(expected) || !Number.isFinite(got)) continue;
+    if (Math.abs(expected - got) > 1e-4 * (1 + Math.abs(expected))) return null;
+    checked += 1;
+  }
+  if (checked < 3) return null;
+  const steps = [
+    `${mark(`∫(${beautify(term)}) d${v}`)} — the numerator has degree ${mark(String(degN))} and the denominator degree ${mark(String(degD))}, so divide first: ${mark(`${beautify(term)} = ${beautify(Q)}${R === '0' ? '' : ` + (${beautify(R)})/(${beautify(stripOuterParens(den))})`}`)}.`,
+    `Integrate the polynomial part: ${mark(`∫(${beautify(Q)}) d${v} = ${lnify(antiQ)}`)}.`,
+    ...(pf ? [`Then the proper fraction ${mark(beautify(rest))} by partial fractions:`, ...pf.steps.map((t) => `  ${t}`)] : []),
+    `Add the parts: ${mark(lnify(anti))}.`,
+  ];
+  return { antiderivative: anti, steps };
+}
+
+// The denominator as typed, when it is a product of powers of polynomials
+// of degree ≤ 2 — (x − 1)^2*(x^2 + 1) — read exactly, so Algebrite's
+// factor() and roots() (about 2 s each on (x^2 + 4)^2, which they expand
+// to a quartic first) are not needed. Null for any other shape.
+function typedFactors(den, v) {
+  const out = [];
+  // A sum outside all brackets is one factor: x^2+2*x+5 is not x^2+2 times x+5.
+  const text = String(den).trim();
+  const factorsTyped = hasTopLevelSum(text) ? [text] : splitTopLevel(text, '*').map((t) => t.trim()).filter(Boolean);
+  for (const raw of factorsTyped) {
+    let f = raw;
+    let power = 1;
+    const pm = f.match(/^\((.+)\)\^(\d+)$/) || f.match(/^([a-z])\^(\d+)$/i);
+    if (pm && matchingParenIndex(f) === f.length - pm[2].length - 2) { f = pm[1]; power = Number(pm[2]); } else if (pm && /^[a-z]$/i.test(pm[1])) { f = pm[1]; power = Number(pm[2]); }
+    f = stripOuterParens(f);
+    const P = readPolynomial(f, v);
+    if (!P) return null;
+    const c = P.coefficients.map((q) => Number(q.s) * Number(q.n) / Number(q.d));
+    while (c.length > 1 && c[c.length - 1] === 0) c.pop();
+    const deg = c.length - 1;
+    if (deg > 2) return null;
+    out.push({ deg, c, power });
+  }
+  return out.length ? out : null;
+}
+const matchingParenIndex = (s) => { let depth = 0; for (let i = 0; i < s.length; i += 1) { if (s[i] === '(') depth += 1; else if (s[i] === ')') { depth -= 1; if (depth === 0) return i; } } return -1; };
+
 function integrateByPartialFractions(term, variable, Algebrite) {
   const v = variable;
   const parts = splitTopLevelSlash(term);
   if (!parts) return null;
   const [num, den] = parts;
   if (!hasVariable(den, v)) return null;
+  // A repeated or irreducible-quadratic factor, as typed, is not this
+  // routine's case: say so before asking Algebrite for the roots.
+  const typed = typedFactors(den, v);
+  if (typed && typed.some((f) => (f.deg > 0 && f.power > 1) || (f.deg === 2 && f.c[1] ** 2 - 4 * f.c[2] * f.c[0] < 0))) return null;
   const isPoly = (e) => { try { const d = String(Algebrite.run(`deg(${e}, ${v})`)).trim(); return /^\d+$/.test(d) ? Number(d) : null; } catch { return null; } };
   const degN = isPoly(num);
   const degD = isPoly(den);
@@ -546,9 +640,20 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
   const degD = degOf(den);
   if (degN === null || degD === null || degD < 2 || degN >= degD) return null;
 
-  // Factor and read the factors.
+  // The factors as typed when they are already linear and irreducible
+  // quadratic (no Algebrite factor() call); otherwise Algebrite factors.
+  const typed = typedFactors(den, v);
+  const typedOk = typed && typed.every((f) => f.deg < 2 || f.c[1] ** 2 - 4 * f.c[2] * f.c[0] < 0);
   let factored;
-  try { factored = String(Algebrite.run(`factor(${den})`)).trim(); } catch { return null; }
+  if (typedOk) {
+    factored = typed.map((f) => {
+      const [c0, c1 = 0, c2 = 0] = f.c;
+      const poly = f.deg === 0 ? String(c0) : f.deg === 1 ? `(${c1}*${v} + (${c0}))` : `(${c2}*${v}^2 + (${c1})*${v} + (${c0}))`;
+      return f.power > 1 ? `${poly}^${f.power}` : poly;
+    }).join('*');
+  } else {
+    try { factored = String(Algebrite.run(`factor(${den})`)).trim(); } catch { return null; }
+  }
   if (!factored || isAlgebriteFailure(factored)) return null;
   // A product splits on top-level '*'; a top-level sum (an irreducible
   // polynomial such as x^2+2*x+5) is a single factor.
@@ -651,8 +756,16 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
       const cofLn = an === 1 && R.d === 1 ? '' : `${R.d === 1 ? an : `${an}/${R.d}`}·`;
       const fracOver = (extra) => `${sgn}${an}/(${R.d === 1 ? '' : `${R.d}`}${extra})`;
       const cMach = R.d === 1 ? (an === 1 ? (R.n < 0 ? '-' : '') : `${R.n}*`) : `${R.n}/${R.d}*`;
+      // A zero coefficient is no term at all (1/(x − 1)² has none over x − 1).
+      if (R.n === 0) continue;
       if (t.j === 1) { pieces.push(`${cMach}log(${L})`); pieceSteps.push(mark(`∫ ${fracOver(L)} d${v} = ${sgn}${cofLn}ln|${Lbare}|`)); }
-      else { const dd = R.d * (t.j - 1); pieces.push(`${R.n < 0 ? '' : '-'}${an}/(${dd === 1 ? '' : `${dd}*`}${L}${t.j - 1 > 1 ? `^${t.j - 1}` : ''})`); pieceSteps.push(`${mark(`∫ ${fracOver(`${L}^${t.j}`)} d${v} = ${sgn ? '' : '−'}${an}/(${dd === 1 ? '' : dd}${L}${t.j - 1 > 1 ? `^${t.j - 1}` : ''})`)} (power rule)`); }
+      else {
+        // ∫ c/(x − r)^j dx = −c/((j − 1)(x − r)^(j−1)), reduced.
+        const power = t.j - 1 > 1 ? `${L}^${t.j - 1}` : L;
+        const piece = overPoly(-(R.n / R.d) / (t.j - 1), '1', power);
+        pieces.push(piece);
+        pieceSteps.push(`${mark(`∫ ${fracOver(`${L}^${t.j}`)} d${v} = ${beautify(piece).replace(/^-/, '−')}`)} (power rule)`);
+      }
     } else {
       const B = rat[i++]; const C = rat[i++];
       const Bv = B.n / B.d; const Cv = C.n / C.d;
@@ -664,16 +777,31 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
       const Ktxt = fmtRat(K);
       const kTxt = Number.isInteger(k) ? String(k) : `sqrt(${fmtRat(k2)})`;
       const cm = (val) => (val === 1 ? '' : val === -1 ? '-' : `${fmtRat(val)}*`); // machine coefficient
-      const arcArg = k === 1 ? U : `${U}/${kTxt}`;
+      // k = √(k²) exactly: k² = a/b gives k = s·√t / b with t square-free
+      // (x² − x + 1 = (x − 1/2)² + 3/4, k = √3/2). Its coefficient and the
+      // arctan argument are then exact: (1/√3)·arctan((2x − 1)/√3), where
+      // the decimals from a rounded k used to fail the check.
+      const surd = !Number.isInteger(k) ? exactSurd(k2) : null;
+      if (!Number.isInteger(k) && !surd) return null;
+      const arcArg = k === 1 ? U : surd && !surd.rational
+        ? `(${surd.b / surd.s === 1 ? '' : `${fmtRat(surd.b / surd.s)}*`}${v}${h === 0 ? '' : ` ${h < 0 ? '-' : '+'} ${fmtRat(Math.abs(h * surd.b / surd.s))}`})/sqrt(${surd.t})`
+        : `${U}/${surd ? fmtRat(k) : kTxt}`;
+      const arcCoefMach = (Kv) => (surd && !surd.rational
+        ? `${cm(Kv * surd.b / (surd.s * surd.t))}sqrt(${surd.t})*`
+        : cm(Kv / k));
       if (t.j === 1) {
         if (Bv !== 0) { pieces.push(`${cm(Bv / 2)}log(${Q})`); }
-        if (Math.abs(K) > 1e-12) { pieces.push(`${cm(K / k)}arctan(${arcArg})`); }
+        if (Math.abs(K) > 1e-12) { pieces.push(`${arcCoefMach(K)}arctan(${arcArg})`); }
         const numTxt = quadNum(B, C, Q).replace(/\/\(.*$/, '');
-        const arcCoef = Math.abs(K / k - 1) < 1e-12 ? '' : Math.abs(K / k + 1) < 1e-12 ? '−' : `${fmtRat(K / k)}·`;
-        pieceSteps.push(`${mark(`∫ ${numTxt}/${Q} d${v}`)}: ${h !== 0 ? `complete the square, ${mark(`${Q} = ${U}^2 + ${fmtRat(k2)}`)}; ` : ''}${Bv !== 0 ? `the ${mark(v)}-part gives ${mark(`${fmtRat(Bv / 2)}·ln|${stripOuterParens(Q)}|`)}` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${mark(`${arcCoef}arctan(${U}${k === 1 ? '' : `/${kTxt}`})`)}` : ''}`);
+        const arcCoef = surd && !surd.rational
+          ? `${beautify(arcCoefMach(K).replace(/\*$/, ''))}·`.replace(/^1\*?/, '').replace(/sqrt\((\d+)\)/, '√$1')
+          : Math.abs(K / k - 1) < 1e-12 ? '' : Math.abs(K / k + 1) < 1e-12 ? '−' : `${fmtRat(K / k)}·`;
+        const arcShown = surd && !surd.rational ? beautify(arcArg).replace(/sqrt\((\d+)\)/, '√$1') : `${U}${k === 1 ? '' : `/${kTxt}`}`;
+        pieceSteps.push(`${mark(`∫ ${numTxt}/${Q} d${v}`)}: ${h !== 0 ? `complete the square, ${mark(`${Q} = ${U}^2 + ${fmtRat(k2)}`)}; ` : ''}${Bv !== 0 ? `the ${mark(v)}-part gives ${mark(`${fmtRat(Bv / 2)}·ln|${stripOuterParens(Q)}|`)}` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${mark(`${arcCoef}arctan(${arcShown})`)}` : ''}`);
       } else if (t.j === 2) {
-        if (Bv !== 0) pieces.push(`${cm(-Bv / 2)}1/${Q}`);
-        if (Math.abs(K) > 1e-12) pieces.push(`${cm(K / (2 * k2))}${U}/${Q} + ${cm(K / (2 * k2 * k))}arctan(${arcArg})`);
+        if (surd && !surd.rational) return null; // (x² + px + q)² with an irrational k: not attempted
+        if (Bv !== 0) pieces.push(overPoly(-Bv / 2, '1', Q));
+        if (Math.abs(K) > 1e-12) pieces.push(`${overPoly(K / (2 * k2), stripOuterParens(U) === v ? v : U, Q)} + ${cm(K / (2 * k2 * k))}arctan(${arcArg})`);
         pieceSteps.push(`${mark(`∫ (${cTxt[i - 2]}${v} + ${cTxt[i - 1]})/${Q}^2 d${v}`)}: with ${mark(`u = ${U}`)}, ${Bv !== 0 ? mark(`∫ ${fmtRat(Bv)}u/(u² + ${fmtRat(k2)})² du = −${fmtRat(Bv / 2)}/(u² + ${fmtRat(k2)})`) : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ' and ' : ''}${Math.abs(K) > 1e-12 ? `${mark(`∫ ${Ktxt}/(u² + k²)² du = ${Ktxt}·[u/(2k²(u² + k²)) + arctan(u/k)/(2k³)]`)} with ${mark(`k = ${kTxt}`)}` : ''}`);
       } else {
         return null; // (x²+1)^3 and beyond: not attempted
@@ -697,7 +825,14 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
   // Present the sum of pieces as they are (Algebrite's simplify would pull
   // out a common factor and make it harder to read).
   const antiSimple = anti;
-  const ansatzTxt = (() => { let k = 0; return terms.map((t) => (t.kind === 'lin' ? linNum(rat[k++], denomOf(t)) : quadNum(rat[k++], rat[k++], denomOf(t)))).join(' + ').replace(/\+ −/g, '− '); })();
+  const ansatzTxt = (() => {
+    let k = 0;
+    return terms.map((t) => {
+      if (t.kind === 'lin') { const r0 = rat[k++]; return r0.n === 0 ? null : linNum(r0, denomOf(t)); }
+      const b0 = rat[k++]; const c0 = rat[k++];
+      return b0.n === 0 && c0.n === 0 ? null : quadNum(b0, c0, denomOf(t));
+    }).filter(Boolean).join(' + ').replace(/\+ −/g, '− ');
+  })();
   const steps = [
     `${mark(`∫(${beautify(term)}) d${v}`)} — a proper rational function. Factor the denominator: ${mark(`${beautify(den)} = ${constant !== 1 ? `${fmtNum(constant)}·` : ''}${D0.replace(/\*/g, '')}`)}.`,
     `Partial fractions (a repeated factor gets one term per power; an irreducible quadratic gets a linear numerator): ${mark(`${beautify(term)} = ${ansatzTxt}`)}. The coefficients come from clearing denominators and matching both sides.`,
@@ -709,6 +844,32 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
 
 const fmtNum = (x) => (Number.isInteger(x) ? String(x) : (() => { for (let d = 2; d <= 720; d += 1) { const n = x * d; if (Math.abs(n - Math.round(n)) < 1e-9) return `${Math.round(n)}/${d}`; } return String(Math.round(x * 1e6) / 1e6); })());
 const fmtRat = fmtNum;
+
+// √(k²) for a rational k² = a/b as s·√t / b, t square-free; rational when t = 1.
+function exactSurd(k2) {
+  let a = null;
+  let b = null;
+  for (let d = 1; d <= 720; d += 1) { const n = k2 * d; if (Math.abs(n - Math.round(n)) < 1e-9) { a = Math.round(n); b = d; break; } }
+  if (a === null || a <= 0) return null;
+  let rad = a * b; // √(a/b) = √(ab)/b
+  let s0 = 1;
+  for (let f = 2; f * f <= rad; f += 1) while (rad % (f * f) === 0) { rad /= f * f; s0 *= f; }
+  return { s: s0, t: rad, b, rational: rad === 1 };
+}
+
+// c·N/D as one fraction in lowest terms, readable and machine-evaluable:
+// (−2, 1, (x − 1)^2)/2 → "-1/(x - 1)^2"; (1/2, x, (x^2 + 1)) → "x/(2*(x^2 + 1))".
+function overPoly(c, numerText, denText) {
+  const [n0, d0] = (() => { for (let d = 1; d <= 720; d += 1) { const n = c * d; if (Math.abs(n - Math.round(n)) < 1e-9) return [Math.round(n), d]; } return [c, 1]; })();
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = Number.isInteger(n0) ? g(n0, d0) || 1 : 1;
+  const n = n0 / k;
+  const d = d0 / k;
+  const bare = stripOuterParens(denText);
+  const den = /[+\-*/]/.test(bare) && !/^\(.*\)\^\d+$/.test(denText) ? `(${bare})` : denText.replace(/^\(([a-z])\)$/i, '$1');
+  const top = numerText === '1' ? String(Math.abs(n)) : Math.abs(n) === 1 ? numerText : `${Math.abs(n)}*${numerText}`;
+  return `${n < 0 ? '-' : ''}${top}/${d === 1 ? den : `(${d}*${den})`}`;
+}
 
 // Does the text have a '+' or binary '-' outside all parentheses?
 function hasTopLevelSum(text) {
@@ -2004,6 +2165,15 @@ function isLogDerivativeShape(term, variable, Algebrite) {
   const num = run(`numerator(${term})`);
   const den = run(`denominator(${term})`);
   if (!num || !den || den === '1' || !hasVariable(den, v) || !hasVariable(num, v)) return false;
+  // For polynomials, c·g′ has degree deg g − 1 exactly: anything else is not
+  // this shape, and Algebrite's simplify took 7 s to say so on
+  // (x³ + 2)/((x − 1)(x + 1)²).
+  const N = readPolynomial(num, v);
+  const D = readPolynomial(den, v);
+  if (N && D) {
+    const degree = (P) => { const c = P.coefficients.map((q) => q.n); let d = c.length - 1; while (d > 0 && c[d] === 0n) d -= 1; return d; };
+    if (degree(N) !== degree(D) - 1) return false;
+  }
   const ratio = run(`simplify((${num})/(d(${den}, ${v})))`);
   return ratio !== null && !new RegExp(`\\b${v}\\b`).test(ratio) && ratio !== '0';
 }

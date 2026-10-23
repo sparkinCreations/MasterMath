@@ -411,6 +411,18 @@ const FUNCTION_TRUTH = {
   },
 };
 
+// The answer's mathematics without the qualifiers that accompany it since
+// 1.53.1, which grade nothing themselves: a cancelled factor's domain
+// ("x + 1, for x ≠ 1") and the decimals beside exact endpoints
+// ("x > √2  (√2 ≈ 1.4142)").
+function gradable(r) {
+  if (!r || typeof r.answer !== 'string') return r;
+  const answer = r.answer
+    .replace(/,\s*for\s+[a-z]\s*≠[^]*$/, '')
+    .replace(/\s{2}\(([^]*≈[^]*)\)\s*$/, '');
+  return { ...r, answer };
+}
+
 async function grade(category, problem, expected, meta = {}) {
   const cat = category.toLowerCase();
   if (cat === 'functions') {
@@ -439,7 +451,7 @@ async function grade(category, problem, expected, meta = {}) {
     input = problem.replace(/\((?:solve[^)]*|system)\)\s*$/i, '').trim();
   }
 
-  const r = await solveProblem(input, TOPIC[meta.topic] || topic);
+  const r = gradable(await solveProblem(input, TOPIC[meta.topic] || topic));
   const ans = String(r.answer);
 
   // Trig equations: compare the solutions listed on one period, as sets.
