@@ -158,3 +158,24 @@ in dark mode (1.44.1); "Graph View" title black on the empty card
 | Owner: text black in dark mode while solving | Confirmed: the Cancel button (no `outline` variant) | 1.52.4 |
 | Found: brackets after ∫ dropped in the preview and steps | — | 1.52.4 |
 | Found before shipping: "simplify tan(x)·cos(x)" under Trigonometry sent to Algebra, unchanged | — | 1.52.4 (verb + trig → Trigonometry) |
+
+## Round 12 (the accuracy test list, written against v1.47.1, reproduced on 1.53.1)
+
+95 cases with SymPy-checked expected values: [`test-cases.json`](test-cases.json),
+results as written in [`test-list-v1.47.1.md`](test-list-v1.47.1.md). Every
+case now runs in `tests/octoberTestList.test.js`.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| The list's failures on v1.47.1 (ODEs answered, matrices, x² + y² = 25 solved for x, partial-fraction and 1^∞ steps, log display, …) | Already fixed: 88 of 95 correct on 1.53.1 | 1.48.0 – 1.53.1 |
+| #6 f''(x) + f(x) = 0 answered "f''(f) = 0" | Confirmed, **worse**: "f'(x) where f(x) = x^3" answered "x^3"; "f'(x)" answered "f'(f) = 1" | 1.53.2 |
+| #12 y'(x) = 3x^2 refused with "one equation cannot fix 2 unknowns" | Confirmed | 1.53.2 (a differential equation; the tip names ∫ 3x^2 dx) |
+| #19 x² + 1 = 0 tips mention (x − 2)(x − 3) | Confirmed | 1.53.2 (tips by method) |
+| #20 \|2x − 1\| < 5 tips mention numerators | Confirmed | 1.53.2 |
+| #49 e^(2x) = 7 as ln(√7) | Confirmed, **worse**: e^(3x) = 5 and e^(2x + 1) = 7 numeric only | 1.53.2 (isolate, then log) |
+| #67 arcsin′ as 1/((-x^2 + 1)^(1/2)) | Confirmed, **worse**: its step named the power rule, as did sec, cot, sinh, arctan | 1.53.2 |
+| #86–88 "lim … = Does not exist" | Wording | 1.53.2 |
+| #21 tips and error banners carry over | Not reproduced (checked in the browser) | — |
+| Found in the sweep: "d/dx f(x)", "∫ f(x) dx", "lim x->0 f(x)" answered as if f were a number | — | 1.53.2 (refused) |
+| Found in the sweep: "g(x) = 2x + 1" solved for g; "f(x) = x^2" under Integrals unchanged | — | 1.53.2 |
+| Found in the sweep: numeric roots written with = | — | 1.53.2 (≈) |

@@ -1,0 +1,952 @@
+[
+  {
+    "id": 1,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "y'' + y = 0",
+    "topic": "algebra",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Currently answers 0 (mathParser.js:462 grabs ' y = 0'). True solution y=C1 cos x + C2 sin x is an ODE.",
+    "sympy_verified": false
+  },
+  {
+    "id": 2,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "y'' + y = 0",
+    "topic": "derivatives",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Same bug under Derivatives topic.",
+    "sympy_verified": false
+  },
+  {
+    "id": 3,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "y' = y",
+    "topic": "derivatives",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Currently refused correctly - keep it that way.",
+    "sympy_verified": false
+  },
+  {
+    "id": 4,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "y' + 2y = 0",
+    "topic": "algebra",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Prime notation ODE; '2y = 0' must not be solved as y = 0.",
+    "sympy_verified": false
+  },
+  {
+    "id": 5,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "dy/dx = x*y",
+    "topic": "derivatives",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Currently answers f'(x) = y (wrong: this is an ODE, y = C e^(x^2/2)).",
+    "sympy_verified": false
+  },
+  {
+    "id": 6,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "f''(x) + f(x) = 0",
+    "topic": "derivatives",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. ODE in function notation; must not be treated as 'second derivative of f(x)'.",
+    "sympy_verified": false
+  },
+  {
+    "id": 7,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "x^2 + y^2 = 25",
+    "topic": "derivatives",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Implicit curve: either refuse or give dy/dx = -x/y. Currently solves for x.",
+    "sympy_verified": false
+  },
+  {
+    "id": 8,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "determinant of [[1,2],[3,4]]",
+    "topic": "other",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Currently 'Undefined symbol determinantof'. Should say matrices not supported (or -2 if supported).",
+    "sympy_verified": false
+  },
+  {
+    "id": 9,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "[[1,2],[3,4]] * [[1],[1]]",
+    "topic": "algebra",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Currently returns [[3],[7]] (correct), but matrices aren't an advertised topic: support with steps or refuse.",
+    "sympy_verified": false
+  },
+  {
+    "id": 10,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "inverse of [[1,2],[3,4]]",
+    "topic": "other",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. If supported: [[-2,1],[1.5,-0.5]]; otherwise refuse clearly.",
+    "sympy_verified": false
+  },
+  {
+    "id": 11,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "y''' = 6",
+    "topic": "derivatives",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Triple-prime ODE; must not answer 6 or 0.",
+    "sympy_verified": false
+  },
+  {
+    "id": 12,
+    "category": "Unsupported input",
+    "priority": "P0",
+    "input": "y'(x) = 3x^2",
+    "topic": "derivatives",
+    "expected": "REFUSE",
+    "notes": "Must show an unsupported/can't-solve message; must NOT show 'Problem solved!' or any numeric answer. Refuse or answer y = x^3 + C; never a derivative of 3x^2.",
+    "sympy_verified": false
+  },
+  {
+    "id": 13,
+    "category": "Observed issue",
+    "priority": "P1",
+    "input": "integral of 1/(x^2-1)",
+    "topic": "integrals",
+    "expected": "1/2 ln|(x-1)/(x+1)| + C",
+    "notes": "Steps must show partial fractions (1/2)/(x-1) - (1/2)/(x+1); no raw-text step lines.",
+    "sympy_verified": true
+  },
+  {
+    "id": 14,
+    "category": "Observed issue",
+    "priority": "P1",
+    "input": "limit of (1+1/x)^x as x->infinity",
+    "topic": "limits",
+    "expected": "e",
+    "notes": "Steps must use ln + L'Hopital (ln L = lim ln(1+1/x)/(1/x) = 1), not numeric sampling.",
+    "sympy_verified": true
+  },
+  {
+    "id": 15,
+    "category": "Observed issue",
+    "priority": "P2",
+    "input": "integral of 2x+1",
+    "topic": "integrals",
+    "expected": "x^2 + x + C",
+    "notes": "Prefer expanded form; x(x+1)+C is equivalent but unexpected.",
+    "sympy_verified": true
+  },
+  {
+    "id": 16,
+    "category": "Observed issue",
+    "priority": "P2",
+    "input": "log2(x) = 5",
+    "topic": "algebra",
+    "expected": "x = 32",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 17,
+    "category": "Observed issue",
+    "priority": "P2",
+    "input": "derivative of log2(x)",
+    "topic": "derivatives",
+    "expected": "1/(x ln 2)",
+    "notes": "Display: avoid log(x)/log(2) since app reads log as base 10.",
+    "sympy_verified": true
+  },
+  {
+    "id": 18,
+    "category": "Observed issue",
+    "priority": "P2",
+    "input": "integral of log2(x)",
+    "topic": "integrals",
+    "expected": "(x ln x - x)/ln 2 + C",
+    "notes": "Display: use ln or log_2, not log(x)/log(2).",
+    "sympy_verified": true
+  },
+  {
+    "id": 19,
+    "category": "Observed issue / tips",
+    "priority": "P1",
+    "input": "x^2 + 1 = 0",
+    "topic": "algebra",
+    "expected": "x = i or x = -i (no real solution)",
+    "notes": "Tips check: Key Insights/Common Mistakes must not mention (x-2)(x-3) or another problem.",
+    "sympy_verified": true
+  },
+  {
+    "id": 20,
+    "category": "Observed issue / tips",
+    "priority": "P1",
+    "input": "|2x-1| < 5",
+    "topic": "algebra",
+    "expected": "-2 < x < 3",
+    "notes": "Tips check: must not mention numerators/fractions.",
+    "sympy_verified": true
+  },
+  {
+    "id": 21,
+    "category": "Observed issue / tips",
+    "priority": "P2",
+    "input": "x^2 - 5x + 6 = 0, then x^2 + 1 = 0",
+    "topic": "algebra",
+    "expected": "second solve shows only tips/steps for x^2+1",
+    "notes": "UI: tips must not carry over; old error banners must clear on next solve.",
+    "sympy_verified": false
+  },
+  {
+    "id": 22,
+    "category": "Algebra",
+    "priority": "P1",
+    "input": "2(x+3) = 2x+6",
+    "topic": "algebra",
+    "expected": "All real numbers",
+    "notes": "Identity",
+    "sympy_verified": true
+  },
+  {
+    "id": 23,
+    "category": "Algebra",
+    "priority": "P1",
+    "input": "5x-7 = 5x+2",
+    "topic": "algebra",
+    "expected": "No solution",
+    "notes": "Contradiction",
+    "sympy_verified": true
+  },
+  {
+    "id": 24,
+    "category": "Algebra",
+    "priority": "P1",
+    "input": "x^2 - 2x - 1 = 0",
+    "topic": "algebra",
+    "expected": "x = 1 ± √2",
+    "notes": "Irrational roots",
+    "sympy_verified": true
+  },
+  {
+    "id": 25,
+    "category": "Algebra",
+    "priority": "P2",
+    "input": "x^2 - 6x + 9 = 0",
+    "topic": "algebra",
+    "expected": "x = 3 (double root)",
+    "notes": "Repeated root",
+    "sympy_verified": true
+  },
+  {
+    "id": 26,
+    "category": "Algebra",
+    "priority": "P2",
+    "input": "x^4 - 5x^2 + 4 = 0",
+    "topic": "algebra",
+    "expected": "x = ±1, ±2",
+    "notes": "Biquadratic",
+    "sympy_verified": true
+  },
+  {
+    "id": 27,
+    "category": "Algebra",
+    "priority": "P2",
+    "input": "x^3 - 8 = 0",
+    "topic": "algebra",
+    "expected": "x = 2 (complex: -1 ± i√3)",
+    "notes": "Real vs complex roots labelled",
+    "sympy_verified": true
+  },
+  {
+    "id": 28,
+    "category": "Algebra",
+    "priority": "P0",
+    "input": "sqrt(x+7) = x - 5",
+    "topic": "algebra",
+    "expected": "x = 9 (x = 2 extraneous)",
+    "notes": "Must reject x=2",
+    "sympy_verified": true
+  },
+  {
+    "id": 29,
+    "category": "Algebra",
+    "priority": "P0",
+    "input": "1/(x-1) + 1 = x/(x-1)",
+    "topic": "algebra",
+    "expected": "All real x except x = 1 (identity on its domain)",
+    "notes": "Identity with excluded value; must not say 'all real numbers' or include x = 1. (SymPy solveset wrongly returns EmptySet here, verified by simplification.)",
+    "sympy_verified": true
+  },
+  {
+    "id": 30,
+    "category": "Algebra",
+    "priority": "P1",
+    "input": "x/(x-2) = 2/(x-2)",
+    "topic": "algebra",
+    "expected": "No solution",
+    "notes": "Excluded value",
+    "sympy_verified": true
+  },
+  {
+    "id": 31,
+    "category": "Algebra",
+    "priority": "P2",
+    "input": "0.1x + 0.2 = 0.5",
+    "topic": "algebra",
+    "expected": "x = 3",
+    "notes": "Float noise (no 2.9999)",
+    "sympy_verified": true
+  },
+  {
+    "id": 32,
+    "category": "Inequality/Abs",
+    "priority": "P1",
+    "input": "x^2 - 4 > 0",
+    "topic": "algebra",
+    "expected": "x < -2 or x > 2",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 33,
+    "category": "Inequality/Abs",
+    "priority": "P0",
+    "input": "(x-1)/(x+2) >= 0",
+    "topic": "algebra",
+    "expected": "x < -2 or x ≥ 1",
+    "notes": "x=-2 excluded, x=1 included",
+    "sympy_verified": true
+  },
+  {
+    "id": 34,
+    "category": "Inequality/Abs",
+    "priority": "P1",
+    "input": "x^2 + 1 < 0",
+    "topic": "algebra",
+    "expected": "No solution",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 35,
+    "category": "Inequality/Abs",
+    "priority": "P2",
+    "input": "x^2 + 1 > 0",
+    "topic": "algebra",
+    "expected": "All real numbers",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 36,
+    "category": "Inequality/Abs",
+    "priority": "P2",
+    "input": "-3 < 2x + 1 <= 7",
+    "topic": "algebra",
+    "expected": "-2 < x ≤ 3",
+    "notes": "Compound",
+    "sympy_verified": true
+  },
+  {
+    "id": 37,
+    "category": "Inequality/Abs",
+    "priority": "P1",
+    "input": "-2x > 6",
+    "topic": "algebra",
+    "expected": "x < -3",
+    "notes": "Sign flip",
+    "sympy_verified": true
+  },
+  {
+    "id": 38,
+    "category": "Inequality/Abs",
+    "priority": "P1",
+    "input": "|x - 3| = 5",
+    "topic": "algebra",
+    "expected": "x = -2 or x = 8",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 39,
+    "category": "Inequality/Abs",
+    "priority": "P1",
+    "input": "|x + 1| = -2",
+    "topic": "algebra",
+    "expected": "No solution",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 40,
+    "category": "Inequality/Abs",
+    "priority": "P1",
+    "input": "|x - 2| >= 3",
+    "topic": "algebra",
+    "expected": "x ≤ -1 or x ≥ 5",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 41,
+    "category": "Inequality/Abs",
+    "priority": "P2",
+    "input": "|2x - 4| = |x + 1|",
+    "topic": "algebra",
+    "expected": "x = 1 or x = 5",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 42,
+    "category": "Systems",
+    "priority": "P1",
+    "input": "x + y = 3; x - y = 1",
+    "topic": "algebra",
+    "expected": "x = 2, y = 1",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 43,
+    "category": "Systems",
+    "priority": "P0",
+    "input": "2x + 4y = 6; x + 2y = 3",
+    "topic": "algebra",
+    "expected": "Infinitely many (x = 3 - 2y)",
+    "notes": "Dependent system",
+    "sympy_verified": true
+  },
+  {
+    "id": 44,
+    "category": "Systems",
+    "priority": "P0",
+    "input": "x + y = 1; x + y = 2",
+    "topic": "algebra",
+    "expected": "No solution",
+    "notes": "Inconsistent",
+    "sympy_verified": true
+  },
+  {
+    "id": 45,
+    "category": "Systems",
+    "priority": "P2",
+    "input": "x + y + z = 6; x - y = 0; x + z = 5",
+    "topic": "algebra",
+    "expected": "x=1, y=1, z=4",
+    "notes": "3x3, or refuse clearly",
+    "sympy_verified": true
+  },
+  {
+    "id": 46,
+    "category": "Systems",
+    "priority": "P2",
+    "input": "y = x^2; y = x + 2",
+    "topic": "algebra",
+    "expected": "(-1, 1) and (2, 4)",
+    "notes": "Nonlinear; refuse if unsupported",
+    "sympy_verified": true
+  },
+  {
+    "id": 47,
+    "category": "Logs",
+    "priority": "P0",
+    "input": "log(x) + log(x-3) = 1",
+    "topic": "algebra",
+    "expected": "x = 5 (x=-2 rejected)",
+    "notes": "log = base 10 in app",
+    "sympy_verified": true
+  },
+  {
+    "id": 48,
+    "category": "Logs",
+    "priority": "P2",
+    "input": "ln(x) = 0",
+    "topic": "algebra",
+    "expected": "x = 1",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 49,
+    "category": "Logs",
+    "priority": "P1",
+    "input": "e^(2x) = 7",
+    "topic": "algebra",
+    "expected": "x = ln(7)/2",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 50,
+    "category": "Logs",
+    "priority": "P2",
+    "input": "3^(x+1) = 27",
+    "topic": "algebra",
+    "expected": "x = 2",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 51,
+    "category": "Logs",
+    "priority": "P2",
+    "input": "log(x, 3) = -2",
+    "topic": "algebra",
+    "expected": "x = 1/9",
+    "notes": "Explicit base",
+    "sympy_verified": true
+  },
+  {
+    "id": 52,
+    "category": "Logs",
+    "priority": "P2",
+    "input": "ln(x) = -1",
+    "topic": "algebra",
+    "expected": "x = 1/e",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 53,
+    "category": "Logs",
+    "priority": "P2",
+    "input": "log(-x) = 2",
+    "topic": "algebra",
+    "expected": "x = -100",
+    "notes": "Negative x is valid here",
+    "sympy_verified": true
+  },
+  {
+    "id": 54,
+    "category": "Trig",
+    "priority": "P1",
+    "input": "sin(x) = 1/2 (degrees setting)",
+    "topic": "trigonometry",
+    "expected": "x = 30° + 360°k, 150° + 360°k",
+    "notes": "Answer in degrees",
+    "sympy_verified": true
+  },
+  {
+    "id": 55,
+    "category": "Trig",
+    "priority": "P1",
+    "input": "sin(x) = 1/2 (radians setting)",
+    "topic": "trigonometry",
+    "expected": "x = π/6 + 2πk, 5π/6 + 2πk",
+    "notes": "General solution",
+    "sympy_verified": true
+  },
+  {
+    "id": 56,
+    "category": "Trig",
+    "priority": "P0",
+    "input": "sin(30) (degrees setting)",
+    "topic": "trigonometry",
+    "expected": "0.5",
+    "notes": "Degrees mode must convert",
+    "sympy_verified": true
+  },
+  {
+    "id": 57,
+    "category": "Trig",
+    "priority": "P0",
+    "input": "sin(30) (radians setting)",
+    "topic": "trigonometry",
+    "expected": "≈ -0.9880",
+    "notes": "Settings angleUnit=radians must NOT convert (default 'auto' treats bare 30 as degrees)",
+    "sympy_verified": true
+  },
+  {
+    "id": 58,
+    "category": "Trig",
+    "priority": "P1",
+    "input": "2cos(x)^2 - cos(x) - 1 = 0 (radians)",
+    "topic": "trigonometry",
+    "expected": "x = 2πk, 2π/3 + 2πk, 4π/3 + 2πk",
+    "notes": "Quadratic in cos",
+    "sympy_verified": true
+  },
+  {
+    "id": 59,
+    "category": "Trig",
+    "priority": "P2",
+    "input": "tan(x) = 1 (radians)",
+    "topic": "trigonometry",
+    "expected": "x = π/4 + πk",
+    "notes": "Period π, not 2π",
+    "sympy_verified": true
+  },
+  {
+    "id": 60,
+    "category": "Trig",
+    "priority": "P0",
+    "input": "sin(x) = 2",
+    "topic": "trigonometry",
+    "expected": "No solution",
+    "notes": "Out of range",
+    "sympy_verified": true
+  },
+  {
+    "id": 61,
+    "category": "Trig",
+    "priority": "P2",
+    "input": "sin(2x) = cos(x) (radians)",
+    "topic": "trigonometry",
+    "expected": "x = π/6, π/2, 5π/6, 3π/2 (+2πk)",
+    "notes": "Double angle",
+    "sympy_verified": true
+  },
+  {
+    "id": 62,
+    "category": "Derivatives",
+    "priority": "P1",
+    "input": "derivative of sin(x^2)",
+    "topic": "derivatives",
+    "expected": "2x cos(x^2)",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 63,
+    "category": "Derivatives",
+    "priority": "P2",
+    "input": "derivative of x^2 e^x",
+    "topic": "derivatives",
+    "expected": "e^x (x^2 + 2x)",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 64,
+    "category": "Derivatives",
+    "priority": "P1",
+    "input": "derivative of (x^2+1)/(x-1)",
+    "topic": "derivatives",
+    "expected": "(x^2 - 2x - 1)/(x-1)^2",
+    "notes": "Quotient rule",
+    "sympy_verified": true
+  },
+  {
+    "id": 65,
+    "category": "Derivatives",
+    "priority": "P1",
+    "input": "derivative of |x|",
+    "topic": "derivatives",
+    "expected": "x/|x| (undefined at x = 0)",
+    "notes": "Must note x≠0",
+    "sympy_verified": true
+  },
+  {
+    "id": 66,
+    "category": "Derivatives",
+    "priority": "P1",
+    "input": "second derivative of x^4",
+    "topic": "derivatives",
+    "expected": "12x^2",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 67,
+    "category": "Derivatives",
+    "priority": "P2",
+    "input": "derivative of arcsin(x)",
+    "topic": "derivatives",
+    "expected": "1/sqrt(1-x^2)",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 68,
+    "category": "Derivatives",
+    "priority": "P2",
+    "input": "derivative of ln(cos(x))",
+    "topic": "derivatives",
+    "expected": "-tan(x)",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 69,
+    "category": "Derivatives",
+    "priority": "P2",
+    "input": "derivative of 5",
+    "topic": "derivatives",
+    "expected": "0",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 70,
+    "category": "Derivatives",
+    "priority": "P1",
+    "input": "derivative of x^3 at x = 2",
+    "topic": "derivatives",
+    "expected": "12",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 71,
+    "category": "Derivatives",
+    "priority": "P2",
+    "input": "derivative of x*y with respect to y",
+    "topic": "derivatives",
+    "expected": "x",
+    "notes": "Variable choice",
+    "sympy_verified": true
+  },
+  {
+    "id": 72,
+    "category": "Integrals",
+    "priority": "P1",
+    "input": "integral of sin(x) from 0 to pi",
+    "topic": "integrals",
+    "expected": "2",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 73,
+    "category": "Integrals",
+    "priority": "P1",
+    "input": "integral of 1/x from 1 to e",
+    "topic": "integrals",
+    "expected": "1",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 74,
+    "category": "Integrals",
+    "priority": "P1",
+    "input": "integral of x*e^x",
+    "topic": "integrals",
+    "expected": "e^x (x - 1) + C",
+    "notes": "By parts",
+    "sympy_verified": true
+  },
+  {
+    "id": 75,
+    "category": "Integrals",
+    "priority": "P0",
+    "input": "integral of 1/x^2 from 1 to infinity",
+    "topic": "integrals",
+    "expected": "1",
+    "notes": "Improper, convergent",
+    "sympy_verified": true
+  },
+  {
+    "id": 76,
+    "category": "Integrals",
+    "priority": "P0",
+    "input": "integral of 1/x from 1 to infinity",
+    "topic": "integrals",
+    "expected": "Diverges",
+    "notes": "Must say diverges, not a number",
+    "sympy_verified": true
+  },
+  {
+    "id": 77,
+    "category": "Integrals",
+    "priority": "P0",
+    "input": "integral of 1/x^2 from -1 to 1",
+    "topic": "integrals",
+    "expected": "Diverges (singular at x = 0)",
+    "notes": "Naive FTC gives -2: classic trap",
+    "sympy_verified": true
+  },
+  {
+    "id": 78,
+    "category": "Integrals",
+    "priority": "P1",
+    "input": "integral of e^(-x) from 0 to infinity",
+    "topic": "integrals",
+    "expected": "1",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 79,
+    "category": "Integrals",
+    "priority": "P1",
+    "input": "integral of 1/sqrt(x) from 0 to 1",
+    "topic": "integrals",
+    "expected": "2",
+    "notes": "Improper at endpoint",
+    "sympy_verified": true
+  },
+  {
+    "id": 80,
+    "category": "Integrals",
+    "priority": "P2",
+    "input": "integral of 2x/(x^2+1)",
+    "topic": "integrals",
+    "expected": "ln(x^2 + 1) + C",
+    "notes": "u-sub",
+    "sympy_verified": true
+  },
+  {
+    "id": 81,
+    "category": "Integrals",
+    "priority": "P1",
+    "input": "integral of (3x+5)/((x+1)(x+2))",
+    "topic": "integrals",
+    "expected": "2 ln|x+1| + ln|x+2| + C",
+    "notes": "Partial-fraction steps",
+    "sympy_verified": true
+  },
+  {
+    "id": 82,
+    "category": "Integrals",
+    "priority": "P2",
+    "input": "integral of x from 2 to 2",
+    "topic": "integrals",
+    "expected": "0",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 83,
+    "category": "Integrals",
+    "priority": "P1",
+    "input": "integral of x^2 from 3 to 0",
+    "topic": "integrals",
+    "expected": "-9",
+    "notes": "Reversed bounds",
+    "sympy_verified": true
+  },
+  {
+    "id": 84,
+    "category": "Limits",
+    "priority": "P1",
+    "input": "limit of 1/x as x->0+",
+    "topic": "limits",
+    "expected": "+∞",
+    "notes": "One-sided",
+    "sympy_verified": true
+  },
+  {
+    "id": 85,
+    "category": "Limits",
+    "priority": "P1",
+    "input": "limit of 1/x as x->0-",
+    "topic": "limits",
+    "expected": "-∞",
+    "notes": "One-sided",
+    "sympy_verified": true
+  },
+  {
+    "id": 86,
+    "category": "Limits",
+    "priority": "P0",
+    "input": "limit of 1/x as x->0",
+    "topic": "limits",
+    "expected": "Does not exist (+∞ vs -∞)",
+    "notes": "DNE",
+    "sympy_verified": true
+  },
+  {
+    "id": 87,
+    "category": "Limits",
+    "priority": "P0",
+    "input": "limit of |x|/x as x->0",
+    "topic": "limits",
+    "expected": "Does not exist (1 vs -1)",
+    "notes": "Jump",
+    "sympy_verified": true
+  },
+  {
+    "id": 88,
+    "category": "Limits",
+    "priority": "P0",
+    "input": "limit of sin(1/x) as x->0",
+    "topic": "limits",
+    "expected": "Does not exist (oscillates)",
+    "notes": "Must not sample to a number",
+    "sympy_verified": true
+  },
+  {
+    "id": 89,
+    "category": "Limits",
+    "priority": "P1",
+    "input": "limit of (x^2-9)/(x-3) as x->3",
+    "topic": "limits",
+    "expected": "6",
+    "notes": "Removable",
+    "sympy_verified": true
+  },
+  {
+    "id": 90,
+    "category": "Limits",
+    "priority": "P1",
+    "input": "limit of (3x^2+1)/(2x^2-x) as x->infinity",
+    "topic": "limits",
+    "expected": "3/2",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 91,
+    "category": "Limits",
+    "priority": "P1",
+    "input": "limit of sqrt(x^2+x) - x as x->infinity",
+    "topic": "limits",
+    "expected": "1/2",
+    "notes": "Sampling-prone",
+    "sympy_verified": true
+  },
+  {
+    "id": 92,
+    "category": "Limits",
+    "priority": "P2",
+    "input": "limit of x*sin(1/x) as x->0",
+    "topic": "limits",
+    "expected": "0",
+    "notes": "Squeeze",
+    "sympy_verified": true
+  },
+  {
+    "id": 93,
+    "category": "Limits",
+    "priority": "P2",
+    "input": "limit of (1-cos(x))/x^2 as x->0",
+    "topic": "limits",
+    "expected": "1/2",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 94,
+    "category": "Limits",
+    "priority": "P2",
+    "input": "limit of e^x as x->-infinity",
+    "topic": "limits",
+    "expected": "0",
+    "notes": "",
+    "sympy_verified": true
+  },
+  {
+    "id": 95,
+    "category": "Limits",
+    "priority": "P2",
+    "input": "limit of x^(1/x) as x->infinity",
+    "topic": "limits",
+    "expected": "1",
+    "notes": "",
+    "sympy_verified": true
+  }
+]

@@ -189,5 +189,5 @@ test('reciprocal functions and sin·cos products reduce exactly; the rest fall t
   const numeric = await solveProblem('sin(x)*cos(2x) = 1/3', 'trigonometry');
   assert.equal(numeric.status, 'solved');
   assert.match(numeric.steps[0], /solved numerically/);
-  assert.match(numeric.answer, /x = -0\.9904/);
+  assert.match(numeric.answer, /x ≈ -0\.9904/); // located numerically: ≈ (1.53.2)
 });

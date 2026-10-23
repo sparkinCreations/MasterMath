@@ -106,7 +106,7 @@ test('solveLimit returns Undefined when the expression itself sits on an asympto
 
 test('solveLimit reports divergence at a vertical asymptote instead of a huge float', async () => {
   const twoSided = await solveLimitPlain('lim x->pi/2 tan(x)');
-  assert.match(twoSided.answer, /Does not exist$/);
+  assert.match(twoSided.answer, / does not exist$/);
   assert.ok(twoSided.steps.some((step) => /diverges to ∞/.test(step)));
   assert.ok(twoSided.steps.some((step) => /diverges to -∞/.test(step)));
 

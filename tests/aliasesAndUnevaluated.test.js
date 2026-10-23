@@ -43,7 +43,7 @@ test('the aliases behave identically to the long forms across topics', async () 
   }
   // Correct values, not just consistency.
   const d = await solveProblem('asin(x)', 'derivatives');
-  assert.match(d.answer, /1\/\(\(-x\^2 \+ 1\)\^\(1\/2\)\)/);
+  assert.equal(d.answer, "f'(x) = 1/√(1 - x^2)");
   const t = await solveProblem('atan(x)', 'derivatives');
   assert.match(t.answer, /1\/\(x\^2 \+ 1\)/);
 });

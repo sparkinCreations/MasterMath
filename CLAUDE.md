@@ -75,7 +75,10 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    integral / limit notation goes to that solver under any topic; a single
    equation goes to Algebra — except an equation in x and y under Derivatives
    (or with "find dy/dx"), which goes to implicit differentiation, checked
-   before the differential-equation refusal; two `=` signs go to systems; a comparison operator
+   before the differential-equation refusal; a primed call f'(x) is the
+   derivative of f when the input defines f, else a differential equation or
+   a function not given, both refused, as is any f(x), g(x), h(x) never
+   defined (`primedFunctionRequest`); two `=` signs go to systems; a comparison operator
    to inequalities; a trailing "at x = a" is stripped first (`extractEvalPoint`).
    A routed result's first step says so (`routedTopic`), and it carries
    `routing: { from, to, reason }`: the page shows a "Solved as …" notice
@@ -120,7 +123,8 @@ Each file documents its own methods at the top. Shared invariants:
   from the method used, not one generic list.
 
 Modules: `arithmeticSolver` (PEMDAS working, exact fractions), `algebraSolver`
-(equations: linear → `linearEquationSolver` in exact fractions; quadratics with
+(equations: linear → `linearEquationSolver` in exact fractions; one exponential
+with a linear exponent isolated and logged (`solveSingleExponential`); quadratics with
 factoring or the formula; cubics and higher by the Rational Root Theorem and
 synthetic division (`solveByRationalRoots`, shown step by step) down to a
 quadratic, the rest to `polynomialRoots` without calling Algebrite — its
@@ -246,7 +250,9 @@ placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
 
 - `npm test` — unit suite (node --test), includes the corpus harness
   (`tests/corpus/`: July + September 2026 evaluations, 288 graded problems,
-  0 confidently-wrong is the bar) and a build-preload check.
+  0 confidently-wrong is the bar), the October 2026 test list
+  (`tests/octoberTestList.test.js`, 95 cases from
+  `docs/evaluations/2026-10/test-cases.json`) and a build-preload check.
 - `npm run smoke` — Playwright against the production build, desktop and
   phone: pages, every example, worker + budget + Cancel, CSP, accessibility
   (axe-core, WCAG 2.1 AA rules, light and dark). Run it after any change to
