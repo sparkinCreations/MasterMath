@@ -12,8 +12,11 @@ test('a differential equation is refused, never "solved" as 0', async () => {
     assert.match(r.answer, /Differential equations are not supported/);
     assert.match(r.steps.join('\n'), /differential equation/i);
   }
-  // f'(x) notation for a derivative of a named function is not an ODE.
-  assert.notEqual((await solveProblem("f'(x) = 2x", 'algebra')).answer, 'Differential equations are not supported');
+  // f'(x) = 2x and y'(x) = 3x^2 give a derivative, not the function: also
+  // ODEs (1.53.2), as is f''(x) + f(x) = 0, which answered "f''(f) = 0".
+  for (const p of ["f'(x) = 2x", "y'(x) = 3x^2", "f''(x) + f(x) = 0"]) {
+    assert.equal((await solveProblem(p, 'derivatives')).answer, 'Differential equations are not supported', p);
+  }
 });
 
 test('matrices are refused with a message that says so', async () => {

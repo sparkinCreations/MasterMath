@@ -22,10 +22,17 @@ import { featureWindow, interestingXs } from '../graphSampling.js';
 // Algebrite writes the natural log as log(...); students read ln(...). Applied
 // to RESULTS only — the input is echoed as typed.
 // Likewise exp(x) → e^x. (?<![a-z]) not \b: beautify writes 2*log(x) as 2log(x).
+// (…)^(1/2) → √(…), with Algebrite's −x² + 1 inside read as 1 − x², so
+// arcsin′ shows as 1/√(1 − x^2), not 1/((-x^2 + 1)^(1/2)).
 const lnify = (s) => beautify(s)
   .replace(/(?<![a-z])log\(/g, 'ln(')
   .replace(/(?<![a-z])exp\(([a-z]|\d+)\)/g, 'e^$1')
-  .replace(/(?<![a-z])exp\(([^()]+)\)/g, 'e^($1)');
+  .replace(/(?<![a-z])exp\(([^()]+)\)/g, 'e^($1)')
+  .replace(/\(([^()]+)\)\^\(1\/2\)/g, '√($1)')
+  .replace(/(?<![a-zA-Z_)^.])([a-z])\^\(1\/2\)/g, '√$1')
+  .replace(/\/\(√([a-z])\)/g, '/√$1')
+  .replace(/√\(-([^()]+?) \+ (\d+(?:\.\d+)?)\)/g, '√($2 - $1)')
+  .replace(/\/\(√\(([^()]+)\)\)/g, '/√($1)');
 
 export async function solveDerivative(expression, options = {}) {
   try {
@@ -247,6 +254,17 @@ function derivativeGuidance(expression, variable) {
     tips.push(`${mark(`d/d${v} sin(${v}) = cos(${v})`)}, ${mark(`d/d${v} cos(${v}) = −sin(${v})`)}, ${mark(`d/d${v} tan(${v}) = sec²(${v})`)} — the trig derivatives are worth memorising as a set.`);
     mistakes.push(`Losing the minus sign in ${mark(`d/d${v} cos(${v}) = −sin(${v})`)}.`);
   }
+  if (used('Inverse trig')) {
+    tips.push(`${mark(`d/d${v} arcsin(${v}) = 1/√(1 − ${v}^2)`)}, ${mark(`d/d${v} arccos(${v}) = −1/√(1 − ${v}^2)`)}, ${mark(`d/d${v} arctan(${v}) = 1/(1 + ${v}^2)`)} — arcsin and arccos differ only in sign.`);
+    mistakes.push(`Reading ${mark(`arcsin(${v})`)} (also written ${mark(`sin^(-1)(${v})`)}) as ${mark(`1/sin(${v})`)}: it is the inverse function, not the reciprocal.`);
+  }
+  if (used('Hyperbolic')) {
+    tips.push(`${mark(`d/d${v} sinh(${v}) = cosh(${v})`)} and ${mark(`d/d${v} cosh(${v}) = sinh(${v})`)}, with no minus sign; ${mark(`d/d${v} tanh(${v}) = 1 − tanh^2(${v})`)}.`);
+    mistakes.push(`Adding a minus sign to ${mark(`d/d${v} cosh(${v})`)} by analogy with ${mark(`cos(${v})`)}.`);
+  }
+  if (used('Trig') && /\b(?:sec|csc|cot)\b/i.test(expression)) {
+    tips.push(`${mark(`d/d${v} sec(${v}) = sec(${v})·tan(${v})`)}, ${mark(`d/d${v} csc(${v}) = −csc(${v})·cot(${v})`)}, ${mark(`d/d${v} cot(${v}) = −csc²(${v})`)}: the co-functions carry the minus sign.`);
+  }
   if (labels.some((l) => l === 'Constant rule') || labels.length > 1) {
     tips.push(`The derivative of a constant is ${mark('0')}, and constant factors carry straight through.`);
     mistakes.push(`Dropping a constant factor when differentiating terms like ${mark('3x')}, or keeping a lone constant instead of sending it to ${mark('0')}.`);
@@ -394,7 +412,18 @@ function classifyDerivativeRule(term, variable) {
 
   // log(x) is the common logarithm: the parser wrote it as log(x)/log(10).
   if (/\blog\(/i.test(inner) && /log\(10\)/.test(inner)) return { label: 'Logarithmic rule', hint: `${mark(`log(${v})`)} is the base-10 logarithm, ${mark(`log(${v}) = ln(${v})/ln(10)`)}, so ${mark(`d/d${v}[log(${v})] = 1/(${v}·ln(10))`)}` };
-  // Single trig / exponential / logarithmic / root functions.
+  // Single trig / exponential / logarithmic / root functions. The inverse,
+  // reciprocal and hyperbolic ones were filed under the power rule (October
+  // 2026 test list: "Power rule — d/dx(x) = 1" for arcsin(x)).
+  if (/\b(?:arcsin|asin)\b/i.test(inner)) return { label: 'Inverse trig rule', hint: mark(`d/d${v}[arcsin(${v})] = 1/√(1 − ${v}^2)`) };
+  if (/\b(?:arccos|acos)\b/i.test(inner)) return { label: 'Inverse trig rule', hint: mark(`d/d${v}[arccos(${v})] = −1/√(1 − ${v}^2)`) };
+  if (/\b(?:arctan|atan)\b/i.test(inner)) return { label: 'Inverse trig rule', hint: mark(`d/d${v}[arctan(${v})] = 1/(1 + ${v}^2)`) };
+  if (/\bsinh\b/i.test(inner)) return { label: 'Hyperbolic rule', hint: mark(`d/d${v}[sinh(${v})] = cosh(${v})`) };
+  if (/\bcosh\b/i.test(inner)) return { label: 'Hyperbolic rule', hint: mark(`d/d${v}[cosh(${v})] = sinh(${v})`) };
+  if (/\btanh\b/i.test(inner)) return { label: 'Hyperbolic rule', hint: mark(`d/d${v}[tanh(${v})] = 1 − tanh^2(${v})`) };
+  if (/\bsec\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[sec(${v})] = sec(${v})·tan(${v})`) };
+  if (/\bcsc\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[csc(${v})] = −csc(${v})·cot(${v})`) };
+  if (/\bcot\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[cot(${v})] = −csc²(${v})`) };
   if (/\bsin\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[sin(${v})] = cos(${v})`) };
   if (/\bcos\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[cos(${v})] = -sin(${v})`) };
   if (/\btan\b/i.test(inner)) return { label: 'Trig rule', hint: mark(`d/d${v}[tan(${v})] = sec²(${v})`) };
@@ -648,10 +677,10 @@ function isChain(term, variable) {
   // inner function's rule ("Trig rule" for ln(sin x)), skipping the chain.
   if (/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh)\s*\(\s*(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh|abs)\s*\(/i.test(term)) return true;
   // function( ...variable...with an operator... )
-  const fnInner = term.match(/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt)\s*\(([^()]*)\)/i);
+  const fnInner = term.match(/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh)\s*\(([^()]*)\)/i);
   if (fnInner) {
     const arg = fnInner[1];
-    if (hasVariable(arg, variable) && /[+\-*/^]/.test(arg)) return true;
+    if (hasVariable(arg, variable) && /[+\-*/^]|\d\s*[a-z]/i.test(arg)) return true;
   }
   return false;
 }

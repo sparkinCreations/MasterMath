@@ -119,8 +119,11 @@ test('the implicit route leaves the other topics and one-variable equations alon
   assert.match((await solveProblem('y = x^2', 'functions')).answer, /^f\(x\) = x\^2: domain/);
   // One variable under Derivatives is still an equation to solve.
   assert.equal((await solveProblem('x^2 = 4', 'derivatives')).answer, 'x = -2  or  x = 2');
-  // f'(x) notation is not an ODE and not an implicit request.
-  assert.notEqual((await solveProblem("f'(x) = 2x", 'algebra')).answer, 'Differential equations are not supported');
+  // f'(x) = 2x is not an implicit request: it gives a derivative, so it is a
+  // differential equation (1.53.2), refused with the integral to type.
+  const ode = await solveProblem("f'(x) = 2x", 'algebra');
+  assert.equal(ode.answer, 'Differential equations are not supported');
+  assert.ok(ode.tips.some((t) => t.includes('"∫ 2x dx"')), ode.tips.join(' | '));
 });
 
 test('splitVariableProducts reads xy as x*y but never touches function names', () => {

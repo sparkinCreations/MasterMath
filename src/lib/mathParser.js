@@ -460,7 +460,8 @@ export function extractFunctionFromProblem(problemText) {
     // grabbing "= 6" out of it turned a two-unknown equation into "6") —
     // and only when y is not on the right too: "y = 2y + 3" is an equation
     // (y = −3); read as a definition it was answered "2y + 3", Solved.
-    /f\(.\)\s*=\s*(.+)/i,
+    // g(x) and h(x) too: "g(x) = 2x + 1" was solved for g (g = 2 + 1/x).
+    /(?<![a-z])[fgh]\(\s*[a-z]\s*\)\s*=\s*(.+)/i,
     // Standalone means after nothing, or after words ("graph y = x^2"):
     // not after an operator or bracket either. "x*y = 1" and "x + y = 1"
     // were read as "y = 1" and answered "1", Solved (1.53.0).

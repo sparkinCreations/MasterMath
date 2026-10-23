@@ -39,9 +39,9 @@ test('other uses of abs keep sgn but state where the derivative does not exist',
 
 test('derivative answers state their domain: 1/x, sqrt(x), ln(x), sqrt(x − 3)', async () => {
   assert.equal((await solvePlain('1/x', 'derivatives')).answer, "f'(x) = -1/(x^2), x ≠ 0");
-  assert.equal((await solvePlain('sqrt(x)', 'derivatives')).answer, "f'(x) = 1/(2x^(1/2)), x > 0");
+  assert.equal((await solvePlain('sqrt(x)', 'derivatives')).answer, "f'(x) = 1/(2√x), x > 0");
   assert.equal((await solvePlain('ln(x)', 'derivatives')).answer, "f'(x) = 1/x, x > 0");
-  assert.equal((await solvePlain('sqrt(x-3)', 'derivatives')).answer, "f'(x) = 1/(2(x - 3)^(1/2)), x > 3");
+  assert.equal((await solvePlain('sqrt(x-3)', 'derivatives')).answer, "f'(x) = 1/(2√(x - 3)), x > 3");
   assert.equal((await solvePlain('1/(x-2)', 'derivatives')).answer, "f'(x) = -1/((x - 2)^2), x ≠ 2");
   // Nothing restricts a polynomial: no suffix, no fabricated condition.
   assert.equal((await solvePlain('x^3 - 3*x', 'derivatives')).answer, "f'(x) = 3x^2 - 3");
@@ -60,9 +60,9 @@ test('∫sin²x shows the half-angle identity and term-by-term integration', asy
 });
 
 test('x² + 1 = 0 shows x² = −1 and x = ±√(−1) = ±i', async () => {
-  const r = await solveProblem('x^2 + 1 = 0', 'algebra');
+  const r = await solvePlain('x^2 + 1 = 0', 'algebra');
   assert.equal(r.answer, 'x = -i  or  x = i');
-  assert.ok(r.steps.some((s) => /Isolate x²: x\^2 \+ 1 = 0 gives x\^2 = -1/.test(s)));
+  assert.ok(r.steps.some((s) => /Isolate x\^2: x\^2 \+ 1 = 0 gives x\^2 = -1/.test(s)));
   assert.ok(r.steps.some((s) => /x = ±√\(-1\).*√\(-1\) = √1·√\(−1\) = i/.test(s)));
   assert.ok(!r.steps.some((s) => /by finding the roots/.test(s)));
 });

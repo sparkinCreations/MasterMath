@@ -321,7 +321,8 @@ export async function solveLimit(expression) {
 
     return {
       steps,
-      answer: `lim (${variable}→${displayTarget}) ${beautify(func)} = ${result.answer}`,
+      // "lim (x→0) 1/x does not exist", not "lim … = Does not exist".
+      answer: `lim (${variable}→${displayTarget}) ${beautify(func)}${result.answer === 'Does not exist' ? ' does not exist' : ` = ${result.answer}`}`,
       verified: result.verified ?? false,
       verificationMethod: result.verified ? (result.verificationMethod ?? 'numeric check') : null,
       tips: side !== 0 ? [

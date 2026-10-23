@@ -98,7 +98,7 @@ export function detectTopic(problem) {
   if (looksLikeSystem(t)) return { topic: 'algebra', reason: 'your input is a system of equations' };
   if (looksLikeInequality(t)) return { topic: 'algebra', reason: 'your input is an inequality' };
   // "f(x) = …" / "y = …" with y not on the right: a definition, not an equation.
-  const definition = t.match(/^\s*(?:f\s*\(\s*[a-z]\s*\)|y)\s*=(?!=)(.*)$/i);
+  const definition = t.match(/^\s*(?:[fgh]\s*\(\s*[a-z]\s*\)|y)\s*=(?!=)(.*)$/i);
   if (definition && !/(?<![a-z])y(?![a-z])/i.test(definition[1])) {
     return { topic: 'functions', reason: 'your input defines a function' };
   }
@@ -125,7 +125,7 @@ function isPlainEquationForAlgebra(problem, topic) {
   // (?<![a-z]) not \b: "2cos(x) - 1 = 0" has no word boundary before "cos".
   if (topic === 'trigonometry' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*[(^a-z0-9]/i.test(t)) return false;
   // (A definition only when y is not on the right too: "y = 2y + 3" is an equation.)
-  if (topic === 'functions' && /(?<![a-z0-9])(?:f\(.\)|y)\s*=(?!.*(?<![a-z])y(?![a-z]))/i.test(t)) return false;
+  if (topic === 'functions' && /(?<![a-z0-9])(?:[fgh]\(\s*[a-z]\s*\)|y)\s*=(?!.*(?<![a-z])y(?![a-z]))/i.test(t)) return false;
   return true;
 }
 
@@ -226,6 +226,79 @@ function extractEvalPoint(problem) {
   const variable = m[2].toLowerCase();
   if (new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'i').test(m[3].replace(/\b(?:pi|sqrt|e)\b/gi, ''))) return null;
   return { rest: m[1].trim(), variable, valueText: m[3].trim() };
+}
+
+// A primed function call — f'(x), f''(2), y'(x) — in the input (October
+// 2026 test list). Returns null when there is none; else
+//   { kind: 'derivative', expression, order, variable, point } when the
+//     input also defines the function: "f'(x) where f(x) = x^3",
+//     "f(x) = x^2, find f'(3)", "f''(x) if f(x) = sin(x) at x = 0";
+//   { kind: 'ode', name, order, rhs } when the call sits in an equation
+//     that does not define it: "f''(x) + f(x) = 0", "y'(x) = 3x^2";
+//   { kind: 'undefined', name, order } when nothing gives the function:
+//     "f'(x)", "f'(x) at x = 2".
+// Before this, f'(x) where f(x) = x^3 answered "x^3", f''(x) + f(x) = 0
+// answered "f''(f) = 0", and a bare f'(x) answered "f'(f) = 1" — all marked
+// Solved.
+// The derivative solver writes f, f′, f″; "g'(t) where g(t) = t^2" is
+// answered in the input's own letter, g'(t) = 2t.
+function renameFunction(result, name) {
+  if (!result || name === 'f') return result;
+  const swap = (text) => (typeof text === 'string' ? text.replace(/(?<![a-z])f(?=(?:'+|′+|″|‴)?\(\s*[^()]*\s*\))/g, name) : text);
+  result.answer = swap(result.answer);
+  for (const key of ['steps', 'tips', 'common_mistakes']) if (Array.isArray(result[key])) result[key] = result[key].map(swap);
+  if (result.graph?.secondaryLabel) result.graph.secondaryLabel = swap(result.graph.secondaryLabel);
+  return result;
+}
+
+const PRIMED_CALL = /(?<![a-z])([a-z])\s*('+|′+|″|‴)\s*\(\s*([^()]+?)\s*\)/gi;
+function primedFunctionRequest(problem) {
+  const t = String(problem).trim();
+  const calls = [...t.matchAll(PRIMED_CALL)];
+  if (!calls.length) {
+    // f(x), g(t), h(x) named but never defined: "d/dx f(x)", "∫ f(x) dx",
+    // "lim x->0 f(x)". The letter was read as a constant times (x) and
+    // answered "f'(f) = x", "1/2*f*x^2 + C", "0" before 1.53.2. A letter
+    // applied to itself, x(x), is a product.
+    for (const m of t.matchAll(/(?<![a-z0-9.])([fgh])\s*\(\s*([a-z])\s*\)/gi)) {
+      const name = m[1].toLowerCase();
+      if (name === m[2].toLowerCase()) continue;
+      if (new RegExp(`(?<![a-z])${name}\\s*\\(\\s*[a-z]\\s*\\)\\s*=(?!=)`, 'i').test(t)) continue;
+      return { kind: 'undefined', name, order: 0, call: m[0] };
+    }
+    return null;
+  }
+  const name = calls[0][1].toLowerCase();
+  const primes = calls[0][2];
+  const order = primes === '″' ? 2 : primes === '‴' ? 3 : primes.length;
+  const at = t.match(/[\s,]+at\s+([a-z])\s*=\s*([^,;=]+?)\s*[.?!]?\s*$/i);
+  const body = at ? t.slice(0, at.index) : t;
+
+  // The definition: f(x) = … (or y = …), up to a separator, a request word,
+  // the primed call or the end.
+  const def = body.match(new RegExp(`(?<![a-z])${name}\\s*(?:\\(\\s*([a-z])\\s*\\))?\\s*=(?!=)\\s*(.+?)\\s*(?=[,;]|\\b(?:find|compute|calculate|determine|evaluate|what|and|then|where|if|when)\\b|(?<![a-z])${name}\\s*(?:'|′|″|‴)|$)`, 'i'));
+  if (def && calls.length === 1) {
+    const leftover = body
+      .replace(def[0], ' ')
+      .replace(calls[0][0], ' ')
+      .replace(/\b(?:find|compute|calculate|determine|evaluate|what\s+is|the|where|if|when|given|for|and|then|derivative)\b/gi, ' ')
+      .replace(/[\s,;:.?!]/g, '');
+    const variable = (def[1] || (/^[a-z]$/i.test(calls[0][3]) ? calls[0][3] : 'x')).toLowerCase();
+    const arg = calls[0][3].toLowerCase();
+    if (!leftover && /[a-z0-9]/i.test(def[2])) {
+      let point = arg !== variable ? calls[0][3] : null;
+      if (at && at[1].toLowerCase() === variable) point = point ?? at[2].trim();
+      else if (at) return { kind: 'undefined', name, order, call: calls[0][0] };
+      return { kind: 'derivative', name, expression: def[2], order, variable, point };
+    }
+  }
+  if (/(?<![<>!=])=(?!=)/.test(body)) {
+    const sides = body.split(/(?<![<>!=])=(?!=)/);
+    const lone = sides.length === 2 ? sides.findIndex((s) => s.trim() === calls[0][0]) : -1;
+    const rhs = lone >= 0 && order === 1 && !new RegExp(`(?<![a-z])${name}(?![a-z])`, 'i').test(sides[1 - lone]) ? sides[1 - lone].trim() : null;
+    return { kind: 'ode', name, order, rhs };
+  }
+  return { kind: 'undefined', name, order, call: calls[0][0] };
 }
 
 // dy/dx of an equation in two variables: "x^2 + y^2 = 25" under Derivatives,
@@ -566,6 +639,15 @@ export async function solveProblem(problem, topic) {
 
     let result;
 
+    // f(x) = … (or g, h, y = …) under Integrals integrates the right side, as
+    // Derivatives differentiates it; it came back "x^2", marked Solved.
+    if (topic === 'integrals') {
+      const def = String(problem).match(/^\s*(?:[fgh]\s*\(\s*[a-z]\s*\)|y)\s*=(?!=)\s*(.+)$/i);
+      if (def && !/[=<>≤≥]/.test(def[1]) && !/(?<![a-z])y(?![a-z])/i.test(def[1])) {
+        return solveProblem(def[1], 'integrals');
+      }
+    }
+
     // dy/dx of an equation in x and y, before the differential-equation
     // check below: "find dy/dx if x^2 + y^2 = 25" names dy/dx but is not one.
     const implicit = implicitDerivativeRequest(problem, topic);
@@ -587,10 +669,34 @@ export async function solveProblem(problem, topic) {
     // path read y'' + y = 0 as 0 and called it solved (October 2026 review).
     {
       const t = String(problem);
-      // f''(x) is a named function's derivative, not an ODE: no prime run
-      // followed by "(" counts (the lookahead sits after the whole run, so
-      // the regex cannot back off to a shorter run to dodge it).
-      const primed = /(?<![a-z])[a-z]\s*(?:'+|′+|″|‴)(?!['′″‴]|\s*\()/.test(t);
+      // A primed call — f'(x), y''(t) — is read by primedFunctionRequest: a
+      // derivative when the input defines the function, else an ODE or a
+      // function that was never given. A bare prime (y'' + y = 0) is an ODE.
+      // (The lookahead sits after the whole prime run, so the regex cannot
+      // back off to a shorter run to dodge it.)
+      const fn = primedFunctionRequest(t);
+      if (fn?.kind === 'derivative') {
+        const { solveDerivative } = await import('./solvers/derivativesSolver.js');
+        const expression = extractFunctionFromProblem(fn.expression);
+        const evalAt = fn.point !== null ? { variable: fn.variable, valueText: fn.point } : undefined;
+        result = renameFunction(await solveDerivative(expression, { order: fn.order, variable: fn.variable, evalAt }), fn.name);
+        return finalizeResult(topic === 'derivatives' ? result : noteRouting(result, topic, 'derivatives', 'the input asks for a derivative'), problem);
+      }
+      if (fn?.kind === 'undefined') {
+        const call = fn.call.replace(/\s+/g, '');
+        const arg = (call.match(/\(([a-z])\)$/i) || [null, 'x'])[1];
+        const example = `${fn.name}${"'".repeat(Math.max(1, fn.order))}(${arg}) where ${fn.name}(${arg}) = ${arg}^3`;
+        return finalizeResult(unsupported({
+          input: problem,
+          reason: `${call} ${fn.order ? 'is a derivative of' : 'names'} a function ${fn.name}, and the input does not say what ${fn.name} is. Enter the function itself, or define it in the same input.`,
+          answer: `The function ${fn.name} is not given`,
+          tips: [
+            'Under Derivatives, type the function itself: "x^3" gives its derivative, and "x^3 at x = 2" its value there.',
+            `Or define it: "${example}".`,
+          ],
+        }), problem);
+      }
+      const primed = fn?.kind === 'ode' || /(?<![a-z])[a-z]\s*(?:'+|′+|″|‴)(?!['′″‴]|\s*\()/.test(t);
       const leibniz = /\bd[a-z]\s*\/\s*d[a-z]\b/i.test(t);
       if (primed || leibniz) {
         return finalizeResult(unsupported({
@@ -599,7 +705,9 @@ export async function solveProblem(problem, topic) {
           answer: 'Differential equations are not supported',
           tips: [
             'To differentiate a function, enter it under Derivatives: "x^3", or "d/dx(x^3)".',
-            'To find a function from its derivative, integrate it under Integrals: "∫ 2x dx".',
+            fn?.rhs
+              ? `This one only gives the derivative, so ${fn.name} is an antiderivative of the other side: integrate it under Integrals, "∫ ${fn.rhs} dx", and the answer is that plus a constant C.`
+              : 'To find a function from its derivative, integrate it under Integrals: "∫ 2x dx".',
           ],
         }), problem);
       }

@@ -64,7 +64,7 @@ test('two wrong inequality answers: x³ − 2 > 0 had "No solution", ln(x) < 1 i
   ]) assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
   // The steps show ln, not Algebrite's log (a bare log reads as base 10 here).
   const r = await solvePlain('ln(x) < 1', 'algebra');
-  assert.ok(r.steps.some((s) => /-1 \+ ln\(x\)/.test(s)) && !r.steps.some((s) => /log\(x\)/.test(s)));
+  assert.ok(r.steps.some((s) => /ln\(x\) - 1/.test(s)) && !r.steps.some((s) => /log\(x\)/.test(s)));
 });
 
 test('partial fractions with repeated and quadratic factors, improper fractions: solved, fast', async () => {

@@ -327,14 +327,22 @@ async function solveSingle(rawText) {
       answer,
       verified: true,
       verificationMethod: 'sign chart over the critical points',
+      // Chosen from the problem: a denominator, an absolute value, or
+      // neither ("numerator" in a tip for |2x − 1| < 5 was noise).
       tips: [
-        `Move everything to one side so the inequality compares an expression with ${mark('0')}.`,
-        'The sign can only change at a zero (numerator) or a break (denominator).',
+        ...(/(?<![a-z])abs\(/.test(lhs) && rhsIsPositiveNumber(rhs)
+          ? [`For ${mark('|g| < c')} with ${mark('c > 0')}, the shortcut is ${mark('−c < g < c')}; ${mark('|g| > c')} means ${mark('g < −c')} or ${mark('g > c')}.`]
+          : [`Move everything to one side so the inequality compares an expression with ${mark('0')}.`]),
+        poles.length
+          ? 'The sign can only change at a zero of the numerator or a zero of the denominator (where the expression breaks).'
+          : 'The sign can only change where the expression is zero (or where it stops being defined).',
         'Test one point in each interval; the whole interval shares that sign.',
       ],
       common_mistakes: [
         'Multiplying both sides by a variable expression — its sign may flip the inequality.',
-        'Including a value where the expression is undefined (a denominator zero).',
+        poles.length
+          ? 'Including a value where the expression is undefined (a denominator zero).'
+          : `Treating an inequality like an equation and reporting only the boundary points, not the intervals between them.`,
         `Forgetting that ${mark('≤')} / ${mark('≥')} include the roots, while ${mark('<')} / ${mark('>')} exclude them.`,
       ],
       graph: buildGraph(fExpr, variable, critical, zeros, poles, solution),
@@ -676,7 +684,9 @@ function inAppNotation(expr) {
   while ((m = out.match(/\(([^()]*)\)\^\(1\/2\)/)) && guard++ < 8) out = out.replace(m[0], `sqrt(${m[1]})`);
   return out.replace(/(?<![a-z])exp\(([^()]*)\)/g, (all, u) => (/^[a-z0-9]+$/i.test(u) ? `e^${u}` : `e^(${u})`));
 }
-const shown = (expr) => beautify(inAppNotation(expr));
+// abs(u) is typed and computed; |u| is what a textbook writes.
+const bars = (text) => String(text).replace(/(?<![a-z])abs\(([^()]*)\)/g, '|$1|');
+const shown = (expr) => bars(beautify(inAppNotation(expr)));
 
 // Where the expression's domain ends: the zeros of every logarithm's and
 // square root's argument (an even root's, generally). Each is a boundary of
@@ -897,6 +907,11 @@ function withApproximations(answer, pieces, labels) {
   return notes.length ? `${answer}  (${notes.join(', ')})` : answer;
 }
 
+function rhsIsPositiveNumber(rhs) {
+  const t = beautify(rhs).trim();
+  return /^\d+(?:\.\d+)?$/.test(t) && Number(t) > 0;
+}
+
 function pieceToInequality(p, v, labels) {
   const lo = endpoint(p.lo, labels);
   const hi = endpoint(p.hi, labels);
@@ -923,10 +938,16 @@ function compare(a, b, op) {
 
 function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles, zeros, chartRows, solution, nonStrict, labels, edges = [] }) {
   const opShown = op.replace('<=', '≤').replace('>=', '≥');
-  const steps = [`Solve the inequality ${mark(`${beautify(lhs)} ${opShown} ${beautify(rhs)}`)}.`];
+  const steps = [`Solve the inequality ${mark(`${bars(beautify(lhs))} ${opShown} ${bars(beautify(rhs))}`)}.`];
 
+  // A number on the right moves across as it is: |2x − 1| − 5, not the
+  // engine's −5 + |−2x + 1| (October 2026 test list).
+  const rhsNumber = /^-?\d+(?:\.\d+)?$/.test(beautify(rhs).trim()) ? Number(beautify(rhs)) : null;
+  const moved = rhsNumber !== null && rhsNumber !== 0
+    ? `${bars(beautify(lhs))} ${rhsNumber < 0 ? '+' : '-'} ${beautify(String(Math.abs(rhsNumber)))}`
+    : shown(simplified);
   if (beautify(rhs) !== '0') {
-    steps.push(`Move everything to one side: ${mark(`${shown(simplified)} ${opShown} 0`)}.`);
+    steps.push(`Move everything to one side: ${mark(`${moved} ${opShown} 0`)}.`);
   }
 
   if (critical.length > 0) {
@@ -940,11 +961,11 @@ function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles
     if (edges.length) {
       steps.push(`Note where the expression stops being defined (a logarithm or square root of a negative number): its domain ends at ${mark(`${variable} = ${edges.map((e) => endpoint(e, labels)).join(', ')}`)}.`);
     }
-    steps.push(`These split the number line into intervals. Test the sign of ${mark(shown(simplified))} in each:`);
+    steps.push(`These split the number line into intervals. Test the sign of ${mark(moved)} in each:`);
     for (const row of chartRows) {
       const label = intervalLabel(row.lo, row.hi, labels);
       const word = row.sign > 0 ? 'positive' : row.sign < 0 ? 'negative' : row.defined === false ? 'undefined' : 'zero';
-      steps.push(`  • On ${mark(label)}: ${mark(shown(simplified))} is ${word}.`);
+      steps.push(`  • On ${mark(label)}: ${mark(moved)} is ${word}.`);
     }
   } else {
     steps.push(`The expression never changes sign, so check any single value of ${mark(variable)}.`);

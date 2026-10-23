@@ -19,6 +19,7 @@ import {
   trigUndefinedPoints,
   stripMathMarkers,
   mark,
+  linearCoefficients,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -92,7 +93,7 @@ function equationGuidance(steps, expression) {
       ],
     };
   }
-  if (/take the logarithm of both sides|Let u = \d+\^|Let u = e\^|Let u = \w+\^/.test(text)) {
+  if (/take the logarithm of both sides|then take logarithms|Let u = \d+\^|Let u = e\^|Let u = \w+\^/.test(text)) {
     return {
       tips: [
         `${mark('a^x = b')} is solved by taking a logarithm of both sides: ${mark('x = ln(b)/ln(a) = log_a(b)')}.`,
@@ -137,17 +138,51 @@ function equationGuidance(steps, expression) {
       ],
     };
   }
-  if (/sum-product|zero-product|Factor out the common|Set the factor to zero|Take the square root of both sides|discriminant|quadratic formula|Factor using|difference of squares|perfect square|Find the roots/i.test(text)) {
+  // Square roots, the formula, or factoring: advice for the method used, in
+  // general letters, never another equation's numbers (the (x − 2)(x − 3)
+  // example on x² + 1 = 0 read as advice about a different problem;
+  // October 2026 test list).
+  if (/Take the square root of both sides/.test(text)) {
+    const complex = /√\(−1\)|\bi\b/.test(text);
     return {
       tips: [
-        `A quadratic has up to two solutions: factor, take square roots, or use ${mark('x = (−b ± √(b² − 4ac))/(2a)')}.`,
-        `Set the equation to ${mark('0')} before factoring — ${mark('(x − 2)(x − 3) = 0')} gives the roots; ${mark('(x − 2)(x − 3) = 6')} does not.`,
+        `${mark('x^2 = c')} is solved by square roots: ${mark('x = ±√c')} — two solutions when ${mark('c > 0')}, one when ${mark('c = 0')}.`,
+        complex
+          ? `When ${mark('c < 0')} there is no real solution; over the complex numbers ${mark('√(−c)·i')} and its negative are the two roots (${mark('i = √(−1)')}, ${mark('i^2 = −1')}).`
+          : `Isolate ${mark('x^2')} first: move the constant across, then divide by the coefficient.`,
         'Check by substituting each root into the original equation.',
       ],
       common_mistakes: [
-        `Taking only the positive square root: ${mark('x² = 9')} has ${mark('x = −3')} as well.`,
+        `Taking only the positive square root and losing ${mark('x = −√c')}.`,
+        complex
+          ? `Writing ${mark('√(−1)')} as ${mark('−1')}, or stopping at "no solution" without saying it means no REAL solution.`
+          : `Dividing both sides by ${mark('x')} and losing the ${mark('x = 0')} solution.`,
+      ],
+    };
+  }
+  if (/discriminant|quadratic formula/i.test(text) && !/sum-product|zero-product|Factor out the common|Factor using|difference of squares|perfect square/i.test(text)) {
+    return {
+      tips: [
+        `For ${mark('ax^2 + bx + c = 0')}: ${mark('x = (−b ± √(b^2 − 4ac))/(2a)')}.`,
+        `The discriminant ${mark('b^2 − 4ac')} decides the count: positive gives two real roots, zero one (repeated), negative none real (a complex pair).`,
+        'Check by substituting each root into the original equation.',
+      ],
+      common_mistakes: [
+        `Dropping the sign of ${mark('b')}: the formula starts with ${mark('−b')}.`,
+        `Dividing only the square root by ${mark('2a')} instead of the whole numerator ${mark('−b ± √(b^2 − 4ac)')}.`,
+      ],
+    };
+  }
+  if (/sum-product|zero-product|Factor out the common|Set the factor to zero|discriminant|quadratic formula|Factor using|difference of squares|perfect square|Find the roots/i.test(text)) {
+    return {
+      tips: [
+        `A quadratic has up to two solutions: factor, take square roots, or use ${mark('x = (−b ± √(b² − 4ac))/(2a)')}.`,
+        `Set the equation to ${mark('0')} before factoring: ${mark('(x − a)(x − b) = 0')} gives ${mark('x = a')} or ${mark('x = b')}; ${mark('(x − a)(x − b) = k')} with ${mark('k ≠ 0')} does not.`,
+        'Check by substituting each root into the original equation.',
+      ],
+      common_mistakes: [
         `Dividing both sides by ${mark('x')} and losing the ${mark('x = 0')} solution.`,
-        `Reading ${mark('(x − 2)(x − 3) = 0')} as ${mark('x = −2')} or ${mark('−3')} — the roots are ${mark('2')} and ${mark('3')}.`,
+        `Reading ${mark('(x − a)(x − b) = 0')} as ${mark('x = −a')} or ${mark('x = −b')}: each factor is zero at ${mark('x = a')} and ${mark('x = b')}.`,
       ],
     };
   }
@@ -344,6 +379,17 @@ async function solveEquation(expression, options = {}) {
     const viaLinear = solveLinearEquation(expression, variable);
     if (viaLinear) {
       ({ steps, answer, solutions } = viaLinear);
+    }
+  }
+
+  // 1a. One exponential with a linear exponent — e^(2x) = 7, 3·2^(x+1) − 4
+  // = 20 — is isolated and both sides are logged: x = ln(7)/2, not ln(√7)
+  // from the substitution below, nor 0.5365 from the numeric scan for
+  // e^(3x) = 5 (October 2026 test list).
+  if (!answer) {
+    const viaLog = solveSingleExponential(expression, variable);
+    if (viaLog) {
+      ({ steps, answer, solutions } = viaLog);
     }
   }
 
@@ -700,6 +746,197 @@ async function solveWithAlgebriteRoots(equation, variable) {
   }
 }
 
+// A·b^(p·x + q) + B = C, in any arrangement of +, −, · and / by constants:
+// undo each operation around the one exponential (shown step by step), so
+// b^(p·x + q) = K; K ≤ 0 has no real solution; else take logarithms,
+// p·x + q = ln(K)/ln(b), and solve that line exactly. Read off the parse
+// tree, so the shape is proved, not sampled. Returns null for any other
+// shape (the variable in two places, a nonlinear exponent).
+function solveSingleExponential(equation, variable) {
+  const v = variable;
+  const [lhsText, rhsText] = equation.split('=');
+  if (rhsText === undefined || equation.split('=').length !== 2) return null;
+  let lhs;
+  let rhs;
+  try {
+    lhs = math.parse(lhsText.trim());
+    rhs = math.parse(rhsText.trim());
+  } catch {
+    return null;
+  }
+  const has = (n) => n.filter((c) => c.type === 'SymbolNode' && c.name === v).length > 0;
+  const constant = (n) => {
+    try {
+      const x = n.evaluate({});
+      return typeof x === 'number' && Number.isFinite(x) ? x : null;
+    } catch {
+      return null;
+    }
+  };
+  if (has(lhs) === has(rhs)) return null;
+  let node = has(lhs) ? lhs : rhs;
+  let value = has(lhs) ? rhs : lhs;
+  if (constant(value) === null) return null;
+  const exact = (n) => {
+    try {
+      return beautify(math.simplify(n, {}, { exactFractions: true }).toString());
+    } catch {
+      return beautify(n.toString());
+    }
+  };
+  const txt = (n) => beautify(n.toString().replace(/\s*([*/])\s*/g, '$1'));
+  const op = (o, fn, a, b) => new math.OperatorNode(o, fn, [a, b]);
+  const lines = [];
+  let base = null;
+  let exponent = null;
+  for (let guard = 0; guard < 20 && !base; guard += 1) {
+    if (node.type === 'ParenthesisNode') { node = node.content; continue; }
+    if (node.type === 'FunctionNode' && node.fn?.name === 'exp' && node.args.length === 1) {
+      base = 'e'; exponent = node.args[0]; break;
+    }
+    if (node.type !== 'OperatorNode') return null;
+    if (node.args.length === 1) {
+      if (node.op !== '-') return null;
+      node = node.args[0];
+      value = new math.OperatorNode('-', 'unaryMinus', [value]);
+      lines.push(['Multiply both sides by −1', node, value]);
+      continue;
+    }
+    const [a, b] = node.args;
+    if (node.op === '^') {
+      if (has(a) || !has(b)) return null;
+      const bv = constant(a);
+      if (bv === null || !(bv > 0) || bv === 1) return null;
+      // A fraction base keeps its brackets: (1/2)^x, not 1/2^x.
+      const shownBase = exact(a).replace(/\s*\/\s*/g, '/');
+      base = a.type === 'SymbolNode' && a.name === 'e' ? 'e' : /^(?:\d+(?:\.\d+)?|pi)$/.test(shownBase) ? shownBase : `(${shownBase})`;
+      exponent = b;
+      break;
+    }
+    if (has(a) && has(b)) return null;
+    const inA = has(a);
+    const other = inA ? b : a;
+    const k = exact(other);
+    if (node.op === '+') {
+      value = op('-', 'subtract', value, other);
+      node = inA ? a : b;
+      lines.push([`Subtract ${mark(k)} from both sides`, node, value]);
+    } else if (node.op === '-') {
+      if (inA) {
+        value = op('+', 'add', value, other);
+        node = a;
+        lines.push([`Add ${mark(k)} to both sides`, node, value]);
+      } else {
+        value = op('-', 'subtract', other, value);
+        node = b;
+        lines.push([`Subtract ${mark(k)} from both sides, then multiply by ${mark('−1')}`, node, value]);
+      }
+    } else if (node.op === '*') {
+      if (constant(other) === 0) return null;
+      value = op('/', 'divide', value, other);
+      node = inA ? a : b;
+      lines.push([`Divide both sides by ${mark(k)}`, node, value]);
+    } else if (node.op === '/') {
+      if (inA) {
+        value = op('*', 'multiply', value, other);
+        node = a;
+        lines.push([`Multiply both sides by ${mark(k)}`, node, value]);
+      } else {
+        if (constant(value) === 0) return null;
+        value = op('/', 'divide', other, value);
+        node = b;
+        lines.push([`Take the reciprocal of both sides, then multiply by ${mark(k)}`, node, value]);
+      }
+    } else {
+      return null;
+    }
+  }
+  if (!base) return null;
+  while (exponent.type === 'ParenthesisNode') exponent = exponent.content;
+  const lin = linearCoefficients(exponent.toString(), v);
+  if (!lin || lin.k === 0) return null;
+  const K = constant(value);
+  if (K === null) return null;
+  const b = base === 'e' ? Math.E : constant(math.parse(base));
+  const linear = txt(exponent);
+  const power = /^(?:[a-z]|\d+(?:\.\d+)?)$/i.test(linear) ? `${base}^${linear}` : `${base}^(${linear})`;
+  const steps = [`The variable appears once, in the exponent of ${mark(power)}: isolate that power, then take logarithms.`];
+  for (const [text, n, val] of lines) steps.push(`${text}: ${mark(`${txt(n)} = ${exact(val)}`)}`);
+  const Ktext = exact(value);
+  if (K <= 0) {
+    steps.push(`${mark(`${base}^u`)} is positive for every real ${mark('u')}, and ${mark(`${Ktext} ≤ 0`)}, so ${mark(`${power} = ${Ktext}`)} has no real solution.`);
+    return { steps: [...steps, 'Solution: no real solution'], answer: `No real solution (${power} is always positive)`, solutions: [] };
+  }
+  const L = Math.log(K) / Math.log(b);
+  if (!Number.isFinite(L)) return null;
+  const frac = (x) => {
+    try {
+      const f = math.fraction(x);
+      return Math.abs(Number(f.s) * Number(f.n) / Number(f.d) - x) < 1e-12 && Number(f.d) <= 1000 ? f : null;
+    } catch {
+      return null;
+    }
+  };
+  const fracText = (f) => {
+    const n = Number(f.s) * Number(f.n);
+    return Number(f.d) === 1 ? `${n}` : `${n}/${Number(f.d)}`;
+  };
+  const p = frac(lin.k);
+  const q = frac(lin.d);
+  if (!p || !q) return null;
+  // log_b(K) exactly when it is a simple fraction: 4^x = 2 → x = 1/2, not
+  // ln(2)/ln(4).
+  const Lfrac = (() => {
+    const f = frac(L);
+    if (!f || Number(f.d) > 12) return null;
+    const value = Number(f.s) * Number(f.n) / Number(f.d);
+    return Math.abs(b ** value - K) <= 1e-12 * Math.abs(K) ? f : null;
+  })();
+  const Lint = Lfrac ? fracText(Lfrac) : null;
+  const lnBase = base.startsWith('(') ? `ln${base}` : `ln(${base})`;
+  const logOf = base === 'e' ? `ln(${Ktext})` : `ln(${Ktext})/${lnBase}`;
+  steps.push(base === 'e'
+    ? `Take ${mark('ln')} of both sides (${mark('ln(e^u) = u')}): ${mark(`${linear} = ${Lint !== null ? Lint : logOf}`)}`
+    : `Take ${mark('ln')} of both sides (${mark(`ln(${base}^u) = u·${lnBase}`)}), then divide by ${mark(`${lnBase}`)}: ${mark(`${linear} = ${Lint !== null ? Lint : logOf}`)}`);
+  const x = (L - lin.d) / lin.k;
+  let xText;
+  if (Lint !== null) {
+    const r = Lfrac.sub(q).div(p);
+    xText = fracText(r);
+  } else if (base !== 'e' && lin.d === 0) {
+    // ln(K)/ln(b) over p: one fraction, ln(7)/(2ln(2)), not (ln(7)/ln(2))/2.
+    const c = math.fraction(1).div(p);
+    const cn = Number(c.s) * Number(c.n);
+    const cd = Number(c.d);
+    const top = `${cn === -1 ? '-' : cn === 1 ? '' : cn}ln(${Ktext})`;
+    xText = `${top}/${cd === 1 ? `${lnBase}` : `(${cd}${lnBase})`} (≈ ${formatNumber(x)})`;
+  } else {
+    const qn = Number(q.s) * Number(q.n);
+    const T = qn === 0 ? logOf : `${logOf} ${qn > 0 ? '-' : '+'} ${fracText(math.fraction(Math.abs(lin.d)))}`;
+    const compound = qn !== 0 || base !== 'e';
+    const c = math.fraction(1).div(p);
+    const cn = Number(c.s) * Number(c.n);
+    const cd = Number(c.d);
+    const wrapped = compound ? `(${T})` : T;
+    if (cd === 1) xText = cn === 1 ? T : cn === -1 ? `-${wrapped}` : `${cn}${wrapped}`;
+    else if (Math.abs(cn) === 1) xText = `${cn < 0 ? '-' : ''}${wrapped}/${cd}`;
+    else xText = `${cn}${wrapped}/${cd}`;
+    xText = `${xText} (≈ ${formatNumber(x)})`;
+  }
+  if (!(lin.k === 1 && lin.d === 0)) steps.push(`Solve the linear equation for ${mark(v)}: ${mark(`${v} = ${xText.replace(/ \(≈ .*\)$/, '')}`)}`);
+  // The candidate must satisfy the original equation.
+  try {
+    const l = lhs.evaluate({ [v]: x });
+    const r = rhs.evaluate({ [v]: x });
+    if (!(Math.abs(l - r) <= 1e-9 * (1 + Math.abs(l)))) return null;
+  } catch {
+    return null;
+  }
+  const answer = `${v} = ${xText}`;
+  steps.push(`Solution: ${answer}`);
+  return { steps, answer, solutions: [x] };
+}
+
 // e^(2x) − 3e^x + 2 = 0: substitute u = e^x, solve the polynomial in u, and
 // back-substitute x = ln u for each positive u. Returns null unless the whole
 // equation is a polynomial in e^x (any other appearance of the variable, or a
@@ -885,12 +1122,32 @@ async function solveViaLogSubstitution(equation, variable) {
           lines.push(`${mark(`u = ${uText}`)} is not real, so it gives no real ${mark(v)}`);
           continue;
         }
-        const raw = String(Algebrite.run(`roots((${g}) - ${powText(r.display)}, ${v})`)).trim();
-        if (!raw || /stop|error|nil/i.test(raw)) return null;
-        // Algebrite writes the real roots of x² = e⁴ as ±i·(−e⁴)^(1/2): not
-        // a form to show anyone. Decline; the numeric scan reports ±7.3891.
-        if (/\(-.*\)\^\(1\/\d+\)/.test(raw)) return null;
-        const xs = parseRootsList(raw);
+        // g = xⁿ: x = ±b^(u/n) (n even) or b^(u/n) (n odd), exactly.
+        // Algebrite writes the real roots of x² = e⁴ as ±i·(−e⁴)^(1/2), and
+        // the numeric scan gave ±7.3891 for what is ±e².
+        const power = String(g).replace(/\s+/g, '').match(new RegExp(`^\\(?${v}\\^\\(?(\\d+)\\)?\\)?$`));
+        let xs;
+        if (power && Number(power[1]) >= 2) {
+          const n = Number(power[1]);
+          let ex;
+          try {
+            const f = math.fraction(String(r.display).replace(/\s+/g, '')).div(n);
+            ex = Number(f.d) === 1 ? `${Number(f.s) * Number(f.n)}` : `${Number(f.s) * Number(f.n)}/${Number(f.d)}`;
+          } catch {
+            ex = `(${r.display})/${n}`;
+          }
+          const one = ex === '1' ? (base === 'e' ? 'exp(1)' : base) : base === 'e' ? `exp(${ex})` : `${base}^(${ex})`;
+          const value = (base === 'e' ? Math.E : Number(base)) ** (r.numeric / n);
+          xs = n % 2 === 0
+            ? [{ display: `-${one}`, numeric: -value }, { display: one, numeric: value }]
+            : [{ display: one, numeric: value }];
+        } else {
+          const raw = String(Algebrite.run(`roots((${g}) - ${powText(r.display)}, ${v})`)).trim();
+          if (!raw || /stop|error|nil/i.test(raw)) return null;
+          // Any other g with that complex form: decline; the numeric scan takes it.
+          if (/\(-.*\)\^\(1\/\d+\)/.test(raw)) return null;
+          xs = parseRootsList(raw);
+        }
         if (xs.length === 0) return null;
         lines.push(`${mark(`u = ${uText}`)} means ${mark(`${logName}(${beautify(g)}) = ${uText}`)}, so ${mark(`${beautify(g)} = ${base}^${/^[\w.]+$/.test(uText) ? uText : `(${uText})`} → ${xs.map((x) => `${v} = ${prettyExp(prettyRadicals(x.display))}`).join(' or ')}`)}`);
         candidates.push(...xs);
@@ -1588,7 +1845,21 @@ function solveNumerically(equation, variable) {
   if (verified.length > solutions.length) {
     steps.push(`The equation has more solutions in range; showing the ${solutions.length} closest to zero.`);
   }
-  const answer = solutions.map((s) => `${variable} = ${formatNumber(s)}`).join('  or  ');
+  // A root located numerically is written with ≈, and with = only when the
+  // number shown satisfies the equation exactly (x = 2, not x = 0.5671 for
+  // x·e^x = 1).
+  const [lhsText, rhsText] = expression.split('=');
+  const exactAt = (shown) => {
+    try {
+      const x = Number(shown);
+      const l = math.evaluate(lhsText, { [variable]: x });
+      const r = rhsText === undefined ? 0 : math.evaluate(rhsText, { [variable]: x });
+      return typeof l === 'number' && typeof r === 'number' && Math.abs(l - r) <= 1e-12 * (1 + Math.abs(l));
+    } catch {
+      return false;
+    }
+  };
+  const answer = solutions.map((s) => `${variable} ${exactAt(formatNumber(s)) ? '=' : '≈'} ${formatNumber(s)}`).join('  or  ');
   steps.push(`Solution: ${answer}`);
 
   return { steps, answer, solutions };
@@ -2296,16 +2567,16 @@ function quadraticDerivation(Algebrite, poly, v) {
     if (B === 0) {
       const rhs = String(Algebrite.run(`simplify(-(${c})/(${a}))`)).trim();
       const R = asNumber(rhs);
-      lines.push(`Isolate ${v}²: ${expanded} = 0 gives ${v}^2 = ${beautify(rhs)}.`);
+      lines.push(`Isolate ${mark(`${v}^2`)}: ${mark(`${expanded} = 0`)} gives ${mark(`${v}^2 = ${beautify(rhs)}`)}.`);
       if (R < 0) {
         const mag = String(Algebrite.run(`simplify(${-R === Math.round(-R) ? Math.round(-R) : `(${rhs})*(-1)`}^(1/2))`)).trim();
         const magShown = prettyRadicals(beautify(mag));
-        lines.push(`Take the square root of both sides: ${v} = ±√(${beautify(rhs)}). A negative number has no real square root; with i = √(−1), √(${beautify(rhs)}) = √${-R === Math.round(-R) ? Math.round(-R) : `(${-R})`}·√(−1) = ${magShown === '1' ? '' : magShown}i.`);
+        lines.push(`Take the square root of both sides: ${mark(`${v} = ±√(${beautify(rhs)})`)}. A negative number has no real square root; with ${mark('i = √(−1)')}, ${mark(`√(${beautify(rhs)}) = √${-R === Math.round(-R) ? Math.round(-R) : `(${-R})`}·√(−1) = ${magShown === '1' ? '' : magShown}i`)}.`);
       } else if (R === 0) {
-        lines.push(`Take the square root of both sides: ${v} = 0 (a repeated root).`);
+        lines.push(`Take the square root of both sides: ${mark(`${v} = 0`)} (a repeated root).`);
       } else {
         const rootShown = prettyRadicals(beautify(String(Algebrite.run(`simplify((${rhs})^(1/2))`)).trim()));
-        lines.push(`Take the square root of both sides — remembering both signs: ${v} = ±√(${beautify(rhs)}) = ±${rootShown}.`);
+        lines.push(`Take the square root of both sides — remembering both signs: ${mark(`${v} = ±√(${beautify(rhs)}) = ±${rootShown}`)}.`);
       }
       return lines;
     }

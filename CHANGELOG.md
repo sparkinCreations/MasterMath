@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.53.2] - 2026-10-23
+
+The October 2026 accuracy test list (95 cases, written against v1.47.1)
+reproduced on 1.53.1: most of its failures were already fixed. These were
+not, and the sweep of the same kinds of input found more.
+
+### Fixed
+
+- **f′(x) notation.** "f''(x) + f(x) = 0" was answered "f''(f) = 0", and
+  "f'(x) where f(x) = x^3" was answered "x^3", both marked Solved. A
+  primed call is now read as a whole:
+  - with the function defined in the input, it is that function's
+    derivative: "f'(x) where f(x) = x^3", "f(x) = x^2, find f'(3)",
+    "find f'(x) if f(x) = sin(x)", "f''(x) where f(x) = x^3 at x = 2";
+  - in an equation that does not define it, it is a differential equation,
+    refused: "f''(x) + f(x) = 0", "y'(x) = 3x^2" (which used to say "one
+    equation cannot fix 2 unknowns"; its tip now names the integral to
+    type, ∫ 3x^2 dx);
+  - with no function at all ("f'(x)", "f'(x) at x = 2"), it is refused
+    with what to type. These answered "f'(f) = 1" and "f'(2) = 0".
+- **A function only named is refused on every path**: "d/dx f(x)" was
+  answered "f'(f) = x", "∫ f(x) dx" ½·f·x² + C, "lim x->0 f(x)" 0.
+- **g(x) = … and h(x) = … are definitions, like f(x) = …**:
+  "g(x) = 2x + 1" under Functions was solved for g ("g = 2 + 1/x").
+  Under Integrals a definition is now integrated, as Derivatives
+  differentiates it (it came back unchanged, marked Solved).
+- **The derivative names the rule it used**: arcsin, arccos, arctan,
+  sinh, cosh, tanh, sec, csc and cot were all labelled "Power rule —
+  d/dx(x) = 1". Each now has its own rule, tips and mistake; arcsin(2x) is
+  shown as the chain rule.
+- **Tips about another problem**: x² + 1 = 0 was given advice about
+  (x − 2)(x − 3) = 0. Quadratic tips now follow the method used (square
+  roots and i, the formula and its discriminant, or factoring) in general
+  letters. |2x − 1| < 5 was told about numerators and denominators; an
+  inequality without a fraction now gets the |g| < c shortcut or
+  sign-chart advice that fits.
+
+### Changed
+
+- **One exponential is isolated and logged, exactly**: e^(2x) = 7 gives
+  x = ln(7)/2 (was ln(√7)); e^(3x) = 5, e^(2x + 1) = 7 and e^(x/2) = 3 give
+  ln(5)/3, (ln(7) − 1)/2 and 2ln(3), where the numeric scan gave decimals.
+  Each operation undone is shown (add 4, divide by 3, take ln), then the
+  linear equation; 4^x = 2 is x = 1/2 and 27^(x − 1) = 9 is x = 5/3.
+- **A logarithm of a power solves exactly**: ln(x²) = 4 is x = ±e²
+  (was ≈ ±7.3891 from the numeric scan); ln(x³) = 6 is x = e².
+- **The derivative keeps the input's letter**: "g'(t) where g(t) = t^2"
+  is answered g'(t) = 2t, and "y'(x) where y = sin(x)" y'(x) = cos(x).
+- **A root located numerically is written with ≈** (x·e^x = 1:
+  x ≈ 0.5671), with = only when the number shown solves the equation
+  exactly.
+- **Square roots in derivatives read as roots**: arcsin′ is 1/√(1 − x²)
+  (was 1/((-x^2 + 1)^(1/2))), √x′ is 1/(2√x).
+- **A limit that does not exist says so in a sentence**:
+  "lim (x→0) 1/x does not exist", not "lim (x→0) 1/x = Does not exist".
+- The inequality steps write |2x − 1| − 5 for |2x − 1| < 5, not the
+  engine's −5 + abs(−2x + 1).
+- The square-root steps of x² = c are typeset.
+
+### Tests
+
+- The test list is kept in `docs/evaluations/2026-10/` and every case
+  runs in `tests/octoberTestList.test.js`: each refusal must refuse, and
+  every other case must give its checked answer. Case 21 (tips and error
+  banners do not carry over to the next solve) was checked in the browser.
+
 ## [1.53.1] - 2026-10-22
 
 ### Fixed

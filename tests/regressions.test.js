@@ -58,7 +58,7 @@ test('regression: ln(x)/(x-1) at 1 is 1', async () => {
 // rung reports divergence instead.
 test('regression: lim tan(x) at pi/2 stays "Does not exist", never 1.6e16', async () => {
   const r = await solveLimit('lim x->pi/2 tan(x)');
-  assert.match(r.answer, /Does not exist$/);
+  assert.match(r.answer, / does not exist$/);
   assert.doesNotMatch(r.answer, /\d{8,}/);
 });
 
@@ -145,7 +145,7 @@ test('regression: eval — lim abs(x)/x at 0 does not exist, not 0', async () =>
   // The symbolic ladder returned a spurious, unverified 0; the verification
   // gate now falls through to numeric two-sided sampling → DNE.
   const r = await solveLimit('lim x->0 abs(x)/x');
-  assert.match(r.answer, /Does not exist$/);
+  assert.match(r.answer, / does not exist$/);
 });
 
 test('regression: eval — definite integrals compute via FTC (built v1.9.0)', async () => {
@@ -295,7 +295,7 @@ test('regression: lim x->0- sqrt(x) does not exist (domain boundary)', async () 
   // Direct substitution gives 0, but sqrt is undefined on the left of 0 —
   // a one-sided evaluator that trusts substitution alone gets this wrong.
   const r = await solveLimit('lim x->0- sqrt(x)');
-  assert.match(r.answer, /Does not exist$/);
+  assert.match(r.answer, / does not exist$/);
   assert.ok(r.steps.some((s) => /not defined on the left side/i.test(s)));
 });
 
@@ -320,7 +320,7 @@ test('regression: a plain negative approach value is not read as one-sided', asy
 
 test('regression: two-sided lim x->0 1/x still does not exist', async () => {
   const r = await solveLimit('lim x->0 1/x');
-  assert.match(r.answer, /Does not exist$/);
+  assert.match(r.answer, / does not exist$/);
 });
 
 // B4 — the factor verb. "factor x^2 - 9" echoed back "x^2 - 9": the extractor
@@ -536,14 +536,14 @@ test('regression: audit polish — removable limits show exact fractions', async
 // disagree. The two DNE reasons must not be conflated.
 test('regression: audit polish — sin(1/x) DNE is attributed to oscillation', async () => {
   const r = await solveProblem('lim x->0 sin(1/x)', 'limits');
-  assert.match(r.answer, /Does not exist$/);
+  assert.match(r.answer, / does not exist$/);
   assert.ok(r.steps.some((s) => /oscillat/i.test(s)));
   assert.ok(!r.steps.some((s) => /one-sided limits disagree/i.test(s)));
 });
 
 test('regression: audit polish — a jump limit still reads "sides disagree", not oscillation', async () => {
   const r = await solveProblem('lim x->0 abs(x)/x', 'limits');
-  assert.match(r.answer, /Does not exist$/);
+  assert.match(r.answer, / does not exist$/);
   assert.ok(r.steps.some((s) => /disagree/i.test(s)));
   assert.ok(!r.steps.some((s) => /oscillat/i.test(s)));
 });
