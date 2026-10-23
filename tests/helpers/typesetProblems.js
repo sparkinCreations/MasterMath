@@ -41,7 +41,7 @@ export const CONVERTED = [
   ['integrals', '1/(x^3 + x)'], ['integrals', '∫_0^∞ e^(-x^2) dx'],
   // 1.53.2: f'(x) with and without its function, one exponential, inverse/hyperbolic/reciprocal rules, square-root and quadratic-formula tips.
   ['derivatives', "f'(x) where f(x) = x^3"], ['derivatives', "f(x) = x^2, find f'(3)"], ['derivatives', "f'(x)"], ['derivatives', "y'(x) = 3x^2"],
-  ['algebra', 'e^(2x) = 7'], ['algebra', '3*2^(x+1) - 4 = 20'], ['algebra', '5 - e^(-x) = 2'], ['algebra', '6/e^x = 2'], ['algebra', 'e^x = -2'], ['algebra', '3^(-x/2) = 4'], ['algebra', '(2/3)^x = 5'], ['algebra', 'x*e^x = 1'],
+  ['algebra', 'e^(2x) = 7'], ['algebra', '3*2^(x+1) - 4 = 20'], ['algebra', '5 - e^(-x) = 2'], ['algebra', '6/e^x = 2'], ['algebra', 'e^x = -2'], ['algebra', '3^(-x/2) = 4'], ['algebra', '(2/3)^x = 5'], ['algebra', 'ln(x^2) = 3'], ['derivatives', "g'(t) where g(t) = t^2"], ['algebra', 'x*e^x = 1'],
   ['derivatives', 'arcsin(x)'], ['derivatives', 'arctan(2x)'], ['derivatives', 'sinh(x)'], ['derivatives', 'sec(x)'], ['derivatives', 'sqrt(x)'],
   ['algebra', 'x^2 + 1 = 0'], ['algebra', 'x^2 = 9'], ['algebra', 'x^2 + x - 1 = 0'], ['algebra', '|2x-1| < 5'], ['limits', 'lim x->0 abs(x)/x'],
 ];

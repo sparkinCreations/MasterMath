@@ -240,6 +240,17 @@ function extractEvalPoint(problem) {
 // Before this, f'(x) where f(x) = x^3 answered "x^3", f''(x) + f(x) = 0
 // answered "f''(f) = 0", and a bare f'(x) answered "f'(f) = 1" — all marked
 // Solved.
+// The derivative solver writes f, f′, f″; "g'(t) where g(t) = t^2" is
+// answered in the input's own letter, g'(t) = 2t.
+function renameFunction(result, name) {
+  if (!result || name === 'f') return result;
+  const swap = (text) => (typeof text === 'string' ? text.replace(/(?<![a-z])f(?=(?:'+|′+|″|‴)?\(\s*[^()]*\s*\))/g, name) : text);
+  result.answer = swap(result.answer);
+  for (const key of ['steps', 'tips', 'common_mistakes']) if (Array.isArray(result[key])) result[key] = result[key].map(swap);
+  if (result.graph?.secondaryLabel) result.graph.secondaryLabel = swap(result.graph.secondaryLabel);
+  return result;
+}
+
 const PRIMED_CALL = /(?<![a-z])([a-z])\s*('+|′+|″|‴)\s*\(\s*([^()]+?)\s*\)/gi;
 function primedFunctionRequest(problem) {
   const t = String(problem).trim();
@@ -278,7 +289,7 @@ function primedFunctionRequest(problem) {
       let point = arg !== variable ? calls[0][3] : null;
       if (at && at[1].toLowerCase() === variable) point = point ?? at[2].trim();
       else if (at) return { kind: 'undefined', name, order, call: calls[0][0] };
-      return { kind: 'derivative', expression: def[2], order, variable, point };
+      return { kind: 'derivative', name, expression: def[2], order, variable, point };
     }
   }
   if (/(?<![<>!=])=(?!=)/.test(body)) {
@@ -668,7 +679,7 @@ export async function solveProblem(problem, topic) {
         const { solveDerivative } = await import('./solvers/derivativesSolver.js');
         const expression = extractFunctionFromProblem(fn.expression);
         const evalAt = fn.point !== null ? { variable: fn.variable, valueText: fn.point } : undefined;
-        result = await solveDerivative(expression, { order: fn.order, variable: fn.variable, evalAt });
+        result = renameFunction(await solveDerivative(expression, { order: fn.order, variable: fn.variable, evalAt }), fn.name);
         return finalizeResult(topic === 'derivatives' ? result : noteRouting(result, topic, 'derivatives', 'the input asks for a derivative'), problem);
       }
       if (fn?.kind === 'undefined') {

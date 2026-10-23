@@ -1122,12 +1122,32 @@ async function solveViaLogSubstitution(equation, variable) {
           lines.push(`${mark(`u = ${uText}`)} is not real, so it gives no real ${mark(v)}`);
           continue;
         }
-        const raw = String(Algebrite.run(`roots((${g}) - ${powText(r.display)}, ${v})`)).trim();
-        if (!raw || /stop|error|nil/i.test(raw)) return null;
-        // Algebrite writes the real roots of x² = e⁴ as ±i·(−e⁴)^(1/2): not
-        // a form to show anyone. Decline; the numeric scan reports ±7.3891.
-        if (/\(-.*\)\^\(1\/\d+\)/.test(raw)) return null;
-        const xs = parseRootsList(raw);
+        // g = xⁿ: x = ±b^(u/n) (n even) or b^(u/n) (n odd), exactly.
+        // Algebrite writes the real roots of x² = e⁴ as ±i·(−e⁴)^(1/2), and
+        // the numeric scan gave ±7.3891 for what is ±e².
+        const power = String(g).replace(/\s+/g, '').match(new RegExp(`^\\(?${v}\\^\\(?(\\d+)\\)?\\)?$`));
+        let xs;
+        if (power && Number(power[1]) >= 2) {
+          const n = Number(power[1]);
+          let ex;
+          try {
+            const f = math.fraction(String(r.display).replace(/\s+/g, '')).div(n);
+            ex = Number(f.d) === 1 ? `${Number(f.s) * Number(f.n)}` : `${Number(f.s) * Number(f.n)}/${Number(f.d)}`;
+          } catch {
+            ex = `(${r.display})/${n}`;
+          }
+          const one = ex === '1' ? (base === 'e' ? 'exp(1)' : base) : base === 'e' ? `exp(${ex})` : `${base}^(${ex})`;
+          const value = (base === 'e' ? Math.E : Number(base)) ** (r.numeric / n);
+          xs = n % 2 === 0
+            ? [{ display: `-${one}`, numeric: -value }, { display: one, numeric: value }]
+            : [{ display: one, numeric: value }];
+        } else {
+          const raw = String(Algebrite.run(`roots((${g}) - ${powText(r.display)}, ${v})`)).trim();
+          if (!raw || /stop|error|nil/i.test(raw)) return null;
+          // Any other g with that complex form: decline; the numeric scan takes it.
+          if (/\(-.*\)\^\(1\/\d+\)/.test(raw)) return null;
+          xs = parseRootsList(raw);
+        }
         if (xs.length === 0) return null;
         lines.push(`${mark(`u = ${uText}`)} means ${mark(`${logName}(${beautify(g)}) = ${uText}`)}, so ${mark(`${beautify(g)} = ${base}^${/^[\w.]+$/.test(uText) ? uText : `(${uText})`} → ${xs.map((x) => `${v} = ${prettyExp(prettyRadicals(x.display))}`).join(' or ')}`)}`);
         candidates.push(...xs);

@@ -71,9 +71,9 @@ test('shapes outside the family still get a correct numeric answer', async () =>
   // substitution; the numeric scan takes over and is still right.
   assert.equal((await solve('4^x - 5*2^x + 4 = 0')).answer, 'x = 0  or  x = 2');
   assert.equal((await solve('ln(x) + x = 2')).answer, 'x ≈ 1.5571'); // located numerically: ≈ (1.53.2)
-  // ln(x^2) = e^4 comes back from Algebrite in a complex form; the numeric
-  // scan reports the two real roots instead.
+  // ln(x^2) = 4: Algebrite writes the roots of x^2 = e^4 in a complex form,
+  // so x^n = b^u is solved by hand: x = ±e^2 (was ≈ ±7.3891, 1.53.2).
   const r = await solve('ln(x^2) = 4');
-  assert.match(r.answer, /x ≈ -7\.3891 {2}or {2}x ≈ 7\.3891/);
+  assert.equal(r.answer, 'x = -e^2 (≈ -7.3891)  or  x = e^2 (≈ 7.3891)');
   assert.doesNotMatch(r.answer, /i\*/);
 });

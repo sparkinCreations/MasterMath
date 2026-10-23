@@ -51,6 +51,10 @@ not, and the sweep of the same kinds of input found more.
   ln(5)/3, (ln(7) − 1)/2 and 2ln(3), where the numeric scan gave decimals.
   Each operation undone is shown (add 4, divide by 3, take ln), then the
   linear equation; 4^x = 2 is x = 1/2 and 27^(x − 1) = 9 is x = 5/3.
+- **A logarithm of a power solves exactly**: ln(x²) = 4 is x = ±e²
+  (was ≈ ±7.3891 from the numeric scan); ln(x³) = 6 is x = e².
+- **The derivative keeps the input's letter**: "g'(t) where g(t) = t^2"
+  is answered g'(t) = 2t, and "y'(x) where y = sin(x)" y'(x) = cos(x).
 - **A root located numerically is written with ≈** (x·e^x = 1:
   x ≈ 0.5671), with = only when the number shown solves the equation
   exactly.

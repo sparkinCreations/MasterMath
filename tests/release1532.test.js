@@ -15,8 +15,9 @@ test("f'(x) with its function defined is that function's derivative", async () =
     ["f(x) = x^2; f'(3)", "f'(3) = 6"], // was a parse error
     ["find f'(x) if f(x) = sin(x)", "f'(x) = cos(x)"], // was '"iff" is not a known function'
     ["f'(2) where f(x) = x^2", "f'(2) = 4"],
-    ["g'(t) where g(t) = t^2", "f'(t) = 2t"],
-    ["y'(x) where y = x^2", "f'(x) = 2x"],
+    ["g'(t) where g(t) = t^2", "g'(t) = 2t"], // in the input's own letter
+    ["h''(x) where h(x) = x^4 at x = 1", "h''(1) = 12"],
+    ["y'(x) where y = x^2", "y'(x) = 2x"],
     ["f''(x) where f(x) = x^3", "f''(x) = 6x"],
     ["f''(x) where f(x) = x^3 at x = 2", "f''(2) = 12"],
   ]) {
@@ -145,4 +146,19 @@ test('found in the sweep: exact rational logarithms, and ≈ for a root found nu
   assert.equal((await solveProblem('x*e^x = 1', 'algebra')).answer, 'x ≈ 0.5671');
   assert.equal((await solveProblem('cos(x) = x', 'algebra')).answer, 'x ≈ 0.7391');
   assert.equal((await solveProblem('2^x = x + 2', 'algebra')).answer, 'x ≈ -1.6901  or  x = 2');
+});
+
+test('a logarithm of a power solves exactly: ln(x^2) = 4 is x = ±e^2', async () => {
+  for (const [p, answer] of [
+    ['ln(x^2) = 4', 'x = -e^2 (≈ -7.3891)  or  x = e^2 (≈ 7.3891)'],
+    ['ln(x^2) = 3', 'x = -e^(3/2) (≈ -4.4817)  or  x = e^(3/2) (≈ 4.4817)'],
+    ['ln(x^3) = 6', 'x = e^2 (≈ 7.3891)'],
+    ['ln(x^2) = -2', 'x = -1/e (≈ -0.3679)  or  x = 1/e (≈ 0.3679)'],
+    ['log(x^2) = 2', 'x = -10  or  x = 10'],
+  ]) {
+    assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
+  }
+  // The steps name the function by its letter throughout.
+  const r = await solvePlain("g'(t) where g(t) = t^2", 'derivatives');
+  assert.equal(r.steps[0], 'Identify the function to differentiate: g(t) = t^2');
 });
