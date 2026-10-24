@@ -499,6 +499,54 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('button', { name: 'Differentiate it' })).toBeVisible();
   });
 
+  // October 2026 review: the "Problem solved!" toast covered the theme
+  // button, so a click there went nowhere for six seconds.
+  test('right after a solve the header buttons are not covered by the toast', async ({ page }) => {
+    await openSolver(page);
+    await solveExample(page, 'Algebra: 2*x + 5 = 11');
+    await expect(page.getByText('Problem solved!')).toBeVisible();
+    // On desktop the header scrolls with the page and a solve scrolls to the
+    // answer: go back up, as a user reaching for the button would.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const toggle = page.getByRole('button', { name: /Switch to (dark|light) mode/ });
+    const box = await toggle.boundingBox();
+    const onTop = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label') || '', { x: box.x + box.width / 2, y: box.y + box.height / 2 });
+    expect(onTop).toMatch(/Switch to (dark|light) mode/);
+    const wasDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
+    await toggle.click({ timeout: 2000 });
+    await expect(page.locator('html')).toHaveClass(wasDark ? /^(?!.*\bdark\b)/ : /\bdark\b/);
+  });
+
+  // The history PDF is typeset too (1.54.0): ∞, √ and x² print as
+  // themselves, and a problem solved twice is one entry.
+  test('My Progress exports a typeset PDF, one entry per problem', async ({ page }) => {
+    const fellBack = [];
+    page.on('console', (msg) => { if (/Typeset PDF failed/.test(msg.text())) fellBack.push(msg.text()); });
+    await openSolver(page);
+    await pickExample(page, 'Algebra: 2*x + 5 = 11');
+    for (let i = 0; i < 2; i += 1) {
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      // The toast comes after the save; close it so the second one is new.
+      await expect(page.getByText('Problem solved!')).toBeVisible();
+      await page.getByRole('button', { name: 'Close notification' }).first().click();
+      await expect(page.getByText('Problem solved!')).toHaveCount(0);
+    }
+    await page.goto('/progress');
+    await expect(page.getByText('Solved 2 times')).toBeVisible();
+    await expect(page.getByText('2*x + 5 = 11', { exact: true })).toHaveCount(1);
+    await page.getByRole('button', { name: /^Export/ }).click();
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('menuitem', { name: 'Export as PDF' }).click(),
+    ]);
+    const pdf = readFileSync(await download.path()).toString('latin1');
+    expect(fellBack, 'the typeset PDF fell back to plain text').toEqual([]);
+    expect(pdf.startsWith('%PDF-')).toBe(true);
+    expect((pdf.match(/\/Subtype\s*\/Image/g) || []).length).toBeGreaterThanOrEqual(1);
+    expect(pdf).toContain('MasterMath Progress');
+    expect(pdf).toContain('Problems solved: 1');
+  });
+
   // October 2026 roadmap P2: the PDF is the typeset solution and the graph
   // (images of the page, pdfTypeset.js) with a searchable text layer — not
   // the plain-text fallback. Dark mode too: the PDF is printed light.

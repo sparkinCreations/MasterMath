@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.54.0] - 2026-10-24
+
+An outside review (8.5/10: every supported problem right, the rest polish)
+reproduced point by point on 1.53.2. All seven points held, two of them
+with a correction.
+
+### Added
+
+- **The My Progress PDF is typeset**, like a solution's: each entry's
+  problem and answer are set by the page's renderer, so ∞, √, ± and x² print
+  as themselves (the plain-text PDF spelled ∞ "infinity"). Graphs stay in
+  each solution's own PDF: history keeps the answer, not the chart.
+- **One history entry per problem.** Solving the same problem again under
+  the same topic updates its entry (moved to the top, "Solved 2 times")
+  instead of adding a row, and Problems Solved counts problems, not solves.
+  Repeats saved before this release are merged when My Progress loads.
+- **"Area under the curve x^2 from 0 to 1"** is read as the definite
+  integral, with a tip that it is the net area.
+
+### Fixed
+
+- **The theme button could not be pressed for six seconds after a solve.**
+  The "Problem solved!" toast sat over it (top right, on desktop and
+  phone), so the click went to the toast and the theme seemed to take
+  seconds to switch. Toasts now open below the header. The switch itself
+  paints in about 0.1 s.
+- **Logarithms are worked in the notation typed.** log(8) showed the
+  parser's internal "(log(8)/log(10))" and then "log(8) = 2.0794", which is
+  the natural log under a base-10 name; the answer (0.9031) was right. The
+  step now reads "log(8) asks for the power of 10 that gives 8:
+  10^0.9031 ≈ 8". log(8, 2) says 2³ = 8, so 3; log(4, 8) is 2/3; a base
+  with no exact answer shows the change of base in ln.
+- **Word problems are refused as such**: "Word problems are not
+  supported", with what to type instead. Their words were glued together
+  and refused as "itsspeed is not a known function".
+- **Request phrases around the maths are read, not glued to it** (found
+  checking the review's word-problem point): "simplify the expression
+  (x^2-1)/(x-1)" was answered "theexpression(x^2 - 1)/(x - 1)", marked
+  Solved; "calculate the definite integral of x^2 from 0 to 3" was refused
+  as improper. "Solve the quadratic equation …", "factor completely …",
+  "find the zeros of …", "the slope of the tangent line to … at x = 3",
+  "the gcd / lcm of 12 and 18", and "the critical points / vertex / domain
+  and range / asymptotes of …" (to Functions) now solve. Words that still
+  cannot be read are said to be words: "The words in this problem could not
+  be read as maths", not "thecriticalpointsofx is not a known function".
+- Function analyses show √3, not 3^(1/2), in their intercepts.
+- **Tips that did not fit**: ln and log got order-of-operations advice;
+  they get what a logarithm asks, ln vs log and the change of base.
+  (x² − 1)/(x − 1) got like-terms advice; a simplified fraction now shows
+  the numerator and denominator factored and the factor cancelled, with
+  tips about cancelling factors (not terms) and the restriction it leaves.
+
+### Changed
+
+- **A root is given in simplest radical form**: √50 is 5√2 (≈ 7.0711),
+  with the perfect square pulled out in a step (it was 7.0711, beside a tip
+  saying to pull out perfect squares); ∛54 is 3∛2, and √2 is √2 (≈ 1.4142).
+
 ## [1.53.2] - 2026-10-23
 
 The October 2026 accuracy test list (95 cases, written against v1.47.1)

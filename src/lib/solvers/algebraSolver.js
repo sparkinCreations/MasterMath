@@ -20,6 +20,7 @@ import {
   stripMathMarkers,
   mark,
   linearCoefficients,
+  stripOuterParens,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -36,6 +37,21 @@ const SIMPLIFY_TIPS = [
   'Distribute first, then collect like terms — terms with exactly the same variable part.',
   `Like terms combine by adding their coefficients: ${mark('3x − 6 + 4 → 3x − 2')}.`,
   'Check by substituting a value for the variable into both the original and the simplified form.',
+];
+
+// A fraction simplified by cancelling a factor: the advice is about
+// factoring and cancelling, not like terms ((x^2-1)/(x-1) was told to
+// distribute and collect like terms; October 2026 review).
+const CANCEL_TIPS = [
+  'Factor the numerator and the denominator completely, then cancel the factors they share.',
+  `Cancel factors, never terms: in ${mark('(x^2 − 1)/(x − 1)')} the ${mark('x − 1')} cancels only after ${mark('x^2 − 1 = (x − 1)(x + 1)')}.`,
+  `A cancelled factor still counts: the original is undefined where it is zero, so the simplified form comes with that restriction (${mark('x ≠ 1')}).`,
+];
+
+const CANCEL_MISTAKES = [
+  `Cancelling a term across the fraction bar: ${mark('(x + 2)/2')} is ${mark('x/2 + 1')}, not ${mark('x + 1')}.`,
+  'Dropping the restriction after cancelling: the simplified form is equal to the original only where the original is defined.',
+  'Cancelling before factoring completely, and missing a factor the numerator and denominator share.',
 ];
 
 const SIMPLIFY_MISTAKES = [
@@ -2297,18 +2313,24 @@ async function simplifyExpression(expression) {
 
   let steps;
   let answer;
+  let cancelled = false;
   if (best && complexity(best.answer) < inputLen) {
     // A real simplification. A polynomial shows its expansion and combining;
     // anything else gets a clean three-line derivation.
     answer = best.answer;
-    if (best.steps) {
+    // A fraction whose denominator has the variable is simplified by
+    // cancelling, whichever engine found the answer ((x^3 - x)/(x^2 - 1) was
+    // "Multiply out the parentheses: x").
+    const factoring = /\/\s*\(?[^)]*[a-z]/i.test(expression) ? await fractionFactoring(expression, variable) : null;
+    if (factoring) cancelled = true;
+    if (best.steps && !factoring) {
       steps = best.steps;
     } else {
       steps = [
         `Original expression: ${mark(beautify(expression))}`,
-        /\//.test(expression)
+        ...(factoring || [/\//.test(expression)
           ? 'Factor and cancel the common factor(s).'
-          : 'Combine like terms and simplify.',
+          : 'Combine like terms and simplify.']),
         `Simplified form: ${mark(answer)}`,
       ];
     }
@@ -2317,6 +2339,7 @@ async function simplifyExpression(expression) {
     // from those points, as a textbook says.
     const excluded = await cancelledPoints(expression, answer, variable);
     if (excluded.length) {
+      cancelled = true;
       const list = excluded.map((q) => `${variable} ≠ ${q.display}`).join(', ');
       steps.push(`The original divides by zero at ${excluded.map((q) => mark(`${variable} = ${q.display}`)).join(' and ')}, where the simplified form does not, so the two are equal only for ${excluded.map((q) => mark(`${variable} ≠ ${q.display}`)).join(' and ')}.`);
       answer = `${answer}, for ${list}`;
@@ -2344,10 +2367,39 @@ async function simplifyExpression(expression) {
   return {
     steps,
     answer,
-    tips: SIMPLIFY_TIPS,
-    common_mistakes: SIMPLIFY_MISTAKES,
+    tips: cancelled ? CANCEL_TIPS : SIMPLIFY_TIPS,
+    common_mistakes: cancelled ? CANCEL_MISTAKES : SIMPLIFY_MISTAKES,
     graph: generateAlgebraGraph(expression),
   };
+}
+
+// N/D with polynomial N and D: each factored (Algebrite, degree ≤ 6), and the
+// factors they share named, as the cancellation is taught. Null when the
+// expression is not one such fraction, nothing is shared, or factoring fails.
+async function fractionFactoring(expression, variable) {
+  const parts = splitTopLevel(String(expression), '/');
+  if (parts.length !== 2) return null;
+  const [num, den] = parts.map((t) => stripOuterParens(t.trim()));
+  const isPoly = (t) => /^[\d\s+\-*^().a-z]*$/i.test(t) && !/[a-z]{2,}/i.test(t);
+  if (!isPoly(num) || !isPoly(den)) return null;
+  try {
+    const Algebrite = await loadAlgebrite();
+    const degree = (t) => Number(String(Algebrite.run(`deg(${t}, ${variable})`)).trim());
+    if (!(degree(num) <= 6 && degree(den) <= 6)) return null;
+    const factorText = (t) => beautify(String(Algebrite.run(`factor(${t}, ${variable})`)).trim()).replace(/\)\*\(/g, ')(').replace(/(^|[^\w)])(\w+)\*\(/g, '$1$2(');
+    const fn = factorText(num);
+    const fd = factorText(den);
+    const common = beautify(String(Algebrite.run(`gcd(${num}, ${den})`)).trim());
+    if (isAlgebriteFailure(fn) || isAlgebriteFailure(fd) || !common || /^-?\d+$/.test(common)) return null;
+    const show = (t) => (/[+\-]/.test(t.replace(/^-/, '')) && !/^\(.*\)$/.test(t) ? `(${t})` : t);
+    return [
+      `Factor the numerator: ${mark(`${beautify(num)} = ${fn}`)}.`,
+      beautify(den) === fd ? `The denominator ${mark(fd)} is already factored.` : `Factor the denominator: ${mark(`${beautify(den)} = ${fd}`)}.`,
+      `Cancel the common factor${/\)\s*\(|\)\^/.test(factorText(common)) ? 's' : ''} ${mark(show(factorText(common)))} from the top and the bottom.`,
+    ];
+  } catch {
+    return null;
+  }
 }
 
 // A polynomial in the variable (nothing but numbers in any denominator),

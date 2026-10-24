@@ -179,3 +179,18 @@ case now runs in `tests/octoberTestList.test.js`.
 | Found in the sweep: "d/dx f(x)", "∫ f(x) dx", "lim x->0 f(x)" answered as if f were a number | — | 1.53.2 (refused) |
 | Found in the sweep: "g(x) = 2x + 1" solved for g; "f(x) = x^2" under Integrals unchanged | — | 1.53.2 |
 | Found in the sweep: numeric roots written with = | — | 1.53.2 (≈) |
+
+## Round 13 (outside review, 8.5/10, reproduced on 1.53.2)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| sqrt(50) only 7.0711, not 5√2 | Confirmed | 1.54.0 (simplest radical form, step shown) |
+| log(8) treated as the natural log (2.0794) | Partly: the answer was base 10 (0.9031), but the steps showed "(log(8)/log(10))" and "log(8) = 2.0794"; log(8,2) by decimal ratios | 1.54.0 (worked in the notation typed, exact when it is) |
+| Key Insights generic for logs, roots, (x²−1)/(x−1) | Confirmed for logs and the fraction; the root tips fit | 1.54.0 |
+| Word problems: "itsspeed is not a known function" | Confirmed | 1.54.0 ("Word problems are not supported") |
+| My Progress repeats a problem per solve | Confirmed (and the count with it) | 1.54.0 (one entry, "Solved N times") |
+| PDF lacks the graph, spells ∞ "infinity" | Partly: the solution PDF is typeset with its graph; the My Progress PDF was plain text | 1.54.0 (typeset) |
+| Light/dark switch takes about a second | Confirmed, **worse** and not rendering: the "Problem solved!" toast covered the theme button for six seconds | 1.54.0 (toasts below the header) |
+| Steps on the narrow phone layout (not checked by the reviewer) | Checked at 360 px: nothing wider than the screen | — |
+| Found in the sweep: "area under the curve …" refused with glued words | — | 1.54.0 (the definite integral) |
+| Found in the sweep: request phrases glued to the maths — "simplify the expression (x^2-1)/(x-1)" answered "theexpression(x^2 - 1)/(x - 1)", Solved; "calculate the definite integral of x^2 from 0 to 3" refused as improper; "solve the quadratic equation …", "find the critical points of …" unreadable | — | 1.54.0 (read as what they ask; words still unreadable are said to be words) |
