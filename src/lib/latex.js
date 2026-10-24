@@ -25,7 +25,7 @@ const FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'asin',
 
 // Words allowed to appear inside a "math" fragment without making it prose.
 export const MATH_WORDS = new Set([
-  ...FUNCTIONS, 'sqrt', 'abs', 'sgn', 'mod', 'lim', 'pi', 'dx', 'dy', 'dt', 'du', 'dv', 'dd',
+  ...FUNCTIONS, 'sqrt', 'abs', 'sgn', 'erf', 'mod', 'lim', 'pi', 'dx', 'dy', 'dt', 'du', 'dv', 'dd',
   'or', 'and', 'C', 'DNE', 'e', 'i', 'd', 'f', 'F', 'x', 'y', 't', 'u', 'v', 'n', 'a', 'b', 'c',
 ]);
 
@@ -55,6 +55,7 @@ export function toLatex(ascii) {
     // readers said "p i".
     .replace(/(?<![A-Za-z\\])pi(?![A-Za-z])/g, ' \\pi ')
     .replace(/⁺/g, '^{+}')
+    .replace(/⁻¹/g, '^{-1}')
     .replace(/⁻/g, '^{-}')
     .replace(/→/g, ' \\to ')
     // The typed form of the arrow: "x->0" rendered as a minus and a greater-than.

@@ -120,7 +120,7 @@ test('found in the sweep: request phrases around the maths are read, not glued t
   assert.equal(c.routedTopic, 'functions');
   assert.match(c.answer, /x-intercepts at x = -√3, 0, √3; local maximum \(-1, 2\); local minimum \(1, -2\)/);
   assert.match((await solveProblem('find the vertex of the parabola y = x^2 - 4x', 'auto')).answer, /vertex \(2, -4\)/);
-  // Words still not understood are said to be words, not "a function".
-  assert.match((await solveProblem('find the period of sin(2x)', 'auto')).answer, /^The words in this problem could not be read as maths/);
+  // Words still not understood are said to be words ("the period of" is read since 1.55.0).
+  assert.match((await solveProblem('find the eccentricity of sin(2x)', 'auto')).answer, /^The words in this problem could not be read as maths/);
   assert.match((await solveProblem('x apples > 2', 'algebra')).answer, /^"apples" is not a known function/);
 });

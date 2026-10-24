@@ -382,6 +382,8 @@ export function lnify(result) {
     .replace(/(?<![a-z])log\(((?:[^()]|\([^()]*\))+)\)/g, 'ln|$1|')
     // a log(...) left inside those bars → ln(...) (bars within bars read badly)
     .replace(/(?<![a-z])log\(([^()]+)\)/g, 'ln($1)')
+    // ln|(x - 1)| reads as ln|x - 1|: the bars already group it
+    .replace(/ln\|\(([^()]+)\)\|/g, 'ln|$1|')
     // bars around a positive number mean nothing: ln|10| reads as ln(10)
     .replace(/ln\|(\d+(?:\.\d+)?)\|/g, 'ln($1)')
     // exp(x) → e^x for a single token, e^(…) otherwise

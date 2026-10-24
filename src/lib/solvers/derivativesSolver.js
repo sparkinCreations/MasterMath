@@ -28,6 +28,8 @@ const lnify = (s) => beautify(s)
   .replace(/(?<![a-z])log\(/g, 'ln(')
   .replace(/(?<![a-z])exp\(([a-z]|\d+)\)/g, 'e^$1')
   .replace(/(?<![a-z])exp\(([^()]+)\)/g, 'e^($1)')
+  .replace(/(?<![a-z])pi\^\(1\/2\)/g, '√π')
+  .replace(/\/\(√π\)/g, '/√π')
   .replace(/\(([^()]+)\)\^\(1\/2\)/g, '√($1)')
   .replace(/(?<![a-zA-Z_)^.])([a-z])\^\(1\/2\)/g, '√$1')
   .replace(/\/\(√([a-z])\)/g, '/√$1')
@@ -258,6 +260,10 @@ function derivativeGuidance(expression, variable) {
     tips.push(`${mark(`d/d${v} arcsin(${v}) = 1/√(1 − ${v}^2)`)}, ${mark(`d/d${v} arccos(${v}) = −1/√(1 − ${v}^2)`)}, ${mark(`d/d${v} arctan(${v}) = 1/(1 + ${v}^2)`)} — arcsin and arccos differ only in sign.`);
     mistakes.push(`Reading ${mark(`arcsin(${v})`)} (also written ${mark(`sin^(-1)(${v})`)}) as ${mark(`1/sin(${v})`)}: it is the inverse function, not the reciprocal.`);
   }
+  if (used('Error function')) {
+    tips.push(`${mark(`erf(${v})`)} is defined by an integral, ${mark(`(2/√π)·∫_0^${v} e^(−t^2) dt`)}: its derivative is the integrand times ${mark('2/√π')}, by the Fundamental Theorem of Calculus.`);
+    mistakes.push(`Looking for an elementary antiderivative of ${mark(`e^(−${v}^2)`)}: there is none, which is why ${mark('erf')} is defined as an integral.`);
+  }
   if (used('Hyperbolic')) {
     tips.push(`${mark(`d/d${v} sinh(${v}) = cosh(${v})`)} and ${mark(`d/d${v} cosh(${v}) = sinh(${v})`)}, with no minus sign; ${mark(`d/d${v} tanh(${v}) = 1 − tanh^2(${v})`)}.`);
     mistakes.push(`Adding a minus sign to ${mark(`d/d${v} cosh(${v})`)} by analogy with ${mark(`cos(${v})`)}.`);
@@ -415,6 +421,7 @@ function classifyDerivativeRule(term, variable) {
   // Single trig / exponential / logarithmic / root functions. The inverse,
   // reciprocal and hyperbolic ones were filed under the power rule (October
   // 2026 test list: "Power rule — d/dx(x) = 1" for arcsin(x)).
+  if (/\berf\b/i.test(inner)) return { label: 'Error function rule', hint: `${mark(`erf(${v}) = (2/√π)·∫_0^${v} e^(−t^2) dt`)}, so by the Fundamental Theorem of Calculus ${mark(`d/d${v}[erf(${v})] = (2/√π)·e^(−${v}^2)`)}` };
   if (/\b(?:arcsin|asin)\b/i.test(inner)) return { label: 'Inverse trig rule', hint: mark(`d/d${v}[arcsin(${v})] = 1/√(1 − ${v}^2)`) };
   if (/\b(?:arccos|acos)\b/i.test(inner)) return { label: 'Inverse trig rule', hint: mark(`d/d${v}[arccos(${v})] = −1/√(1 − ${v}^2)`) };
   if (/\b(?:arctan|atan)\b/i.test(inner)) return { label: 'Inverse trig rule', hint: mark(`d/d${v}[arctan(${v})] = 1/(1 + ${v}^2)`) };
@@ -487,6 +494,7 @@ const OUTER_DERIVATIVES = {
   sinh: (u) => `cosh(${u})`,
   cosh: (u) => `sinh(${u})`,
   tanh: (u) => `sech²(${u})`,
+  erf: (u) => `(2/√π)·e^(−(${u})²)`,
 };
 
 // Worked steps for the product, quotient and chain rules on one term: name
@@ -588,7 +596,7 @@ function workedRuleSteps(term, variable, label, Algebrite) {
       g = m[3];
       outerText = `${m[2]}^${U}`;
       outerDerivText = `${m[2]}^${U}·ln(${m[2]})`;
-    } else if ((m = inner.match(/^(-?\s*(?:[\d.]+\s*\*?\s*)?)(sin|cos|tan|sec|csc|cot|ln|log|exp|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh)\s*\((.+)\)(?:\s*\^\s*(\d+))?$/i))) {
+    } else if ((m = inner.match(/^(-?\s*(?:[\d.]+\s*\*?\s*)?)(sin|cos|tan|sec|csc|cot|ln|log|exp|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh|erf)\s*\((.+)\)(?:\s*\^\s*(\d+))?$/i))) {
       const fn = m[2].toLowerCase();
       const power = m[4];
       coef = m[1];
@@ -677,7 +685,7 @@ function isChain(term, variable) {
   // inner function's rule ("Trig rule" for ln(sin x)), skipping the chain.
   if (/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh)\s*\(\s*(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|sinh|cosh|tanh|abs)\s*\(/i.test(term)) return true;
   // function( ...variable...with an operator... )
-  const fnInner = term.match(/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh)\s*\(([^()]*)\)/i);
+  const fnInner = term.match(/\b(?:sin|cos|tan|sec|csc|cot|exp|ln|log|sqrt|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|erf)\s*\(([^()]*)\)/i);
   if (fnInner) {
     const arg = fnInner[1];
     if (hasVariable(arg, variable) && /[+\-*/^]|\d\s*[a-z]/i.test(arg)) return true;

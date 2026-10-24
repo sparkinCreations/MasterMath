@@ -49,6 +49,16 @@ export const CONVERTED = [
   ['other', 'ln(8)'], ['other', 'log(8) + log(2)'], ['algebra', '(x^2-1)/(x-1)'], ['algebra', '(x^3-x)/(x^2-1)'],
   ['auto', 'A train travels 120 miles in 2 hours. What is its speed?'], ['auto', 'area under the curve x^2 from 0 to 1'],
   ['auto', 'find the critical points of x^3 - 3x'], ['auto', 'simplify the expression (x^2-1)/(x-1)'], ['auto', 'find the zeros of x^2 - 5x + 6'],
+  // 1.55.0: period, amplitude, tangent line, inverse, angle conversion; complex roots, erf, ln(e^2), partial fractions; tips by method.
+  ['auto', 'find the period of 3sin(2x) + 1'], ['auto', 'period of sin(2x) + cos(3x)'], ['auto', 'period of sin(x) + sin(pi*x)'], ['auto', 'period of sin(x)^2'],
+  ['auto', 'amplitude of -3cos(2x) + 5'], ['auto', 'amplitude of 3sin(x) + 4cos(x)'], ['auto', 'amplitude of tan(x)'], ['auto', 'amplitude of 2sin(x) + cos(2x)'],
+  ['auto', 'find the equation of the tangent line to x^2 at x = 3'], ['auto', 'tangent line to sqrt(x) at x = 4'], ['auto', 'tangent line to ln(x) at x = e'], ['auto', 'tangent line to abs(x) at x = 0'], ['auto', 'tangent line to x^2 at (3, 8)'],
+  ['auto', 'find the inverse of 2x + 3'], ['auto', 'inverse of (2x+1)/(x-3)'], ['auto', 'inverse of 2sqrt(x) + 1'], ['auto', 'inverse of 2^(x-1)'], ['auto', 'inverse of log(x)'], ['auto', 'inverse of 4/(x+1)'],
+  ['auto', 'inverse of 5 - x'], ['auto', 'inverse of x^3 + 1'], ['auto', 'inverse of x^2'], ['auto', 'inverse of sin(x)'], ['auto', 'inverse of x^3 + x'],
+  ['auto', 'convert 45 degrees to radians'], ['auto', '30.5 degrees to radians'], ['auto', 'convert 2pi/3 radians to degrees'], ['auto', '1 radian to degrees'],
+  ['algebra', '2x^2 + 3x + 5 = 0'], ['derivatives', 'erf(x)'], ['other', 'ln(e^2)'], ['integrals', '1/(x^3 + x)'], ['integrals', '(x+1)/(x^2+1)'],
+  ['limits', 'lim x->2 x^2 + 1'], ['limits', 'lim x->0 (e^x - 1 - x)/x^2'], ['limits', 'lim x->0 sin(1/x)'],
+  ['functions', 'sin(2x)'], ['functions', 'e^x'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

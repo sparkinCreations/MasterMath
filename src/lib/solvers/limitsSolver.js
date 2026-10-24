@@ -70,7 +70,7 @@ function limitGuidance(result) {
       ],
     };
   }
-  if (/diverges to|opposite infinities|Does not exist|blows up instead of settling/i.test(text)) {
+  if (/diverges to|opposite infinities|Does not exist|blows up instead of settling/i.test(text) && !/oscillates/.test(text)) {
     return {
       tips: [
         'When direct substitution blows up, check each side separately: the two-sided limit exists only if both sides agree.',
@@ -95,6 +95,93 @@ function limitGuidance(result) {
         'Plugging in a large number and rounding — that suggests the value but does not prove it.',
         `Forgetting the sign when the leading term is odd and ${mark('x → −∞')}.`,
         `Treating ${mark('∞/∞')} as ${mark('1')}.`,
+      ],
+    };
+  }
+  // Each remaining method gets its own advice; the generic list below was
+  // shown for all of them, including "limits at infinity" for a limit at 0
+  // (October 2026 roadmap P3).
+  if (/Taylor series/.test(text)) {
+    return {
+      tips: [
+        `Near ${mark('0')}, replace each function by the start of its series: ${mark('e^x = 1 + x + x^2/2 + …')}, ${mark('sin x = x − x^3/6 + …')}, ${mark('cos x = 1 − x^2/2 + …')}.`,
+        'Keep terms up to the lowest power that survives in the denominator; after cancelling it, the constant left is the limit.',
+        `A ${mark('0/0')} form that L'Hôpital's rule needs several rounds for is often one line with series.`,
+      ],
+      common_mistakes: [
+        'Stopping the series too early, so everything cancels and the true leading term is lost.',
+        `Expanding about the wrong point: the series must be about the value ${mark('x')} approaches.`,
+        'Dropping a sign in an alternating series such as the one for sin.',
+      ],
+    };
+  }
+  if (/L'Hôpital's rule \(differentiate/.test(text)) {
+    return {
+      tips: [
+        `L'Hôpital's rule applies only to ${mark('0/0')} or ${mark('∞/∞')}: then ${mark("lim f/g = lim f′/g′")}.`,
+        'Differentiate the top and the bottom separately, then substitute again; repeat while the form stays indeterminate.',
+        'Check the form before every round: once substitution gives a number, stop.',
+      ],
+      common_mistakes: [
+        `Using the quotient rule on ${mark('f/g')}: the rule differentiates the numerator and the denominator separately.`,
+        `Applying it when the form is not ${mark('0/0')} or ${mark('∞/∞')}, which gives a wrong answer.`,
+        'Going round once too many and differentiating a form that was already a number.',
+      ],
+    };
+  }
+  if (/conjugate/.test(method)) {
+    return {
+      tips: [
+        `A difference with a root, ${mark('√a − b')}, is rationalised by its conjugate: multiply top and bottom by ${mark('√a + b')}, using ${mark('(√a − b)(√a + b) = a − b^2')}.`,
+        `The product clears the root and usually exposes the factor that made ${mark('0/0')}; cancel it, then substitute.`,
+        `At infinity, ${mark('√(x^2 + x) − x')} is ${mark('∞ − ∞')}: the conjugate turns it into a ratio of leading terms.`,
+      ],
+      common_mistakes: [
+        'Multiplying only the numerator by the conjugate, which changes the value.',
+        `Expanding ${mark('(√a − b)(√a + b)')} as ${mark('a − b')} instead of ${mark('a − b^2')}.`,
+        `Substituting before cancelling, and getting ${mark('0/0')} again.`,
+      ],
+    };
+  }
+  if (/squeeze/.test(method)) {
+    return {
+      tips: [
+        `The squeeze theorem: if ${mark('g ≤ f ≤ h')} near the point and ${mark('g')} and ${mark('h')} have the same limit ${mark('L')}, so does ${mark('f')}.`,
+        `A bounded factor times something going to ${mark('0')} goes to ${mark('0')}: ${mark('−|x| ≤ x·sin(1/x) ≤ |x|')}.`,
+        `The bounds come from facts like ${mark('−1 ≤ sin(u) ≤ 1')}, which hold for every ${mark('u')}.`,
+      ],
+      common_mistakes: [
+        `Concluding ${mark('sin(1/x)')} itself has a limit at ${mark('0')}: it oscillates; only its product with ${mark('x')} is squeezed.`,
+        'Using bounds that have different limits, which squeeze nothing.',
+        'Forgetting that the bounds must hold on both sides of the point.',
+      ],
+    };
+  }
+  if (method === 'direct substitution' || /the function is defined and equals/.test(text)) {
+    return {
+      tips: [
+        'Where a function is continuous, the limit is its value: start by substituting the value directly.',
+        'Polynomials, and sin, cos, eˣ and roots on their domains, are continuous, so substitution works for them.',
+        `Only an undefined result (a ${mark('0/0')} form, a zero denominator) needs a technique.`,
+      ],
+      common_mistakes: [
+        'Reaching for a technique when direct substitution already gives a number.',
+        'Substituting into a function that is not defined at the point and reporting that value.',
+        'Assuming the limit equals the function value at a jump or a hole.',
+      ],
+    };
+  }
+  if (/oscillates/.test(text)) {
+    return {
+      tips: [
+        `A function that keeps swinging, such as ${mark('sin(1/x)')} near ${mark('0')}, has no limit: the values never settle on one number.`,
+        `To show it, find two sequences approaching the point along which the function tends to different values (for ${mark('sin(1/x)')}, ${mark('1')} and ${mark('−1')}).`,
+        'Multiplying an oscillating, bounded function by something that goes to 0 does give a limit (the squeeze theorem).',
+      ],
+      common_mistakes: [
+        'Reporting a value read off a few sample points: an oscillating function can give any value that way.',
+        'Confusing "bounded" with "has a limit".',
+        `Saying the limit is ${mark('0')} because the average of the swings is ${mark('0')}.`,
       ],
     };
   }

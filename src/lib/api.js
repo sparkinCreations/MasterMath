@@ -1,5 +1,5 @@
-import { extractFunctionFromProblem, parseMathExpression, usesCommonLog, matchingParen } from './mathParser.js';
-import { STATUS, isValidStatus, parseError, unsupported } from './solutionEnvelope.js';
+import { extractFunctionFromProblem, parseMathExpression, usesCommonLog, matchingParen, extractVariable } from './mathParser.js';
+import { STATUS, isValidStatus, parseError, solved, unsupported } from './solutionEnvelope.js';
 import { bareFunctionName, math, formatNumber, beautify } from './solvers/solverUtils.js';
 import { stripMathMarkers } from './mathMarkers.js';
 import { readPlainEnglish } from './plainEnglish.js';
@@ -232,11 +232,66 @@ function readRequestPhrases(text) {
   if (analysis && !/\bon\b|\[|\binterval\b/i.test(analysis[2])) {
     return { problem: analysis[2].trim(), topic: 'functions', reason: `the input asks for the ${analysis[1].toLowerCase().replace(/\s+/g, ' ')} of a function` };
   }
+  // "find the period of 3sin(2x) + 1", "the amplitude of …", "the equation
+  // of the tangent line to x^2 at x = 3", "the inverse of 2x + 3", "convert
+  // 45 degrees to radians": one thing asked about a function or an angle
+  // (requestSolver.js). Each was refused as unreadable words.
+  const fnOf = '(?:the\\s+(?:function|graph|curve)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?';
+  const lead = `(?:${verb}\\s+)?(?:the\\s+)?`;
+  const property = t.match(new RegExp(`^${lead}(period|amplitude)\\s+of\\s+${fnOf}(.+?)\\s*[?.]?$`, 'i'));
+  if (property) {
+    return { problem: property[2].trim(), request: { kind: property[1].toLowerCase(), expression: property[2].trim() }, topic: 'trigonometry', reason: `the input asks for the ${property[1].toLowerCase()} of a function` };
+  }
+  const num = '-?(?:[\\d.]+\\s*\\*?\\s*)?(?:pi|π|e)(?:\\s*\\/\\s*\\d+)?|-?[\\d.]+(?:\\s*\\/\\s*\\d+)?';
+  const tangent = t.match(new RegExp(`^${lead}(?:equation\\s+of\\s+(?:the\\s+)?)?tangent(?:\\s+line)?\\s+(?:to|of)\\s+${fnOf}(.+?)\\s+at\\s+(?:the\\s+point\\s+)?(?:(?:([a-z])\\s*=\\s*)?(${num})|\\(\\s*(${num})\\s*,\\s*(${num})\\s*\\))\\s*[?.]?$`, 'i'));
+  if (tangent && !/[=<>]/.test(tangent[1])) {
+    const tidy = (n) => n.replace(/π/g, 'pi').replace(/\s+/g, '');
+    return {
+      problem: tangent[1].trim(),
+      request: { kind: 'tangent', expression: tangent[1].trim(), variable: tangent[2] || null, point: tidy(tangent[3] || tangent[4]), givenY: tangent[5] ? tidy(tangent[5]) : null },
+      topic: 'derivatives',
+      reason: 'the input asks for the equation of a tangent line',
+    };
+  }
+  const inverse = t.match(new RegExp(`^${lead}inverse(?:\\s+function)?\\s+of\\s+${fnOf}(.+?)\\s*[?.]?$`, 'i'));
+  if (inverse && !/[=<>[\]]/.test(inverse[1]) && !/\bmatri(?:x|ces)\b/i.test(inverse[1])) {
+    return { problem: inverse[1].trim(), request: { kind: 'inverse', expression: inverse[1].trim() }, topic: 'functions', reason: 'the input asks for the inverse of a function' };
+  }
+  const angle = t.match(/^(?:convert\s+)?(-?[\d.]+(?:\s*\/\s*\d+)?|-?(?:\d*\s*\*?\s*)?(?:pi|π)(?:\s*\/\s*\d+)?|-?[\d.]+\s*\*?\s*(?:pi|π)(?:\s*\/\s*\d+)?)\s*(°|degrees?|deg|radians?|rad)\s+(?:to|in(?:to)?)\s+(degrees?|deg|radians?|rad)\s*[?.]?$/i);
+  if (angle) {
+    const from = /^(?:°|deg)/i.test(angle[2]) ? 'degrees' : 'radians';
+    const to = /^deg/i.test(angle[3]) ? 'degrees' : 'radians';
+    if (from !== to) {
+      return { problem: angle[1].replace(/π/g, 'pi'), request: { kind: 'angle', value: angle[1].replace(/π/g, 'pi').replace(/\s+/g, ''), from }, topic: 'trigonometry', reason: `the input asks to convert ${from} to ${to}` };
+    }
+  }
   // "find the gcd of 12 and 18"
   const divisor = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(gcd|gcf|hcf|lcm|greatest\\s+common\\s+(?:divisor|factor)|highest\\s+common\\s+factor|least\\s+common\\s+multiple)\\s+of\\s+(\\d+)\\s*(?:,|and)\\s*(\\d+)\\s*[?.]?$`, 'i'));
   if (divisor) return { problem: `${/^(?:lcm|least)/i.test(divisor[1]) ? 'lcm' : 'gcd'}(${divisor[2]}, ${divisor[3]})` };
   return { problem: t };
 }
+
+// The request read by readRequestPhrases, solved by requestSolver.js and
+// finalized. An unknown word in the expression is a parse error, as on
+// every other path.
+async function solveRequest(request, problem) {
+  const solvers = await import('./solvers/requestSolver.js');
+  if (request.kind === 'angle') return finalizeResult(asResult(solvers.convertAngle(request.value, request.from)), problem);
+  const expression = parseMathExpression(extractFunctionFromProblem(request.expression));
+  const word = unknownWord(expression);
+  if (word) return finalizeResult(parseError({ input: request.expression, hint: unknownWordHint(word) }), problem);
+  const variable = request.variable || extractVariable(expression);
+  let result;
+  if (request.kind === 'period') result = solvers.periodOf(expression, variable);
+  else if (request.kind === 'amplitude') result = solvers.amplitudeOf(expression, variable);
+  else if (request.kind === 'tangent') result = await solvers.tangentLine(expression, variable, request.point, request.givenY);
+  else {
+    const { solveAlgebra } = await import('./solvers/algebraSolver.js');
+    result = await solvers.inverseOf(expression, variable, solveAlgebra);
+  }
+  return finalizeResult(asResult(result), problem);
+}
+const asResult = (r) => (r.status ? r : solved(r));
 
 // A word problem: a sentence about trains or apples, not notation. Its
 // words were glued together and refused as "itsspeed is not a known
@@ -698,7 +753,7 @@ export async function solveProblem(problem, topic) {
     // review sweep).
     const request = readRequestPhrases(problem);
     if (request.topic) {
-      const routed = await solveProblem(request.problem, request.topic);
+      const routed = request.request ? await solveRequest(request.request, problem) : await solveProblem(request.problem, request.topic);
       if (topic === request.topic) return routed;
       if (topic !== 'auto') return noteRouting(routed, topic, request.topic, request.reason);
       // Under Auto-detect: the same notice and record as a detected topic.

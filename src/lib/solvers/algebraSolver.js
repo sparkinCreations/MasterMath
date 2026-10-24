@@ -1591,8 +1591,23 @@ export function prettyRadicals(display) {
   s = s.replace(/\b(\d+)\*√(\d+)/g, '$1√$2');
   s = s.replace(/^(-?\d+)\/(\d+) ([+-]) √(\d+)\/\2$/, '($1 $3 √$4)/$2');
   s = s.replace(/^(-?\d+)\/(\d+) ([+-]) (\d+)√(\d+)\/\2$/, '($1 $3 $4√$5)/$2');
-  return s;
+  return prettyComplex(s.replace(/i\*√/g, 'i√'));
 }
+
+// a/b ± (c/e)·i·√n over one denominator: -3/4 - 1/4*i√31 → (-3 - i√31)/4,
+// -1/2 + 1/2*i√3 → (-1 + i√3)/2, 1 + 2*i → 1 + 2i (October 2026: complex
+// quadratic roots read "-3/4 - 1/4*i*√31").
+function prettyComplex(display) {
+  const m = String(display).match(/^(-?\d+)(?:\/(\d+))? ([+-]) (?:(\d+)(?:\/(\d+))?\*)?i(?:√(\d+))?$/);
+  if (!m) return display;
+  const [, a, b = '1', sign, c = '1', e = '1', n] = m;
+  const den = (Number(b) * Number(e)) / (gcdInt(Number(b), Number(e)) || 1);
+  const re = (Number(a) * den) / Number(b);
+  const im = (Number(c) * den) / Number(e);
+  const imText = `${im === 1 ? '' : im}i${n ? `√${n}` : ''}`;
+  return den === 1 ? `${re} ${sign} ${imText}` : `(${re} ${sign} ${imText})/${den}`;
+}
+const gcdInt = (x, y) => (y === 0 ? Math.abs(x) : gcdInt(y, x % y));
 
 function formatSolutions(roots, variable) {
   const displays = roots.map((r) => {

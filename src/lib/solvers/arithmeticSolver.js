@@ -226,7 +226,10 @@ export function solveArithmetic(expression) {
       // fraction — the (1/3) in (1/3)*6 — is left as it is; "working it out"
       // gave (-1) again, 25 times over.
       // An argument list, the (8, 2) of log(8, 2), is not a group to work out.
-      const match = [...working.matchAll(/\([^()]+\)/g)].find((m) => !isSettledGroup(m[0]) && !m[0].includes(','));
+      // Nor the power inside ln(e^2) or log(10^3): the logarithm undoes it
+      // exactly, which working it out to 7.3891 first would hide.
+      const match = [...working.matchAll(/\([^()]+\)/g)].find((m) => !isSettledGroup(m[0]) && !m[0].includes(',') && !/^\(\s*(?:e|pi)\s*\)$/.test(m[0])
+        && !(/(?<![a-z_])(?:ln|log)$/i.test(working.slice(0, m.index)) && /^\(\s*(?:e|\d+(?:\.\d+)?)\s*\^/.test(m[0])));
       if (!match) break;
       let value;
       try {
@@ -669,7 +672,15 @@ function showWorking(expr, steps) {
   // A leading minus on a worked-out value: -2^2 is -(2^2), so the sign is
   // applied after the exponent. A (−4) this routine wrote itself is a value.
   const bareMinus = (n, parent) => n.type === 'OperatorNode' && n.fn === 'unaryMinus' && n.args[0].type === 'ConstantNode' && parent?.type !== 'ParenthesisNode';
+  // ln(e^k), log(10^k), log_b(b^k): the logarithm undoes its base's power.
+  const baseOf = (n) => (n.fn?.name === 'ln' || n.args.length === 1 ? 'e' : n.args[1].toString());
+  // ln(e) and log(10) are the first power: k = 1.
+  const isBase = (n) => n.type === 'FunctionNode' && ['ln', 'log'].includes(n.fn?.name) && n.args[0].toString() === baseOf(n);
+  const undoesPower = (n) => isBase(n) || (n.type === 'FunctionNode' && ['ln', 'log'].includes(n.fn?.name)
+    && n.args[0].type === 'OperatorNode' && n.args[0].fn === 'pow' && n.args[0].args[0].toString() === baseOf(n)
+    && (() => { try { return Number.isFinite(n.args[0].args[1].evaluate()); } catch { return false; } })());
   const tiers = [
+    { intro: 'A logarithm undoes a power of its own base', pick: 'first', test: undoesPower },
     { intro: 'Evaluate the function', pick: 'first', test: (n) => n.type === 'FunctionNode' && n.args.length > 0 && n.args.every(isConstant) },
     { intro: 'Exponents first', pick: 'last', test: (n) => n.type === 'OperatorNode' && n.fn === 'pow' && n.args.every(isConstant) },
     { intro: 'The exponent binds tighter than a leading minus, so apply the sign afterwards', pick: 'first', test: bareMinus, root: true },
@@ -724,7 +735,12 @@ function showWorking(expr, steps) {
     // otherwise the decimal, by the change of base for a base other than 10
     // or e.
     let logNote = '';
-    if (target.type === 'FunctionNode' && ['log', 'ln'].includes(target.fn.name)) {
+    if (undoesPower(target)) {
+      const base = baseOf(target);
+      const tight = (n) => render(n).replace(/\s*\^\s*/g, '^');
+      const k = isBase(target) ? '1' : tight(target.args[0].args[1]);
+      logNote = `${mark(tight(target))} asks for the power of ${mark(base)} that gives ${mark(tight(target.args[0]))}, which is ${mark(k)}: a logarithm undoes a power of its own base, ${mark(`${base === 'e' ? 'ln' : base === '10' ? 'log' : `log_${base}`}(${base}^k) = k`)}`;
+    } else if (target.type === 'FunctionNode' && ['log', 'ln'].includes(target.fn.name)) {
       try {
         const a = target.args[0].evaluate();
         const b = target.fn.name === 'ln' || target.args.length === 1 ? Math.E : target.args[1].evaluate();
