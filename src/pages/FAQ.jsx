@@ -37,6 +37,10 @@ export default function FAQ() {
       answer: "No. Word problems are not supported: MasterMath works on the maths itself, typed as notation. Write the equation or expression the problem describes — a train that travels 120 miles in 2 hours has speed \"120/2\"; \"a number plus 7 is 12\" is \"x + 7 = 12\" — and it will solve that step by step."
     },
     {
+      question: "Can I ask a question in words?",
+      answer: "Short requests about the maths, yes: \"find the zeros of x^2 - 5x + 6\", \"the critical points of x^3 - 3x\", \"the period of 3sin(2x) + 1\", \"the amplitude of 3sin(x) + 4cos(x)\", \"the equation of the tangent line to x^2 at x = 3\", \"the inverse of 2x + 3\", \"convert 45 degrees to radians\", and \"x squared plus 1\" for x^2 + 1. A story problem is a different thing: see the question above."
+    },
+    {
       question: "Do I have to pick a topic?",
       answer: "No. The solver starts on Auto-detect, which reads the topic from what you type: d/dx, ∫ or lim for calculus, an equation, inequality or system for algebra, a trig function or ° for trigonometry, \"f(x) = …\" for functions, and plain numbers for arithmetic. A notice above the steps says what was detected. An expression on its own, like x² + 3x, is simplified and factored, and buttons offer to differentiate, integrate or analyse it instead. Choosing a topic yourself still works, and the solver remembers the one you used last."
     },

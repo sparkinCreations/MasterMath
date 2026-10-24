@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.55.0] - 2026-10-24
+
+The October 24 roadmap items: requests typed in words, tips chosen by
+method in the last two solvers, and four display gaps found while
+reproducing the 8.5/10 review.
+
+### Added
+
+- **Requests in words** (`requestSolver.js`), each refused before as
+  unreadable words:
+  - "the period of 3sin(2x) + 1" → π, exactly; a sum takes the least
+    common multiple of its terms' periods (sin(2x) + cos(3x) → 2π).
+    sin(x)² is refused rather than guessed; sin(x) + sin(πx) is proven not
+    periodic (the ratio of its periods is π). The wave is drawn over two
+    periods.
+  - "the amplitude of −3cos(2x) + 5" → 3, and 3sin(x) + 4cos(x) → 5 as one
+    wave of amplitude √(a² + b²). tan and waves of different frequencies
+    have none, and say so.
+  - "the equation of the tangent line to x^2 at x = 3" → y = 6x − 9: the
+    point, the slope f′(a), point–slope form, exact (y = x/e for ln(x) at
+    e), drawn with the curve. "at (3, 9)" checks the point is on the curve;
+    a corner (|x| at 0) has no tangent.
+  - "the inverse of 2x + 3" → (x − 3)/2: each operation on x undone in
+    turn, last first; (ax + b)/(cx + d) by cross-multiplying; a square root
+    gives the inverse's domain (√(x − 2) → x² + 2, for x ≥ 0). Checked by
+    f(f⁻¹(x)) = x. x², sin(x) and |x| are refused as not one-to-one, the
+    cubic formula as unreadable. Drawn with f, its mirror image in y = x.
+  - "convert 45 degrees to radians" → π/4, exactly as a multiple of π
+    (50° = 5π/18), and back (2π/3 radians = 120°; 1 radian ≈ 57.2958°).
+- The graph keeps a curve and its tangent line, or f and f⁻¹, on one
+  y-axis (`sharedAxis`), and names the point of contact.
+- FAQ "Can I ask a question in words?"; the User Manual's topic table lists
+  the new phrasings.
+
+### Changed
+
+- **Tips chosen by method in Functions and Limits** (roadmap P3). Functions
+  leads with the tip for its family — quadratic, periodic, logarithm,
+  rational, exponential, root, polynomial — instead of one list for every
+  function; Limits adds direct substitution, the conjugate, the squeeze
+  theorem, Taylor series, L'Hôpital and oscillation, where several fell to
+  "for limits at infinity…". `tests/tipsByMethod.test.js` solves one problem
+  per method in six solvers and fails when two lead with the same tip.
+
+### Fixed
+
+- A complex quadratic root reads (−3 ± i√31)/4, over one denominator, not
+  "-3/4 - 1/4*i*√31".
+- The derivative of erf(x) is named the error-function rule (it was the
+  power rule) and reads 2e^(−x²)/√π, not over pi^(1/2).
+- ln(e^2), ln(e) and log(10) are worked as the power they ask for (2, 1, 1),
+  not through the decimal 7.3891.
+- Partial fractions write ln(x² + 1) without bars (its argument is always
+  positive) and x/2 for the ambiguous "1/2x".
+- f⁻¹ typesets with its −1 (KaTeX showed f¹).
+- The range step of an exponential, a rational function's asymptote tip and
+  a conjugate-method mistake mark their formulas for typesetting.
+
 ## [1.54.0] - 2026-10-24
 
 An outside review (8.5/10: every supported problem right, the rest polish)

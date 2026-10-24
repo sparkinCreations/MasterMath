@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap (October 2026)
 
-**Version referenced:** 1.54.0 (written against 1.48.0, kept current since)
+**Version referenced:** 1.55.0 (written against 1.48.0, kept current since)
 **By:** sparkinCreations™
 **Last Updated:** October 24, 2026
 **Supersedes:** [`ROADMAP.md`](ROADMAP.md) (September 2026; 11/13 shipped, the two P4 items carry over below)
@@ -21,7 +21,7 @@
 9. [P4 — Carried Over: Sequences & Series; Practice Mode](#p4--carried-over-sequences--series-practice-mode)
 10. [Decided Against, and Why](#decided-against-and-why)
 11. [Known Engine Limitations](#known-engine-limitations)
-12. [Shipped October 22–24 (1.53.0–1.54.0)](#shipped-october-2224-15301540)
+12. [Shipped October 22–24 (1.53.0–1.55.0)](#shipped-october-2224-15301550)
 
 ---
 
@@ -54,8 +54,8 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P1~~ | ~~Implicit differentiation~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~`(1 + a/x)^(bx)` limits by a named technique~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~PDF export with typeset steps and the graph~~ | **Shipped in 1.52.0** | — |
-| P3 | Tips chosen by method, everywhere | Done for equations, inequalities, logarithms, roots and cancelling (1.53.2, 1.54.0); the Functions defaults and the trig and limits fallbacks remain | ½ day sweep |
-| P3 | Wordy requests and display gaps | "the period of", "the inverse of", "the equation of the tangent line", degrees ↔ radians; complex roots, erf, ln(e²), partial-fraction display | 1 day |
+| ~~P3~~ | ~~Tips chosen by method, everywhere~~ | **Shipped in 1.55.0** (equations, inequalities, logarithms and roots in 1.53.2–1.54.0; the Functions defaults and the limits fallbacks now): `tests/tipsByMethod.test.js` fails when two methods share a first tip | — |
+| ~~P3~~ | ~~Wordy requests and display gaps~~ | **Shipped in 1.55.0**: the period, amplitude, tangent-line equation, inverse and degrees ↔ radians; complex roots, erf, ln(e²), partial-fraction display. Average value, maximum on an interval, "is 17 prime" and rounding remain | ½ day for the rest |
 | P3 | Implicit curve plot | Implicit derivatives have no graph | ½ day |
 | ~~P3~~ | ~~General partial fractions within the budget~~ | **Shipped in 1.53.1**: under a second, improper fractions divided first | — |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
@@ -240,6 +240,13 @@ solvers. Sweep each `tips:` site, name the method that produced the
 result, and write the tip for that method. Add a unit test that fails when
 two different methods in one solver share the same tip array.
 
+**Shipped in 1.55.0.** Functions picks its tips by family (quadratic,
+periodic, logarithm, rational, exponential, root, polynomial); Limits by
+technique, now including direct substitution, the conjugate, the squeeze
+theorem, Taylor series, L'Hôpital and oscillation. `tests/tipsByMethod.test.js`
+solves one problem per method in six solvers and fails when two lead with
+the same tip.
+
 ---
 
 ## P3 — Wordy Requests and Display Gaps (October 24)
@@ -259,6 +266,16 @@ could not read.
 (−3 ± i√31)/4; the erf derivative is labelled the power rule and shows √π as
 pi^(1/2); ln(e²) is worked through the decimal 7.3891; partial-fraction
 steps write ln|x² + 1| (the bars are not needed) and an ambiguous "1/2x".
+
+**Shipped in 1.55.0** (`requestSolver.js`): the period (exact, the least
+common multiple for a sum; refused for sin(x)², proven not periodic for
+sin(x) + sin(πx)), the amplitude (|A|, and √(a² + b²) for a·sin + b·cos),
+the tangent line (point, slope, point–slope form; refused at a corner or a
+point off the curve), the inverse (operations undone one at a time, or
+(ax + b)/(cx + d) cross-multiplied; refused when not one-to-one, checked by
+f(f⁻¹(x)) = x) and degrees ↔ radians (exact as a multiple of π). All four
+display gaps are fixed. **Still open:** the average value on an interval,
+the maximum on an interval, "is 17 prime", "round … to two decimal places".
 
 ---
 
@@ -320,7 +337,7 @@ Honest refusals, each with a message that says so:
 
 ---
 
-## Shipped October 22–24 (1.53.0–1.54.0)
+## Shipped October 22–24 (1.53.0–1.55.0)
 
 | Release | What |
 |---|---|
@@ -328,3 +345,4 @@ Honest refusals, each with a message that says so:
 | 1.53.1 | Real roots of one equation in two unknowns in textbook form; cancelled factors state their zero; exact inequality endpoints; partial fractions within the budget |
 | 1.53.2 | The October test list (95 cases) in the suite; f′(x) notation read as a whole; one exponential isolated and logged exactly; each derivative rule named; tips by method for quadratics and inequalities |
 | 1.54.0 | Simplest radical form; logarithms worked as typed; word problems refused as such; request phrases read; one history entry per problem; typeset My Progress PDF; the toast off the theme button |
+| 1.55.0 | The period, amplitude, tangent-line equation, inverse and degrees ↔ radians typed in words; tips by method in Functions and Limits; complex roots, erf, ln(e²) and partial fractions displayed as a textbook would |
