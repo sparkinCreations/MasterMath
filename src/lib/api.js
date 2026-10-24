@@ -70,7 +70,7 @@ function looksLikeInequality(problem) {
 function detectCalculusIntent(problem) {
   const t = String(problem);
   if (/\bd\/d[a-z]\b|\bderivative\b|\bdifferentiate\b|\bdy\/dx\b/i.test(t)) return 'derivatives';
-  if (/∫|\bintegra(?:l|te)\b|\bantiderivative\b/i.test(t)) return 'integrals';
+  if (/∫|\bintegra(?:l|te)\b|\bantiderivative\b|\barea\s+under\b/i.test(t)) return 'integrals';
   if (/\blim(?:it)?\b|→|->|\bapproaches\b/i.test(t)) return 'limits';
   return null;
 }
@@ -209,9 +209,79 @@ function unknownWordInProblem(problem) {
   }) || null;
 }
 
+// Request phrases around the maths, read as what they ask for. Returns
+// { problem } with the phrase rewritten in notation the routing knows, or
+// { problem, topic, reason } when the phrase names a topic of its own
+// (critical points → Functions). Only phrases at the start of the input.
+function readRequestPhrases(text) {
+  let t = String(text).trim();
+  const verb = '(?:please\\s+)?(?:find|calculate|compute|evaluate|determine|what\\s+(?:is|are))';
+  // "solve the quadratic equation x^2 - 5x + 6 = 0", "simplify the expression …"
+  t = t.replace(/^(simplify|factor(?:ise|ize)?|expand|solve)\s+(?:completely\s+)?(?:the\s+)?(?:(?:quadratic|linear|cubic|polynomial|rational|following|given)\s+)?(?:expression|equation|polynomial|inequality|system(?:\s+of\s+equations)?)?\s*:?\s*(?=\S)/i, (m, v) => `${v.toLowerCase()} `);
+  // "calculate the definite integral of …", "find the derivative of …"
+  t = t.replace(new RegExp(`^${verb}\\s+(?:the\\s+)?(?:definite\\s+)?(integral|antiderivative|derivative|limit)\\s+of\\s+`, 'i'), (m, what) => `${what.toLowerCase()} of `);
+  // "find the zeros of x^2 - 5x + 6": the equation f = 0.
+  const zeros = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(?:zeros|zeroes|roots|solutions|x-intercepts)\\s+of\\s+(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?([^=<>]+)$`, 'i'));
+  if (zeros) return { problem: `${zeros[1].trim()} = 0` };
+  // "what is the slope of the tangent line to x^2 at x = 3": the derivative there.
+  const slope = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?slope\\s+of\\s+(?:the\\s+)?(?:tangent(?:\\s+line)?|curve)\\s+(?:to|of)\\s+(?:the\\s+curve\\s+)?(?:y\\s*=\\s*)?(.+?\\s+at\\s+[a-z]\\s*=\\s*.+)$`, 'i'));
+  if (slope) return { problem: `derivative of ${slope[1].trim()}` };
+  // "find the critical points of x^3 - 3x": the function's analysis. Not
+  // when an interval is given (the analysis is over the whole domain).
+  const analysis = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(critical\\s+points|inflection\\s+points|points\\s+of\\s+inflection|extrema|local\\s+(?:maximum|minimum|extrema)|turning\\s+points|vertex|domain(?:\\s+and\\s+range)?|range|asymptotes|intercepts)\\s+of\\s+(?:the\\s+(?:function|parabola|curve|graph)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?(.+)$`, 'i'));
+  if (analysis && !/\bon\b|\[|\binterval\b/i.test(analysis[2])) {
+    return { problem: analysis[2].trim(), topic: 'functions', reason: `the input asks for the ${analysis[1].toLowerCase().replace(/\s+/g, ' ')} of a function` };
+  }
+  // "find the gcd of 12 and 18"
+  const divisor = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(gcd|gcf|hcf|lcm|greatest\\s+common\\s+(?:divisor|factor)|highest\\s+common\\s+factor|least\\s+common\\s+multiple)\\s+of\\s+(\\d+)\\s*(?:,|and)\\s*(\\d+)\\s*[?.]?$`, 'i'));
+  if (divisor) return { problem: `${/^(?:lcm|least)/i.test(divisor[1]) ? 'lcm' : 'gcd'}(${divisor[2]}, ${divisor[3]})` };
+  return { problem: t };
+}
+
+// A word problem: a sentence about trains or apples, not notation. Its
+// words were glued together and refused as "itsspeed is not a known
+// function" (October 2026 review). Three or more words that are neither
+// maths nor an instruction ("find the second derivative of" has none) say it
+// is prose, with a number in it; the problem is refused as one, saying what
+// to type instead.
+const MATH_TALK = new Set(['derivative', 'derivatives', 'differentiate', 'differentiation', 'implicit', 'implicitly', 'second', 'third',
+  'fourth', 'first', 'slope', 'tangent', 'factor', 'factorise', 'factorize', 'expand', 'at', 'in', 'by', 'on', 'radians', 'degree',
+  'graph', 'plot', 'sketch', 'domain', 'range', 'point', 'roots', 'root', 'zero', 'zeros', 'intercept', 'intercepts', 'asymptote',
+  'asymptotes', 'maximum', 'minimum', 'max', 'min', 'exact', 'decimal', 'using', 'rule', 'parts', 'substitution', 'partial',
+  'fractions', 'fraction', 'function', 'given', 'let', 'squared', 'cubed', 'power', 'times', 'plus', 'minus', 'over', 'divided',
+  'multiplied', 'sum', 'difference', 'product', 'quotient', 'percent', 'square', 'cube', 'sine', 'cosine', 'tangent', 'natural',
+  'logarithm', 'differential', 'matrix', 'determinant', 'inverse', 'positive', 'negative', 'odd', 'even', 'per', 'cent']);
+function looksLikeWordProblem(problem) {
+  const words = String(problem).match(/[a-z]{2,}(?![a-z]|\s*\()/gi) || [];
+  const prose = words.filter((w) => {
+    const lower = w.toLowerCase();
+    return !KNOWN_WORDS.has(lower) && !INSTRUCTION_WORDS.has(lower) && !MATH_TALK.has(lower) && !/^d[a-z]$/.test(lower);
+  });
+  // A story problem gives its numbers ("120 miles in 2 hours"); a question
+  // with none ("determine whether the series converges") is not one.
+  return prose.length >= 3 && /\d/.test(problem);
+}
+const wordProblemRefusal = (problem) => unsupported({
+  input: problem,
+  reason: 'This reads as a word problem. Word problems are not supported: the solver works on mathematics typed as notation, not on a story about it.',
+  answer: 'Word problems are not supported',
+  tips: [
+    'Write the maths the problem describes: a train that travels 120 miles in 2 hours has speed "120/2".',
+    'An unknown becomes a letter: "a number plus 7 is 12" is "x + 7 = 12".',
+  ],
+});
+
+// The words of a request the solver could not read, glued together when the
+// spaces were taken out ("thecriticalpointsofx"): say so in plain terms
+// rather than calling that a function name (October 2026 review).
+const gluedWords = (word) => word.length >= 12 || /^(?:the|is|of)[a-z]{3,}/i.test(word);
+const unknownWordHint = (word) => (gluedWords(word)
+  ? 'The words in this problem could not be read as maths. Type the expression or equation itself, such as "x^3 - 3x" or "2x + 5 = 11", and choose a topic for what to do with it.'
+  : `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`);
+
 const unknownWordError = (problem, word) => parseError({
   input: problem,
-  hint: `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`,
+  hint: unknownWordHint(word),
   tips: ['Type the mathematics itself — an expression or an equation, such as "2x + 5 = 11" or "x^2 - 4".'],
 });
 
@@ -619,6 +689,40 @@ export async function solveProblem(problem, topic) {
     // "x squared", "e to the x", "is greater than", "x**3" → notation,
     // before routing reads it (plainEnglish.js).
     problem = readPlainEnglish(problem);
+    // The request phrases students type around the maths: "the", "the
+    // expression", "the quadratic equation", "the zeros of". Each word was
+    // glued to the maths and refused as one unknown word, or worse:
+    // "simplify the expression (x^2-1)/(x-1)" was answered
+    // "theexpression(x^2 - 1)/(x - 1)", marked Solved; "calculate the definite
+    // integral of x^2 from 0 to 3" was refused as improper (October 2026
+    // review sweep).
+    const request = readRequestPhrases(problem);
+    if (request.topic) {
+      const routed = await solveProblem(request.problem, request.topic);
+      if (topic === request.topic) return routed;
+      if (topic !== 'auto') return noteRouting(routed, topic, request.topic, request.reason);
+      // Under Auto-detect: the same notice and record as a detected topic.
+      if (!routed || !Array.isArray(routed.steps) || routed.status === 'parse_error') return routed;
+      const reason = request.reason.replace(/^the input\b/i, 'your input');
+      routed.steps = [`Detected as ${TOPIC_NAMES[request.topic]}: ${reason}.`, ...routed.steps];
+      routed.routing = { from: 'auto', to: request.topic, reason, detected: true };
+      routed.routedTopic = request.topic;
+      return routed;
+    }
+    problem = request.problem;
+
+    // "area under the curve x^2 from 0 to 1" is the definite integral, with
+    // a tip that it is the net area.
+    const areaUnder = /^\s*(?:find\s+)?(?:the\s+)?area\s+under\s/i.test(problem);
+    if (areaUnder) {
+      const result = await solveProblem(problem.replace(/^\s*(?:find\s+)?(?:the\s+)?area\s+under\s+(?:the\s+)?(?:curve\s+|graph\s+)?(?:of\s+)?(?:y\s*=\s*|f\s*\(\s*x\s*\)\s*=\s*)?/i, 'integral of '), topic);
+      if (result?.status === 'solved' && Array.isArray(result.tips)) {
+        result.tips = ['The area under a curve is its definite integral. Where the curve dips below the x-axis, that part counts as negative, so the integral is the net area; for the total area, integrate the absolute value.', ...result.tips];
+      }
+      return result;
+    }
+
+    if (looksLikeWordProblem(problem)) return finalizeResult(wordProblemRefusal(problem), problem);
 
     // Auto-detect: solve under the topic the input asks for, and say which.
     // The detected topic's own routing may move it again (a verb, a constant
@@ -915,7 +1019,7 @@ export async function solveProblem(problem, topic) {
               input: problem,
               hint: twoLetters
                 ? `"${word}" — two variables side by side. For a product, write ${word[0]}*${word[word.length - 1]}.`
-                : `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`,
+                : unknownWordHint(word),
               tips: ['Type the mathematics itself — an expression or an equation, such as "2x + 5 = 11" or "x^2 - 4".'],
             }), problem);
           }

@@ -51,8 +51,12 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={toast}>
       {children}
+      {/* Below the header (about 69 px tall): at top-4 the "Problem solved!"
+          toast sat over the theme button for its six seconds, so a click
+          there went to the toast and the theme seemed to take seconds to
+          switch (October 2026 review). */}
       <div
-        className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+        className="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none"
         role="region"
         aria-label="Notifications"
       >

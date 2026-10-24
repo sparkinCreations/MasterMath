@@ -333,7 +333,7 @@ export default function UserManual() {
             Navigate to "My Progress" from the sidebar to:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
-            <li>View all problems you've solved</li>
+            <li>View all problems you've solved: one entry per problem, with how many times you have solved it</li>
             <li>See your weekly activity and total problems completed</li>
             <li>Track how many different topics you've covered</li>
             <li>Review past solutions anytime</li>

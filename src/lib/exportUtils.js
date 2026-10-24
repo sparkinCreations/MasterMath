@@ -212,8 +212,32 @@ export function exportSolutionAsJSON(problem, topic, solution) {
 }
 
 // Export progress history as PDF
+// The history PDF: typeset (pdfTypeset.js) wherever a DOM and a canvas are
+// available, the plain-text one below otherwise. Resolves to 'typeset' or
+// 'text', the kind saved.
 export async function exportAsPDF(problems, topicLabels) {
   const jsPDF = await loadJsPDF();
+  if (typeof document !== 'undefined') {
+    try {
+      const { buildProgressPDF } = await import('./pdfTypeset.js');
+      const doc = await buildProgressPDF(jsPDF, {
+        totals: historyTotalsText(problems),
+        generated: new Date().toLocaleDateString(),
+        entries: problems.map((p) => ({
+          topic: topicLabels[p.topic] || p.topic,
+          date: new Date(p.createdAt).toLocaleDateString(),
+          problem: p.problem,
+          answer: getSolutionText(p.solution),
+          statusLabel: exportStatus(p.solution).label,
+          solveCount: p.solveCount || 1,
+        })),
+      });
+      doc.save('mastermath-progress.pdf');
+      return 'typeset';
+    } catch (error) {
+      console.warn('Typeset PDF failed; exporting the plain-text PDF instead.', error);
+    }
+  }
   const doc = new jsPDF();
 
   // Title
@@ -268,6 +292,7 @@ export async function exportAsPDF(problems, topicLabels) {
   });
 
   doc.save('mastermath-progress.pdf');
+  return 'text';
 }
 
 // Export individual solution as PDF: typeset (pdfTypeset.js — KaTeX steps

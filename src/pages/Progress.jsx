@@ -235,6 +235,11 @@ export default function Progress() {
                           {statusLabel(p.solution.status)}
                         </span>
                       )}
+                      {p.solveCount > 1 && (
+                        <span className="px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-100 text-xs font-medium">
+                          Solved {p.solveCount} times
+                        </span>
+                      )}
                     </span>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
                       {new Date(p.createdAt).toLocaleDateString()}

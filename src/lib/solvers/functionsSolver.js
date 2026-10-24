@@ -213,7 +213,8 @@ function parseRoots(raw) {
       const v = math.evaluate(p.trim().replace(/\bi\b/, 'NaN'));
       numeric = typeof v === 'number' ? v : NaN;
     } catch { numeric = NaN; }
-    return { display: beautify(p.trim()), numeric };
+    // Algebrite's 3^(1/2) is shown as √3 (x-intercepts at x = -√3, 0, √3).
+    return { display: beautify(p.trim()).replace(/(\d+)\^\(1\/2\)/g, '√$1').replace(/(\d+)\^\(1\/3\)/g, '∛$1'), numeric };
   }).filter((r) => Number.isFinite(r.numeric)); // real roots only
 }
 

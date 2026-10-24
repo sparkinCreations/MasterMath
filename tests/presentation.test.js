@@ -10,9 +10,9 @@ test('arithmetic: rational results are shown as fractions first, decimal alongsi
   assert.equal((await solveProblem('1/3+1/6', 'other')).answer, '1/2 (= 0.5)');
   assert.equal((await solveProblem('2/3', 'other')).answer, '2/3 (= 0.6667)');
   assert.equal((await solveProblem('0.1+0.2', 'other')).answer, '3/10 (= 0.3)');
-  // integers stay integers; irrationals stay decimal
+  // integers stay integers; a root stays exact, the decimal alongside (1.54.0)
   assert.equal((await solveProblem('(5 + 3) * 4 - 2^3', 'other')).answer, '24');
-  assert.equal((await solveProblem('sqrt(2)', 'other')).answer, '1.4142');
+  assert.equal((await solveProblem('sqrt(2)', 'other')).answer, '√2 (≈ 1.4142)');
 });
 
 test('arithmetic: constant expressions in e and π keep the exact form', async () => {

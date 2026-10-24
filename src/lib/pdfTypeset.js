@@ -176,8 +176,39 @@ const waitForImages = (root) =>
   Promise.all([...root.querySelectorAll('img')].map((img) => (img.decode ? img.decode().catch(() => {}) : null)));
 
 export async function buildTypesetPDF(jsPDF, { title, problem, status, solution, graph }) {
-  const blocks = sheetBlocks({ title, problem, status, solution, graph });
+  return renderBlocks(jsPDF, sheetBlocks({ title, problem, status, solution, graph }));
+}
 
+// The My Progress history as a typeset PDF: each entry's problem and answer
+// set by the same renderer as the page, so ±, √, ∞ and x² print as
+// themselves (the plain-text PDF spelled ∞ "infinity"; October 2026 review).
+// Graphs are in each solution's own PDF: history keeps the answer, not the
+// chart. `entries` are { topic, date, problem, answer, statusLabel, solveCount }.
+export async function buildProgressPDF(jsPDF, { totals, generated, entries }) {
+  const blocks = [{
+    html: `<div style="font-weight:800;font-size:22px;color:${INDIGO};margin-bottom:6px">MasterMath Progress</div>
+      <div style="color:${INK}">${escapeHtml(totals)}</div>
+      <div style="color:${MUTED};font-size:12px;margin-bottom:8px">Generated: ${escapeHtml(generated)}</div>`,
+    text: ['MasterMath Progress', totals, `Generated: ${generated}`].join('\n'),
+  }];
+  entries.forEach((e, i) => {
+    const badge = (label, bg, ink) => `<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:${bg};color:${ink};font-size:11px;font-weight:600">${escapeHtml(label)}</span>`;
+    blocks.push({
+      html: `<div style="border:1px solid #c7d2fe;border-radius:10px;padding:10px 14px;margin:6px 0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+            <span><span style="font-weight:700;color:${INDIGO}">${i + 1}. ${escapeHtml(e.topic)}</span>${e.statusLabel ? badge(e.statusLabel, THEMES.failed.bg, THEMES.failed.ink) : ''}${e.solveCount > 1 ? badge(`Solved ${e.solveCount} times`, '#e5e7eb', '#374151') : ''}</span>
+            <span style="color:${MUTED};font-size:12px">${escapeHtml(e.date)}</span>
+          </div>
+          <div style="color:${INK};font-weight:600;word-break:break-word">${mathTextToHtml(e.problem, { mode: 'input' })}</div>
+          ${e.answer ? `<div style="color:#374151;margin-top:4px;line-height:1.6">${e.statusLabel ? 'Result' : 'Solution'}: ${mathTextToHtml(e.answer)}</div>` : ''}
+        </div>`,
+      text: [`${i + 1}. ${e.topic} (${e.date})${e.statusLabel ? ` - ${e.statusLabel}` : ''}`, `Problem: ${e.problem}`, e.answer ? `${e.statusLabel ? 'Result' : 'Solution'}: ${stripMathMarkers(e.answer)}` : ''].filter(Boolean).join('\n'),
+    });
+  });
+  return renderBlocks(jsPDF, blocks);
+}
+
+async function renderBlocks(jsPDF, blocks) {
   // Off screen, at the sheet's real width so lines wrap as they will print.
   const sheet = el(
     'div',

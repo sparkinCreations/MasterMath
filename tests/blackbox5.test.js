@@ -60,11 +60,11 @@ test('trig equations report solutions in degrees when the angle unit is degrees'
 
 test('decimal places setting flows through the numeric answers', async () => {
   resetSettings(); saveSettings({ decimalPlaces: 2 });
-  assert.equal((await solveProblem('sqrt(2)', 'other')).answer, '1.41');
+  assert.equal((await solveProblem('sqrt(2)', 'other')).answer, '√2 (≈ 1.41)'); // exact first (1.54.0), the decimal to the setting
   assert.equal((await solveProblem('cos(1)', 'trigonometry')).answer, '0.54');
   assert.match((await solveProblem('x^2 - 3 > 0', 'algebra')).answer, /1\.73/);
   saveSettings({ decimalPlaces: 6 });
-  assert.equal((await solveProblem('sqrt(2)', 'other')).answer, '1.414214');
+  assert.equal((await solveProblem('sqrt(2)', 'other')).answer, '√2 (≈ 1.414214)');
   assert.match((await solveProblem('∫_0^1 sin(x) dx', 'integrals')).answer, /0\.459698/);
   resetSettings();
 });

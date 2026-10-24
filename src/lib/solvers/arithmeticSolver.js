@@ -23,13 +23,64 @@ function rewritePercent(text) {
     .replace(/(\d+(?:\.\d+)?)\s*%(?![\w(])/g, '($1/100)');
 }
 
+// The parser writes a typed log(8) as (log(8)/log(10)) and log(8, 2) as
+// (log(8)/log(2)), mathjs's natural log over the base's. Folded back into
+// one call, log(8, 10), the working evaluates the logarithm the student
+// typed: the steps read "log(8) = 0.9031", not "log(8) = 2.0794" (the
+// natural log under a base-10 name) over "log(10) = 2.3026" (October 2026
+// review).
+const LOG_QUOTIENT = /\(log\(((?:[^()]|\([^()]*\))+)\)\/log\((\d+(?:\.\d+)?)\)\)/g;
+const foldLogs = (text) => String(text).replace(LOG_QUOTIENT, 'log($1, $2)');
+// mathjs's one-argument log → ln (first, so the log(a) written next is not
+// caught by it), log(a, 10) → log(a), log(a, b) → log_b(a).
+function logNotation(text) {
+  return String(text)
+    .replace(/(?<![a-z_])log\(((?:[^(),]|\([^()]*\))+)\)/g, 'ln($1)')
+    .replace(/(?<![a-z_])log\(((?:[^(),]|\([^()]*\))+),\s*10\)/g, 'log($1)')
+    .replace(/(?<![a-z_])log\(((?:[^(),]|\([^()]*\))+),\s*([^(),]+)\)/g, 'log_$2($1)');
+}
+
+// log_b(a) as an exact fraction when b^(n/d) = a for a small d: log_2(8) = 3,
+// log_8(4) = 2/3. Null otherwise.
+function exactLog(a, b) {
+  if (!(a > 0) || !(b > 0) || b === 1) return null;
+  const k = Math.log(a) / Math.log(b);
+  for (let d = 1; d <= 12; d += 1) {
+    const n = Math.round(k * d);
+    if (Math.abs(b ** (n / d) - a) <= 1e-12 * Math.max(1, Math.abs(a))) {
+      const g = gcd(Math.abs(n), d) || 1;
+      return { n: n / g, d: d / g, text: d / g === 1 ? `${n / g}` : `${n / g}/${d / g}` };
+    }
+  }
+  return null;
+}
+
+// √n and ∛n in simplest radical form: √50 = 5√2, ∛54 = 3∛2. The input must
+// be just the root of a whole number; null otherwise, or when nothing comes
+// out (√7) or everything does (√49).
+function simplifiedRoot(expr) {
+  const t = String(expr).replace(/\s+/g, '');
+  const m = t.match(/^(?:sqrt\((\d+)\)|(\d+)\^\(1\/2\)|cbrt\((\d+)\)|(\d+)\^\(1\/3\)|nthRoot\((\d+),3\))$/);
+  if (!m) return null;
+  const N = Number(m[1] || m[2] || m[3] || m[4] || m[5]);
+  const index = m[1] || m[2] ? 2 : 3;
+  if (!Number.isSafeInteger(N) || N < 2 || N > 1e9) return null;
+  let k = 1;
+  for (let f = 2; f ** index <= N; f += 1) if (N % (f ** index) === 0) k = f;
+  const inside = N / k ** index;
+  if (inside === 1) return null;
+  const sym = index === 2 ? '√' : '∛';
+  return { N, k, inside, index, sym, text: `${k === 1 ? '' : k}${sym}${inside}` };
+}
+
 export function solveArithmetic(expression) {
   try {
-    const original = expression.trim();
+    const typed = foldLogs(expression.trim());
+    const original = logNotation(typed);
     // Under Arithmetic there are no variables, so an "x" between two numbers
     // is the multiplication sign a student reached for: "2 x 3" → 2*3.
     // (parseMathExpression will have removed the spaces already: "2x3".)
-    const cleanedBase = rewritePercent(original).replace(/(\d|\))\s*x\s*(\d|\()/gi, '$1*$2');
+    const cleanedBase = rewritePercent(typed).replace(/(\d|\))\s*x\s*(\d|\()/gi, '$1*$2');
     let cleaned = cleanedBase;
 
     // ∞ is not a number, but students type it. Read it as mathjs's Infinity
@@ -156,10 +207,10 @@ export function solveArithmetic(expression) {
     if (result && typeof result === 'object' && 'im' in result && Math.abs(result.im) > 0) {
       steps.push(`There is no real number here — the result is a complex number, written with ${mark('i = √(−1)')}.`);
     }
-    if (/%/.test(original) && cleanedBase !== original) {
-      steps.push(`Percent means "per hundred": rewrite ${asMath(original)} as ${mark(cleanedBase)}.`);
-    } else if (cleanedBase !== original) {
-      steps.push(`Reading "x" between numbers as multiplication: ${mark(cleanedBase)}.`);
+    if (/%/.test(typed) && cleanedBase !== typed) {
+      steps.push(`Percent means "per hundred": rewrite ${asMath(original)} as ${mark(logNotation(cleanedBase))}.`);
+    } else if (cleanedBase !== typed) {
+      steps.push(`Reading "x" between numbers as multiplication: ${mark(logNotation(cleanedBase))}.`);
     }
 
     // Show the real reduction by collapsing the innermost parentheses one at a
@@ -174,7 +225,8 @@ export function solveArithmetic(expression) {
       // just a signed number — the (-1) in sqrt(-1) — or an already-reduced
       // fraction — the (1/3) in (1/3)*6 — is left as it is; "working it out"
       // gave (-1) again, 25 times over.
-      const match = [...working.matchAll(/\([^()]+\)/g)].find((m) => !isSettledGroup(m[0]));
+      // An argument list, the (8, 2) of log(8, 2), is not a group to work out.
+      const match = [...working.matchAll(/\([^()]+\)/g)].find((m) => !isSettledGroup(m[0]) && !m[0].includes(','));
       if (!match) break;
       let value;
       try {
@@ -184,10 +236,12 @@ export function solveArithmetic(expression) {
       }
       const asFraction = exactFraction(match[0]);
       const shown = asFraction ? fractionText(asFraction) : formatNumber(value);
-      const substitution = asFraction || Number(value) < 0 ? `(${shown})` : shown;
+      // A function's argument keeps its brackets: ln(e^2) → ln(7.3891), not ln7.3891.
+      const isArgument = /[a-z_]$/i.test(working.slice(0, match.index));
+      const substitution = asFraction || Number(value) < 0 || isArgument ? `(${shown})` : shown;
       const next = working.slice(0, match.index) + substitution + working.slice(match.index + match[0].length);
       if (next === working) break;
-      steps.push(`Work inside the parentheses: ${mark(`${match[0]} = ${shown}  →  ${next}`)}`);
+      steps.push(`Work inside the parentheses: ${mark(`${logNotation(match[0])} = ${shown}  →  ${logNotation(next)}`)}`);
       working = next;
     }
 
@@ -204,7 +258,16 @@ export function solveArithmetic(expression) {
       describeOrder(working, steps);
     }
 
-    const shownAnswer = formatArithmeticResult(result, cleaned) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
+    // √50: the working evaluated it; the answer is the simplest radical form,
+    // which the tips teach (October 2026 review: "only gives 7.0711").
+    const root = simplifiedRoot(cleaned) || simplifiedRoot(working);
+    if (root && root.k > 1) {
+      const power = root.k ** root.index;
+      const kind = root.index === 2 ? 'perfect square' : 'perfect cube';
+      steps.push(`Simplify the root: pull out the largest ${kind} factor, ${mark(`${root.N} = ${power} × ${root.inside}`)}, so ${mark(`${root.sym}${root.N} = ${root.sym}${power}·${root.sym}${root.inside} = ${root.text}`)}.`);
+    }
+
+    const shownAnswer = formatArithmeticResult(result, cleaned, root) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
     steps.push(`Final answer: ${mark(shownAnswer)}`);
 
     const guidance = fractionWork || arithmeticGuidance(steps, cleaned);
@@ -464,6 +527,22 @@ function arithmeticGuidance(steps, expr) {
       ],
     };
   }
+  // A logarithm: what it asks, which base each name means, and the change of
+  // base. (ln(8) and log(8) were given the PEMDAS list; October 2026 review.)
+  if (/(?<![a-z_])(?:log|ln)\(/i.test(expr)) {
+    return {
+      tips: [
+        `${mark('log_b(a)')} asks for the power of ${mark('b')} that gives ${mark('a')}: ${mark('log_b(a) = k')} means ${mark('b^k = a')}, so ${mark('log_2(8) = 3')} because ${mark('2^3 = 8')}.`,
+        `${mark('ln')} is the natural logarithm, base ${mark('e')}. For a base other than ${mark('10')} or ${mark('e')}, change base: ${mark('log_b(a) = ln(a)/ln(b)')}.`,
+        `The rules: ${mark('log(xy) = log(x) + log(y)')}, ${mark('log(x/y) = log(x) − log(y)')}, ${mark('log(x^n) = n·log(x)')}.`,
+      ],
+      common_mistakes: [
+        `Mixing up ${mark('log')} and ${mark('ln')}: ${mark('log(8) ≈ 0.9031')} but ${mark('ln(8) ≈ 2.0794')}.`,
+        `Splitting ${mark('log(a + b)')} into ${mark('log(a) + log(b)')}: the product rule is for ${mark('log(ab)')}.`,
+        `Taking the logarithm of ${mark('0')} or a negative number: it is defined only for positive numbers.`,
+      ],
+    };
+  }
   if (/\b(?:sqrt|cbrt|nthRoot)\b|√|\^\s*\(?\d+\/\d+\)?/i.test(expr)) {
     return {
       tips: [
@@ -597,8 +676,8 @@ function showWorking(expr, steps) {
     { intro: 'Multiplication and division next, left to right', pick: 'first', test: (n) => n.type === 'OperatorNode' && ['multiply', 'divide', 'mod'].includes(n.fn) && n.args.every(isConstant) },
     { intro: 'Addition and subtraction last, left to right', pick: 'first', test: (n) => n.type === 'OperatorNode' && ['add', 'subtract'].includes(n.fn) && n.args.every(isConstant) },
   ];
-  const render = (node) => node.toString({ implicit: 'show' })
-    .replace(/\b\d+\.\d{5,}\b/g, (t) => formatNumber(Number(t)));
+  const render = (node) => logNotation(node.toString({ implicit: 'show' })
+    .replace(/\b\d+\.\d{5,}\b/g, (t) => formatNumber(Number(t))));
   const lines = [];
   let lastTier = -1;
   for (let guard = 0; guard < 40; guard += 1) {
@@ -632,11 +711,35 @@ function showWorking(expr, steps) {
     tree = target === tree ? replacement : tree.transform((n) => (n === target ? replacement : n));
     const opText = target.type === 'OperatorNode' && target.fn === 'unaryMinus' ? `-(${render(target.args[0])})` : render(target);
     let valueText = formatNumber(value);
-    if (!Number.isInteger(value)) {
+    // Not for rounded decimals a step wrote itself (0.9031 + 0.301 is not
+    // 12041/10000 exactly).
+    if (!Number.isInteger(value) && !/\d\.\d{4,}/.test(opText)) {
       try {
         const fr = exact.evaluate(opText);
         if (exact.typeOf(fr) === 'Fraction' && fr.d > 1 && fr.d <= 10000) valueText = `${fr.s < 0 ? '-' : ''}${fr.n}/${fr.d} (≈ ${formatNumber(value)})`;
       } catch { /* not rational */ }
+    }
+    // A logarithm is a question about a power: log_b(a) is the k with
+    // b^k = a. Exact when it is a fraction (log_2(8) = 3, log_8(4) = 2/3);
+    // otherwise the decimal, by the change of base for a base other than 10
+    // or e.
+    let logNote = '';
+    if (target.type === 'FunctionNode' && ['log', 'ln'].includes(target.fn.name)) {
+      try {
+        const a = target.args[0].evaluate();
+        const b = target.fn.name === 'ln' || target.args.length === 1 ? Math.E : target.args[1].evaluate();
+        const name = render(target);
+        const baseText = b === Math.E ? 'e' : formatNumber(b);
+        const ex = b === Math.E ? null : exactLog(a, b);
+        if (ex) {
+          valueText = ex.d === 1 ? ex.text : `${ex.text} (≈ ${formatNumber(value)})`;
+          logNote = `${mark(name)} asks for the power of ${mark(baseText)} that gives ${mark(formatNumber(a))}: ${mark(`${baseText}^${ex.d === 1 && ex.n >= 0 ? ex.text : `(${ex.text})`} = ${formatNumber(a)}`)}, so ${mark(`${name} = ${ex.text}`)}`;
+        } else if (b === 10 || b === Math.E) {
+          logNote = `${mark(name)} asks for the power of ${mark(baseText)} that gives ${mark(formatNumber(a))}: ${mark(`${baseText}^${value < 0 ? `(${formatNumber(value)})` : formatNumber(value)} ≈ ${formatNumber(a)}`)}, so ${mark(`${name} ≈ ${formatNumber(value)}`)}`;
+        } else {
+          logNote = `${mark(name)} asks for the power of ${mark(baseText)} that gives ${mark(formatNumber(a))}. It is not a whole number or a simple fraction, so use the change of base: ${mark(`${name} = ln(${formatNumber(a)})/ln(${baseText}) = ${formatNumber(Math.log(a))}/${formatNumber(Math.log(b))} ≈ ${formatNumber(value)}`)}`;
+        }
+      } catch { /* the plain evaluation line stands */ }
     }
     const verb = target.type === 'FunctionNode' ? `Evaluate ${target.fn.name}` : VERBS[target.fn] || 'Work out';
     const lead = tierIndex !== lastTier ? `${tiers[tierIndex].intro}: ` : `Then ${verb.toLowerCase()}: `;
@@ -658,7 +761,8 @@ function showWorking(expr, steps) {
         }
       } catch { /* no note */ }
     }
-    lines.push(note ? `${lead}${mark(opText)}${note}${remaining ? mark(remaining) : ''}` : `${lead}${mark(`${opText} = ${valueText}${remaining}`)}`);
+    if (logNote) lines.push(`${logNote}${remaining ? `, and the expression becomes ${mark(remaining.replace(/^\s*→\s*/, ''))}.` : '.'}`);
+    else lines.push(note ? `${lead}${mark(opText)}${note}${remaining ? mark(remaining) : ''}` : `${lead}${mark(`${opText} = ${valueText}${remaining}`)}`);
   }
   if (!isConstant(tree)) return false;
   for (const line of lines) steps.push(line);
@@ -682,7 +786,7 @@ function describeOrder(expr, steps) {
 // decimal alongside ("1/2 (= 0.5)"); a constant expression in e or π keeps
 // its exact form with the approximation alongside ("e^2 ≈ 7.3891"); anything
 // else is the plain number. Integers stay integers.
-function formatArithmeticResult(result, cleaned) {
+function formatArithmeticResult(result, cleaned, root = simplifiedRoot(cleaned)) {
   // Complex (sqrt(-1), ln(-1)): format each part to the decimal setting,
   // and write a clean multiple of π as such (ln(-1) = πi, not 3.14159…i).
   if (result && typeof result === 'object' && 'im' in result && typeof result.re === 'number') {
@@ -710,6 +814,15 @@ function formatArithmeticResult(result, cleaned) {
     return formatted;
   }
   if (Number.isInteger(result)) return formatted;
+
+  // √50 → 5√2, ∛54 → 3∛2, √7 stays √7: exact, the decimal alongside.
+  if (root) return `${root.text} (≈ ${formatted})`;
+  // log_8(4) → 2/3.
+  const log = String(cleaned).replace(/\s+/g, '').match(/^log\(([\d.]+),([\d.]+)\)$/);
+  if (log) {
+    const ex = exactLog(Number(log[1]), Number(log[2]));
+    if (ex && ex.d > 1) return `${ex.text} (≈ ${formatted})`;
+  }
 
   // Exact rational?
   try {

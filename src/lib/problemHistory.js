@@ -4,7 +4,7 @@
 // these, and importing api.js for them pulled mathjs (79 kB gzipped) onto the
 // main thread of each page, where nothing else needs it. Solving happens in
 // the worker (budgetedSolver.js).
-import { getAllProblems, addProblem, updateProblem, clearAllProblems } from './indexedDB.js';
+import { getAllProblems, addProblem, updateProblem, deleteProblem, clearAllProblems } from './indexedDB.js';
 import { validateProblemHistory } from './validation.js';
 
 // The storage wrappers below replace the underlying error with a message fit
@@ -18,10 +18,34 @@ import { validateProblemHistory } from './validation.js';
 // flattening them into "Failed to save problem. Please try again." told
 // nobody anything.
 
+// One entry per problem: the same problem under the same topic, solved
+// again, is the same entry, not a new row (October 2026 review: "My Progress
+// lists the same problem again every time you solve it"). Spacing does not
+// make a problem different.
+export const problemKey = (p) => `${p.topic}\u0000${String(p.problem).replace(/\s+/g, '')}`;
+
+// Entries saved before 1.54.0 may repeat: merged on read, newest first, with
+// how many times the problem was solved and when it was first.
+export function collapseRepeats(problems) {
+  const byKey = new Map();
+  for (const p of problems) {
+    const key = problemKey(p);
+    const kept = byKey.get(key);
+    if (!kept) {
+      byKey.set(key, { ...p, solveCount: p.solveCount || 1, firstSolvedAt: p.firstSolvedAt || p.createdAt });
+      continue;
+    }
+    kept.solveCount += p.solveCount || 1;
+    const first = p.firstSolvedAt || p.createdAt;
+    if (first && (!kept.firstSolvedAt || new Date(first) < new Date(kept.firstSolvedAt))) kept.firstSolvedAt = first;
+  }
+  return [...byKey.values()];
+}
+
 // Fetch all problem history from local IndexedDB
 export async function fetchProblemHistory() {
   try {
-    return await getAllProblems();
+    return collapseRepeats(await getAllProblems());
   } catch (error) {
     console.error('Error fetching problem history:', error);
     throw new Error('Failed to load problem history. Please try again.', { cause: error });
@@ -38,6 +62,22 @@ export async function createProblemHistory(problemData) {
   }
 
   try {
+    // Solved before: update that entry (its newest solution, moved to the
+    // top, counted) rather than adding a row.
+    const key = problemKey(problemData);
+    const existing = (await getAllProblems()).filter((p) => problemKey(p) === key);
+    if (existing.length > 0) {
+      const [latest, ...older] = existing;
+      const solveCount = existing.reduce((n, p) => n + (p.solveCount || 1), 0) + 1;
+      // Repeats saved before 1.54.0 fold into this one entry.
+      for (const p of older) await deleteProblem(p.id);
+      return await updateProblem(latest.id, {
+        ...problemData,
+        createdAt: new Date().toISOString(),
+        firstSolvedAt: latest.firstSolvedAt || existing[existing.length - 1].createdAt,
+        solveCount,
+      });
+    }
     return await addProblem(problemData);
   } catch (error) {
     console.error('Error creating problem history:', error);

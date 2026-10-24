@@ -101,7 +101,11 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    `htmlAndMathml` output — the MathML is what screen readers get);
    `GraphViewer` re-samples `graph.expression` for the window on screen.
 6. Solved / undefined / indeterminate / diverges results are saved to
-   IndexedDB (`MathMasterDB` — legacy name, keep it) under `routedTopic`.
+   IndexedDB (`MathMasterDB` — legacy name, keep it) under `routedTopic`,
+   one entry per problem and topic: a repeat solve updates that entry
+   (`solveCount`), and older repeats are merged on read (`collapseRepeats`
+   in `problemHistory.js`). A word problem is refused up front
+   (`looksLikeWordProblem`: "Word problems are not supported").
 
 ## Solvers (`src/lib/solvers/`)
 
@@ -209,8 +213,10 @@ A solution's PDF is typeset (`pdfTypeset.js`): an off-screen light sheet of
 KaTeX HTML (`mathRender.js`, the same renderer as the page) and the graph's
 SVG, captured page by page with html2canvas-pro (pages break between
 blocks), placed as JPEG images with each block's words as invisible text
-for search. Any failure falls back to the plain-text jsPDF document
-(`pdfSafe` transliterates to Latin-1). The smoke test opens the PDF (light
+for search. The My Progress PDF is typeset the same way
+(`buildProgressPDF`). Any failure falls back to the plain-text jsPDF document
+(`pdfSafe` transliterates to Latin-1). Toasts open below the header
+(`top-20`): at the top they covered the theme button. The smoke test opens the PDF (light
 and dark, desktop and phone). html2canvas-pro is pinned at 2.5.0: 2.5.1+
 declares `node >= 24` and CI/Netlify run 22. The original html2canvas is
 not used directly: it measures font baselines in a box that inherits the
