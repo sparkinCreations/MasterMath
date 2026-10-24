@@ -1,8 +1,8 @@
 # MasterMath — Future Work Roadmap (October 2026)
 
-**Version referenced:** 1.50.0 (written against 1.48.0)
+**Version referenced:** 1.54.0 (written against 1.48.0, kept current since)
 **By:** sparkinCreations™
-**Last Updated:** October 21, 2026
+**Last Updated:** October 24, 2026
 **Supersedes:** [`ROADMAP.md`](ROADMAP.md) (September 2026; 11/13 shipped, the two P4 items carry over below)
 **Source:** [`../evaluations/2026-10/REVIEW-LOG-2026-10.md`](../evaluations/2026-10/REVIEW-LOG-2026-10.md) — six outside review rounds against v1.41–v1.48, every claim reproduced before it was accepted
 
@@ -17,9 +17,11 @@
 5. [P2 — Limits of the Form (1 + a/x)^(bx): a Named Technique](#p2--limits-of-the-form-1--axbx-a-named-technique)
 6. [P2 — PDF Export With Typeset Steps and the Graph](#p2--pdf-export-with-typeset-steps-and-the-graph)
 7. [P3 — Tips Chosen by Method, Everywhere](#p3--tips-chosen-by-method-everywhere)
-8. [P4 — Carried Over: Sequences & Series; Practice Mode](#p4--carried-over-sequences--series-practice-mode)
-9. [Decided Against, and Why](#decided-against-and-why)
-10. [Known Engine Limitations](#known-engine-limitations)
+8. [P3 — Wordy Requests and Display Gaps (October 24)](#p3--wordy-requests-and-display-gaps-october-24)
+9. [P4 — Carried Over: Sequences & Series; Practice Mode](#p4--carried-over-sequences--series-practice-mode)
+10. [Decided Against, and Why](#decided-against-and-why)
+11. [Known Engine Limitations](#known-engine-limitations)
+12. [Shipped October 22–24 (1.53.0–1.54.0)](#shipped-october-2224-15301540)
 
 ---
 
@@ -52,7 +54,9 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P1~~ | ~~Implicit differentiation~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~`(1 + a/x)^(bx)` limits by a named technique~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~PDF export with typeset steps and the graph~~ | **Shipped in 1.52.0** | — |
-| P3 | Tips chosen by method, everywhere | Reviews still find generic or off-topic tips on some paths | ½ day sweep |
+| P3 | Tips chosen by method, everywhere | Done for equations, inequalities, logarithms, roots and cancelling (1.53.2, 1.54.0); the Functions defaults and the trig and limits fallbacks remain | ½ day sweep |
+| P3 | Wordy requests and display gaps | "the period of", "the inverse of", "the equation of the tangent line", degrees ↔ radians; complex roots, erf, ln(e²), partial-fraction display | 1 day |
+| P3 | Implicit curve plot | Implicit derivatives have no graph | ½ day |
 | ~~P3~~ | ~~General partial fractions within the budget~~ | **Shipped in 1.53.1**: under a second, improper fractions divided first | — |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
 
@@ -238,6 +242,26 @@ two different methods in one solver share the same tip array.
 
 ---
 
+## P3 — Wordy Requests and Display Gaps (October 24)
+
+Found while reproducing the 8.5/10 review (round 13 of the review log).
+
+**Requests typed in words** that are still refused as unreadable: "the
+period of sin(2x)", "the amplitude of 3sin(x)", "the equation of the
+tangent line to x^2 at x = 1", "the inverse of 2x + 3", "convert 30 degrees
+to radians", "the average value of x^2 on [0, 3]", "the maximum of … on an
+interval", "is 17 prime", "round … to two decimal places". 1.54.0 reads the
+common ones (zeros, critical points, vertex, slope of the tangent, gcd/lcm,
+the definite integral, area under a curve) and says the rest are words it
+could not read.
+
+**Display:** a complex quadratic root shows as "-3/4 - 1/4\*i\*√31", not
+(−3 ± i√31)/4; the erf derivative is labelled the power rule and shows √π as
+pi^(1/2); ln(e²) is worked through the decimal 7.3891; partial-fraction
+steps write ln|x² + 1| (the bars are not needed) and an ambiguous "1/2x".
+
+---
+
 ## P4 — Carried Over: Sequences & Series; Practice Mode
 
 Unchanged from [`ROADMAP.md`](ROADMAP.md#p4--new-topic-sequences--series);
@@ -252,7 +276,7 @@ Recorded so they are not re-opened without a new argument.
 | Suggestion | Decision | Reason |
 |---|---|---|
 | Final answer above the graph and the steps | **No** | The app teaches the method. Step-through (the default since v1.47.0) holds the answer back until the last step; an answer-first layout would contradict it. Graph → steps → answer stays. |
-| Toasts stack and cover the theme toggle | **No** | Judged a nitpick: toasts auto-dismiss, and the error toast is now cleared by the next solve (v1.48.0). |
+| ~~Toasts stack and cover the theme toggle~~ | **Reversed in 1.54.0** | Judged a nitpick in v1.48.0. It was the cause of a reported one-second theme switch: the "Problem solved!" toast sat over the theme button for six seconds, so the click went to the toast. Toasts now open below the header, and a smoke test checks the button is clickable right after a solve. |
 | Text under the three-icon feature box on the home page | **No** | The labels say what the app does; the Features section below explains each. More hero text helps no one. |
 | "Solved locally" wording | **Keep** | Owner's choice. |
 | Grey text is small and low-contrast | **No change** | Every page passes the WCAG AA audit in both themes; body grey on white is 7:1. |
@@ -293,3 +317,14 @@ Honest refusals, each with a message that says so:
 - **Integrals the engine cannot do** — `unsupported`, with the
   non-elementary note where one applies (erf, Si, Fresnel).
 - **Polynomials above degree 100** — refused.
+
+---
+
+## Shipped October 22–24 (1.53.0–1.54.0)
+
+| Release | What |
+|---|---|
+| 1.53.0 | Auto-detect as the default topic; examples easiest first; tips, mistakes, example buttons and history typeset; screen readers announce each control once |
+| 1.53.1 | Real roots of one equation in two unknowns in textbook form; cancelled factors state their zero; exact inequality endpoints; partial fractions within the budget |
+| 1.53.2 | The October test list (95 cases) in the suite; f′(x) notation read as a whole; one exponential isolated and logged exactly; each derivative rule named; tips by method for quadratics and inequalities |
+| 1.54.0 | Simplest radical form; logarithms worked as typed; word problems refused as such; request phrases read; one history entry per problem; typeset My Progress PDF; the toast off the theme button |
