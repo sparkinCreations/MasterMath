@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.55.1] - 2026-10-25
+
+An outside review (4.5/5: about 35 problems checked by hand, all correct)
+named one friction point, `int x^2 dx`. Sweeping the calculus spellings
+around it found two wrong answers marked Solved.
+
+### Fixed
+
+- **"integral of x^2 with respect to x"** was answered f′(x) = 0, marked
+  Solved: any input with "with respect to" went to the derivative solver.
+  For an integral it is now the dx (∫x² dx = x³/3 + C), also before the
+  integrand ("integral with respect to x of x^2") and with bounds;
+  "derivative with respect to x of x^2" gives 2x.
+- **"integral x^2 dx"** (no "of") was answered ∫(integralx^2) dx =
+  integralx^2·x + C, marked Solved. "integral", "antiderivative",
+  "derivative", "deriv" and "diff" are read with or without "of".
+- **`int`** is the integral sign: `int x^2 dx`, `int_0^1 x^2 dx` and
+  `int(x^2)` solve (they were "intx is not a known function", and
+  `int(x^2)` was echoed back, Solved under Algebra).
+- **"integral from 0 to 1 of x^2 dx"** solves (1/3); it was refused as
+  impossible to compute.
+- A bracketed integrand is shown once: ∫(x^2) dx, not ∫((x^2)) dx.
+
+### Changed
+
+- The Notation guide and the FAQ mention `int` for a keyboard without ∫.
+
 ## [1.55.0] - 2026-10-24
 
 The October 24 roadmap items: requests typed in words, tips chosen by
