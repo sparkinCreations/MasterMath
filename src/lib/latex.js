@@ -35,7 +35,9 @@ export const MATH_WORDS = new Set([
  * slashes, parens, and letters fine).
  */
 export function toLatex(ascii) {
-  let s = String(ascii).trim();
+  // "2 ^ 10" (the arithmetic working's spacing) is 2^10: with the spaces left
+  // in, only the first digit was raised, 2¹0 (October 25 sweep).
+  let s = String(ascii).trim().replace(/\s+\^\s*|\^\s+/g, '^');
 
   // Unicode operators / symbols
   s = s
@@ -142,6 +144,9 @@ export function toLatex(ascii) {
   // ", " listing stays as commas (KaTeX fine)
 
   // + C at the end stays; DNE-style words shouldn't reach here (prose filter)
+  // A whole number past 15 digits (2^100, 25!) in groups of three with a
+  // line break allowed between them: one unbroken run ran off a phone screen.
+  s = s.replace(/(?<![\d.])\d{16,}(?![\d.])/g, (digits) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, '\\,\\allowbreak '));
   return s.replace(/\s{2,}/g, ' ').trim();
 }
 

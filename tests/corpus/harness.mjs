@@ -116,6 +116,8 @@ function toNumber(raw) {
   s = s.replace(/\s*\((?:≈|=)[^)]*\)\s*$/, '');
   s = s.replace(/\s*≈\s*[-\d.]+\s*$/, '');
   s = s.replace(/√/g, 'sqrt').replace(/π/g, 'pi').replace(/−/g, '-');
+  // Scientific notation for what a float cannot show exactly: "≈ 9.3326 × 10^157".
+  s = s.replace(/\s*×\s*/g, '*');
   s = s.replace(/sqrt(\d+)/g, 'sqrt($1)');
   // strip a leading "x=" or "f(-2) =" label, and a degree sign
   s = s.replace(/^[a-z]\s*=\s*/i, '').replace(/^[a-z]'*\([^)]*\)\s*=\s*/i, '').replace(/°$/, '');

@@ -741,11 +741,14 @@ function buildSteps(func, variable, f) {
     // flag on each region is what makes that distinction honest. Poles the
     // grid stepped over (1/sin(x) at ±π) are excluded too, from the
     // asymptote finder, so the domain line and the asymptote line agree.
-    const undefinedFor = f.domain.map((r) => formatRestriction(r, variable)).join(' and for ');
-    const extraPoles = f.verticalAsymptotes.filter((a) => !f.domain.some((r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.from - a) < 1e-6));
+    // A point inside an excluded interval is not named again (ln: "x ≤ 0 and for x = 0").
+    const isPointRegion = (r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.to - r.from) < 1e-9;
+    const covered = (p) => f.domain.some((r) => !isPointRegion(r) && (p > r.from + 1e-9 || (Math.abs(p - r.from) < 1e-9 && r.fromClosed)) && (p < r.to - 1e-9 || (Math.abs(p - r.to) < 1e-9 && r.toClosed)));
+    const undefinedFor = f.domain.filter((r) => !(isPointRegion(r) && covered(r.from))).map((r) => markDomain(formatRestriction(r, variable))).join(' and for ');
+    const extraPoles = f.verticalAsymptotes.filter((a) => !covered(a) && !f.domain.some((r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.from - a) < 1e-6));
     const allowed = formatDomain(f.domain, variable, extraPoles);
-    const undefinedAll = condition(undefinedFor) + (extraPoles.length ? ` and for ${extraPoles.map((a) => mark(`${variable} = ${formatNumber(a)}`)).join(', ')}` : '');
-    steps.push(`Domain restriction: ${mark('f')} is undefined for ${undefinedAll} — so the domain is ${condition(allowed)}.`);
+    const undefinedAll = undefinedFor + (extraPoles.length ? ` and for ${extraPoles.map((a) => mark(`${variable} = ${formatNumber(a)}`)).join(', ')}` : '');
+    steps.push(`Domain restriction: ${mark('f')} is undefined for ${undefinedAll} — so the domain is ${markDomain(allowed)}.`);
   }
 
   // Range, only for families where it is known exactly (never read off the
@@ -969,6 +972,19 @@ function formatDomain(domain, variable, extraPoints = []) {
   }
   const note = isolated.length ? ` (plus isolated points such as ${variable} = ${examples})` : '';
   return parts.join(' and ') + note;
+}
+
+// Each condition of a domain marked on its own, the words between them left
+// as prose: one run around "x = -2 and for x = 2" set "and for" in math
+// italics (October 25 review).
+function markDomain(text) {
+  const t = String(text);
+  if (/^(?:all|no) real/i.test(t.trim())) return t;
+  const only = t.match(/^only isolated points \(such as (.+)\) — (.+)$/);
+  if (only) return `only isolated points (such as ${mark(only[1])}) — ${only[2]}`;
+  const [main, note] = t.split(/ (?=\(plus isolated points such as )/);
+  const marked = main.split(' and ').map((c) => (/^not /.test(c) ? `not ${mark(c.slice(4))}` : mark(c))).join(' and ');
+  return note ? `${marked} ${note.replace(/such as (.+)\)$/, (m, v) => `such as ${mark(v)})`)}` : marked;
 }
 
 // Every x at which the analysis found something — the window to open on.

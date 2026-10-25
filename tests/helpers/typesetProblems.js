@@ -59,6 +59,11 @@ export const CONVERTED = [
   ['algebra', '2x^2 + 3x + 5 = 0'], ['derivatives', 'erf(x)'], ['other', 'ln(e^2)'], ['integrals', '1/(x^3 + x)'], ['integrals', '(x+1)/(x^2+1)'],
   ['limits', 'lim x->2 x^2 + 1'], ['limits', 'lim x->0 (e^x - 1 - x)/x^2'], ['limits', 'lim x->0 sin(1/x)'],
   ['functions', 'sin(2x)'], ['functions', 'e^x'],
+  // 1.55.2: exact big integers, ≈ for what a float cannot show, complex arithmetic, a domain marked per condition.
+  ['other', '123456789*987654321'], ['other', '2^53 + 1'], ['other', '25!'], ['other', '100!'], ['other', '2^-60'], ['other', '2^100/3'], ['other', '1000000 + 2'],
+  ['other', '(2+3i)*(1-i)'], ['other', '(1+i)^2'], ['other', '(3+4i)/(1-2i)'], ['other', 'i^3'], ['other', 'i^10'], ['other', '(2+3i)+(1-i)'], ['other', 'abs(3+4i)'],
+  ['other', '2*(3+4i)'], ['other', 'sqrt(-4)+3i'], ['other', '1/(2i)'], ['other', '(2+3i)^3'],
+  ['functions', '(x^2-1)/(x^2-4)'], ['functions', 'sqrt(x-2)/(x-5)'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.55.2] - 2026-10-25
+
+A deeper outside review (about 55 problems, 4.5/5, every supported answer
+right) found four issues. All four reproduced; the sweep around them found
+more of the same.
+
+### Fixed
+
+- **Big whole numbers are exact.** A float keeps about 16 significant
+  digits: 123456789·987654321 was answered …260 (it is …269), 2^100 as
+  1.2676506002282294e+30, 2^64 and −2^60 with rounded last digits, and
+  2^53 + 1 as 2^53. Whole numbers joined by + − × ^ and ! are now worked in
+  exact whole-number arithmetic, one operation a step, with the size in
+  scientific notation alongside (2^100 = 1267650600228229401496703205376
+  (≈ 1.2677 × 10^30)). Past 100 digits (100!) the answer is the scientific
+  form, saying how many digits the exact value has.
+- **No result is rounded to 0 or shown in e-notation.** 2^-60, 1/3^30 and
+  0.000001·3 were answered 0, Solved; a large quotient read
+  4.2255020007607644e+29. A value too small for the decimal setting, or too
+  large for a float to hold every digit, is shown as ≈ m × 10^k. The working
+  writes 1000000 + 2, not 1e+6 + 2.
+- **Complex arithmetic is worked.** (2+3i)(1−i), (1+i)^2, (3+4i)/(1−2i),
+  i^3 and 1/i were echoed back as "already in simplest form". Numbers with
+  i are now computed under Arithmetic (from Algebra too, with the notice),
+  the textbook way: FOIL with i² = −1, division by the conjugate, the cycle
+  of the powers of i, |a + bi| = √(a² + b²). i² reads −1, not −1 + 0i.
+- **A function's domain step** marked "x = -2 and for x = 2" as one formula,
+  so "and for" was set in math italics. Each condition is marked on its
+  own, and a point inside an excluded interval is not named twice (ln(x):
+  "undefined for x ≤ 0", not "x ≤ 0 and for x = 0").
+- **Exports are titled by the topic the problem was solved as.** The PDF
+  was; Markdown and JSON used the dropdown's topic, so one solution could
+  export as "Functions Problem" and "Algebra Problem". The JSON keeps the
+  dropdown's choice as `chosenTopic` when they differ.
+- **A multi-digit exponent in the working** was typeset with only its first
+  digit raised: "2 ^ 10 = 1024" read 2¹0 = 1024. A long whole number is
+  set in groups of three with a line break allowed between them, so 2^100
+  wraps on a phone instead of running off the screen.
+
 ## [1.55.1] - 2026-10-25
 
 An outside review (4.5/5: about 35 problems checked by hand, all correct)
