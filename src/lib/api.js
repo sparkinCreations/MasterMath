@@ -107,6 +107,7 @@ export function detectTopic(problem) {
   if (/(?<![><!=])=(?!=)/.test(t)) return { topic: 'algebra', reason: 'your input is an equation' };
   // Function names and words that only say how to combine numbers ("two plus
   // one", "what is 20% of 50") are not variables.
+  if (isComplexNumberInput(t)) return { topic: 'other', reason: 'your input is a calculation with complex numbers' };
   const letters = t.replace(/\b(?:sqrt|cbrt|abs|log|ln|exp|pi|e|mod|choose|plus|minus|times|divided|multiplied|by|over|add|subtract|multiply|divide|sum|product|difference|quotient|of|and|from|what|is|the|calculate|compute|evaluate)\b/gi, '');
   if (!/[a-z]/i.test(letters)) return { topic: 'other', reason: 'your input is a calculation with numbers' };
   return { topic: 'algebra', reason: 'your input is an expression, so it is simplified (and factored where it can be)' };
@@ -132,9 +133,18 @@ function isPlainEquationForAlgebra(problem, topic) {
 // A variable expression typed under Arithmetic ("x^2 + 3x") is algebra —
 // arithmetic has no unknowns, and mathjs would just say "Undefined symbol x".
 function isAlgebraUnderArithmetic(problem, topic) {
-  if (topic !== 'other') return false;
+  if (topic !== 'other' || isComplexNumberInput(problem)) return false;
   const t = String(problem).replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sqrt|abs|log|ln|exp|pi|e|mod|choose)\b/gi, '').replace(/\d+(?:\.\d+)?[eE][+-]?\d+/g, '');
   return /(?<![a-z])[a-df-z](?![a-z])/i.test(t) && !/^\s*\d+(?:\.\d+)?\s*x\s*\d/i.test(String(problem)); // "2 x 3" is multiplication
+}
+
+// Numbers and i only: (2+3i)*(1-i), (3+4i)/(1-2i), i^3. Arithmetic computes
+// them in complex numbers; the algebra simplifier called them "already in
+// simplest form" (October 25 review). Not an equation, and i on its own:
+// "ix" or "pi" is not the imaginary unit.
+export function isComplexNumberInput(problem) {
+  const t = String(problem).replace(/\b(?:sqrt|abs|pi|e)\b/gi, '');
+  return /(?<![a-z])i(?![a-z])/i.test(t) && !/[a-hj-z=<>≤≥]/i.test(t) && /\d/.test(t);
 }
 
 // A constant that divides by zero — "1/0", "5/(3-3)", "0/0" — typed under a
@@ -977,6 +987,10 @@ export async function solveProblem(problem, topic) {
     if (!calculus && topic === 'other' && /(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan)\s*\(|°/i.test(problem)) {
       const routed = await solveProblem(problem, 'trigonometry');
       return noteRouting(routed, topic, 'trigonometry', 'the input uses a trig function, and angles are read with your angle setting there');
+    }
+    if (!calculus && topic === 'algebra' && isComplexNumberInput(problem)) {
+      const routed = await solveProblem(problem, 'other');
+      return noteRouting(routed, topic, 'other', 'the input is a calculation with complex numbers');
     }
     if (!calculus && isAlgebraUnderArithmetic(problem, topic)) {
       const routed = await solveProblem(problem, 'algebra');

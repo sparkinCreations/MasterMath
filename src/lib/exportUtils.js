@@ -155,9 +155,16 @@ export function exportAsMarkdown(problems, topicLabels) {
   downloadFile(markdown, 'mastermath-progress.md', 'text/markdown');
 }
 
+// The topic the solve was routed to: an integral typed under Algebra is an
+// Integrals problem (its first step says so), and an equation under Functions
+// an Algebra one. Every export is titled by it: the PDF was, while Markdown
+// and JSON used the dropdown's topic (October 25 review).
+const solvedTopic = (topic, solution) => solution?.routedTopic || topic;
+
 // Export individual solution as Markdown
-export function exportSolutionAsMarkdown(problem, topic, solution, topicLabels) {
+export function exportSolutionAsMarkdown(problem, chosenTopic, solution, topicLabels) {
   const status = exportStatus(solution);
+  const topic = solvedTopic(chosenTopic, solution);
   let markdown = `# ${topicLabels[topic] || topic} Problem\n\n`;
   markdown += `**Problem:** ${problem}\n\n`;
   if (status.label) {
@@ -199,10 +206,12 @@ export function exportSolutionAsMarkdown(problem, topic, solution, topicLabels) 
 }
 
 // Export individual solution as JSON
-export function exportSolutionAsJSON(problem, topic, solution) {
+export function exportSolutionAsJSON(problem, chosenTopic, solution) {
+  const topic = solvedTopic(chosenTopic, solution);
   const data = {
     problem,
     topic,
+    ...(topic !== chosenTopic ? { chosenTopic } : {}),
     solution,
     exportedAt: new Date().toISOString()
   };
@@ -300,17 +309,15 @@ export async function exportAsPDF(problems, topicLabels) {
 // and the plain-text PDF below when they are not or the capture fails.
 // `graph` is { svg, label, dark } for the chart on screen, or null.
 // Resolves to 'typeset' or 'text', the kind of PDF that was saved.
-export async function exportSolutionAsPDF(problem, topic, solution, topicLabels, { graph = null } = {}) {
+export async function exportSolutionAsPDF(problem, chosenTopic, solution, topicLabels, { graph = null } = {}) {
   const jsPDF = await loadJsPDF();
+  const topic = solvedTopic(chosenTopic, solution);
   const status = exportStatus(solution);
   const filename = `solution-${topic}-${Date.now()}.pdf`;
   if (typeof document !== 'undefined') {
     try {
       const { buildTypesetPDF } = await import('./pdfTypeset.js');
-      // The topic the solve was routed to: an integral typed under Algebra is
-      // an Integrals problem (its first step says so).
-      const shown = solution.routedTopic || topic;
-      const title = `${topicLabels[shown] || shown} Problem`;
+      const title = `${topicLabels[topic] || topic} Problem`;
       const doc = await buildTypesetPDF(jsPDF, { title, problem, status, solution, graph });
       doc.save(filename);
       return 'typeset';

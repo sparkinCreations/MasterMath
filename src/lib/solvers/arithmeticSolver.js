@@ -1,5 +1,6 @@
 import { createMath } from '../mathInstance.js';
 import { math, formatNumber, beautify, gcd, stripMathMarkers, mark } from './solverUtils.js';
+import { getSettings } from '../settings.js';
 
 // The problem as typed is math (3/4 + 5/6) or a phrase (15% of 80): mark it
 // only when every word in it is a function name, or KaTeX sets the words as
@@ -185,6 +186,12 @@ export function solveArithmetic(expression) {
         return overflow({ input: original });
       }
     }
+    // Whole numbers past 2^53: exact, in BigInt.
+    if (typeof result === 'number' && Number.isFinite(result) && Math.abs(result) >= SAFE) {
+      const big = exactInteger(cleaned);
+      if (big) return exactIntegerSolution(original, cleaned, big);
+    }
+    const complexInput = /(?<![a-z])i(?![a-z])/.test(cleaned);
     const steps = [`Evaluate: ${asMath(original)}`, ...rootNotes];
     // n! spelled out, so 7! = 5040 is not a bare fact.
     for (const m of cleaned.matchAll(/(?<![\d.])(\d{1,2})!/g)) {
@@ -204,7 +211,7 @@ export function solveArithmetic(expression) {
       steps.push(`This calculator follows the usual convention ${mark('0^0 = 1')} (it is what makes the binomial theorem and power series work). In a limit, ${mark('0^0')} is an indeterminate form.`);
     }
     // A complex result (sqrt(-1), ln(-1)) has no real value; name what is shown.
-    if (result && typeof result === 'object' && 'im' in result && Math.abs(result.im) > 0) {
+    if (!complexInput && result && typeof result === 'object' && 'im' in result && Math.abs(result.im) > 0) {
       steps.push(`There is no real number here — the result is a complex number, written with ${mark('i = √(−1)')}.`);
     }
     if (/%/.test(typed) && cleanedBase !== typed) {
@@ -220,7 +227,8 @@ export function solveArithmetic(expression) {
     // equivalent to the answer, teaching that rounding mid-way is exact method.
     let working = cleaned;
     let guard = 0;
-    while (/\([^()]+\)/.test(working) && guard++ < 25) {
+    if (complexInput) steps.push(...(complexWorking(cleaned) || []));
+    while (!complexInput && /\([^()]+\)/.test(working) && guard++ < 25) {
       // The innermost group that has something to work out. A group that is
       // just a signed number — the (-1) in sqrt(-1) — or an already-reduced
       // fraction — the (1/3) in (1/3)*6 — is left as it is; "working it out"
@@ -254,10 +262,10 @@ export function solveArithmetic(expression) {
     // everything else, do the work one operation at a time in PEMDAS order,
     // showing the expression after each — "Resolve the exponents" with
     // nothing worked out told a student nothing.
-    const fractionWork = fractionSteps(working);
+    const fractionWork = complexInput ? null : fractionSteps(working);
     if (fractionWork) {
       steps.push(...fractionWork.steps);
-    } else if (!showWorking(working, steps)) {
+    } else if (!complexInput && !showWorking(working, steps)) {
       describeOrder(working, steps);
     }
 
@@ -273,7 +281,7 @@ export function solveArithmetic(expression) {
     const shownAnswer = formatArithmeticResult(result, cleaned, root) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
     steps.push(`Final answer: ${mark(shownAnswer)}`);
 
-    const guidance = fractionWork || arithmeticGuidance(steps, cleaned);
+    const guidance = fractionWork || (complexInput ? complexGuidance() : arithmeticGuidance(steps, cleaned));
     return {
       steps,
       answer: shownAnswer,
@@ -687,7 +695,13 @@ function showWorking(expr, steps) {
     { intro: 'Multiplication and division next, left to right', pick: 'first', test: (n) => n.type === 'OperatorNode' && ['multiply', 'divide', 'mod'].includes(n.fn) && n.args.every(isConstant) },
     { intro: 'Addition and subtraction last, left to right', pick: 'first', test: (n) => n.type === 'OperatorNode' && ['add', 'subtract'].includes(n.fn) && n.args.every(isConstant) },
   ];
-  const render = (node) => logNotation(node.toString({ implicit: 'show' })
+  // Numbers as digits: mathjs writes 1000000 as 1e+6. One a float cannot
+  // show (2^100, 2^-60) in scientific notation, bracketed.
+  const handler = (n) => {
+    if (n.type !== 'ConstantNode' || typeof n.value !== 'number') return undefined;
+    return unshowable(n.value) ? `(${scientific(n.value)})` : String(n.value);
+  };
+  const render = (node) => logNotation(node.toString({ implicit: 'show', handler })
     .replace(/\b\d+\.\d{5,}\b/g, (t) => formatNumber(Number(t))));
   const lines = [];
   let lastTier = -1;
@@ -721,7 +735,7 @@ function showWorking(expr, steps) {
       : new math.ConstantNode(value);
     tree = target === tree ? replacement : tree.transform((n) => (n === target ? replacement : n));
     const opText = target.type === 'OperatorNode' && target.fn === 'unaryMinus' ? `-(${render(target.args[0])})` : render(target);
-    let valueText = formatNumber(value);
+    let valueText = numText(value);
     // Not for rounded decimals a step wrote itself (0.9031 + 0.301 is not
     // 12041/10000 exactly).
     if (!Number.isInteger(value) && !/\d\.\d{4,}/.test(opText)) {
@@ -773,12 +787,12 @@ function showWorking(expr, steps) {
           const power = Math.pow(base, -e);
           const powerText = power < 0 ? `(${formatNumber(power)})` : formatNumber(power);
           const viaReciprocal = power < 0 ? `1/${powerText} = ` : '';
-          note = ` — a negative exponent means a reciprocal, ${mark('a^(-n) = 1/a^n')} (the base cannot be ${mark('0')}): ${mark(`${baseText}^(${e}) = 1/${baseText}^${-e} = ${viaReciprocal}${valueText}`)}`;
+          note = ` — a negative exponent means a reciprocal, ${mark('a^(-n) = 1/a^n')} (the base cannot be ${mark('0')}): ${mark(equals(`${baseText}^(${e}) = 1/${baseText}^${-e}${viaReciprocal ? ` = ${viaReciprocal.replace(/ = $/, '')}` : ''}`, valueText))}`;
         }
       } catch { /* no note */ }
     }
     if (logNote) lines.push(`${logNote}${remaining ? `, and the expression becomes ${mark(remaining.replace(/^\s*→\s*/, ''))}.` : '.'}`);
-    else lines.push(note ? `${lead}${mark(opText)}${note}${remaining ? mark(remaining) : ''}` : `${lead}${mark(`${opText} = ${valueText}${remaining}`)}`);
+    else lines.push(note ? `${lead}${mark(opText)}${note}${remaining ? mark(remaining) : ''}` : `${lead}${mark(`${equals(opText, valueText)}${remaining}`)}`);
   }
   if (!isConstant(tree)) return false;
   for (const line of lines) steps.push(line);
@@ -805,6 +819,7 @@ function describeOrder(expr, steps) {
 function formatArithmeticResult(result, cleaned, root = simplifiedRoot(cleaned)) {
   // Complex (sqrt(-1), ln(-1)): format each part to the decimal setting,
   // and write a clean multiple of π as such (ln(-1) = πi, not 3.14159…i).
+  if (result && typeof result === 'object' && 'im' in result && typeof result.re === 'number' && Math.abs(result.im) < 1e-12) return formatNumber(result.re);
   if (result && typeof result === 'object' && 'im' in result && typeof result.re === 'number') {
     const part = (v) => {
       const k = v / Math.PI;
@@ -821,6 +836,7 @@ function formatArithmeticResult(result, cleaned, root = simplifiedRoot(cleaned))
   }
   const formatted = formatNumber(result);
   if (typeof result !== 'number') return formatted;
+  if (unshowable(result)) return `≈ ${scientific(result)}`;
 
   // Non-finite (1/0, 0/0): keep the offending quotient visible for context.
   if (!Number.isFinite(result)) {
@@ -859,4 +875,234 @@ function formatArithmeticResult(result, cleaned, root = simplifiedRoot(cleaned))
   }
 
   return formatted;
+}
+
+// ---------------------------------------------------------------------------
+// Numbers a float cannot show exactly (October 25 review).
+//
+// A float keeps about 16 significant digits: 123456789*987654321 came out
+// …260 (it is …269), 2^100 as 1.2676506002282294e+30 and 2^53 + 1 as 2^53.
+// Whole numbers joined by + − × ^ (a whole exponent) and ! are worked in
+// BigInt instead. Any other result past 2^53, or too small for the decimal
+// setting (2^-60 was answered 0), is shown as ≈ m × 10^k.
+// ---------------------------------------------------------------------------
+
+const SAFE = 2 ** 53;
+const MAX_EXACT_DIGITS = 100;
+
+// m × 10^k with m to the decimal setting.
+function scientific(v) {
+  let k = Math.floor(Math.log10(Math.abs(v)));
+  let m = formatNumber(v / 10 ** k);
+  if (Math.abs(Number(m)) >= 10) {
+    k += 1;
+    m = formatNumber(v / 10 ** k);
+  }
+  return `${m} × 10^${k}`;
+}
+
+// Too large for a float to hold every digit, or too small for the decimal
+// setting to show anything but 0.
+const unshowable = (v) => typeof v === 'number' && Number.isFinite(v) && v !== 0
+  && (Math.abs(v) >= SAFE || Math.abs(v) < 0.5 * 10 ** -getSettings().decimalPlaces);
+const numText = (v) => (unshowable(v) ? `≈ ${scientific(v)}` : formatNumber(v));
+// "a = b", or "a ≈ b" when b is approximate.
+const equals = (left, valueText) => (/^≈/.test(valueText) ? `${left} ${valueText}` : `${left} = ${valueText}`);
+
+// The value of an expression of whole numbers, + − × ^ !, as a BigInt with
+// one line per operation, or null when it has anything else.
+function exactInteger(expr) {
+  let tree;
+  try {
+    tree = math.parse(expr);
+  } catch {
+    return null;
+  }
+  const lines = [];
+  const show = (b) => (b < 0n ? `(${b})` : String(b));
+  const VERB = { add: 'Add', subtract: 'Subtract', multiply: 'Multiply', pow: 'Work out the power', factorial: 'Work out the factorial' };
+  const SYMBOL = { add: '+', subtract: '-', multiply: '×', pow: '^' };
+  const value = (n) => {
+    if (n.type === 'ParenthesisNode') return value(n.content);
+    if (n.type === 'ConstantNode') {
+      if (!Number.isSafeInteger(n.value)) throw new Error('not a whole number');
+      return BigInt(n.value);
+    }
+    if (n.type !== 'OperatorNode' || !(n.fn in VERB || n.fn === 'unaryMinus' || n.fn === 'unaryPlus')) throw new Error('not whole-number arithmetic');
+    const args = n.args.map(value);
+    if (n.fn === 'unaryMinus') return -args[0];
+    if (n.fn === 'unaryPlus') return args[0];
+    let out;
+    if (n.fn === 'pow') {
+      const [b, k] = args;
+      // A negative exponent is a fraction; a huge one is checked before it is built.
+      if (k < 0n || Number(k) * Math.log10(Math.max(2, Math.abs(Number(b)))) > 400) throw new Error('out of range');
+      out = b ** k;
+    } else if (n.fn === 'factorial') {
+      if (args[0] < 0n || args[0] > 250n) throw new Error('out of range');
+      out = 1n;
+      for (let k = 2n; k <= args[0]; k += 1n) out *= k;
+    } else {
+      out = n.fn === 'add' ? args[0] + args[1] : n.fn === 'subtract' ? args[0] - args[1] : args[0] * args[1];
+    }
+    const left = n.fn === 'factorial' ? `${show(args[0])}!` : `${show(args[0])} ${SYMBOL[n.fn]} ${show(args[1])}`;
+    lines.push(`${VERB[n.fn]}: ${mark(`${left} = ${out}`)}`);
+    return out;
+  };
+  try {
+    return { value: value(tree), lines };
+  } catch {
+    return null;
+  }
+}
+
+function exactIntegerSolution(original, cleaned, big) {
+  const digits = String(big.value).replace('-', '').length;
+  const approx = scientific(Number(big.value));
+  const answer = digits <= MAX_EXACT_DIGITS ? `${big.value} (≈ ${approx})` : `≈ ${approx}`;
+  const steps = [
+    `Evaluate: ${asMath(original)}`,
+    `The result has ${digits} digits, more than a calculator's decimal numbers hold exactly (about 16 significant digits), so it is worked in exact whole-number arithmetic.`,
+    ...(digits <= MAX_EXACT_DIGITS ? big.lines : []),
+    digits <= MAX_EXACT_DIGITS ? `Final answer: ${mark(String(big.value))}` : `Final answer: ${mark(`≈ ${approx}`)} (the exact value has ${digits} digits)`,
+  ];
+  return {
+    steps,
+    answer,
+    tips: [
+      'Whole numbers can be multiplied exactly to any size; a calculator in decimal mode keeps only about 16 significant digits and rounds the rest.',
+      `Scientific notation, ${mark('m × 10^k')}, shows the size of a large number at a glance: ${mark('2^100 ≈ 1.2677 × 10^30')}.`,
+    ],
+    common_mistakes: [
+      'Trusting the last digits of a large calculator result: past about 16 digits they are rounded, not computed.',
+    ],
+    graph: null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Complex numbers (October 25 review): (2+3i)*(1-i), (3+4i)/(1-2i), i^3.
+// Worked the textbook way, one operation at a time: like parts collected,
+// FOIL with i² = −1, division by the conjugate, the cycle of powers of i.
+// The parentheses walk above cannot show them: it wrote (2+3i)*(1-i) as
+// 2 + 3i*(1-i).
+// ---------------------------------------------------------------------------
+
+const isComplex = (z) => z && typeof z === 'object' && 'im' in z;
+const parts = (z) => (isComplex(z) ? { re: z.re, im: z.im } : { re: Number(z), im: 0 });
+const complexText = (z) => {
+  const { re, im } = parts(z);
+  return Math.abs(im) < 1e-12 ? formatNumber(re) : formatArithmeticResult(math.complex(re, im), '');
+};
+// In an expression: brackets around a two-part number or a negative.
+const operand = (z) => {
+  const t = complexText(z);
+  return / [+-] /.test(t) || /^-/.test(t) ? `(${t})` : t;
+};
+const signed = (v, unit = '') => `${v < 0 ? '−' : '+'} ${unit && Math.abs(v) === 1 ? '' : formatNumber(Math.abs(v))}${unit}`;
+// The leading term of a sum: no "+", and a zero term left out.
+const first = (v, unit = '') => (unit && Math.abs(v) === 1 ? `${v < 0 ? '−' : ''}${unit}` : `${formatNumber(v)}${unit}`);
+const terms = (list) => {
+  const kept = list.filter(([v]) => Math.abs(v) > 1e-12);
+  if (kept.length === 0) return '0';
+  return kept.map(([v, unit], i) => (i === 0 ? first(v, unit) : signed(v, unit))).join(' ');
+};
+
+function complexWorking(expr) {
+  let tree;
+  try {
+    tree = math.parse(expr);
+  } catch {
+    return null;
+  }
+  const lines = [];
+  const value = (n) => {
+    if (n.type === 'ParenthesisNode') return value(n.content);
+    if (n.type === 'ConstantNode' && typeof n.value === 'number') return n.value;
+    if (n.type === 'SymbolNode' && n.name === 'i') return math.complex(0, 1);
+    if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') return math.unaryMinus(value(n.args[0]));
+    // A plain number written with i, 3*i or 3i: nothing to work out yet.
+    const plain = (z) => !isComplex(z) || Math.abs(z.re) < 1e-12 || Math.abs(z.im) < 1e-12;
+    if (n.type === 'FunctionNode' && n.args.length === 1) {
+      const z = value(n.args[0]);
+      const { re, im } = parts(z);
+      if (n.fn.name === 'abs') {
+        const out = Math.hypot(re, im);
+        lines.push(`The modulus is the distance from ${mark('0')}: ${mark(`|${complexText(z)}| = √(${operand(re)}^2 + ${operand(im)}^2) = √${formatNumber(re * re + im * im)} = ${formatNumber(out)}`)}.`);
+        return out;
+      }
+      if (n.fn.name === 'sqrt' && Math.abs(im) < 1e-12 && re < 0) {
+        const out = math.sqrt(z);
+        lines.push(`A square root of a negative number: ${mark(`√(${formatNumber(re)}) = √${formatNumber(-re)}·√(−1) = ${complexText(out)}`)}.`);
+        return out;
+      }
+      throw new Error('function');
+    }
+    if (n.type !== 'OperatorNode' || n.args.length !== 2) throw new Error('operation');
+    const [z, w] = n.args.map(value);
+    const { re: a, im: b } = parts(z);
+    const { re: c, im: d } = parts(w);
+    let out;
+    if (n.fn === 'add' || n.fn === 'subtract') {
+      out = n.fn === 'add' ? math.add(z, w) : math.subtract(z, w);
+      // Only when like parts combine: 2 + 3i is a number being written.
+      if ((a !== 0 && c !== 0) || (b !== 0 && d !== 0)) {
+        const op = n.fn === 'add' ? '+' : '−';
+        lines.push(`${n.fn === 'add' ? 'Add' : 'Subtract'} the real parts and the imaginary parts: ${mark(`${operand(z)} ${op} ${operand(w)} = (${formatNumber(a)} ${op} ${operand(c)}) + (${formatNumber(b)} ${op} ${operand(d)})i = ${complexText(out)}`)}.`);
+      }
+    } else if (n.fn === 'multiply') {
+      out = math.multiply(z, w);
+      if (!plain(z) && !plain(w)) {
+        lines.push(`Multiply out (FOIL), then use ${mark('i^2 = −1')}: ${mark(`${operand(z)}${operand(w)} = ${terms([[a * c, ''], [a * d, 'i'], [b * c, 'i'], [b * d, 'i^2']])} = ${terms([[a * c, ''], [-b * d, ''], [a * d + b * c, 'i']])} = ${complexText(out)}`)}.`);
+      } else if (isComplex(z) && isComplex(w) && Math.abs(b) > 1e-12 && Math.abs(d) > 1e-12) {
+        lines.push(`${mark('i·i = i^2 = −1')}: ${mark(`${operand(z)}·${operand(w)} = ${complexText(out)}`)}.`);
+      } else if ((Math.abs(b) > 1e-12 && Math.abs(a) > 1e-12) || (Math.abs(d) > 1e-12 && Math.abs(c) > 1e-12)) {
+        lines.push(`Multiply each part: ${mark(`${operand(z)}·${operand(w)} = ${complexText(out)}`)}.`);
+      }
+    } else if (n.fn === 'divide') {
+      out = math.divide(z, w);
+      if (Math.abs(d) > 1e-12) {
+        const conj = math.complex(c, -d);
+        const top = math.multiply(z, conj);
+        const bottom = c * c + d * d;
+        lines.push(`Divide by multiplying the top and the bottom by the conjugate ${mark(complexText(conj))}, which makes the bottom real: ${mark(`${operand(z)}/${operand(w)} = (${complexText(z)})(${complexText(conj)})/((${complexText(w)})(${complexText(conj)})) = (${complexText(top)})/${formatNumber(bottom)} = ${complexText(out)}`)}.`);
+      } else {
+        lines.push(`Divide each part by ${mark(formatNumber(c))}: ${mark(`${operand(z)}/${formatNumber(c)} = ${complexText(out)}`)}.`);
+      }
+    } else if (n.fn === 'pow' && !isComplex(w) && Number.isInteger(w) && Math.abs(w) <= 12) {
+      out = math.pow(z, w);
+      if (Math.abs(a) < 1e-12 && Math.abs(b - 1) < 1e-12 && w >= 0) {
+        const r = w % 4;
+        const cycle = `Powers of ${mark('i')} repeat every 4: ${mark('i^1 = i')}, ${mark('i^2 = −1')}, ${mark('i^3 = −i')}, ${mark('i^4 = 1')}.`;
+        lines.push(w < 4 ? `${cycle} So ${mark(`i^${w} = ${complexText(out)}`)}.` : `${cycle} ${mark(`${w} = 4·${Math.floor(w / 4)} + ${r}`)}, so ${mark(`i^${w} = i^${r} = ${complexText(out)}`)}.`);
+      } else if (w === 2 && Math.abs(b) > 1e-12) {
+        lines.push(`Square it, then use ${mark('i^2 = −1')}: ${mark(`${operand(z)}^2 = ${terms([[a * a, ''], [2 * a * b, 'i'], [b * b, 'i^2']])} = ${complexText(out)}`)}.`);
+      } else if (Math.abs(b) > 1e-12) {
+        lines.push(`Multiply ${mark(operand(z))} by itself ${mark(String(w))} times, using ${mark('i^2 = −1')}: ${mark(`${operand(z)}^${w} = ${complexText(out)}`)}.`);
+      }
+    } else {
+      throw new Error('operation');
+    }
+    return out;
+  };
+  try {
+    value(tree);
+    return lines;
+  } catch {
+    return null;
+  }
+}
+
+function complexGuidance() {
+  return {
+    tips: [
+      `${mark('i')} is defined by ${mark('i^2 = −1')}: multiply complex numbers like binomials, then replace ${mark('i^2')} with ${mark('−1')}.`,
+      `To divide, multiply the top and the bottom by the conjugate of the bottom (${mark('c + di → c − di')}): ${mark('(c + di)(c − di) = c^2 + d^2')} is real.`,
+      `Powers of ${mark('i')} cycle every 4: ${mark('i, −1, −i, 1')}.`,
+    ],
+    common_mistakes: [
+      `Leaving ${mark('i^2')} in the answer instead of replacing it with ${mark('−1')}.`,
+      `Dividing the real and imaginary parts separately by a complex number: ${mark('(3 + 4i)/(1 − 2i)')} is not ${mark('3/1 + 4i/(−2i)')}.`,
+    ],
+  };
 }
