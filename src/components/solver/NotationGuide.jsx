@@ -19,7 +19,7 @@ const ROWS = [
   ['Equations', '2x + 5 = 11 — a system: 2x + 3y = 6; x - y = 4'],
   ['Inequalities', 'x^2 - 4 > 0, |x| ≤ 3 — or "2x + 1 is greater than 5"'],
   ['Derivatives', 'd/dx(x^3), or "derivative of x^3"; at a point: x^3 at x = 2; implicitly: find dy/dx if x^2 + y^2 = 25'],
-  ['Integrals', '∫ x^2 dx, ∫_0^1 x^2 dx, or "integral of x^2 from 0 to 1"'],
+  ['Integrals', '∫ x^2 dx, ∫_0^1 x^2 dx (or int x^2 dx, int_0^1 x^2 dx), or "integral of x^2 from 0 to 1"'],
   ['Limits', 'lim x->0 (sin(x)/x), or "limit of 1/x as x approaches infinity"'],
   ['Constants', 'pi or π, e, ∞ or infinity'],
 ];

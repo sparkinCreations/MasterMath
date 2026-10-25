@@ -220,6 +220,23 @@ function readRequestPhrases(text) {
   t = t.replace(/^(simplify|factor(?:ise|ize)?|expand|solve)\s+(?:completely\s+)?(?:the\s+)?(?:(?:quadratic|linear|cubic|polynomial|rational|following|given)\s+)?(?:expression|equation|polynomial|inequality|system(?:\s+of\s+equations)?)?\s*:?\s*(?=\S)/i, (m, v) => `${v.toLowerCase()} `);
   // "calculate the definite integral of …", "find the derivative of …"
   t = t.replace(new RegExp(`^${verb}\\s+(?:the\\s+)?(?:definite\\s+)?(integral|antiderivative|derivative|limit)\\s+of\\s+`, 'i'), (m, what) => `${what.toLowerCase()} of `);
+  // Shorthand and a missing "of": "int x^2 dx" and "int_0^1 …" are ∫;
+  // "integral x^2 dx" was read as the constant "integralx^2" and answered
+  // ∫(integralx^2) dx, marked Solved; "integral from 0 to 1 of x^2" was
+  // refused; "derivative x^2", "deriv of x^2", "diff x^2" were glued into
+  // one unknown word (October 25 review).
+  t = t.replace(/^int(?![a-z])\s*/i, '∫');
+  const calculus = `^(?:${verb}\\s+)?(?:the\\s+)?(?:(?:definite|indefinite)\\s+)?`;
+  // "with respect to x" names the variable. Any input with it went to the
+  // derivative solver, integrals too: "integral of x^2 with respect to x"
+  // was answered f'(x) = 0, marked Solved (October 25 sweep). For an
+  // integral it is the dx; "… with respect to x of f" puts it after f.
+  t = t.replace(new RegExp(`${calculus}(integral|antiderivative|derivative)\\s+with\\s+respect\\s+to\\s+([a-z])\\s+of\\s+(.+)$`, 'i'), (m, what, v, f) => `${what.toLowerCase()} of ${f} with respect to ${v}`);
+  if (/^(?:∫|integral\b|antiderivative\b|integrate\b)|^(?:\S+\s+){0,3}(?:integral|antiderivative)\s+of\b/i.test(t)) {
+    t = t.replace(/(\s+d[a-z])?\s+with\s+respect\s+to\s+([a-z])\b/i, (m, given, v) => given || ` d${v.toLowerCase()}`);
+  }
+  t = t.replace(new RegExp(`${calculus}(?:integral|antiderivative)\\s+from\\s+(\\S+)\\s+to\\s+(\\S+)\\s+of\\s+(.+)$`, 'i'), (m, a, b, f) => `integral of ${f} from ${a} to ${b}`);
+  t = t.replace(new RegExp(`${calculus}(integral|antiderivative|derivative|deriv|diff)\\s+(?:of\\s+)?(?!from\\b|with\\b)(?=\\S)`, 'i'), (m, what) => `${/^d/i.test(what) ? 'derivative' : what.toLowerCase()} of `);
   // "find the zeros of x^2 - 5x + 6": the equation f = 0.
   const zeros = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(?:zeros|zeroes|roots|solutions|x-intercepts)\\s+of\\s+(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?([^=<>]+)$`, 'i'));
   if (zeros) return { problem: `${zeros[1].trim()} = 0` };

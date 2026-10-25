@@ -72,7 +72,9 @@ export async function solveIntegral(rawInput) {
       tips: [`Write the function after the integral sign, e.g. ${mark('∫ x^2 dx')}, or just ${mark('x^2')}.`],
     });
   }
-  return solveIndefiniteIntegral(expression, dvar ? dvar[1].toLowerCase() : undefined);
+  // ∫(x^2) and "integral of (x^2)": the brackets group the integrand, and
+  // were shown doubled, ∫((x^2)) dx.
+  return solveIndefiniteIntegral(stripOuterParens(expression), dvar ? dvar[1].toLowerCase() : undefined);
 }
 
 async function solveIndefiniteIntegral(expression, variableOverride) {
