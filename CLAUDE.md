@@ -78,7 +78,9 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    before the differential-equation refusal; a primed call f'(x) is the
    derivative of f when the input defines f, else a differential equation or
    a function not given, both refused, as is any f(x), g(x), h(x) never
-   defined (`primedFunctionRequest`); two `=` signs go to systems; a comparison operator
+   defined (`primedFunctionRequest`); request phrases are read first
+   (`readRequestPhrases`: "the zeros of", "the critical points of" → Functions,
+   "the period of" → `requestSolver`, …); two `=` signs go to systems; a comparison operator
    to inequalities; a trailing "at x = a" is stripped first (`extractEvalPoint`).
    A routed result's first step says so (`routedTopic`), and it carries
    `routing: { from, to, reason }`: the page shows a "Solved as …" notice
@@ -147,7 +149,11 @@ non-linear by substitution), `inequalitiesSolver` (sign charts, compound; period
 following the curve; "at (a, b)"),
 `integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` /
 `trigSubstitutionSolver` (√(a² − b²x²)) / partial fractions / definite /
-improper).
+improper), `requestSolver` (one thing asked in words, read by
+`readRequestPhrases` in `api.js` and dispatched by `solveRequest`: the
+period (lcm of the terms' periods), amplitude, tangent-line equation,
+inverse (operations undone one at a time, or (ax + b)/(cx + d); checked by
+f(f⁻¹(x)) = x) and degrees ↔ radians).
 
 `solverUtils.js` owns the shared helpers — `beautify`, `formatNumber`,
 `splitTerms`, `splitTopLevel`, `stripOuterParens`, `gcd`, `runAlgebrite`,

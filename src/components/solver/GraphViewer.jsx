@@ -173,7 +173,9 @@ export default function GraphViewer({ functionData }) {
   const primarySpan = spanOf(visiblePoints, 'y');
   const secondarySpan = spanOf(visibleSecondary, 'y');
   const axesDiffer = visibleSecondary.length > 0 && primarySpan > 0 && secondarySpan > 0 && (primarySpan / secondarySpan > 4 || secondarySpan / primarySpan > 4);
-  const useRightAxis = visibleSecondary.length > 0 && (separateAxes === null ? axesDiffer : separateAxes);
+  // A curve and its tangent line, or f and its mirror image f⁻¹, only read
+  // on one axis (sharedAxis); otherwise very different spans get two.
+  const useRightAxis = visibleSecondary.length > 0 && (separateAxes === null ? axesDiffer && !functionData?.sharedAxis : separateAxes);
 
   // Automatic y-windows: a robust fit of what is visible (see robustYWindow),
   // with every marked feature kept inside. The left axis fits both curves
@@ -595,6 +597,19 @@ export default function GraphViewer({ functionData }) {
                   label={{ value: e.kind === 'max' ? 'max' : 'min', position: e.kind === 'max' ? 'top' : 'bottom', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
                 />
               ))}
+
+              {/* A tangent line's point of contact with the curve */}
+              {ann.tangentPoint && inX(ann.tangentPoint.x) && inY(ann.tangentPoint.y) && (
+                <ReferenceDot
+                  x={ann.tangentPoint.x}
+                  y={ann.tangentPoint.y}
+                  r={6}
+                  fill={extremumColor}
+                  stroke={markerStroke}
+                  strokeWidth={2}
+                  label={<PointLabel text={ann.tangentPoint.label} color={extremumColor} haloColor={tooltipBg} />}
+                />
+              )}
 
               {/* System-of-equations intersection: the solution point */}
               {ann.intersection && inX(ann.intersection.x) && inY(ann.intersection.y) && (

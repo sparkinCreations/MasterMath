@@ -119,6 +119,10 @@ export function describeGraphFeatures(functionData) {
     features.push(`The area between the curve and the x-axis is shaded from x = ${from} to x = ${to}.`);
   }
 
+  if (ann.tangentPoint && Number.isFinite(ann.tangentPoint.x) && Number.isFinite(ann.tangentPoint.y)) {
+    features.push(`The tangent line touches the curve at ${point(ann.tangentPoint.x, ann.tangentPoint.y)}, with the same slope there.`);
+  }
+
   // Systems
   if (ann.intersection && Number.isFinite(ann.intersection.x) && Number.isFinite(ann.intersection.y)) {
     features.push(`The two lines intersect at ${point(ann.intersection.x, ann.intersection.y)}.`);

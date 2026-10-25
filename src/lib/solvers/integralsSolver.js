@@ -737,7 +737,8 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
 
   const linNum = (r0, denomText) => { const sgn = r0.n < 0 ? '−' : ''; const an = Math.abs(r0.n); const bare = stripOuterParens(denomText); return r0.d === 1 ? `${sgn}${an}/${/[+\-]/.test(bare) && !/\^/.test(denomText) ? `(${bare})` : denomText}` : `${sgn}${an}/(${r0.d}${denomText})`; };
   const quadNum = (b0, c0, denomText) => {
-    const partB = b0.n === 0 ? '' : `${b0.n < 0 ? '−' : ''}${Math.abs(b0.n) === 1 && b0.d === 1 ? '' : (b0.d === 1 ? Math.abs(b0.n) : `${Math.abs(b0.n)}/${b0.d}`)}${v}`;
+    // x/2, not 1/2x (which reads as 1/(2x)).
+    const partB = b0.n === 0 ? '' : `${b0.n < 0 ? '−' : ''}${Math.abs(b0.n) === 1 ? '' : Math.abs(b0.n)}${v}${b0.d === 1 ? '' : `/${b0.d}`}`;
     const partC = c0.n === 0 ? '' : `${c0.n < 0 ? '−' : partB ? '+' : ''} ${c0.d === 1 ? Math.abs(c0.n) : `${Math.abs(c0.n)}/${c0.d}`}`;
     return `(${[partB, partC].filter(Boolean).join(' ').trim() || '0'})/${denomText}`;
   };
@@ -797,7 +798,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
           ? `${beautify(arcCoefMach(K).replace(/\*$/, ''))}·`.replace(/^1\*?/, '').replace(/sqrt\((\d+)\)/, '√$1')
           : Math.abs(K / k - 1) < 1e-12 ? '' : Math.abs(K / k + 1) < 1e-12 ? '−' : `${fmtRat(K / k)}·`;
         const arcShown = surd && !surd.rational ? beautify(arcArg).replace(/sqrt\((\d+)\)/, '√$1') : `${U}${k === 1 ? '' : `/${kTxt}`}`;
-        pieceSteps.push(`${mark(`∫ ${numTxt}/${Q} d${v}`)}: ${h !== 0 ? `complete the square, ${mark(`${Q} = ${U}^2 + ${fmtRat(k2)}`)}; ` : ''}${Bv !== 0 ? `the ${mark(v)}-part gives ${mark(`${fmtRat(Bv / 2)}·ln|${stripOuterParens(Q)}|`)}` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${mark(`${arcCoef}arctan(${arcShown})`)}` : ''}`);
+        pieceSteps.push(`${mark(`∫ ${numTxt}/${Q} d${v}`)}: ${h !== 0 ? `complete the square, ${mark(`${Q} = ${U}^2 + ${fmtRat(k2)}`)}; ` : ''}${Bv !== 0 ? `the ${mark(v)}-part gives ${mark(`${fmtRat(Bv / 2)}·ln${/^\s*-/.test(stripOuterParens(Q)) ? `|${stripOuterParens(Q)}|` : `(${stripOuterParens(Q)})`}`)}` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${mark(`${arcCoef}arctan(${arcShown})`)}` : ''}`);
       } else if (t.j === 2) {
         if (surd && !surd.rational) return null; // (x² + px + q)² with an irrational k: not attempted
         if (Bv !== 0) pieces.push(overPoly(-Bv / 2, '1', Q));
@@ -837,7 +838,9 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
     `${mark(`∫(${beautify(term)}) d${v}`)} — a proper rational function. Factor the denominator: ${mark(`${beautify(den)} = ${constant !== 1 ? `${fmtNum(constant)}·` : ''}${D0.replace(/\*/g, '')}`)}.`,
     `Partial fractions (a repeated factor gets one term per power; an irreducible quadratic gets a linear numerator): ${mark(`${beautify(term)} = ${ansatzTxt}`)}. The coefficients come from clearing denominators and matching both sides.`,
     ...pieceSteps.map((t) => `  ${t}`),
-    `Add the pieces: ${mark(lnify(antiSimple))}.`,
+    // An irreducible quadratic is never zero, so its log needs no bars: the
+    // sum agrees with the answer (it read ln|x^2 + 1| above ln(x^2 + 1)).
+    `Add the pieces: ${mark(dropBarsOnPositiveArguments(lnify(antiSimple), antiSimple, v))}.`,
   ];
   return { antiderivative: antiSimple, steps };
 }
@@ -916,7 +919,8 @@ function buildPerTermSteps(expression, terms, perTerm, variable, total, combined
   });
 
   if (combinedFrom) steps.push(`Combine like terms: ${mark(`${beautify(combinedFrom)} = ${beautify(total)}`)}.`);
-  steps.push(`Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} = ${String(total).trim() === '0' ? 'C' : `${lnify(total)} + C`}`)}.`);
+  // The same bars as the answer: none on an argument that is always positive.
+  steps.push(`Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} = ${String(total).trim() === '0' ? 'C' : `${dropBarsOnPositiveArguments(lnify(total), total, variable)} + C`}`)}.`);
   return steps;
 }
 
@@ -1997,10 +2001,10 @@ function generateIntegralSteps(expression, integral, variable, Algebrite) {
   }
 
   if (terms.length > 1) {
-    steps.push(`Add the term integrals: ${mark(lnify(integral))}`);
+    steps.push(`Add the term integrals: ${mark(dropBarsOnPositiveArguments(lnify(integral), integral, variable))}`);
   }
 
-  steps.push(`Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} = ${lnify(integral)} + C`)}`);
+  steps.push(`Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} = ${dropBarsOnPositiveArguments(lnify(integral), integral, variable)} + C`)}`);
 
   return steps;
 }
@@ -2190,7 +2194,8 @@ function positiveArgumentNote(antiderivative, variable) {
 // sum of even powers with positive coefficients plus a positive constant.
 function alwaysPositiveLogArguments(antiderivative, variable) {
   const out = [];
-  for (const m of String(antiderivative).matchAll(/log\(([^()]+)\)/g)) {
+  // log((x^2+1)) too: the pieces of a partial-fraction sum keep their brackets.
+  for (const m of String(antiderivative).matchAll(/log\(\(?([^()]+)\)?\)/g)) {
     const arg = m[1].replace(/\s+/g, '');
     const terms = arg.split(/(?=[+-])/).filter(Boolean);
     const positive = terms.length > 0 && terms.every((t) => !t.startsWith('-') && (/^\+?\d+(?:\.\d+)?$/.test(t) || new RegExp(`^\\+?(?:\\d+(?:\\.\\d+)?\\*?)?${variable}\\^(?:\\d*[02468])$`).test(t)));
