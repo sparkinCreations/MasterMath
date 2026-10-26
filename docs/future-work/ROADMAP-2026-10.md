@@ -1,6 +1,6 @@
 # MasterMath — Future Work Roadmap (October 2026)
 
-**Version referenced:** 1.55.3 (written against 1.48.0, kept current since)
+**Version referenced:** 1.56.0 (written against 1.48.0, kept current since)
 **By:** sparkinCreations™
 **Last Updated:** October 26, 2026
 **Supersedes:** [`ROADMAP.md`](ROADMAP.md) (September 2026; 11/13 shipped, the two P4 items carry over below)
@@ -21,7 +21,7 @@
 9. [P4 — Carried Over: Sequences & Series; Practice Mode](#p4--carried-over-sequences--series-practice-mode)
 10. [Decided Against, and Why](#decided-against-and-why)
 11. [Known Engine Limitations](#known-engine-limitations)
-12. [Shipped October 22–26 (1.53.0–1.55.3)](#shipped-october-2226-15301553)
+12. [Shipped October 22–26 (1.53.0–1.56.0)](#shipped-october-2226-15301560)
 
 ---
 
@@ -55,8 +55,8 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P2~~ | ~~`(1 + a/x)^(bx)` limits by a named technique~~ | **Shipped in 1.49.0** | — |
 | ~~P2~~ | ~~PDF export with typeset steps and the graph~~ | **Shipped in 1.52.0** | — |
 | ~~P3~~ | ~~Tips chosen by method, everywhere~~ | **Shipped in 1.55.0** (equations, inequalities, logarithms and roots in 1.53.2–1.54.0; the Functions defaults and the limits fallbacks now): `tests/tipsByMethod.test.js` fails when two methods share a first tip | — |
-| ~~P3~~ | ~~Wordy requests and display gaps~~ | **Shipped in 1.55.0**: the period, amplitude, tangent-line equation, inverse and degrees ↔ radians; complex roots, erf, ln(e²), partial-fraction display. Average value, maximum on an interval, "is 17 prime" and rounding remain | ½ day for the rest |
-| P3 | Implicit curve plot | Implicit derivatives have no graph | ½ day |
+| ~~P3~~ | ~~Wordy requests and display gaps~~ | **Shipped in 1.55.0 and 1.56.0**: the period, amplitude, tangent-line equation, inverse, degrees ↔ radians (1.55.0); average value, maximum and minimum on an interval, primes, rounding (1.56.0); complex roots, erf, ln(e²), partial-fraction display | — |
+| ~~P3~~ | ~~Implicit curve plot~~ | **Shipped in 1.56.0**: the curve traced to scale, with the tangent at the point | — |
 | ~~P3~~ | ~~General partial fractions within the budget~~ | **Shipped in 1.53.1**: under a second, improper fractions divided first | — |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
 
@@ -274,8 +274,11 @@ the tangent line (point, slope, point–slope form; refused at a corner or a
 point off the curve), the inverse (operations undone one at a time, or
 (ax + b)/(cx + d) cross-multiplied; refused when not one-to-one, checked by
 f(f⁻¹(x)) = x) and degrees ↔ radians (exact as a multiple of π). All four
-display gaps are fixed. **Still open:** the average value on an interval,
-the maximum on an interval, "is 17 prime", "round … to two decimal places".
+display gaps are fixed. **Shipped in 1.56.0** (`intervalSolver.js`,
+`numberSolver.js`): the average value on an interval, the absolute maximum
+and minimum on a closed interval by the closed interval method, "is 97
+prime" and the prime factorization, and rounding to decimal places,
+significant figures or a place.
 
 ---
 
@@ -312,7 +315,7 @@ Recorded so they are not re-opened without a new argument.
 | Two-variable inequalities | `x + y > 2` was answered "No solution" | **Fixed in 1.49.0**: refused honestly. Graphing the region is new work. |
 | Periodic inequalities | `sin(x) > 1/2` listed intervals only inside ±50, without saying the pattern repeats | **Fixed in 1.49.1**: solved on one period and stated for every period. Periodic with breaks (tan) is refused. |
 | Exact inequality endpoints | `e^x > 2` gave `x > 0.6931` | **Fixed in 1.53.1**: x > ln(2) (≈ 0.6931); √2, ∛2, (1 ± √5)/2 exact; a located root is said to be one. Also fixed: x³ − 2 > 0 was "No solution", ln(x) < 1 included x ≤ 0. |
-| Implicit curve plot | Implicit derivatives have no graph | A contour plot of F(x, y) = 0 with the tangent at the point |
+| Implicit curve plot | Implicit derivatives had no graph | **Shipped in 1.56.0**: F(x, y) = 0 traced by marching squares for the window on screen, to scale, with the tangent at the point |
 
 **Not reproduced, fixed anyway:** the topic list "stuck open until Escape"
 (closed only on losing focus; now closes on an outside tap, v1.47.0).
@@ -345,13 +348,17 @@ Honest refusals, each with a message that says so:
   + − × ÷ ^ ! are exact at any size (1.55.2–1.55.3); anything with a root,
   a function or π past 2^53 or below the decimal setting is shown as
   ≈ m × 10^k, never as an exact-looking float.
+- **Equations a search cannot settle** — since 1.55.3 a numeric search
+  that finds nothing is a refusal, not "no real solution": e^x + e^(−x) = 1
+  (no solution: the left side is at least 2) is refused until the e^x
+  substitution takes negative exponents.
 - **Complex numbers** — arithmetic with i is worked (1.55.2); complex
   functions (e^(iπ) aside, which Algebra simplifies), polar form and complex
   roots of equations beyond the quadratic formula are not.
 
 ---
 
-## Shipped October 22–26 (1.53.0–1.55.3)
+## Shipped October 22–26 (1.53.0–1.56.0)
 
 | Release | What |
 |---|---|
@@ -363,3 +370,4 @@ Honest refusals, each with a message that says so:
 | 1.55.1 | `int` as ∫; integral and derivative without "of"; "integral from a to b of"; "with respect to x" on an integral (was answered f′(x) = 0) |
 | 1.55.2 | Exact big whole numbers (BigInt); ≈ m × 10^k for what a float cannot show (2^-60 was 0); complex arithmetic worked; the domain step marked per condition; exports titled by the solved topic; multi-digit exponents typeset |
 | 1.55.3 | Results too small or too large for a float kept as exact fractions (2^-60 = 1/1152921504606846976); complex answers typeset; spacing before "(≈ …)" |
+| 1.56.0 | Average value on an interval; absolute maximum and minimum on a closed interval; primes and prime factorization; rounding; implicit curves graphed with the tangent at the point |

@@ -64,6 +64,14 @@ export const CONVERTED = [
   ['other', '(2+3i)*(1-i)'], ['other', '(1+i)^2'], ['other', '(3+4i)/(1-2i)'], ['other', 'i^3'], ['other', 'i^10'], ['other', '(2+3i)+(1-i)'], ['other', 'abs(3+4i)'],
   ['other', '2*(3+4i)'], ['other', 'sqrt(-4)+3i'], ['other', '1/(2i)'], ['other', '(2+3i)^3'],
   ['functions', '(x^2-1)/(x^2-4)'], ['functions', 'sqrt(x-2)/(x-5)'],
+  // 1.56.0: average value, max/min on an interval, primes, factorization, rounding; implicit curves graphed.
+  ['auto', 'average value of x^2 on [0, 3]'], ['auto', 'average value of sin(x) from 0 to pi'], ['auto', 'average value of 1/x on [-1, 1]'],
+  ['auto', 'max and min of x^3 - 3x on [-2, 3]'], ['auto', 'maximum of abs(x - 1) on [0, 3]'], ['auto', 'minimum of x^(2/3) on [-1, 8]'],
+  ['auto', 'maximum of 1/x on [-1, 1]'], ['auto', 'maximum of 5 on [0, 1]'], ['auto', 'extreme values of sin(x) on [0, 2pi]'],
+  ['auto', 'is 97 prime'], ['auto', 'is 91 prime'], ['auto', 'is 1 prime'], ['auto', 'prime factorization of 360'], ['auto', 'factor 97'],
+  ['auto', 'round 3.14159 to 2 decimal places'], ['auto', 'round 2.996 to 2 dp'], ['auto', 'round 1250 to the nearest hundred'],
+  ['auto', 'round 0.004567 to 2 significant figures'], ['auto', 'round sqrt(2) to 3 decimal places'], ['auto', 'round 5 to 2 decimal places'],
+  ['algebra', 'x^(2/3) = 4'], ['algebra', 'x^(2/3) = -4'], ['algebra', '1/x = 0'], ['algebra', 'x/(x-1) = 1'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

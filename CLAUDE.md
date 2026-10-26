@@ -153,7 +153,12 @@ improper), `requestSolver` (one thing asked in words, read by
 `readRequestPhrases` in `api.js` and dispatched by `solveRequest`: the
 period (lcm of the terms' periods), amplitude, tangent-line equation,
 inverse (operations undone one at a time, or (ax + b)/(cx + d); checked by
-f(f⁻¹(x)) = x) and degrees ↔ radians).
+f(f⁻¹(x)) = x) and degrees ↔ radians), `intervalSolver` (average value on
+[a, b]; absolute maximum and minimum by the closed interval method:
+continuity from the parts, every critical point from the exact root finder
+or the equation solvers, refused when not provably complete),
+`numberSolver` (primes and prime factorization by trial division; rounding
+on the digits as typed, half away from zero).
 
 `solverUtils.js` owns the shared helpers — `beautify`, `formatNumber`,
 `splitTerms`, `splitTopLevel`, `stripOuterParens`, `gcd`, `runAlgebrite`,
@@ -195,7 +200,10 @@ needs `eval`; `tests/linearEquation.test.js` checks.
 ## Graphs
 
 `graph` may carry `expression` / `secondaryExpression` (re-sampled by the
-viewer, 400 points per window, gaps at `breaks`), `annotations` (extrema,
+viewer, 400 points per window, gaps at `breaks`), `implicit` (a curve
+F(x, y) = 0: `implicitCurve` in `graphSampling.js` traces it for the window
+on screen by marching squares, drawn to scale from `implicitYWindow`),
+`annotations` (extrema,
 intercepts, asymptotes, holes, limit guideline/point, shaded regions,
 intersection, open points) and `initialWindow`. The viewer opens on
 `initialWindow`, else the window framing the annotations, else `growthWindow`

@@ -415,3 +415,139 @@ export function niceTicks(min, max, { count = 5, extend = true } = {}) {
   if (ticks.length < 2) return null;
   return { ticks, step, decimals, min: ticks[0], max: ticks[ticks.length - 1] };
 }
+
+// ---------------------------------------------------------------------------
+// Implicit curves F(x, y) = 0 (x² + y² = 25, x·y = 1, sin(y) = x): not a
+// function of x, so not sampled along x. Traced by marching squares over the
+// window on screen: F on a grid, a crossing on every cell edge where F
+// changes sign (placed by linear interpolation), the crossings of a cell
+// joined, and the pieces chained into polylines the viewer draws in order.
+// A sign change across a pole (F = y − 1/x at x = 0) is not a crossing: the
+// value at the crossing point is checked, as sampleCurve checks its gaps.
+// ---------------------------------------------------------------------------
+
+function compileImplicit(expression, xVar, yVar) {
+  let code;
+  try {
+    code = math.parse(realOddRoots(String(expression))).compile();
+  } catch {
+    return null;
+  }
+  return (x, y) => {
+    try {
+      const v = code.evaluate({ [xVar]: x, [yVar]: y });
+      return typeof v === 'number' && Number.isFinite(v) ? v : NaN;
+    } catch {
+      return NaN;
+    }
+  };
+}
+
+export function implicitCurve(expression, xVar, yVar, { xMin, xMax, yMin, yMax }, { cols = 160, rows = 160 } = {}) {
+  const F = compileImplicit(expression, xVar, yVar);
+  if (!F || !(xMax > xMin) || !(yMax > yMin)) return [];
+  const dx = (xMax - xMin) / cols;
+  const dy = (yMax - yMin) / rows;
+  const X = (i) => xMin + i * dx;
+  const Y = (j) => yMin + j * dy;
+  const v = [];
+  for (let i = 0; i <= cols; i += 1) {
+    v.push(new Float64Array(rows + 1));
+    // An exact 0 on a grid node counts as positive: otherwise every edge
+    // meeting there claims the corner, and the pieces do not chain.
+    for (let j = 0; j <= rows; j += 1) {
+      const f = F(X(i), Y(j));
+      v[i][j] = f === 0 ? Number.MIN_VALUE : f;
+    }
+  }
+  const points = new Map();
+  // The crossing on an edge from (x1, y1, f1) to (x2, y2, f2), or null.
+  const crossing = (id, x1, y1, f1, x2, y2, f2) => {
+    if (points.has(id)) return id;
+    if (!Number.isFinite(f1) || !Number.isFinite(f2) || (f1 > 0) === (f2 > 0)) return null;
+    const t = f1 / (f1 - f2);
+    const x = x1 + t * (x2 - x1);
+    const y = y1 + t * (y2 - y1);
+    const at = F(x, y);
+    // A pole between the two samples: F is large at the "crossing".
+    if (!Number.isFinite(at) || Math.abs(at) > 2 * Math.max(Math.abs(f1), Math.abs(f2))) return null;
+    points.set(id, { x: round(x), y: round(y) });
+    return id;
+  };
+  const links = new Map();
+  const link = (a, b) => {
+    if (a === null || b === null || a === b) return;
+    if (!links.has(a)) links.set(a, []);
+    if (!links.has(b)) links.set(b, []);
+    links.get(a).push(b);
+    links.get(b).push(a);
+  };
+  for (let i = 0; i < cols; i += 1) {
+    for (let j = 0; j < rows; j += 1) {
+      const f00 = v[i][j];
+      const f10 = v[i + 1][j];
+      const f01 = v[i][j + 1];
+      const f11 = v[i + 1][j + 1];
+      const bottom = crossing(`h${i},${j}`, X(i), Y(j), f00, X(i + 1), Y(j), f10);
+      const top = crossing(`h${i},${j + 1}`, X(i), Y(j + 1), f01, X(i + 1), Y(j + 1), f11);
+      const left = crossing(`v${i},${j}`, X(i), Y(j), f00, X(i), Y(j + 1), f01);
+      const right = crossing(`v${i + 1},${j}`, X(i + 1), Y(j), f10, X(i + 1), Y(j + 1), f11);
+      const found = [bottom, right, top, left].filter((e) => e !== null);
+      if (found.length === 2) {
+        link(found[0], found[1]);
+      } else if (found.length === 4) {
+        // A saddle: the centre's sign decides which corners are joined.
+        const centre = F(X(i) + dx / 2, Y(j) + dy / 2);
+        if ((centre > 0) === (f00 > 0)) { link(bottom, right); link(top, left); } else { link(bottom, left); link(top, right); }
+      }
+    }
+  }
+  // Chain the pieces: open curves from their ends first, then closed loops.
+  const seen = new Set();
+  const walk = (start) => {
+    const line = [];
+    let prev = null;
+    let current = start;
+    while (current !== null && !seen.has(current)) {
+      seen.add(current);
+      line.push(points.get(current));
+      const next = (links.get(current) || []).find((n) => n !== prev && !seen.has(n));
+      prev = current;
+      current = next ?? null;
+    }
+    // A closed loop ends where it began.
+    if (line.length > 2 && (links.get(prev) || []).includes(start)) line.push(points.get(start));
+    return line;
+  };
+  const lines = [];
+  for (const [id, next] of links) if (next.length === 1 && !seen.has(id)) lines.push(walk(id));
+  for (const id of links.keys()) if (!seen.has(id)) lines.push(walk(id));
+  return lines.filter((line) => line.length > 1);
+}
+
+// The window that frames an implicit curve: its points on a coarse grid
+// over ±limit (wider until some are found), around the point of interest
+// when one is given, square so a circle looks like one.
+export function implicitWindow(expression, xVar, yVar, { focus = null, limit = 10 } = {}) {
+  for (const L of [limit, limit * 5]) {
+    const cx = focus ? focus.x : 0;
+    const cy = focus ? focus.y : 0;
+    const lines = implicitCurve(expression, xVar, yVar, { xMin: cx - L, xMax: cx + L, yMin: cy - L, yMax: cy + L }, { cols: 120, rows: 120 });
+    const pts = lines.flat();
+    if (pts.length === 0) continue;
+    let xLo = Math.min(...pts.map((p) => p.x));
+    let xHi = Math.max(...pts.map((p) => p.x));
+    let yLo = Math.min(...pts.map((p) => p.y));
+    let yHi = Math.max(...pts.map((p) => p.y));
+    if (focus) {
+      xLo = Math.min(xLo, focus.x); xHi = Math.max(xHi, focus.x);
+      yLo = Math.min(yLo, focus.y); yHi = Math.max(yHi, focus.y);
+    }
+    // A curve that runs off to infinity (x·y = 1) is framed at ±limit.
+    const half = Math.min(L, Math.max(xHi - xLo, yHi - yLo, 2) / 2 * 1.25);
+    const mx = (xLo + xHi) / 2;
+    const my = (yLo + yHi) / 2;
+    return { xMin: mx - half, xMax: mx + half, yMin: my - half, yMax: my + half };
+  }
+  return null;
+}

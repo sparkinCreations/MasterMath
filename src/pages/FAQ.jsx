@@ -38,7 +38,7 @@ export default function FAQ() {
     },
     {
       question: "Can I ask a question in words?",
-      answer: "Short requests about the maths, yes: \"find the zeros of x^2 - 5x + 6\", \"the critical points of x^3 - 3x\", \"the period of 3sin(2x) + 1\", \"the amplitude of 3sin(x) + 4cos(x)\", \"the equation of the tangent line to x^2 at x = 3\", \"the inverse of 2x + 3\", \"convert 45 degrees to radians\", and \"x squared plus 1\" for x^2 + 1. A story problem is a different thing: see the question above."
+      answer: "Short requests about the maths, yes: \"find the zeros of x^2 - 5x + 6\", \"the critical points of x^3 - 3x\", \"the period of 3sin(2x) + 1\", \"the amplitude of 3sin(x) + 4cos(x)\", \"the equation of the tangent line to x^2 at x = 3\", \"the inverse of 2x + 3\", \"convert 45 degrees to radians\", \"the average value of x^2 on [0, 3]\", \"the maximum of x^3 - 3x on [0, 2]\", \"is 97 prime\", \"the prime factorization of 360\", \"round 3.14159 to 2 decimal places\", and \"x squared plus 1\" for x^2 + 1. A story problem is a different thing: see the question above."
     },
     {
       question: "Do I have to pick a topic?",

@@ -3,6 +3,7 @@ import { STATUS, isValidStatus, parseError, solved, unsupported } from './soluti
 import { bareFunctionName, math, formatNumber, beautify } from './solvers/solverUtils.js';
 import { stripMathMarkers } from './mathMarkers.js';
 import { readPlainEnglish } from './plainEnglish.js';
+import { readRoundingSpec } from './solvers/numberSolver.js';
 
 async function loadSolver(topic) {
   switch (topic) {
@@ -219,6 +220,20 @@ function unknownWordInProblem(problem) {
   }) || null;
 }
 
+// "x^2 on [0, 3]", "x^2 over the interval [0, 3]", "x^2 from 0 to 3",
+// "x^2 between x = 0 and x = 3", "x^2 for 0 <= x <= 3" → { expr, a, b,
+// variable }, or null when no interval is given.
+function readInterval(text) {
+  const t = String(text).trim().replace(/[?.]$/, '');
+  let m = t.match(/^(.+?)\s*,?\s+(?:on|over|in)\s+(?:the\s+(?:closed\s+)?interval\s+)?\[\s*([^,\]]+?)\s*,\s*([^\]]+?)\s*\]$/i);
+  if (m) return { expr: m[1].trim(), a: m[2], b: m[3], variable: null };
+  m = t.match(/^(.+?)\s*,?\s+(?:on|over|for|when|where)\s+(?:the\s+interval\s+)?(-?[^\s<≤]+)\s*(?:<=|≤)\s*([a-z])\s*(?:<=|≤)\s*([^\s<≤]+)$/i);
+  if (m) return { expr: m[1].trim(), a: m[2], b: m[4], variable: m[3] };
+  m = t.match(/^(.+?)\s+(?:from|between)\s+(?:([a-z])\s*=\s*)?(-?\S+)\s+(?:to|and)\s+(?:[a-z]\s*=\s*)?(-?\S+)$/i);
+  if (m) return { expr: m[1].trim(), a: m[3], b: m[4], variable: m[2] || null };
+  return null;
+}
+
 // Request phrases around the maths, read as what they ask for. Returns
 // { problem } with the phrase rewritten in notation the routing knows, or
 // { problem, topic, reason } when the phrase names a topic of its own
@@ -255,6 +270,34 @@ function readRequestPhrases(text) {
   if (slope) return { problem: `derivative of ${slope[1].trim()}` };
   // "find the critical points of x^3 - 3x": the function's analysis. Not
   // when an interval is given (the analysis is over the whole domain).
+  const fnOf = '(?:the\\s+(?:function|graph|curve)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?';
+  const lead = `(?:${verb}\\s+)?(?:the\\s+)?`;
+  // "the average value of x^2 on [0, 3]", "the maximum of x^3 - 3x on
+  // [0, 2]" (the closed interval method), "is 97 prime", "the prime
+  // factorization of 360", "round 3.14159 to 2 decimal places" (1.56.0):
+  // each was refused as unreadable words.
+  const average = t.match(new RegExp(`^${lead}(?:average|mean)\\s+value\\s+of\\s+${fnOf}(.+)$`, 'i'));
+  const averageOn = average && readInterval(average[1]);
+  if (averageOn) {
+    return { problem: averageOn.expr, request: { kind: 'average', expression: averageOn.expr, a: averageOn.a, b: averageOn.b, variable: averageOn.variable }, topic: 'integrals', reason: 'the input asks for the average value of a function on an interval' };
+  }
+  const extreme = t.match(new RegExp(`^${lead}(?:absolute\\s+|global\\s+)?(max(?:imum)?(?:\\s+(?:and|&)\\s+min(?:imum)?)?|min(?:imum)?(?:\\s+(?:and|&)\\s+max(?:imum)?)?|extreme\\s+values?|extrema)(?:\\s+values?)?\\s+of\\s+${fnOf}(.+)$`, 'i'));
+  const extremeOn = extreme && readInterval(extreme[2]);
+  if (extremeOn) {
+    const which = /max/i.test(extreme[1]) && /min/i.test(extreme[1]) || /extrem/i.test(extreme[1]) ? 'both' : /max/i.test(extreme[1]) ? 'maximum' : 'minimum';
+    return { problem: extremeOn.expr, request: { kind: 'extrema', expression: extremeOn.expr, a: extremeOn.a, b: extremeOn.b, which, variable: extremeOn.variable }, topic: 'functions', reason: `the input asks for the absolute ${which === 'both' ? 'maximum and minimum' : which} of a function on an interval` };
+  }
+  const prime = t.match(/^(?:is\s+|check\s+(?:if|whether)\s+)(\d[\d,]*)\s+(?:is\s+)?(?:a\s+)?(prime|composite)(?:\s+number)?\s*\??$/i)
+    || t.match(/^(\d[\d,]*)\s+(?:is\s+)?(?:a\s+)?(prime|composite)(?:\s+number)?\s*\?$/i);
+  if (prime) return { problem: prime[1], request: { kind: 'prime', value: prime[1] }, topic: 'other', reason: 'the input asks whether a number is prime' };
+  const factorization = t.match(new RegExp(`^${lead}(?:prime\\s+factori[sz]ation|prime\\s+factors|factor\\s+tree)\\s+of\\s+(\\d[\\d,]*)\\s*[?.]?$`, 'i'))
+    || t.match(/^(?:factor(?:i[sz]e)?|write)\s+(\d[\d,]*)(?:\s+(?:into\s+primes|as\s+a\s+product\s+of\s+primes(?:\s+factors)?|completely))?\s*[?.]?$/i);
+  if (factorization) return { problem: factorization[1], request: { kind: 'factorization', value: factorization[1] }, topic: 'other', reason: 'the input asks for a prime factorization' };
+  const rounding = t.match(/^(?:round(?:\s+off)?\s+(.+?)|(.+?)\s+rounded)\s+to\s+(.+?)\s*[?.]?$/i);
+  if (rounding) {
+    const spec = readRoundingSpec(rounding[3]);
+    if (spec) return { problem: rounding[1] || rounding[2], request: { kind: 'round', value: (rounding[1] || rounding[2]).trim(), spec }, topic: 'other', reason: 'the input asks to round a number' };
+  }
   const analysis = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(critical\\s+points|inflection\\s+points|points\\s+of\\s+inflection|extrema|local\\s+(?:maximum|minimum|extrema)|turning\\s+points|vertex|domain(?:\\s+and\\s+range)?|range|asymptotes|intercepts)\\s+of\\s+(?:the\\s+(?:function|parabola|curve|graph)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?(.+)$`, 'i'));
   if (analysis && !/\bon\b|\[|\binterval\b/i.test(analysis[2])) {
     return { problem: analysis[2].trim(), topic: 'functions', reason: `the input asks for the ${analysis[1].toLowerCase().replace(/\s+/g, ' ')} of a function` };
@@ -263,8 +306,6 @@ function readRequestPhrases(text) {
   // of the tangent line to x^2 at x = 3", "the inverse of 2x + 3", "convert
   // 45 degrees to radians": one thing asked about a function or an angle
   // (requestSolver.js). Each was refused as unreadable words.
-  const fnOf = '(?:the\\s+(?:function|graph|curve)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?';
-  const lead = `(?:${verb}\\s+)?(?:the\\s+)?`;
   const property = t.match(new RegExp(`^${lead}(period|amplitude)\\s+of\\s+${fnOf}(.+?)\\s*[?.]?$`, 'i'));
   if (property) {
     return { problem: property[2].trim(), request: { kind: property[1].toLowerCase(), expression: property[2].trim() }, topic: 'trigonometry', reason: `the input asks for the ${property[1].toLowerCase()} of a function` };
@@ -304,6 +345,13 @@ function readRequestPhrases(text) {
 async function solveRequest(request, problem) {
   const solvers = await import('./solvers/requestSolver.js');
   if (request.kind === 'angle') return finalizeResult(asResult(solvers.convertAngle(request.value, request.from)), problem);
+  if (['prime', 'factorization', 'round'].includes(request.kind)) {
+    const numbers = await import('./solvers/numberSolver.js');
+    const result = request.kind === 'prime' ? numbers.primeCheck(request.value)
+      : request.kind === 'factorization' ? numbers.primeFactorization(request.value)
+        : numbers.roundNumber(request.value, request.spec);
+    return finalizeResult(asResult(result), problem);
+  }
   const expression = parseMathExpression(extractFunctionFromProblem(request.expression));
   const word = unknownWord(expression);
   if (word) return finalizeResult(parseError({ input: request.expression, hint: unknownWordHint(word) }), problem);
@@ -312,7 +360,12 @@ async function solveRequest(request, problem) {
   if (request.kind === 'period') result = solvers.periodOf(expression, variable);
   else if (request.kind === 'amplitude') result = solvers.amplitudeOf(expression, variable);
   else if (request.kind === 'tangent') result = await solvers.tangentLine(expression, variable, request.point, request.givenY);
-  else {
+  else if (request.kind === 'average' || request.kind === 'extrema') {
+    const interval = await import('./solvers/intervalSolver.js');
+    result = request.kind === 'average'
+      ? await interval.averageValue(expression, variable, request.a, request.b, solveProblem)
+      : await interval.extremaOnInterval(expression, variable, request.a, request.b, request.which, solveProblem);
+  } else {
     const { solveAlgebra } = await import('./solvers/algebraSolver.js');
     result = await solvers.inverseOf(expression, variable, solveAlgebra);
   }

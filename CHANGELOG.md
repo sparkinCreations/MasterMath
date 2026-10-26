@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.56.0] - 2026-10-26
+
+The last requests in words on the October roadmap, and graphs of implicit
+curves.
+
+### Added
+
+- **The average value of a function on an interval**: "the average value
+  of x^2 on [0, 3]" → 3, "of sin(x) from 0 to pi" → 2/π. The integral is
+  worked in full, then divided by the width; the graph shades the interval
+  and draws the average as a line. A divergent integral has no average,
+  and says so.
+- **The absolute maximum and minimum on a closed interval** ("the maximum
+  of x^3 − 3x on [0, 2]", "max and min of … on [a, b]", "for a ≤ x ≤ b"),
+  by the closed interval method: continuity on [a, b] shown from the
+  function's parts (a denominator, logarithm, root or tangent that goes bad
+  inside is named), every critical point found (where f′ = 0, by the exact
+  root finder or the equation solvers, and where f′ does not exist: a
+  corner of |x − 1|, the cusp of x^(2/3)), the endpoints and critical
+  points evaluated exactly and compared. Not continuous (1/x on [−1, 1]):
+  no guaranteed extreme, said why; a list it cannot show complete: refused,
+  never guessed. The graph marks the extremes on the shaded interval.
+- **"Is 97 prime?"**: trial division by the primes up to √n, each shown;
+  a composite with its first divisor and factorization. **"The prime
+  factorization of 360"** (and "factor 360") → 2^3 × 3^2 × 5, by repeated
+  division.
+- **Rounding**: "round 3.14159 to 2 decimal places", "to 3 significant
+  figures", "to the nearest hundred", "2.675 rounded to 2 dp" — digit by
+  digit on the number as typed (2.675 → 2.68, where a float gives 2.67),
+  half away from zero, the deciding digit and any carry shown.
+- **Implicit curves are graphed.** An implicit derivative (x² + y² = 25,
+  x³ + y³ = 6xy, xy = 1) draws the curve itself, traced for the window on
+  screen (marching squares, poles excluded) and drawn to scale so a circle
+  is round, with the tangent line at the point (y = −3x/4 + 25/4), or a
+  vertical line for a vertical tangent. The graph's text description names
+  the curve.
+
+### Changed
+
+- The User Manual and the FAQ list the new requests.
+
 ## [1.55.3] - 2026-10-26
 
 Polish found while shipping 1.55.2, and a wrong answer found while

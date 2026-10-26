@@ -39,7 +39,12 @@ export function describeGraphFeatures(functionData) {
   const features = [];
 
   // Curves
-  if (functionData.secondaryLabel) {
+  if (functionData.implicit) {
+    features.push(`The curve ${functionData.implicit.label} is plotted: every point (${functionData.implicit.x}, ${functionData.implicit.y}) in the window that satisfies it${functionData.secondaryLabel ? `, with the ${functionData.secondaryLabel} as a dashed line` : ''}.`);
+    if (Array.isArray(functionData.solutions) && functionData.solutions.length) {
+      features.push(`A dashed vertical line at ${functionData.implicit.x} = ${fmt(functionData.solutions[0])} is the vertical tangent there.`);
+    }
+  } else if (functionData.secondaryLabel) {
     features.push(`Two curves are plotted: f(x), and ${functionData.secondaryLabel} as a dashed line.`);
   }
 

@@ -7,7 +7,7 @@ import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { graphPalette } from "@/lib/graphPalette";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
-import { sampleCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, niceTicks, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
+import { sampleCurve, implicitCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, niceTicks, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
 
 // A ReferenceDot label placed where it fits inside the plot (placePointLabel).
 // Recharts renders this with the dot's box as `viewBox`; the props are named
@@ -97,7 +97,10 @@ export default function GraphViewer({ functionData }) {
   // A graph that carries its expression is re-sampled for whatever window
   // is on screen (see graphSampling.js); one without it can only be
   // filtered to the points the solver supplied.
-  const canResample = Boolean(functionData?.expression);
+  // An implicit curve F(x, y) = 0 (implicitCurve) is traced for the window on
+  // screen, with an optional tangent as the dashed curve.
+  const implicit = functionData?.implicit || null;
+  const canResample = Boolean(functionData?.expression || functionData?.secondaryExpression || implicit);
   const variable = functionData?.variable || 'x';
   const [range, setRange] = useState(() => startWindow(functionData));
   const [yDomain, setYDomain] = useState(null); // null = auto-fit
@@ -124,13 +127,14 @@ export default function GraphViewer({ functionData }) {
   }, [functionData?.points, canResample]);
 
   const yExtent = useMemo(() => {
+    if (implicit) return { min: -1000, max: 1000 };
     const all = [
       ...(functionData?.points || []).map((p) => p.y),
       ...(functionData?.secondaryPoints || []).map((p) => p.y),
     ].filter(Number.isFinite);
     if (all.length === 0) return { min: -10, max: 10 };
     return { min: Math.min(...all), max: Math.max(...all) };
-  }, [functionData?.points, functionData?.secondaryPoints]);
+  }, [functionData?.points, functionData?.secondaryPoints, implicit]);
 
   const primaryBreaks = useMemo(() => [
     ...(functionData?.annotations?.verticalAsymptotes || []),
@@ -141,6 +145,7 @@ export default function GraphViewer({ functionData }) {
   const visiblePoints = useMemo(() => {
     if (!functionData?.points) return [];
     if (canResample) {
+      if (!functionData.expression) return [];
       return sampleCurve(functionData.expression, variable, { ...range, breaks: primaryBreaks, extraXs: secondaryBreaks });
     }
     return functionData.points.filter(p => p.x >= range.xMin && p.x <= range.xMax);
@@ -180,12 +185,51 @@ export default function GraphViewer({ functionData }) {
   // Automatic y-windows: a robust fit of what is visible (see robustYWindow),
   // with every marked feature kept inside. The left axis fits both curves
   // unless the dashed one has its own axis.
+  // An implicit curve is drawn to scale, one unit the same length on both
+  // axes, so a circle is round: the y-window is centred on the solver's
+  // framing and as tall, in units, as the plot is in pixels. The plot's
+  // width is measured (ResizeObserver); its height is the chosen height
+  // less the x-axis.
+  const chartRef = useRef(null);
+  const [chartWidth, setChartWidth] = useState(0);
+  useEffect(() => {
+    const el = chartRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(([entry]) => setChartWidth(entry.contentRect.width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [functionData]);
+  // On first draw, widen the x-window until the curve's whole height fits
+  // at that scale (a circle in a wide plot needs more x than y).
+  const fittedImplicit = useRef(null);
+  const [refit, setRefit] = useState(0);
+  useEffect(() => {
+    if (!implicit || !chartWidth || fittedImplicit.current === functionData) return;
+    fittedImplicit.current = functionData;
+    const x0 = functionData.initialWindow;
+    const y0 = functionData.implicitYWindow;
+    if (!x0 || !y0) return;
+    const plotW = Math.max(50, chartWidth - 70);
+    const plotH = Math.max(50, HEIGHTS[heightIdx] - 45);
+    const span = Math.max(x0.xMax - x0.xMin, (y0.yMax - y0.yMin) * (plotW / plotH));
+    const centre = (x0.xMin + x0.xMax) / 2;
+    setRange({ xMin: centre - span / 2, xMax: centre + span / 2 });
+  }, [implicit, chartWidth, functionData, heightIdx, refit]);
+  const implicitAutoY = useMemo(() => {
+    const y0 = functionData?.implicitYWindow;
+    if (!implicit || !y0) return null;
+    const plotW = Math.max(50, (chartWidth || 600) - 70);
+    const plotH = Math.max(50, HEIGHTS[heightIdx] - 45);
+    const centre = (y0.yMin + y0.yMax) / 2;
+    const half = ((range.xMax - range.xMin) * (plotH / plotW)) / 2;
+    return { yMin: centre - half, yMax: centre + half };
+  }, [implicit, functionData, range, chartWidth, heightIdx]);
   const autoY = useMemo(
-    () => robustYWindow(mergedPoints, useRightAxis ? ['y'] : ['y', 'y2'], [
+    () => implicitAutoY || robustYWindow(mergedPoints, useRightAxis ? ['y'] : ['y', 'y2'], [
       ...annotationFeatureYs(functionData, 'primary'),
       ...(useRightAxis ? [] : annotationFeatureYs(functionData, 'secondary')),
     ]),
-    [mergedPoints, useRightAxis, functionData]
+    [implicitAutoY, mergedPoints, useRightAxis, functionData]
   );
   const autoY2 = useMemo(
     () => (useRightAxis ? robustYWindow(mergedPoints, ['y2'], annotationFeatureYs(functionData, 'secondary')) : null),
@@ -200,9 +244,19 @@ export default function GraphViewer({ functionData }) {
   // 2.4, 4.4; the y-axes are widened to round numbers and the x-axis keeps
   // its window with round ticks inside it.
   const yBase = yDomain || autoY;
-  const yNice = yBase ? niceTicks(yBase.yMin, yBase.yMax) : null;
+  // Round y-ends would stretch an implicit curve out of scale: its ticks stay inside.
+  const yNice = yBase ? niceTicks(yBase.yMin, yBase.yMax, implicit ? { extend: false } : undefined) : null;
   const y2Nice = autoY2 ? niceTicks(autoY2.yMin, autoY2.yMax) : null;
   const xNice = niceTicks(range.xMin, range.xMax, { count: 7, extend: false });
+  // The implicit curve, traced over exactly the window drawn.
+  const traceYMin = implicit ? yBase?.yMin : yNice ? yNice.min : yBase?.yMin;
+  const traceYMax = implicit ? yBase?.yMax : yNice ? yNice.max : yBase?.yMax;
+  const implicitLines = useMemo(
+    () => (implicit && Number.isFinite(traceYMin) && Number.isFinite(traceYMax)
+      ? implicitCurve(implicit.expression, implicit.x, implicit.y, { xMin: range.xMin, xMax: range.xMax, yMin: traceYMin, yMax: traceYMax })
+      : []),
+    [implicit, range.xMin, range.xMax, traceYMin, traceYMax]
+  );
   const tickText = (decimals) => (v) => (decimals === undefined
     ? (Number.isInteger(v) ? String(v) : Number(v).toFixed(1))
     : String(Number(Number(v).toFixed(decimals))));
@@ -262,6 +316,8 @@ export default function GraphViewer({ functionData }) {
   const shorter = () => setHeightIdx((i) => Math.max(i - 1, 0));
 
   const resetZoom = () => {
+    fittedImplicit.current = null;
+    setRefit((n) => n + 1);
     setRange(startWindow(functionData));
     setYDomain(null);
     setHeightIdx(DEFAULT_HEIGHT_IDX);
@@ -408,6 +464,7 @@ export default function GraphViewer({ functionData }) {
           role="img"
           aria-label={chartLabel}
           data-export-graph
+          ref={chartRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -431,7 +488,7 @@ export default function GraphViewer({ functionData }) {
               <YAxis
                 stroke={axisColor}
                 tick={{ fill: axisColor }}
-                domain={yNice ? [yNice.min, yNice.max] : yDomain ? [yDomain.yMin, yDomain.yMax] : autoY ? [autoY.yMin, autoY.yMax] : ['auto', 'auto']}
+                domain={implicit && yBase ? [yBase.yMin, yBase.yMax] : yNice ? [yNice.min, yNice.max] : yDomain ? [yDomain.yMin, yDomain.yMax] : autoY ? [autoY.yMin, autoY.yMax] : ['auto', 'auto']}
                 ticks={yNice ? yNice.ticks : undefined}
                 tickFormatter={tickText(yNice?.decimals)}
                 allowDataOverflow
@@ -450,7 +507,7 @@ export default function GraphViewer({ functionData }) {
                   label={{ value: secondaryAxisName, angle: 90, position: 'insideRight', fill: secondaryColor }}
                 />
               )}
-              <Tooltip
+              {!implicit && <Tooltip
                 contentStyle={{
                   backgroundColor: tooltipBg,
                   border: `2px solid ${tooltipBorder}`,
@@ -467,7 +524,7 @@ export default function GraphViewer({ functionData }) {
                   return [typeof value === 'number' ? value.toFixed(4) : value, label];
                 }}
                 labelFormatter={(label) => `x = ${typeof label === 'number' ? label.toFixed(2) : label}`}
-              />
+              />}
               <ReferenceLine x={0} stroke={axisLineColor} strokeWidth={2} />
               <ReferenceLine y={0} stroke={axisLineColor} strokeWidth={2} />
 
@@ -555,6 +612,11 @@ export default function GraphViewer({ functionData }) {
 
               {/* Primary curve */}
               <Line type="linear" dataKey="y" stroke="url(#colorGradient)" strokeWidth={3} dot={false} connectNulls={false} name="y" isAnimationActive={false} />
+              {/* An implicit curve: each traced piece drawn in its own order
+                  (a circle doubles back in x, so it is not one series). */}
+              {implicitLines.map((piece, i) => (
+                <Line key={`imp-${i}`} data={piece} type="linear" dataKey="y" stroke={palette.gradientTo} strokeWidth={3} dot={false} connectNulls={false} name="curve" legendType="none" isAnimationActive={false} />
+              ))}
               {hasSecondary && (
                 <Line type="linear" dataKey="y2" yAxisId={useRightAxis ? 'right' : 0} stroke={secondaryColor} strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls={false} name="y2" isAnimationActive={false} />
               )}
@@ -663,16 +725,18 @@ export default function GraphViewer({ functionData }) {
           </ResponsiveContainer>
         </div>
         {/* Legend for dual curves */}
-        {hasSecondary && (
-          <div className="flex items-center gap-4 mt-3 text-sm" aria-hidden="true">
+        {(hasSecondary || implicit) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm" aria-hidden="true">
             <div className="flex items-center gap-2">
               <div className="w-6 h-0.5 bg-linear-to-r from-blue-500 to-indigo-600" />
-              <span className="text-gray-600 dark:text-gray-400">f(x)</span>
+              <span className="text-gray-600 dark:text-gray-400">{implicit ? implicit.label : 'f(x)'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-0.5 border-t-2 border-dashed border-green-500" />
-              <span className="text-gray-600 dark:text-gray-400">{functionData.secondaryLabel || 'Secondary'}{useRightAxis ? ' (right axis)' : ''}</span>
-            </div>
+            {hasSecondary && (
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 border-t-2 border-dashed border-green-500" />
+                <span className="text-gray-600 dark:text-gray-400">{functionData.secondaryLabel || 'Secondary'}{useRightAxis ? ' (right axis)' : ''}</span>
+              </div>
+            )}
           </div>
         )}
         {/* The chart's key features in text — the readable equivalent of the
