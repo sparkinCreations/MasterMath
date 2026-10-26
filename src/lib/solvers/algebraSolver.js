@@ -21,6 +21,7 @@ import {
   mark,
   linearCoefficients,
   stripOuterParens,
+  realOddRoots,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -343,7 +344,7 @@ async function solveEquation(expression, options = {}) {
   // The old path took the first letter as "the" variable and, via the y=…
   // extractor, once answered "6".
   const letters = new Set(
-    (expression.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sqrt|abs|log|ln|exp|pi|e)\b/gi, '')
+    (expression.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sqrt|cbrt|nthRoot|nthroot|abs|log|log10|log2|ln|exp|pi|e)\b/gi, '')
       .match(/[a-z]/gi) || []).map((c) => c.toLowerCase())
   );
   if (letters.size >= 2) {
@@ -441,6 +442,18 @@ async function solveEquation(expression, options = {}) {
     }
   }
 
+  // 1e. One power with a fractional exponent — x^(1/3) = −2, x^(2/3) = 4 —
+  // isolated and raised to the reciprocal power, exactly. The zero-crossing
+  // scan answered x^(1/3) = 0 and x^(1/3) = −2 "No real solution found"
+  // (mathjs's cube root of a negative number is complex) and x^(2/3) = 4
+  // with x = 8 alone (October 26).
+  if (!answer) {
+    const viaPower = solvePowerEquation(expression, variable);
+    if (viaPower) {
+      ({ steps, answer, solutions } = viaPower);
+    }
+  }
+
   // 2. Algebrite roots — exact solutions (integers, fractions, radicals, complex)
   // for anything the linear path did not take, e.g. x^2 = 9.
   if (!answer) {
@@ -458,6 +471,32 @@ async function solveEquation(expression, options = {}) {
     const viaExact = rootsViaPolynomialRoot(null, `(${lhs.trim()}) - (${rhs.trim()})`, variable);
     if (viaExact?.envelope) return viaExact.envelope;
     if (viaExact) ({ steps, answer, solutions } = viaExact);
+  }
+
+  // 2c. x/(x − 1) = 1: clearing the denominators leaves 1 = 0, a
+  // contradiction — no solution, with the reason. It reached the numeric
+  // scan and was answered "No real solution found", which proves nothing.
+  // (Last before the scan: x/(x − 2) = 2/(x − 2) is taught above, its
+  // candidate x = 2 rejected as extraneous; 1/x = 0 is "never 0" below.)
+  if (!answer && isEquation(expression)) {
+    const [lhs, rhs] = expression.split('=');
+    if (new RegExp(`/\\s*\\(?[^()]*\\b${variable}\\b`).test(expression) && !neverZeroSide(lhs.trim(), rhs.trim(), variable)) {
+      const Algebrite = await loadAlgebrite();
+      let numerator = '';
+      let difference = '';
+      try {
+        difference = String(Algebrite.run(`simplify((${lhs.trim()}) - (${rhs.trim()}))`)).trim();
+        numerator = String(Algebrite.run(`numerator(rationalize((${lhs.trim()}) - (${rhs.trim()})))`)).trim();
+      } catch { numerator = ''; }
+      // A difference that is itself a constant (x/(x − 2) = 2/(x − 2)) has
+      // its own wording below: the sides differ by 1 everywhere.
+      const constantDifference = !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(difference);
+      if (!constantDifference && /^-?\d+(?:\/\d+)?$/.test(numerator) && numerator !== '0') {
+        steps = [`Multiply through by the denominators to clear the fractions: ${mark(`${beautify(numerator)} = 0`)}, which is false for every ${mark(variable)}.`, 'Solution: no real solution'];
+        answer = `No real solution (clearing the denominators leaves ${beautify(numerator)} = 0)`;
+        solutions = [];
+      }
+    }
   }
 
   // 3. Numeric root-finding — last resort.
@@ -480,7 +519,8 @@ async function solveEquation(expression, options = {}) {
     const [lhs, rhs] = expression.split('=');
     const definedAt = (side, x) => {
       try {
-        const v = math.evaluate(side, { [variable]: x });
+        // (−8)^(2/3) is 4: the real odd root, not mathjs's complex one.
+        const v = math.evaluate(realOddRoots(side), { [variable]: x });
         return typeof v === 'number' && Number.isFinite(v);
       } catch {
         return false;
@@ -768,6 +808,195 @@ async function solveWithAlgebriteRoots(equation, variable) {
 // p·x + q = ln(K)/ln(b), and solve that line exactly. Read off the parse
 // tree, so the shape is proved, not sampled. Returns null for any other
 // shape (the variable in two places, a nonlinear exponent).
+// One side 0 and the other provably never 0: { side, why }, or null. Never
+// zero: a nonzero constant; e^u or a^u (a > 0); a product of never-zero
+// factors; a quotient with a never-zero numerator (where it is defined).
+function neverZeroSide(left, right, variable) {
+  const isZero = (t) => {
+    try {
+      return math.evaluate(String(t)) === 0;
+    } catch {
+      return false;
+    }
+  };
+  const side = isZero(right) ? left : isZero(left) ? right : null;
+  if (!side) return null;
+  let node;
+  try {
+    node = math.parse(String(side));
+  } catch {
+    return null;
+  }
+  const reasons = new Set();
+  const never = (n) => {
+    if (n.type === 'ParenthesisNode') return never(n.content);
+    if (n.type === 'ConstantNode') return typeof n.value === 'number' && n.value !== 0;
+    if (n.type === 'SymbolNode') return ['e', 'pi'].includes(n.name);
+    if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') return never(n.args[0]);
+    if (n.type === 'OperatorNode' && n.fn === 'multiply') return never(n.args[0]) && never(n.args[1]);
+    if (n.type === 'OperatorNode' && n.fn === 'divide') {
+      if (!never(n.args[0])) return false;
+      if (n.args[1].filter((c) => c.type === 'SymbolNode' && c.name === variable).length) reasons.add('a fraction is 0 only when its numerator is, and this numerator never is');
+      return true;
+    }
+    if (n.type === 'OperatorNode' && n.fn === 'pow') {
+      let base = n.args[0];
+      while (base.type === 'ParenthesisNode') base = base.content;
+      let b;
+      try { b = base.evaluate({}); } catch { b = null; }
+      if (typeof b === 'number' && b > 0) { reasons.add('a positive base to any power is positive'); return true; }
+      return false;
+    }
+    if (n.type === 'FunctionNode' && n.fn?.name === 'exp') { reasons.add('a positive base to any power is positive'); return true; }
+    return false;
+  };
+  if (!never(node) || !node.filter((c) => c.type === 'SymbolNode' && c.name === variable).length) return null;
+  return { side, why: [...reasons].join('; ') || 'it is a nonzero constant' };
+}
+
+// A·(ax + b)^(p/q) + C = D, the variable inside one fractional power:
+// isolate the power, then undo it. With q odd the power is real for every
+// base (the real q-th root, raised to p): an odd p undoes to one value of
+// either sign, an even p to ±. With q even the base must be ≥ 0 and the
+// power is never negative. Returns { steps, answer, solutions } or null.
+function solvePowerEquation(equation, variable) {
+  const v = variable;
+  const sides = equation.split('=');
+  if (sides.length !== 2) return null;
+  let tree;
+  try {
+    tree = math.parse(`(${sides[0].trim()}) - (${sides[1].trim()})`);
+  } catch {
+    return null;
+  }
+  const has = (n) => n.filter((c) => c.type === 'SymbolNode' && c.name === v).length > 0;
+  const constant = (n) => {
+    try {
+      const x = n.evaluate({});
+      return typeof x === 'number' && Number.isFinite(x) ? x : null;
+    } catch {
+      return null;
+    }
+  };
+  // The terms of the difference, each with its sign.
+  const terms = [];
+  const collect = (n, sign) => {
+    if (n.type === 'ParenthesisNode') return collect(n.content, sign);
+    if (n.type === 'OperatorNode' && n.fn === 'add') { collect(n.args[0], sign); collect(n.args[1], sign); return; }
+    if (n.type === 'OperatorNode' && n.fn === 'subtract') { collect(n.args[0], sign); collect(n.args[1], -sign); return; }
+    if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') { collect(n.args[0], -sign); return; }
+    terms.push({ n, sign });
+  };
+  collect(tree, 1);
+  const withVar = terms.filter((t) => has(t.n));
+  if (withVar.length !== 1) return null;
+  let C = 0;
+  for (const t of terms) {
+    if (t === withVar[0]) continue;
+    const c = constant(t.n);
+    if (c === null) return null;
+    C += t.sign * c;
+  }
+  // k·power or power/k.
+  let k = withVar[0].sign;
+  let node = withVar[0].n;
+  while (node.type === 'ParenthesisNode') node = node.content;
+  if (node.type === 'OperatorNode' && node.fn === 'multiply') {
+    const [x, y] = node.args;
+    if (constant(x) !== null && has(y)) { k *= constant(x); node = y; } else if (constant(y) !== null && has(x)) { k *= constant(y); node = x; } else return null;
+  } else if (node.type === 'OperatorNode' && node.fn === 'divide' && constant(node.args[1])) {
+    k /= constant(node.args[1]);
+    node = node.args[0];
+  }
+  while (node.type === 'ParenthesisNode') node = node.content;
+  let base;
+  let r;
+  if (node.type === 'OperatorNode' && node.fn === 'pow' && constant(node.args[1]) !== null) {
+    [base] = node.args;
+    r = constant(node.args[1]);
+  } else if (node.type === 'FunctionNode' && node.fn.name === 'sqrt') {
+    [base] = node.args;
+    r = 1 / 2;
+  } else if (node.type === 'FunctionNode' && node.fn.name === 'cbrt') {
+    [base] = node.args;
+    r = 1 / 3;
+  } else if (node.type === 'FunctionNode' && ['nthRoot', 'nthroot'].includes(node.fn.name) && node.args.length === 2 && constant(node.args[1])) {
+    [base] = node.args;
+    r = 1 / constant(node.args[1]);
+  } else {
+    return null;
+  }
+  if (Number.isInteger(r) || k === 0) return null;
+  // r = p/q in lowest terms, q ≤ 12.
+  let p = null;
+  let q = null;
+  for (let d = 2; d <= 12 && p === null; d += 1) {
+    const n = Math.round(r * d);
+    if (Math.abs(r * d - n) < 1e-12) { p = n; q = d; }
+  }
+  if (p === null) return null;
+  const lin = linearCoefficients(base.toString(), v);
+  if (!lin || lin.k === 0) return null;
+  const m = -C / k;
+  const baseShown = beautify(base.toString());
+  const rText = `${p}/${q}`;
+  const powerShown = `${/^[\w.]+$/.test(baseShown) ? baseShown : `(${baseShown})`}^(${rText})`;
+  const fmt = (x) => {
+    const rounded = Math.round(x);
+    if (Math.abs(x - rounded) < 1e-9) return String(rounded);
+    for (let d = 2; d <= 64; d += 1) {
+      const n = Math.round(x * d);
+      if (Math.abs(x * d - n) < 1e-9) return `${n}/${d}`;
+    }
+    return null;
+  };
+  const mText = fmt(m) ?? formatNumber(m);
+  const steps = [`Isolate the power: ${mark(`${powerShown} = ${mText}`)}.`];
+  const evenRoot = q % 2 === 0;
+  const evenPower = p % 2 === 0;
+  const none = (why) => ({ steps: [...steps, why, 'Solution: no real solution'], answer: `No real solution (${why.replace(/\.$/, '').replace(/⟦|⟧/g, '')})`, solutions: [] });
+  if (m === 0 && p < 0) return none(`A negative power is ${mark('1')} over a power, never ${mark('0')}.`);
+  if (m < 0 && (evenRoot || evenPower)) {
+    return none(evenRoot ? `${mark(`${powerShown}`)} is a power of a square root, which is never negative.` : `${mark(`${powerShown}`)} is an even power of a real root, which is never negative.`);
+  }
+  // The values of the base: (base)^(p/q) = m ⇔ base = ±m^(q/p).
+  const magnitude = Math.abs(m) ** (q / p);
+  const values = [];
+  if (m === 0) values.push(0);
+  else if (evenPower && !evenRoot) values.push(-magnitude, magnitude);
+  else values.push(m < 0 ? -magnitude : magnitude);
+  const magText = fmt(magnitude);
+  if (m === 0) steps.push(`A power is ${mark('0')} only when its base is: ${mark(`${baseShown} = 0`)}.`);
+  else if (evenPower && !evenRoot) steps.push(`Raise both sides to the power ${mark(`${q}/${p}`)}. The numerator ${mark(String(p))} is even, so both signs: ${mark(`${baseShown} = ±${mText}^(${q}/${p}) = ±${magText ?? formatNumber(magnitude)}`)}.`);
+  else if (!evenRoot && m < 0) steps.push(`Raise both sides to the power ${mark(`${q}/${p}`)}: the ${mark(String(q))}-th root is real for a negative number, so the sign carries through: ${mark(`${baseShown} = −${formatNumber(Math.abs(m))}^(${q}/${p}) = ${fmt(-magnitude) ?? formatNumber(-magnitude)}`)}.`);
+  else steps.push(`Raise both sides to the power ${mark(`${q}/${p}`)}${evenRoot ? ` (the base of a square root is ${mark('≥ 0')}, and ${mark(mText)} is)` : ''}: ${mark(`${baseShown} = ${mText}^(${q}/${p}) = ${magText ?? formatNumber(magnitude)}`)}.`);
+  // Solve the linear base for each value, and check each in the original.
+  const evalOriginal = (x) => {
+    try {
+      const value = math.evaluate(realOddRoots(`(${sides[0].trim()}) - (${sides[1].trim()})`), { [v]: x });
+      return typeof value === 'number' ? value : NaN;
+    } catch {
+      return NaN;
+    }
+  };
+  const found = [];
+  for (const value of values) {
+    const x = (value - lin.d) / lin.k;
+    const residual = evalOriginal(x);
+    if (!(Math.abs(residual) <= 1e-9 * (1 + Math.abs(m)))) continue;
+    found.push({ x, text: fmt(x) });
+  }
+  if (found.length !== values.length) return null;
+  if (lin.k !== 1 || lin.d !== 0) {
+    steps.push(`Solve for ${mark(v)}: ${found.map((f) => mark(`${v} = ${f.text ?? `≈ ${formatNumber(f.x)}`}`)).join(' or ')}.`);
+  }
+  steps.push(`Check in the original equation: ${found.map((f) => mark(`${v} = ${f.text ?? formatNumber(f.x)}`)).join(', ')} ${found.length === 1 ? 'satisfies' : 'each satisfy'} it ✓`);
+  found.sort((x, y) => x.x - y.x);
+  const answer = found.map((f) => (f.text ? `${v} = ${f.text}` : `${v} ≈ ${formatNumber(f.x)}`)).join('  or  ');
+  steps.push(`Solution: ${answer}`);
+  return { steps, answer, solutions: found.map((f) => f.x) };
+}
+
 function solveSingleExponential(equation, variable) {
   const v = variable;
   const [lhsText, rhsText] = equation.split('=');
@@ -1680,9 +1909,11 @@ function solveNumerically(equation, variable) {
 
   // Real-valued evaluation: Complex results (sqrt of a negative) count as
   // "not defined here", exactly like a thrown evaluation error.
+  // A real odd root, (−8)^(1/3) = −2: mathjs's principal root is complex.
+  const realExpression = realOddRoots(expression);
   const evalReal = (x) => {
     try {
-      const v = math.evaluate(expression, { [variable]: x });
+      const v = math.evaluate(realExpression, { [variable]: x });
       // ±Infinity (1/0 at a pole) is "not defined here", same as NaN/Complex.
       return typeof v === 'number' && Number.isFinite(v) ? v : NaN;
     } catch {
@@ -1869,14 +2100,27 @@ function solveNumerically(equation, variable) {
     return Number.isFinite(residual) && Math.abs(residual) <= 1e-6;
   });
 
+  // None found is not none: a search over −100…100 proves nothing about
+  // the rest of the line, or a root it stepped over. It was answered "No
+  // real solution found", marked Solved (October 26). Only a side that is
+  // provably never 0 — a nonzero constant times exponentials, or over
+  // anything (e^x = 0, 1/(x − 2)² = 0) — makes "no real solution" a fact.
   if (verified.length === 0) {
+    const never = neverZeroSide(left, right, variable);
+    if (never) {
+      return {
+        steps: [`Rewrite as ${mark(`${beautify(expression)} = 0`)}`, `${mark(beautify(never.side))} is never ${mark('0')}: ${never.why}.`, 'Solution: no real solution'],
+        answer: `No real solution (${beautify(never.side)} is never 0)`,
+        solutions: [],
+      };
+    }
     return {
-      steps: [
-        `Rewrite as ${beautify(expression)} = 0`,
-        `No real value of ${variable} in the searched range (-100 to 100) satisfies the equation.`,
-      ],
-      answer: 'No real solution found',
-      solutions: [],
+      envelope: unsupported({
+        input: equation,
+        reason: `No solution of ${beautify(equation)} turned up in a numeric search from ${variable} = −100 to 100, but a search cannot show there is none, and no exact method applies to this equation.`,
+        answer: 'No solution was found, but this solver cannot show there is none',
+        tips: ['This is a limitation of the solver, not proof that the equation has no solution.'],
+      }),
     };
   }
 

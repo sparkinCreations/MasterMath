@@ -70,3 +70,35 @@ test('a repeated root is listed once, with its multiplicity', async () => {
     assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
   }
 });
+
+test('a fractional power is undone exactly, with real odd roots', async () => {
+  // The zero-crossing scan answered these "No real solution found", marked
+  // Solved: mathjs's cube root of a negative number is complex, and a root
+  // that only touches 0 was never seen.
+  for (const [p, answer] of [
+    ['x^(1/3) = 0', 'x = 0'],
+    ['x^(1/2) = 0', 'x = 0'],
+    ['x^(1/3) = -2', 'x = -8'],
+    ['x^(2/3) = 4', 'x = -8  or  x = 8'], // was x = 8 alone
+    ['cbrt(x + 1) = -2', 'x = -9'], // was "one equation cannot fix 5 unknowns" (c, b, r, t, x)
+    ['(x-1)^(2/3) = 9', 'x = -26  or  x = 28'],
+    ['x^(3/2) = 8', 'x = 4'],
+    ['x^(-1/2) = 2', 'x = 1/4'],
+  ]) {
+    const r = await solveProblem(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+  }
+  assert.equal((await solveProblem('x^(2/3) = -4', 'algebra')).answer, 'No real solution (x^(2/3) is an even power of a real root, which is never negative)');
+});
+
+test('"no real solution" is said only with a reason, never from a search', async () => {
+  assert.equal((await solveProblem('1/x = 0', 'algebra')).answer, 'No real solution (1/x is never 0)');
+  assert.equal((await solveProblem('e^(-x^2) = 0', 'algebra')).answer, 'No real solution (e^(-x^2) is never 0)');
+  assert.equal((await solveProblem('x/(x-1) = 1', 'algebra')).answer, 'No real solution (clearing the denominators leaves 1 = 0)');
+  assert.equal((await solveProblem('x^(2/3) - x = 0', 'algebra')).answer, 'x = 0  or  x = 1'); // x = 0 was missed
+  // A search that finds nothing is not a proof: an honest refusal.
+  const r = await solveProblem('x^x = 0', 'algebra');
+  assert.equal(r.status, 'unsupported');
+  assert.equal(r.answer, 'No solution was found, but this solver cannot show there is none');
+});

@@ -19,6 +19,20 @@ building 1.56.0.
   missed x = 3. After x^k was factored out, the factor left was solved only
   when its degree was 3 or more. A sweep of 206 products of small factors
   against the exact root finder now matches on every one.
+- **Fractional powers are solved exactly.** x^(1/3) = 0, x^(1/2) = 0 and
+  x^(1/3) = −2 were answered "No real solution found", marked Solved (the
+  cube root of a negative number came back complex, and a root that only
+  touches 0 was never seen); x^(2/3) = 4 gave 8 alone, x^(2/3) − x = 0
+  missed 0, and cbrt(x + 1) = −2 was read as five unknowns. A power with a
+  fractional exponent is isolated and raised to the reciprocal power: real
+  odd roots, both signs for an even numerator, none for an even root of a
+  negative number (said why).
+- **"No real solution" is said only with a reason.** A numeric search over
+  −100…100 that found nothing was answered "No real solution found",
+  Solved; now that is a proof (1/x = 0: a fraction is 0 only when its
+  numerator is; e^(−x²): a positive base to any power is positive;
+  x/(x − 1) = 1: clearing the denominator leaves 1 = 0) or an honest
+  refusal ("cannot show there is none").
 - **A repeated root is listed once, with its multiplicity**: "x = −2 or
   x = −2 or x = 3" reads "x = −2 (multiplicity 2) or x = 3", and a double
   root of the quadratic left at the end counts twice.
