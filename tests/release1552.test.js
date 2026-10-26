@@ -29,10 +29,10 @@ test('whole-number arithmetic past 2^53 is exact', async () => {
 });
 
 test('a result a float cannot show is approximate, never 0 or e-notation', async () => {
+  // 1.55.3 keeps the exact fraction too (exact first): see release1553.
   const tiny = await solvePlain('2^-60', 'other');
-  assert.equal(tiny.answer, '≈ 8.6736 × 10^-19'); // was 0, Solved
-  assert.match(tiny.steps.join(' '), /1\/2\^60 ≈ 8\.6736 × 10\^-19/);
-  assert.equal((await solveProblem('2^100/3', 'other')).answer, '≈ 4.2255 × 10^29');
+  assert.match(tiny.answer, /≈ 8\.6736 × 10\^-19\)?$/); // was 0, Solved
+  assert.match((await solveProblem('2^100/3', 'other')).answer, /≈ 4\.2255 × 10\^29\)?$/);
   // The working writes numbers as digits: 1000000, not 1e+6.
   const big = await solvePlain('1000000 + 2', 'other');
   assert.ok(big.steps.includes('Addition and subtraction last, left to right: 1000000 + 2 = 1000002'), big.steps.join(' | '));

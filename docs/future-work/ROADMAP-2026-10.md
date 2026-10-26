@@ -1,8 +1,8 @@
 # MasterMath — Future Work Roadmap (October 2026)
 
-**Version referenced:** 1.55.0 (written against 1.48.0, kept current since)
+**Version referenced:** 1.55.3 (written against 1.48.0, kept current since)
 **By:** sparkinCreations™
-**Last Updated:** October 24, 2026
+**Last Updated:** October 26, 2026
 **Supersedes:** [`ROADMAP.md`](ROADMAP.md) (September 2026; 11/13 shipped, the two P4 items carry over below)
 **Source:** [`../evaluations/2026-10/REVIEW-LOG-2026-10.md`](../evaluations/2026-10/REVIEW-LOG-2026-10.md) — six outside review rounds against v1.41–v1.48, every claim reproduced before it was accepted
 
@@ -21,7 +21,7 @@
 9. [P4 — Carried Over: Sequences & Series; Practice Mode](#p4--carried-over-sequences--series-practice-mode)
 10. [Decided Against, and Why](#decided-against-and-why)
 11. [Known Engine Limitations](#known-engine-limitations)
-12. [Shipped October 22–24 (1.53.0–1.55.0)](#shipped-october-2224-15301550)
+12. [Shipped October 22–26 (1.53.0–1.55.3)](#shipped-october-2226-15301553)
 
 ---
 
@@ -281,8 +281,10 @@ the maximum on an interval, "is 17 prime", "round … to two decimal places".
 
 ## P4 — Carried Over: Sequences & Series; Practice Mode
 
-Unchanged from [`ROADMAP.md`](ROADMAP.md#p4--new-topic-sequences--series);
-neither was raised by any October review.
+Unchanged from [`ROADMAP.md`](ROADMAP.md#p4--new-topic-sequences--series).
+The October 25 reviewer named both as what MasterMath is not for (Taylor
+expansions; drills and quizzes) and counted them as scope, not bugs: the
+User Manual does not claim either.
 
 ---
 
@@ -334,10 +336,22 @@ Honest refusals, each with a message that says so:
 - **Integrals the engine cannot do** — `unsupported`, with the
   non-elementary note where one applies (erf, Si, Fresnel).
 - **Polynomials above degree 100** — refused.
+- **Sequences, series and Taylor expansions** — not a topic yet (roadmap
+  P4); the October 25 reviewer counted it as scope, since the User Manual
+  does not claim it.
+- **Practice drills and quizzes** — MasterMath solves what is typed; it does
+  not set problems (roadmap P4, practice mode).
+- **Numbers past a float's range** — whole numbers and fractions built from
+  + − × ÷ ^ ! are exact at any size (1.55.2–1.55.3); anything with a root,
+  a function or π past 2^53 or below the decimal setting is shown as
+  ≈ m × 10^k, never as an exact-looking float.
+- **Complex numbers** — arithmetic with i is worked (1.55.2); complex
+  functions (e^(iπ) aside, which Algebra simplifies), polar form and complex
+  roots of equations beyond the quadratic formula are not.
 
 ---
 
-## Shipped October 22–24 (1.53.0–1.55.0)
+## Shipped October 22–26 (1.53.0–1.55.3)
 
 | Release | What |
 |---|---|
@@ -346,3 +360,6 @@ Honest refusals, each with a message that says so:
 | 1.53.2 | The October test list (95 cases) in the suite; f′(x) notation read as a whole; one exponential isolated and logged exactly; each derivative rule named; tips by method for quadratics and inequalities |
 | 1.54.0 | Simplest radical form; logarithms worked as typed; word problems refused as such; request phrases read; one history entry per problem; typeset My Progress PDF; the toast off the theme button |
 | 1.55.0 | The period, amplitude, tangent-line equation, inverse and degrees ↔ radians typed in words; tips by method in Functions and Limits; complex roots, erf, ln(e²) and partial fractions displayed as a textbook would |
+| 1.55.1 | `int` as ∫; integral and derivative without "of"; "integral from a to b of"; "with respect to x" on an integral (was answered f′(x) = 0) |
+| 1.55.2 | Exact big whole numbers (BigInt); ≈ m × 10^k for what a float cannot show (2^-60 was 0); complex arithmetic worked; the domain step marked per condition; exports titled by the solved topic; multi-digit exponents typeset |
+| 1.55.3 | Results too small or too large for a float kept as exact fractions (2^-60 = 1/1152921504606846976); complex answers typeset; spacing before "(≈ …)" |

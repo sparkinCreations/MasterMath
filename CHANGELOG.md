@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.55.3] - 2026-10-26
+
+Polish found while shipping 1.55.2.
+
+### Fixed
+
+- **A result too small or too large for a float keeps its exact value.**
+  2^-60 was shown only as ≈ 8.6736 × 10^-19; it is 1/1152921504606846976
+  (≈ 8.6736 × 10^-19), with the negative exponent worked as a reciprocal.
+  Numbers joined by + − × ÷ ^ ! are exact as fractions too (0.000001·3 =
+  3/1000000, 2^100/3); a fraction too long to read (1.5^100), or a result
+  past 100 digits, gives its size in scientific notation.
+- **A complex answer is typeset.** "−1 + 2i" and "5 + i" showed as plain
+  text in the Final Answer box: they had no sign of being maths that the
+  renderer looks for.
+- **"(≈ …)" keeps its space.** KaTeX dropped it: "376(≈ 1.2677 × 10^30)",
+  "3/10(= 0.3)".
+- **A power in a denominator** was typeset as a power of the whole
+  fraction: "3/2^2" (which is 3/4) showed as (3/2)², and the reciprocal step
+  "1/2^60" as (½)⁶⁰. A denominator with a power stays a slash.
+- **3i·2i** said "i·i = i² = −1: 6i·i = −6"; it now reads "6i·i = 6i² = −6".
+
+### Changed
+
+- The roadmap and the review log record the two October 25 reviews and
+  1.55.1–1.55.3; series, Taylor expansions and practice drills are listed as
+  known limitations (scope, roadmap P4).
+
 ## [1.55.2] - 2026-10-25
 
 A deeper outside review (about 55 problems, 4.5/5, every supported answer
