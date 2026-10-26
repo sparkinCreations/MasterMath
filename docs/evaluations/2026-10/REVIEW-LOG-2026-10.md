@@ -220,3 +220,4 @@ case now runs in `tests/octoberTestList.test.js`.
 | Series and Taylor expansions not supported | Agreed, scope: the User Manual does not claim them | Roadmap P4 |
 | Not for practice drills or quizzes | Agreed, scope | Roadmap P4 (practice mode) |
 | Found after 1.55.2: a complex answer ("−1 + 2i") shown as plain text; "376(≈ …)" with no space; 3i·2i shown as "6i·i = −6" | — | 1.55.3 |
+| Found while building 1.56.0: x³ − 4x = 0 answered "x = 0" alone, Solved (the factor left after x^k was not solved below degree 3); repeated roots listed twice | — | 1.55.3 |

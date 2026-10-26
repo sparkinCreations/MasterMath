@@ -1295,49 +1295,55 @@ function solveByRationalRoots(Algebrite, target, v, read, leadingSteps) {
       shown.push({ display: round.root.text, numeric: Number(round.root.m) / Number(round.root.d), sign: '=' });
       currentText = quotientText;
     }
-    const remDegree = fac.remaining.length - 1;
-    const remText = polynomialText(fac.remaining.map((f) => (f.d === 1n ? String(f.s * f.n) : `${f.s < 0 ? '-' : ''}${f.n}/${f.d}`)), v);
-    if (remDegree === 2) {
-      steps.push(`The remaining factor is a quadratic: ${mark(`${remText} = 0`)}.`);
-      let rootsRaw = '';
-      try { rootsRaw = Algebrite.roots(remText, v).toString(); } catch { rootsRaw = ''; }
-      const derivation = quadraticDerivation(Algebrite, remText, v);
-      if (derivation) steps.push(...derivation);
-      const roots = parseRootsList(rootsRaw);
-      if (roots.length === 0) return null;
-      // i*√3 reads as i√3.
-      const tidy = (d) => prettyRadicals(d).replace(/i\*√/g, 'i√');
-      for (const root of roots) shown.push({ display: tidy(root.display), numeric: root.numeric, sign: '=' });
-      const names = roots.map((root) => `${v} = ${tidy(root.display)}`).join(' or ');
-      steps.push(`So the quadratic gives ${names}.`);
-    } else if (remDegree === 1) {
-      const [b, c] = fac.remaining;
-      const root = c.neg().div(b);
-      const rootText = root.d === 1n ? String(root.s * root.n) : `${root.s < 0 ? '-' : ''}${root.n}/${root.d}`;
-      steps.push(`The remaining factor is linear: ${remText} = 0, so ${v} = ${rootText}.`);
-      shown.push({ display: rootText, numeric: Number(root.valueOf()), sign: '=' });
-    } else if (remDegree >= 3) {
-      steps.push(`No rational root remains: every candidate fails for ${remText}. Its roots cannot be written in a closed form here, so they are found numerically.`);
-      const numeric = rootsViaPolynomialRoot(Algebrite, `(${remText}) - (0)`, v);
-      if (!numeric || numeric.envelope) return null;
-      // Its own "degree-n polynomial … Sturm …" steps, minus the solution line.
-      steps.push(...numeric.steps.filter((line) => !/^Solution:/.test(line)));
-      // The finder's own answer may open with "no real solutions;" when
-      // every remaining root is complex — the rational ones already listed
-      // are the real solutions, so only its count clause is kept.
-      const rest = numeric.answer.replace(/^no real solutions;\s*/, '');
-      const sortedShown = [...shown].sort((a, b) => a.numeric - b.numeric);
-      const answer = /^plus \d+ complex/.test(rest)
-        ? `${sortedShown.map(line).join('  or  ')};  ${rest}`
-        : [...sortedShown.map(line), rest].join('  or  ');
-      steps.push(`Solution: ${answer}`);
-      return { steps, answer, solutions: [...shown.map((r) => r.numeric).filter(Number.isFinite), ...(numeric.solutions || [])] };
-    }
+  }
+  // What is left after x^k and the rational roots: solved whatever its
+  // degree. Only a remainder of degree 3 or more was solved before, so
+  // x^3 - 4x = 0 (x·(x² − 4)) was answered x = 0 alone (October 26).
+  const remDegree = fac.remaining.length - 1;
+  const remText = polynomialText(fac.remaining.map((f) => (f.d === 1n ? String(f.s * f.n) : `${f.s < 0 ? '-' : ''}${f.n}/${f.d}`)), v);
+  if (remDegree === 2) {
+    steps.push(`The remaining factor is a quadratic: ${mark(`${remText} = 0`)}.`);
+    let rootsRaw = '';
+    try { rootsRaw = Algebrite.roots(remText, v).toString(); } catch { rootsRaw = ''; }
+    const derivation = quadraticDerivation(Algebrite, remText, v);
+    if (derivation) steps.push(...derivation);
+    const roots = parseRootsList(rootsRaw);
+    if (roots.length === 0) return null;
+    // i*√3 reads as i√3.
+    const tidy = (d) => prettyRadicals(d).replace(/i\*√/g, 'i√');
+    // A double root (zero discriminant) is reported once: it counts twice.
+    for (const root of roots) shown.push({ display: tidy(root.display), numeric: root.numeric, sign: '=', multiplicity: roots.length === 1 ? 2 : 1 });
+    const names = roots.map((root) => `${v} = ${tidy(root.display)}`).join(' or ');
+    steps.push(`So the quadratic gives ${names}.`);
+  } else if (remDegree === 1) {
+    const [b, c] = fac.remaining;
+    const root = c.neg().div(b);
+    const rootText = root.d === 1n ? String(root.s * root.n) : `${root.s < 0 ? '-' : ''}${root.n}/${root.d}`;
+    steps.push(`The remaining factor is linear: ${remText} = 0, so ${v} = ${rootText}.`);
+    shown.push({ display: rootText, numeric: Number(root.valueOf()), sign: '=' });
+  } else if (remDegree >= 3) {
+    steps.push(`No rational root remains: every candidate fails for ${remText}. Its roots cannot be written in a closed form here, so they are found numerically.`);
+    const numeric = rootsViaPolynomialRoot(Algebrite, `(${remText}) - (0)`, v);
+    if (!numeric || numeric.envelope) return null;
+    // Its own "degree-n polynomial … Sturm …" steps, minus the solution line.
+    steps.push(...numeric.steps.filter((line) => !/^Solution:/.test(line)));
+    // The finder's own answer may open with "no real solutions;" when
+    // every remaining root is complex — the rational ones already listed
+    // are the real solutions, so only its count clause is kept.
+    const rest = numeric.answer.replace(/^no real solutions;\s*/, '');
+    const sortedShown = mergeRepeated(shown).sort((a, b) => a.numeric - b.numeric);
+    const answer = /^plus \d+ complex/.test(rest)
+      ? `${sortedShown.map(line).join('  or  ')};  ${rest}`
+      : [...sortedShown.map(line), rest].join('  or  ');
+    steps.push(`Solution: ${answer}`);
+    return { steps, answer, solutions: [...shown.map((r) => r.numeric).filter(Number.isFinite), ...(numeric.solutions || [])] };
   }
   if (shown.length === 0) return null;
-  // Real roots in ascending order, then the complex pair(s).
-  const reals = shown.filter((r) => Number.isFinite(r.numeric)).sort((a, b) => a.numeric - b.numeric);
-  const others = shown.filter((r) => !Number.isFinite(r.numeric));
+  // Real roots in ascending order, then the complex pair(s); a root found
+  // twice (x = 2 from two rounds of division) is one root of multiplicity 2.
+  const merged = mergeRepeated(shown);
+  const reals = merged.filter((r) => Number.isFinite(r.numeric)).sort((a, b) => a.numeric - b.numeric);
+  const others = merged.filter((r) => !Number.isFinite(r.numeric));
   const answer = [...reals, ...others].map(line).join('  or  ');
   steps.push(`Solution: ${answer}`);
   return { steps, answer, solutions: reals.map((r) => r.numeric) };
@@ -1345,6 +1351,18 @@ function solveByRationalRoots(Algebrite, target, v, read, leadingSteps) {
   function line(r) {
     return `${v} ${r.sign} ${r.display}${r.multiplicity > 1 ? ` (multiplicity ${r.multiplicity})` : ''}`;
   }
+}
+
+// The same root listed more than once — "x = 2 or x = 2" — is one root with
+// its multiplicities added.
+function mergeRepeated(shown) {
+  const out = [];
+  for (const r of shown) {
+    const same = out.find((o) => o.display === r.display || (Number.isFinite(o.numeric) && Number.isFinite(r.numeric) && Math.abs(o.numeric - r.numeric) < 1e-12 && o.sign === '=' && r.sign === '='));
+    if (same) same.multiplicity = (same.multiplicity || 1) + (r.multiplicity || 1);
+    else out.push({ ...r });
+  }
+  return out;
 }
 
 function rootsViaPolynomialRoot(Algebrite, polynomial, variable, extraSteps = []) {

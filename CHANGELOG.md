@@ -9,9 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.55.3] - 2026-10-26
 
-Polish found while shipping 1.55.2.
+Polish found while shipping 1.55.2, and a wrong answer found while
+building 1.56.0.
 
 ### Fixed
+
+- **A polynomial equation with no constant term lost roots.** x³ − 4x = 0
+  was answered "x = 0" alone, marked Solved (it is −2, 0, 2); x³ − 3x² = 0
+  missed x = 3. After x^k was factored out, the factor left was solved only
+  when its degree was 3 or more. A sweep of 206 products of small factors
+  against the exact root finder now matches on every one.
+- **A repeated root is listed once, with its multiplicity**: "x = −2 or
+  x = −2 or x = 3" reads "x = −2 (multiplicity 2) or x = 3", and a double
+  root of the quadratic left at the end counts twice.
 
 - **A result too small or too large for a float keeps its exact value.**
   2^-60 was shown only as ≈ 8.6736 × 10^-19; it is 1/1152921504606846976

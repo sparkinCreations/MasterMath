@@ -43,3 +43,30 @@ test('a complex answer is typeset, and "(≈ …)" keeps its space', () => {
   assert.equal(toLatex('3/10 (= 0.3)'), String.raw`\frac{3}{10}\;(= 0.3)`);
   assert.equal(toLatex('e^2 (≈ 7.3891)'), String.raw`e^{2}\;( \approx 7.3891)`);
 });
+
+test('a polynomial with no constant term keeps every root after x is factored out', async () => {
+  // x·(x² − 4) = 0 was answered "x = 0" alone, marked Solved: the factor left
+  // after x^k was solved only when its degree was 3 or more.
+  for (const [p, answer] of [
+    ['x^3 - 4x = 0', 'x = -2  or  x = 0  or  x = 2'],
+    ['x^3 - 3x^2 = 0', 'x = 0 (multiplicity 2)  or  x = 3'],
+    ['x^4 - 5x^3 + 6x^2 = 0', 'x = 0 (multiplicity 2)  or  x = 2  or  x = 3'],
+    ['2x^3 + 3x^2 = 0', 'x = -3/2  or  x = 0 (multiplicity 2)'],
+    ['x^3 - 2x = 0', 'x = -√2  or  x = 0  or  x = √2'],
+    ['x^3 + x = 0', 'x = 0  or  x = -i  or  x = i'],
+  ]) {
+    const r = await solveProblem(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+  }
+});
+
+test('a repeated root is listed once, with its multiplicity', async () => {
+  for (const [p, answer] of [
+    ['x^3 + x^2 - 8x - 12 = 0', 'x = -2 (multiplicity 2)  or  x = 3'], // was x = -2 or x = -2 or x = 3
+    ['x^6 - 12x^4 + 48x^2 - 64 = 0', 'x = -2 (multiplicity 3)  or  x = 2 (multiplicity 3)'],
+    ['x^3 - 4x^2 + 4x = 0', 'x = 0  or  x = 2 (multiplicity 2)'],
+  ]) {
+    assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
+  }
+});
