@@ -62,7 +62,10 @@ export async function solveIntegral(rawInput) {
   const bare = String(rawInput)
     .replace(/^\s*∫\s*/, '')
     .replace(/\s*\bd([a-z])\s*$/i, '');
-  const expression = extractFunctionFromProblem(bare);
+  // "integrate", "the integral of": the instruction with no integrand is an
+  // empty integral, not the integral of a function called "of".
+  const instructionOnly = /^\s*(?:(?:find|evaluate|compute|calculate)\s+)?(?:the\s+)?(?:integral|antiderivative|integrate)(?:\s+of)?\s*$/i.test(bare);
+  const expression = instructionOnly ? '' : extractFunctionFromProblem(bare);
   if (!expression || !expression.trim()) {
     // "∫ dx" is ∫ 1 dx.
     if (dvar) return solveIndefiniteIntegral('1', dvar[1].toLowerCase());

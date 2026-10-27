@@ -14,7 +14,7 @@
 //   by the equation solvers, whose answers are complete (the trig solver's
 //   general solution is enumerated on the interval). When a list cannot be
 //   shown complete, the answer is a refusal, not a guess.
-import { math, beautify, formatNumber, mark, piForm, loadAlgebrite, isAlgebriteFailure, sampleFunction, realOddRoots } from './solverUtils.js';
+import { math, beautify, formatNumber, mark, piForm, loadAlgebrite, isAlgebriteFailure, sampleFunction, realOddRoots, exactForm } from './solverUtils.js';
 import { readPolynomial, allRoots } from './polynomialRoots.js';
 import { unsupported as refusal } from '../solutionEnvelope.js';
 
@@ -22,30 +22,7 @@ const unsupported = (fields) => refusal({ ...fields, steps: [fields.reason] });
 const TRIG_CALL = /(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\(/;
 
 // Engine syntax → what a student reads.
-function show(text) {
-  const out = beautify(String(text))
-    // The real cube root: Algebrite writes ∛(−2) as (−1)^(1/3)·2^(1/3).
-    .replace(/\(-1\)\^\(1\/3\)\*/g, '-')
-    .replace(/(?<![a-z])(\d+|[a-z])\^\(1\/3\)/g, '∛$1')
-    // 1/6*π → π/6, 5/6*π → 5π/6.
-    .replace(/(?<![\w.])1\/(\d+)\*pi(?![a-z])/g, 'pi/$1')
-    .replace(/(?<![\w.])(\d+)\/(\d+)\*pi(?![a-z])/g, '$1pi/$2')
-    .replace(/(?<![a-z])exp\(-1\)/g, '1/e')
-    .replace(/(?<![a-z])(\d+|[a-z])\^\(1\/2\)/g, '√$1')
-    .replace(/\(([^()]+)\)\^\(1\/2\)/g, '√($1)')
-    // Algebrite's −1 + e first: (e − 1).
-    .replace(/\(-(\d+) \+ ([a-zπ√][^()]*)\)/g, '($2 - $1)')
-    .replace(/(?<![a-z])log\(/g, 'ln(')
-    .replace(/(?<![a-z])exp\(([a-z]|\d+)\)/g, 'e^$1')
-    .replace(/(?<![a-z])exp\(((?:[^()]|\([^()]*\))+)\)/g, 'e^($1)')
-    .replace(/(?<![a-z])sqrt\(/g, '√(')
-    .replace(/√\(([a-z]|\d+)\)/g, '√$1')
-    .replace(/(?<![a-z])pi(?![a-z])/g, 'π')
-    .replace(/\s*\/\s*/g, '/');
-  // −3 + ln(3) reads as ln(3) − 3.
-  const lead = out.match(/^-(\d+(?:\/\d+)?) \+ ([^+\-]+)$/);
-  return lead ? `${lead[2]} - ${lead[1]}` : out;
-}
+const show = exactForm;
 // A typed or displayed value → mathjs syntax.
 const toMath = (t) => String(t).replace(/π/g, 'pi').replace(/√\(/g, 'sqrt(').replace(/√(\d+|[a-z])/g, 'sqrt($1)').replace(/(\d)\s*(pi|sqrt|e\b)/g, '$1*$2').replace(/·/g, '*');
 // mathjs → Algebrite: its natural log is log().

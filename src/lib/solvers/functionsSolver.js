@@ -34,6 +34,8 @@ import {
   structuralPeriod,
   definedEverywhere,
   mark,
+  neverZeroSide,
+  exactForm,
 } from './solverUtils.js';
 import { featureWindow } from '../graphSampling.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
@@ -209,7 +211,7 @@ function parseRoots(raw) {
       numeric = typeof v === 'number' ? v : NaN;
     } catch { numeric = NaN; }
     // Algebrite's 3^(1/2) is shown as √3 (x-intercepts at x = -√3, 0, √3).
-    return { display: beautify(p.trim()).replace(/(\d+)\^\(1\/2\)/g, '√$1').replace(/(\d+)\^\(1\/3\)/g, '∛$1'), numeric };
+    return { raw: p.trim(), display: beautify(p.trim()).replace(/(\d+)\^\(1\/2\)/g, '√$1').replace(/(\d+)\^\(1\/3\)/g, '∛$1'), numeric };
   }).filter((r) => Number.isFinite(r.numeric)); // real roots only
 }
 
@@ -240,7 +242,7 @@ function analyzeFunction(func, variable, Algebrite) {
   const yIntercept = Number.isFinite(evalAt(func, variable, 0))
     ? { x: 0, y: snap(evalAt(func, variable, 0)) }
     : null;
-  let { extrema, monotonic } = findExtrema(func, variable, grid, Algebrite, isPeriodic);
+  let { extrema, monotonic, derivative, stationary, derivativeNeverZero } = findExtrema(func, variable, grid, Algebrite, isPeriodic);
   // Monotonic on the part of the window where f is defined — kept for the
   // endpoint reasoning below even when the global claim has to be dropped.
   const monotonicOnDomain = monotonic;
@@ -262,6 +264,9 @@ function analyzeFunction(func, variable, Algebrite) {
     extrema,
     endpointExtrema,
     monotonic,
+    derivative,
+    stationary,
+    derivativeNeverZero,
     inflections,
     verticalAsymptotes,
     horizontalAsymptote,
@@ -509,9 +514,15 @@ function extremumOrigin(func, variable, x) {
   return 'stationary';
 }
 
+// f′ and its zeros are kept for the steps (1.56.0): the analysis used to say
+// "Local maximum at (−1, 2) (from f′(x) = 0)" without ever showing f′(x) =
+// 3x² − 3 or solving it. `stationary` holds the zeros of f′ Algebrite found
+// (exact); an extremum from the numeric scan carries no exact x unless it
+// snapped to one. Each extremum's value is shown exactly where Algebrite can
+// (1/e at x = 1 for x·e^(−x)), else to the decimal setting.
 function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
   const extrema = [];
-  const classify = (x) => {
+  const classify = (x, root) => {
     const y = evalAt(func, variable, x);
     if (!Number.isFinite(y)) return;
     const l = evalAt(func, variable, x - 1e-4);
@@ -522,16 +533,39 @@ function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
     if (y <= l && y <= r && (y < l || y < r)) kind = 'min';
     if (!kind) return; // saddle / not an extremum — do not report
     if (extrema.some((e) => Math.abs(e.x - x) < 1e-5)) return;
-    extrema.push({ x: snap(x), y: snap(y), kind, origin: extremumOrigin(func, variable, x) });
+    const sx = snap(x);
+    // An exact x: Algebrite's root, a scan result that snapped to a quarter
+    // (1, −2, 1/2), or a multiple of π on a periodic curve (π/2, not
+    // 1.5708). Its exact value follows by substitution.
+    // (The scan's bisection lands within 1e-6 of π/2, not within piForm's 1e-9.)
+    const nearPi = Math.round((sx * 12) / Math.PI) * (Math.PI / 12);
+    const inPi = !root && isPeriodic && Math.abs(sx - nearPi) < 1e-6 ? piForm(nearPi) : null;
+    const piRaw = inPi && /π/.test(inPi) ? inPi.replace(/(\d)π/g, '$1*pi').replace(/π/g, 'pi') : null;
+    const raw = root?.raw ?? piRaw ?? (Number.isInteger(sx * 4) ? String(sx) : null);
+    const exact = raw ? exactValueAt(Algebrite, func, variable, raw, y) : null;
+    extrema.push({
+      x: sx,
+      y: snap(y),
+      kind,
+      origin: extremumOrigin(func, variable, x),
+      xText: root?.display ?? (piRaw ? inPi : formatNumber(sx)),
+      yText: exact ?? formatNumber(snap(y)),
+    });
   };
 
   let derivativeStr = null;
+  const stationary = [];
   if (Algebrite) {
     try {
       derivativeStr = Algebrite.derivative(rewriteReciprocalTrig(func), variable).toString();
+    } catch { derivativeStr = null; }
+    try {
       // Symbolic critical points when f' is polynomial-rootable.
       for (const r of parseRoots(Algebrite.roots(derivativeStr, variable).toString())) {
-        if (r.numeric >= WINDOW.min && r.numeric <= WINDOW.max) classify(r.numeric);
+        if (r.numeric >= WINDOW.min && r.numeric <= WINDOW.max) {
+          stationary.push(r);
+          classify(r.numeric, r);
+        }
       }
     } catch { /* fall through to numeric */ }
   }
@@ -569,7 +603,35 @@ function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
 
   const keep = isPeriodic ? 6 : 4;
   extrema.sort((a, b) => Math.abs(a.x) - Math.abs(b.x) || a.x - b.x);
-  return { extrema: extrema.slice(0, keep).sort((a, b) => a.x - b.x), monotonic };
+  // f′ as the page shows it: ln, e^x and √ for Algebrite's log, exp and
+  // ^(1/2), and (x − 2)^2 without its extra brackets.
+  const derivative = derivativeStr ? exactForm(derivativeStr).replace(/\(\(([^()]+)\)\^(\d+|\([^()]+\))\)/g, '($1)^$2') : null;
+  // "f′ is never 0" is a claim about every x: proved from the structure of
+  // f′ (a fraction with a nonzero numerator, a positive base to a power) or
+  // not made at all. Also the lone extremum message for 1/(x − 2), which
+  // used to be "No local extrema found in the analyzed window".
+  let derivativeNeverZero = null;
+  if (derivativeStr && extrema.length === 0 && stationary.length === 0) {
+    try { derivativeNeverZero = neverZeroSide(derivativeStr.replace(/(?<![a-z])log\(/g, 'log('), '0', variable); } catch { derivativeNeverZero = null; }
+  }
+  return { extrema: extrema.slice(0, keep).sort((a, b) => a.x - b.x), monotonic, derivative, stationary: stationary.slice(0, keep), derivativeNeverZero };
+}
+
+// f(x) at an exact x, by substitution, shown as a textbook writes it (1/e,
+// √2, π/6) — only when it agrees with the numeric value.
+function exactValueAt(Algebrite, func, variable, raw, numericY) {
+  if (!Algebrite) return null;
+  try {
+    const value = Algebrite.run(`simplify(subst(${raw}, ${variable}, ${rewriteReciprocalTrig(func)}))`).toString();
+    if (!value || /nil|Stop|\bi\b|\(-1\)\^/.test(value)) return null;
+    const check = math.evaluate(value.replace(/(?<![a-z])log\(/g, 'log(').replace(/\bexp\(/g, 'exp('));
+    if (typeof check !== 'number' || !Number.isFinite(check) || Math.abs(check - numericY) > 1e-6 * (1 + Math.abs(numericY))) return null;
+    const shown = exactForm(value);
+    // A plain decimal is no better than the formatted number.
+    return /^-?\d+(?:\.\d+)?$/.test(shown) ? null : shown;
+  } catch {
+    return null;
+  }
 }
 
 function findInflections(func, variable, Algebrite) {
@@ -783,19 +845,41 @@ function buildSteps(func, variable, f) {
 
   // Extrema / monotonicity (skip generic extrema line for quadratics — vertex already stated)
   if (!f.quadratic) {
+    // The method, shown: differentiate, set f′ = 0, read the sign change.
+    const fPrime = `f′(${variable})`;
+    if (f.derivative) {
+      const d = mark(`${fPrime} = ${f.derivative}`);
+      const stationaryXs = f.extrema.filter((e) => e.origin === 'stationary');
+      if (f.stationary.length > 0) {
+        steps.push(`Differentiate: ${d}. Set ${mark(`${fPrime} = 0`)}: ${mark(`${f.derivative} = 0`)} at ${mark(`${variable} = ${f.stationary.map((r) => r.display).join(', ')}`)}.`);
+        const saddles = f.stationary.filter((r) => !f.extrema.some((e) => Math.abs(e.x - r.numeric) < 1e-6));
+        if (saddles.length > 0) {
+          steps.push(`At ${mark(`${variable} = ${saddles.map((r) => r.display).join(', ')}`)} ${mark(fPrime)} is 0 but does not change sign, so there is no extremum there: the graph flattens and carries on.`);
+        }
+      } else if (stationaryXs.length > 0) {
+        steps.push(`Differentiate: ${d}. ${mark(fPrime)} is 0 at ${mark(`${variable} = ${stationaryXs.map((e) => e.xText).join(', ')}`)} (found where the slope changes sign).`);
+      } else if (f.derivativeNeverZero) {
+        steps.push(`Differentiate: ${d}. ${mark(fPrime)} is never 0 (${f.derivativeNeverZero.why}), so there are no stationary points${f.monotonic ? `: ${mark('f')} is strictly ${f.monotonic}` : ''}.`);
+      } else {
+        steps.push(`Differentiate: ${d}.`);
+      }
+    }
     if (f.extrema.length > 0) {
       for (const e of f.extrema) {
         const name = e.kind === 'max' ? 'maximum' : 'minimum';
+        const point = mark(`(${e.xText}, ${e.yText})`);
         if (e.origin === 'cusp') {
-          steps.push(`Local ${name} at ${mark(`(${formatNumber(e.x)}, ${formatNumber(e.y)})`)} — at a corner/cusp: ${mark(`f′(${variable})`)} does not exist there (the slopes on either side disagree), yet it is still a critical point and an extremum. Not a stationary point: this does NOT come from ${mark(`f′(${variable}) = 0`)}.`);
+          steps.push(`Local ${name} at ${point} — at a corner/cusp: ${mark(fPrime)} does not exist there (the slopes on either side disagree), yet it is still a critical point and an extremum. Not a stationary point: this does NOT come from ${mark(`${fPrime} = 0`)}.`);
         } else {
-          steps.push(`Local ${name} at ${mark(`(${formatNumber(e.x)}, ${formatNumber(e.y)})`)} (from ${mark(`f′(${variable}) = 0`)}).`);
+          steps.push(`Local ${name} at ${point}: ${mark(fPrime)} changes from ${e.kind === 'max' ? 'positive to negative' : 'negative to positive'} there${f.derivative ? '' : ` (${mark(`${fPrime} = 0`)})`}.`);
         }
       }
+    } else if (f.derivativeNeverZero) {
+      // Said with the derivative above.
     } else if (f.monotonic) {
       steps.push(`No local extrema — the function is strictly ${f.monotonic} across the window.`);
     } else if (f.endpointExtrema.length === 0 && !f.isPeriodic) {
-      steps.push('No local extrema found in the analyzed window.');
+      steps.push(`No local extrema found in the analyzed window${f.derivative ? ` (no zero of ${mark(fPrime)} was found there)` : ''}.`);
     }
     // Endpoint extrema are reported in their own words: they are where the
     // function starts or stops, not two-sided local extrema.
@@ -1057,7 +1141,7 @@ function summarizeAnalysis(func, variable, f) {
     parts.push(`vertex ${pt(f.quadratic.vertex.x, f.quadratic.vertex.y)} (${f.quadratic.opensUpward ? 'minimum' : 'maximum'}), axis ${variable} = ${formatNumber(f.quadratic.axis)}`);
   } else {
     for (const e of f.extrema) {
-      parts.push(`local ${e.kind === 'max' ? 'maximum' : 'minimum'} ${pt(e.x, e.y)}${e.origin === 'cusp' ? ' (cusp)' : ''}`);
+      parts.push(`local ${e.kind === 'max' ? 'maximum' : 'minimum'} (${e.xText ?? formatNumber(e.x)}, ${e.yText ?? formatNumber(e.y)})${e.origin === 'cusp' ? ' (cusp)' : ''}`);
     }
     for (const e of f.endpointExtrema) {
       parts.push(`${e.absolute ? 'absolute ' : ''}${e.kind === 'max' ? 'maximum' : 'minimum'} ${pt(e.x, e.y)} at the domain endpoint`);

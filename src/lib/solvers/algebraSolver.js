@@ -5,6 +5,7 @@ import { readPolynomial, allRoots, valueAtDecimal, factorByRationalRoots, MAX_PO
 import { getSettings } from '../settings.js';
 import {
   math,
+  neverZeroSide,
   loadAlgebrite,
   isAlgebriteFailure,
   beautify,
@@ -802,57 +803,6 @@ async function solveWithAlgebriteRoots(equation, variable) {
   }
 }
 
-// A·b^(p·x + q) + B = C, in any arrangement of +, −, · and / by constants:
-// undo each operation around the one exponential (shown step by step), so
-// b^(p·x + q) = K; K ≤ 0 has no real solution; else take logarithms,
-// p·x + q = ln(K)/ln(b), and solve that line exactly. Read off the parse
-// tree, so the shape is proved, not sampled. Returns null for any other
-// shape (the variable in two places, a nonlinear exponent).
-// One side 0 and the other provably never 0: { side, why }, or null. Never
-// zero: a nonzero constant; e^u or a^u (a > 0); a product of never-zero
-// factors; a quotient with a never-zero numerator (where it is defined).
-function neverZeroSide(left, right, variable) {
-  const isZero = (t) => {
-    try {
-      return math.evaluate(String(t)) === 0;
-    } catch {
-      return false;
-    }
-  };
-  const side = isZero(right) ? left : isZero(left) ? right : null;
-  if (!side) return null;
-  let node;
-  try {
-    node = math.parse(String(side));
-  } catch {
-    return null;
-  }
-  const reasons = new Set();
-  const never = (n) => {
-    if (n.type === 'ParenthesisNode') return never(n.content);
-    if (n.type === 'ConstantNode') return typeof n.value === 'number' && n.value !== 0;
-    if (n.type === 'SymbolNode') return ['e', 'pi'].includes(n.name);
-    if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') return never(n.args[0]);
-    if (n.type === 'OperatorNode' && n.fn === 'multiply') return never(n.args[0]) && never(n.args[1]);
-    if (n.type === 'OperatorNode' && n.fn === 'divide') {
-      if (!never(n.args[0])) return false;
-      if (n.args[1].filter((c) => c.type === 'SymbolNode' && c.name === variable).length) reasons.add('a fraction is 0 only when its numerator is, and this numerator never is');
-      return true;
-    }
-    if (n.type === 'OperatorNode' && n.fn === 'pow') {
-      let base = n.args[0];
-      while (base.type === 'ParenthesisNode') base = base.content;
-      let b;
-      try { b = base.evaluate({}); } catch { b = null; }
-      if (typeof b === 'number' && b > 0) { reasons.add('a positive base to any power is positive'); return true; }
-      return false;
-    }
-    if (n.type === 'FunctionNode' && n.fn?.name === 'exp') { reasons.add('a positive base to any power is positive'); return true; }
-    return false;
-  };
-  if (!never(node) || !node.filter((c) => c.type === 'SymbolNode' && c.name === variable).length) return null;
-  return { side, why: [...reasons].join('; ') || 'it is a nonzero constant' };
-}
 
 // A·(ax + b)^(p/q) + C = D, the variable inside one fractional power:
 // isolate the power, then undo it. With q odd the power is real for every

@@ -72,6 +72,15 @@ export const CONVERTED = [
   ['auto', 'round 3.14159 to 2 decimal places'], ['auto', 'round 2.996 to 2 dp'], ['auto', 'round 1250 to the nearest hundred'],
   ['auto', 'round 0.004567 to 2 significant figures'], ['auto', 'round sqrt(2) to 3 decimal places'], ['auto', 'round 5 to 2 decimal places'],
   ['algebra', 'x^(2/3) = 4'], ['algebra', 'x^(2/3) = -4'], ['algebra', '1/x = 0'], ['algebra', 'x/(x-1) = 1'],
+  // 1.56.0: malformed input refused the same way on every path, in words; the substitution algebra; f′ in the function analysis.
+  ['auto', '2+*'], ['auto', '3+'], ['auto', '*5'], ['auto', '(2+3'], ['auto', '2+3)'], ['auto', '()'], ['auto', '2..5'], ['auto', 'sin()'], ['auto', '2 + = 3'],
+  ['auto', '= 5'], ['auto', 'x = = 2'], ['auto', 'x < < 3'], ['auto', '2x + 3 >'], ['auto', 'd/dx'], ['auto', 'd/dx (x^2 +)'], ['auto', 'integral of'], ['auto', 'limit of'],
+  ['auto', 'foo(x)'], ['auto', 'x$2'], ['auto', '3!!'], ['auto', '|x'], ['auto', '[1,2]'], ['auto', '{x}'], ['auto', 'x;y'], ['auto', 'x == 2'], ['auto', '3:4'],
+  ['derivatives', '2+*'], ['integrals', '2+3)'], ['limits', 'x^2 +'], ['trigonometry', 'sin x +'], ['functions', 'x$2'],
+  ['algebra', '2x + 3y = 12, x - y = 1'], ['algebra', 'x + y = 5; 2x - y = 1'], ['algebra', '3x - 2y = 4; 5x + 4y = 14'], ['algebra', '-x + 2y = 3; 3x + y = 5'],
+  ['algebra', '2y = 6; x + y = 5'], ['algebra', 'x - y = 1; 3y = 9'], ['algebra', '2x = 8; x + y = 5'], ['algebra', 'x/2 + y/3 = 1; x - y = 1'], ['algebra', 'x + y = 0; x - y = 2'],
+  ['functions', 'x^3 - 3x'], ['functions', 'x*e^(-x)'], ['functions', 'x^3'], ['functions', 'abs(x)'], ['functions', 'x^(2/3)'], ['functions', 'sin(x)'], ['functions', 'x^4 - 2x^2'],
+  ['auto', 'sketch x^3'], ['auto', 'analyze x^2 - 4'], ['derivatives', 'e^-x'], ['integrals', '50% of 80'], ['derivatives', 'the gcd of 12 and 18'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

@@ -79,11 +79,14 @@ test('abs(x): the minimum at (0, 0) is reported as a corner/cusp, not from f′ 
   assert.match(line, /NOT come from f′\(x\) = 0/);
 });
 
-test('smooth extrema still say f′ = 0', async () => {
+test('smooth extrema come from f′ = 0, shown and solved', async () => {
   const r = await solvePlain('x^3 - 3*x', 'functions');
   const lines = r.steps.filter((s) => /Local (maximum|minimum)/.test(s));
   assert.equal(lines.length, 2);
-  for (const l of lines) assert.match(l, /\(from f′\(x\) = 0\)/);
+  // 1.56.0: f′ is differentiated and solved in its own step; each extremum
+  // names the sign change of f′ (it used to say "(from f′(x) = 0)" alone).
+  assert.ok(r.steps.includes('Differentiate: f′(x) = 3x^2 - 3. Set f′(x) = 0: 3x^2 - 3 = 0 at x = -1, 1.'), r.steps.join(' | '));
+  for (const l of lines) assert.match(l, /f′\(x\) changes from (positive to negative|negative to positive) there\.$/);
 });
 
 // ── QA report (Medium): sqrt(x-2) endpoint minimum.
@@ -101,7 +104,7 @@ test('sqrt(x-2): absolute minimum at the domain endpoint (2, 0)', async () => {
 
 test('sqrt(4-x^2): stationary maximum plus two endpoint minima, neither claimed absolute', async () => {
   const r = await solveProblem('sqrt(4-x^2)', 'functions');
-  assert.match(stepsText(r), /Local maximum at \(0, 2\) \(from f′\(x\) = 0\)/);
+  assert.match(stepsText(r), /Local maximum at \(0, 2\): f′\(x\) changes from positive to negative there/);
   assert.match(stepsText(r), /Minimum at the domain endpoint \(-2, 0\)/);
   assert.match(stepsText(r), /Minimum at the domain endpoint \(2, 0\)/);
   assert.doesNotMatch(stepsText(r), /Absolute minimum at the domain endpoint/);

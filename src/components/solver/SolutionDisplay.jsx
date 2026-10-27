@@ -129,12 +129,18 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   const steps = (routing ? solution.steps.slice(1) : solution?.steps) || [];
   // Step-through for a new visitor (the app teaches the method; the first
   // thing a new user sees is the working unfolding); remembered once chosen.
-  const [stepThrough, setStepThroughState] = useState(() => readSolutionMode(globalThis.localStorage) === 'step');
+  const [stepThroughChosen, setStepThroughState] = useState(() => readSolutionMode(globalThis.localStorage) === 'step');
   const setStepThrough = (next) => {
     writeSolutionMode(globalThis.localStorage, next ? 'step' : 'all');
     setStepThroughState(next);
   };
   const [revealed, setRevealed] = useState(0);
+  // Only a worked solution is walked through. Input that could not be read,
+  // or that the solver refuses, is shown all at once: "Step 1 of 2" and a
+  // "Reveal next step" button over an error made the error a puzzle.
+  const walkable = !solution?.status || ![STATUS.PARSE_ERROR, STATUS.UNSUPPORTED, STATUS.OVERFLOW].includes(solution.status);
+  const stepThrough = walkable && stepThroughChosen;
+  const notes = solution?.status === STATUS.PARSE_ERROR || solution?.status === STATUS.UNSUPPORTED;
 
   // Framer Motion is not covered by the CSS reduced-motion rules, so the two
   // slide-ins here opt out explicitly. `initial: false` renders the final
@@ -264,16 +270,16 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
                   <BookOpen className="w-5 h-5 text-indigo-600" />
-                  Step-by-Step Solution:
+                  {notes ? 'Notes:' : 'Step-by-Step Solution:'}
                 </h3>
-                {steps.length > 1 && (
+                {walkable && steps.length > 1 && (
                   <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5 bg-gray-50 dark:bg-gray-900/40">
                     <button
                       type="button"
                       onClick={() => setStepThrough(false)}
-                      aria-pressed={!stepThrough}
+                      aria-pressed={!stepThroughChosen}
                       className={`flex items-center gap-1.5 px-3 min-h-11 rounded-md text-sm font-medium transition-colors ${
-                        !stepThrough
+                        !stepThroughChosen
                           ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                           : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                       }`}
@@ -287,9 +293,9 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                         setStepThrough(true);
                         setRevealed(1);
                       }}
-                      aria-pressed={stepThrough}
+                      aria-pressed={stepThroughChosen}
                       className={`flex items-center gap-1.5 px-3 min-h-11 rounded-md text-sm font-medium transition-colors ${
-                        stepThrough
+                        stepThroughChosen
                           ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                           : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                       }`}

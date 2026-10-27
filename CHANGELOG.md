@@ -44,9 +44,69 @@ curves.
   vertical line for a vertical tangent. The graph's text description names
   the curve.
 
+- **The substitution algebra in a linear system is shown**: isolate
+  (x = 5 − y, not "(5 − 1·y) / 1"), substitute with the numbers in place,
+  clear the fraction, expand, collect, divide, back-substitute, and check
+  both equations with the numbers. The middle used to be one line,
+  "Substitute that into equation 2 and simplify", with nothing shown. An
+  equation with fractional coefficients is cleared first (×6).
+- **The function analysis shows its derivative**: "f′(x) = 3x² − 3; set
+  f′(x) = 0: x = −1, 1", then each extremum with the sign change of f′;
+  a zero of f′ that is not an extremum (x³ at 0) is said to be one; the
+  values are exact (x·e^(−x) peaks at (1, 1/e), not (1, 0.3679); sin(x) at
+  π/2, not 1.5708). Where f′ is never 0 the analysis says so with the
+  reason (−1/(x − 2)² is a fraction whose numerator never vanishes; eˣ is
+  positive), in place of "No local extrema found in the analyzed window".
+- **Graphing verbs**: "sketch x^3", "graph of y = x^2", "plot f(x) = …",
+  "analyze the function …" go to Functions under Auto-detect and any other
+  topic ("sketch x^3" was simplified to x³ under Algebra; "analyze x^2" and
+  "graph of y = x^2" were unknown words).
+
 ### Changed
 
+- **Errors are shown all at once, and said once.** Input that cannot be
+  read, or that the solver refuses, has no step-through, "Reveal next
+  step" or "Step 1 of 2" over it; the heading is "Notes", and the reason
+  appears in the "What went wrong" box alone, where it used to be the
+  second step and the only tip as well (three times over).
+- **Malformed typing is refused before any solver sees it**, the same way
+  under every topic, in words that name the typed characters
+  (`syntaxCheck.js`): "2+*" → "+*": two operators in a row; "x^2 +" → the
+  input ends with "+"; "= 5" → an equation needs an expression on both
+  sides; "()" empty parentheses; "(2+3" unbalanced; "2..5" two decimal
+  points; "3!!"; "|x"; "2 # 3", "x$2", "{x}" not math symbols; "x;y" a
+  system separator with no equation; "x == 2", "x := 2", "3:4". The
+  parser's own messages ("Value expected (char 3)", "2+* ? Stop: syntax
+  error", "Colon : expected after object key", "Undefined symbol foo") no
+  longer reach the page: any that still arises is put into words.
+- No "Solved as Arithmetic (you chose Limits)" notice above a parse error:
+  nothing was solved as anything.
 - The User Manual and the FAQ list the new requests.
+
+### Fixed
+
+- **Malformed input marked Solved.** Each path checked for itself, and
+  what one refused another answered: "2+3)" integrated to 5x + C; "sin()"
+  to sin(nil)·x + C and "lim sin() does not exist"; "2..5" and "3,,4"
+  differentiated to 0; "x^2 +", "sin x +", "x;y" and "{x}" were echoed
+  back as the answer under Trigonometry; "2 # 3" was 2 (mathjs reads # as
+  a comment); "3!!" was 6; "foo(x)" was "already in simplest form" under
+  Algebra and "domain: no real numbers" under Functions; "x$2" likewise;
+  "[1, 2]" was echoed, and integrated to [x, 2x] + C; "limit of" and
+  "integral of" with nothing after them were the limit and integral of a
+  variable called "of"; "derivative of" likewise; "50% of 80" under
+  Integrals was ∫(50%of80) do = 50o + C; "the gcd of 12 and 18" under
+  Derivatives was f′(x) = 0. Now a parse error, a refusal, or the
+  calculation, under every topic.
+- **x/2 + y/3 = 1; x − y = 1 was answered x = 1333333/833333** (it is
+  8/5, 3/5): a coefficient typed as a fraction came back from the sampling
+  as a decimal and was rounded to six places. Coefficients are read back as
+  the fractions they are.
+- **e^−x, x^−2 and 2^−x were "beyond what this engine can compute"** under
+  Derivatives and Integrals: the negated exponent is bracketed for
+  Algebrite.
+- "x +* 2 = 3" and "x = = 2" were "beyond this solver", and the first said
+  the input "is valid mathematical input".
 
 ## [1.55.3] - 2026-10-26
 

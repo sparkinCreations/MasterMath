@@ -11,7 +11,7 @@
 // original equations before it is reported — the same "verify before you
 // claim" gate the rest of the solver uses.
 
-import { math, sampleFunction, beautify, formatNumber, loadAlgebrite, isAlgebriteFailure, mark } from './solverUtils.js';
+import { math, sampleFunction, beautify, formatNumber, loadAlgebrite, isAlgebriteFailure, mark, gcd } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 import { splitRootsList, prettyRadicals } from './algebraSolver.js';
@@ -73,7 +73,7 @@ export async function solveSystem(rawText) {
     }
 
     const [r1, r2] = rows;
-    const F = (n) => math.fraction(n);
+    const F = rational;
     const a1 = F(r1.a); const b1 = F(r1.b); const c1 = F(r1.c);
     const a2 = F(r2.a); const b2 = F(r2.b); const c2 = F(r2.c);
 
@@ -517,7 +517,7 @@ function solve3x3(equations, vars) {
     }
     rows.push(row);
   }
-  const F = (n) => math.fraction(n);
+  const F = rational;
   // Augmented matrix M (3×4) of fractions.
   let M = rows.map((r) => [...r.coeffs.map(F), F(r.c)]);
   const eqText = (m) => formatLinearEqN(m.slice(0, 3), m[3], vars);
@@ -639,11 +639,23 @@ function approx(x, y) {
   return Math.abs(x - y) < 1e-9 * (1 + Math.abs(y));
 }
 
+// A sampled coefficient as the fraction it is. A coefficient typed as a
+// fraction (x/2 + y/3 = 1) comes back from the sampling as a decimal; rounded
+// to six places, 1/3 was 333333/1000000 and the answer 1333333/833333
+// (1.56.0). Small denominators are tried first, so 0.5 is 1/2, not 5/10.
+function rational(n) {
+  const r = Math.round(n);
+  if (Math.abs(n - r) < 1e-9) return math.fraction(r);
+  for (let q = 2; q <= 10000; q += 1) {
+    const p = Math.round(n * q);
+    if (Math.abs(n * q - p) < 1e-9 * q) return math.fraction(`${p}/${q}`);
+  }
+  return math.fraction(n);
+}
+
 // Snap floating-point noise from the sampling to a clean rational-friendly number.
 function clean(n) {
-  const r = Math.round(n);
-  if (Math.abs(n - r) < 1e-9) return r;
-  return Math.round(n * 1e6) / 1e6;
+  return math.number(rational(n));
 }
 
 function residualIsZero(row, v1, v2, xv, yv) {
@@ -673,24 +685,139 @@ function formatLinearEq(a, b, c, v1, v2) {
   return `${lhs} = ${fmtFrac(c)}`;
 }
 
+// The substitution method with the algebra shown: isolate, substitute, clear
+// the fraction, expand, collect, divide, back-substitute, check — each line
+// with the numbers in it. Until 1.56.0 the middle was one line, "Substitute
+// that into equation 2 and simplify to a single equation in y", with nothing
+// shown, and the isolated form read "(5 − 1·y) / 1" (October 2026 review).
+// Everything is in exact fractions; coefficients the student typed as
+// fractions stay fractions.
 function buildSubstitutionSteps({ a1, b1, c1, a2, b2, c2, x, y, v1, v2, eq1Disp, eq2Disp }) {
   const steps = [`Write the system: ${mark(eq1Disp)};  ${mark(eq2Disp)}.`];
+  const check = `Check in both equations: ${mark(`${checkText(a1, b1, c1, x, y, v1, v2)}`)} ✓ and ${mark(`${checkText(a2, b2, c2, x, y, v1, v2)}`)} ✓.`;
 
-  // Isolate a variable from equation 1 — prefer one with a nonzero coefficient.
-  if (!isZero(a1)) {
-    // v1 = (c1 - b1·v2) / a1
-    steps.push(`From equation 1, solve for ${mark(v1)}: ${mark(`${v1} = (${fmtFrac(c1)} − ${fmtFrac(b1)}·${v2}) / ${fmtFrac(a1)}`)}.`);
-    steps.push(`Substitute that into equation 2 and simplify to a single equation in ${mark(v2)}.`);
-    steps.push(`Solve it: ${mark(`${v2} = ${fmtFrac(y)}`)}.`);
-    steps.push(`Back-substitute: ${mark(`${v1} = ${fmtFrac(x)}`)}.`);
-  } else {
-    // a1 == 0 means equation 1 already gives v2 directly.
-    steps.push(`Equation 1 has no ${mark(v1)} term, so it gives ${mark(v2)} directly: ${mark(`${v2} = ${fmtFrac(y)}`)}.`);
-    steps.push(`Substitute into equation 2 and solve: ${mark(`${v1} = ${fmtFrac(x)}`)}.`);
+  // Fractional coefficients are cleared first, as a student would.
+  const cleared = (a, b, c, n) => {
+    const L = [a, b, c].map((fr) => Number(fr.d)).reduce((acc, d) => (acc * d) / gcd(acc, d), 1);
+    if (L === 1) return [a, b, c];
+    const scaled = [a, b, c].map((fr) => mul(F(L), fr));
+    steps.push(`Multiply equation ${n} by ${mark(String(L))} to clear its fractions: ${mark(formatLinearEq(...scaled, v1, v2))}.`);
+    return scaled;
+  };
+  [a1, b1, c1] = cleared(a1, b1, c1, 1);
+  [a2, b2, c2] = cleared(a2, b2, c2, 2);
+
+  // An equation with one unknown in it gives that unknown directly; the
+  // other equation is then one unknown too.
+  if (isZero(a1)) {
+    steps.push(`Equation 1 has no ${mark(v1)} term: ${mark(`${sumText([[b1, v2]])} = ${fmtFrac(c1)}`)} gives ${mark(`${v2} = ${divided(c1, b1)}`)} directly.`);
+    steps.push(`Substitute ${mark(`${v2} = ${fmtFrac(y)}`)} into equation 2: ${mark(oneUnknown(a2, v1, b2, y, v2, c2, x))}.`);
+    steps.push(check);
+    return steps;
+  }
+  if (isZero(a2)) {
+    steps.push(`Equation 2 has no ${mark(v1)} term: ${mark(`${sumText([[b2, v2]])} = ${fmtFrac(c2)}`)} gives ${mark(`${v2} = ${divided(c2, b2)}`)} directly.`);
+    steps.push(`Substitute ${mark(`${v2} = ${fmtFrac(y)}`)} into equation 1: ${mark(oneUnknown(a1, v1, b1, y, v2, c1, x))}.`);
+    steps.push(check);
+    return steps;
+  }
+  if (isZero(b1)) {
+    steps.push(`Equation 1 has no ${mark(v2)} term: ${mark(`${sumText([[a1, v1]])} = ${fmtFrac(c1)}`)} gives ${mark(`${v1} = ${divided(c1, a1)}`)} directly.`);
+    steps.push(`Substitute ${mark(`${v1} = ${fmtFrac(x)}`)} into equation 2: ${mark(oneUnknown(b2, v2, a2, x, v1, c2, y))}.`);
+    steps.push(check);
+    return steps;
   }
 
-  steps.push(`Check: substituting ${mark(`${v1} = ${fmtFrac(x)}, ${v2} = ${fmtFrac(y)}`)} satisfies both equations.`);
+  // General case: isolate v1 from equation 1 as v1 = (p + q·v2)/den with den
+  // = |a1| > 0, so a1·v1 = c1 − b1·v2 reads with a positive denominator.
+  const sign = Number(a1.s) < 0 ? F(-1) : F(1);
+  const den = math.abs(a1);
+  const p = mul(sign, c1);
+  const q = mul(sign, math.unaryMinus(b1));
+  const numerator = sumText([[p, ''], [q, v2]]);
+  const isolated = Number(den.n) === Number(den.d) ? numerator : `(${numerator})/${fmtFrac(den)}`;
+  const moved = `${sumText([[a1, v1]])} = ${sumText([[c1, ''], [math.unaryMinus(b1), v2]])}`;
+  steps.push(moved === `${v1} = ${isolated}`
+    ? `From equation 1, solve for ${mark(v1)}: move the ${mark(v2)} term across, ${mark(moved)}.`
+    : `From equation 1, solve for ${mark(v1)}: move the ${mark(v2)} term across, ${mark(moved)}, so ${mark(`${v1} = ${isolated}`)}.`);
+
+  // Substitute into equation 2: a2·(isolated) + b2·v2 = c2.
+  const substituted = `${coefficient(a2)}${Number(den.n) === Number(den.d) ? `(${numerator})` : `(${numerator})/${fmtFrac(den)}`}${tail([[b2, v2]])} = ${fmtFrac(c2)}`;
+  steps.push(`Substitute that into equation 2 in place of ${mark(v1)}: ${mark(substituted)}.`);
+
+  // Clear the denominator, then expand: a2·p + a2·q·v2 + den·b2·v2 = den·c2.
+  let bCoef = b2;
+  let rhs = c2;
+  if (Number(den.n) !== Number(den.d)) {
+    bCoef = mul(den, b2);
+    rhs = mul(den, c2);
+    steps.push(`Multiply both sides by ${mark(fmtFrac(den))} to clear the fraction: ${mark(`${coefficient(a2)}(${numerator})${tail([[bCoef, v2]])} = ${fmtFrac(rhs)}`)}.`);
+  }
+  const expanded = sumText([[mul(a2, p), ''], [mul(a2, q), v2], [bCoef, v2]]);
+  const k = add(mul(a2, q), bCoef); // ≠ 0: it is ±D
+  const constant = sub(rhs, mul(a2, p));
+  const collected = `${sumText([[k, v2]])} = ${isZero(mul(a2, p)) ? fmtFrac(constant) : `${fmtFrac(rhs)} ${Number(mul(a2, p).s) < 0 ? '+' : '-'} ${fmtFrac(math.abs(mul(a2, p)))} = ${fmtFrac(constant)}`}`;
+  steps.push(`Expand: ${mark(`${expanded} = ${fmtFrac(rhs)}`)}. Collect the ${mark(v2)} terms and move the constant across: ${mark(collected)}.`);
+  steps.push(Number(k.n) === Number(k.d) && Number(k.s) > 0
+    ? `So ${mark(`${v2} = ${fmtFrac(y)}`)}.`
+    : `Divide by ${mark(fmtFrac(k))}: ${mark(`${v2} = ${fmtFrac(constant)}/${parenthesised(k)} = ${fmtFrac(y)}`)}.`);
+
+  // Back-substitute into the isolated form.
+  const plugged = sumText([[p, ''], [mul(q, y), '']], { product: [null, [q, y]] });
+  const value = add(p, mul(q, y));
+  const back = Number(den.n) === Number(den.d)
+    ? `${v1} = ${plugged} = ${fmtFrac(x)}`
+    : `${v1} = (${plugged})/${fmtFrac(den)} = ${factor(value)}/${fmtFrac(den)} = ${fmtFrac(x)}`;
+  steps.push(`Back-substitute ${mark(`${v2} = ${fmtFrac(y)}`)} into ${mark(`${v1} = ${isolated}`)}: ${mark(back)}.`);
+  steps.push(check);
   return steps;
+}
+
+const F = (n) => math.fraction(n);
+const add = (p, q) => math.add(p, q);
+const isNegative = (fr) => Number(fr.s) < 0;
+const isUnit = (fr) => Number(fr.n) === Number(fr.d);
+const parenthesised = (fr) => (isNegative(fr) ? `(${fmtFrac(fr)})` : fmtFrac(fr));
+// A value inside a product: negatives and fractions in parentheses.
+const factor = (fr) => (isNegative(fr) || Number(fr.d) !== 1 ? `(${fmtFrac(fr)})` : fmtFrac(fr));
+// A coefficient in front of a group or variable: 1 → "", −1 → "-", 3 → "3",
+// 1/2 → "(1/2)".
+const coefficient = (fr) => (isUnit(fr) ? (isNegative(fr) ? '-' : '') : `${isNegative(fr) ? '-' : ''}${Number(fr.d) === 1 ? Number(fr.n) : `(${Number(fr.n)}/${Number(fr.d)})`}`);
+const magnitude = (fr, v) => (v ? `${coefficient(math.abs(fr))}${v}` : fmtFrac(math.abs(fr)));
+// "12 - 3y - 2y": signed terms in order, zeros dropped. With `product`, the
+// term at that index is shown as a product, coefficient · value: "3·2",
+// "3·(-2)".
+function sumText(parts, { product } = {}) {
+  const live = parts.map((part, i) => [part, product?.[i]]).filter(([[fr]]) => !isZero(fr));
+  if (!live.length) return '0';
+  return live.map(([[fr, v], prod], i) => {
+    const body = prod ? `${isUnit(prod[0]) ? '' : `${magnitude(prod[0], '')}·`}${factor(prod[1])}` : magnitude(fr, v);
+    const negative = prod ? isNegative(prod[0]) : isNegative(fr);
+    return i === 0 ? `${negative ? '-' : ''}${body}` : ` ${negative ? '-' : '+'} ${body}`;
+  }).join('');
+}
+// " + 4y" / " - y": terms after a leading group.
+const tail = (parts) => parts.filter(([fr]) => !isZero(fr)).map(([fr, v]) => ` ${isNegative(fr) ? '-' : '+'} ${magnitude(fr, v)}`).join('');
+// "c/a = value", or just the value when a = 1.
+const divided = (c, a) => (isUnit(a) && !isNegative(a) ? fmtFrac(c) : `${fmtFrac(c)}/${parenthesised(a)} = ${fmtFrac(div(c, a))}`);
+// a·u + b·(known) = c, so a·u = c − b·known = value, u = value/a.
+function oneUnknown(a, u, b, known, knownVar, c, solution) {
+  const product = mul(b, known);
+  const remaining = sub(c, product);
+  const lhs = `${sumText([[a, u]])}${isZero(b) ? '' : ` ${isNegative(b) ? '-' : '+'} ${isUnit(b) ? '' : `${factor(math.abs(b))}·`}${factor(known)}`} = ${fmtFrac(c)}`;
+  const moved = isZero(b) ? '' : `, so ${sumText([[a, u]])} = ${fmtFrac(c)} ${isNegative(product) ? '+' : '-'} ${fmtFrac(math.abs(product))} = ${fmtFrac(remaining)}`;
+  const last = isUnit(a) && !isNegative(a) ? '' : `, giving ${u} = ${fmtFrac(remaining)}/${parenthesised(a)} = ${fmtFrac(solution)}`;
+  void knownVar;
+  return `${lhs}${moved}${last}`;
+}
+// "2·3 + 3·2 = 12": an equation with the solution in it.
+function checkText(a, b, c, xv, yv, v1, v2) {
+  void v1; void v2;
+  const pieces = [[a, xv], [b, yv]].filter(([coef]) => !isZero(coef));
+  return `${pieces.map(([coef, val], i) => {
+    const body = isUnit(coef) ? parenthesised(val) : `${factor(math.abs(coef))}·${factor(val)}`;
+    return i === 0 ? `${isNegative(coef) ? '-' : ''}${body}` : ` ${isNegative(coef) ? '-' : '+'} ${body}`;
+  }).join('')} = ${fmtFrac(c)}`;
 }
 
 // --- graph -------------------------------------------------------------------

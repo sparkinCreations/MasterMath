@@ -37,6 +37,7 @@ src/
     plainEnglish.js            spoken maths → notation ("x squared", "sine of x", "is greater than", x**3, "two plus one"); first step of solveProblem, and the input preview; no imports
     mathParser.js              notation → mathjs/Algebrite syntax; expression extraction
     validation.js              input length/topic checks
+    syntaxCheck.js             malformed typing refused once, in words, before any solver (operators, brackets, stray symbols); engine messages put into words
     settings.js                angleUnit, decimalPlaces (localStorage, or primed by message in the worker)
     solutionEnvelope.js        typed result statuses: solved / parse_error / unsupported / undefined / indeterminate / diverges / overflow
     mathInstance.js            mathjs built from an explicit dependency list (tree-shaken)
@@ -82,6 +83,11 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    (`readRequestPhrases`: "the zeros of", "the critical points of" → Functions,
    "the period of" → `requestSolver`, …); two `=` signs go to systems; a comparison operator
    to inequalities; a trailing "at x = a" is stripped first (`extractEvalPoint`).
+   Before any of this, `syntaxProblem` (`syntaxCheck.js`) refuses malformed
+   typing — "2+*", "x^2 +", "()", "2 # 3" — once, in words, so every
+   topic refuses it the same way; `parseError` puts any engine message that
+   still arises into words, and says the reason once (in the answer, not
+   again as a step and a tip). A parse error is never routed.
    A routed result's first step says so (`routedTopic`), and it carries
    `routing: { from, to, reason }`: the page shows a "Solved as …" notice
    above the steps (with "Switch topic to …", which moves the solved-input
@@ -100,7 +106,9 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    refuses anything that is not presentable text (objects, code-shaped
    strings) as `unsupported`.
 5. `SolutionDisplay` renders it (KaTeX via `MathText`, which must keep
-   `htmlAndMathml` output — the MathML is what screen readers get);
+   `htmlAndMathml` output — the MathML is what screen readers get). Only a
+   worked solution is stepped through: a parse error, a refusal and an
+   overflow are shown all at once, under "Notes";
    `GraphViewer` re-samples `graph.expression` for the window on screen.
 6. Solved / undefined / indeterminate / diverges results are saved to
    IndexedDB (`MathMasterDB` — legacy name, keep it) under `routedTopic`,
@@ -162,11 +170,12 @@ on the digits as typed, half away from zero).
 
 `solverUtils.js` owns the shared helpers — `beautify`, `formatNumber`,
 `splitTerms`, `splitTopLevel`, `stripOuterParens`, `gcd`, `runAlgebrite`,
-`loadAlgebrite`, `lnify`, `piForm`, and the structural proofs
+`loadAlgebrite`, `lnify`, `piForm`, `exactForm` (an Algebrite value as a
+textbook writes it: 1/e, √2, π/6), and the structural proofs
 `linearCoefficients`, `structuralPeriod`, `definedEverywhere`,
-`trigUndefinedPoints` (facts read off the parse tree: use these for any
-"periodic" / "defined everywhere" / "undefined at" claim) — import them,
-never copy them. Never strip parentheses with `/^\((.*)\)$/`.
+`trigUndefinedPoints`, `neverZeroSide` (facts read off the parse tree: use
+these for any "periodic" / "defined everywhere" / "undefined at" / "never
+0" claim) — import them, never copy them. Never strip parentheses with `/^\((.*)\)$/`.
 
 **Mark the math in a step, a tip and a mistake.** Wrap every formula in
 step, tip and mistake text with `mark()` (from `solverUtils.js`):
