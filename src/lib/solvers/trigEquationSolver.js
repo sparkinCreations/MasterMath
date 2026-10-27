@@ -639,6 +639,9 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
 
   const p = principalAngle(fn, c);
   const theta = k === 1 ? variable : 'θ';
+  // sin = ±1 and cos = ±1 are reached once per period; sin = 0, cos = 0 twice.
+  const oncePerPeriod = fn !== 'tan' && Math.abs(Math.abs(c) - 1) < 1e-12;
+  const atZero = fn !== 'tan' && Math.abs(c) < 1e-12;
   const nSym = 'n';
 
   // General solution, first for θ = kx (or directly for x when k = 1).
@@ -759,13 +762,32 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
   return {
     steps,
     answer: `${generalText} (${nSym} ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
+    // Said for THIS value: sin = ±1 and cos = ±1 happen once per period, 0
+    // twice half a period apart, anything else in two quadrants; the
+    // divide-by-k warning only when there is a k (the same two lines used
+    // to say "both quadrants where sin takes the value 1"; October 2026
+    // tips audit).
     tips: [
       `A trig equation has infinitely many solutions because the functions repeat — the general solution captures all of them; the ${mark(RANGE_TEXT())} list is one period's worth.`,
-      fn === 'tan' ? `tan has period ${mark(PERIOD_HALF())}, so its general solution steps by ${mark(`${PERIOD_HALF()}n`)} rather than ${mark(`${PERIOD_FULL()}n`)}.` : `Remember both quadrants where ${fn} takes the value ${mark(cShown)} — a calculator's inverse function only returns one of them.`,
+      fn === 'tan'
+        ? `tan has period ${mark(PERIOD_HALF())}, so its general solution steps by ${mark(`${PERIOD_HALF()}n`)} rather than ${mark(`${PERIOD_FULL()}n`)}.`
+        : oncePerPeriod
+          ? `${fn} reaches ${mark(cShown)} only once in each period, at the ${c > 0 ? 'top' : 'bottom'} of the wave (${mark(`${theta} = ${p.exact}`)}), so there is one family of solutions, not two.`
+          : atZero
+            ? `${fn} is ${mark('0')} where its graph crosses the axis — twice in each period, half a period apart — so the solutions are one family stepping by ${mark(PERIOD_HALF())}.`
+            : `Remember both quadrants where ${fn} takes the value ${mark(cShown)} — a calculator's inverse function only returns one of them.`,
     ],
     common_mistakes: [
-      `Reporting only the calculator's principal value (e.g. ${mark('arcsin(1/2) = π/6')}) and missing the second solution in the period.`,
-      `Forgetting to divide by ${mark('k')} when the argument is ${mark('kx')} — ${mark('sin(2x) = 1/2')} has twice as many solutions in ${mark('[0, 2π)')} as ${mark('sin(x) = 1/2')}.`,
+      fn === 'tan'
+        ? `Reporting only the calculator's value ${mark(`arctan(${cShown}) = ${p.exact}`)} and missing ${mark(`${p.exact} + ${PERIOD_HALF()}`)}, which is also in ${mark(RANGE_TEXT())}.`
+        : oncePerPeriod
+          ? `Adding a "second quadrant" solution: ${mark(`${PERIOD_HALF()} − (${p.exact})`)} is the same angle, and ${fn} takes the value ${mark(cShown)} nowhere else in the period.`
+          : atZero
+            ? `Listing ${mark(`${theta} = ${p.exact}`)} alone and missing the second crossing, ${mark(`${theta} = ${fmtRad(p.rad + Math.PI)}`)}.`
+            : `Reporting only the calculator's principal value (${mark(`${fn === 'sin' ? 'arcsin' : 'arccos'}(${cShown}) = ${p.exact}`)}) and missing the second solution in the period.`,
+      k !== 1
+        ? `Forgetting to divide by ${mark(formatNumber(k))}: the families found are for ${mark(`${formatNumber(k)}${variable}`)}, and ${mark(variable)} is each of them divided by ${mark(formatNumber(k))} — ${Math.abs(k) > 1 ? `${formatNumber(Math.abs(k))} times as many solutions in ${mark(RANGE_TEXT())}` : `fewer solutions in ${mark(RANGE_TEXT())}`}.`
+        : `Giving the solutions in one period only, without the "${mark(`+ ${fn === 'tan' ? PERIOD_HALF() : PERIOD_FULL()}n`)}" that lists every period.`,
     ],
     graph,
   };

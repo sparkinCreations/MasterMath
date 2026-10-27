@@ -86,7 +86,9 @@ function trigGuidance(expression, steps) {
   const tips = [];
   const mistakes = [];
   const special = /special angle/.test(text);
-  const unit = /degrees|radians/.test(text);
+  // The unit warning is for an angle that could be either; an input written
+  // with π is radians, and "sin(30) in radians is −0.988" is noise beside it.
+  const unit = /degrees|radians/.test(text) && !/pi|π/i.test(expression);
   if (/^arc|^a(sin|cos|tan)$/.test(fn || '')) {
     tips.push(`An inverse trig function returns an ANGLE: ${mark('arcsin(1/2)')} asks "which angle has sine ${mark('1/2')}?" — the principal one, in ${mark('[−π/2, π/2]')} for arcsin and arctan, ${mark('[0, π]')} for arccos.`);
     tips.push(`arcsin and arccos only accept inputs in ${mark('[−1, 1]')}; arctan accepts any real number.`);
@@ -95,8 +97,16 @@ function trigGuidance(expression, steps) {
   } else if (fn === 'tan' || fn === 'cot' || fn === 'sec' || fn === 'csc') {
     tips.push(fn === 'tan' ? `${mark('tan = sin/cos')}, so tan is undefined wherever ${mark('cos = 0')} (${mark('90°')}, ${mark('270°')}, …) and its period is ${mark('180°')}, not ${mark('360°')}.` : `${fn} is a reciprocal: ${mark('sec = 1/cos')}, ${mark('csc = 1/sin')}, ${mark('cot = 1/tan')} — undefined wherever the function it inverts is ${mark('0')}.`);
     tips.push(`Key identity: ${mark('1 + tan²(x) = sec²(x)')}.`);
-    mistakes.push(`Forgetting that ${mark('tan(90°)')} is undefined — a calculator shows a huge number, not the truth.`);
-    mistakes.push(fn === 'tan' ? `Using ${mark('360°')} as the period of tan (it repeats every ${mark('180°')}).` : `Confusing sec with ${mark('1/sin')} (${mark('sec = 1/cos')}).`);
+    const undefinedAt = { tan: 'tan(90°)', sec: 'sec(90°)', csc: 'csc(0°)', cot: 'cot(0°)' }[fn];
+    const because = { tan: 'cos(90°) = 0', sec: 'cos(90°) = 0', csc: 'sin(0°) = 0', cot: 'sin(0°) = 0' }[fn];
+    mistakes.push(`Forgetting that ${mark(undefinedAt)} is undefined (${mark(because)}) — a calculator shows a huge number, not the truth.`);
+    mistakes.push(fn === 'tan'
+      ? `Using ${mark('360°')} as the period of tan (it repeats every ${mark('180°')}).`
+      : fn === 'sec'
+        ? `Confusing sec with ${mark('1/sin')} (${mark('sec = 1/cos')}).`
+        : fn === 'csc'
+          ? `Confusing csc with ${mark('1/cos')} (${mark('csc = 1/sin')}).`
+          : `Reading cot as ${mark('1/sin')} or ${mark('1/cos')}: ${mark('cot = cos/sin = 1/tan')}.`);
   } else {
     tips.push(fn === 'cos'
       ? `Remember: ${mark('cos(0°) = 1')}, ${mark('cos(30°) = √3/2')}, ${mark('cos(45°) = √2/2')}, ${mark('cos(60°) = 1/2')}, ${mark('cos(90°) = 0')}.`
@@ -398,7 +408,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
         tips: [
           `${mark(`${func}(x)`)} has a vertical asymptote wherever ${mark(`${denom}(x) = 0`)} — the value grows without bound instead of settling on a number.`,
           'A calculator that shows a huge number here is hitting floating-point rounding, not a real value.',
-          `math.js uses radians by default (${mark('π')} radians = ${mark('180°')}).`,
+          `Angles are read in radians unless the angle unit is set to degrees in Settings (${mark('π')} radians = ${mark('180°')}).`,
         ],
         common_mistakes: [
           `Assuming ${func} is defined everywhere — it blows up wherever ${mark(`${denom}(x) = 0`)}.`,

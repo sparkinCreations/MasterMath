@@ -36,6 +36,27 @@ const lnify = (s) => beautify(s)
   .replace(/√\(-([^()]+?) \+ (\d+(?:\.\d+)?)\)/g, '√($2 - $1)')
   .replace(/\/\(√\(([^()]+)\)\)/g, '/√($1)');
 
+// Algebrite prefers a monic denominator, so d/dx arctan(2x) came back as
+// 1/(2x² + 1/2). Clear the fractions inside a denominator sum by scaling
+// numerator and denominator by their least common denominator: 2/(4x² + 1).
+function clearDenominatorFractions(Algebrite, text) {
+  const m = String(text).match(/^(-?)([^/()]+|\([^()]*\))\/\(([^()]*\/[^()]*)\)$/);
+  if (!m) return text;
+  const [, sign, numerator, denominator] = m.map((part, i) => (i > 1 && part ? part.replace(/(\d)\s*([a-z(])/gi, '$1*$2').replace(/\s+/g, '') : part));
+  const denominators = [...denominator.matchAll(/\/\s*(\d+)/g)].map((d) => Number(d[1]));
+  if (!denominators.length) return text;
+  const L = denominators.reduce((acc, d) => (acc * d) / gcdInt(acc, d), 1);
+  try {
+    const top = Algebrite.run(`simplify((${numerator})*${L})`).toString();
+    const bottom = Algebrite.run(`simplify((${denominator})*${L})`).toString();
+    if (/\//.test(bottom) || isAlgebriteFailure(top) || isAlgebriteFailure(bottom)) return text;
+    return `${sign}${/[+-]/.test(top.slice(1)) ? `(${top})` : top}/(${bottom})`;
+  } catch {
+    return text;
+  }
+}
+const gcdInt = (a, b) => (b ? gcdInt(b, a % b) : Math.abs(a));
+
 export async function solveDerivative(expression, options = {}) {
   try {
     const Algebrite = await loadAlgebrite();
@@ -74,11 +95,11 @@ export async function solveDerivative(expression, options = {}) {
     // Authoritative, fully-simplified derivative. cos/sin and sin/cos of the
     // same argument are written as cot and tan (ln(sin x) → cot x), after a
     // numeric check that nothing changed.
-    let derivative = trigRatioForm(shorten(Algebrite.derivative(forAlgebrite, variable).toString()), variable);
+    let derivative = trigRatioForm(clearDenominatorFractions(Algebrite, shorten(Algebrite.derivative(forAlgebrite, variable).toString())), variable);
     // Higher orders: differentiate the previous result again, showing each.
     const orderChain = [derivative];
     for (let k = 2; k <= order; k += 1) {
-      derivative = trigRatioForm(shorten(Algebrite.derivative(rewriteReciprocalTrig(derivative), variable).toString()), variable);
+      derivative = trigRatioForm(clearDenominatorFractions(Algebrite, shorten(Algebrite.derivative(rewriteReciprocalTrig(derivative), variable).toString())), variable);
       orderChain.push(derivative);
     }
 
@@ -98,6 +119,17 @@ export async function solveDerivative(expression, options = {}) {
 
     const primes = "'".repeat(order);
     const worked = generateDerivativeSteps(expression, order === 1 ? derivative : orderChain[0], variable, Algebrite);
+    // The chain-rule steps quote the simplest form; clear its denominator
+    // fractions before they are shown (1/(2x² + 1/2) → 2/(4x² + 1)).
+    if (worked?.simplest) {
+      const cleared = clearDenominatorFractions(Algebrite, worked.simplest);
+      if (cleared !== worked.simplest) {
+        const before = lnify(worked.simplest);
+        const after = lnify(cleared);
+        worked.steps = (worked.steps || []).map((st) => st.split(before).join(after));
+        worked.simplest = cleared;
+      }
+    }
     const steps = worked.steps;
     // A single term's simplified derivative is the canonical answer. Before,
     // the term step showed (x² − 2x − 1)/(x − 1)² and the closing line then
@@ -107,7 +139,7 @@ export async function solveDerivative(expression, options = {}) {
         && (worked.preferSimplest || worked.simplest.length <= orderChain[0].length)
         && expressionsNumericallyEqual(rewriteReciprocalTrig(worked.simplest), rewriteReciprocalTrig(orderChain[0]), variable)) {
       orderChain[0] = worked.simplest;
-      if (order === 1) derivative = worked.simplest;
+      if (order === 1) derivative = clearDenominatorFractions(Algebrite, worked.simplest);
     }
     // sgn(u) in a derivative marks a corner of |u|: say where f′ does not exist.
     const corners = sgnArguments(derivative);

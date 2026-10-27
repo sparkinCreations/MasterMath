@@ -937,15 +937,42 @@ function functionGuidance(func, v, f) {
       ],
     };
   }
+  // A corner or cusp (|x|, x^(2/3)): the extremum is a critical point where
+  // f′ does not exist — not a polynomial, and the polynomial list below said
+  // "the leading term decides the ends" about it (October 2026 tips audit).
+  if (f.extrema.some((e) => e.origin === 'cusp') || has(/(?<![a-z])abs\s*\(|\|/)) {
+    const absolute = has(/(?<![a-z])abs\s*\(|\|/);
+    return {
+      tips: [
+        `A corner or cusp is a critical point where ${mark(`f′(${v})`)} does not exist: the one-sided slopes disagree (${mark(`|${v}|`)} at ${mark('0')}) or blow up (${mark(`${v}^(2/3)`)} at ${mark('0')}). It can still be a maximum or a minimum.`,
+        absolute
+          ? `An absolute value is piecewise: ${mark('|g|')} is ${mark('g')} where ${mark('g ≥ 0')} and ${mark('−g')} where ${mark('g < 0')} — differentiate each piece on its own, and the corner is where ${mark('g = 0')}.`
+          : `${mark(`${v}^(2/3) = (∛${v})²`)}: the odd root first, so it is defined for negative ${mark(v)} too, and the square makes it never negative.`,
+        `Critical points are where ${mark(`f′ = 0`)} OR where ${mark(`f′`)} does not exist; check both kinds.`,
+      ],
+      common_mistakes: [
+        `Saying there is no extremum because ${mark(`f′`)} is never ${mark('0')}: the minimum of ${mark(`|${v}|`)} is at the corner.`,
+        `Reporting ${mark(`f′(0) = 0`)} at a corner or cusp — the derivative does not exist there.`,
+        absolute
+          ? `Differentiating ${mark(`|${v}|`)} as if it were ${mark(v)}, giving ${mark('1')} everywhere.`
+          : `Treating ${mark(`${v}^(2/3)`)} as undefined for negative ${mark(v)}, or as negative there.`,
+      ],
+    };
+  }
   if (f.isPeriodic) {
+    const reciprocal = has(/(?<![a-z])(?:tan|cot|sec|csc)\s*\(/);
     return {
       tips: [
         `${mark(`A·sin(k${v})`)} and ${mark(`A·cos(k${v})`)} have amplitude ${mark('|A|')} and period ${mark('2π/k')}; ${mark(`tan(k${v})`)} has period ${mark('π/k')}.`,
         'Analyse one period, then repeat: the intercepts, extrema and asymptotes recur every period.',
-        `${mark(`tan(${v})`)} has a vertical asymptote wherever ${mark(`cos(${v}) = 0`)}.`,
+        reciprocal
+          ? `${mark(`tan(${v})`)} and ${mark(`sec(${v})`)} have a vertical asymptote wherever ${mark(`cos(${v}) = 0`)}; ${mark(`cot(${v})`)} and ${mark(`csc(${v})`)} wherever ${mark(`sin(${v}) = 0`)}.`
+          : `sin and cos stay between ${mark('−1')} and ${mark('1')}: the range of ${mark(`A·sin(k${v}) + d`)} is the midline ${mark('d')} plus or minus the amplitude.`,
       ],
       common_mistakes: [
-        `Using ${mark('2π')} as the period of ${mark('tan')}: it repeats every ${mark('π')}.`,
+        reciprocal
+          ? `Using ${mark('2π')} as the period of ${mark('tan')}: it repeats every ${mark('π')}.`
+          : `Reading the amplitude off the first peak without checking the midline: ${mark(`A·sin(k${v}) + d`)} peaks at ${mark('d + |A|')}.`,
         `Forgetting the ${mark('k')}: the period of ${mark(`sin(2${v})`)} is ${mark('π')}, not ${mark('2π')}.`,
         'Listing a few intercepts as if they were all of them, instead of giving the pattern with n.',
       ],
@@ -979,6 +1006,22 @@ function functionGuidance(func, v, f) {
       ],
     };
   }
+  if (has(/(?<![a-z])e\s*\^|exp\s*\(|\d\s*\^\s*\(?[^)]*[a-z]/i) && variableOutsideExponents(func, v)) {
+    // x·e^(−x), x²·e^x: a product with an exponential, not an exponential.
+    // "e^x has no x-intercept" sat beside an answer listing one.
+    return {
+      tips: [
+        `A polynomial times ${mark(`e^(−${v})`)} tends to ${mark('0')} as ${mark(`${v} → ∞`)}: the exponential wins over every power, which is the horizontal asymptote on that side.`,
+        `${mark('e^(…)')} is never ${mark('0')}, so the zeros of the product are the zeros of the other factor.`,
+        `Extrema come from ${mark(`f′ = 0`)} with the product rule: factor out the exponential, which never vanishes, and solve what is left.`,
+      ],
+      common_mistakes: [
+        `Giving ${mark('e^(…)')} a zero: the x-intercepts come from the other factor only.`,
+        `Dropping the product rule: ${mark(`(${v}·e^(−${v}))′`)} is ${mark(`e^(−${v}) − ${v}·e^(−${v})`)}, not ${mark(`−e^(−${v})`)}.`,
+        `Assuming the same end behaviour on both sides: ${mark(`e^(−${v})`)} shrinks on the right and grows on the left.`,
+      ],
+    };
+  }
   if (has(/(?<![a-z])e\s*\^|exp\s*\(|\d\s*\^\s*\(?[^)]*[a-z]/i)) {
     return {
       tips: [
@@ -1007,6 +1050,22 @@ function functionGuidance(func, v, f) {
       ],
     };
   }
+  // Not a polynomial (sin(x²), x·ln x's cousins, a fractional power with no
+  // cusp): the calculus checklist, with no leading-term talk.
+  if (new RegExp(`[a-z]{2,}|/|\\^\\s*[^0-9]`, 'i').test(String(func).replace(/\s+/g, ''))) {
+    return {
+      tips: [
+        'Domain first, then intercepts, then the derivative for extrema and the second derivative for concavity, then what happens at the ends.',
+        `Critical points come from solving ${mark(`f′(${v}) = 0`)} and from where ${mark(`f′`)} does not exist; the sign of ${mark(`f′`)} on each side says maximum, minimum or neither.`,
+        'Check each feature by substituting: a claimed intercept must give 0, a claimed extremum must beat its neighbours.',
+      ],
+      common_mistakes: [
+        `Calling every root of ${mark(`f′`)} an extremum: ${mark(`f′`)} must change sign there.`,
+        'Reading the end behaviour from a few plotted points instead of the dominant term for large x.',
+        `Confusing an x-intercept (${mark(`${fx} = 0`)}) with the y-intercept (${mark(`${v} = 0`)}).`,
+      ],
+    };
+  }
   return {
     tips: [
       `Critical points come from solving ${mark(`f′(${v}) = 0`)}; the sign of ${mark(`f′`)} on each side says maximum, minimum or neither.`,
@@ -1019,6 +1078,33 @@ function functionGuidance(func, v, f) {
       `Confusing an x-intercept (${mark(`${fx} = 0`)}) with the y-intercept (${mark(`${v} = 0`)}).`,
     ],
   };
+}
+
+// Does the variable appear anywhere but in an exponent? x·e^(−x) yes,
+// e^(−x²) and 2^x no — the pure exponential's guidance fits only the latter.
+function variableOutsideExponents(func, v) {
+  try {
+    let count = 0;
+    const walk = (n, inExponent) => {
+      if (!n) return;
+      if (n.type === 'SymbolNode' && n.name === v && !inExponent) count += 1;
+      if (n.type === 'OperatorNode' && n.fn === 'pow') {
+        walk(n.args[0], inExponent);
+        walk(n.args[1], true);
+        return;
+      }
+      if (n.type === 'FunctionNode' && n.fn?.name === 'exp') {
+        n.args.forEach((a) => walk(a, true));
+        return;
+      }
+      if (n.type === 'ParenthesisNode') { walk(n.content, inExponent); return; }
+      (n.args || []).forEach((a) => walk(a, inExponent));
+    };
+    walk(math.parse(String(func)), false);
+    return count > 0;
+  } catch {
+    return true;
+  }
 }
 
 // Allowed-set wording for a list of undefined regions. Two one-sided

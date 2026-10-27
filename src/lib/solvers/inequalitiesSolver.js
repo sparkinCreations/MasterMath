@@ -542,7 +542,9 @@ function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simplified, p
     ],
     common_mistakes: [
       'Giving only the solutions in one period and leaving out "+ a multiple of the period".',
-      `Forgetting the second solution in the period: ${mark('sin(x) = 1/2')} at ${mark('π/6')} and at ${mark('5π/6')}.`,
+      roots.length >= 2
+        ? `Finding one zero in the period and stopping: on one period the expression is ${mark('0')} at ${mark(roots.map(show).join(' and at '))}, and the sign can change at each.`
+        : 'Forgetting that the sign can change at every zero in the period, not only at the first one found.',
     ],
     graph,
     periodic: true,

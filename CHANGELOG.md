@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.56.1] - 2026-10-27
+
+The tips ("Key Insights") and common mistakes, audited over 338 problems:
+every list is about the problem on screen — its value, the method the
+steps used, the operation typed — never another problem's.
+
+### Fixed
+
+- **Guidance that contradicted its problem.** x·e^(−x) was warned "eˣ has
+  no x-intercept" beside an answer listing one; |x|, |x − 2| and x^(2/3)
+  were told "the leading term decides the ends" and "a polynomial of degree
+  n…"; sin(2x) = 1 and cos(x) = −1 were told to "remember both quadrants"
+  (they have one solution per period); sin(x) = 0 "both quadrants"; cos(x)
+  > 0 carried a sin(x) = 1/2 example; tan(x) = 1 and sin(x) = 1/2 warned
+  about "dividing by k" with no k; sec(π/3) warned that tan(90°) is
+  undefined; a sine curve under Functions was warned about tan's period;
+  x² = 9 and x² − 5x + 6 = 0 warned about losing x = 0; ∛(−8) was told
+  "the radical means the positive root"; √16 + √9 that "√2 is irrational".
+  Each now says what is true of its own problem: sin reaches 1 once per
+  period at the top of the wave; sec(90°) is undefined because cos(90°) =
+  0; an odd root of a negative is real; a corner is a critical point where
+  f′ does not exist.
+- **Guidance from a different method than the one shown.** ∫sin²(x) dx was
+  given the power rule (the steps use the half-angle identity); ∫cos(2x)
+  and ∫tan(x) got "check by differentiating" alone (now the u = 2x factor
+  of 1/2, and the table entry from sin/cos); the partial-fractions tip said
+  "integrate each piece to a logarithm" where the pieces give arctan, and
+  the lesson for (x⁴ + 1)/(x² + 1) is to divide first, for (x + 1)/(x² +
+  1) the ln + arctan split; x^(2/3) = 4, 1/x = 0 and x·eˣ = 1 inherited
+  the linear-equation list (now: the reciprocal exponent and its ±, a
+  proof that no value works, a root located where the sides cross);
+  eˣ = −2 was told to take logs; −3² got the order of operations without
+  the one thing that matters (the exponent binds before the minus sign).
+- **One list per family.** 5 − 8, 100/8, 0.1 + 0.2, 2^0.5, 17 mod 5,
+  (1/2)³, 1000000 + 2 and 2^10 all got the PEMDAS trio; "the gcd of 12
+  and 18" too. Each operation now has its own: remainders and clock
+  arithmetic for mod, Euclid's algorithm for the gcd, a half power is a
+  square root, 0.1 + 0.2 is exactly 3/10, a division is a fraction. The
+  eleven complex-number problems shared one list: now the modulus
+  (|3 + 4i| = 5, Pythagoras), addition part by part, the conjugate for
+  division, the cycle of i for powers, FOIL for products. 15% of 80 was
+  taught as a product of fractions ("no common denominator needed");
+  it is taught as a percent. x/3 + 1/2 = 5/6 names the LCD; 5x − 7 =
+  5x + 2 and 2(x + 3) = 2x + 6 say what cancelling variable terms means;
+  a linear equation without parentheses is no longer told to distribute;
+  "round 1250 to the nearest hundred" talks about the hundreds digit, not
+  2.996 → 3.00.
+- A trig tip read "math.js uses radians by default": no library is named
+  on the page. A π input (sin(π/4)) no longer carries the "sin(30) in
+  radians is −0.988" warning.
+- **d/dx arctan(2x) read 1/(2x² + 1/2)**: fractions inside a denominator
+  are cleared, 2/(4x² + 1); arctan(x/2) gives 2/(x² + 4).
+
 ## [1.56.0] - 2026-10-26
 
 The last requests in words on the October roadmap, and graphs of implicit

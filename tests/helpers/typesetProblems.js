@@ -81,6 +81,14 @@ export const CONVERTED = [
   ['algebra', '2y = 6; x + y = 5'], ['algebra', 'x - y = 1; 3y = 9'], ['algebra', '2x = 8; x + y = 5'], ['algebra', 'x/2 + y/3 = 1; x - y = 1'], ['algebra', 'x + y = 0; x - y = 2'],
   ['functions', 'x^3 - 3x'], ['functions', 'x*e^(-x)'], ['functions', 'x^3'], ['functions', 'abs(x)'], ['functions', 'x^(2/3)'], ['functions', 'sin(x)'], ['functions', 'x^4 - 2x^2'],
   ['auto', 'sketch x^3'], ['auto', 'analyze x^2 - 4'], ['derivatives', 'e^-x'], ['integrals', '50% of 80'], ['derivatives', 'the gcd of 12 and 18'],
+  // 1.56.1: guidance by value, method and operation (the tips audit).
+  ['trigonometry', 'sin(2x) = 1'], ['trigonometry', 'cos(x) = -1'], ['trigonometry', 'sin(x) = 0'], ['trigonometry', 'sec(pi/3)'], ['trigonometry', 'csc(pi/6)'], ['trigonometry', 'cot(pi/4)'],
+  ['functions', 'abs(x - 2)'], ['functions', 'x^(2/3)'], ['functions', 'x*e^(-x)'], ['functions', 'e^(-x^2)'], ['functions', 'sin(x^2)'], ['functions', 'tan(x)'],
+  ['integrals', 'cos(2x)'], ['integrals', 'tan(x)'], ['integrals', '(x+1)/(x^2+1)'], ['integrals', '(x^4+1)/(x^2+1)'],
+  ['algebra', 'x*e^x = 1'], ['algebra', 'e^x = -2'], ['algebra', '5x - 7 = 5x + 2'], ['algebra', '2(x+3) = 2x+6'], ['algebra', 'x/3 + 1/2 = 5/6'], ['algebra', 'x^2 = 9'],
+  ['other', '-3^2'], ['other', '17 mod 5'], ['other', '2^10'], ['other', '(1/2)^3'], ['other', '2^0.5'], ['other', '5 - 8'], ['other', '0.1 + 0.2'], ['other', '100 / 8'],
+  ['other', 'sqrt(16) + sqrt(9)'], ['other', '(-8)^(1/3)'], ['auto', 'lcm of 4 and 6'], ['other', 'abs(3+4i)'], ['other', '(2+3i)+(1-i)'], ['other', 'i^10'], ['other', '(2+3i)*(1-i)'],
+  ['auto', 'round 1250 to the nearest hundred'], ['derivatives', 'arctan(2x)'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a
