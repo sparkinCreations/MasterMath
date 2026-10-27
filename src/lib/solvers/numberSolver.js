@@ -279,11 +279,17 @@ export function roundNumber(valueText, spec) {
       `Look only at the digit just after the last one you keep: ${mark('5')} or more rounds up, less than ${mark('5')} rounds down.`,
       spec.sig !== undefined
         ? `Significant figures count from the first non-zero digit: ${mark('0.004567')} to 2 significant figures is ${mark('0.0046')}.`
-        : `Keep trailing zeros the rounding asks for: ${mark('2.996')} to 2 decimal places is ${mark('3.00')}, not ${mark('3')}.`,
+        : places <= 0
+          ? `Rounding to ${target} keeps the ${placeName} digit and turns every place after it into a zero: ${mark('1250')} to the nearest hundred is ${mark('1300')}.`
+          : `Keep trailing zeros the rounding asks for: ${mark('2.996')} to 2 decimal places is ${mark('3.00')}, not ${mark('3')}.`,
     ],
     common_mistakes: [
-      `Rounding in stages: ${mark('2.346')} to 1 decimal place is ${mark('2.3')}; rounding to ${mark('2.35')} first and then to ${mark('2.4')} is wrong.`,
-      `Dropping digits instead of rounding: ${mark('3.789')} to 1 decimal place is ${mark('3.8')}, not ${mark('3.7')}.`,
+      places <= 0
+        ? `Looking at the wrong digit: rounding to ${target}, the deciding digit is the one just after the ${placeName} place.`
+        : `Rounding in stages: ${mark('2.346')} to 1 decimal place is ${mark('2.3')}; rounding to ${mark('2.35')} first and then to ${mark('2.4')} is wrong.`,
+      places <= 0
+        ? `Dropping the zeros: ${mark('1250')} to the nearest hundred is ${mark('1300')}, not ${mark('13')}.`
+        : `Dropping digits instead of rounding: ${mark('3.789')} to 1 decimal place is ${mark('3.8')}, not ${mark('3.7')}.`,
     ],
     graph: null,
   };

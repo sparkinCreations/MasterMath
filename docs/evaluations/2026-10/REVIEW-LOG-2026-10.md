@@ -233,3 +233,11 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 17 (tips, key insights and common mistakes: an audit of 338 problems, 1.56.1)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Asked for: do the tips and common mistakes fit the specific problem? | 289 solved, every one with tips and mistakes; about a third had guidance that contradicted the problem, came from a different method than the steps used, or was one family's list served to every input (one PEMDAS list for 5 − 8, 17 mod 5 and the gcd; one complex-number list for a modulus, a sum and a division) | 1.56.1 (value-, method- and operation-specific lists; tests pin each to its problem) |
+| Found in the audit: "math.js uses radians by default" in a tip | Confirmed, the only place a library is named | 1.56.1 |
+| Found in the audit: d/dx arctan(2x) shown as 1/(2x² + 1/2) | Confirmed: Algebrite's monic-denominator form | 1.56.1 (2/(4x² + 1)) |
+

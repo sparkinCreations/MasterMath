@@ -23,6 +23,7 @@ import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerical
 import { integrateByTrigSubstitution } from './trigSubstitutionSolver.js';
 import { readPolynomial } from './polynomialRoots.js';
 import { parseError, unsupported, diverges } from '../solutionEnvelope.js';
+import { stripMathMarkers } from '../mathMarkers.js';
 
 // Famous non-elementary integrands, so "the engine can't do this" comes with
 // the honest reason: the antiderivative exists but isn't elementary. The
@@ -188,6 +189,10 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     if (usesErf) steps = buildErfSteps(expression, integral, variable);
 
     const anyPartial = perTerm.some((r) => r.method === 'partial fractions');
+    const stepText = stripMathMarkers(steps.join('\n'));
+    // One irreducible quadratic and nothing to decompose: the lesson is the
+    // ln + arctan split, not partial fractions.
+    const singleQuadratic = /Factor the denominator: ([^\n=]+?) = \(\1\)\./.test(stepText);
     const tips = usesErf ? [
       `erf is a "special function": a named antiderivative, the way ln is the name for ${mark('∫1/x dx')}. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.`,
       `Whole-line and half-line definite versions do have closed forms: ${mark('∫_{−∞}^∞ e^(−x²) dx = √π')}, and ${mark('∫₀^∞ e^(−x²) dx = √π/2')}.`,
@@ -200,7 +205,11 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
         : anyInverseTrig
           ? `Inverse-trig antiderivatives come from derivatives you know: ${mark(`d/d${variable} arctan(${variable}) = 1/(1 + ${variable}²)`)} and ${mark(`d/d${variable} arcsin(${variable}) = 1/√(1 − ${variable}²)`)}. A constant ${mark('a²')} in the pattern is factored out first.`
         : anyPartial
-          ? 'Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece to a logarithm.'
+          ? (/divide first/.test(stepText)
+            ? 'When the numerator\'s degree is not lower than the denominator\'s, divide first: the quotient integrates term by term, and only the remainder over the denominator needs partial fractions.'
+            : singleQuadratic
+              ? `A numerator over an irreducible quadratic splits in two: the part that is the denominator's derivative integrates to a logarithm, the constant part to an arctan (${mark('∫1/(x² + a²) dx = (1/a)·arctan(x/a)')}).`
+              : 'Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm and an arctan, a repeated factor a power.')
         : anySubstitution
           ? `u-substitution: look for an inner function whose derivative appears as a factor — ${mark('∫g′(x)·h(g(x)) dx = ∫h(u) du')} with ${mark('u = g(x)')}.`
           : anyAbs
@@ -223,7 +232,11 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
         : anyInverseTrig
           ? `Reading ${mark(`1/(1 + ${variable}²)`)} as a power of ${mark(variable)} — it is not ${mark(`${variable}^(−2)`)}, and the power rule does not apply.`
         : anyPartial
-          ? `Splitting ${mark('1/(a·b)')} into ${mark('1/a + 1/b')} — the decomposition needs constants found from the factors, not a guess.`
+          ? (/divide first/.test(stepText)
+            ? 'Decomposing an improper fraction without dividing first: partial fractions need the numerator\'s degree below the denominator\'s.'
+            : singleQuadratic
+              ? `Integrating ${mark('1/(x² + 1)')} as a logarithm: ${mark('ln(x² + 1)')} differentiates to ${mark('2x/(x² + 1)')}, which has an ${mark('x')} on top. The constant part is an arctan.`
+              : `Splitting ${mark('1/(a·b)')} into ${mark('1/a + 1/b')} — the decomposition needs constants found from the factors, not a guess.`)
         : anySubstitution
           ? `Forgetting to divide by ${mark('g′(x)')} when changing to ${mark('du')} — the constant from ${mark('du = g′(x) dx')} must be carried.`
           : anyAbs
@@ -285,6 +298,11 @@ function directTip(labels, v) {
   if (labels.has('Exponential rule')) return `${mark(`∫e^${v} d${v} = e^${v}`)} — the exponential is its own antiderivative; ${mark(`∫a^${v} d${v} = a^${v}/ln(a)`)}.`;
   if (labels.has('Reciprocal rule')) return `${mark(`∫1/${v} d${v} = ln|${v}| + C`)} — the one power the power rule cannot do (${mark('n = −1')} would divide by ${mark('0')}).`;
   if (labels.has('Linear substitution')) return `For ${mark(`1/(a${v} + b)`)}, let ${mark(`u = a${v} + b`)}: the ${mark('1/a')} from ${mark(`du = a d${v}`)} is the only extra factor.`;
+  // The three labels that used to fall through to the generic line (October
+  // 2026 tips audit): sin², a linear inside, a table entry.
+  if (labels.has('Half-angle identity')) return `${mark(`sin²(${v})`)} and ${mark(`cos²(${v})`)} integrate through the half-angle identities: ${mark(`sin²(${v}) = (1 − cos(2${v}))/2`)}, ${mark(`cos²(${v}) = (1 + cos(2${v}))/2`)} — a sum of a constant and a cosine, each easy.`;
+  if (labels.has('u-substitution')) return `A linear inside, ${mark(`cos(a${v} + b)`)}: let ${mark(`u = a${v} + b`)}, so ${mark(`du = a d${v}`)} and a factor ${mark('1/a')} comes out — ${mark(`∫cos(2${v}) d${v} = (1/2)·sin(2${v}) + C`)}.`;
+  if (labels.has('Table antiderivative')) return `The table entries worth knowing: ${mark('∫tan = −ln|cos|')}, ${mark('∫cot = ln|sin|')}, ${mark('∫sec = ln|sec + tan|')} — each comes from writing the function with sin and cos and substituting ${mark('u')} = the denominator.`;
   return 'Every antiderivative can be checked by differentiating it — the derivative must give back the integrand exactly.';
 }
 
@@ -294,6 +312,9 @@ function directMistake(labels, v) {
   if (labels.has('Exponential rule')) return `Treating ${mark(`e^${v}`)} like a power and writing ${mark(`e^(${v}+1)/(${v}+1)`)}.`;
   if (labels.has('Reciprocal rule')) return `Writing ${mark(`∫1/${v} d${v}`)} as ${mark(`${v}⁰/0`)} — use ${mark(`ln|${v}|`)} instead, with the absolute value.`;
   if (labels.has('Linear substitution')) return `Forgetting the ${mark('1/a')} factor that comes from ${mark('du = a dx')}.`;
+  if (labels.has('Half-angle identity')) return `Applying the power rule to ${mark(`sin²(${v})`)}: ${mark(`sin³(${v})/3`)} is not its antiderivative — differentiating that leaves a ${mark(`cos(${v})`)} behind.`;
+  if (labels.has('u-substitution')) return `Forgetting the ${mark('1/a')}: ${mark(`∫cos(2${v}) d${v}`)} is ${mark(`(1/2)·sin(2${v})`)}, not ${mark(`sin(2${v})`)}.`;
+  if (labels.has('Table antiderivative')) return `Writing ${mark(`∫tan(${v}) d${v}`)} as ${mark(`sec²(${v})`)} — that is the derivative of tan, read the wrong way round.`;
   return 'Skipping the check: differentiate the result and compare it with the integrand.';
 }
 
@@ -456,7 +477,7 @@ async function integrateTerm(term, variable, Algebrite) {
   if (anti !== null && !isUnevaluatedOperator(anti)) {
     anti = polishLogArguments(Algebrite, anti);
     const halfAngle = halfAngleSteps(term, variable, anti);
-    if (halfAngle) return { antideriv: anti, steps: halfAngle, method: 'direct', term };
+    if (halfAngle) return { antideriv: anti, steps: halfAngle, method: 'direct', term, label: 'Half-angle identity' };
     const { label, hint } = classifyIntegralRule(term, variable);
     const steps = [`${mark(`∫(${beautify(term)}) d${variable} = ${lnify(anti)}`)}${hint ? ` (${label})` : ''}.`];
     return { antideriv: anti, steps, method: 'direct', term, label };

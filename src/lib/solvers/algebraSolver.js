@@ -69,6 +69,83 @@ const SIMPLIFY_MISTAKES = [
 function equationGuidance(steps, expression) {
   const text = stripMathMarkers(steps.join('\n'));
   const variableInDenominator = /\/\s*\(?[0-9.]*[a-z]/i.test(expression);
+  // The methods that used to inherit the linear list (October 2026 tips
+  // audit): a fractional power undone, a root located numerically, a proof
+  // that there is no solution, an identity or contradiction, an LCD.
+  if (/Isolate the power|Raise both sides to the power/.test(text)) {
+    return {
+      tips: [
+        `Isolate the power, then raise both sides to the reciprocal exponent: ${mark('x^(2/3) = 4')} becomes ${mark('x = ±4^(3/2)')}.`,
+        `An even numerator means two solutions, ${mark('±')}: ${mark('x^(2/3) = (∛x)²')} is the same for ${mark('x')} and ${mark('−x')}. An odd numerator gives one.`,
+        `An even root is never negative: ${mark('x^(2/3) = −4')} has no real solution before any algebra; an odd root of a negative number is real (${mark('∛(−8) = −2')}).`,
+      ],
+      common_mistakes: [
+        `Taking only the positive solution when the numerator of the exponent is even.`,
+        `Raising to the wrong power: the inverse of ${mark('^(2/3)')} is ${mark('^(3/2)')}, not ${mark('^(−2/3)')}.`,
+        'Skipping the check: a raised power can introduce a value that fails in the original.',
+      ],
+    };
+  }
+  if (/no real solution/i.test(text) && !/Isolate the radical/.test(text) && !(variableInDenominator && /Multiply both sides|extraneous|denominator/i.test(text))) {
+    return {
+      tips: [
+        `An equation has no solution when one side can never take the other's value: ${mark('1/x')} is never ${mark('0')}, ${mark('e^x')} is always positive, an even power or root is never negative.`,
+        'Say why: name the value the expression cannot reach, or the contradiction left after the algebra — that is the answer.',
+        '"No real solution" is a result, not a failure: the check is that no number could satisfy the equation, not that none was found.',
+      ],
+      common_mistakes: [
+        `Writing ${mark('x = 0')} for ${mark('1/x = 0')} because the fraction gets small — it never reaches ${mark('0')}.`,
+        `Taking a logarithm of a negative number to "solve" ${mark('e^x = −2')}: there is no such logarithm.`,
+        'Keeping a candidate that makes a denominator zero.',
+      ],
+    };
+  }
+  if (/crosses zero, then verify|located numerically|numeric search/.test(text)) {
+    return {
+      tips: [
+        `When the unknown sits both inside and outside a function (${mark('x·e^x = 1')}), no algebraic step isolates it; the root is located where the two sides cross and narrowed down.`,
+        `${mark('≈')} means the root is known to the decimals shown, not exactly; substitute it back and the two sides agree to those decimals.`,
+        'Sketch both sides: each crossing is a solution, and the picture says how many to expect.',
+      ],
+      common_mistakes: [
+        'Treating a located root as exact — its next digits are not zeros.',
+        `Taking logarithms to isolate ${mark('x')}: ${mark('ln(x·e^x)')} is ${mark('ln x + x')}, which still has ${mark('x')} in two places.`,
+        'Stopping at one root when the graphs cross more than once.',
+      ],
+    };
+  }
+  if (/terms cancel/.test(text)) {
+    const identity = /identity/.test(text);
+    return {
+      tips: [
+        `When the variable terms cancel, what is left is about the constants alone: ${mark('5x − 7 = 5x + 2')} leaves ${mark('−7 = 2')}, false, so no solution; ${mark('2(x + 3) = 2x + 6')} leaves ${mark('6 = 6')}, true for every ${mark('x')}.`,
+        identity
+          ? 'An identity holds for every real number — the two sides are the same expression written differently.'
+          : 'A contradiction has no solution — the two sides differ by a fixed amount whatever x is.',
+        `Check with any value: substitute ${mark('x = 0')} and ${mark('x = 1')} — an identity holds both times, a contradiction fails both times.`,
+      ],
+      common_mistakes: [
+        `Dividing by ${mark('0')} (the coefficient left after the terms cancel) and reporting a number.`,
+        identity
+          ? `Writing ${mark('x = 0')} for an identity: every number works, not just ${mark('0')}.`
+          : `Writing ${mark('x = 0')} or ${mark('0 = 0')} for a contradiction: there is no solution at all.`,
+      ],
+    };
+  }
+  if (/least common denominator/.test(text)) {
+    return {
+      tips: [
+        'Clear the fractions first: multiply every term on both sides by the least common denominator, then solve the whole-number equation that remains.',
+        `Every term is multiplied, including the ones that are not fractions: ${mark('x/3 + 1/2 = 5/6')} times ${mark('6')} is ${mark('2x + 3 = 5')}.`,
+        'Check by substituting into the original equation, fractions and all.',
+      ],
+      common_mistakes: [
+        'Multiplying only the fractional terms by the LCD and leaving the others as they were.',
+        `Using the product of the denominators when a smaller common denominator exists (${mark('6')}, not ${mark('36')}, for thirds, halves and sixths).`,
+        'Adding the denominators instead of finding a common one.',
+      ],
+    };
+  }
   if (/absolute-value equation/.test(text)) {
     return {
       tips: [
@@ -174,7 +251,7 @@ function equationGuidance(steps, expression) {
         `Taking only the positive square root and losing ${mark('x = −√c')}.`,
         complex
           ? `Writing ${mark('√(−1)')} as ${mark('−1')}, or stopping at "no solution" without saying it means no REAL solution.`
-          : `Dividing both sides by ${mark('x')} and losing the ${mark('x = 0')} solution.`,
+          : `Taking the root of each term separately: in ${mark('x^2 + 7 = 16')}, isolate ${mark('x^2')} before the root.`,
       ],
     };
   }
@@ -199,7 +276,9 @@ function equationGuidance(steps, expression) {
         'Check by substituting each root into the original equation.',
       ],
       common_mistakes: [
-        `Dividing both sides by ${mark('x')} and losing the ${mark('x = 0')} solution.`,
+        /Factor out the common/.test(text)
+          ? `Dividing both sides by ${mark('x')} and losing the ${mark('x = 0')} solution.`
+          : 'Stopping at the factored form without setting each factor to zero.',
         `Reading ${mark('(x − a)(x − b) = 0')} as ${mark('x = −a')} or ${mark('x = −b')}: each factor is zero at ${mark('x = a')} and ${mark('x = b')}.`,
       ],
     };
@@ -213,7 +292,9 @@ function equationGuidance(steps, expression) {
     common_mistakes: [
       'Sign errors when moving a term across the equals sign.',
       'Dividing only one term by the coefficient instead of the whole side.',
-      'Forgetting to distribute a factor across every term in the parentheses.',
+      /\(/.test(expression)
+        ? 'Forgetting to distribute a factor across every term in the parentheses.'
+        : 'Subtracting a number from one side only — both sides change together.',
     ],
   };
 }
