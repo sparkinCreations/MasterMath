@@ -233,6 +233,12 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 18 (roadmap: the e^x substitution and negative exponents, 1.56.2)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Roadmap: e^x + e^(−x) = 1 is refused ("cannot show there is none") because the u = e^x substitution does not take negative exponents | Confirmed; e^x + e^(−x) = 3 and e^x − 2e^(−x) = 1 were answered by the numeric scan (≈ ±0.9624, ≈ 0.6931) where ln((3 ± √5)/2) and ln 2 are exact | 1.56.2 (a^(−kx) = 1/u^k, multiplied through by u^k since u > 0; no real solution proved from the discriminant or a complete root list) |
+
 ## Round 17 (tips, key insights and common mistakes: an audit of 338 problems, 1.56.1)
 
 | Claim | Verdict | Release |

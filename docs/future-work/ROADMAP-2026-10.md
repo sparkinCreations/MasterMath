@@ -349,9 +349,11 @@ Honest refusals, each with a message that says so:
   a function or π past 2^53 or below the decimal setting is shown as
   ≈ m × 10^k, never as an exact-looking float.
 - **Equations a search cannot settle** — since 1.55.3 a numeric search
-  that finds nothing is a refusal, not "no real solution": e^x + e^(−x) = 1
-  (no solution: the left side is at least 2) is refused until the e^x
-  substitution takes negative exponents.
+  that finds nothing is a refusal, not "no real solution". The e^x
+  substitution takes negative exponents since 1.56.2, so e^x + e^(−x) = 1
+  is proved to have no real solution (u² − u + 1 = 0 has a negative
+  discriminant); an equation outside every exact method, x·e^x = −1 say,
+  is still refused rather than declared solution-free.
 - **Complex numbers** — arithmetic with i is worked (1.55.2); complex
   functions (e^(iπ) aside, which Algebra simplifies), polar form and complex
   roots of equations beyond the quadratic formula are not.
