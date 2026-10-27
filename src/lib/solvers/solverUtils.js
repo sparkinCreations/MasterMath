@@ -855,3 +855,81 @@ function matchingParenAt(s, open) {
   }
   return -1;
 }
+
+// An expression that is never 0, read off the parse tree: a nonzero constant,
+// a product of such, a fraction whose numerator never vanishes, a positive
+// base to any power (eˣ, 2^x). `left = right` with one side 0: returns
+// { side, why } for the other side, or null when no such proof exists. Used
+// for "no real solution" (algebraSolver) and "f′ is never 0, so no stationary
+// points" (functionsSolver) — a claim about every x needs a proof, never a
+// search.
+export function neverZeroSide(left, right, variable) {
+  const isZero = (t) => {
+    try {
+      return math.evaluate(String(t)) === 0;
+    } catch {
+      return false;
+    }
+  };
+  const side = isZero(right) ? left : isZero(left) ? right : null;
+  if (!side) return null;
+  let node;
+  try {
+    node = math.parse(String(side));
+  } catch {
+    return null;
+  }
+  const reasons = new Set();
+  const never = (n) => {
+    if (n.type === 'ParenthesisNode') return never(n.content);
+    if (n.type === 'ConstantNode') return typeof n.value === 'number' && n.value !== 0;
+    if (n.type === 'SymbolNode') return ['e', 'pi'].includes(n.name);
+    if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') return never(n.args[0]);
+    if (n.type === 'OperatorNode' && n.fn === 'multiply') return never(n.args[0]) && never(n.args[1]);
+    if (n.type === 'OperatorNode' && n.fn === 'divide') {
+      if (!never(n.args[0])) return false;
+      if (n.args[1].filter((c) => c.type === 'SymbolNode' && c.name === variable).length) reasons.add('a fraction is 0 only when its numerator is, and this numerator never is');
+      return true;
+    }
+    if (n.type === 'OperatorNode' && n.fn === 'pow') {
+      let base = n.args[0];
+      while (base.type === 'ParenthesisNode') base = base.content;
+      let b;
+      try { b = base.evaluate({}); } catch { b = null; }
+      if (typeof b === 'number' && b > 0) { reasons.add('a positive base to any power is positive'); return true; }
+      return false;
+    }
+    if (n.type === 'FunctionNode' && n.fn?.name === 'exp') { reasons.add('a positive base to any power is positive'); return true; }
+    return false;
+  };
+  if (!never(node) || !node.filter((c) => c.type === 'SymbolNode' && c.name === variable).length) return null;
+  return { side, why: [...reasons].join('; ') || 'it is a nonzero constant' };
+}
+
+// A value from Algebrite shown as a textbook writes it: 1/e, √2, ∛2, π/6,
+// e^(x), ln(3) − 3. Shared by the interval solver (its exact values at
+// critical points) and the function analysis (extremum values).
+export function exactForm(text) {
+  const out = beautify(String(text))
+    // The real cube root: Algebrite writes ∛(−2) as (−1)^(1/3)·2^(1/3).
+    .replace(/\(-1\)\^\(1\/3\)\*/g, '-')
+    .replace(/(?<![a-z])(\d+|[a-z])\^\(1\/3\)/g, '∛$1')
+    // 1/6*π → π/6, 5/6*π → 5π/6.
+    .replace(/(?<![\w.])1\/(\d+)\*pi(?![a-z])/g, 'pi/$1')
+    .replace(/(?<![\w.])(\d+)\/(\d+)\*pi(?![a-z])/g, '$1pi/$2')
+    .replace(/(?<![a-z])exp\(-1\)/g, '1/e')
+    .replace(/(?<![a-z])(\d+|[a-z])\^\(1\/2\)/g, '√$1')
+    .replace(/\(([^()]+)\)\^\(1\/2\)/g, '√($1)')
+    // Algebrite's −1 + e first: (e − 1).
+    .replace(/\(-(\d+) \+ ([a-zπ√][^()]*)\)/g, '($2 - $1)')
+    .replace(/(?<![a-z])log\(/g, 'ln(')
+    .replace(/(?<![a-z])exp\(([a-z]|\d+)\)/g, 'e^$1')
+    .replace(/(?<![a-z])exp\(((?:[^()]|\([^()]*\))+)\)/g, 'e^($1)')
+    .replace(/(?<![a-z])sqrt\(/g, '√(')
+    .replace(/√\(([a-z]|\d+)\)/g, '√$1')
+    .replace(/(?<![a-z])pi(?![a-z])/g, 'π')
+    .replace(/\s*\/\s*/g, '/');
+  // −3 + ln(3) reads as ln(3) − 3.
+  const lead = out.match(/^-(\d+(?:\/\d+)?) \+ ([^+\-]+)$/);
+  return lead ? `${lead[2]} - ${lead[1]}` : out;
+}

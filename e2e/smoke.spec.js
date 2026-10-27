@@ -281,9 +281,18 @@ test.describe('MasterMath smoke', () => {
     await expect(page.locator('#problem')).toHaveValue('');
     await expect(page.getByRole('combobox').first()).toContainText('Auto-detect');
     // A parse error leaves a red toast that stays; the next solve clears it.
+    // It is shown all at once — no step-through, no "Step 1 of 2" over an
+    // error — and the reason is said once, in the box.
     await page.locator('#problem').fill('sin()');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     await expect(page.getByText(/Couldn't read that input/)).toBeVisible();
+    const notes = page.locator('[aria-label="Solution"]');
+    await expect(notes).toContainText('Notes:');
+    await expect(notes).toContainText('What went wrong:');
+    await expect(notes).not.toContainText(/Step \d+ of \d+/);
+    await expect(page.getByRole('button', { name: 'Reveal next step' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Step through' })).toHaveCount(0);
+    expect(await notes.getByText(/has nothing inside it/).count()).toBe(1);
     await page.locator('#problem').fill('x + 3 = 4');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     await expect(page.getByText('Problem solved!')).toBeVisible();
@@ -298,7 +307,7 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByText('Problem solved!')).toHaveCount(0);
     await page.locator('#problem').fill('determinant of [[1,2],[3,4]]');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
-    await expect(page.locator('[aria-label="Solution"]')).toContainText('Matrices are not supported yet');
+    await expect(page.locator('[aria-label="Solution"]')).toContainText(/matrices are not supported yet/i);
   });
 
   test('on a phone four example cards show and the rest open on demand', async ({ page, isMobile }) => {

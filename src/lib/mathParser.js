@@ -322,6 +322,11 @@ export function parseMathExpression(input) {
     cleaned = cleaned.replace(token, value);
   });
 
+  // A negated exponent, bracketed: e^-x → e^(-x). mathjs reads both the
+  // same way, Algebrite only the bracketed one — e^-x, x^-2 and 2^-x were
+  // "beyond what this engine can compute" under Derivatives and Integrals.
+  cleaned = cleaned.replace(/\^-(\d+(?:\.\d+)?|[a-z]+(?:\([^()]*\))?)/gi, '^(-$1)');
+
   return cleaned;
 }
 
@@ -453,7 +458,7 @@ export function extractFunctionFromProblem(problemText) {
     /(?:what is|what's|calculate|evaluate|compute|find)\s+(.+)/i,
 
     // Graphing patterns
-    /(?:graph|plot|draw|sketch)\s+(.+)/i,
+    /(?:graph|plot|draw|sketch|analy[sz]e)\s+(.+)/i,
 
     // f(x) = ... notation, and "y = …" as a function definition — only a
     // standalone y, not the y in "2x + 3y = 6" (that is an equation, and

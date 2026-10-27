@@ -22,6 +22,7 @@
 
 import { math, beautify, splitTerms, loadAlgebrite, runAlgebrite, formatNumber, rewriteReciprocalTrig, mark } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
+import { implicitWindow } from '../graphSampling.js';
 import { solved, unsupported, undefinedValue } from '../solutionEnvelope.js';
 
 // Algebrite's natural log is log(); students read ln(). Results only.
@@ -39,6 +40,64 @@ const show = (s) => beautify(s)
 
 // For mathjs: its log is natural, it has no ln.
 const forMathjs = (s) => String(s).replace(/(?<![a-z])ln\(/g, 'log(');
+
+// The curve itself, F(x, y) = 0, traced by the viewer (implicitCurve in
+// graphSampling.js), with the tangent line at the point when there is one:
+// a slope (dashed line), or a vertical tangent (a dashed vertical line).
+function implicitGraph({ F, ind, dep, shownEquation, point = null, slope = null, vertical = false }) {
+  const focus = point ? { x: point.x, y: point.y } : null;
+  const window = implicitWindow(F, ind, dep, { focus });
+  if (!window) return null;
+  const graph = {
+    points: [],
+    variable: ind,
+    implicit: { expression: F, x: ind, y: dep, label: shownEquation },
+    initialWindow: { xMin: window.xMin, xMax: window.xMax },
+    implicitYWindow: { yMin: window.yMin, yMax: window.yMax },
+    sharedAxis: true,
+    title: `Graph of the curve ${shownEquation}`,
+    description: `Indigo: the curve ${shownEquation}`,
+  };
+  if (point) {
+    const at = `(${formatNumber(point.x)}, ${formatNumber(point.y)})`;
+    graph.annotations = { tangentPoint: { x: point.x, y: point.y, label: at } };
+    if (Number.isFinite(slope)) {
+      const line = `${point.y} + (${slope})*(${ind} - (${point.x}))`;
+      const b = point.y - slope * point.x;
+      // Exact where the numbers are fractions: y = −3x/4 + 25/4.
+      const frac = (v) => {
+        for (let q = 1; q <= 64; q += 1) {
+          const n = Math.round(v * q);
+          if (Math.abs(v * q - n) < 1e-9) return { n, q };
+        }
+        return null;
+      };
+      const term = (v) => {
+        const f = frac(v);
+        if (!f) return `${formatNumber(v)}${ind}`;
+        const n = Math.abs(f.n);
+        const top = n === 1 ? ind : `${n}${ind}`;
+        return `${f.n < 0 ? '-' : ''}${f.q === 1 ? top : `${top}/${f.q}`}`;
+      };
+      const num = (v) => {
+        const f = frac(v);
+        return f ? (f.q === 1 ? String(f.n) : `${f.n}/${f.q}`) : formatNumber(v);
+      };
+      const slopePart = slope === 0 ? '' : term(slope);
+      const interceptPart = b === 0 ? '' : num(b);
+      const lineShown = `${dep} = ${slopePart && interceptPart ? `${slopePart} ${b < 0 ? '-' : '+'} ${num(Math.abs(b))}` : slopePart || interceptPart || '0'}`;
+      graph.secondaryExpression = line;
+      graph.secondaryLabel = `tangent: ${lineShown}`;
+      graph.title = `Graph of the curve ${shownEquation} and its tangent at ${at}`;
+      graph.description = `Indigo: the curve ${shownEquation}  |  Green: the tangent line ${lineShown} at ${at}`;
+    } else if (vertical) {
+      graph.solutions = [point.x];
+      graph.title = `Graph of the curve ${shownEquation} and its vertical tangent at ${at}`;
+      graph.description = `Indigo: the curve ${shownEquation}  |  Green: the vertical tangent ${ind} = ${formatNumber(point.x)} at ${at}`;
+    }
+  }
+  return graph;
+}
 
 // xy, 2xy, e^(xy): two variables written side by side, read as a product.
 // Only runs made of the curve's own two letters are split; sin, pi, … are
@@ -269,8 +328,10 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
     common_mistakes.push(`Treating ${mark(`${ind}${dep}`)} as a constant times ${mark(ind)}: ${mark(`d/d${ind}(${ind}${dep})`)} is ${mark(`${dep} + ${ind}·${dydx}`)}, not just ${mark(dep)}.`);
   }
 
+  const curve = forMathjs(`(${lhs}) - (${rhs})`);
+  const graphFor = (extra = {}) => implicitGraph({ F: curve, ind, dep, shownEquation, ...extra });
   if (!options.point) {
-    return solved({ steps, answer: `${dydx} = ${show(result)}`, tips, common_mistakes });
+    return solved({ steps, answer: `${dydx} = ${show(result)}`, tips, common_mistakes, graph: graphFor() });
   }
   // "at x = 3" alone: enough only when the formula has no y in it.
   if (options.point.y === null || options.point.y === undefined) {
@@ -280,12 +341,12 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
       const value = Rnum(xv, 0);
       if (Number.isFinite(value)) {
         steps.push(`The formula has no ${mark(dep)} in it, so ${mark(ind)} alone fixes the slope: at ${mark(`${ind} = ${options.point.x}`)}, ${mark(`${dydx} = ${formatNumber(value)}`)}`);
-        return solved({ steps, answer: `${dydx} at ${ind} = ${options.point.x} = ${formatNumber(value)}`, tips, common_mistakes });
+        return solved({ steps, answer: `${dydx} at ${ind} = ${options.point.x} = ${formatNumber(value)}`, tips, common_mistakes, graph: graphFor() });
       }
     }
     steps.push(`${mark(`${dydx} = ${show(result)}`)} depends on ${mark(dep)} as well as ${mark(ind)}, and the curve can pass through ${mark(`${ind} = ${options.point.x}`)} more than once, so a slope needs the whole point: give it as ${mark(`(${options.point.x}, ${dep})`)}.`);
     tips.unshift(`To evaluate an implicit derivative, give the point as ${mark(`(${ind}, ${dep})`)} — for example "at (3, 4)".`);
-    return solved({ steps, answer: `${dydx} = ${show(result)}`, tips, common_mistakes });
+    return solved({ steps, answer: `${dydx} = ${show(result)}`, tips, common_mistakes, graph: graphFor() });
   }
 
   // The slope at a given point.
@@ -305,6 +366,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
       reason: `${pointShown} is not on the curve ${shownEquation}`,
       steps: [...steps, `Substitute ${mark(pointShown)}: the two sides of ${mark(shownEquation)} are not equal there, so the point is not on the curve and the curve has no slope there.`],
       tips: [`Check the point first: substitute it into the equation — both sides must be equal. On this curve ${mark(`${dydx} = ${show(result)}`)}.`],
+      graph: graphFor(),
     });
   }
   const at = (expr) => run(`simplify(subst((${py}), ${dep}, subst((${px}), ${ind}, ${expr})))`);
@@ -317,6 +379,7 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
       reason: singular ? `both partial derivatives are 0 at ${pointShown} (a singular point of the curve)` : `the tangent at ${pointShown} is vertical`,
       steps: [...steps, `At ${mark(pointShown)}: ${mark(`${show(fy)} = 0`)}, so ${mark(`${dydx} = ${show(result)}`)} has a zero denominator there${singular ? ', and the numerator is 0 too: the curve has a singular point there, with no single tangent' : ': the tangent line is vertical, and a vertical line has no slope'}.`],
       tips: [`${mark(dydx)} is undefined exactly where ${mark(`${show(fy)} = 0`)}.`],
+      graph: graphFor({ point: { x: a, y: b }, vertical: !singular }),
     });
   }
   const exact = at(result);
@@ -328,5 +391,5 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
   steps.push(`At ${mark(pointShown)} (on the curve: both sides agree there), substitute ${mark(`${ind} = ${show(px)}, ${dep} = ${show(py)}`)}: ${mark(`${dydx} = ${shownValue}`)}`);
   steps.push(`That is the slope of the tangent line to the curve at ${mark(pointShown)}.`);
   tips.unshift(`An implicit ${mark(dydx)} usually involves both ${mark(ind)} and ${mark(dep)}, so evaluating it needs the whole point ${mark(`(${ind}, ${dep})`)}, not just ${mark(ind)}.`);
-  return solved({ steps, answer: `${dydx} at ${pointShown} = ${shownValue}`, tips, common_mistakes });
+  return solved({ steps, answer: `${dydx} at ${pointShown} = ${shownValue}`, tips, common_mistakes, graph: graphFor({ point: { x: a, y: b }, slope: value }) });
 }

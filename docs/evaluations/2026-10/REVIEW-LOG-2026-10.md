@@ -222,3 +222,14 @@ case now runs in `tests/octoberTestList.test.js`.
 | Found after 1.55.2: a complex answer ("−1 + 2i") shown as plain text; "376(≈ …)" with no space; 3i·2i shown as "6i·i = −6" | — | 1.55.3 |
 | Found while building 1.56.0: x³ − 4x = 0 answered "x = 0" alone, Solved (the factor left after x^k was not solved below degree 3); repeated roots listed twice | — | 1.55.3 |
 | Found while building 1.56.0: x^(1/3) = 0, x^(1/2) = 0, x^(1/3) = −2 answered "No real solution found" by a numeric search, Solved; x^(2/3) = 4 gave 8 alone; cbrt(x + 1) = −2 read as five unknowns | — | 1.55.3 (exact power equations; "no real solution" only with a reason) |
+
+## Round 16 (the same reviewer, reproduced on 1.56.0 before release)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| For bad input the error is a 2-step "solution" with "Step 1 of 2" and a reveal button; step 2 is the raw parser message, repeated in the "What went wrong" box | Confirmed, worse: three times (step, box, the only tip); under Derivatives and Integrals Algebrite's "2+* ? Stop: syntax error" | 1.56.0 (errors all at once under "Notes", said once; engine messages put into words) |
+| Found in the sweep (about 60 malformed inputs × 8 topics): "2+3)" integrated to 5x + C; "sin()" to sin(nil)·x + C; "2..5" differentiated to 0; "x^2 +" echoed as the answer under Trigonometry; "2 # 3" = 2; "3!!" = 6; "foo(x)" "already in simplest form"; "[1,2]" echoed; "limit of", "integral of", "derivative of" the limit/integral/derivative of a variable "of"; "50% of 80" under Integrals ∫(50%of80) do — all Solved | — | 1.56.0 (one syntax check before any solver; unknown function names; vectors refused; empty instructions) |
+| Found in the sweep: e^−x, x^−2, 2^−x "beyond what this engine can compute" under Derivatives and Integrals | — | 1.56.0 (the negated exponent bracketed for Algebrite) |
+| Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
+| Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
+

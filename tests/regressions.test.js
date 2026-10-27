@@ -584,7 +584,7 @@ test('regression: 2x2 system solves with exact fractions', async () => {
   const r = await solveProblem('2x + 3y = 6; x - y = 4', 'algebra');
   assert.equal(r.answer, 'x = 18/5,  y = -2/5');
   assert.equal(r.verified, true);
-  assert.ok(r.steps.some((s) => /Check:/i.test(s)));
+  assert.ok(r.steps.some((s) => /Check in both equations:/.test(s)));
 });
 
 test('regression: 2x2 system with an integer solution', async () => {

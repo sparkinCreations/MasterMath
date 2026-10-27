@@ -48,8 +48,14 @@ test('solved() refuses to exist without an answer', () => {
 
 test('parseError carries the specific hint, not generic advice', () => {
   const result = parseError({ input: '(2+3', hint: 'Unmatched opening parenthesis.' });
-  assert.match(result.steps.join(' '), /Unmatched opening parenthesis/);
+  // Said once, in the answer: not again as a step and a tip (1.56.0).
   assert.match(result.answer, /Unmatched opening parenthesis/);
+  assert.deepEqual(result.steps, ['Could not read "(2+3" as a math expression.']);
+  assert.deepEqual(result.tips, []);
+  // An engine's message is put into words, never shown raw.
+  const raw = parseError({ input: '2+*', hint: 'Value expected (char 3)' });
+  assert.equal(raw.answer, '"+*" — two operators in a row. Put a value between them, or remove one.');
+  assert.equal(parseError({ input: 'x', hint: 'Undefined symbol foo' }).answer, '"foo" is not a known function, constant or variable.');
 });
 
 test('unsupported never blames formatting', () => {

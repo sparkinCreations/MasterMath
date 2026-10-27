@@ -22,7 +22,9 @@ test('the converted solvers leave no math in a plain-text run, and every math ru
     const r = await solveProblem(problem, topic);
     for (const step of r.steps) {
       for (const seg of segmentMathText(step)) {
-        if (seg.type === 'text' && LEAK.test(seg.value)) leaks.push(`${problem}: ${JSON.stringify(seg.value)}`);
+        // A parse error's step quotes the typed input, which is prose by
+        // design: it may not be maths at all ("2+*"), so it is never typeset.
+        if (seg.type === 'text' && LEAK.test(seg.value) && !(r.status === 'parse_error' && /^Could not read "/.test(step))) leaks.push(`${problem}: ${JSON.stringify(seg.value)}`);
         if (seg.type === 'math') {
           try {
             katex.renderToString(toLatex(seg.value), { throwOnError: true, output: 'htmlAndMathml', trust: false });

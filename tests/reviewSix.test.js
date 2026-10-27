@@ -23,7 +23,7 @@ test('matrices are refused with a message that says so', async () => {
   for (const p of ['determinant of [[1,2],[3,4]]', '[[1,2],[3,4]] * [[1],[0]]', 'eigenvalues of [[2,0],[0,3]]', 'inverse of the matrix [[1,2],[3,4]]']) {
     const r = await solveProblem(p, 'other');
     assert.equal(r.status, 'unsupported', p);
-    assert.match(r.answer, /Matrices are not supported yet/);
+    assert.match(r.answer, /matrices are not supported yet/i);
     assert.doesNotMatch(r.steps.join('\n'), /determinantof/);
   }
 });

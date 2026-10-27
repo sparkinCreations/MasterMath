@@ -64,6 +64,23 @@ export const CONVERTED = [
   ['other', '(2+3i)*(1-i)'], ['other', '(1+i)^2'], ['other', '(3+4i)/(1-2i)'], ['other', 'i^3'], ['other', 'i^10'], ['other', '(2+3i)+(1-i)'], ['other', 'abs(3+4i)'],
   ['other', '2*(3+4i)'], ['other', 'sqrt(-4)+3i'], ['other', '1/(2i)'], ['other', '(2+3i)^3'],
   ['functions', '(x^2-1)/(x^2-4)'], ['functions', 'sqrt(x-2)/(x-5)'],
+  // 1.56.0: average value, max/min on an interval, primes, factorization, rounding; implicit curves graphed.
+  ['auto', 'average value of x^2 on [0, 3]'], ['auto', 'average value of sin(x) from 0 to pi'], ['auto', 'average value of 1/x on [-1, 1]'],
+  ['auto', 'max and min of x^3 - 3x on [-2, 3]'], ['auto', 'maximum of abs(x - 1) on [0, 3]'], ['auto', 'minimum of x^(2/3) on [-1, 8]'],
+  ['auto', 'maximum of 1/x on [-1, 1]'], ['auto', 'maximum of 5 on [0, 1]'], ['auto', 'extreme values of sin(x) on [0, 2pi]'],
+  ['auto', 'is 97 prime'], ['auto', 'is 91 prime'], ['auto', 'is 1 prime'], ['auto', 'prime factorization of 360'], ['auto', 'factor 97'],
+  ['auto', 'round 3.14159 to 2 decimal places'], ['auto', 'round 2.996 to 2 dp'], ['auto', 'round 1250 to the nearest hundred'],
+  ['auto', 'round 0.004567 to 2 significant figures'], ['auto', 'round sqrt(2) to 3 decimal places'], ['auto', 'round 5 to 2 decimal places'],
+  ['algebra', 'x^(2/3) = 4'], ['algebra', 'x^(2/3) = -4'], ['algebra', '1/x = 0'], ['algebra', 'x/(x-1) = 1'],
+  // 1.56.0: malformed input refused the same way on every path, in words; the substitution algebra; f′ in the function analysis.
+  ['auto', '2+*'], ['auto', '3+'], ['auto', '*5'], ['auto', '(2+3'], ['auto', '2+3)'], ['auto', '()'], ['auto', '2..5'], ['auto', 'sin()'], ['auto', '2 + = 3'],
+  ['auto', '= 5'], ['auto', 'x = = 2'], ['auto', 'x < < 3'], ['auto', '2x + 3 >'], ['auto', 'd/dx'], ['auto', 'd/dx (x^2 +)'], ['auto', 'integral of'], ['auto', 'limit of'],
+  ['auto', 'foo(x)'], ['auto', 'x$2'], ['auto', '3!!'], ['auto', '|x'], ['auto', '[1,2]'], ['auto', '{x}'], ['auto', 'x;y'], ['auto', 'x == 2'], ['auto', '3:4'],
+  ['derivatives', '2+*'], ['integrals', '2+3)'], ['limits', 'x^2 +'], ['trigonometry', 'sin x +'], ['functions', 'x$2'],
+  ['algebra', '2x + 3y = 12, x - y = 1'], ['algebra', 'x + y = 5; 2x - y = 1'], ['algebra', '3x - 2y = 4; 5x + 4y = 14'], ['algebra', '-x + 2y = 3; 3x + y = 5'],
+  ['algebra', '2y = 6; x + y = 5'], ['algebra', 'x - y = 1; 3y = 9'], ['algebra', '2x = 8; x + y = 5'], ['algebra', 'x/2 + y/3 = 1; x - y = 1'], ['algebra', 'x + y = 0; x - y = 2'],
+  ['functions', 'x^3 - 3x'], ['functions', 'x*e^(-x)'], ['functions', 'x^3'], ['functions', 'abs(x)'], ['functions', 'x^(2/3)'], ['functions', 'sin(x)'], ['functions', 'x^4 - 2x^2'],
+  ['auto', 'sketch x^3'], ['auto', 'analyze x^2 - 4'], ['derivatives', 'e^-x'], ['integrals', '50% of 80'], ['derivatives', 'the gcd of 12 and 18'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

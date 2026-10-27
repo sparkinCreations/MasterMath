@@ -22,7 +22,7 @@ test('sin^-1 / sin⁻¹ notation normalises too; hyperbolic and powers are untou
   assert.equal(parseMathExpression('sin⁻¹(x)'), 'arcsin(x)');
   assert.equal(parseMathExpression('tan^-1(2x)'), 'arctan(2*x)');
   assert.equal(parseMathExpression('asinh(x)'), 'asinh(x)');
-  assert.equal(parseMathExpression('x^-1'), 'x^-1');
+  assert.equal(parseMathExpression('x^-1'), 'x^(-1)'); // the negated exponent is bracketed for Algebrite (1.56.0)
   assert.equal(parseMathExpression('arcsin(x)'), 'arcsin(x)');
 });
 
@@ -61,10 +61,13 @@ test('isUnevaluatedOperator recognises Algebrite handing the operator back', () 
   assert.equal(isUnevaluatedOperator('2*d + 1'), false);
 });
 
-test('an unknown function is refused as unsupported, never reported as solved', async () => {
+test('an unknown function is refused, never reported as solved', async () => {
+  // A name no engine knows is a parse error that says so (1.56.0: under
+  // Algebra and Functions it was echoed back, marked Solved); a known
+  // function the engine cannot handle (gamma) is unsupported.
   const d = await solveProblem('foo(x)', 'derivatives');
-  assert.equal(d.status, STATUS.UNSUPPORTED);
-  assert.doesNotMatch(d.answer, /\bd\(/);
+  assert.equal(d.status, STATUS.PARSE_ERROR);
+  assert.match(d.answer, /"foo" is not a known function/);
   const i = await solveProblem('gamma(x)', 'integrals');
   assert.equal(i.status, STATUS.UNSUPPORTED);
   assert.doesNotMatch(i.answer, /\bintegral\(/);

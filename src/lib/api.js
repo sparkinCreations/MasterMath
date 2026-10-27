@@ -3,6 +3,8 @@ import { STATUS, isValidStatus, parseError, solved, unsupported } from './soluti
 import { bareFunctionName, math, formatNumber, beautify } from './solvers/solverUtils.js';
 import { stripMathMarkers } from './mathMarkers.js';
 import { readPlainEnglish } from './plainEnglish.js';
+import { readRoundingSpec } from './solvers/numberSolver.js';
+import { syntaxProblem } from './syntaxCheck.js';
 
 async function loadSolver(topic) {
   switch (topic) {
@@ -81,6 +83,9 @@ function detectCalculusIntent(problem) {
 // where it can be — and the page offers to differentiate, integrate or
 // analyse it instead (expressionNudge). Never a guess.
 const TRIG_CALL = /(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan)(?:\s*[(^]|\s+(?=[a-z0-9π]))/i;
+const GRAPH_VERB = /^\s*(graph|plot|sketch|draw|analy[sz]e)\b/i;
+const graphVerb = (t) => t.match(GRAPH_VERB)[1].toLowerCase().replace(/^analyze$/, 'analyse').replace(/^draw$|^plot$/, 'graph');
+
 export function detectTopic(problem) {
   const t = String(problem);
   const calculus = detectCalculusIntent(t);
@@ -95,6 +100,9 @@ export function detectTopic(problem) {
       ? { topic: 'trigonometry', reason: `your input asks to ${action} a trig expression` }
       : { topic: 'algebra', reason: `your input asks to ${action} it` };
   }
+  // "sketch x^3", "analyze x^2 - 4": the graphing verbs ask for the
+  // function's features. "sketch x^3" was simplified to x^3 under Algebra.
+  if (GRAPH_VERB.test(t)) return { topic: 'functions', reason: `your input asks to ${graphVerb(t)} it` };
   if (looksLikeSystem(t)) return { topic: 'algebra', reason: 'your input is a system of equations' };
   if (looksLikeInequality(t)) return { topic: 'algebra', reason: 'your input is an inequality' };
   // "f(x) = …" / "y = …" with y not on the right: a definition, not an equation.
@@ -188,17 +196,28 @@ function isArithmeticUnderTrigonometry(problem, topic) {
 
 // Words the engines know. Anything else that is two or more letters long is
 // not mathematics this app can read ("hello", "helpme", "xx").
-const KNOWN_WORDS = new Set(['of', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'arcsin', 'arccos', 'arctan', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh', 'sqrt', 'cbrt', 'nthroot', 'abs', 'log', 'ln', 'log10', 'log2', 'exp', 'pi', 'mod', 'choose', 'combinations', 'permutations', 'factorial', 'floor', 'ceil', 'round', 'sign', 'sgn', 'gamma', 'erf', 'infinity', 'inf', 'deg', 'degrees', 'rad']);
+const KNOWN_WORDS = new Set(['of', 'gcd', 'lcm', 'min', 'max', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'arcsin', 'arccos', 'arctan', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh', 'sqrt', 'cbrt', 'nthroot', 'abs', 'log', 'ln', 'log10', 'log2', 'exp', 'pi', 'mod', 'choose', 'combinations', 'permutations', 'factorial', 'floor', 'ceil', 'round', 'sign', 'sgn', 'gamma', 'erf', 'infinity', 'inf', 'deg', 'degrees', 'rad']);
 function unknownWord(expression) {
   const text = String(expression);
   // Two single letters with only a space between them: "x x".
   const pair = text.match(/(?<![a-z])([a-z])\s+([a-z])(?![a-z])/i);
   if (pair) return `${pair[1]} ${pair[2]}`;
-  // A word followed by "(" is a function call; an unknown one (foo(x)) is
-  // the engine's to refuse as unsupported, with its own message.
   const words = text.match(/[a-z]{2,}(?![a-z]|\s*\()/gi) || [];
-  return words.find((w) => !KNOWN_WORDS.has(w.toLowerCase())) || null;
+  const unknown = words.find((w) => !KNOWN_WORDS.has(w.toLowerCase()));
+  if (unknown) return unknown;
+  // A word followed by "(" is a function call. An unknown one — foo(x) —
+  // was left to the engines, which echoed it back as "already in simplest
+  // form" and "domain: no real numbers", marked Solved.
+  return unknownFunction(text);
 }
+
+// The name is returned with its "(" so the hint can say "function".
+function unknownFunction(text) {
+  const calls = String(text).match(/[a-z]{2,}(?=\s*\()/gi) || [];
+  const name = calls.find((w) => !KNOWN_WORDS.has(w.toLowerCase()));
+  return name ? `${name}(` : null;
+}
+const unknownFunctionHint = (name) => `"${name}" is not a known function. The functions are sin, cos, tan, arcsin, sinh, …, sqrt, cbrt, abs, ln, log, exp, floor, ceil, round, gcd, lcm, min, max and the factorial "n!".`;
 
 // The same question for the paths that read the whole problem — limits,
 // integrals, inequalities, systems — where the instruction words are still
@@ -213,10 +232,27 @@ const INSTRUCTION_WORDS = new Set(['solve', 'find', 'for', 'the', 'and', 'or', '
   'system', 'equations', 'equation', 'inequality', 'inequalities', 'simultaneous', 'interval', 'notation']);
 function unknownWordInProblem(problem) {
   const words = String(problem).match(/[a-z]{2,}(?![a-z]|\s*\()/gi) || [];
-  return words.find((w) => {
+  const unknown = words.find((w) => {
     const lower = w.toLowerCase();
     return !KNOWN_WORDS.has(lower) && !INSTRUCTION_WORDS.has(lower) && !/^d[a-z]$/.test(lower);
-  }) || null;
+  });
+  if (unknown) return unknown;
+  const call = unknownFunction(problem);
+  return call && !INSTRUCTION_WORDS.has(call.slice(0, -1).toLowerCase()) ? call : null;
+}
+
+// "x^2 on [0, 3]", "x^2 over the interval [0, 3]", "x^2 from 0 to 3",
+// "x^2 between x = 0 and x = 3", "x^2 for 0 <= x <= 3" → { expr, a, b,
+// variable }, or null when no interval is given.
+function readInterval(text) {
+  const t = String(text).trim().replace(/[?.]$/, '');
+  let m = t.match(/^(.+?)\s*,?\s+(?:on|over|in)\s+(?:the\s+(?:closed\s+)?interval\s+)?\[\s*([^,\]]+?)\s*,\s*([^\]]+?)\s*\]$/i);
+  if (m) return { expr: m[1].trim(), a: m[2], b: m[3], variable: null };
+  m = t.match(/^(.+?)\s*,?\s+(?:on|over|for|when|where)\s+(?:the\s+interval\s+)?(-?[^\s<≤]+)\s*(?:<=|≤)\s*([a-z])\s*(?:<=|≤)\s*([^\s<≤]+)$/i);
+  if (m) return { expr: m[1].trim(), a: m[2], b: m[4], variable: m[3] };
+  m = t.match(/^(.+?)\s+(?:from|between)\s+(?:([a-z])\s*=\s*)?(-?\S+)\s+(?:to|and)\s+(?:[a-z]\s*=\s*)?(-?\S+)$/i);
+  if (m) return { expr: m[1].trim(), a: m[3], b: m[4], variable: m[2] || null };
+  return null;
 }
 
 // Request phrases around the maths, read as what they ask for. Returns
@@ -246,7 +282,14 @@ function readRequestPhrases(text) {
     t = t.replace(/(\s+d[a-z])?\s+with\s+respect\s+to\s+([a-z])\b/i, (m, given, v) => given || ` d${v.toLowerCase()}`);
   }
   t = t.replace(new RegExp(`${calculus}(?:integral|antiderivative)\\s+from\\s+(\\S+)\\s+to\\s+(\\S+)\\s+of\\s+(.+)$`, 'i'), (m, a, b, f) => `integral of ${f} from ${a} to ${b}`);
-  t = t.replace(new RegExp(`${calculus}(integral|antiderivative|derivative|deriv|diff)\\s+(?:of\\s+)?(?!from\\b|with\\b)(?=\\S)`, 'i'), (m, what) => `${/^d/i.test(what) ? 'derivative' : what.toLowerCase()} of `);
+  // (An "of" with nothing after it stays as typed: "derivative of" became
+  // "derivative of of", the derivative of a variable called "of".)
+  t = t.replace(new RegExp(`${calculus}(integral|antiderivative|derivative|deriv|diff)\\s+(?:of\\s+)?(?!from\\b|with\\b|of\\s*$)(?=\\S)`, 'i'), (m, what) => `${/^d/i.test(what) ? 'derivative' : what.toLowerCase()} of `);
+  // "sketch the graph of x^3", "graph y = x^2", "analyze the function
+  // x^3 − x": the function's analysis. ("graph of y = x^2" was refused as
+  // the unknown word "ofy".)
+  const graphing = t.match(new RegExp(`^(?:${verb}\\s+)?(graph|plot|sketch|draw|analy[sz]e)\\s+(?:the\\s+graph\\s+of\\s+|the\\s+(?:function|curve)\\s+|of\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?([^=<>]+)$`, 'i'));
+  if (graphing) return { problem: graphing[2].trim(), topic: 'functions', reason: `the input asks to ${graphVerb(graphing[1])} it` };
   // "find the zeros of x^2 - 5x + 6": the equation f = 0.
   const zeros = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(?:zeros|zeroes|roots|solutions|x-intercepts)\\s+of\\s+(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?([^=<>]+)$`, 'i'));
   if (zeros) return { problem: `${zeros[1].trim()} = 0` };
@@ -255,6 +298,34 @@ function readRequestPhrases(text) {
   if (slope) return { problem: `derivative of ${slope[1].trim()}` };
   // "find the critical points of x^3 - 3x": the function's analysis. Not
   // when an interval is given (the analysis is over the whole domain).
+  const fnOf = '(?:the\\s+(?:function|graph|curve)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?';
+  const lead = `(?:${verb}\\s+)?(?:the\\s+)?`;
+  // "the average value of x^2 on [0, 3]", "the maximum of x^3 - 3x on
+  // [0, 2]" (the closed interval method), "is 97 prime", "the prime
+  // factorization of 360", "round 3.14159 to 2 decimal places" (1.56.0):
+  // each was refused as unreadable words.
+  const average = t.match(new RegExp(`^${lead}(?:average|mean)\\s+value\\s+of\\s+${fnOf}(.+)$`, 'i'));
+  const averageOn = average && readInterval(average[1]);
+  if (averageOn) {
+    return { problem: averageOn.expr, request: { kind: 'average', expression: averageOn.expr, a: averageOn.a, b: averageOn.b, variable: averageOn.variable }, topic: 'integrals', reason: 'the input asks for the average value of a function on an interval' };
+  }
+  const extreme = t.match(new RegExp(`^${lead}(?:absolute\\s+|global\\s+)?(max(?:imum)?(?:\\s+(?:and|&)\\s+min(?:imum)?)?|min(?:imum)?(?:\\s+(?:and|&)\\s+max(?:imum)?)?|extreme\\s+values?|extrema)(?:\\s+values?)?\\s+of\\s+${fnOf}(.+)$`, 'i'));
+  const extremeOn = extreme && readInterval(extreme[2]);
+  if (extremeOn) {
+    const which = /max/i.test(extreme[1]) && /min/i.test(extreme[1]) || /extrem/i.test(extreme[1]) ? 'both' : /max/i.test(extreme[1]) ? 'maximum' : 'minimum';
+    return { problem: extremeOn.expr, request: { kind: 'extrema', expression: extremeOn.expr, a: extremeOn.a, b: extremeOn.b, which, variable: extremeOn.variable }, topic: 'functions', reason: `the input asks for the absolute ${which === 'both' ? 'maximum and minimum' : which} of a function on an interval` };
+  }
+  const prime = t.match(/^(?:is\s+|check\s+(?:if|whether)\s+)(\d[\d,]*)\s+(?:is\s+)?(?:a\s+)?(prime|composite)(?:\s+number)?\s*\??$/i)
+    || t.match(/^(\d[\d,]*)\s+(?:is\s+)?(?:a\s+)?(prime|composite)(?:\s+number)?\s*\?$/i);
+  if (prime) return { problem: prime[1], request: { kind: 'prime', value: prime[1] }, topic: 'other', reason: 'the input asks whether a number is prime' };
+  const factorization = t.match(new RegExp(`^${lead}(?:prime\\s+factori[sz]ation|prime\\s+factors|factor\\s+tree)\\s+of\\s+(\\d[\\d,]*)\\s*[?.]?$`, 'i'))
+    || t.match(/^(?:factor(?:i[sz]e)?|write)\s+(\d[\d,]*)(?:\s+(?:into\s+primes|as\s+a\s+product\s+of\s+primes(?:\s+factors)?|completely))?\s*[?.]?$/i);
+  if (factorization) return { problem: factorization[1], request: { kind: 'factorization', value: factorization[1] }, topic: 'other', reason: 'the input asks for a prime factorization' };
+  const rounding = t.match(/^(?:round(?:\s+off)?\s+(.+?)|(.+?)\s+rounded)\s+to\s+(.+?)\s*[?.]?$/i);
+  if (rounding) {
+    const spec = readRoundingSpec(rounding[3]);
+    if (spec) return { problem: rounding[1] || rounding[2], request: { kind: 'round', value: (rounding[1] || rounding[2]).trim(), spec }, topic: 'other', reason: 'the input asks to round a number' };
+  }
   const analysis = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(critical\\s+points|inflection\\s+points|points\\s+of\\s+inflection|extrema|local\\s+(?:maximum|minimum|extrema)|turning\\s+points|vertex|domain(?:\\s+and\\s+range)?|range|asymptotes|intercepts)\\s+of\\s+(?:the\\s+(?:function|parabola|curve|graph)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?(.+)$`, 'i'));
   if (analysis && !/\bon\b|\[|\binterval\b/i.test(analysis[2])) {
     return { problem: analysis[2].trim(), topic: 'functions', reason: `the input asks for the ${analysis[1].toLowerCase().replace(/\s+/g, ' ')} of a function` };
@@ -263,8 +334,6 @@ function readRequestPhrases(text) {
   // of the tangent line to x^2 at x = 3", "the inverse of 2x + 3", "convert
   // 45 degrees to radians": one thing asked about a function or an angle
   // (requestSolver.js). Each was refused as unreadable words.
-  const fnOf = '(?:the\\s+(?:function|graph|curve)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?';
-  const lead = `(?:${verb}\\s+)?(?:the\\s+)?`;
   const property = t.match(new RegExp(`^${lead}(period|amplitude)\\s+of\\s+${fnOf}(.+?)\\s*[?.]?$`, 'i'));
   if (property) {
     return { problem: property[2].trim(), request: { kind: property[1].toLowerCase(), expression: property[2].trim() }, topic: 'trigonometry', reason: `the input asks for the ${property[1].toLowerCase()} of a function` };
@@ -293,8 +362,12 @@ function readRequestPhrases(text) {
     }
   }
   // "find the gcd of 12 and 18"
-  const divisor = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(gcd|gcf|hcf|lcm|greatest\\s+common\\s+(?:divisor|factor)|highest\\s+common\\s+factor|least\\s+common\\s+multiple)\\s+of\\s+(\\d+)\\s*(?:,|and)\\s*(\\d+)\\s*[?.]?$`, 'i'));
-  if (divisor) return { problem: `${/^(?:lcm|least)/i.test(divisor[1]) ? 'lcm' : 'gcd'}(${divisor[2]}, ${divisor[3]})` };
+  const divisor = t.match(new RegExp(`^(?:${verb}\\s+)?(?:the\\s+)?(gcd|gcf|hcf|lcm|greatest\\s+common\\s+(?:divisor|factor)|highest\\s+common\\s+factor|least\\s+common\\s+multiple)\\s+of\\s+(\\d+)\\s*(?:,|and)\\s*(\\d+)\\s*[?.]?$`, 'i'));
+  if (divisor) {
+    const lcm = /^(?:lcm|least)/i.test(divisor[1]);
+    // A calculation, whatever the topic: under Derivatives it was f'(x) = 0.
+    return { problem: `${lcm ? 'lcm' : 'gcd'}(${divisor[2]}, ${divisor[3]})`, topic: 'other', reason: `the input asks for a ${lcm ? 'least common multiple' : 'greatest common divisor'}` };
+  }
   return { problem: t };
 }
 
@@ -304,6 +377,13 @@ function readRequestPhrases(text) {
 async function solveRequest(request, problem) {
   const solvers = await import('./solvers/requestSolver.js');
   if (request.kind === 'angle') return finalizeResult(asResult(solvers.convertAngle(request.value, request.from)), problem);
+  if (['prime', 'factorization', 'round'].includes(request.kind)) {
+    const numbers = await import('./solvers/numberSolver.js');
+    const result = request.kind === 'prime' ? numbers.primeCheck(request.value)
+      : request.kind === 'factorization' ? numbers.primeFactorization(request.value)
+        : numbers.roundNumber(request.value, request.spec);
+    return finalizeResult(asResult(result), problem);
+  }
   const expression = parseMathExpression(extractFunctionFromProblem(request.expression));
   const word = unknownWord(expression);
   if (word) return finalizeResult(parseError({ input: request.expression, hint: unknownWordHint(word) }), problem);
@@ -312,7 +392,12 @@ async function solveRequest(request, problem) {
   if (request.kind === 'period') result = solvers.periodOf(expression, variable);
   else if (request.kind === 'amplitude') result = solvers.amplitudeOf(expression, variable);
   else if (request.kind === 'tangent') result = await solvers.tangentLine(expression, variable, request.point, request.givenY);
-  else {
+  else if (request.kind === 'average' || request.kind === 'extrema') {
+    const interval = await import('./solvers/intervalSolver.js');
+    result = request.kind === 'average'
+      ? await interval.averageValue(expression, variable, request.a, request.b, solveProblem)
+      : await interval.extremaOnInterval(expression, variable, request.a, request.b, request.which, solveProblem);
+  } else {
     const { solveAlgebra } = await import('./solvers/algebraSolver.js');
     result = await solvers.inverseOf(expression, variable, solveAlgebra);
   }
@@ -357,7 +442,7 @@ const wordProblemRefusal = (problem) => unsupported({
 // spaces were taken out ("thecriticalpointsofx"): say so in plain terms
 // rather than calling that a function name (October 2026 review).
 const gluedWords = (word) => word.length >= 12 || /^(?:the|is|of)[a-z]{3,}/i.test(word);
-const unknownWordHint = (word) => (gluedWords(word)
+const unknownWordHint = (word) => (/\($/.test(word) ? unknownFunctionHint(word.slice(0, -1)) : gluedWords(word)
   ? 'The words in this problem could not be read as maths. Type the expression or equation itself, such as "x^3 - 3x" or "2x + 5 = 11", and choose a topic for what to do with it.'
   : `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`);
 
@@ -572,7 +657,9 @@ const TOPIC_NAMES = { auto: 'Auto-detect', derivatives: 'Derivatives', integrals
 
 // A solved result that was routed away from the chosen topic says so, first.
 function noteRouting(result, from, to, why) {
-  if (result && Array.isArray(result.steps) && from !== to) {
+  // Nothing was solved as anything when the input could not be read: no
+  // "Solved as Arithmetic" notice above a parse error.
+  if (result && Array.isArray(result.steps) && from !== to && result.status !== STATUS.PARSE_ERROR) {
     result.steps = [`Solved as ${TOPIC_NAMES[to]} (you chose ${TOPIC_NAMES[from]}): ${why}.`, ...result.steps];
     // For the page: SolutionDisplay shows this as a notice above the steps
     // (with a button to switch the topic) instead of the first step above,
@@ -779,6 +866,14 @@ export async function solveProblem(problem, topic) {
     // integral of x^2 from 0 to 3" was refused as improper (October 2026
     // review sweep).
     const request = readRequestPhrases(problem);
+    // Malformed typing — "2+*", "x^2 +", "sin()", "2 # 3" — is refused here,
+    // once, before any topic or request reads it (syntaxCheck.js). Each path
+    // used to check for itself, and what one refused another answered,
+    // marked Solved. After the word-problem test: that one reads prose.
+    if (!looksLikeWordProblem(request.problem)) {
+      const bad = syntaxProblem(request.problem);
+      if (bad) return finalizeResult(parseError({ input: problem, hint: bad.hint, tips: bad.tips }), problem);
+    }
     if (request.topic) {
       const routed = request.request ? await solveRequest(request.request, problem) : await solveProblem(request.problem, request.topic);
       if (topic === request.topic) return routed;
@@ -897,11 +992,13 @@ export async function solveProblem(problem, topic) {
           ],
         }), problem);
       }
-      if (/\[\s*\[|\b(?:matrix|matrices|determinant|eigenvalues?|eigenvectors?|transpose)\b/i.test(t)) {
+      // "[1, 2]" alone is a vector; it was echoed back as the answer, and
+      // "integrated" to [x, 2x] + C.
+      if (/^\s*\[[^\]]*\]\s*$|\[\s*\[|\b(?:matrix|matrices|determinant|eigenvalues?|eigenvectors?|transpose|vectors?)\b/i.test(t)) {
         return finalizeResult(unsupported({
           input: problem,
-          reason: 'Matrices (determinants, inverses, eigenvalues, products) are not supported yet. The solver covers arithmetic, algebra, systems of equations, inequalities, trigonometry, functions, limits, derivatives and integrals.',
-          answer: 'Matrices are not supported yet',
+          reason: 'Vectors and matrices (determinants, inverses, eigenvalues, products) are not supported yet. The solver covers arithmetic, algebra, systems of equations, inequalities, trigonometry, functions, limits, derivatives and integrals.',
+          answer: 'Vectors and matrices are not supported yet',
           tips: ['A system of linear equations can be solved as equations: "2x + 3y = 6; x - y = 4".'],
         }), problem);
       }
@@ -1020,9 +1117,19 @@ export async function solveProblem(problem, topic) {
       const routed = await solveProblem(problem, verbHome);
       return noteRouting(routed, topic, verbHome, `the input asks to ${verb[1].toLowerCase().replace(/^factori[sz]e$/, 'factor')} it`);
     }
+    if (!calculus && topic !== 'functions' && GRAPH_VERB.test(problem)) {
+      const routed = await solveProblem(problem, 'functions');
+      return noteRouting(routed, topic, 'functions', `the input asks to ${graphVerb(problem)} it`);
+    }
     if (['integrals', 'derivatives', 'functions', 'limits'].includes(topic) && constantDividesByZero(problem)) {
       const routed = await solveProblem(problem, 'other');
       return noteRouting(routed, topic, 'other', 'the input is a number, not a function, and it divides by zero');
+    }
+    // "50% of 80" is a calculation whatever the topic: under Integrals it was
+    // ∫(50%of80) do = 50o + C, marked Solved.
+    if (!calculus && topic !== 'other' && /^\s*\d+(?:\.\d+)?\s*%\s*of\s+\d/i.test(problem)) {
+      const routed = await solveProblem(problem, 'other');
+      return noteRouting(routed, topic, 'other', 'the input is a percentage calculation');
     }
     if (topic === 'limits' && !calculus && isConstantInput(problem)) {
       const routed = await solveProblem(problem, 'other');
@@ -1090,9 +1197,16 @@ export async function solveProblem(problem, topic) {
         break;
 
       default: {
-        const expression = extractFunctionFromProblem(problem);
+        // "d/dx" alone, "derivative of": the instruction with nothing to
+        // work on ("dx" was refused as an unknown word).
+        const expression = /^\s*(?:d\/d[a-z]|(?:find\s+)?(?:the\s+)?derivative(?:\s+of)?|differentiate)\s*$/i.test(problem) ? '' : extractFunctionFromProblem(problem);
         if (!expression || expression.trim().length === 0) {
-          throw new Error('Unable to extract mathematical expression from input');
+          return finalizeResult(parseError({
+            input: problem,
+            hint: topic === 'derivatives'
+              ? 'There is nothing to differentiate — write the function after d/dx: "d/dx (x^3)", or just "x^3".'
+              : 'No expression was found in the input.',
+          }), problem);
         }
         // "hello", "help me", "x x" (→ "xx"): a word the engines do not know.
         // Not a variable, not a function — a parse error with a hint, before
@@ -1168,15 +1282,13 @@ export async function solveProblem(problem, topic) {
 
     // Last-resort fallback: an error escaped every solver's own handling, so
     // the specific cause is unknown — the error message is the best hint we
-    // have. Solver-level failures carry more specific envelopes than this.
+    // have (parseError puts an engine's message into words). Solver-level
+    // failures carry more specific envelopes than this. No generic tips:
+    // "use * for multiplication" under an error about something else only
+    // sends the student looking in the wrong place.
     return parseError({
       input: problem,
       hint: error.message || 'An unexpected error occurred',
-      tips: [
-        'Use "*" for multiplication (e.g., "2*x" instead of "2x")',
-        'Use "^" for exponents (e.g., "x^2" instead of "x²")',
-        'Check that all parentheses are balanced and function names are spelled out (sin, cos, sqrt, ...)',
-      ],
     });
   }
 }

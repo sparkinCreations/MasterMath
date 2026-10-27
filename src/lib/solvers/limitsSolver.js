@@ -202,7 +202,9 @@ function limitGuidance(result) {
 export async function solveLimit(expression) {
   try {
     let cleaned = expression.trim().replace(/[.?!]+$/, '').trim();
-    cleaned = cleaned.replace(/^(?:(?:what(?:'s| is)|find|evaluate|calculate|compute|determine)\s+)?(?:the\s+)?lim(?:it)?\s+of\s+/i, '');
+    // "limit of" with nothing after it is an empty limit, not the limit of a
+    // variable called "of" (it was answered "lim (o→0) of does not exist").
+    cleaned = cleaned.replace(/^(?:(?:what(?:'s| is)|find|evaluate|calculate|compute|determine)\s+)?(?:the\s+)?lim(?:it)?\s+of(?:\s+|$)/i, '');
 
     // One-sided limits, phrasing form: "… as x approaches 0 from the right".
     // The phrase is stripped here, before the notation regexes run, so it can
@@ -244,7 +246,7 @@ export async function solveLimit(expression) {
       // No approach point anywhere in the input ("lim sin(x)/x", or a bare
       // expression). Quietly assuming x → 0 gave confident answers to
       // questions that were never asked; ask for the point instead.
-      func = parseMathExpression(cleaned.replace(/^(?:lim(?:it)?)\s*/i, ''));
+      func = parseMathExpression(cleaned.replace(/^(?:lim(?:it)?)(?:\s+of)?\s*/i, ''));
       variable = extractVariable(func);
       // A constant expression (tan(pi/2)) has no approach point to miss —
       // fall through and let the constant/asymptote handling speak. An

@@ -5,6 +5,8 @@
 // arrives with steps and tips specific to what actually went wrong.
 // Design: docs/future-work/MATH-STATE-SEMANTICS.md (Component 1).
 
+import { isEngineMessage, plainSyntaxHint } from './syntaxCheck.js';
+
 export const STATUS = {
   SOLVED: 'solved',               // computed and verified — the only green state
   PARSE_ERROR: 'parse_error',     // input could not be read as math
@@ -84,13 +86,15 @@ export function solved(fields) {
 // Input could not be read as math. `hint` should say what is wrong with THIS
 // input ("unmatched opening parenthesis"), never generic syntax advice —
 // generic tips on specific failures are the bug class this module removes.
+// The hint is said once, in the answer box: until 1.56.0 it was also the
+// second step and the only tip, so "Value expected (char 3)" appeared three
+// times over. An engine's own message is put into words (syntaxCheck.js).
 export function parseError({ input, hint, steps, answer, tips, common_mistakes }) {
-  const builtSteps = [`Could not read ${quoted(input)} as a math expression.`];
-  if (hint) builtSteps.push(hint);
+  const reason = hint && isEngineMessage(hint) ? plainSyntaxHint(hint, input) : hint;
   return baseResult(STATUS.PARSE_ERROR, {
-    steps: steps || builtSteps,
-    answer: answer || hint || 'This input could not be read as a math expression',
-    tips: tips || (hint ? [hint] : []),
+    steps: steps || [`Could not read ${quoted(input)} as a math expression.`],
+    answer: answer || reason || 'This input could not be read as a math expression',
+    tips: tips || [],
     common_mistakes: common_mistakes || [],
   });
 }
