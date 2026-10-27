@@ -12,6 +12,7 @@ export const CONVERTED = [
   ['functions', 'x^2 - 4*x + 3'], ['functions', '1/(x-2)'], ['functions', 'x^3 - x'], ['functions', 'ln(x)'], ['functions', 'sqrt(x-2)'],
   ['algebra', 'x^2 - 5x + 6 = 0'], ['algebra', 'x^2 + x + 1 = 0'], ['algebra', 'x^3 - 6x^2 + 11x - 6 = 0'], ['algebra', 'sqrt(x+2) = x'],
   ['algebra', '2^x = 8'], ['algebra', 'log(x) + log(x - 3) = 1'], ['algebra', 'ln(2x) = 3'],
+  ['algebra', 'e^x + e^(-x) = 1'], ['algebra', 'e^x + e^(-x) = 3'], ['algebra', 'e^(-2x) - e^(-x) = 6'], ['algebra', '2^x + 2^(-x) = 3'], ['algebra', 'e^(3x) + e^(-x) = 0'],
   // systems
   ['algebra', '2x + 3y = 6; x - y = 4'], ['algebra', 'x + y + z = 6; 2x - y + z = 3; x + 2y - z = 2'], ['algebra', 'x + y = 2; 2x + 2y = 4'],
   ['algebra', 'x + y = 2; x + y = 3'], ['algebra', 'y = x^2; y = x + 2'], ['algebra', 'x^2 + y^2 = 25; x + y = 7'],

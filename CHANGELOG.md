@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.56.2] - 2026-10-27
+
+### Fixed
+
+- **Exponential equations with negative exponents are solved exactly.** The
+  u = aˣ substitution now takes e^(−x), e^(−2x), exp(−x) and 2^(−x) as
+  1/u, 1/u², …: the equation is multiplied through by the highest such
+  power (allowed because u > 0, and the step says so) and the polynomial
+  in u is solved. e^x + e^(−x) = 3 gives x = ln((3 ± √5)/2) and
+  e^x − 2e^(−x) = 1 gives x = ln 2 (both were ≈ decimals from the numeric
+  scan); e^x + e^(−x) = 1 is shown to have no real solution — the
+  discriminant of u² − u + 1 is −3 — instead of being refused as "cannot
+  show there is none"; e^(−2x) − e^(−x) = 6 gives x = ln(1/3), rejecting
+  u = −1/2 with the reason. "No real solution" is claimed only when every
+  root of the polynomial in u is listed (the degree check already used for
+  polynomial equations) and each is visibly non-real; the tips and mistakes
+  for that case are about u, not about 1/x. A decimal coefficient
+  (e^x + e^(−x) = 2.5, e^(2x) − 2.5e^x + 1 = 0) is read as a fraction
+  first — Algebrite's root finder refuses a float — so it is exact too
+  (x = ln 2 and ln(1/2), not ≈ ±0.6931).
+
 ## [1.56.1] - 2026-10-27
 
 The tips ("Key Insights") and common mistakes, audited over 338 problems:

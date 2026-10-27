@@ -23,6 +23,7 @@ import {
   linearCoefficients,
   stripOuterParens,
   realOddRoots,
+  gcd,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -83,6 +84,22 @@ function equationGuidance(steps, expression) {
         `Taking only the positive solution when the numerator of the exponent is even.`,
         `Raising to the wrong power: the inverse of ${mark('^(2/3)')} is ${mark('^(3/2)')}, not ${mark('^(−2/3)')}.`,
         'Skipping the check: a raised power can introduce a value that fails in the original.',
+      ],
+    };
+  }
+  // e^x + e^(−x) = 1: the substitution closed and the polynomial in u has
+  // no real (or no positive) root — say why in terms of u, not of 1/x.
+  if (/no real solution/i.test(text) && /Let u = (?:e|\d+(?:\.\d+)?)\^/.test(text)) {
+    return {
+      tips: [
+        `${mark('u = a^x')} is always positive, so after the substitution only a positive root of the polynomial in ${mark('u')} gives a real ${mark('x')}; none, and the equation has no real solution.`,
+        `A negative exponent is a reciprocal: ${mark('a^(−x) = 1/u')}. Multiply through by ${mark('u')} (safe, since ${mark('u > 0')}) and the equation is a polynomial in ${mark('u')}.`,
+        `A negative discriminant settles it: no real ${mark('u')} means no real ${mark('x')}, however far a search looks. (${mark('e^x + e^(−x)')} is never below ${mark('2')}, so it cannot equal ${mark('1')}.)`,
+      ],
+      common_mistakes: [
+        `Keeping a negative or complex ${mark('u')} and "solving" ${mark('a^x = u')} anyway: there is no logarithm of a negative number.`,
+        `Writing ${mark('e^(−x)')} as ${mark('−e^x')} or ${mark('−u')} instead of ${mark('1/u')}.`,
+        `Forgetting to multiply every term by ${mark('u')}, the constant included.`,
       ],
     };
   }
@@ -199,6 +216,7 @@ function equationGuidance(steps, expression) {
         `Dividing instead of taking a log: ${mark('2^x = 10')} does not give ${mark('x = 5')}.`,
         `Writing ${mark('ln(10)/ln(2)')} as ${mark('ln(10/2)')}.`,
         `Losing a solution of the quadratic in ${mark('u')}, or keeping a negative ${mark('u')} (${mark('a^x')} is always positive).`,
+        ...(/clear the negative powers/.test(text) ? [`Writing ${mark('a^(−x)')} as ${mark('−u')}: a negative exponent is the reciprocal, ${mark('1/u')}.`] : []),
       ],
     };
   }
@@ -1214,15 +1232,20 @@ function solveSingleExponential(equation, variable) {
 }
 
 // e^(2x) − 3e^x + 2 = 0: substitute u = e^x, solve the polynomial in u, and
-// back-substitute x = ln u for each positive u. Returns null unless the whole
-// equation is a polynomial in e^x (any other appearance of the variable, or a
-// transcendental function of it, means the substitution does not close).
+// back-substitute x = ln u for each positive u. A negative exponent is 1/u^k
+// (e^(−x) = 1/u, e^(−2x) = 1/u²): the equation is then multiplied through by
+// the highest such power — allowed because u > 0 — before the polynomial is
+// solved, so e^x + e^(−x) = 3 gives x = ln((3 ± √5)/2) and e^x + e^(−x) = 1
+// is shown to have no real solution (u² − u + 1 has no real root). Returns
+// null unless the whole equation is a polynomial in e^x and e^(−x) (any
+// other appearance of the variable, or a transcendental function of it,
+// means the substitution does not close).
 async function solveViaExpSubstitution(equation, variable) {
   const v = variable;
   // The base: e (e^x, exp(x)) or a positive number other than 1 (2^x,
   // 10^(2x)). Every exponential term must share it — 4^x − 5·2^x + 4 = 0
   // leaves a 2^x behind after the substitution and is declined below.
-  const numericBase = equation.match(new RegExp(`(?<![\\w.])(\\d+(?:\\.\\d+)?)\\s*\\^\\s*(?:\\(\\s*\\d*\\s*\\*?\\s*${v}\\s*\\)|${v}\\b)`));
+  const numericBase = equation.match(new RegExp(`(?<![\\w.])(\\d+(?:\\.\\d+)?)\\s*\\^\\s*(?:\\(\\s*-?\\s*\\d*\\s*\\*?\\s*${v}\\s*\\)|${v}\\b)`));
   const base = numericBase ? numericBase[1] : 'e';
   if (base !== 'e' && !(Number(base) > 0 && Number(base) !== 1)) return null;
   const baseRe = base === 'e' ? 'e' : base.replace('.', '\\.');
@@ -1232,21 +1255,49 @@ async function solveViaExpSubstitution(equation, variable) {
   const expPlain = base === 'e'
     ? new RegExp(`\\b(?:e\\s*\\^\\s*${v}\\b|e\\s*\\^\\s*\\(\\s*${v}\\s*\\)|exp\\(\\s*${v}\\s*\\))`, 'g')
     : new RegExp(`(?<![\\w.])${baseRe}\\s*\\^\\s*(?:${v}\\b|\\(\\s*${v}\\s*\\))`, 'g');
-  if (!expPower.test(equation) && !expPlain.test(equation)) return null;
+  // e^(-x), e^(-2x), exp(-x), 2^(-x): the parser writes every negative
+  // exponent in parentheses, so one shape per base covers them.
+  const expNegative = base === 'e'
+    ? new RegExp(`\\b(?:e\\s*\\^\\s*\\(\\s*-\\s*(\\d*)\\s*\\*?\\s*${v}\\s*\\)|exp\\(\\s*-\\s*(\\d*)\\s*\\*?\\s*${v}\\s*\\))`, 'g')
+    : new RegExp(`(?<![\\w.])${baseRe}\\s*\\^\\s*\\(\\s*-\\s*(\\d*)\\s*\\*?\\s*${v}\\s*\\)`, 'g');
+  if (!expPower.test(equation) && !expPlain.test(equation) && !expNegative.test(equation)) return null;
   const [lhs, rhs] = equation.split('=');
   if (rhs === undefined || !lhs.trim() || !rhs.trim()) return null;
   const zeroForm = `(${lhs.trim()}) - (${rhs.trim()})`;
+  let highestNegative = 0;
+  const powersUsed = [];
   const inU = zeroForm
-    .replace(expPower, (m, k1, k2) => `u^${k1 || k2}`)
-    .replace(expPlain, 'u');
+    .replace(expNegative, (m, ...rest) => {
+      // The e-form has two groups (e^(−kx) | exp(−kx)), the numeric form one;
+      // the captured k is whichever group matched, and an empty one is 1.
+      const k = Number(rest.slice(0, -2).find((g) => g) || 1);
+      highestNegative = Math.max(highestNegative, k);
+      powersUsed.push(-k);
+      return k === 1 ? 'u^(-1)' : `u^(-${k})`;
+    })
+    .replace(expPower, (m, k1, k2) => { powersUsed.push(Number(k1 || k2)); return `u^${k1 || k2}`; })
+    .replace(expPlain, () => { powersUsed.push(1); return 'u'; });
   if (new RegExp(`\\b${v}\\b`).test(inU)) return null;
   if (/\b(?:sin|cos|tan|log|ln|sqrt|abs)\b/.test(inU)) return null;
   try {
     const Algebrite = await loadAlgebrite();
-    const rootsRaw = Algebrite.roots(inU, 'u').toString();
+    // Clear the negative powers: multiply through by u^k (u > 0, so no
+    // solution is gained or lost) and expand to the polynomial Algebrite
+    // solves. A decimal coefficient (e^x + e^(−x) = 2.5) is written as a
+    // fraction first: Algebrite's root finder refuses a float.
+    const polynomial = highestNegative > 0
+      ? Algebrite.run(`expand((${decimalsAsFractions(inU)}) * u^${highestNegative})`)
+      : decimalsAsFractions(inU);
+    if (highestNegative > 0 && (/\bu\^\(?-|nil|stop|error/i.test(polynomial) || !/^[-+*^()/\d.\su]+$/.test(polynomial))) return null;
+    const rootsRaw = Algebrite.roots(polynomial, 'u').toString();
     if (/\(-1\)\^\(1\/\d+\)|\(-\d+\)\^\(1\/\d+\)/.test(rootsRaw)) return null;
     const roots = parseRootsList(rootsRaw);
     if (roots.length === 0) return null;
+    // Algebrite can list only the roots it factored out (see
+    // solveWithAlgebriteRoots): a partial list would miss a solution, or
+    // claim "no real solution" unproved — decline rather than guess.
+    if (!rootsAccountForDegree(Algebrite, polynomial, 'u', rootsRaw)) return null;
+    const degree = readPolynomial(polynomial, 'u')?.degree ?? 0;
 
     const b = base === 'e' ? Math.E : Number(base);
     const lines = [];
@@ -1271,19 +1322,79 @@ async function solveViaExpSubstitution(equation, variable) {
       shown.push(`${v} = ${xText}`);
       numeric.push(value);
     }
-    const answer = shown.length > 0 ? shown.join('  or  ') : `No real solution (${base}^${v} is always positive, so no listed u is reachable)`;
+    const realRoots = roots.filter((r) => Number.isFinite(r.numeric));
+    const noneReal = realRoots.length === 0;
+    // "No real solution" is claimed only when every listed root visibly has
+    // an imaginary part: a root mathjs could not evaluate is not thereby
+    // non-real, so such a list proves nothing and the path declines.
+    if (noneReal && !roots.every((r) => /(?<![a-z])i(?![a-z])/.test(r.display))) return null;
+    const answer = shown.length > 0
+      ? shown.join('  or  ')
+      : noneReal
+        ? `No real solution (no real ${mark('u')} solves ${mark(`${beautify(polynomial)} = 0`)}, so no real ${mark(v)})`
+        : `No real solution (${base}^${v} is always positive, so no listed u is reachable)`;
     const takeLog = base === 'e' ? `take ${mark('ln')} of both sides` : `take the logarithm of both sides, ${mark(`${v} = ln(u)/ln(${base}) = log_${base}(u)`)}`;
+    // The powers the substitution turns into: e^(2x) = u², e^(−x) = 1/u, …
+    const powerNotes = [...new Set(powersUsed)].sort((a, b) => a - b)
+      .filter((k) => k !== 1)
+      .map((k) => (k < 0 ? `${base}^(${k === -1 ? '-' : k}${v}) = 1/u${k < -1 ? `^${-k}` : ''}` : `${base}^(${k}${v}) = u^${k}`));
+    const substitutionNote = mark(powerNotes.length ? powerNotes.join(', ') : `${base}^(2${v}) = u², ${base}^(3${v}) = u³`);
     const steps = [
       `Rewrite as an equation set to zero: ${beautify(zeroForm)} = 0`,
-      `Let ${mark(`u = ${base}^${v}`)} (so ${mark(`${base}^(2${v}) = u², ${base}^(3${v}) = u³`)}): ${mark(`${beautify(inU)} = 0`)}`,
-      `Solve for u: ${formatSolutions(roots, 'u')}`,
-      `Back-substitute ${mark(`u = ${base}^${v}`)} and ${takeLog}: ${lines.map(mark).join('; ')}`,
-      `Solution: ${answer}`,
+      `Let ${mark(`u = ${base}^${v}`)} (so ${substitutionNote}): ${mark(`${beautify(inU)} = 0`)}`,
     ];
+    if (highestNegative > 0) {
+      const multiplier = highestNegative === 1 ? 'u' : `u^${highestNegative}`;
+      steps.push(`Multiply both sides by ${mark(multiplier)} to clear the negative powers (${mark(`u = ${base}^${v} > 0`)}, so no solution is gained or lost): ${mark(`${beautify(polynomial)} = 0`)}`);
+    }
+    const uSolutions = formatSolutions(roots, 'u').split('  or  ').map(mark).join('  or  ');
+    if (noneReal && degree === 2) {
+      const [c2, c1, c0] = quadraticCoefficients(polynomial);
+      if (c2 !== null) {
+        const disc = c1 * c1 - 4 * c2 * c0;
+        const signed = (n) => (n < 0 ? `(${formatNumber(n)})` : formatNumber(n));
+        steps.push(`The discriminant is ${mark(`${signed(c1)}² − 4(${signed(c2)})(${signed(c0)}) = ${formatNumber(disc)}`)}, which is negative, so no real ${mark('u')} solves it: ${uSolutions}, neither of which is real`);
+      } else {
+        steps.push(`Solve for ${mark('u')}: ${uSolutions}, none of which is real`);
+      }
+    } else if (noneReal) {
+      steps.push(`Solve for ${mark('u')}: ${uSolutions}, none of which is real`);
+    } else {
+      steps.push(`Solve for u: ${formatSolutions(roots, 'u')}`);
+    }
+    if (!noneReal) steps.push(`Back-substitute ${mark(`u = ${base}^${v}`)} and ${takeLog}: ${lines.map(mark).join('; ')}`);
+    steps.push(`Solution: ${answer}`);
     return { steps, answer, solutions: numeric };
   } catch {
     return null;
   }
+}
+
+// 2.5 → (5/2), 0.75 → (3/4): decimals as the fractions Algebrite can factor.
+function decimalsAsFractions(text) {
+  return text.replace(/(?<![\w.])(\d+)\.(\d+)(?![\w.])/g, (m, whole, places) => {
+    const denominator = 10 ** places.length;
+    const numerator = Number(whole) * denominator + Number(places);
+    const g = gcd(numerator, denominator);
+    return `(${numerator / g}/${denominator / g})`;
+  });
+}
+
+// The coefficients [a, b, c] of a quadratic in u as Algebrite prints it
+// (1-u+u^2, 2*u^2-3*u+1, …); [null] when the text is not of that shape.
+function quadraticCoefficients(polynomial) {
+  const coeffs = [0, 0, 0];
+  const terms = polynomial.replace(/\s+/g, '').match(/[+-]?[^+-]+/g) || [];
+  for (const term of terms) {
+    const m = term.match(/^([+-]?)(\d+(?:\.\d+)?)?(?:\*?u(?:\^(\d+))?)?$/);
+    if (!m) return [null];
+    const sign = m[1] === '-' ? -1 : 1;
+    const coefficient = sign * (m[2] === undefined ? 1 : Number(m[2]));
+    const power = term.includes('u') ? Number(m[3] || 1) : 0;
+    if (power > 2) return [null];
+    coeffs[2 - power] += coefficient;
+  }
+  return coeffs;
 }
 
 // The logarithm terms in `text`, each with its base and argument: ln(g) is
