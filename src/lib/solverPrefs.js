@@ -2,6 +2,8 @@
 // the page makes about a result (the bare-expression nudge). Pure, so the
 // unit suite covers them without a browser.
 
+import { readPlainEnglish } from './plainEnglish.js';
+
 export const SOLUTION_MODE_KEY = 'solutionMode';
 export const LAST_TOPIC_KEY = 'lastTopic';
 export const TOPICS = ['auto', 'derivatives', 'integrals', 'limits', 'functions', 'trigonometry', 'algebra', 'other'];
@@ -58,7 +60,10 @@ export function expressionNudge(problem, topic, result) {
   const autoAlgebra = topic === 'auto' && result?.routing?.to === 'algebra';
   if (!['algebra', 'other'].includes(topic) && !autoAlgebra) return null;
   if (!result || result.status !== 'solved' || (result.routedTopic && !autoAlgebra)) return null;
-  const text = String(problem || '');
+  // Read as the solver read it: "two x plus five equals eleven" is an
+  // equation, and was nudged as "an expression" until 1.56.3 because the
+  // raw text has no "=" (October 2026 review).
+  const text = readPlainEnglish(String(problem || ''));
   if (/[=<>≤≥;]|∫|d\/d[a-z]|->|→/.test(text)) return null;
   if (VERB.test(text)) return null;
   if (!/(?<![a-z])[a-z](?![a-z])/i.test(text.replace(/\b(?:sin|cos|tan|sec|csc|cot|ln|log|sqrt|abs|exp|pi|e)\b/gi, ''))) return null;

@@ -158,7 +158,20 @@ export function readPlainEnglish(input) {
   s = s.replace(new RegExp(`\\b(${FUNCTIONS})\\s+of\\s+(${TERM})`, 'gi'),
     (m, fn, arg) => (!nonEmpty(arg) ? m : new RegExp(`^${PAREN}$`).test(arg) ? `${fn}${arg}` : `${fn}(${arg})`));
 
-  // Relations, longest phrases first. "is" alone is left alone ("what is").
+  // Infix operators: "5 plus 3", "x minus 2", "5 times 4", "8 divided by
+  // 2", "3 multiplied by 4". Read here, first of all, so every path sees
+  // them: until 1.56.3 only a single expression or equation did, and "2x
+  // plus 5 > 11" or "x plus y = 2; x minus y = 0" was refused with
+  // '"plus" is not a known function'.
+  s = s
+    .replace(/\s+plus\s+/gi, ' + ')
+    .replace(/\s+minus\s+/gi, ' - ')
+    .replace(/\s+(?:times|multiplied\s+by)\s+/gi, ' * ')
+    .replace(/\s+divided\s+by\s+/gi, ' / ');
+
+  // Relations, longest phrases first. A bare "is" is read as "=" only
+  // between two sides that are maths and nothing else (below): "what is
+  // the derivative of x^2" keeps its "is".
   s = s
     .replace(/\s+(?:is\s+)?greater\s+than\s+or\s+equal\s+to\s+/gi, ' >= ')
     .replace(/\s+(?:is\s+)?less\s+than\s+or\s+equal\s+to\s+/gi, ' <= ')
@@ -176,5 +189,20 @@ export function readPlainEnglish(input) {
     .replace(/(\d)\s*percent\b/gi, '$1%')
     .replace(/\bhalf\s+of\s+/gi, '(1/2)*');
 
+  // "2x + 5 is 11", "x^2 - 4 is 0": "is" between two sides of maths is
+  // "=". Either side with any other word ("what is 2 + 2", "the sum of 2
+  // and 3 is 5") is left alone, as is a text that already has a relation.
+  const bare = s.match(/^(.+?)\s+is\s+(.+)$/i);
+  if (bare && !/[=<>≤≥]/.test(s) && isOnlyMaths(bare[1]) && isOnlyMaths(bare[2])) {
+    s = `${bare[1]} = ${bare[2]}`;
+  }
+
   return s;
+}
+
+// Numbers, single-letter variables, operators and the function names: no
+// other word.
+function isOnlyMaths(side) {
+  const stripped = side.replace(new RegExp(`\\b(?:${FUNCTIONS}|pi)\\b`, 'gi'), '');
+  return /[\d(a-z]/i.test(side) && !/[a-z]{2,}/i.test(stripped);
 }

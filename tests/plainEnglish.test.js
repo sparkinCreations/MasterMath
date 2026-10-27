@@ -19,20 +19,20 @@ test('spoken powers, roots, functions and relations read as notation', () => {
     ['sin squared x', 'sin(x)^2'], ['sine of x', 'sin(x)'], ['cosine of 2x', 'cos(2x)'], ['cosine of (2x + 1)', 'cos(2x + 1)'],
     ['the natural log of x squared', 'ln(x^2)'], ['square root of x', 'sqrt(x)'], ['what is the square root of 16', 'what is sqrt(16)'],
     ['cube root of 27', 'cbrt(27)'], ['log base 2 of 8', 'log(8, 2)'], ['absolute value of (x - 3) = 5', 'abs(x - 3) = 5'],
-    ['x over 2', 'x / 2'], ['2x plus 3 equals 7', '2x plus 3 = 7'], ['2x + 3 is equal to 7', '2x + 3 = 7'],
+    ['x over 2', 'x / 2'], ['2x plus 3 equals 7', '2x + 3 = 7'], ['2x + 3 is equal to 7', '2x + 3 = 7'],
     ['2x + 1 is greater than 5', '2x + 1 > 5'], ['x is less than or equal to 3', 'x <= 3'], ['2x is at least 6', '2x >= 6'],
-    ['negative 3 plus 5', '-3 plus 5'], ['20 percent of 50', '20% of 50'], ['half of 10', '(1/2)*10'],
+    ['negative 3 plus 5', '-3 + 5'], ['20 percent of 50', '20% of 50'], ['half of 10', '(1/2)*10'],
   ];
   for (const [spoken, notation] of cases) assert.equal(readPlainEnglish(spoken), notation, spoken);
 });
 
 test('numbers written as words read as numbers', () => {
   const cases = [
-    ['two plus one', '2 plus 1'], ['three squared', '3^2'], ['two x plus five equals eleven', '2x plus 5 = 11'],
-    ['twenty one minus seven', '21 minus 7'], ['twenty-one', '21'], ['one hundred and five', '105'],
+    ['two plus one', '2 + 1'], ['three squared', '3^2'], ['two x plus five equals eleven', '2x + 5 = 11'],
+    ['twenty one minus seven', '21 - 7'], ['twenty-one', '21'], ['one hundred and five', '105'],
     ['one thousand two hundred and thirty four', '1234'], ['two thousand and one', '2001'],
-    ['two point five times four', '2.5 times 4'], ['three point one four', '3.14'],
-    ['one half plus one third', '(1/2) plus (1/3)'], ['three quarters of twelve', '(3/4)*12'], ['a third of nine', '(1/3)*9'],
+    ['two point five times four', '2.5 * 4'], ['three point one four', '3.14'],
+    ['one half plus one third', '(1/2) + (1/3)'], ['three quarters of twelve', '(3/4)*12'], ['a third of nine', '(1/3)*9'],
     ['limit as x approaches zero of sin(x)/x', 'limit as x approaches 0 of sin(x)/x'], ['ten x squared', '10x^2'],
     // "and" joins a number only after hundred/thousand: elsewhere it is the conjunction.
     ['add two and three', 'add 2 and 3'], ['the sum of seven and eight', 'the sum of 7 and 8'],
