@@ -194,3 +194,31 @@ case now runs in `tests/octoberTestList.test.js`.
 | Steps on the narrow phone layout (not checked by the reviewer) | Checked at 360 px: nothing wider than the screen | — |
 | Found in the sweep: "area under the curve …" refused with glued words | — | 1.54.0 (the definite integral) |
 | Found in the sweep: request phrases glued to the maths — "simplify the expression (x^2-1)/(x-1)" answered "theexpression(x^2 - 1)/(x - 1)", Solved; "calculate the definite integral of x^2 from 0 to 3" refused as improper; "solve the quadratic equation …", "find the critical points of …" unreadable | — | 1.54.0 (read as what they ask; words still unreadable are said to be words) |
+
+## Round 14 (outside review, 4.5/5, about 35 problems checked by hand, reproduced on 1.55.0)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Every answer checked by hand correct (x² = −4, x² + 1 > 0, by parts, limits at infinity, trig in both units) | Confirmed | — |
+| "int x^2 dx" refused: "int is not a known function" | Confirmed, slightly worse: under Auto-detect it read "intx" | 1.55.1 (int is ∫, with bounds and brackets too) |
+| Found in the sweep: "integral of x^2 with respect to x" answered f′(x) = 0, Solved (any "with respect to" went to derivatives) | — | 1.55.1 (the dx of an integral) |
+| Found in the sweep: "integral x^2 dx" answered ∫(integralx^2) dx = integralx^2·x + C, Solved | — | 1.55.1 (integral, antiderivative, derivative, deriv, diff with or without "of") |
+| Found in the sweep: "integral from 0 to 1 of x^2 dx" refused; "derivative x^2" glued | — | 1.55.1 |
+| Found in the sweep: ∫(x^2) shown as ∫((x^2)) dx | — | 1.55.1 |
+
+## Round 15 (the same reviewer, about 55 problems, 4.5/5, reproduced on 1.55.1)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| 123456789·987654321 ends …260 (it is …269); 2^100 as 1.2676506002282294e+30 | Confirmed, wider: 2^64, −2^60, 2^53 + 1 rounded; 25! a float without ≈ | 1.55.2 (BigInt, the size alongside) |
+| Found in the sweep: 2^-60, 1/3^30, 0.000001·3 answered 0, Solved | — | 1.55.2 (≈ m × 10^k); 1.55.3 (the exact fraction too) |
+| Found in the sweep: the working wrote 1e+6 + 2 | — | 1.55.2 |
+| (2+3i)(1−i), (1+i)^2, (3+4i)/(1−2i) "already in simplest form" | Confirmed, wider: i^3, 1/i, (1+i)/(1−i) too | 1.55.2 (worked under Arithmetic: FOIL, the conjugate, powers of i) |
+| Domain step sets "for" in math italics | Confirmed: "and for" was inside one marked run | 1.55.2 (each condition marked; ln(x) no longer names x = 0 twice) |
+| Markdown export titled "Functions Problem", PDF "Algebra Problem" | Confirmed: the PDF used the solved topic, Markdown and JSON the dropdown's | 1.55.2 (all three the solved topic) |
+| Found in the sweep: "2 ^ 10 = 1024" typeset as 2¹0; a 31-digit number ran off a phone screen | — | 1.55.2 (exponent braced; digits grouped, breakable) |
+| Series and Taylor expansions not supported | Agreed, scope: the User Manual does not claim them | Roadmap P4 |
+| Not for practice drills or quizzes | Agreed, scope | Roadmap P4 (practice mode) |
+| Found after 1.55.2: a complex answer ("−1 + 2i") shown as plain text; "376(≈ …)" with no space; 3i·2i shown as "6i·i = −6" | — | 1.55.3 |
+| Found while building 1.56.0: x³ − 4x = 0 answered "x = 0" alone, Solved (the factor left after x^k was not solved below degree 3); repeated roots listed twice | — | 1.55.3 |
+| Found while building 1.56.0: x^(1/3) = 0, x^(1/2) = 0, x^(1/3) = −2 answered "No real solution found" by a numeric search, Solved; x^(2/3) = 4 gave 8 alone; cbrt(x + 1) = −2 read as five unknowns | — | 1.55.3 (exact power equations; "no real solution" only with a reason) |

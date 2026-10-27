@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.55.3] - 2026-10-26
+
+Polish found while shipping 1.55.2, and a wrong answer found while
+building 1.56.0.
+
+### Fixed
+
+- **A polynomial equation with no constant term lost roots.** x³ − 4x = 0
+  was answered "x = 0" alone, marked Solved (it is −2, 0, 2); x³ − 3x² = 0
+  missed x = 3. After x^k was factored out, the factor left was solved only
+  when its degree was 3 or more. A sweep of 206 products of small factors
+  against the exact root finder now matches on every one.
+- **Fractional powers are solved exactly.** x^(1/3) = 0, x^(1/2) = 0 and
+  x^(1/3) = −2 were answered "No real solution found", marked Solved (the
+  cube root of a negative number came back complex, and a root that only
+  touches 0 was never seen); x^(2/3) = 4 gave 8 alone, x^(2/3) − x = 0
+  missed 0, and cbrt(x + 1) = −2 was read as five unknowns. A power with a
+  fractional exponent is isolated and raised to the reciprocal power: real
+  odd roots, both signs for an even numerator, none for an even root of a
+  negative number (said why).
+- **"No real solution" is said only with a reason.** A numeric search over
+  −100…100 that found nothing was answered "No real solution found",
+  Solved; now that is a proof (1/x = 0: a fraction is 0 only when its
+  numerator is; e^(−x²): a positive base to any power is positive;
+  x/(x − 1) = 1: clearing the denominator leaves 1 = 0) or an honest
+  refusal ("cannot show there is none").
+- **A repeated root is listed once, with its multiplicity**: "x = −2 or
+  x = −2 or x = 3" reads "x = −2 (multiplicity 2) or x = 3", and a double
+  root of the quadratic left at the end counts twice.
+
+- **A result too small or too large for a float keeps its exact value.**
+  2^-60 was shown only as ≈ 8.6736 × 10^-19; it is 1/1152921504606846976
+  (≈ 8.6736 × 10^-19), with the negative exponent worked as a reciprocal.
+  Numbers joined by + − × ÷ ^ ! are exact as fractions too (0.000001·3 =
+  3/1000000, 2^100/3); a fraction too long to read (1.5^100), or a result
+  past 100 digits, gives its size in scientific notation.
+- **A complex answer is typeset.** "−1 + 2i" and "5 + i" showed as plain
+  text in the Final Answer box: they had no sign of being maths that the
+  renderer looks for.
+- **"(≈ …)" keeps its space.** KaTeX dropped it: "376(≈ 1.2677 × 10^30)",
+  "3/10(= 0.3)".
+- **A power in a denominator** was typeset as a power of the whole
+  fraction: "3/2^2" (which is 3/4) showed as (3/2)², and the reciprocal step
+  "1/2^60" as (½)⁶⁰. A denominator with a power stays a slash.
+- **3i·2i** said "i·i = i² = −1: 6i·i = −6"; it now reads "6i·i = 6i² = −6".
+
+### Changed
+
+- The roadmap and the review log record the two October 25 reviews and
+  1.55.1–1.55.3; series, Taylor expansions and practice drills are listed as
+  known limitations (scope, roadmap P4).
+
 ## [1.55.2] - 2026-10-25
 
 A deeper outside review (about 55 problems, 4.5/5, every supported answer

@@ -124,8 +124,9 @@ test('touch roots between grid points are found (squared factors)', async () => 
   assert.match(s.answer, /x = (?:-1\.7|-17\/10)/);
   assert.match(s.answer, /x = (?:0\.3|3\/10)/);
   // A decaying tail is still not a root.
-  assert.equal((await solveProblem('e^(-x^2) = 0', 'algebra')).answer, 'No real solution found');
-  assert.equal((await solveProblem('1/(x-2)^2 = 0', 'algebra')).answer, 'No real solution found');
+  // (1.55.3: said with the reason it holds — "found" by a search proved nothing.)
+  assert.equal((await solveProblem('e^(-x^2) = 0', 'algebra')).answer, 'No real solution (e^(-x^2) is never 0)');
+  assert.equal((await solveProblem('1/(x-2)^2 = 0', 'algebra')).answer, 'No real solution (1/(x - 2)^2 is never 0)');
 });
 
 test('a mod 0 is undefined, not the dividend', async () => {

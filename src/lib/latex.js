@@ -109,7 +109,9 @@ export function toLatex(ascii) {
   s = s.replace(/\bd\/d([a-z])\b/g, '\\frac{d}{d$1}');
 
   // Simple numeric fractions like 1/3 (not part of a longer token) → \frac
-  s = s.replace(/(?<![\w}])(\d+)\/(\d+)(?![\w.])/g, '\\frac{$1}{$2}');
+  // A denominator with a power stays a slash: 3/2^2 is 3/(2²), and
+  // \frac{3}{2}^{2} read as (3/2)² (October 26).
+  s = s.replace(/(?<![\w}])(\d+)\/(\d+)(?![\w.^])/g, '\\frac{$1}{$2}');
 
   // log_2(x) (beautify's form of the parser's log(x)/log(2)) → \log_{2}(x);
   // the word-boundary loop below does not see "log" before an underscore.
@@ -144,6 +146,10 @@ export function toLatex(ascii) {
   // ", " listing stays as commas (KaTeX fine)
 
   // + C at the end stays; DNE-style words shouldn't reach here (prose filter)
+  // "5√2 (≈ 7.0711)": KaTeX drops the space before the bracket, which then
+  // sat against the number, "376(≈ 1.2677 × 10^30)". Last, after the
+  // exponents are braced: e^2 \;( read as e^{2\}.
+  s = s.replace(/\s+\((?=\s*(?:\\approx\b|=))/g, '\\;(');
   // A whole number past 15 digits (2^100, 25!) in groups of three with a
   // line break allowed between them: one unbroken run ran off a phone screen.
   s = s.replace(/(?<![\d.])\d{16,}(?![\d.])/g, (digits) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, '\\,\\allowbreak '));
@@ -204,7 +210,9 @@ function replaceCaret(s) {
 export function isMathFragment(s) {
   const t = String(s).trim().replace(/[.,;:]+$/, '');
   if (!t) return false;
-  const hasSignal = /[=^∫√π|]|\bd\/d[a-z]\b|\d\s*\/\s*\d|→|±|∞|\blim\b|'/.test(t);
+  // A complex number ("−1 + 2i", "5 + i", "-i") is math too: it has no
+  // other signal, so an answer like it stayed plain text.
+  const hasSignal = /[=^∫√π|]|\bd\/d[a-z]\b|\d\s*\/\s*\d|→|±|∞|\blim\b|'|(?:^|[\d\s+\-−(])i(?![A-Za-z])/.test(t);
   if (!hasSignal) return false;
   // Any alphabetic word not in the math whitelist ⇒ prose.
   const words = t.match(/[A-Za-z]+/g) || [];

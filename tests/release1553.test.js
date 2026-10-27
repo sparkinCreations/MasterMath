@@ -1,0 +1,104 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { solveProblem } from '../src/lib/api.js';
+import { solvePlain } from './helpers/solvePlain.js';
+import { isMathFragment, toLatex } from '../src/lib/latex.js';
+
+// 1.55.3: polish found while shipping 1.55.2.
+
+test('a number too small or too large for a float is kept as an exact fraction', async () => {
+  for (const [p, answer] of [
+    ['2^-60', '1/1152921504606846976 (≈ 8.6736 × 10^-19)'], // was ≈ 8.6736 × 10^-19 only (1.55.2), 0 before
+    ['1/3^30', '1/205891132094649 (≈ 4.8569 × 10^-15)'],
+    ['0.000001*3', '3/1000000 (≈ 3 × 10^-6)'],
+    ['0.5^70', '1/1180591620717411303424 (≈ 8.4703 × 10^-22)'],
+    ['2^100/3', '1267650600228229401496703205376/3 (≈ 4.2255 × 10^29)'],
+    ['123456789*987654321', '121932631112635269 (≈ 1.2193 × 10^17)'],
+  ]) {
+    assert.equal((await solveProblem(p, 'other')).answer, answer, p);
+  }
+  const r = await solvePlain('2^-60', 'other');
+  assert.ok(r.steps.includes('Work out the power (a negative exponent means a reciprocal, a^(-n) = 1/a^n): 2^(-60) = 1/2^60 = 1/1152921504606846976'), r.steps.join(' | '));
+  // A fraction too long to read, or a result past 100 digits, gives its size.
+  assert.equal((await solveProblem('1.5^100', 'other')).answer, '≈ 4.0656 × 10^17');
+  assert.equal((await solveProblem('1/2^1000', 'other')).answer, '≈ 9.3326 × 10^-302');
+  // Ordinary results are unchanged.
+  assert.equal((await solveProblem('3/4 + 5/6', 'other')).answer, '19/12 (= 1.5833)');
+  assert.equal((await solveProblem('0.1+0.2', 'other')).answer, '3/10 (= 0.3)');
+});
+
+test('a product of imaginary numbers says how i·i becomes −1', async () => {
+  const r = await solvePlain('3i*2i', 'other');
+  assert.equal(r.answer, '-6');
+  assert.ok(r.steps.includes('Multiply, then use i^2 = −1: 6i·i = 6i^2 = -6.'), r.steps.join(' | '));
+});
+
+test('a complex answer is typeset, and "(≈ …)" keeps its space', () => {
+  for (const t of ['-1 + 2i', '5 + i', '-i', '2i']) assert.ok(isMathFragment(t), t);
+  assert.ok(!isMathFragment('Write it in a + bi form'));
+  // A power in the denominator belongs to the denominator: not (3/2)².
+  assert.equal(toLatex('3/2^2'), '3/2^{2}');
+  assert.equal(toLatex('1/3 + 1/6'), String.raw`\frac{1}{3} + \frac{1}{6}`);
+  assert.equal(toLatex('3/10 (= 0.3)'), String.raw`\frac{3}{10}\;(= 0.3)`);
+  assert.equal(toLatex('e^2 (≈ 7.3891)'), String.raw`e^{2}\;( \approx 7.3891)`);
+});
+
+test('a polynomial with no constant term keeps every root after x is factored out', async () => {
+  // x·(x² − 4) = 0 was answered "x = 0" alone, marked Solved: the factor left
+  // after x^k was solved only when its degree was 3 or more.
+  for (const [p, answer] of [
+    ['x^3 - 4x = 0', 'x = -2  or  x = 0  or  x = 2'],
+    ['x^3 - 3x^2 = 0', 'x = 0 (multiplicity 2)  or  x = 3'],
+    ['x^4 - 5x^3 + 6x^2 = 0', 'x = 0 (multiplicity 2)  or  x = 2  or  x = 3'],
+    ['2x^3 + 3x^2 = 0', 'x = -3/2  or  x = 0 (multiplicity 2)'],
+    ['x^3 - 2x = 0', 'x = -√2  or  x = 0  or  x = √2'],
+    ['x^3 + x = 0', 'x = 0  or  x = -i  or  x = i'],
+  ]) {
+    const r = await solveProblem(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+  }
+});
+
+test('a repeated root is listed once, with its multiplicity', async () => {
+  for (const [p, answer] of [
+    ['x^3 + x^2 - 8x - 12 = 0', 'x = -2 (multiplicity 2)  or  x = 3'], // was x = -2 or x = -2 or x = 3
+    ['x^6 - 12x^4 + 48x^2 - 64 = 0', 'x = -2 (multiplicity 3)  or  x = 2 (multiplicity 3)'],
+    ['x^3 - 4x^2 + 4x = 0', 'x = 0  or  x = 2 (multiplicity 2)'],
+  ]) {
+    assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
+  }
+});
+
+test('a fractional power is undone exactly, with real odd roots', async () => {
+  // The zero-crossing scan answered these "No real solution found", marked
+  // Solved: mathjs's cube root of a negative number is complex, and a root
+  // that only touches 0 was never seen.
+  for (const [p, answer] of [
+    ['x^(1/3) = 0', 'x = 0'],
+    ['x^(1/2) = 0', 'x = 0'],
+    ['x^(1/3) = -2', 'x = -8'],
+    ['x^(2/3) = 4', 'x = -8  or  x = 8'], // was x = 8 alone
+    ['cbrt(x + 1) = -2', 'x = -9'], // was "one equation cannot fix 5 unknowns" (c, b, r, t, x)
+    ['(x-1)^(2/3) = 9', 'x = -26  or  x = 28'],
+    ['x^(3/2) = 8', 'x = 4'],
+    ['x^(-1/2) = 2', 'x = 1/4'],
+  ]) {
+    const r = await solveProblem(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+  }
+  assert.equal((await solveProblem('x^(2/3) = -4', 'algebra')).answer, 'No real solution (x^(2/3) is an even power of a real root, which is never negative)');
+});
+
+test('"no real solution" is said only with a reason, never from a search', async () => {
+  assert.equal((await solveProblem('1/x = 0', 'algebra')).answer, 'No real solution (1/x is never 0)');
+  assert.equal((await solveProblem('e^(-x^2) = 0', 'algebra')).answer, 'No real solution (e^(-x^2) is never 0)');
+  assert.equal((await solveProblem('x/(x-1) = 1', 'algebra')).answer, 'No real solution (clearing the denominators leaves 1 = 0)');
+  assert.equal((await solveProblem('x^(2/3) - x = 0', 'algebra')).answer, 'x = 0  or  x = 1'); // x = 0 was missed
+  // A search that finds nothing is not a proof: an honest refusal.
+  const r = await solveProblem('x^x = 0', 'algebra');
+  assert.equal(r.status, 'unsupported');
+  assert.equal(r.answer, 'No solution was found, but this solver cannot show there is none');
+});
