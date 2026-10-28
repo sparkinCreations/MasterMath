@@ -2722,7 +2722,7 @@ function generateIntegralGraph(original, integral, variable, shown = null) {
         expression: original,
         secondaryExpression: integral,
         variable,
-        secondaryLabel: `F(${variable}) = ${lnify(integral)}`,
+        secondaryLabel: `F(${variable}) = ${shown || lnify(integral)}`,
         title: `Graph of f(${variable}) = ${beautify(original)}`,
         description: `Blue/indigo: f(${variable}) = ${beautify(original)}  |  Green: F(${variable}) = ${shown || lnify(integral)} (antiderivative)`,
       };
