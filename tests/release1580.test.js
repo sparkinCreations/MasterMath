@@ -154,3 +154,16 @@ test('x⁴ + 4 is shown factoring as a difference of squares', async () => {
   assert.match(r.answer, /1\/8\*arctan\(x - 1\)/);
   assert.doesNotMatch(r.answer, /arctan\(\(/);
 });
+
+test('parametric and polar curves are refused, not answered f\'(x) = 0', async () => {
+  for (const p of ['derivative of x = t^2, y = t^3', 'x = cos(t), y = sin(t)']) {
+    const r = await solveProblem(p, 'auto');
+    assert.equal(r.status, STATUS.UNSUPPORTED, p);
+    assert.equal(r.answer, 'Parametric curves are not supported yet', p);
+  }
+  assert.equal((await solveProblem('r = 2cos(theta)', 'auto')).answer, 'Polar curves are not supported yet');
+  // Not parametric: a system, a point, an equation in x and y.
+  assert.equal((await solveProblem('x + y = 1, x - y = 3', 'auto')).status, STATUS.SOLVED);
+  assert.equal((await solveProblem('x = 2, y = 3', 'auto')).status, STATUS.SOLVED);
+  assert.equal((await solveProblem('find dy/dx if x^2 + y^2 = 25', 'auto')).answer, 'dy/dx = -x/y');
+});

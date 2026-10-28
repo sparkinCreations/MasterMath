@@ -403,9 +403,13 @@ test.describe('MasterMath smoke', () => {
     await expect(page).toHaveTitle(/How MasterMath Compares/);
     await expect(page.getByText(/Checked on \w+ \d+, 20\d\d/)).toBeVisible();
     const table = page.getByRole('table');
-    await expect(table.getByRole('columnheader')).toHaveText(['Feature', 'MasterMath', 'Photomath', 'Symbolab', 'Mathway*', 'Wolfram|Alpha']);
+    // MasterMath's limits come before the table, and no column is singled out.
+    await expect(page.getByRole('heading', { name: 'What MasterMath does not do' })).toBeVisible();
+    await expect(page.getByText(/No word problems/)).toBeVisible();
+    await expect(table.getByRole('columnheader')).toHaveText(['Feature', 'MasterMath', 'Photomath', 'Symbolab', 'Mathway', 'Wolfram|Alpha']);
+    await expect(table.getByRole('rowheader', { name: 'Math topics' })).toBeVisible();
     await expect(table.getByRole('rowheader', { name: 'Step-by-step solutions for free' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Photomath' })).toHaveAttribute('href', 'https://photomath.com/');
+    await expect(page.getByRole('link', { name: 'Photomath', exact: true })).toHaveAttribute('href', 'https://photomath.com/');
     // The table scrolls inside its own box on a phone; the page never scrolls sideways.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);

@@ -31,6 +31,10 @@ integrals, then the presentation and app gaps it listed.
   `tan(π/2)` was solved with the answer "Undefined"; it is undefined, as
   `1/0` is, and names the zero (`Undefined — cos(π/2) = 0`). `x/0 = 1` was
   "beyond this solver"; it is undefined, with the division by zero named.
+- **Parametric and polar curves are refused.** "derivative of x = t^2,
+  y = t^3" was answered `f'(x) = 0`, marked solved; "r = 2cos(theta)" was
+  refused as an unknown word. Both now say plainly that the curve type is
+  not supported yet.
 - **A limit's answer writes `|x|`**, not `abs(x)`.
 - **The y-intercept is exact:** `(0, 1/4)`, not `(0, 0.25)` beside a local
   maximum `(0, 1/4)`.
@@ -66,12 +70,17 @@ integrals, then the presentation and app gaps it listed.
   difference of squares, `(x² + 2)² − (2x)²`, for every `x⁴ + c` that
   factors that way.
 - **How MasterMath compares.** A new page, linked from the home page and
-  the menu, sets MasterMath beside Photomath, Symbolab, Mathway and
-  Wolfram|Alpha in a real table: free step-by-step, paid plans, account,
-  offline, where problems go, input and open source. It is dated, every
-  competitor cell comes from that vendor's own page (Mathway's site refuses
-  automated requests, so its column is marked as taken from reviews), and a
-  section says when another tool is the better choice. The home page itself
+  the menu, for choosing a solver rather than selling this one. It opens
+  with what MasterMath does not do (no camera, speech or word problems; no
+  geometry, statistics, series, matrices, differential equations, polar or
+  parametric curves; English only; no app-store app; no practice problems;
+  one independent developer), then sets it beside Photomath, Symbolab,
+  Mathway and Wolfram|Alpha in an unhighlighted table: topics, word
+  problems, science subjects, input, free steps, paid plans, learning
+  extras, languages, apps, account, offline, privacy, ads, how answers are
+  made, open source. It is dated, every competitor cell comes from that
+  vendor's own site or App Store listing (a cell they do not settle says
+  "Not stated"), and it says which tool to use when. The home page itself
   claims only what MasterMath does.
 - **Reopen a problem from My Progress.** Each history entry has an
   "Open in Solver" link that shows its saved solution and graph again

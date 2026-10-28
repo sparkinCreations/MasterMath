@@ -1,7 +1,7 @@
 import { extractFunctionFromProblem, parseMathExpression, usesCommonLog, matchingParen, extractVariable } from './mathParser.js';
 import { STATUS, isValidStatus, parseError, solved, unsupported } from './solutionEnvelope.js';
 import { bareFunctionName, bareFunctionRefusal, math, formatNumber, beautify } from './solvers/solverUtils.js';
-import { stripMathMarkers } from './mathMarkers.js';
+import { stripMathMarkers, mark } from './mathMarkers.js';
 import { readPlainEnglish } from './plainEnglish.js';
 import { readRoundingSpec } from './solvers/numberSolver.js';
 import { syntaxProblem } from './syntaxCheck.js';
@@ -930,6 +930,30 @@ export async function solveProblem(problem, topic) {
       const def = String(problem).match(/^\s*(?:[fgh]\s*\(\s*[a-z]\s*\)|y)\s*=(?!=)\s*(.+)$/i);
       if (def && !/[=<>≤≥]/.test(def[1]) && !/(?<![a-z])y(?![a-z])/i.test(def[1])) {
         return solveProblem(def[1], 'integrals');
+      }
+    }
+
+    // Parametric and polar curves are outside every solver family. "derivative
+    // of x = t^2, y = t^3" was answered f'(x) = 0, marked solved (October
+    // 2026 sweep); "r = 2cos(theta)" was refused as an unknown word.
+    {
+      const t = String(problem);
+      const param = t.match(/(?<![a-z])x\s*=\s*([^,;=]+?)\s*(?:,|;|\band\b)\s*y\s*=\s*([^,;=]+)/i);
+      const usesParameter = (side) => /(?<![a-z])(?:t|θ|theta)(?![a-z])/i.test(side);
+      if (param && usesParameter(param[1]) && usesParameter(param[2])) {
+        return finalizeResult(unsupported({
+          input: problem,
+          reason: 'This is a parametric curve: x and y are both given in terms of a parameter. Parametric curves are not supported yet; the solver works with y as a function of x.',
+          answer: 'Parametric curves are not supported yet',
+          tips: [`For the slope of a parametric curve a textbook uses ${mark('dy/dx = (dy/dt)/(dx/dt)')}: each of those is a derivative you can enter here, "t^3" and "t^2" under Derivatives.`],
+        }), problem);
+      }
+      if (/^\s*(?:(?:graph|plot|sketch)\s+)?r\s*=.*(?:θ|\btheta\b)/i.test(t)) {
+        return finalizeResult(unsupported({
+          input: problem,
+          reason: 'This is a polar curve, r as a function of θ. Polar curves are not supported yet; the solver works with y as a function of x.',
+          answer: 'Polar curves are not supported yet',
+        }), problem);
       }
     }
 
