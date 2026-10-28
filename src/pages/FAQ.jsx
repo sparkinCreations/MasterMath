@@ -30,7 +30,7 @@ export default function FAQ() {
     },
     {
       question: "What types of math problems can I solve?",
-      answer: "Derivatives (any order, at a point, implicit dy/dx for an equation in x and y, with every rule worked), integrals (indefinite, definite, and improper, by substitution, parts, or partial fractions), limits (one-sided and at infinity), function analysis with graphs, trigonometry (values, identities, and equations), algebra (linear through higher-degree equations, radical, absolute-value, exponential and logarithmic equations, systems of two or three equations, inequalities, simplifying and factoring), and arithmetic (order of operations, fractions, percentages). The User Manual lists what to type for each."
+      answer: "Derivatives (any order, at a point, implicit dy/dx for an equation in x and y, with every rule worked), integrals (indefinite, definite, and improper, by substitution, parts, partial fractions, trigonometric substitution, trig-power and reduction formulas), limits (one-sided and at infinity), function analysis with graphs, trigonometry (values, identities, and equations), algebra (linear through higher-degree equations, radical, absolute-value, exponential and logarithmic equations, systems of two or three equations, inequalities, simplifying and factoring), and arithmetic (order of operations, fractions, percentages). The User Manual lists what to type for each."
     },
     {
       question: "Can it solve word problems?",
@@ -54,7 +54,7 @@ export default function FAQ() {
     },
     {
       question: "How do I enter a definite integral?",
-      answer: "Either \"∫_0^1 x^2 dx\" (\"int_0^1 x^2 dx\" on a keyboard without ∫) or in words: \"integral of x^2 from 0 to 1\". The steps apply the Fundamental Theorem of Calculus and the value is cross-checked numerically. Improper integrals — an infinite bound such as \"∫_0^∞ e^(-x^2) dx\", or an integrand that blows up at an endpoint — are taken as limits, and a divergent one is reported as divergent with its sign."
+      answer: "Either \"∫_0^1 x^2 dx\" (\"int_0^1 x^2 dx\" on a keyboard without ∫) or in words: \"integral of x^2 from 0 to 1\". The steps apply the Fundamental Theorem of Calculus and the value is cross-checked numerically. Improper integrals — an infinite bound such as \"∫_0^∞ e^(-x^2) dx\", or an integrand that blows up at an endpoint — are taken as limits, and a divergent one is reported as divergent with its sign. If no method finds the antiderivative, the definite integral is still estimated numerically (two step sizes must agree) and the answer is marked \"(numerical)\" rather than exact."
     },
     {
       question: "Does log mean base 10 or the natural log?",
