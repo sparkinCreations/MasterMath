@@ -138,10 +138,13 @@ for (const scheme of ['light', 'dark']) {
 
       // While solving: the Cancel button and the spinner. (The outline Cancel
       // text was black on the dark card until 1.52.4; no audit ran mid-solve.)
-      // This integral runs to the 10-second budget, so the state holds. (Not
-      // (x+1)/((x-1)^2*(x^2+1)) any more: since 1.53.1 that solves in under a
-      // second, by partial fractions.)
-      await page.locator('#problem').fill('∫ 1/(x^6+x+1) dx');
+      // The problem must run to the 10-second budget so the state holds
+      // through the audit: a degree-80 Wilkinson polynomial, which the exact
+      // root finder measures at about 38 s. (Not an integral any more: both
+      // (x+1)/((x-1)^2*(x^2+1)) (1.53.1) and 1/(x^6+x+1) (1.57.1) came to
+      // solve in under a second, and the audit then caught the solution
+      // mid-reveal and reported its fading colours as low contrast.)
+      await page.locator('#problem').fill(`${Array.from({ length: 80 }, (_, k) => `(x-${k + 1})`).join('*')} + x = 0`);
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       const cancel = page.getByRole('button', { name: 'Cancel' });
       await expect(cancel).toBeVisible();

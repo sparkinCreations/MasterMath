@@ -88,7 +88,7 @@ test('a denominator that factors only over the reals: surd coefficients, or deci
   assert.equal((await solve('∫_0^∞ 1/(x^5+1) dx')).answer, '∫_0^∞ (1/(x^5 + 1)) dx ≈ 1.069');
   assert.match((await solve('x^2/(x^5+1)')).answer, /^∫\(x\^2\/\(x\^5 \+ 1\)\) dx = 1\/5·ln\|x \+ 1\| − \(1 \+ √5\)\/20·ln/);
   // Rational factorisations keep their own path and wording.
-  assert.match(plain(await solve('1/(x^3+1)')), /Factor the denominator: x\^3 \+ 1 = \(x \+ 1\)\(x\^2 - 1x \+ 1\)/);
+  assert.match(plain(await solve('1/(x^3+1)')), /Factor the denominator: x\^3 \+ 1 = \(x \+ 1\)\(x\^2 - x \+ 1\)/);
 });
 
 test('a definite integral with no antiderivative is estimated numerically, and says so', async () => {

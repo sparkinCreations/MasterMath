@@ -24,7 +24,8 @@ import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerical
 import { integrateByTrigSubstitution } from './trigSubstitutionSolver.js';
 import { integrateTrigPower } from './trigPowerSolver.js';
 import { integrateBySurdPartialFractions } from './surdPartialFractions.js';
-import { readPolynomial } from './polynomialRoots.js';
+import { readPolynomial, allRoots } from './polynomialRoots.js';
+import { createMath } from '../mathInstance.js';
 import { parseError, unsupported, diverges } from '../solutionEnvelope.js';
 import { stripMathMarkers } from '../mathMarkers.js';
 
@@ -824,6 +825,15 @@ function integrateByPartialFractions(term, variable, Algebrite) {
   const degN = isPoly(num);
   const degD = isPoly(den);
   if (degN === null || degD === null || degD < 2 || degN >= degD) return null;
+  // Distinct real roots only: the exact root finder says in milliseconds
+  // whether there is a non-real or a repeated root; Algebrite's roots() took
+  // 2 s to list the complex roots of x⁴ + 3x² + 2 that were then thrown away
+  // (and minutes on a repeated quadratic factor).
+  const polyD = readPolynomial(den, v);
+  if (polyD && !polyD.tooHigh) {
+    const found = allRoots(polyD);
+    if (found.complexCount > 0 || found.real.some((r) => r.multiplicity > 1)) return null;
+  }
   // Real, distinct roots of the denominator.
   let rootsRaw;
   try { rootsRaw = String(Algebrite.run(`roots(${den}, ${v})`)).trim(); } catch { return null; }
@@ -869,6 +879,85 @@ function integrateByPartialFractions(term, variable, Algebrite) {
   return { antiderivative: antiSimple, steps };
 }
 
+// ---------------------------------------------------------------------------
+// The factorisation of a polynomial over the rationals, written the way
+// Algebrite's factor() writes it — 3*(x - 1/2)*(x^2 + (-2)*x + (2))^2 — but
+// built from the exact root finder (polynomialRoots.js) instead.
+//
+// Why it is exact and not a guess. Every real root the finder marks exact
+// was confirmed by exact substitution, and a conjugate pair's quadratic
+// x² − 2·Re(z)·x + |z|² is accepted only after rounding its coefficients to
+// the one denominator a rational factor can have (Gauss's lemma: a monic
+// factor of a polynomial with integer coefficients and leading coefficient L
+// has coefficients in (1/L)ℤ) and then multiplying every factor back together
+// in exact big-integer arithmetic to reproduce the polynomial coefficient by
+// coefficient. Returns
+//   a string   the proven factorisation (every factor linear or an
+//              irreducible quadratic, with its power),
+//   null       proven impossible — an irrational real root, or a pair whose
+//              sum or product is not a rational of that denominator — so the
+//              caller skips Algebrite too (it could not have done better; the
+//              surd path handles these),
+//   undefined  undecidable here (not a polynomial we can read, or non-real
+//              roots the finder would not vouch for): the caller falls back to
+//              Algebrite's factor() exactly as before.
+function factorOverRationals(den, v) {
+  const P = readPolynomial(den, v);
+  if (!P || P.tooHigh || P.degree < 2) return undefined;
+  const roots = allRoots(P);
+  if (!roots.complex) return undefined;
+  // Integer coefficients, lowest first; L the leading one; scale = what the
+  // polynomial was multiplied by to get there.
+  const bgcd = (a, b) => { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) [a, b] = [b, a % b]; return a; };
+  const lcmD = P.coefficients.reduce((acc, c) => acc / bgcd(acc, c.d) * c.d, 1n);
+  const ints = P.coefficients.map((c) => c.s * c.n * (lcmD / c.d));
+  const L = ints[ints.length - 1];
+  const absL = L < 0n ? -L : L;
+  // A real number as k/L exactly, or null when it is not within rounding of one.
+  const overL = (x) => {
+    const scaled = x * Number(absL);
+    const k = Math.round(scaled);
+    if (!Number.isFinite(scaled) || Math.abs(scaled - k) > 1e-7 * (1 + Math.abs(scaled))) return null;
+    return { n: BigInt(k), d: absL };
+  };
+  const factors = []; // { coeffs: [c0, c1, (c2)] as {n, d}, power }
+  for (const r of [...roots.real].sort((a, b) => b.value - a.value)) {
+    if (!r.exact) return null;
+    factors.push({ coeffs: [{ n: -r.exact.m, d: r.exact.d }, { n: 1n, d: 1n }], power: r.multiplicity });
+  }
+  const pairs = roots.complex.filter((z) => z.im > 0).sort((a, b) => b.re - a.re || (a.re * a.re + a.im * a.im) - (b.re * b.re + b.im * b.im));
+  for (const z of pairs) {
+    // one of each conjugate pair
+    const b = overL(-2 * z.re);
+    const c = overL(z.re * z.re + z.im * z.im);
+    if (!b || !c) return null;
+    factors.push({ coeffs: [c, b, { n: 1n, d: 1n }], power: z.multiplicity });
+  }
+  if (!factors.length) return undefined;
+  // Exact check: L · Π factor^power must equal the integer polynomial.
+  const fmul = (a, b) => ({ n: a.n * b.n, d: a.d * b.d });
+  const fadd = (a, b) => ({ n: a.n * b.d + b.n * a.d, d: a.d * b.d });
+  const pmul = (A, B) => {
+    const out = Array.from({ length: A.length + B.length - 1 }, () => ({ n: 0n, d: 1n }));
+    A.forEach((a, i) => B.forEach((b, j) => { out[i + j] = fadd(out[i + j], fmul(a, b)); }));
+    return out;
+  };
+  let product = [{ n: L, d: 1n }];
+  for (const f of factors) for (let k = 0; k < f.power; k += 1) product = pmul(product, f.coeffs);
+  if (product.length !== ints.length) return undefined;
+  if (!product.every((c, i) => c.n === ints[i] * c.d)) return undefined;
+  // Text in the form the caller already parses.
+  const ratText = (q) => { const g = bgcd(q.n, q.d) || 1n; const n = q.n / g; const d = q.d / g; return d === 1n ? String(n) : `${n}/${d}`; };
+  const parts = [];
+  if (L !== lcmD) parts.push(`(${ratText({ n: L, d: lcmD })})`);
+  for (const f of factors) {
+    const [c0, c1, c2] = f.coeffs;
+    const text = c2 ? `(${v}^2 + (${ratText(c1)})*${v} + (${ratText(c0)}))` : `(${v} + (${ratText(c0)}))`;
+    parts.push(f.power > 1 ? `${text}^${f.power}` : text);
+  }
+  return parts.join('*');
+}
+
 // General partial fractions: repeated linear factors and irreducible
 // quadratics (with completing the square for the arctan pieces). The
 // denominator is factored by Algebrite; the ansatz coefficients are found by
@@ -898,7 +987,15 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
       return f.power > 1 ? `${poly}^${f.power}` : poly;
     }).join('*');
   } else {
-    try { factored = String(Algebrite.run(`factor(${den})`)).trim(); } catch { return null; }
+    // Our exact root finder factors over the rationals in milliseconds;
+    // Algebrite's factor() grinds for 1–4 s on any denominator without a
+    // small rational root (x⁴ + 1, x⁴ + 4, x⁶ + 1 — measured October 2026),
+    // enough to spend a phone's 10 s budget before the surd path got its turn.
+    factored = factorOverRationals(den, v);
+    if (factored === null) return null; // proven: no factorisation into rational linear and quadratic factors
+    if (factored === undefined) {
+      try { factored = String(Algebrite.run(`factor(${den})`)).trim(); } catch { return null; }
+    }
   }
   if (!factored || isAlgebriteFailure(factored)) return null;
   // A product splits on top-level '*'; a top-level sum (an irreducible
@@ -950,7 +1047,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
   const nUnknowns = terms.reduce((n, t) => n + (t.kind === 'lin' ? 1 : 2), 0);
   // Denominator text in normalised form.
   const linTxt = (r) => (Math.abs(r) < 1e-12 ? v : r < 0 ? `(${v} + ${fmtNum(-r)})` : `(${v} - ${fmtNum(r)})`);
-  const quadTxt = (p, q) => `(${v}^2${p === 0 ? '' : ` ${p < 0 ? '-' : '+'} ${fmtNum(Math.abs(p))}*${v}`}${q === 0 ? '' : ` ${q < 0 ? '-' : '+'} ${fmtNum(Math.abs(q))}`})`;
+  const quadTxt = (p, q) => `(${v}^2${p === 0 ? '' : ` ${p < 0 ? '-' : '+'} ${Math.abs(p) === 1 ? '' : `${fmtNum(Math.abs(p))}*`}${v}`}${q === 0 ? '' : ` ${q < 0 ? '-' : '+'} ${fmtNum(Math.abs(q))}`})`;
   const denomOf = (t) => (t.kind === 'lin' ? `${linTxt(t.r)}${t.j > 1 ? `^${t.j}` : ''}` : `${quadTxt(t.p, t.q)}${t.j > 1 ? `^${t.j}` : ''}`);
   // The full normalised denominator D0 = Π factors (constant pulled out): N/den = (N/constant)/D0.
   const D0 = factors.map((f) => (f.kind === 'lin' ? `${linTxt(f.r)}${f.power > 1 ? `^${f.power}` : ''}` : `${quadTxt(f.p, f.q)}${f.power > 1 ? `^${f.power}` : ''}`)).join('*');
@@ -961,18 +1058,14 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
     if (t.kind === 'lin') basis.push(cof);
     else { basis.push(`(${cof})*${v}`); basis.push(cof); }
   }
-  // Solve Σ cᵢ·basisᵢ(x) = N(x)/constant at sample points.
-  const xs = Array.from({ length: nUnknowns + 3 }, (_, i) => 0.37 + 0.71 * i);
-  const A = xs.map((x) => basis.map((b) => math.evaluate(b, { [v]: x })));
-  const y = xs.map((x) => math.evaluate(num, { [v]: x }) / constant);
-  // Least squares (over-determined by 3 rows) — exact for a true decomposition.
-  // Solved on plain arrays so the mathjs matrix subsystem is not bundled for
-  // this one call.
-  const coef = solveNormalEquations(A, y);
-  if (!coef || !coef.every((c) => Number.isFinite(c))) return null;
-  // Rationalise (small denominators) and re-verify exactly enough.
-  const rat = coef.map((c) => { for (let d = 1; d <= 720; d += 1) { const n = c * d; if (Math.abs(n - Math.round(n)) < 1e-7) return { n: Math.round(n), d }; } return null; });
-  if (rat.some((r) => r === null)) return null;
+  // Solve Σ cᵢ·basisᵢ(x) = N(x)/constant at nUnknowns integer points, in
+  // exact rational arithmetic (Gaussian elimination on mathjs Fractions): the
+  // basis polynomials span every polynomial of lower degree than D, so the
+  // system is square and invertible, and the coefficients come out as the
+  // fractions they are. (Floating least squares then "rationalising" lost
+  // 1/(x⁶ − 1): six unknowns, errors past the tolerance, refused.)
+  const rat = solveCoefficientsExactly(basis, num, constant, nUnknowns, v, factors);
+  if (!rat) return null;
   const cTxt = rat.map((r) => (r.d === 1 ? String(r.n) : `${r.n}/${r.d}`));
   const decomposed = (() => { let i = 0; return terms.map((t) => { if (t.kind === 'lin') return `(${cTxt[i++]})/(${denomOf(t)})`; const b = cTxt[i++]; const c = cTxt[i++]; return `((${b})*${v} + (${c}))/(${denomOf(t)})`; }).join(' + '); })();
   for (const x of [0.11, 1.93, -2.47, 3.6]) {
@@ -1016,23 +1109,35 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
     } else {
       const B = rat[i++]; const C = rat[i++];
       const Bv = B.n / B.d; const Cv = C.n / C.d;
+      if (B.n === 0 && C.n === 0) continue; // (x² + 2)/((x² + 2)(x² + 3)) has no term over x² + 2
       const h = t.p / 2; const k2 = t.q - h * h; const k = Math.sqrt(k2);
       const U = h === 0 ? v : `(${v} ${h < 0 ? '-' : '+'} ${fmtNum(Math.abs(h))})`;
       const Q = quadTxt(t.p, t.q);
       // Bx + C = B·u + (C − B·h)
       const K = Cv - Bv * h;
       const Ktxt = fmtRat(K);
-      const kTxt = Number.isInteger(k) ? String(k) : `sqrt(${fmtRat(k2)})`;
+      const surd = !Number.isInteger(k) ? exactSurd(k2) : null;
+      if (!Number.isInteger(k) && !surd) return null;
+      // k = 1/2 is "1/2", not "sqrt(1/4)"; and (x + 1/2)/(1/2), never (x + 1/2)/1/2.
+      const kTxt = Number.isInteger(k) ? String(k) : surd.rational ? fmtRat(k) : `sqrt(${fmtRat(k2)})`;
+      const kDiv = /\//.test(kTxt) ? `(${kTxt})` : kTxt;
       const cm = (val) => (val === 1 ? '' : val === -1 ? '-' : `${fmtRat(val)}*`); // machine coefficient
       // k = √(k²) exactly: k² = a/b gives k = s·√t / b with t square-free
       // (x² − x + 1 = (x − 1/2)² + 3/4, k = √3/2). Its coefficient and the
       // arctan argument are then exact: (1/√3)·arctan((2x − 1)/√3), where
       // the decimals from a rounded k used to fail the check.
-      const surd = !Number.isInteger(k) ? exactSurd(k2) : null;
-      if (!Number.isInteger(k) && !surd) return null;
       const arcArg = k === 1 ? U : surd && !surd.rational
         ? `(${surd.b / surd.s === 1 ? '' : `${fmtRat(surd.b / surd.s)}*`}${v}${h === 0 ? '' : ` ${h < 0 ? '-' : '+'} ${fmtRat(Math.abs(h * surd.b / surd.s))}`})/sqrt(${surd.t})`
-        : `${U}/${surd ? fmtRat(k) : kTxt}`;
+        : surd && surd.rational
+          // u/k with k = a/b: (b/a)·u, so (x + 1/2)/(1/2) is 2x + 1.
+          ? (h === 0 ? `${fmtRat(1 / k)}*${v}` : `${fmtRat(1 / k)}*${v} ${h < 0 ? '-' : '+'} ${fmtRat(Math.abs(h / k))}`)
+          : `${U}/${kDiv}`;
+      const kShown = (() => {
+        if (Number.isInteger(k)) return String(k);
+        if (surd.rational) return fmtRat(k);
+        const g = gcd(surd.s, surd.b) || 1; // 2√3/4 is √3/2
+        return `${surd.s / g === 1 ? '' : surd.s / g}√${surd.t}${surd.b / g === 1 ? '' : `/${surd.b / g}`}`;
+      })();
       const arcCoefMach = (Kv) => (surd && !surd.rational
         ? `${cm(Kv * surd.b / (surd.s * surd.t))}sqrt(${surd.t})*`
         : cm(Kv / k));
@@ -1041,17 +1146,46 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
         if (Math.abs(K) > 1e-12) { pieces.push(`${arcCoefMach(K)}arctan(${arcArg})`); }
         const numTxt = quadNum(B, C, Q).replace(/\/\(.*$/, '');
         const arcCoef = surd && !surd.rational
-          ? `${beautify(arcCoefMach(K).replace(/\*$/, ''))}·`.replace(/^1\*?/, '').replace(/sqrt\((\d+)\)/, '√$1')
+          ? `${beautify(arcCoefMach(K).replace(/\*$/, ''))}·`.replace(/^1\*/, '').replace(/sqrt\((\d+)\)/, '√$1')
           : Math.abs(K / k - 1) < 1e-12 ? '' : Math.abs(K / k + 1) < 1e-12 ? '−' : `${fmtRat(K / k)}·`;
-        const arcShown = surd && !surd.rational ? beautify(arcArg).replace(/sqrt\((\d+)\)/, '√$1') : `${U}${k === 1 ? '' : `/${kTxt}`}`;
+        const arcShown = surd ? beautify(arcArg).replace(/sqrt\((\d+)\)/, '√$1') : `${U}${k === 1 ? '' : `/${kDiv}`}`;
         pieceSteps.push(`${mark(`∫ ${numTxt}/${Q} d${v}`)}: ${h !== 0 ? `complete the square, ${mark(`${Q} = ${U}^2 + ${fmtRat(k2)}`)}; ` : ''}${Bv !== 0 ? `the ${mark(v)}-part gives ${mark(`${fmtRat(Bv / 2)}·ln${/^\s*-/.test(stripOuterParens(Q)) ? `|${stripOuterParens(Q)}|` : `(${stripOuterParens(Q)})`}`)}` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${mark(`${arcCoef}arctan(${arcShown})`)}` : ''}`);
-      } else if (t.j === 2) {
-        if (surd && !surd.rational) return null; // (x² + px + q)² with an irrational k: not attempted
-        if (Bv !== 0) pieces.push(overPoly(-Bv / 2, '1', Q));
-        if (Math.abs(K) > 1e-12) pieces.push(`${overPoly(K / (2 * k2), stripOuterParens(U) === v ? v : U, Q)} + ${cm(K / (2 * k2 * k))}arctan(${arcArg})`);
-        pieceSteps.push(`${mark(`∫ (${cTxt[i - 2]}${v} + ${cTxt[i - 1]})/${Q}^2 d${v}`)}: with ${mark(`u = ${U}`)}, ${Bv !== 0 ? mark(`∫ ${fmtRat(Bv)}u/(u² + ${fmtRat(k2)})² du = −${fmtRat(Bv / 2)}/(u² + ${fmtRat(k2)})`) : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ' and ' : ''}${Math.abs(K) > 1e-12 ? `${mark(`∫ ${Ktxt}/(u² + k²)² du = ${Ktxt}·[u/(2k²(u² + k²)) + arctan(u/k)/(2k³)]`)} with ${mark(`k = ${kTxt}`)}` : ''}`);
       } else {
-        return null; // (x²+1)^3 and beyond: not attempted
+        // (Bu + K)/(u² + k²)^j, j ≥ 2, with u = x + h:
+        //   ∫ u/(u² + k²)^j du = −1/(2(j − 1)(u² + k²)^(j−1))
+        //   I_j = ∫ du/(u² + k²)^j = u/(2k²(j − 1)(u² + k²)^(j−1)) + (2j − 3)/(2k²(j − 1))·I_(j−1),   I_1 = (1/k)·arctan(u/k)
+        // I_j is expanded to a flat sum Σ cₘ·u/(u² + k²)^m + c₀·(1/k)·arctan(u/k)
+        // in exact fractions; the 1/k is exact for a rational k and for
+        // k = s√t/b alike (arcCoefMach).
+        const E = exactMath();
+        const K2 = E.fraction(k2);
+        const expand = (n) => {
+          if (n === 1) return { terms: new Map(), arc: E.fraction(1) };
+          const a = E.fraction(1).div(K2.mul(2 * (n - 1)));
+          const b = E.fraction(2 * n - 3).div(K2.mul(2 * (n - 1)));
+          const inner = expand(n - 1);
+          const terms = new Map([[n - 1, a]]);
+          for (const [m, c] of inner.terms) terms.set(m, (terms.get(m) || E.fraction(0)).add(b.mul(c)));
+          return { terms, arc: b.mul(inner.arc) };
+        };
+        const asNumber = (q) => { if (Number(q.d) > 720) throw new Error('coefficient too fine to show'); return Number(q.s) * Number(q.n) / Number(q.d); };
+        const uTxt = stripOuterParens(U) === v ? v : U;
+        const powQ = (n) => (n === 1 ? Q : `${Q}^${n}`);
+        const n = t.j;
+        let expanded;
+        try {
+          const I = expand(n);
+          expanded = { terms: [...I.terms].map(([m, c]) => [m, asNumber(c) * K]).sort((a, b) => b[0] - a[0]), arc: asNumber(I.arc) * K };
+        } catch { return null; }
+        if (Bv !== 0) pieces.push(overPoly(-Bv / (2 * (n - 1)), '1', powQ(n - 1)));
+        if (Math.abs(K) > 1e-12) {
+          for (const [m, c] of expanded.terms) pieces.push(overPoly(c, uTxt, powQ(m)));
+          pieces.push(`${arcCoefMach(expanded.arc)}arctan(${arcArg})`);
+        }
+        const numTxt = quadNum(B, C, Q).replace(/\/\(.*$/, '');
+        const paren = (txt) => (/\//.test(txt) ? `(${txt})` : txt);
+        const uPower = (m) => (m === 1 ? '(u² + k²)' : `(u² + k²)^${m}`);
+        pieceSteps.push(`${mark(`∫ ${numTxt}/${Q}^${n} d${v}`)}: with ${mark(`u = ${U}`)} and ${mark(`k = ${kShown}`)}, ${Bv !== 0 ? `${mark(`∫ ${Bv === 1 ? '' : Bv === -1 ? '−' : paren(fmtRat(Bv))}u/${uPower(n)} du = ${Bv < 0 ? '' : '−'}${paren(fmtRat(Math.abs(Bv) / (2 * (n - 1))))}/${uPower(n - 1)}`)} (${mark('w = u² + k²')})` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ' and ' : ''}${Math.abs(K) > 1e-12 ? `${mark(`∫ ${paren(Ktxt)}/${uPower(n)} du`)} by the reduction formula ${mark(`∫ du/(u² + k²)^n = u/(2k²(n − 1)(u² + k²)^(n−1)) + (2n − 3)/(2k²(n − 1))·∫ du/(u² + k²)^(n−1)`)}${n > 2 ? ` applied ${n - 1} times` : ''}, down to ${mark('∫ du/(u² + k²) = (1/k)·arctan(u/k)')}` : ''}`);
       }
     }
   }
@@ -1093,6 +1227,10 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
 
 const fmtNum = (x) => (Number.isInteger(x) ? String(x) : (() => { for (let d = 2; d <= 720; d += 1) { const n = x * d; if (Math.abs(n - Math.round(n)) < 1e-9) return `${Math.round(n)}/${d}`; } return String(Math.round(x * 1e6) / 1e6); })());
 const fmtRat = fmtNum;
+
+// Exact rational arithmetic for the partial-fraction coefficients.
+let exactMathInstance = null;
+const exactMath = () => { if (!exactMathInstance) exactMathInstance = createMath({ number: 'Fraction' }); return exactMathInstance; };
 
 // √(k²) for a rational k² = a/b as s·√t / b, t square-free; rational when t = 1.
 function exactSurd(k2) {
@@ -1922,27 +2060,51 @@ function numericIntegral(integrand, variable, a, b, N = 2000) {
 
 // Least-squares solution of A·c = y via the normal equations (AᵀA)c = Aᵀy,
 // by Gaussian elimination with partial pivoting. A is m×n (m ≥ n), small.
-function solveNormalEquations(A, y) {
-  const m = A.length;
-  const n = m ? A[0].length : 0;
-  if (!m || !n) return null;
-  const M = Array.from({ length: n }, (_, i) => Array.from({ length: n + 1 }, (_, j) => {
-    let s = 0;
-    for (let k = 0; k < m; k += 1) s += A[k][i] * (j === n ? y[k] : A[k][j]);
-    return s;
-  }));
+// The partial-fraction coefficients as exact fractions {n, d}, or null.
+function solveCoefficientsExactly(basis, num, constant, nUnknowns, v, factors) {
+  const E = exactMath();
+  const F = (x) => E.fraction(x);
+  const realRoots = factors.filter((f) => f.kind === 'lin').map((f) => f.r);
+  const xs = [];
+  for (let k = 0; xs.length < nUnknowns && k < nUnknowns + 50; k += 1) if (!realRoots.some((r) => Math.abs(r - k) < 1e-9)) xs.push(k);
+  if (xs.length < nUnknowns) return null;
+  let rows;
+  try {
+    const basisCode = basis.map((b) => E.parse(b).compile());
+    const numCode = E.parse(num).compile();
+    const cst = F(constant);
+    rows = xs.map((x) => {
+      const scope = { [v]: F(x) };
+      const row = basisCode.map((c) => c.evaluate(scope));
+      const y = E.divide(numCode.evaluate(scope), cst);
+      if (![...row, y].every((q) => E.typeOf(q) === 'Fraction')) throw new Error('not rational');
+      return [...row, y];
+    });
+  } catch {
+    return null;
+  }
+  // Gaussian elimination with partial (non-zero) pivoting, all in Fractions.
+  const n = nUnknowns;
   for (let col = 0; col < n; col += 1) {
-    let pivot = col;
-    for (let r = col + 1; r < n; r += 1) if (Math.abs(M[r][col]) > Math.abs(M[pivot][col])) pivot = r;
-    if (Math.abs(M[pivot][col]) < 1e-12) return null;
-    [M[col], M[pivot]] = [M[pivot], M[col]];
+    let pivot = -1;
+    for (let r = col; r < n; r += 1) if (!rows[r][col].equals(0)) { pivot = r; break; }
+    if (pivot < 0) return null;
+    [rows[col], rows[pivot]] = [rows[pivot], rows[col]];
     for (let r = 0; r < n; r += 1) {
-      if (r === col) continue;
-      const f = M[r][col] / M[col][col];
-      for (let j = col; j <= n; j += 1) M[r][j] -= f * M[col][j];
+      if (r === col || rows[r][col].equals(0)) continue;
+      const m = rows[r][col].div(rows[col][col]);
+      for (let c = col; c <= n; c += 1) rows[r][c] = rows[r][c].sub(m.mul(rows[col][c]));
     }
   }
-  return M.map((row, i) => row[n] / row[i]);
+  const out = [];
+  for (let r = 0; r < n; r += 1) {
+    const q = rows[r][n].div(rows[r][r]);
+    const nn = Number(q.s) * Number(q.n);
+    const dd = Number(q.d);
+    if (!Number.isSafeInteger(nn) || !Number.isSafeInteger(dd)) return null;
+    out.push({ n: nn, d: dd });
+  }
+  return out;
 }
 
 // Algebrite exact strings use log/pi/exp; present them the textbook way.

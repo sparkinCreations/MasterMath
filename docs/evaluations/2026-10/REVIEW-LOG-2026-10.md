@@ -233,6 +233,14 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 21 (outside tester on the live site: (x² + 1)/(x⁴ + 1) hits the 10 s budget, 1.57.1)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| ∫(x² + 1)/(x⁴ + 1) dx "stopped after ~10 seconds" with the budget message | Confirmed on 1.56.4 (46 s in Node); on 1.57.0, deployed that morning, it solved — but Algebrite's `factor()` still ground for 2.3 s on x⁴ + 1 (4.3 s on x⁶ + 1) before the surd path answered in 24 ms, most of a phone's budget | 1.57.1 (the exact root finder factors in milliseconds; Algebrite's `factor()` only when it cannot decide; the integer-coefficient working kept, factors in the same order) |
+| By parts, partial fractions (1/(x² − 1), 1/(x³ − 1)), √(1 − x²), rational-root cubics, Ei/Si refusals all correct | Confirmed | — |
+| "Likely fragile": reduction formulas, repeated by parts, high-degree denominators | sec^n and csc^n were already worked in 1.57.0. Found in the sweep of 40 rational integrals: (2x + 3)/(x² + x + 1)² spent 250 s in Algebrite's `integral()` then refused; (x² + 2)/(x⁴ + 5x² + 6) 98 s then refused; 1/(x³ + x + 1) 16 s; 1/(x⁶ − 1), 1/(2x² + 2x + 1), 1/(x² + 1)³ and 1/(4x⁴ + 4x² + 1) refused | 1.57.1 (all 40 solve, none above 0.5 s; coefficients solved exactly; repeated quadratics by the reduction formula; the rational-k arctan argument fixed) |
+
 ## Round 20 (outside review: 30 Calculus II integrals, 1.57.0)
 
 | Claim | Verdict | Release |

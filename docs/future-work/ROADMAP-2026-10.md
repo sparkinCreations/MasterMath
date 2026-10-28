@@ -345,8 +345,10 @@ Honest refusals, each with a message that says so:
   √(ax + b) under a product (x·√(x + 1) is answered by Algebrite's own
   substitution). A denominator that factors only over the reals is worked
   since 1.57.0 (1/(x⁵ + 1) with √5; 1/(x³ − 2) with the cube root kept to
-  full precision and the answer marked ≈); a repeated irrational factor
-  ((x² − 2)²) is still a one-line answer or a refusal.
+  full precision and the answer marked ≈), and a repeated irreducible
+  quadratic with rational coefficients is worked by the reduction formula
+  since 1.57.1 (1/(x² + 1)³, (2x + 3)/(x² + x + 1)²); a repeated
+  irrational factor ((x² − 2)²) is still a one-line answer or a refusal.
 - **Polynomials above degree 100** — refused.
 - **Sequences, series and Taylor expansions** — not a topic yet (roadmap
   P4); the October 25 reviewer counted it as scope, since the User Manual
