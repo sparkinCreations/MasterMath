@@ -14,7 +14,7 @@
 
 ### 🧮 **Comprehensive Math Solver**
 - **Derivatives & Differentiation** - Worked term-by-term, showing the rule used and the intermediate result for each term
-- **Integrals & Integration** - Real per-term antiderivatives with the technique named (power rule, u-substitution, by parts)
+- **Integrals & Integration** - Real per-term antiderivatives with the technique worked (power rule, u-substitution, by parts, partial fractions, trigonometric substitution, trig powers and reduction formulas, u = eˣ and x = u²); a definite integral no method can do is estimated numerically and says so
 - **Limits** - Symbolic strategy ladder (substitution → simplify → Taylor series → L'Hôpital), with answers independently cross-checked
 - **Algebra** - Equation solving with exact roots (radicals and complex numbers included)
 - **Trigonometry** - Special angles, degree/radian handling, and honest "Undefined" at vertical asymptotes

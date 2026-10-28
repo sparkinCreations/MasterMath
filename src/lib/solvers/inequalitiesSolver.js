@@ -177,7 +177,7 @@ async function solveSingle(rawText) {
   try {
     const parsed = parseInequality(rawText);
     if (!parsed) {
-      return refuse('I could not read this as a single inequality.', 'Try the form: x^2 - 4 > 0, or (x-1)/(x+2) <= 0.');
+      return refuse('This could not be read as a single inequality.', 'Try the form: x^2 - 4 > 0, or (x-1)/(x+2) <= 0.');
     }
     const { lhs, rhs, op } = parsed;
 
@@ -203,7 +203,7 @@ async function solveSingle(rawText) {
       try {
         holds = compare(Number(math.evaluate(lhs)), Number(math.evaluate(rhs)), op);
       } catch {
-        return refuse('I could not evaluate this comparison.', '');
+        return refuse('This comparison could not be evaluated.', '');
       }
       return {
         steps: [
@@ -353,7 +353,7 @@ async function solveSingle(rawText) {
     };
   } catch (error) {
     console.error('Inequality solver error:', error);
-    return refuse('I was unable to solve this inequality.', 'Try a form like x^2 - 4 > 0.', 'unsupported');
+    return refuse('This inequality could not be solved here.', 'Try a form like x^2 - 4 > 0.', 'unsupported');
   }
 }
 

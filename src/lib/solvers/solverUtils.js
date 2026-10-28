@@ -376,6 +376,17 @@ export function beautify(expression) {
 // integral step and answer, so a walkthrough never switches between log and
 // ln, or exp and e^, part-way through (September 2026 review, 1.38.1).
 export function lnify(result) {
+  const once = lnifyOnce(result);
+  // A root inside a root (√(10 + 2√5)) needs a second look: the inner one
+  // is converted first and the outer one then has no parentheses inside.
+  // Only the root rules run again — beautify would also drop the "*" in
+  // √2*x, changing every pinned answer.
+  return once
+    .replace(/(?<![a-z])sqrt\(([^()]+)\)/g, '√($1)')
+    .replace(/√\((\d+)\)/g, '√$1');
+}
+
+function lnifyOnce(result) {
   return beautify(result)
     // outermost log(...) (one nesting level inside) → ln|...|
     // (?<![a-z]) not \b: beautify writes 4*log(x) as 4log(x).
@@ -394,7 +405,10 @@ export function lnify(result) {
     .replace(/(?<![a-z])sqrt\(([^()]+)\)/g, '√($1)')
     .replace(/√\(-([^()]+?) \+ (\d+(?:\.\d+)?)\)/g, '√($2 - $1)')
     // √(3) → √3: a plain number needs no bracket.
-    .replace(/√\((\d+)\)/g, '√$1');
+    .replace(/√\((\d+)\)/g, '√$1')
+    // 2^(1/2) and x^(1/2) → √2, √x (Algebrite's form for a root of a token)
+    .replace(/(?<![\w.])(\d+)\^\(1\/2\)(?![\w])/g, '√$1')
+    .replace(/(?<![a-z.])([a-z])\^\(1\/2\)(?![\w])/g, '√$1');
 }
 
 // Split on a delimiter at parenthesis depth 0: splitTopLevel('(a*b)*c', '*')

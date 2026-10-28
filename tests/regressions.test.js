@@ -1409,7 +1409,7 @@ test('improper integrals at an endpoint are taken as one-sided limits, never F(a
   const work = root.steps.join('\n');
   assert.match(work, /improper integral/);
   assert.match(work, /lim \(s→0⁺\) ∫_s\^1/);
-  assert.match(work, /F\(1\) − F\(s\) = 2 − \(2s\^\(1\/2\)\)/);
+  assert.match(work, /F\(1\) − F\(s\) = 2 − \(2√s\)/); // 2s^(1/2) until 1.57.0
   assert.match(work, /as s → 0⁺, F\(s\) → 0/);
   assert.doesNotMatch(work, /F\(0\) = 0|Apply the Fundamental Theorem of Calculus: ∫_a\^b/, 'no direct F(0) substitution');
   assert.doesNotMatch(work, /Simpson's rule\)/);

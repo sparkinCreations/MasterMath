@@ -233,6 +233,18 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 20 (outside review: 30 Calculus II integrals, 1.57.0)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| 1/(x⁴ + 1) fails gracefully ("Beyond this solver"), indefinite and from 0 to ∞ | Confirmed | 1.57.0 (solved: factored over √2; ∫₀^∞ = π/(2√2)) |
+| The tip "a definite version can still be computed numerically" disagrees with the refusal of the 0-to-∞ version | Confirmed, and worse: ∫₀¹ 1/(x⁴ + 1) dx — the tip's own example — was refused too ("I could not compute this definite integral exactly") | 1.57.0 (numerical estimate, two step sizes agreeing, reported "≈ … (numerical)"; first-person wording removed) |
+| "Partial fractions with quadratic factors are the gap"; fixing x⁴ + 1 would also cover 1/(x⁴ + 4) | Not so: 1/(x⁴ + 4) already solved, fully worked (it factors over the rationals). The gap was factoring over a surd | 1.57.0 |
+| sec³x, sin²x·cos³x, 1/(1 + eˣ), √x/(1 + x) refused | Confirmed (four of four) | 1.57.0 (reduction formula; odd-power split; u = eˣ; x = u²) |
+| tan x, sin³x and 1/(x²√(x² + 9)) each had three steps that name no method | Confirmed; the last was labelled "u-substitution" with no u shown | 1.57.0 (tan derived; sin³x worked by the odd-power split; "Trigonometric substitution" with the substitution named) |
+| Found in the sweep: tan²x and x³/(x − 1) refused; ∫sec x shown as ln\|tan(x/2 + π/4)\| | — | 1.57.0 |
+| Second note (live site, 1.56.4): 1/(x⁴ + 1), 1/(x⁵ + 1), sec³x, tan³x refused; eˣ/x and sin x/x refused as non-elementary | 1/(x⁴ + 1), sec³x, tan³x were already in the 1.57.0 branch; 1/(x⁵ + 1) needed partial fractions over a real factorisation with surd coefficients; eˣ/x lacked its special-function note (Ei) | 1.57.0 |
+
 ## Round 19 (outside review: the contradictory notice, word problems, history on one device, 1.56.3)
 
 | Claim | Verdict | Release |
