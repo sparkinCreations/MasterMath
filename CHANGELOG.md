@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.57.3] - 2026-10-28
+
+### Changed
+
+- **The home page leads with the claim.** The headline was "Welcome to
+  MasterMath", a name the header already shows, with the tagline, a
+  description and an audience line stacked under it: four messages before
+  the first button. It is now "See the method, not just the answer." with
+  one subline, "Step-by-step algebra through Calculus II, solved in your
+  browser.", in solid dark blue rather than the gradient (with a lighter
+  blue in dark mode); the two section headings use the same blue. On large screens the hero is a split: the logo sits beside the
+  headline, the copy and buttons are left-aligned under it, and the laptop
+  photo fills the right column so the product is on screen with the claim.
+  Phones keep the stacked, centred layout. The trust strip and the buttons
+  are unchanged.
+
+- **The star ask says why.** The home page's "Star on GitHub" buttons
+  carried no reason. The worked-example card now ends with one line,
+  "MasterMath is free, with no account and no ads. If it helped, a star on
+  GitHub is all I ask," and its own star button, placed where the reader
+  has just seen what the solver does. The hero, closing-band and footer
+  links are unchanged.
+
+### Fixed
+
+- **The smoke suite passes on macOS.** The Symbols strip test moved the
+  caret with the End key, which under Playwright's Chromium on macOS scrolls
+  the textarea without moving the caret; the test failed on every Mac and
+  passed on Linux CI. It now sets the caret position directly.
+
 ## [1.57.2] - 2026-10-28
 
 ### Changed

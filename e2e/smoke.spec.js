@@ -85,7 +85,7 @@ test.describe('MasterMath smoke', () => {
     let loads = 0;
     page.on('load', () => { loads += 1; });
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Welcome to MasterMath/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /See the method, not just the answer/ })).toBeVisible();
     await expect(page.getByText(`v${pkg.version}`)).toBeVisible();
     const preloads = await page.locator('link[rel="modulepreload"]').evaluateAll((links) => links.map((l) => l.getAttribute('href')));
     expect(preloads.length).toBeGreaterThan(0);
@@ -345,7 +345,11 @@ test.describe('MasterMath smoke', () => {
     await page.getByRole('button', { name: 'Insert a square root' }).click();
     // The caret is inside the parentheses, so typing continues there.
     await page.keyboard.type('x+1');
-    await page.keyboard.press('End');
+    // Move the caret past the closing parenthesis. Not with the End key:
+    // under Playwright's Chromium on macOS, End scrolls the textarea and
+    // leaves the caret where it was, so " = 3" landed inside the radical and
+    // the suite failed on every Mac while passing on Linux CI.
+    await page.locator('#problem').evaluate((el) => el.setSelectionRange(el.value.length, el.value.length));
     await page.keyboard.type(' = 3');
     await expect(page.locator('#problem')).toHaveValue('√(x+1) = 3');
     // The preview typesets it (a KaTeX radical), and the problem solves.
@@ -392,7 +396,7 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('heading', { name: /Page not found/ })).toBeVisible();
     await expect(page).toHaveTitle(/Page not found/);
     await page.getByRole('link', { name: /Go to the home page/ }).click();
-    await expect(page.getByRole('heading', { name: /Welcome to MasterMath/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /See the method, not just the answer/ })).toBeVisible();
   });
 
   // The phone page stacks input → graph → solution. After Solve the page
