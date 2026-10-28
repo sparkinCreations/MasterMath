@@ -52,6 +52,9 @@ phone is still most of the budget before the surd path got its turn.
   is shown as x² + x + 1/2, never x² + 1·x + 1/2.
 - A partial-fraction term with a zero numerator produced an empty step, and
   a coefficient such as 1/3·√3 lost its leading 1 ("/3·√3").
+- The accessibility test's "while solving" audit held the state with
+  ∫1/(x⁶ + x + 1) dx, which now solves in a third of a second; it uses a
+  degree-80 Wilkinson polynomial, which runs to the budget every time.
 
 ## [1.57.0] - 2026-10-28
 
