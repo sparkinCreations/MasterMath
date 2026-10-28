@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.56.3] - 2026-10-27
+
+Plain English on every path (October 2026 review: "after 'two x plus five
+equals eleven', MasterMath solved it as an equation but also said it looked
+like an expression").
+
+### Fixed
+
+- **The "looks like an expression" notice no longer contradicts a solved
+  equation.** The notice read the raw typed text and looked for "=", so
+  "two x plus five equals eleven" (solved, x = 3) and "x squared minus four
+  equals zero" were offered "Differentiate it / Integrate it / Analyse it".
+  It now reads the problem as the solver does.
+- **"plus", "minus", "times" and "divided by" are read on every path.** They
+  were read for a single expression or equation only: "2x plus 5 > 11",
+  "two x plus five is less than or equal to eleven" and "x plus y = 2;
+  x minus y = 0" were refused with '"plus" is not a known function'. The
+  words are now notation before routing, so the input preview shows them
+  as symbols too.
+- **A bare "is" between two sides of maths is "="**: "2x + 5 is 11",
+  "x squared minus 4 is zero", "sin of x is 1/2" (the FAQ's own example,
+  "a number plus 7 is 12", was a parse error). "is" with any other word on
+  either side is left alone: "what is 2 plus 2" and "what is the derivative
+  of x squared" keep their meaning, and "is greater than", "is at least"
+  and "is equal to" are read as before.
+
 ## [1.56.2] - 2026-10-27
 
 ### Fixed

@@ -233,6 +233,16 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 19 (outside review: the contradictory notice, word problems, history on one device, 1.56.3)
+
+| Claim | Verdict | Release |
+|---|---|---|
+| After "two x plus five equals eleven" the equation was solved but a notice said it looked like an expression | Confirmed: the page's nudge read the raw text and looked for "=", which "equals" is not; same for "x squared minus four equals zero" | 1.56.3 (the nudge reads the problem as the solver does) |
+| Found in the sweep: "2x plus 5 > 11", "two x plus five is less than or equal to eleven", "x plus y = 2; x minus y = 0" refused ('"plus" is not a known function') | Confirmed: the infix words were read for a single expression or equation only | 1.56.3 (read before routing, on every path) |
+| Found in the sweep: "2x + 5 is 11", "two x plus five is eleven", the FAQ's "a number plus 7 is 12" were parse errors ('"is" is not a known function') | Confirmed: a bare "is" was deliberately left alone for "what is …" | 1.56.3 ("is" between two sides of maths only) |
+| Word problems are not translated into equations | Agreed; by design (the solver never guesses). The refusal could show the FAQ's translation examples | open |
+| History stays in the current browser | Agreed; a consequence of the privacy design. A history export and import would carry it across devices without a server | open |
+
 ## Round 18 (roadmap: the e^x substitution and negative exponents, 1.56.2)
 
 | Claim | Verdict | Release |
