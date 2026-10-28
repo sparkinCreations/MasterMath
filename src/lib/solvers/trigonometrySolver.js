@@ -18,7 +18,7 @@ import {
   gcd,
 } from './solverUtils.js';
 import { getSettings } from '../settings.js';
-import { parseError, unsupported, solved } from '../solutionEnvelope.js';
+import { parseError, unsupported, solved, undefinedValue } from '../solutionEnvelope.js';
 
 const COMMON_DEGREE_VALUES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360];
 
@@ -402,9 +402,11 @@ export async function solveTrigonometry(expression, settingsOverride) {
         steps.push(`Note: if you meant radians, the result would be ${mark(formatNumber(radianResult))}.`);
       }
 
-      return {
+      // Undefined, as 1/0 is: tan(π/2) was "solved" with the answer
+      // "Undefined", 1/0 reported undefined.
+      const result = undefinedValue({
+        input: expression,
         steps,
-        answer: 'Undefined',
         tips: [
           `${mark(`${func}(x)`)} has a vertical asymptote wherever ${mark(`${denom}(x) = 0`)} — the value grows without bound instead of settling on a number.`,
           'A calculator that shows a huge number here is hitting floating-point rounding, not a real value.',
@@ -416,7 +418,9 @@ export async function solveTrigonometry(expression, settingsOverride) {
           'Mixing up radians and degrees (use pi for radians).',
         ],
         graph: generateTrigGraph(expression),
-      };
+      });
+      result.answer = argDisplay !== null ? `Undefined — ${denom}(${argDisplay.replace(/(?<![a-z])pi(?![a-z])/g, 'π')}) = 0` : 'Undefined';
+      return result;
     }
 
     let formattedResult = formatTrigResult(result, expression);

@@ -9,7 +9,7 @@
 // Receives the RAW problem text (routed from api.js) so the operator and both
 // sides survive intact.
 
-import { math, beautify, formatNumber, sampleFunction, loadAlgebrite, isAlgebriteFailure, structuralPeriod, definedEverywhere, piForm, mark } from './solverUtils.js';
+import { math, beautify, formatNumber, sampleFunction, loadAlgebrite, isAlgebriteFailure, structuralPeriod, definedEverywhere, piForm, mark, absBars } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { readPolynomial, allRoots } from './polynomialRoots.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -687,7 +687,7 @@ function inAppNotation(expr) {
   return out.replace(/(?<![a-z])exp\(([^()]*)\)/g, (all, u) => (/^[a-z0-9]+$/i.test(u) ? `e^${u}` : `e^(${u})`));
 }
 // abs(u) is typed and computed; |u| is what a textbook writes.
-const bars = (text) => String(text).replace(/(?<![a-z])abs\(([^()]*)\)/g, '|$1|');
+const bars = absBars;
 const shown = (expr) => bars(beautify(inAppNotation(expr)));
 
 // Where the expression's domain ends: the zeros of every logarithm's and

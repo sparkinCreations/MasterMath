@@ -70,7 +70,7 @@ test('explicit pi stays radians even with degrees preference', async () => {
 
 test('asymptote detection respects the degrees preference', async () => {
   const result = await solveTrigonometry('tan(90)', { angleUnit: 'degrees' });
-  assert.equal(result.answer, 'Undefined');
+  assert.equal(result.answer, 'Undefined — cos(90°) = 0');
 });
 
 test('formatNumber accepts an explicit decimals argument', () => {

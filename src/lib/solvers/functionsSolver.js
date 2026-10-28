@@ -239,8 +239,10 @@ function analyzeFunction(func, variable, Algebrite) {
   const verticalAsymptotes = findVerticalAsymptotes(func, variable, grid, Algebrite);
   const holes = findHoles(func, variable, domain, verticalAsymptotes, Algebrite);
   const xIntercepts = findXIntercepts(func, variable, grid, Algebrite, isPeriodic);
+  // f(0) exactly, as the extrema are: (0, 1/4), not (0, 0.25) beside a
+  // local maximum (0, 1/4).
   const yIntercept = Number.isFinite(evalAt(func, variable, 0))
-    ? { x: 0, y: snap(evalAt(func, variable, 0)) }
+    ? { x: 0, y: snap(evalAt(func, variable, 0)), yText: exactValueAt(Algebrite, func, variable, '0', snap(evalAt(func, variable, 0))) }
     : null;
   let { extrema, monotonic, derivative, stationary, derivativeNeverZero } = findExtrema(func, variable, grid, Algebrite, isPeriodic);
   // Monotonic on the part of the window where f is defined — kept for the
@@ -834,7 +836,8 @@ function buildSteps(func, variable, f) {
 
   // Intercepts
   if (f.yIntercept) {
-    steps.push(`y-intercept: ${mark(`f(0) = ${formatNumber(f.yIntercept.y)}`)}, so the graph crosses the y-axis at ${mark(`(0, ${formatNumber(f.yIntercept.y)})`)}.`);
+    const y0 = f.yIntercept.yText ?? formatNumber(f.yIntercept.y);
+    steps.push(`y-intercept: ${mark(`f(0) = ${y0}`)}, so the graph crosses the y-axis at ${mark(`(0, ${y0})`)}.`);
   }
   if (f.xIntercepts.list.length > 0) {
     const xs = f.xIntercepts.list.map((r) => r.display).join(', ');
@@ -1213,7 +1216,7 @@ function summarizeAnalysis(func, variable, f) {
   }
 
   if (f.range) parts.push(`range: ${f.range.text}`);
-  if (f.yIntercept) parts.push(`y-intercept ${pt(0, f.yIntercept.y)}`);
+  if (f.yIntercept) parts.push(`y-intercept (0, ${f.yIntercept.yText ?? formatNumber(f.yIntercept.y)})`);
   if (interceptPattern) {
     parts.push(`x-intercepts at ${interceptPattern}`);
   } else if (f.xIntercepts.list.length > 0) {

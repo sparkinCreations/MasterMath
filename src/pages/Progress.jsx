@@ -1,7 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Trash2, Download, ChevronDown } from "lucide-react";
+import { BookOpen, Trash2, Download, ChevronDown, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { fetchProblemHistory, clearProblemHistory } from "@/lib/problemHistory";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -251,6 +253,18 @@ export default function Progress() {
                       {countsAsSolved(p) ? 'Solution' : 'Result'}: <Typeset mode="auto" text={String(typeof p.solution === 'string' ? p.solution : p.solution.answer)} />
                     </p>
                   )}
+                  {/* Back to the Solver with this problem and its saved
+                      steps on screen (October 2026 review: history entries
+                      could not be reopened). */}
+                  <Link
+                    to={createPageUrl("Solver")}
+                    state={{ problem: p.problem, topic: p.topic, solution: p.solution }}
+                    aria-label={`Open in Solver: ${p.problem}`}
+                    className="inline-flex items-center gap-1 mt-3 min-h-11 text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 rounded"
+                  >
+                    <span aria-hidden="true">Open in Solver</span>
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </Link>
                 </li>
               ))}
             </ul>

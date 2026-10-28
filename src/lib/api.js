@@ -1,6 +1,6 @@
 import { extractFunctionFromProblem, parseMathExpression, usesCommonLog, matchingParen, extractVariable } from './mathParser.js';
 import { STATUS, isValidStatus, parseError, solved, unsupported } from './solutionEnvelope.js';
-import { bareFunctionName, math, formatNumber, beautify } from './solvers/solverUtils.js';
+import { bareFunctionName, bareFunctionRefusal, math, formatNumber, beautify } from './solvers/solverUtils.js';
 import { stripMathMarkers } from './mathMarkers.js';
 import { readPlainEnglish } from './plainEnglish.js';
 import { readRoundingSpec } from './solvers/numberSolver.js';
@@ -264,6 +264,10 @@ function readRequestPhrases(text) {
   const verb = '(?:please\\s+)?(?:find|calculate|compute|evaluate|determine|what\\s+(?:is|are))';
   // "solve the quadratic equation x^2 - 5x + 6 = 0", "simplify the expression …"
   t = t.replace(/^(simplify|factor(?:ise|ize)?|expand|solve)\s+(?:completely\s+)?(?:the\s+)?(?:(?:quadratic|linear|cubic|polynomial|rational|following|given)\s+)?(?:expression|equation|polynomial|inequality|system(?:\s+of\s+equations)?)?\s*:?\s*(?=\S)/i, (m, v) => `${v.toLowerCase()} `);
+  // A trailing "solve for x" ("2x + 3y = 6, solve for x", "solve 2x + 3y = 6
+  // for x") is the leading form the router knows; it was refused as the
+  // unknown word "forx".
+  t = t.replace(/^(?:solve\s+)?([^=]*[^<>!=]=[^=].*?)\s*,?\s+(?:solve\s+|and\s+solve\s+)?for\s+([a-z])\s*[.?]?$/i, (m, eq, v) => `solve for ${v.toLowerCase()}: ${eq.trim()}`);
   // "calculate the definite integral of …", "find the derivative of …"
   t = t.replace(new RegExp(`^${verb}\\s+(?:the\\s+)?(?:definite\\s+)?(integral|antiderivative|derivative|limit)\\s+of\\s+`, 'i'), (m, what) => `${what.toLowerCase()} of `);
   // Shorthand and a missing "of": "int x^2 dx" and "int_0^1 …" are ∫;
@@ -1176,6 +1180,11 @@ export async function solveProblem(problem, topic) {
     if (topic === 'limits' || topic === 'integrals') {
       const word = unknownWordInProblem(problem);
       if (word) return finalizeResult(unknownWordError(problem, word), problem);
+      // The same check as the single-expression path below: a function name
+      // with nothing to apply it to. These paths skipped it, and the engines
+      // read the name as a symbol ("∫ sec³x dx" = sec·x + C).
+      const bare = bareFunctionName(parseMathExpression(problem));
+      if (bare) return finalizeResult(parseError({ input: problem, ...bareFunctionRefusal(bare) }), problem);
     }
 
     const solver = await resolveSolver(problem, topic);
@@ -1250,13 +1259,7 @@ export async function solveProblem(problem, topic) {
         {
           // parseMathExpression is imported statically at the top of this file.
           const bare = bareFunctionName(parseMathExpression(expression));
-          if (bare) {
-            return finalizeResult(parseError({
-              input: problem,
-              hint: `${bare} needs an argument in parentheses — ${bare}(x), ${bare}(2), ${bare}^2(x).`,
-              tips: [`Every function call needs parentheses: "${bare}(x)", not "${bare} x" or "${bare}" alone.`],
-            }), problem);
-          }
+          if (bare) return finalizeResult(parseError({ input: problem, ...bareFunctionRefusal(bare) }), problem);
         }
         // The extractor strips verbs, so intent has to ride alongside the
         // expression: "factor x^2 - 9" routes to the algebra solver's

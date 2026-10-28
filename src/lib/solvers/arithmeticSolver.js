@@ -74,6 +74,21 @@ function simplifiedRoot(expr) {
   return { N, k, inside, index, sym, text: `${k === 1 ? '' : k}${sym}${inside}` };
 }
 
+// √(−8) → 2√2·i: the square root of a negative whole number in exact form.
+// (2.8284i alone broke the exact-first rule that √8 = 2√2 follows.)
+function imaginaryRoot(expr) {
+  const t = String(expr).replace(/\s+/g, '');
+  const m = t.match(/^(?:sqrt\(-(\d+)\)|\(-(\d+)\)\^\(1\/2\))$/);
+  if (!m) return null;
+  const N = Number(m[1] || m[2]);
+  if (!Number.isSafeInteger(N) || N < 2 || N > 1e9) return null;
+  let k = 1;
+  for (let f = 2; f * f <= N; f += 1) if (N % (f * f) === 0) k = f;
+  const inside = N / (k * k);
+  if (inside === 1) return null; // a perfect square: 2i is already exact
+  return { N, k, inside, text: `${k === 1 ? '' : k}√${inside}·i` };
+}
+
 export function solveArithmetic(expression) {
   try {
     const typed = foldLogs(expression.trim());
@@ -278,7 +293,11 @@ export function solveArithmetic(expression) {
       steps.push(`Simplify the root: pull out the largest ${kind} factor, ${mark(`${root.N} = ${power} × ${root.inside}`)}, so ${mark(`${root.sym}${root.N} = ${root.sym}${power}·${root.sym}${root.inside} = ${root.text}`)}.`);
     }
 
-    const shownAnswer = formatArithmeticResult(result, cleaned, root) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
+    const iRoot = imaginaryRoot(cleaned);
+    if (iRoot) {
+      steps.push(`Take out ${mark('√(−1) = i')}: ${mark(`√(−${iRoot.N}) = √${iRoot.N}·i${iRoot.k > 1 ? ` = ${iRoot.text}` : ''}`)}${iRoot.k > 1 ? `, since ${mark(`√${iRoot.N} = √${iRoot.k * iRoot.k}·√${iRoot.inside} = ${iRoot.k}√${iRoot.inside}`)}` : ''}.`);
+    }
+    const shownAnswer = (iRoot ? `${iRoot.text} (≈ ${formatNumber(result.im)}i)` : formatArithmeticResult(result, cleaned, root)) + (zeroToZero && String(cleaned).replace(/\s/g, '') === '0^0' ? ' (by convention)' : '');
     steps.push(`Final answer: ${mark(shownAnswer)}`);
 
     // "15% of 80" is worked as a product of fractions, but its lesson is
@@ -702,6 +721,21 @@ function arithmeticGuidance(steps, expr) {
       common_mistakes: [
         `Giving ${mark('2')} for ${mark('∛(−8)')}: ${mark('2³ = 8')}, not ${mark('−8')}.`,
         'Saying "no real solution" as if it were a square root.',
+      ],
+    };
+  }
+  // √(−4) = 2i: the lesson is the imaginary unit, not irrational decimals
+  // (the general root tips below mentioned √2 under an answer of 2i).
+  if (/the result is a complex number/.test(text)) {
+    return {
+      tips: [
+        `The imaginary unit is ${mark('i = √(−1)')}, so ${mark('i² = −1')}. A square root of a negative number is a multiple of ${mark('i')}.`,
+        `Take out the ${mark('−1')} first: ${mark('√(−4) = √4·√(−1) = 2i')}, and ${mark('√(−8) = √8·i = 2√2·i')}.`,
+        `Check it by squaring: ${mark('(2i)² = 4i² = −4')}.`,
+      ],
+      common_mistakes: [
+        `Answering ${mark('√(−4) = −2')}: ${mark('(−2)² = 4')}, not ${mark('−4')}. No real number squares to a negative.`,
+        `Using ${mark('√a·√b = √(ab)')} with two negatives: ${mark('√(−4)·√(−9) = 2i·3i = −6')}, not ${mark('√36 = 6')}.`,
       ],
     };
   }

@@ -1,4 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Scale, BookOpen, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -13,7 +15,7 @@ export default function TermsOfService() {
           Terms of Service
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Last Updated: March 10, 2026
+          Last Updated: October 28, 2026
         </p>
       </div>
 
@@ -302,6 +304,23 @@ export default function TermsOfService() {
               providing solutions and maintaining the service functionality on your local device.
             </p>
           </div>
+
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">
+              Feedback You Send Us
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              The Feedback page is the one part of MasterMath that sends anything off your device.
+              When you choose to submit the feedback form, your message and any contact details you
+              add are sent through Web3Forms, a third-party form processing service, and delivered
+              to us. Nothing is sent unless you submit the form. How that data is handled is
+              described in the{" "}
+              <Link to={createPageUrl("PrivacyPolicy")} className="text-indigo-700 dark:text-indigo-300 underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -360,8 +379,9 @@ export default function TermsOfService() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300">
-            You may stop using MasterMath at any time. Since all data is stored locally on your device,
-            you can simply clear your browser data or stop accessing the application. We reserve the
+            You may stop using MasterMath at any time. Since all data is stored locally on your device
+            (apart from any feedback you chose to send), you can simply clear your browser data or stop
+            accessing the application. We reserve the
             right to refuse service to anyone for any reason at any time, though as a client-side
             application, enforcement is limited.
           </p>

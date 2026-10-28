@@ -71,8 +71,10 @@ test('solveTrigonometry recognizes special-angle values', async () => {
 });
 
 test('solveTrigonometry returns Undefined at the tan(pi/2) asymptote', async () => {
+  // Status undefined, as 1/0 is (1.58.0), with the zero denominator named.
   const result = await solveTrigonometry('tan(pi/2)');
-  assert.equal(result.answer, 'Undefined');
+  assert.equal(result.status, 'undefined');
+  assert.equal(result.answer, 'Undefined — cos(π/2) = 0');
   assert.ok(result.steps.some((step) => /vertical asymptote/i.test(step)));
   assert.ok(result.steps.some((step) => /cos\(pi\/2\) = 0/.test(step)));
   assert.ok(result.common_mistakes.some((mistake) => /cos\(x\) = 0/.test(mistake)));
@@ -81,13 +83,13 @@ test('solveTrigonometry returns Undefined at the tan(pi/2) asymptote', async () 
 });
 
 test('solveTrigonometry returns Undefined for other odd multiples of pi/2', async () => {
-  assert.equal((await solveTrigonometry('tan(3*pi/2)')).answer, 'Undefined');
-  assert.equal((await solveTrigonometry('sec(pi/2)')).answer, 'Undefined');
+  assert.equal((await solveTrigonometry('tan(3*pi/2)')).answer, 'Undefined — cos(3π/2) = 0');
+  assert.equal((await solveTrigonometry('sec(pi/2)')).answer, 'Undefined — cos(π/2) = 0');
 });
 
 test('solveTrigonometry returns Undefined for tan(90) via degree detection', async () => {
   const result = await solveTrigonometry('tan(90)');
-  assert.equal(result.answer, 'Undefined');
+  assert.equal(result.answer, 'Undefined — cos(90°) = 0');
   assert.ok(result.steps.some((step) => /degrees/i.test(step)));
   assert.ok(result.steps.some((step) => /vertical asymptote/i.test(step)));
 });

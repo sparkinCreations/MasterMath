@@ -28,11 +28,13 @@ const FN = '(sin|cos|tan|sec|csc|cot)';
 
 // c · Π fn(θ)^p with a shared θ = k·v. Returns { c, k, powers: {fn: p} } or null.
 function readTrigProduct(term, v) {
-  const t = String(term).replace(/\s+/g, '');
-  const head = t.match(/^([+-]?)(\d+(?:\.\d+)?(?:\/\d+)?)?\*?(?=[a-z])/);
+  // (sec(x))^3 is how the parser writes sec^3(x) and sec³x: the same factor.
+  const t = String(term).replace(/\s+/g, '').replace(new RegExp(`\\(${FN}\\(([^()]*)\\)\\)(?=\\^)`, 'g'), '$1($2)');
+  const head = t.match(/^([+-]?)(?:(\d+(?:\.\d+)?)(?:\/(\d+))?)?\*?(?=[a-z])/);
   if (!head) return null;
   const sign = head[1] === '-' ? -1 : 1;
-  const c = sign * (head[2] ? Number(eval(head[2])) : 1); // eslint-disable-line no-eval -- a digit/slash literal matched above
+  // Never eval: the CSP forbids it (no 'unsafe-eval').
+  const c = sign * (head[2] ? Number(head[2]) / (head[3] ? Number(head[3]) : 1) : 1);
   if (!Number.isFinite(c) || c === 0) return null;
   let rest = t.slice(head[0].length);
   const factorRe = new RegExp(`^${FN}\\(((?:\\d+(?:\\.\\d+)?\\*?)?${v})\\)(?:\\^(\\d+))?(?:\\*|$)`);
@@ -56,12 +58,30 @@ function readTrigProduct(term, v) {
 
 // fn^p(θ) as a textbook writes it.
 const powText = (fn, theta, p) => (p === 1 ? `${fn}(${theta})` : p === 2 ? `${fn}²(${theta})` : p === 3 ? `${fn}³(${theta})` : `${fn}(${theta})^${p}`);
-const coefText = (c) => (c === 1 ? '' : c === -1 ? '−' : `${formatNumber(c)}·`);
+// A coefficient read from "1/2 sec(x)^3" is the number 0.5: written back as
+// the fraction it came from, p/q, when one with a small denominator is exact.
+function asFraction(x) {
+  for (let q = 1; q <= 1000; q += 1) {
+    const p = Math.round(x * q);
+    if (Math.abs(p / q - x) < 1e-12) {
+      const g = gcd(Math.abs(p), q);
+      return { p: p / g, q: q / g };
+    }
+  }
+  return null;
+}
+const coefText = (c) => {
+  if (c === 1) return '';
+  if (c === -1) return '−';
+  const f = asFraction(c);
+  return `${f && f.q !== 1 ? `${f.p}/${f.q}` : formatNumber(c)}·`;
+};
 // c/k as an exact-looking factor for the steps and as a mathjs/Algebrite number.
 function factorOf(c, k) {
   const value = c / k;
-  const text = Number.isInteger(value) ? String(value) : (Number.isInteger(c) && Number.isInteger(k) ? `${c}/${k}` : formatNumber(value));
-  return { value, text, raw: Number.isInteger(c) && Number.isInteger(k) ? `(${c}/${k})` : String(value) };
+  const f = asFraction(value);
+  if (f) return { value, text: f.q === 1 ? String(f.p) : `${f.p}/${f.q}`, raw: f.q === 1 ? `(${f.p})` : `(${f.p}/${f.q})` };
+  return { value, text: formatNumber(value), raw: String(value) };
 }
 const times = (factor, body) => (factor.text === '1' ? body : factor.text === '-1' ? `−${body}` : `${factor.text}·${body}`);
 
@@ -192,7 +212,8 @@ function secantOdd(ctx, fn, n, term) {
     const [a, b] = [num / g, den / g];
     return b === 1 ? String(a) : `${a}/${b}`;
   };
-  const withScale = (num, den) => (Number.isInteger(c) && Number.isInteger(k) ? frac(num * c, den * k) : String((num / den) * scale.value));
+  const sf = asFraction(scale.value);
+  const withScale = (num, den) => (sf ? frac(num * sf.p, den * sf.q) : String((num / den) * scale.value));
   const pieces = terms.map(([num, den, p]) => `${withScale(num, den)}*${fn}(${argRaw})${p === 1 ? '' : `^${p}`}*${co}(${argRaw})`);
   pieces.push(`${withScale(bn, bd)}*${baseRaw}`);
   const F = pieces.join(' + ').replace(/\+ -/g, '- ').replace(/(?<![\d/])1\*/g, '');
@@ -225,7 +246,8 @@ function tangentPower(ctx, fn, m, term) {
     const [a, b] = [num / g, den / g];
     return b === 1 ? String(a) : `${a}/${b}`;
   };
-  const withScale = (num, den) => (Number.isInteger(c) && Number.isInteger(k) ? frac(num * c, den * k) : String((num / den) * scale.value));
+  const sf = asFraction(scale.value);
+  const withScale = (num, den) => (sf ? frac(num * sf.p, den * sf.q) : String((num / den) * scale.value));
   const pieces = [];
   let signJ = 1;
   let p = m;

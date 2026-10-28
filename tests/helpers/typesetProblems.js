@@ -99,6 +99,10 @@ export const CONVERTED = [
   ['other', '-3^2'], ['other', '17 mod 5'], ['other', '2^10'], ['other', '(1/2)^3'], ['other', '2^0.5'], ['other', '5 - 8'], ['other', '0.1 + 0.2'], ['other', '100 / 8'],
   ['other', 'sqrt(16) + sqrt(9)'], ['other', '(-8)^(1/3)'], ['auto', 'lcm of 4 and 6'], ['other', 'abs(3+4i)'], ['other', '(2+3i)+(1-i)'], ['other', 'i^10'], ['other', '(2+3i)*(1-i)'],
   ['auto', 'round 1250 to the nearest hundred'], ['derivatives', 'arctan(2x)'],
+  // 1.58.0: superscript trig powers, trig substitution worked in θ, x⁴ + 4 by Sophie Germain, x/0, √ of negatives, ln x by parts, solve-for-y.
+  ['integrals', '∫ sec³x dx'], ['integrals', '∫ sin^2(x) cos^3(x) dx'], ['integrals', 'ln(x)'], ['integrals', 'x*ln(x)'], ['integrals', '1/(x^4+4)'],
+  ['integrals', 'sqrt(x^2+4)'], ['integrals', 'x^2/sqrt(9-x^2)'], ['integrals', '1/(x^2+9)^(3/2)'], ['integrals', 'sqrt(x^2-4)/x'], ['integrals', '1/sqrt(x^2-9)'], ['integrals', '1/(x^2*sqrt(x^2-1))'],
+  ['algebra', 'x/0 = 1'], ['algebra', '2x + 3y = 6'], ['other', 'sqrt(-4)'], ['other', 'sqrt(-8)'], ['trigonometry', 'sin(x) = 2'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

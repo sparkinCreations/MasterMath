@@ -17,6 +17,7 @@ import {
   gcd,
   mark,
   stripMathMarkers,
+  absBars,
 } from './solverUtils.js';
 import { parseError, unsupported, undefinedValue } from '../solutionEnvelope.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
@@ -264,7 +265,7 @@ export async function solveLimit(expression) {
         return parseError({
           input: expression,
           steps: [
-            `${mark(beautify(func))} reads fine as an expression, but no approach point was given.`,
+            `${mark(absBars(beautify(func)))} reads fine as an expression, but no approach point was given.`,
             `A limit needs one: the same expression has different limits at different points (where does ${mark(variable)} go?).`,
           ],
           hint: `No approach point was given — a limit needs one (where does ${variable} go?).`,
@@ -326,7 +327,7 @@ export async function solveLimit(expression) {
     if (hit) {
       return {
         steps: [
-          `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}`,
+          `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`,
           `${mark(`${hit.func}(${hit.argDisplay})`)} is undefined — ${mark(hit.identity)}, and ${mark(`${hit.denom}(${hit.argDisplay}) = 0`)}, so the graph has a vertical asymptote there.`,
           `The expression inside the limit is undefined for every ${mark(variable)}, so the limit is undefined as well.`,
         ],
@@ -351,9 +352,9 @@ export async function solveLimit(expression) {
       if (typeof value === 'number' && !Number.isFinite(value)) {
         return undefinedValue({
           input: expression,
-          reason: `${beautify(func)} divides by zero: it is undefined for every ${variable}, so it has no limit`,
+          reason: `${absBars(beautify(func))} divides by zero: it is undefined for every ${variable}, so it has no limit`,
           steps: [
-            `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}.`,
+            `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}.`,
             `The expression has no ${mark(variable)} in it, and it divides by zero: it is undefined for every ${mark(variable)}, not just near ${mark(displayTarget)}.`,
             'A limit describes what a function approaches near a point where it is defined around it. Here it is defined nowhere, so the limit does not exist.',
           ],
@@ -379,11 +380,11 @@ export async function solveLimit(expression) {
       if (sym) {
         return {
           steps: [
-            `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}`,
-            `The expression also contains ${mark(otherSymbol)}, which stays symbolic — so simplify first: ${mark(`${beautify(func)} = ${beautify(sym.simplified)}`)}`,
+            `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`,
+            `The expression also contains ${mark(otherSymbol)}, which stays symbolic — so simplify first: ${mark(`${absBars(beautify(func))} = ${beautify(sym.simplified)}`)}`,
             `Now substitute ${mark(`${variable} = ${displayTarget}`)}: ${mark(beautify(sym.substituted))}`,
           ],
-          answer: `lim (${variable}→${displayTarget}) ${beautify(func)} = ${beautify(sym.substituted)}`,
+          answer: `lim (${variable}→${displayTarget}) ${absBars(beautify(func))} = ${beautify(sym.substituted)}`,
           tips: ['When the expression has a parameter, simplify algebraically until the limit variable can be substituted directly.', 'This is exactly the difference-quotient limit that defines the derivative.'],
           common_mistakes: [`Substituting before simplifying and stopping at ${mark('0/0')}.`],
           graph: null,
@@ -404,14 +405,14 @@ export async function solveLimit(expression) {
         : await evaluateFiniteLimit(func, variable, target);
 
     const steps = [
-      `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${beautify(func)}`)}`,
+      `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`,
       ...result.steps,
     ];
 
     return {
       steps,
       // "lim (x→0) 1/x does not exist", not "lim … = Does not exist".
-      answer: `lim (${variable}→${displayTarget}) ${beautify(func)}${result.answer === 'Does not exist' ? ' does not exist' : ` = ${result.answer}`}`,
+      answer: `lim (${variable}→${displayTarget}) ${absBars(beautify(func))}${result.answer === 'Does not exist' ? ' does not exist' : ` = ${result.answer}`}`,
       verified: result.verified ?? false,
       verificationMethod: result.verified ? (result.verificationMethod ?? 'numeric check') : null,
       tips: side !== 0 ? [
@@ -917,7 +918,7 @@ function trySqueezeAtInfinity(func, variable, target) {
   const toward = target === Infinity ? '∞' : '−∞';
   const steps = [
     `${mark(`${fn}(${beautify(call.arg)})`)} never settles, but it is bounded: ${mark(`−1 ≤ ${fn}(${beautify(call.arg)}) ≤ 1`)}.`,
-    `Divide through by ${mark(beautify(den))}: ${mark(`−1/${beautify(den)} ≤ ${beautify(func)} ≤ 1/${beautify(den)}`)}.`,
+    `Divide through by ${mark(beautify(den))}: ${mark(`−1/${beautify(den)} ≤ ${absBars(beautify(func))} ≤ 1/${beautify(den)}`)}.`,
     `Both bounds ${mark('→ 0')} as ${mark(`${v} → ${toward}`)}, so by the squeeze theorem the limit is ${mark('0')}.`,
   ];
   return { steps, answer: '0', verified: verifyInfiniteLimit(func, v, target, 0), verificationMethod: 'squeeze theorem + numeric check' };
@@ -1490,7 +1491,7 @@ function generateLimitGraph(func, variable, target, displayTarget, limitAnswer) 
 
       return {
         points,
-        title: `Graph of f(${variable}) = ${beautify(func)}`,
+        title: `Graph of f(${variable}) = ${absBars(beautify(func))}`,
         description: `Showing the behavior as ${variable} approaches ${displayTarget}`,
         annotations,
         initialWindow: Number.isFinite(target) ? { xMin: center - 10, xMax: center + 10 } : null,

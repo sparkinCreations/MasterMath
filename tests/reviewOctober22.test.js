@@ -86,7 +86,8 @@ test('an integrand keeps brackets that are not a pair, and quotation marks stay 
 test('a y after an operator is part of an equation, never a "y = …" definition', async () => {
   // "x*y = 1" was read as the definition "y = 1" and answered "1", Solved;
   // so were x + y = 1, x - y = 0 and x/y = 2 (1.53.0).
-  for (const [p, answer] of [['x*y = 1', 'x = 1/y'], ['x + y = 1', 'x = -y + 1'], ['x - y = 0', 'x = y'], ['x/y = 2', 'x = 2y'], ['2*x*y = 4', 'x = 2/y']]) {
+  // (Solved for y since 1.58.0; x/y = 2 falls back to x, the y it cannot isolate.)
+  for (const [p, answer] of [['x*y = 1', 'y = 1/x'], ['x + y = 1', 'y = -x + 1'], ['x - y = 0', 'y = x'], ['x/y = 2', 'x = 2y'], ['2*x*y = 4', 'y = 2/x']]) {
     const r = await solveProblem(p, 'algebra');
     assert.equal(r.status, 'solved', p);
     assert.equal(r.answer, answer, p);

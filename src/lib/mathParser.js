@@ -179,6 +179,15 @@ export function parseMathExpression(input) {
     .replace(/\b(sin|cos|tan)\s*(?:\^\s*\(?\s*-\s*1\s*\)?|⁻¹)\s*(?=\()/gi, (_, fn) => `arc${fn.toLowerCase()}`)
     .replace(/\ba(sin|cos|tan)\b(?!h)/gi, (_, fn) => `arc${fn.toLowerCase()}`);
 
+  // A superscript on a function name is the same notation: sin²x, sec³(x).
+  // Read as ^n first; the superscript rule further down only follows a
+  // letter, digit or ")", and "sec³x" reached the engines as the symbol
+  // sec times x (∫ sec³x dx was answered sec·x + C).
+  cleaned = cleaned.replace(
+    new RegExp(`(?<![a-z])(${POWER_NOTATION_FUNCTIONS.join('|')})\\s*([⁰¹²³⁴⁵⁶⁷⁸⁹]+)`, 'gi'),
+    (_, fn, sup) => `${fn}^${[...sup].map((ch) => '⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(ch)).join('')}`
+  );
+
   // Textbook power notation on a function: sin^2(x) means (sin(x))^2, never
   // "sin squared, times x". Left alone, the implicit-multiplication rules
   // below turned it into `sin^2*(x)` — a BARE function name, which Algebrite
@@ -220,7 +229,9 @@ export function parseMathExpression(input) {
   // A closing paren, digit or letter followed by a space and a function
   // name: "e^x sin(x)", "(x+1) cos(x)".
   cleaned = cleaned.replace(
-    new RegExp(`([a-z0-9)])\\s+(?=(?:${POWER_NOTATION_FUNCTIONS.join('|')}|sqrt|exp|abs)\\s*\\()`, 'gi'),
+    // The optional "(" allows a power already rewritten: "sin^2(x) cos^3(x)" is
+    // "(sin(x))^2 (cos(x))^3" here, and fused to ^2(cos(x)) without the *.
+    new RegExp(`([a-z0-9)])\\s+(?=\\(?(?:${POWER_NOTATION_FUNCTIONS.join('|')}|sqrt|exp|abs)\\s*\\()`, 'gi'),
     '$1*'
   );
 

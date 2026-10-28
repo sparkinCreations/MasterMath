@@ -114,8 +114,8 @@ test('y = f(x) and f(x) = … under Derivatives are differentiated, not "already
 });
 
 test('the implicit route leaves the other topics and one-variable equations alone', async () => {
-  // Algebra still solves a two-variable equation for x; Functions still reads y = … as a function.
-  assert.match((await solveProblem('x^2 + y^2 = 25', 'algebra')).answer, /^x = /);
+  // Algebra still solves a two-variable equation (for y since 1.58.0); Functions still reads y = … as a function.
+  assert.match((await solveProblem('x^2 + y^2 = 25', 'algebra')).answer, /^y = /);
   assert.match((await solveProblem('y = x^2', 'functions')).answer, /^f\(x\) = x\^2: domain/);
   // One variable under Derivatives is still an equation to solve.
   assert.equal((await solveProblem('x^2 = 4', 'derivatives')).answer, 'x = -2  or  x = 2');
