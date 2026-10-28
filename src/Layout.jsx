@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, Calculator, History, BookOpen, HelpCircle, MessageSquare, Moon, Sun, Settings } from "lucide-react";
+import { Home, Calculator, History, BookOpen, HelpCircle, MessageSquare, Moon, Sun, Settings, Scale } from "lucide-react";
 import pkg from "../package.json";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import {
@@ -43,6 +43,11 @@ const navigationItems = [
     title: "FAQ",
     url: createPageUrl("FAQ"),
     icon: HelpCircle,
+  },
+  {
+    title: "How It Compares",
+    url: createPageUrl("Compare"),
+    icon: Scale,
   },
   {
     title: "Feedback & Support",

@@ -10,7 +10,7 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const PAGES = ['/', '/solver', '/progress', '/usermanual', '/faq', '/privacypolicy', '/termsofservice', '/feedback', '/settings'];
+const PAGES = ['/', '/solver', '/progress', '/usermanual', '/faq', '/compare', '/privacypolicy', '/termsofservice', '/feedback', '/settings'];
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 // Audit the page in its final state: the solution card and steps fade in

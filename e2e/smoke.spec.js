@@ -395,6 +395,22 @@ test.describe('MasterMath smoke', () => {
     await expect(page.locator('html')).toHaveClass(/dark/);
   });
 
+  // The comparison is a dated, sourced table one click from the home page (1.58.0).
+  test('the home page links to the comparison, a real table with its date and sources', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('link', { name: /See how MasterMath compares/ }).click();
+    await expect(page).toHaveURL(/\/compare$/);
+    await expect(page).toHaveTitle(/How MasterMath Compares/);
+    await expect(page.getByText(/Checked on \w+ \d+, 20\d\d/)).toBeVisible();
+    const table = page.getByRole('table');
+    await expect(table.getByRole('columnheader')).toHaveText(['Feature', 'MasterMath', 'Photomath', 'Symbolab', 'Mathway*', 'Wolfram|Alpha']);
+    await expect(table.getByRole('rowheader', { name: 'Step-by-step solutions for free' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Photomath' })).toHaveAttribute('href', 'https://photomath.com/');
+    // The table scrolls inside its own box on a phone; the page never scrolls sideways.
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
   test('every page is reachable from the sidebar and an unknown URL gets a not-found page', async ({ page }) => {
     await page.goto('/');
     for (const [path, heading] of [
@@ -402,6 +418,7 @@ test.describe('MasterMath smoke', () => {
       ['/progress', /Learning Journey/],
       ['/usermanual', /User Manual|Manual/],
       ['/faq', /Frequently Asked|FAQ/],
+      ['/compare', /How MasterMath Compares/],
       ['/settings', /Settings/],
     ]) {
       // The sidebar starts collapsed (and inert); open it for each hop, since

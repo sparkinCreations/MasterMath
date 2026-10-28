@@ -17,6 +17,7 @@ const Solver = lazy(() => import('./pages/Solver'));
 const Progress = lazy(() => import('./pages/Progress'));
 const UserManual = lazy(() => import('./pages/UserManual'));
 const FAQ = lazy(() => import('./pages/FAQ'));
+const Compare = lazy(() => import('./pages/Compare'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const Feedback = lazy(() => import('./pages/Feedback'));
@@ -82,6 +83,7 @@ function AppContent() {
               <Route path="/progress" element={<Progress />} />
               <Route path="/usermanual" element={<UserManual />} />
               <Route path="/faq" element={<FAQ />} />
+              <Route path="/compare" element={<Compare />} />
               <Route path="/privacypolicy" element={<PrivacyPolicy />} />
               <Route path="/termsofservice" element={<TermsOfService />} />
               <Route path="/feedback" element={<Feedback />} />

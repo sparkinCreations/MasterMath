@@ -65,6 +65,14 @@ integrals, then the presentation and app gaps it listed.
 - **How x⁴ + 4 factors.** The partial-fraction working shows the
   difference of squares, `(x² + 2)² − (2x)²`, for every `x⁴ + c` that
   factors that way.
+- **How MasterMath compares.** A new page, linked from the home page and
+  the menu, sets MasterMath beside Photomath, Symbolab, Mathway and
+  Wolfram|Alpha in a real table: free step-by-step, paid plans, account,
+  offline, where problems go, input and open source. It is dated, every
+  competitor cell comes from that vendor's own page (Mathway's site refuses
+  automated requests, so its column is marked as taken from reviews), and a
+  section says when another tool is the better choice. The home page itself
+  claims only what MasterMath does.
 - **Reopen a problem from My Progress.** Each history entry has an
   "Open in Solver" link that shows its saved solution and graph again
   (nothing is re-solved or saved twice).

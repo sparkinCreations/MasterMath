@@ -117,8 +117,17 @@ export default function Home() {
               </Button>
             </div>
 
-            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-6 md:mb-8 px-2 lg:px-0">
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-2 px-2 lg:px-0">
               Solved locally · No account · Works offline
+            </p>
+            {/* The comparison lives on its own dated, sourced page (1.58.0);
+                the home page only claims what MasterMath itself does. */}
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-6 md:mb-8 px-2 lg:px-0">
+              Full step-by-step solutions, free on every problem.{" "}
+              <Link to={createPageUrl("Compare")} className="inline-flex items-center gap-1 min-h-11 font-medium text-indigo-700 dark:text-indigo-300 underline">
+                See how MasterMath compares
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </Link>
             </p>
 
             {/* GitHub Link */}
