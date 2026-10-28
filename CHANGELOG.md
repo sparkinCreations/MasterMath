@@ -54,6 +54,9 @@ finds is estimated numerically instead of refused.
 
 ### Fixed
 
+- **eˣ/x, e⁻ˣ/x, cos x/x and 1/ln x** are refused with their special
+  function named (Ei, −Ei(−x), Ci, li), as sin x/x already was with Si,
+  instead of "may well have an elementary answer".
 - **First-person messages** ("I could not compute this definite integral",
   "I was unable to read this as a 2×2 linear system", "I could not read this
   as a single inequality") now say what could not be done, in the solver's

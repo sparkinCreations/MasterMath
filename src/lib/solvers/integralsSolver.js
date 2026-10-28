@@ -37,6 +37,11 @@ const NON_ELEMENTARY_NOTES = [
   [/^(?:e\^\(?-[a-z]\^2\)?|exp\(-[a-z]\^2\))$/i, 'its antiderivative is related to the error function erf(x), which is not elementary'],
   [/^(?:e\^\(?[a-z]\^2\)?|exp\([a-z]\^2\))$/i, 'its antiderivative is related to the imaginary error function erfi(x), which is not elementary'],
   [/^sin\([a-z]\)\/[a-z]$/i, 'its antiderivative is the sine integral Si(x), which is not elementary'],
+  [/^cos\([a-z]\)\/[a-z]$/i, 'its antiderivative is the cosine integral Ci(x), which is not elementary'],
+  [/^(?:e\^[a-z]|e\^\([a-z]\)|exp\([a-z]\))\/[a-z]$/i, 'its antiderivative is the exponential integral Ei(x), which is not elementary'],
+  [/^(?:e\^\(?-[a-z]\)?|exp\(-[a-z]\))\/[a-z]$/i, 'its antiderivative is the exponential integral −Ei(−x), which is not elementary'],
+  [/^1\/(?:ln|log)\([a-z]\)$/i, 'its antiderivative is the logarithmic integral li(x), which is not elementary'],
+  [/^(?:ln|log)\([a-z]\)\/\([a-z][+-]1\)$/i, 'its antiderivative is a dilogarithm, which is not elementary'],
 ];
 
 function nonElementaryNote(expression) {

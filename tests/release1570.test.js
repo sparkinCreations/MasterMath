@@ -85,6 +85,12 @@ test('a definite integral with no antiderivative is estimated numerically, and s
   const slow = await solve('∫_1^∞ 1/x^1.1 dx');
   assert.equal(slow.status, 'unsupported');
   assert.match(plain(slow), /do not settle/);
+  // Famous non-elementary integrands say which special function, never "may have an elementary answer".
+  assert.match((await solve('e^x/x')).answer, /exponential integral Ei\(x\)/);
+  assert.match((await solve('e^(-x)/x')).answer, /exponential integral −Ei\(−x\)/);
+  assert.match((await solve('cos(x)/x')).answer, /cosine integral Ci\(x\)/);
+  assert.match((await solve('1/ln(x)')).answer, /logarithmic integral li\(x\)/);
+  assert.equal((await solve('∫_1^2 e^x/x dx')).answer, '∫_1^2 (e^x/x) dx ≈ 3.0591 (numerical)');
   // The indefinite path's tip is now true of its own example.
   const indefinite = await solve('sqrt(1+x^4)');
   assert.equal(indefinite.status, 'unsupported');
