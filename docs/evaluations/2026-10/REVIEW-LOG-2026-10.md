@@ -243,6 +243,7 @@ case now runs in `tests/octoberTestList.test.js`.
 | sec³x, sin²x·cos³x, 1/(1 + eˣ), √x/(1 + x) refused | Confirmed (four of four) | 1.57.0 (reduction formula; odd-power split; u = eˣ; x = u²) |
 | tan x, sin³x and 1/(x²√(x² + 9)) each had three steps that name no method | Confirmed; the last was labelled "u-substitution" with no u shown | 1.57.0 (tan derived; sin³x worked by the odd-power split; "Trigonometric substitution" with the substitution named) |
 | Found in the sweep: tan²x and x³/(x − 1) refused; ∫sec x shown as ln\|tan(x/2 + π/4)\| | — | 1.57.0 |
+| Second note (live site, 1.56.4): 1/(x⁴ + 1), 1/(x⁵ + 1), sec³x, tan³x refused; eˣ/x and sin x/x refused as non-elementary | 1/(x⁴ + 1), sec³x, tan³x were already in the 1.57.0 branch; 1/(x⁵ + 1) needed partial fractions over a real factorisation with surd coefficients; eˣ/x lacked its special-function note (Ei) | 1.57.0 |
 
 ## Round 19 (outside review: the contradictory notice, word problems, history on one device, 1.56.3)
 

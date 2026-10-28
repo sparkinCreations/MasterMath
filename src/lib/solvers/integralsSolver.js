@@ -23,6 +23,7 @@ import { integrateByParts, needsByParts } from './byPartsSolver.js';
 import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerically } from './substitutionSolver.js';
 import { integrateByTrigSubstitution } from './trigSubstitutionSolver.js';
 import { integrateTrigPower } from './trigPowerSolver.js';
+import { integrateBySurdPartialFractions } from './surdPartialFractions.js';
 import { readPolynomial } from './polynomialRoots.js';
 import { parseError, unsupported, diverges } from '../solutionEnvelope.js';
 import { stripMathMarkers } from '../mathMarkers.js';
@@ -165,7 +166,11 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     // Trust gate: the derivative of the antiderivative must equal the integrand.
     // Algebrite differentiates the result when it can; when it can't (it has
     // no abs), a numeric derivative check decides instead of failing closed.
-    const dRaw = safeRunLocal(Algebrite, `d(${integral}, ${variable})`);
+    // A result built with full-precision decimals or nested radicals (the
+    // surd partial fractions) is checked numerically: Algebrite's derivative
+    // of a 17-digit float is not something mathjs reads back reliably.
+    const numericOnly = perTerm.some((r) => r.numericCheck);
+    const dRaw = numericOnly ? null : safeRunLocal(Algebrite, `d(${integral}, ${variable})`);
     // An unevaluated d(...) inside the derivative (Algebrite met abs) is not
     // a derivative it could take — fall through to the numeric check.
     const dCheck = dRaw && !isUnevaluatedOperator(dRaw) ? dRaw : null;
@@ -272,11 +277,19 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
         : 'Skipping the check: differentiate the result and compare it with the integrand.',
     ];
 
-    const shownIntegral = usesErf ? prettyErf(integral) : dropBarsOnPositiveArguments(lnify(integral), integral, variable);
+    // A term that brings its own display (surd partial fractions: nested
+    // radicals and ≈ coefficients that lnify would not tidy) is shown as it
+    // wrote itself, when every term has one.
+    const ownDisplay = perTerm.length > 0 && perTerm.length === terms.length && perTerm.every((r) => r.shown);
+    const shownIntegral = usesErf ? prettyErf(integral) : ownDisplay ? perTerm.map((r) => r.shown).join(' + ').replace(/\+ −/g, '− ') : dropBarsOnPositiveArguments(lnify(integral), integral, variable);
+    if (ownDisplay && steps.length) {
+      const approx = perTerm.some((r) => r.approximate);
+      steps[steps.length - 1] = `Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} ${approx ? '≈' : '='} ${shownIntegral} + C`)}.`;
+    }
     return {
       steps,
       // ∫(x − x) dx: the antiderivative is the constant alone, not "0 + C".
-      answer: `∫(${beautify(expression)}) d${variable} = ${shownIntegral.trim() === '0' ? 'C' : `${shownIntegral} + C`}`,
+      answer: `∫(${beautify(expression)}) d${variable} ${perTerm.some((r) => r.approximate) ? '≈' : '='} ${shownIntegral.trim() === '0' ? 'C' : `${shownIntegral} + C`}`,
       tips: [...new Set(tips)],
       common_mistakes: [...new Set(common_mistakes)],
       graph: generateIntegralGraph(expression, integral, variable, shownIntegral),
@@ -509,6 +522,10 @@ async function integrateTerm(term, variable, Algebrite) {
       if (quartic) return { antideriv: quartic.antiderivative, steps: quartic.steps, method: 'partial fractions', term };
       const pfFirst = integrateByPartialFractions(term, variable, Algebrite) || integrateByGeneralPartialFractions(term, variable, Algebrite);
       if (pfFirst) return { antideriv: pfFirst.antiderivative, steps: pfFirst.steps, method: 'partial fractions', term };
+      // A denominator that factors over the reals but not the rationals
+      // (x⁵ + 1, x³ − 2): the factors from its roots, coefficients as surds.
+      const surd = integrateBySurdPartialFractions(term, variable);
+      if (surd) return { antideriv: surd.antiderivative, steps: surd.steps, method: 'partial fractions', term, shown: surd.shown, numericCheck: true, approximate: surd.approximate };
     }
     // Any improper polynomial fraction, whatever its denominator: divide
     // first (x^2/(x − 1) = x + 1 + 1/(x − 1)), as it is taught.
@@ -543,7 +560,7 @@ async function integrateTerm(term, variable, Algebrite) {
 
   // Rational functions Algebrite gives up on (1/(x²+x)): partial fractions
   // over distinct real linear factors, verified by differentiation.
-  const pf = integrateByPartialFractions(term, variable, Algebrite) || integrateByGeneralPartialFractions(term, variable, Algebrite);
+  const pf = integrateByPartialFractions(term, variable, Algebrite) || integrateByGeneralPartialFractions(term, variable, Algebrite) || integrateBySurdPartialFractions(term, variable);
   if (pf) {
     return { antideriv: pf.antiderivative, steps: pf.steps, method: 'partial fractions', term };
   }
@@ -735,7 +752,7 @@ function integrateImproperRational(term, v, Algebrite) {
   const antiQ = run(`integral(${Q}, ${v})`);
   if (!antiQ) return null;
   const rest = R === '0' ? null : `(${R})/(${den})`;
-  let pf = rest ? (integrateByPartialFractions(rest, v, Algebrite) || integrateByGeneralPartialFractions(rest, v, Algebrite)) : null;
+  let pf = rest ? (integrateByPartialFractions(rest, v, Algebrite) || integrateByGeneralPartialFractions(rest, v, Algebrite) || integrateBySurdPartialFractions(rest, v)) : null;
   // A remainder over a linear denominator (x³/(x − 1) leaves 1/(x − 1)) is
   // one logarithm, no decomposition needed.
   if (rest && !pf && degD === 1) {
@@ -1292,6 +1309,12 @@ function rawSubst(Algebrite, F, variable, at) {
 }
 
 // ∫_a^∞, ∫_-∞^b, ∫_-∞^∞ — as lim_{t→∞} ∫_a^t f, via the antiderivative.
+// "= 1/3 (≈ 0.3333)" or "≈ 0.8883": a value that is only a decimal is not
+// introduced by "=".
+function eqOrApprox(valueText) {
+  return valueText.startsWith('≈') ? valueText : `= ${valueText}`;
+}
+
 function finiteBoundValue(raw) {
   return Number(math.evaluate(String(raw).replace(/π/g, 'pi')));
 }
@@ -1498,8 +1521,8 @@ async function solveImproperInfinite(parsed, notation) {
     }
   } catch { exactText = null; }
   const approx = formatNumber(value);
-  const valueText = exactText && exactText !== approx ? `${exactText} (≈ ${approx})` : (exactText || approx);
-  steps.push(`Subtract: ${mark(`${upText} − (${lowText}) = ${valueText}`)}. The limit is finite, so the integral converges.`);
+  const valueText = exactText && exactText !== approx ? `${exactText} (≈ ${approx})` : (exactText || `≈ ${approx}`);
+  steps.push(`Subtract: ${mark(`${upText} − (${lowText}) ${eqOrApprox(valueText)}`)}. The limit is finite, so the integral converges.`);
 
   // Cross-check by quadrature over a long finite stretch.
   const lo = lowerInf ? -200 : finiteBoundVal(lowerRaw);
@@ -1517,7 +1540,7 @@ async function solveImproperInfinite(parsed, notation) {
 
   return {
     steps,
-    answer: `${notation} = ${valueText}`,
+    answer: `${notation} ${eqOrApprox(valueText)}`,
     tips: [
       `An improper integral is a limit: replace the infinite bound by ${mark('t')}, integrate, then let ${mark('t → ∞')}.`,
       `It converges when that limit is finite; ${mark('∫₁^∞ 1/x^p dx')} converges exactly when ${mark('p > 1')}.`,
@@ -1632,6 +1655,7 @@ async function solveDefiniteIntegral(parsed) {
     // Still cross-checked against Simpson below, and still refused if the two
     // disagree.
     let ftcF = null;
+    let decimalOnly = false;
     if (badExact || !Number.isFinite(exactValue)) {
       ftcF = await antiderivativeViaTerms(integrand, v, Algebrite);
       if (ftcF) {
@@ -1663,6 +1687,7 @@ async function solveDefiniteIntegral(parsed) {
             }
           } catch { /* fall back to the numeric form */ }
           exactRaw = symbolic || exactValueToRaw(exactValue);
+          decimalOnly = !symbolic && !/^-?\d+(?:\/\d+)?$/.test(exactRaw);
         } else {
           ftcF = null;
         }
@@ -1708,7 +1733,9 @@ async function solveDefiniteIntegral(parsed) {
     const exactDisplay = formatExactValue(exactRaw);
     const isCleanValue = /^-?\d+$/.test(exactRaw.replace(/\s/g, ''));
     const approx = formatNumber(exactValue);
-    const valueText = isCleanValue || exactDisplay === approx ? exactDisplay : `${exactDisplay} (≈ ${approx})`;
+    // A value that is only a decimal (the antiderivative has no exact form
+    // Algebrite can evaluate at the bounds) is an approximation, and says so.
+    const valueText = decimalOnly ? `≈ ${approx}` : isCleanValue || exactDisplay === approx ? exactDisplay : `${exactDisplay} (≈ ${approx})`;
 
     const steps = [`Evaluate the definite integral ${mark(notation)}.`];
     if (hasAntideriv) {
@@ -1718,7 +1745,7 @@ async function solveDefiniteIntegral(parsed) {
       const Fa = evalAntiderivAt(Algebrite, F, v, lowerRaw);
       if (Fb !== null && Fa !== null) {
         steps.push(`Evaluate at the bounds: ${mark(`F(${upperLabel}) = ${Fb}`)} and ${mark(`F(${lowerLabel}) = ${Fa}`)}.`);
-        steps.push(`Subtract: ${mark(`F(${upperLabel}) − F(${lowerLabel}) = ${valueText}`)}.`);
+        steps.push(`Subtract: ${mark(`F(${upperLabel}) − F(${lowerLabel}) ${eqOrApprox(valueText)}`)}.`);
       } else {
         steps.push(`Evaluate ${mark('F')} at the two bounds and subtract to get ${mark(valueText)}.`);
       }
@@ -1730,7 +1757,7 @@ async function solveDefiniteIntegral(parsed) {
 
     return {
       steps,
-      answer: `${notation} = ${valueText}`,
+      answer: `${notation} ${eqOrApprox(valueText)}`,
       verified: true,
       verificationMethod: 'Fundamental Theorem of Calculus + numeric quadrature',
       tips: [
@@ -2162,7 +2189,7 @@ async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw, upper
 
     return {
       steps,
-      answer: `${notation} = ${valueText}`,
+      answer: `${notation} ${eqOrApprox(valueText)}`,
       verified: true,
       verificationMethod: 'one-sided limit of the antiderivative + graded numeric quadrature',
       tips: [
@@ -2288,7 +2315,7 @@ async function integrateAcrossSingularity(integrand, v, a, b, notation, lowerLab
         `Add the pieces: ${mark(`(${formatNumber(Lminus)} − ${formatNumber(Fa)}) + (${formatNumber(Fb)} − ${formatNumber(Lplus)}) = ${valueText}`)}.`,
         `Verified numerically (Simpson's rule on each side): ${mark(`≈ ${formatNumber(check)}`)}.`,
       ],
-      answer: `${notation} = ${valueText}`,
+      answer: `${notation} ${eqOrApprox(valueText)}`,
       verified: true,
       verificationMethod: 'one-sided limits of F + numeric quadrature on each side',
       tips: [

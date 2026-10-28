@@ -44,6 +44,7 @@ export const CONVERTED = [
   ['integrals', '1/(1+e^x)'], ['integrals', 'e^x/(1+e^(2x))'], ['integrals', 'sqrt(x)/(1+x)'], ['integrals', '1/(x^4+1)'], ['integrals', '3/(x^4+9)'],
   ['integrals', '∫_0^1 sqrt(1+x^4) dx'], ['integrals', '∫_0^∞ e^(-x^2)/(1+x^2) dx'], ['integrals', '∫_0^∞ 1/(x^4+1) dx'], ['integrals', '∫_0^1 sec(x)^3 dx'],
   ['integrals', 'tan(x)'], ['integrals', 'sec(x)'], ['integrals', 'csc(x)'], ['integrals', 'cot(x)'], ['integrals', '1/(x^2*sqrt(x^2+9))'], ['integrals', 'x^3/(x-1)'], ['integrals', 'cos(x)^4'], ['integrals', 'sin(x)^2*cos(x)^2'],
+  ['integrals', '1/(x^5+1)'], ['integrals', '1/(x^3-2)'], ['integrals', '1/(x^4-2)'], ['integrals', 'x^2/(x^5+1)'], ['integrals', '∫_0^1 1/(x^5+1) dx'],
   ['integrals', 'e^(-x^2)'], ['integrals', '∫_0^1 1/sqrt(x) dx'], ['integrals', '∫_0^1 1/x dx'], ['integrals', '∫_-1^1 1/x dx'], ['integrals', '∫_-1^1 1/x^2 dx'],
   ['integrals', '1/(x^3 + x)'], ['integrals', '∫_0^∞ e^(-x^2) dx'],
   // 1.53.2: f'(x) with and without its function, one exponential, inverse/hyperbolic/reciprocal rules, square-root and quadratic-formula tips.

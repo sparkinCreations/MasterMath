@@ -376,6 +376,17 @@ export function beautify(expression) {
 // integral step and answer, so a walkthrough never switches between log and
 // ln, or exp and e^, part-way through (September 2026 review, 1.38.1).
 export function lnify(result) {
+  const once = lnifyOnce(result);
+  // A root inside a root (√(10 + 2√5)) needs a second look: the inner one
+  // is converted first and the outer one then has no parentheses inside.
+  // Only the root rules run again — beautify would also drop the "*" in
+  // √2*x, changing every pinned answer.
+  return once
+    .replace(/(?<![a-z])sqrt\(([^()]+)\)/g, '√($1)')
+    .replace(/√\((\d+)\)/g, '√$1');
+}
+
+function lnifyOnce(result) {
   return beautify(result)
     // outermost log(...) (one nesting level inside) → ln|...|
     // (?<![a-z]) not \b: beautify writes 4*log(x) as 4log(x).

@@ -34,6 +34,20 @@ finds is estimated numerically instead of refused.
   The decomposition with surd coefficients is shown, each piece a logarithm
   and an arctan; ∫₀^∞ 1/(x⁴ + 1) dx = π/(2√2) exactly. (x⁴ + 4 already
   factored over the rationals.)
+- **Partial fractions over any real factorisation** (`surdPartialFractions.js`).
+  A denominator that does not factor over the rationals is factored over
+  the reals from its roots (the exact root finder: every real root and
+  complex pair), each coefficient recognised as a rational or a quadratic
+  surd (p + q√d)/r when it is one: 1/(x⁵ + 1) = 1/(5(x + 1)) +
+  ((√5 − 1)/10·x + 2/5)/(x² + (√5 − 1)/2·x + 1) + …, each quadratic piece a
+  logarithm and an arctan with the completed square shown, nested radicals
+  where the arithmetic demands them (√(10 + 2√5)). A coefficient with no
+  closed form in square roots (the cube roots in 1/(x³ − 2)) is kept to
+  full precision, shown rounded, and the answer is marked ≈. Also
+  x²/(x⁵ + 1), 1/(x⁴ − 2), 1/(x³ + x + 1), 1/(x⁶ + 1). Verified by
+  differentiation; the definite versions follow (∫₀^∞ 1/(x⁵ + 1) dx ≈ 1.069).
+- A definite integral whose value Algebrite cannot write exactly is now
+  shown as "≈ 0.8883" rather than "= 0.8883".
 - **A numerical value for a definite integral no method can do.** Proper
   bounds: Simpson's rule at two step sizes, reported as "≈ 1.0894
   (numerical)" when they agree to eight digits (∫₀¹ √(1 + x⁴) dx).

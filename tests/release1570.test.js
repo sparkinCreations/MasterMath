@@ -70,6 +70,27 @@ test('1/(x⁴ + a⁴) factors over a surd; the improper integral is exact', asyn
   assert.match((await solve('1/(x^4+4)')).answer, /arctan\(\(x - 1\)\)/);
 });
 
+test('a denominator that factors only over the reals: surd coefficients, or decimals marked ≈', async () => {
+  const r = await solve('1/(x^5+1)');
+  assert.equal(r.status, 'solved');
+  assert.equal(r.answer, '∫(1/(x^5 + 1)) dx = 1/5·ln|x + 1| + (√5 − 1)/20·ln(x² + (√5 − 1)/2x + 1) + (5 + √5)/(5√(10 + 2√5))·arctan((4x + √5 − 1)/√(10 + 2√5)) − (1 + √5)/20·ln(x² − (1 + √5)/2x + 1) + (5 − √5)/(5√(10 − 2√5))·arctan((4x − 1 + √5)/√(10 − 2√5)) + C');
+  assert.equal((await solve('1/(x^6+1)')).answer, '∫(1/(x^6 + 1)) dx = √3/12·ln(x² + √3x + 1) + 1/6·arctan(2x + √3) + 1/3·arctan(x) − √3/12·ln(x² − √3x + 1) + 1/6·arctan(2x − √3) + C');
+  assert.equal((await solve('1/((x^2+2)*(x^2-3))')).answer, '∫(1/((x^2 + 2)*(x^2 - 3))) dx = −√3/30·ln|x + √3| + √3/30·ln|x − √3| − 1/(5√2)·arctan(x/√2) + C');
+  const text = plain(r);
+  assert.match(text, /x\^5 \+ 1 = \(x \+ 1\)\(x² \+ \(√5 − 1\)\/2x \+ 1\)\(x² − \(1 \+ √5\)\/2x \+ 1\) \(the coefficients involve √5\)/);
+  assert.match(text, /1\/\(x\^5 \+ 1\) = 1\/\(5\(x \+ 1\)\) \+ \(\(√5 − 1\)\/10·x \+ 2\/5\)\//);
+  assert.match(text, /complete the square, x² \+ \(√5 − 1\)\/2x \+ 1 = \(x \+ \(√5 − 1\)\/4\)² \+ \(5 \+ √5\)\/8/);
+  // A cube root has no closed form in square roots: full precision inside, rounded on screen, the answer marked ≈.
+  const cube = await solve('1/(x^3-2)');
+  assert.equal(cube.answer, '∫(1/(x^3 - 2)) dx ≈ 0.21·ln|x − 1.2599| − 0.105·ln(x² + 1.2599x + 1.5874) − 0.3637·arctan((x + 0.63)/1.0911) + C');
+  assert.match(plain(cube), /kept to full precision and shown rounded/);
+  assert.equal((await solve('∫_0^1 1/(x^5+1) dx')).answer, '∫_0^1 (1/(x^5 + 1)) dx ≈ 0.8883');
+  assert.equal((await solve('∫_0^∞ 1/(x^5+1) dx')).answer, '∫_0^∞ (1/(x^5 + 1)) dx ≈ 1.069');
+  assert.match((await solve('x^2/(x^5+1)')).answer, /^∫\(x\^2\/\(x\^5 \+ 1\)\) dx = 1\/5·ln\|x \+ 1\| − \(1 \+ √5\)\/20·ln/);
+  // Rational factorisations keep their own path and wording.
+  assert.match(plain(await solve('1/(x^3+1)')), /Factor the denominator: x\^3 \+ 1 = \(x \+ 1\)\(x\^2 - 1x \+ 1\)/);
+});
+
 test('a definite integral with no antiderivative is estimated numerically, and says so', async () => {
   const proper = await solve('∫_0^1 sqrt(1+x^4) dx');
   assert.equal(proper.status, 'solved');
