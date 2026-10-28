@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.56.4] - 2026-10-28
+
+A shorter home page: hero, the solver at work, the worked example, one
+features section, the closing banner. It was five screens on a desktop and
+thirteen on a phone; it is four and ten.
+
+### Added
+
+- **A picture of the solver at work** below the hero, in place of the
+  three-icon strip: a laptop showing the real Solver page graphing
+  x³ − 3x beside a student copying the steps. Two WebP sizes (36 kB and
+  92 kB), lazy-loaded with its dimensions set so nothing jumps, dimmed a
+  little in dark mode.
+- **A second "Star on GitHub" button in the closing banner**, beside "Start
+  Solving Now": the reader who has scrolled past the worked example and
+  the feature list is the one most likely to star, and the hero's button
+  is four screens behind them by then. White outline on the indigo banner,
+  stacked under the solve button on a phone.
+
+### Changed
+
+- **One features section instead of three.** The six-card grid, the "How It
+  Works" list (the User Manual's job, one click away in the hero) and the
+  "Why Choose MasterMath?" block, which said free, private and offline a
+  second time, are now six cards of one sentence each: every topic; worked
+  steps, checked ("open-source maths libraries, not an AI chatbot: the
+  same answer every time" — the one mention of AI on the page, as a
+  clause rather than a heading); graphs; insights and mistakes; export
+  and progress; private, offline, free (naming the one outbound request,
+  a feedback message you choose to send).
+
 ## [1.56.3] - 2026-10-27
 
 Plain English on every path (October 2026 review: "after 'two x plus five
