@@ -162,7 +162,7 @@ export async function solveSystem(rawText) {
     const ok1 = residualIsZero(r1, v1, v2, num(x), num(y));
     const ok2 = residualIsZero(r2, v1, v2, num(x), num(y));
     if (!ok1 || !ok2) {
-      return refuse('I could not verify a consistent solution for this system.', 'Please double-check the equations.', 'unsupported');
+      return refuse('A consistent solution for this system could not be verified.', 'Please double-check the equations.', 'unsupported');
     }
 
     const steps = buildSubstitutionSteps({ a1, b1, c1, a2, b2, c2, x, y, v1, v2, eq1Disp, eq2Disp });
@@ -187,7 +187,7 @@ export async function solveSystem(rawText) {
     };
   } catch (error) {
     console.error('Systems solver error:', error);
-    return refuse('I was unable to read this as a 2×2 linear system.', 'Try the form: 2x + 3y = 6; x − y = 4.');
+    return refuse('This could not be read as a 2×2 linear system.', 'Try the form: 2x + 3y = 6; x − y = 4.');
   }
 }
 

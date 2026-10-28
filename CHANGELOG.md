@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.57.0] - 2026-10-28
+
+Calculus II integrals, from the October 28 outside review (30 standard
+integrals: 26 solved, all correct; four refused). The four are solved with
+their methods shown, and a definite integral whose antiderivative no method
+finds is estimated numerically instead of refused.
+
+### Added
+
+- **Powers and products of trig functions** (`trigPowerSolver.js`):
+  sin^m·cos^n with an odd exponent (split one factor off, sin² + cos² = 1,
+  u = sin or cos: sin²x·cos³x, sin³x, cos⁵x, 3sin³x·cos x, sin³(2x)·cos²(2x));
+  sec^n and csc^n — even by u = tan or cot, odd by the reduction formula
+  derived by parts with the integral reappearing (sec³x = ½sec x tan x +
+  ½ln|sec x + tan x|, sec⁵x, csc³x); tan^m·sec^n (even sec → u = tan, odd
+  tan → u = sec) and cot^m·csc^n; tan^m and cot^m by tan² = sec² − 1
+  (tan²x = tan x − x). Every result is differentiated back before it is
+  shown.
+- **Form-changing substitutions.** An integrand whose every x sits inside
+  an exponential takes u = eˣ with dx = du/u (1/(1 + eˣ) = x − ln(1 + eˣ),
+  eˣ/(1 + e²ˣ) = arctan eˣ, 1/(eˣ + e⁻ˣ)); one mixing √x with x takes
+  x = u², dx = 2u du (√x/(1 + x) = 2√x − 2arctan √x). The integral in u is
+  worked by the existing methods, with their steps, then back-substituted.
+- **1/(x⁴ + a⁴).** x⁴ + 1 factors only over √2: (x² + √2x + 1)(x² − √2x + 1).
+  The decomposition with surd coefficients is shown, each piece a logarithm
+  and an arctan; ∫₀^∞ 1/(x⁴ + 1) dx = π/(2√2) exactly. (x⁴ + 4 already
+  factored over the rationals.)
+- **A numerical value for a definite integral no method can do.** Proper
+  bounds: Simpson's rule at two step sizes, reported as "≈ 1.0894
+  (numerical)" when they agree to eight digits (∫₀¹ √(1 + x⁴) dx).
+  Infinite bounds: the range is mapped onto [0, 1) and the integrals to
+  t = 100, 1000, 10000 must settle (∫₀^∞ e^(−x²)/(1 + x²) dx ≈ 0.6716);
+  a slow tail (1/x^1.1) or an oscillating one is still refused. The
+  indefinite path's tip "a definite version is estimated numerically" is
+  now true: ∫₀¹ 1/(x⁴ + 1) dx was refused with it.
+- **The method named on one-line table steps.** tan, cot, sec and csc are
+  derived (sin/cos with u = cos; the (sec + tan)/(sec + tan) trick; the
+  answer is ln|sec x + tan x| rather than Algebrite's ln|tan(x/2 + π/4)|);
+  an integrand with √(x² ± a²) is labelled "Trigonometric substitution",
+  naming the substitution, instead of "u-substitution"; an even power or a
+  product of even powers of sin and cos is "Trigonometric identity"
+  instead of "Trig rule" or "Integration by parts"; x³/(x − 1) divides
+  first and integrates the remainder over the linear factor (it was
+  refused).
+
+### Fixed
+
+- **First-person messages** ("I could not compute this definite integral",
+  "I was unable to read this as a 2×2 linear system", "I could not read this
+  as a single inequality") now say what could not be done, in the solver's
+  voice.
+- Algebrite's `2^(1/2)` and `x^(1/2)` are shown as √2 and √x; `ln|1 + eˣ|`
+  typeset with the bar inside the exponent (the exponent bracer swallowed a
+  closing bar); 1 + eˣ counts as always positive, so its logarithm has no
+  bars.
+
 ## [1.56.4] - 2026-10-28
 
 A shorter home page: hero, the solver at work, the worked example, one

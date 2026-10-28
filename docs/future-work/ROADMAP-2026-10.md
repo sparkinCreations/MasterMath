@@ -337,7 +337,14 @@ Honest refusals, each with a message that says so:
 - **Inequalities in two variables** — refused since v1.49.0; before that
   they were answered "No solution".
 - **Integrals the engine cannot do** — `unsupported`, with the
-  non-elementary note where one applies (erf, Si, Fresnel).
+  non-elementary note where one applies (erf, Si, Fresnel). A definite
+  version is estimated numerically since 1.57.0 (two step sizes must
+  agree; an infinite range must settle). Still one-line answers rather
+  than worked: a product of even powers of sin and cos (sin²x·cos²x,
+  labelled "Trigonometric identity" but not reduced step by step),
+  √(ax + b) under a product (x·√(x + 1) is answered by Algebrite's own
+  substitution), and x²/(x⁴ + 1) (only a constant numerator over x⁴ + a⁴
+  is factored over the surd).
 - **Polynomials above degree 100** — refused.
 - **Sequences, series and Taylor expansions** — not a topic yet (roadmap
   P4); the October 25 reviewer counted it as scope, since the User Manual

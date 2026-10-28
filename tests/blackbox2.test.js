@@ -102,7 +102,7 @@ test('u = denominator: (2x+3)/(x²+3x+5) and eˣ/(1+eˣ)', async () => {
   assert.match(a.answer, /ln\|x\^2 \+ 3x \+ 5\| \+ C$/);
   const b = await solveProblem('e^x/(1+e^x)', 'integrals');
   assert.equal(b.status, STATUS.SOLVED);
-  assert.match(b.answer, /ln\|1 \+ e\^x\| \+ C$/);
+  assert.match(b.answer, /ln\(1 \+ e\^x\) \+ C$/); // 1 + eˣ > 0: no bars (1.57.0)
 });
 
 // ── Medium: no imaginary unit in a real integral.

@@ -394,7 +394,10 @@ export function lnify(result) {
     .replace(/(?<![a-z])sqrt\(([^()]+)\)/g, '√($1)')
     .replace(/√\(-([^()]+?) \+ (\d+(?:\.\d+)?)\)/g, '√($2 - $1)')
     // √(3) → √3: a plain number needs no bracket.
-    .replace(/√\((\d+)\)/g, '√$1');
+    .replace(/√\((\d+)\)/g, '√$1')
+    // 2^(1/2) and x^(1/2) → √2, √x (Algebrite's form for a root of a token)
+    .replace(/(?<![\w.])(\d+)\^\(1\/2\)(?![\w])/g, '√$1')
+    .replace(/(?<![a-z.])([a-z])\^\(1\/2\)(?![\w])/g, '√$1');
 }
 
 // Split on a delimiter at parenthesis depth 0: splitTopLevel('(a*b)*c', '*')

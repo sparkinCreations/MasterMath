@@ -196,7 +196,10 @@ function replaceCaret(s) {
     } else if (s[i] === '{') {
       out += '^'; // already latex-style
     } else {
-      const m = s.slice(i).match(/^-?[\w.\\]+/);
+      // A token: letters, digits, a dot, or one LaTeX command (\infty,
+      // \pi) — never a \right that closes bars after it (ln|1 + e^x|
+      // typeset as e^{x\right}| until 1.57.0).
+      const m = s.slice(i).match(/^-?(?:\\(?!right\b|left\b)[A-Za-z]+|[\w.]+)/);
       if (m) { out += `^{${m[0]}}`; i += m[0].length; } else { out += '^'; }
     }
   }

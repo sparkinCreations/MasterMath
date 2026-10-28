@@ -15,12 +15,14 @@ import {
   lnify,
   splitTopLevel,
   stripOuterParens,
+  gcd,
   mark,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
 import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerically } from './substitutionSolver.js';
 import { integrateByTrigSubstitution } from './trigSubstitutionSolver.js';
+import { integrateTrigPower } from './trigPowerSolver.js';
 import { readPolynomial } from './polynomialRoots.js';
 import { parseError, unsupported, diverges } from '../solutionEnvelope.js';
 import { stripMathMarkers } from '../mathMarkers.js';
@@ -100,6 +102,9 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     let anyAbs = false;
     let anyInverseTrig = false;
     let anyTrigSub = false;
+    let anyTrigPower = false;
+    let anyReduction = false;
+    let anyFormSub = false;
     const directLabels = new Set();
     for (const { signed } of terms) {
       const res = await integrateTerm(signed, variable, Algebrite);
@@ -109,6 +114,9 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       if (res.method === 'abs') anyAbs = true;
       if (res.method === 'inverse trig') anyInverseTrig = true;
       if (res.method === 'trig substitution') anyTrigSub = true;
+      if (res.method === 'trig power') anyTrigPower = true;
+      if (res.method === 'reduction') anyReduction = true;
+      if (res.method === 'form substitution') anyFormSub = true;
       if (res.label) directLabels.add(res.label);
       perTerm.push(res);
     }
@@ -123,7 +131,7 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       // A polynomial integrand keeps its expanded antiderivative (x^2 + x):
       // simplify factored ∫(2x + 1) dx into x·(x + 1), which nobody wants.
       const polynomial = perTerm.every((r) => r.method === 'direct' && /^(?:Power rule|Constant rule)$/.test(r.label || ''));
-      integral = perTerm.some((r) => r.method === 'partial fractions' || r.method === 'trig substitution') || polynomial
+      integral = perTerm.some((r) => ['partial fractions', 'trig substitution', 'trig power', 'reduction', 'form substitution'].includes(r.method)) || polynomial
         ? perTerm.map((r) => r.antideriv.trim()).join(' + ').replace(/\+\s*-\s*/g, '- ')
         : (simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) || perTerm.map((r) => r.antideriv).join(' + '));
       // Like terms from separate pieces are combined: ∫(2 + 3) dx was
@@ -198,7 +206,13 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       `Whole-line and half-line definite versions do have closed forms: ${mark('∫_{−∞}^∞ e^(−x²) dx = √π')}, and ${mark('∫₀^∞ e^(−x²) dx = √π/2')}.`,
       `Always add the constant of integration (${mark('+C')}) for an indefinite integral.`,
     ] : [
-      anyByParts
+      anyFormSub
+        ? `When the awkward piece is a function of ${mark(variable)} — ${mark(`e^${variable}`)}, ${mark(`√${variable}`)} — substitute for that piece and change ${mark(`d${variable}`)} with it: ${mark(`u = e^${variable}`)} gives ${mark(`d${variable} = du/u`)}; ${mark(`${variable} = u²`)} gives ${mark(`d${variable} = 2u du`)}. The new integral is rational, and partial fractions or a direct rule finish it.`
+        : anyReduction
+        ? `A reduction formula lowers a power by two: ${mark('∫sec^n(θ) dθ = sec^(n−2)(θ)·tan(θ)/(n − 1) + ((n − 2)/(n − 1))·∫sec^(n−2)(θ) dθ')}. It comes from integration by parts in which the original integral reappears and is solved for, as with ${mark('∫e^x·sin(x) dx')}.`
+        : anyTrigPower
+          ? `Products of powers of ${mark('sin')} and ${mark('cos')}: with an odd power, keep one factor for ${mark('du')} and convert the rest with ${mark('sin²θ + cos²θ = 1')} (odd ${mark('cos')} → ${mark('u = sin θ')}; odd ${mark('sin')} → ${mark('u = cos θ')}). Both even: the half-angle identities. For ${mark('tan')} and ${mark('sec')}: an even ${mark('sec')} power → ${mark('u = tan θ')}; an odd ${mark('tan')} power → ${mark('u = sec θ')}.`
+        : anyByParts
         ? `Integration by parts: ${mark('∫u dv = uv − ∫v du')}. Pick ${mark('u')} by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).`
         : anyTrigSub
           ? `Trigonometric substitution: ${mark(`√(a² − ${variable}²)`)} calls for ${mark(`${variable} = a·sin θ`)} (${mark(`√(a² + ${variable}²)`)} for ${mark(`${variable} = a·tan θ`)}, ${mark(`√(${variable}² − a²)`)} for ${mark(`${variable} = a·sec θ`)}); the root becomes ${mark('a·cos θ')} and the integral is one in ${mark('θ')}. Convert back with a right triangle.`
@@ -225,7 +239,13 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       `Forgetting the constant of integration (${mark('+C')}).`,
     ] : [
       `Forgetting the constant of integration (${mark('+C')}).`,
-      anyByParts
+      anyFormSub
+        ? `Substituting ${mark(`u = e^${variable}`)} but leaving ${mark(`d${variable}`)} alone — ${mark(`d${variable} = du/u`)}, and that extra ${mark('1/u')} is what makes the new integrand rational.`
+        : anyReduction
+        ? `Trying ${mark('u = sec θ')} on ${mark('sec³θ')}: ${mark('du = sec θ tan θ dθ')} is not a factor of the integrand, so the substitution does not close — the reduction formula is the way.`
+        : anyTrigPower
+          ? `Splitting off the factor from the EVEN power: the leftover must be convertible with ${mark('sin²θ + cos²θ = 1')}, which needs an even power left behind.`
+        : anyByParts
         ? `Choosing ${mark('u')} and ${mark('dv')} the wrong way round — LIATE picks the ${mark('u')} that gets simpler when differentiated.`
         : anyTrigSub
           ? `Forgetting to change ${mark(`d${variable}`)} as well as the integrand (${mark('dx = a·cos θ dθ')}), or leaving the answer in ${mark('θ')} instead of converting back to ${mark(variable)}.`
@@ -242,7 +262,7 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
           : anyAbs
             ? `Integrating ${mark('|x|')} as if it were ${mark('x')}, giving ${mark('x²/2')} — that is only right for ${mark('x ≥ 0')}.`
             : directMistake(directLabels, variable),
-      directLabels.has('Power rule') || (!anyByParts && !anySubstitution && !anyAbs && !anyInverseTrig && directLabels.size === 0)
+      directLabels.has('Power rule') || (!anyByParts && !anySubstitution && !anyAbs && !anyInverseTrig && !anyTrigPower && !anyReduction && !anyFormSub && directLabels.size === 0)
         ? `Applying the power rule to ${mark('1/x')} — that integrates to ${mark('ln|x|')}, not ${mark('x⁰/0')}.`
         : 'Skipping the check: differentiate the result and compare it with the integrand.',
     ];
@@ -267,16 +287,16 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
         input: `∫(${expression}) dx`,
         reason: note
           ? `This integral is non-elementary — ${note}.`
-          : 'MasterMath could not find this antiderivative symbolically. The input is valid; the integral may well have an elementary answer that this engine\'s methods (direct rules, u-substitution, integration by parts) do not reach.',
+          : 'MasterMath could not find this antiderivative symbolically. The input is valid; the integral may well have an elementary answer that this engine\'s methods (direct rules, u-substitution, integration by parts, partial fractions, trigonometric substitution, trig powers and reduction formulas) do not reach.',
         answer: note ? undefined : 'MasterMath could not solve this integral symbolically',
         tips: note
           ? [
               'The input is valid — not every elementary function has an elementary antiderivative.',
-              `A definite version can still be computed numerically, e.g. ${mark('∫_0^1')} of the same integrand.`,
+              `A definite version is estimated numerically: give the bounds, e.g. ${mark('∫_0^1')} of the same integrand.`,
             ]
           : [
               'This is a limitation of the solver, not a statement about the mathematics.',
-              `A definite version can still be computed numerically, e.g. ${mark('∫_0^1')} of the same integrand.`,
+              `A definite version is estimated numerically: give the bounds, e.g. ${mark('∫_0^1')} of the same integrand.`,
               'Try rewriting the integrand (expand, split a fraction, use an identity) — a different form may be one the engine handles.',
             ],
       });
@@ -302,6 +322,9 @@ function directTip(labels, v) {
   // 2026 tips audit): sin², a linear inside, a table entry.
   if (labels.has('Half-angle identity')) return `${mark(`sin²(${v})`)} and ${mark(`cos²(${v})`)} integrate through the half-angle identities: ${mark(`sin²(${v}) = (1 − cos(2${v}))/2`)}, ${mark(`cos²(${v}) = (1 + cos(2${v}))/2`)} — a sum of a constant and a cosine, each easy.`;
   if (labels.has('u-substitution')) return `A linear inside, ${mark(`cos(a${v} + b)`)}: let ${mark(`u = a${v} + b`)}, so ${mark(`du = a d${v}`)} and a factor ${mark('1/a')} comes out — ${mark(`∫cos(2${v}) d${v} = (1/2)·sin(2${v}) + C`)}.`;
+  if (labels.has('Trig quotient')) return `The table entries ${mark('∫tan = −ln|cos|')}, ${mark('∫cot = ln|sin|')}, ${mark('∫sec = ln|sec + tan|')}, ${mark('∫csc = ln|csc − cot|')} all come from one idea: write the integrand as (derivative of a function)/(that function), and ${mark('∫u′/u = ln|u|')}.`;
+  if (labels.has('Trigonometric substitution')) return `Trigonometric substitution: ${mark(`√(a² + ${v}²)`)} calls for ${mark(`${v} = a·tan θ`)}, ${mark(`√(${v}² − a²)`)} for ${mark(`${v} = a·sec θ`)}, ${mark(`√(a² − ${v}²)`)} for ${mark(`${v} = a·sin θ`)}; the radical becomes a single trig function, and a right triangle converts the answer back to ${mark(v)}.`;
+  if (labels.has('Trigonometric identity')) return `Even powers of ${mark('sin')} and ${mark('cos')} are lowered with the half-angle identities (${mark('sin²θ = (1 − cos 2θ)/2')}, ${mark('cos²θ = (1 + cos 2θ)/2')}); a product ${mark('sin θ cos θ')} is ${mark('(sin 2θ)/2')}. Repeat until only first powers of cosines remain.`;
   if (labels.has('Table antiderivative')) return `The table entries worth knowing: ${mark('∫tan = −ln|cos|')}, ${mark('∫cot = ln|sin|')}, ${mark('∫sec = ln|sec + tan|')} — each comes from writing the function with sin and cos and substituting ${mark('u')} = the denominator.`;
   return 'Every antiderivative can be checked by differentiating it — the derivative must give back the integrand exactly.';
 }
@@ -314,6 +337,9 @@ function directMistake(labels, v) {
   if (labels.has('Linear substitution')) return `Forgetting the ${mark('1/a')} factor that comes from ${mark('du = a dx')}.`;
   if (labels.has('Half-angle identity')) return `Applying the power rule to ${mark(`sin²(${v})`)}: ${mark(`sin³(${v})/3`)} is not its antiderivative — differentiating that leaves a ${mark(`cos(${v})`)} behind.`;
   if (labels.has('u-substitution')) return `Forgetting the ${mark('1/a')}: ${mark(`∫cos(2${v}) d${v}`)} is ${mark(`(1/2)·sin(2${v})`)}, not ${mark(`sin(2${v})`)}.`;
+  if (labels.has('Trig quotient')) return `Writing ${mark(`∫tan(${v}) d${v}`)} as ${mark(`sec²(${v})`)} — that is the derivative of tan, read the wrong way round — or dropping the minus sign from ${mark(`du = −sin(${v}) d${v}`)}.`;
+  if (labels.has('Trigonometric substitution')) return `Forgetting to change ${mark(`d${v}`)} along with the integrand, or leaving the answer in ${mark('θ')} instead of converting back to ${mark(v)}.`;
+  if (labels.has('Trigonometric identity')) return `Applying the power rule to ${mark(`sin²(${v})`)} or ${mark(`cos²(${v})`)}: ${mark(`sin³(${v})/3`)} is not an antiderivative of ${mark(`sin²(${v})`)} — differentiating it leaves a ${mark(`cos(${v})`)} behind.`;
   if (labels.has('Table antiderivative')) return `Writing ${mark(`∫tan(${v}) d${v}`)} as ${mark(`sec²(${v})`)} — that is the derivative of tan, read the wrong way round.`;
   return 'Skipping the check: differentiate the result and compare it with the integrand.';
 }
@@ -443,6 +469,15 @@ async function integrateTerm(term, variable, Algebrite) {
     }
   }
 
+  // sin²x·cos³x, sin³x, sec³x, sec⁴x, tan³x·sec x: powers and products of
+  // trig functions, worked by the odd-power split, u = tan, or the
+  // reduction formula (trigPowerSolver.js). Before the direct attempt:
+  // Algebrite answers sin³x in one line, and refuses the rest.
+  const trigPower = integrateTrigPower(term, variable, Algebrite);
+  if (trigPower) {
+    return { antideriv: trigPower.antiderivative, steps: trigPower.steps, method: trigPower.method, term };
+  }
+
   // √(A − B·x²): Algebrite answers it, but as (−x²+1)^(1/2) with no working
   // and the "u-substitution" label; show the trigonometric substitution.
   const trig = integrateByTrigSubstitution(term, variable);
@@ -462,6 +497,11 @@ async function integrateTerm(term, variable, Algebrite) {
     const den = parts ? parts[1] : '';
     const varRe = new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'g');
     if (parts && ((den.match(varRe) || []).length >= 2 || /\^/.test(den))) {
+      // c/(x⁴ + d) with d not a perfect square of an integer's double:
+      // factors only over a surd, which the rational factoring below
+      // cannot see, and Algebrite grinds for seconds before giving up.
+      const quartic = integrateQuarticSum(term, variable);
+      if (quartic) return { antideriv: quartic.antiderivative, steps: quartic.steps, method: 'partial fractions', term };
       const pfFirst = integrateByPartialFractions(term, variable, Algebrite) || integrateByGeneralPartialFractions(term, variable, Algebrite);
       if (pfFirst) return { antideriv: pfFirst.antiderivative, steps: pfFirst.steps, method: 'partial fractions', term };
     }
@@ -478,8 +518,14 @@ async function integrateTerm(term, variable, Algebrite) {
     anti = polishLogArguments(Algebrite, anti);
     const halfAngle = halfAngleSteps(term, variable, anti);
     if (halfAngle) return { antideriv: anti, steps: halfAngle, method: 'direct', term, label: 'Half-angle identity' };
+    const quotient = trigQuotientSteps(term, variable, anti);
+    if (quotient) return { antideriv: quotient.antiderivative, steps: quotient.steps, method: 'direct', term, label: 'Trig quotient' };
     const { label, hint } = classifyIntegralRule(term, variable);
-    const steps = [`${mark(`∫(${beautify(term)}) d${variable} = ${lnify(anti)}`)}${hint ? ` (${label})` : ''}.`];
+    // A table line names its rule; the two trig labels explain it, since the
+    // answer arrived in one jump (October 2026 review: "three steps that
+    // don't name a method").
+    const explained = label === 'Trigonometric substitution' || label === 'Trigonometric identity';
+    const steps = [`${mark(`∫(${beautify(term)}) d${variable} = ${lnify(anti)}`)}${hint ? ` (${label}${explained ? `: ${hint}` : ''})` : ''}.`];
     return { antideriv: anti, steps, method: 'direct', term, label };
   }
 
@@ -503,7 +549,151 @@ async function integrateTerm(term, variable, Algebrite) {
     return { antideriv: abs.antiderivative, steps: abs.steps, method: 'abs', term };
   }
 
+  // 1/(1 + eˣ), √x/(1 + x): a substitution that changes the form of the
+  // problem (u = eˣ with dx = du/u; x = u² with dx = 2u du) turns the
+  // integrand into a rational function the methods above handle (1.57.0).
+  const formSub = await integrateByFormSubstitution(term, variable, Algebrite);
+  if (formSub) {
+    return { antideriv: formSub.antiderivative, steps: formSub.steps, method: 'form substitution', term };
+  }
+
   return null;
+}
+
+// Rewrite every e^(k·v), exp(k·v), e^v, e^(−v) as a power of u. Returns the
+// text and whether any exponential was found; k is an integer.
+function exponentialsAsU(term, v) {
+  const num = '(-?\\d+)';
+  let found = false;
+  const text = String(term)
+    .replace(new RegExp(`\\b(?:e\\^\\(\\s*${num}\\s*\\*?\\s*${v}\\s*\\)|exp\\(\\s*${num}\\s*\\*?\\s*${v}\\s*\\))`, 'g'), (m, k1, k2) => { found = true; const k = k1 ?? k2; return k === '1' ? 'u' : `u^(${k})`; })
+    .replace(new RegExp(`\\b(?:e\\^\\(\\s*-\\s*${v}\\s*\\)|exp\\(\\s*-\\s*${v}\\s*\\))`, 'g'), () => { found = true; return 'u^(-1)'; })
+    .replace(new RegExp(`\\b(?:e\\^${v}\\b|e\\^\\(\\s*${v}\\s*\\)|exp\\(\\s*${v}\\s*\\))`, 'g'), () => { found = true; return 'u'; });
+  return { text, found };
+}
+
+// The per-term machinery on an integrand in u, with its steps; null when a
+// term is not integrable here.
+async function integrateInU(inU, Algebrite) {
+  const terms = splitTerms(inU);
+  const antiderivs = [];
+  const steps = [];
+  for (const { signed } of terms) {
+    const res = await integrateTerm(signed, 'u', Algebrite);
+    if (!res) return null;
+    antiderivs.push(res.antideriv);
+    steps.push(...res.steps);
+  }
+  if (antiderivs.length === 0) return null;
+  const joined = (antiderivs.length === 1 ? antiderivs[0] : antiderivs.map((a) => `(${a})`).join(' + ')).replace(/\+\s*-/g, '- ');
+  return { antiderivative: joined, steps };
+}
+
+async function integrateByFormSubstitution(term, v, Algebrite) {
+  const varRe = new RegExp(`\\b${v}\\b`);
+  // u = eˣ: every appearance of the variable is inside an exponential.
+  const exp = exponentialsAsU(term, v);
+  if (exp.found && !varRe.test(exp.text)) {
+    const inU = simplifyRun(Algebrite, `(${exp.text})/u`);
+    if (inU && !varRe.test(inU) && !/exp|\be\^/.test(inU)) {
+      const inner = await integrateInU(inU, Algebrite);
+      if (inner) {
+        const back = runAlgebrite(Algebrite, `subst(exp(${v}), u, ${inner.antiderivative})`);
+        if (back && !/\bu\b/.test(back) && derivativeMatchesNumerically(back, term, v)) {
+          const shownBack = lnify(back);
+          const steps = [
+            `Every ${mark(v)} in ${mark(beautify(term))} sits inside an exponential: substitute ${mark(`u = e^${v}`)}, so ${mark(`du = e^${v} d${v}`)} and ${mark(`d${v} = du/u`)}${/u\^/.test(exp.text) ? ` (and ${mark(`e^(k${v}) = u^k`)})` : ''}.`,
+            `In ${mark('u')} the integral is rational: ${mark(`∫(${beautify(term)}) d${v} = ∫(${beautify(inU)}) du`)}.`,
+            ...inner.steps.map((t) => `  ${t}`),
+            `Back-substitute ${mark(`u = e^${v}`)}: ${mark(shownBack)}.`,
+            `Check by differentiating: ${mark(`d/d${v}[${shownBack}] = ${beautify(term)}`)} ✓`,
+          ];
+          return { antiderivative: back, steps };
+        }
+      }
+    }
+  }
+  // x = u²: the integrand mixes √x with x (and nothing else in x).
+  const rootRe = new RegExp(`sqrt\\(${v}\\)|\\b${v}\\^\\(1/2\\)`, 'g');
+  if (rootRe.test(term)) {
+    const withU = String(term).replace(rootRe, 'u');
+    if (!/sqrt|\^\(1\/|\^0\.5/.test(withU)) {
+      const inU = simplifyRun(Algebrite, `subst(u^2, ${v}, ${withU})*2*u`);
+      if (inU && !varRe.test(inU)) {
+        const inner = await integrateInU(inU, Algebrite);
+        if (inner) {
+          const back = runAlgebrite(Algebrite, `subst(${v}^(1/2), u, ${inner.antiderivative})`);
+          if (back && !/\bu\b/.test(back) && derivativeMatchesNumerically(back, term, v)) {
+            const shownBack = lnify(back).replace(new RegExp(`${v}\\^\\(1/2\\)`, 'g'), `√${v}`);
+            const steps = [
+              `The integrand mixes ${mark(`√${v}`)} with ${mark(v)}: substitute ${mark(`${v} = u²`)} (so ${mark(`u = √${v} ≥ 0`)}), then ${mark(`d${v} = 2u du`)} and ${mark(`√${v} = u`)}.`,
+              `In ${mark('u')} the integral is rational: ${mark(`∫(${beautify(term)}) d${v} = ∫(${beautify(inU)}) du`)}.`,
+              ...inner.steps.map((t) => `  ${t}`),
+              `Back-substitute ${mark(`u = √${v}`)}: ${mark(shownBack)}.`,
+              `Check by differentiating: ${mark(`d/d${v}[${shownBack}] = ${beautify(term)}`)} ✓`,
+            ];
+            return { antiderivative: back, steps };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// ∫ c/(x⁴ + d) dx for d > 0 with √d an integer s (d = 1, 9, 16, …):
+//   x⁴ + d = (x² + r·x + s)(x² − r·x + s),  r = √(2s)
+//   c/(x⁴ + d) = c·[(x/(2rs) + 1/(2s))/(x² + rx + s) + (−x/(2rs) + 1/(2s))/(x² − rx + s)]
+// and each piece, after completing the square ((x ± r/2)² + s/2), is a
+// logarithm plus an arctan (q = √(s/2)):
+//   ∫ = c/(4rs)·ln((x² + rx + s)/(x² − rx + s)) + c/(4sq)·[arctan((x + r/2)/q) + arctan((x − r/2)/q)]
+// (d = 4 has r = 2 and is already factored over the rationals above; this
+// path serves the cases where r is a surd.) Verified by differentiation.
+function integrateQuarticSum(term, v) {
+  const t = String(term).replace(/\s+/g, '');
+  const m = t.match(new RegExp(`^(-)?(\\d+(?:\\.\\d+)?)?/\\((?:${v}\\^4\\+(\\d+)|(\\d+)\\+${v}\\^4)\\)$`));
+  if (!m) return null;
+  const c = (m[1] ? -1 : 1) * (m[2] === undefined ? 1 : Number(m[2]));
+  const d = Number(m[3] ?? m[4]);
+  const s0 = Math.sqrt(d);
+  if (!(d > 0) || !Number.isInteger(s0)) return null;
+  const twoS = 2 * s0;
+  if (Number.isInteger(Math.sqrt(twoS))) return null; // r rational: the rational factoring handles it
+  const surd = exactSurd(twoS); // r = s·√t
+  if (!surd) return null;
+  const rText = `${surd.s === 1 ? '' : surd.s}√${surd.t}`;
+  const rRaw = `${surd.s === 1 ? '' : `${surd.s}*`}sqrt(${surd.t})`;
+  const halfR = `${rRaw}/2`;
+  const q = exactSurd(s0 / 2); // q = √(s/2)
+  if (!q) return null;
+  const qRaw = q.rational ? `${q.s}/${q.b}` : `${q.s === 1 ? '' : `${q.s}*`}sqrt(${q.t})/${q.b}`;
+  const qText = q.rational ? fmtNum(q.s / q.b) : `${q.s === 1 ? '' : q.s}√${q.t}${q.b === 1 ? '' : `/${q.b}`}`;
+  const plus = `${v}^2 + ${rRaw}*${v} + ${s0}`;
+  const minus = `${v}^2 - ${rRaw}*${v} + ${s0}`;
+  const plusText = `${v}² + ${rText}${v} + ${s0}`;
+  const minusText = `${v}² − ${rText}${v} + ${s0}`;
+  // (x ± r/2)/q = (2x ± r)/r = (2/r)·x ± 1, since 2q = √(2s) = r.
+  const twoOverR = exactSurd(4 / twoS); // 2/r as a·√t/b
+  if (!twoOverR) return null;
+  const slopeRaw = twoOverR.rational ? `${twoOverR.s}/${twoOverR.b}` : `${twoOverR.s === 1 ? '' : `${twoOverR.s}*`}sqrt(${twoOverR.t})${twoOverR.b === 1 ? '' : `/${twoOverR.b}`}`;
+  const slopeText = twoOverR.rational ? fmtNum(twoOverR.s / twoOverR.b) : `${twoOverR.s === 1 ? '' : twoOverR.s}√${twoOverR.t}${twoOverR.b === 1 ? '' : `/${twoOverR.b}`}`;
+  // c/(4·s·r) and c/(2·s·r) in lowest terms over the surd: 3/(12√6) is 1/(4√6).
+  const reduced = (mult) => { const g = gcd(Math.abs(c), mult * s0) || 1; return [c / g, (mult * s0) / g]; };
+  const [logN, logD] = reduced(4);
+  const [atanN, atanD] = reduced(2);
+  const logCoefRaw = `${logN}/(${logD}*${rRaw})`;
+  const atanCoefRaw = `${atanN}/(${atanD}*${rRaw})`;
+  const F = `${logCoefRaw}*(log(${plus}) - log(${minus})) + ${atanCoefRaw}*(arctan(${slopeRaw}*${v} + 1) + arctan(${slopeRaw}*${v} - 1))`;
+  if (!derivativeMatchesNumerically(F, term, v)) return null;
+  const cT = c === 1 ? '' : c === -1 ? '−' : `${c}·`;
+  const coefText = (mult) => { const [n, dd] = reduced(mult); return `${n}/(${dd === 1 ? '' : dd}${rText})`; };
+  const steps = [
+    `${mark(`∫(${beautify(term)}) d${v}`)} — the denominator has no real roots and does not factor over the rationals, but it does over a square root: ${mark(`${v}⁴ + ${d} = (${plusText})(${minusText})`)} (check: the ${mark(`${v}²`)} terms give ${mark(`2·${s0} − (${rText})² = 0`)}).`,
+    `Partial fractions with those two irreducible quadratics: ${mark(`${beautify(term)} = ${cT}[(${v}/(2·${rText}${s0 === 1 ? '' : `·${s0}`}) + 1/${s0 === 1 ? '2' : `(2·${s0})`})/(${plusText}) + (−${v}/(2·${rText}${s0 === 1 ? '' : `·${s0}`}) + 1/${s0 === 1 ? '2' : `(2·${s0})`})/(${minusText})]`)}.`,
+    `Each piece splits into the derivative of its denominator (a logarithm) and a constant over a completed square (an arctan): ${mark(`${plusText} = (${v} + ${rText}/2)² + ${s0}/2`)}, and the same for the other with ${mark('−')}; the arctan arguments simplify to ${mark(`${slopeText}${v} ± 1`)}.`,
+    `So ${mark(`∫(${beautify(term)}) d${v} = ${coefText(4)}·ln((${plusText})/(${minusText})) + ${coefText(2)}·[arctan(${slopeText}${v} + 1) + arctan(${slopeText}${v} − 1)]`)}.`,
+  ];
+  return { antiderivative: F, steps };
 }
 
 // N(x)/D(x) with deg N < deg D and D having distinct real roots r₁…rₖ:
@@ -540,7 +730,15 @@ function integrateImproperRational(term, v, Algebrite) {
   const antiQ = run(`integral(${Q}, ${v})`);
   if (!antiQ) return null;
   const rest = R === '0' ? null : `(${R})/(${den})`;
-  const pf = rest ? (integrateByPartialFractions(rest, v, Algebrite) || integrateByGeneralPartialFractions(rest, v, Algebrite)) : null;
+  let pf = rest ? (integrateByPartialFractions(rest, v, Algebrite) || integrateByGeneralPartialFractions(rest, v, Algebrite)) : null;
+  // A remainder over a linear denominator (x³/(x − 1) leaves 1/(x − 1)) is
+  // one logarithm, no decomposition needed.
+  if (rest && !pf && degD === 1) {
+    const direct = run(`integral(${rest}, ${v})`);
+    if (direct && !/integral\(/.test(direct)) {
+      pf = { antiderivative: direct, steps: [`${mark(`∫${beautify(rest)} d${v} = ${lnify(direct)}`)} (${mark('∫1/(a' + v + ' + b) d' + v + ' = (1/a)·ln|a' + v + ' + b|')}).`], linear: true };
+    }
+  }
   if (rest && !pf) return null;
   const anti = pf ? `${antiQ} + ${pf.antiderivative}` : antiQ;
   // Differentiate back at points where the integrand and the logarithms are real.
@@ -557,7 +755,7 @@ function integrateImproperRational(term, v, Algebrite) {
   const steps = [
     `${mark(`∫(${beautify(term)}) d${v}`)} — the numerator has degree ${mark(String(degN))} and the denominator degree ${mark(String(degD))}, so divide first: ${mark(`${beautify(term)} = ${beautify(Q)}${R === '0' ? '' : ` + (${beautify(R)})/(${beautify(stripOuterParens(den))})`}`)}.`,
     `Integrate the polynomial part: ${mark(`∫(${beautify(Q)}) d${v} = ${lnify(antiQ)}`)}.`,
-    ...(pf ? [`Then the proper fraction ${mark(beautify(rest))} by partial fractions:`, ...pf.steps.map((t) => `  ${t}`)] : []),
+    ...(pf ? [`Then the proper fraction ${mark(beautify(rest))}${pf.linear ? '' : ' by partial fractions'}:`, ...pf.steps.map((t) => `  ${t}`)] : []),
     `Add the parts: ${mark(lnify(anti))}.`,
   ];
   return { antiderivative: anti, steps };
@@ -1061,7 +1259,7 @@ function limitAtInfinity(F, variable, sign) {
 }
 
 // Name a limit value when it is a familiar constant.
-const NAMED_CONSTANTS = [[Math.PI, 'π', 'pi'], [Math.PI / 2, 'π/2', 'pi/2'], [Math.PI / 4, 'π/4', 'pi/4'], [Math.E, 'e', 'exp(1)'], [1 / Math.E, '1/e', 'exp(-1)'], [Math.sqrt(Math.PI), '√π', 'sqrt(pi)'], [Math.sqrt(Math.PI) / 2, '√π/2', 'sqrt(pi)/2'], [Math.LN2, 'ln(2)', 'log(2)']];
+const NAMED_CONSTANTS = [[Math.PI, 'π', 'pi'], [Math.PI / 2, 'π/2', 'pi/2'], [Math.PI / 4, 'π/4', 'pi/4'], [Math.PI / (2 * Math.SQRT2), 'π/(2√2)', 'pi/(2*sqrt(2))'], [Math.PI / Math.SQRT2, 'π/√2', 'pi/sqrt(2)'], [Math.PI / 3, 'π/3', 'pi/3'], [Math.PI / 6, 'π/6', 'pi/6'], [Math.E, 'e', 'exp(1)'], [1 / Math.E, '1/e', 'exp(-1)'], [Math.sqrt(Math.PI), '√π', 'sqrt(pi)'], [Math.sqrt(Math.PI) / 2, '√π/2', 'sqrt(pi)/2'], [Math.LN2, 'ln(2)', 'log(2)']];
 function nameConstant(v) {
   if (Math.abs(v) < 1e-9) return '0';
   for (const [c, t] of NAMED_CONSTANTS) {
@@ -1089,6 +1287,74 @@ function rawSubst(Algebrite, F, variable, at) {
 }
 
 // ∫_a^∞, ∫_-∞^b, ∫_-∞^∞ — as lim_{t→∞} ∫_a^t f, via the antiderivative.
+function finiteBoundValue(raw) {
+  return Number(math.evaluate(String(raw).replace(/π/g, 'pi')));
+}
+
+// A numerical estimate of ∫_a^b f with a = −∞ and/or b = ∞, reported only
+// when three things agree: the integrals to growing finite bounds settle,
+// and a mapped quadrature of the whole range (x = c + t/(1 − t) on [0, 1))
+// at two step sizes gives the same number as those and as each other. Null
+// otherwise — a slow tail (1/x^1.1) or a divergent one fails here, and the
+// caller refuses.
+function numericImproper(integrand, v, a, b) {
+  const fx = (x) => {
+    try {
+      const y = math.evaluate(integrand, { [v]: x });
+      return typeof y === 'number' && Number.isFinite(y) ? y : NaN;
+    } catch {
+      return NaN;
+    }
+  };
+  // Simpson on [0, 1) of the mapped integrand; the end t = 1 is the point at
+  // infinity, where a convergent integrand's weight is 0.
+  // The same mapping serves the truncated integrals (t up to T/(1 + T)):
+  // the mesh stays dense where the integrand lives, near the finite end,
+  // where a uniform mesh over [a, 10000] would have steps of 2.5.
+  const mapped = (c, sign, N, tMax = 1) => {
+    const g = (t) => {
+      if (t >= 1) return 0;
+      const x = c + sign * (t / (1 - t));
+      const y = fx(x);
+      return Number.isFinite(y) ? y / ((1 - t) * (1 - t)) : NaN;
+    };
+    const h = tMax / N;
+    let sum = 0;
+    for (let i = 0; i <= N; i += 1) {
+      const y = g(i * h);
+      if (!Number.isFinite(y)) return NaN;
+      sum += (i === 0 || i === N ? 1 : i % 2 ? 4 : 2) * y;
+    }
+    return (sum * h) / 3;
+  };
+  const tail = (c, sign) => {
+    const coarse = mapped(c, sign, 4000);
+    const fine = mapped(c, sign, 8000);
+    if (!Number.isFinite(coarse) || !Number.isFinite(fine) || Math.abs(fine - coarse) > 1e-7 * (1 + Math.abs(fine))) return null;
+    return fine;
+  };
+  const bothInfinite = a === -Infinity && b === Infinity;
+  const c = bothInfinite ? 0 : (a === -Infinity ? b : a);
+  const sides = [];
+  if (b === Infinity) sides.push(1);
+  if (a === -Infinity) sides.push(-1);
+  const parts = sides.map((sign) => tail(c, sign));
+  if (parts.some((p) => p === null)) return null;
+  const value = parts.reduce((acc, p) => acc + p, 0);
+  // The truncated integrals must settle toward the same value.
+  const Ts = [100, 1000, 10000];
+  const truncated = Ts.map((T) => {
+    const val = sides.reduce((acc, sign) => acc + mapped(c, sign, 4000, T / (1 + T)), 0);
+    return [T, val];
+  });
+  if (truncated.some(([, val]) => !Number.isFinite(val))) return null;
+  const last = truncated[truncated.length - 1][1];
+  const prev = truncated[truncated.length - 2][1];
+  if (Math.abs(last - value) > 1e-3 * (1 + Math.abs(value))) return null;
+  if (Math.abs(last - prev) > Math.abs(prev - truncated[0][1]) + 1e-9 && Math.abs(last - prev) > 1e-6) return null;
+  return { value, truncated };
+}
+
 async function solveImproperInfinite(parsed, notation) {
   const { integrand, variable: v, lowerRaw, upperRaw, lowerLabel, upperLabel } = parsed;
   const Algebrite = await loadAlgebrite();
@@ -1100,11 +1366,39 @@ async function solveImproperInfinite(parsed, notation) {
 
   const F = await antiderivativeViaTerms(integrand, v, Algebrite);
   if (!F) {
+    // No antiderivative: the limit is estimated numerically when the
+    // truncated integrals settle (1.57.0); otherwise the honest refusal.
+    const estimate = numericImproper(integrand, v, lowerInf ? -Infinity : finiteBoundValue(lowerRaw), upperInf ? Infinity : finiteBoundValue(upperRaw));
+    if (estimate) {
+      const approx = formatNumber(estimate.value);
+      const named = nameConstant(estimate.value);
+      const truncated = estimate.truncated.map(([T, val]) => `${mark(`${formatNumber(T)}`)} gives ${mark(`≈ ${formatNumber(val, 6)}`)}`).join(', ');
+      const rangeWord = lowerInf && upperInf ? 'from −t to t' : upperInf ? `from ${lowerLabel} to t` : `from −t to ${upperLabel}`;
+      steps.push(`No antiderivative of ${mark(beautify(integrand))} was found by this solver's methods, so the limit is estimated numerically. Integrating ${rangeWord}: ${mark('t')} = ${truncated}; the values settle as the bound grows.`);
+      steps.push(`A change of variable that maps the infinite range onto ${mark('[0, 1)')} gives the limit directly: ${mark(`≈ ${formatNumber(estimate.value, 8)}`)}, agreeing with the truncated values${named && named !== approx ? `, and with ${mark(named)} to the digits shown (a numerical estimate cannot prove the exact form)` : ''}.`);
+      steps.push(`The limit is finite, so the integral converges: ${mark(`≈ ${approx}`)} (numerical).`);
+      return {
+        steps,
+        answer: `${notation} ≈ ${approx} (numerical)`,
+        tips: [
+          `An improper integral is a limit: replace the infinite bound by ${mark('t')}, integrate, then let ${mark('t → ∞')}. Here the integral to ${mark('t')} was computed numerically for growing ${mark('t')} and seen to settle.`,
+          `A numerical value gives the digits two estimates agree on, not an antiderivative; a trigonometric identity, a substitution or partial fractions by hand may give the exact form.`,
+          `It converges only when the integrand dies away fast enough: ${mark('∫₁^∞ 1/x^p dx')} converges exactly when ${mark('p > 1')}.`,
+        ],
+        common_mistakes: [
+          `Writing the estimate as an exact value: ${mark(`≈ ${approx}`)} is correct to the digits shown.`,
+          `Plugging ${mark('∞')} into a formula as if it were a number — the integral is a limit.`,
+          `Assuming a function that tends to ${mark('0')} has a convergent integral (${mark('1/x → 0')} but ${mark('∫₁^∞ 1/x dx = ∞')}).`,
+        ],
+        graph: generateDefiniteGraph(integrand, v, lowerInf ? -10 : finiteBoundValue(lowerRaw), upperInf ? 10 : finiteBoundValue(upperRaw), lowerLabel, upperLabel, estimate.value),
+      };
+    }
+    const reason = 'The antiderivative could not be found, and the numerical estimates of this improper integral do not settle (the integral to a growing bound keeps changing, as it does for a slow tail or an oscillating integrand), so no value is reported.';
     return unsupported({
       input: notation,
-      reason: 'The antiderivative could not be found, so the limit defining this improper integral cannot be evaluated here.',
+      reason,
       answer: 'This improper integral is beyond what this solver can compute',
-      steps,
+      steps: [...steps, reason],
     });
   }
   const showF = (t) => lnify(t).replace(/\bexp\(([^()]+)\)/g, 'e^($1)');
@@ -1148,11 +1442,12 @@ async function solveImproperInfinite(parsed, notation) {
   }
 
   if ([upperPart, lowerPart].some((p) => p.unreadable)) {
+    const reason = 'The antiderivative could not be evaluated numerically far out, so the limit defining this improper integral cannot be checked here.';
     return unsupported({
       input: notation,
-      reason: 'The antiderivative could not be evaluated numerically far out, so the limit defining this improper integral cannot be checked here.',
+      reason,
       answer: 'This improper integral is beyond what this solver can compute',
-      steps,
+      steps: [...steps, reason],
     });
   }
   const divergent = [upperPart, lowerPart].find((p) => p.diverges || p.undefined);
@@ -1210,7 +1505,7 @@ async function solveImproperInfinite(parsed, notation) {
     // A slowly-decaying tail can make the finite check fall short; only refuse when
     // the mismatch is gross.
     if (Math.abs(check - value) > Math.max(0.5, Math.abs(value) * 0.5)) {
-      return refuseDefinite('The limit value and a numeric check disagree, so I am not reporting a value.', notation);
+      return refuseDefinite('The limit value and a numeric check disagree, so no value is reported.', notation);
     }
   }
   steps.push(`Check: integrating numerically over a long finite stretch gives ${mark(`≈ ${typeof check === 'number' ? formatNumber(check) : '—'}`)}, consistent with the limit.`);
@@ -1261,7 +1556,7 @@ function exactValueToRaw(value) {
 async function solveDefiniteIntegral(parsed) {
   if (parsed.error) {
     return refuseDefinite(
-      'This looks like a definite integral, but I could not read its bounds.',
+      'This looks like a definite integral, but its bounds could not be read.',
       'Try the form ∫_0^1 x^2 dx, or "x^2 from 0 to 1".',
       'parse',
     );
@@ -1280,7 +1575,7 @@ async function solveDefiniteIntegral(parsed) {
     const a = Number(math.evaluate(lowerRaw));
     const b = Number(math.evaluate(upperRaw));
     if (!Number.isFinite(a) || !Number.isFinite(b)) {
-      return refuseDefinite('I could not read the integration bounds as numbers.', notation, 'parse');
+      return refuseDefinite('The integration bounds could not be read as numbers.', notation, 'parse');
     }
 
     const Algebrite = await loadAlgebrite();
@@ -1370,15 +1665,26 @@ async function solveDefiniteIntegral(parsed) {
     }
     const exactUsable = Number.isFinite(exactValue) && (!badExact || ftcF);
 
-    // If Algebrite's exact value is unusable, or the two methods disagree,
-    // refuse rather than present a number we don't trust.
+    // No antiderivative from any method: the integral is still a number, and
+    // a student is owed it. Two Simpson step sizes must agree (to the digits
+    // shown) before it is reported, and it is reported as an estimate —
+    // "≈ … (numerical)" — never as an exact value. Until 1.57.0 this was a
+    // refusal, while the indefinite path's tip promised "a definite version
+    // can still be computed numerically" (October 2026 review).
+    if (!exactUsable && Number.isFinite(numeric)) {
+      const estimate = numericEstimate(integrand, v, a, b);
+      if (estimate) return numericOnlyDefinite({ notation, integrand, v, a, b, lowerLabel, upperLabel, estimate });
+      return refuseDefinite(
+        'The antiderivative was not found, and two numerical estimates of this definite integral do not agree closely enough to report one.',
+        notation,
+      );
+    }
+    // The exact value and the numeric check disagree: refuse rather than
+    // present a number we don't trust.
     const tol = Math.max(1e-2, Math.abs(Number.isFinite(exactValue) ? exactValue : numeric) * 1e-2);
     if (!exactUsable || !Number.isFinite(numeric) || Math.abs(numeric - exactValue) > tol) {
-      // A confirmed-finite numeric with no trustworthy exact still gets refused
-      // here: without the symbolic value we can't show honest FTC steps, and a
-      // bare decimal from quadrature isn't what this solver promises.
       return refuseDefinite(
-        'I could not compute this definite integral exactly (the antiderivative may have no elementary form).',
+        'The exact value and a numerical check of this definite integral disagree, so no value is reported.',
         notation,
       );
     }
@@ -1436,8 +1742,48 @@ async function solveDefiniteIntegral(parsed) {
     };
   } catch (error) {
     console.error('Definite integral solver error:', error);
-    return refuseDefinite('I was unable to compute this definite integral.', notation);
+    return refuseDefinite('This definite integral could not be computed.', notation);
   }
+}
+
+// Two Simpson estimates at different step sizes; the value is reported only
+// when they agree to about eight significant digits (then the digits shown,
+// four places, are safe). Null when they do not, or when the integrand
+// cannot be sampled.
+function numericEstimate(integrand, v, a, b) {
+  const coarse = numericIntegral(integrand, v, a, b, 2000);
+  const fine = numericIntegral(integrand, v, a, b, 4000);
+  if (typeof coarse !== 'number' || typeof fine !== 'number' || !Number.isFinite(coarse) || !Number.isFinite(fine)) return null;
+  if (Math.abs(fine - coarse) > 1e-8 * (1 + Math.abs(fine))) return null;
+  return { value: fine, coarse, fine };
+}
+
+// The result for a definite integral whose antiderivative no method found:
+// the numerical estimate, said to be one.
+function numericOnlyDefinite({ notation, integrand, v, a, b, lowerLabel, upperLabel, estimate }) {
+  const approx = formatNumber(estimate.value);
+  const named = nameConstant(estimate.value);
+  const steps = [
+    `Evaluate the definite integral ${mark(notation)}.`,
+    `No antiderivative of ${mark(beautify(integrand))} was found by this solver's methods (direct rules, u-substitution, integration by parts, partial fractions, trigonometric substitution), so the Fundamental Theorem of Calculus cannot be applied here.`,
+    `The integral is still a definite number — the signed area under the curve from ${mark(`${v} = ${lowerLabel}`)} to ${mark(`${v} = ${upperLabel}`)} — so it is estimated numerically with Simpson's rule: with 2000 subintervals ${mark(`≈ ${formatNumber(estimate.coarse, 8)}`)}, with 4000 ${mark(`≈ ${formatNumber(estimate.fine, 8)}`)}. The two agree, so the digits shown are reliable.`,
+    `Numerical value: ${mark(`≈ ${approx}`)}${named && named !== approx ? ` (this agrees with ${mark(named)} to the digits shown; a numerical estimate cannot prove the exact form)` : ''}.`,
+  ];
+  return {
+    steps,
+    answer: `${notation} ≈ ${approx} (numerical)`,
+    tips: [
+      `A numerical integral samples the curve and adds up slices (Simpson's rule fits parabolas through triples of points); it gives the value to as many digits as two step sizes agree on, but no antiderivative.`,
+      `Try a method by hand: the solver's list stops at the techniques named in the steps; a trigonometric identity, a different substitution or a reduction formula may give the exact form.`,
+      `A definite integral is the signed area between the curve and the ${mark(v)}-axis over ${mark(`[${lowerLabel}, ${upperLabel}]`)}; a numerical estimate is a fine way to check an exact answer found by hand.`,
+    ],
+    common_mistakes: [
+      `Writing the estimate as an exact value: ${mark(`≈ ${approx}`)} is correct to the digits shown, ${mark(`= ${approx}`)} is a different claim.`,
+      `Trusting a numerical value across a vertical asymptote — the slices there are meaningless (this solver checks for one first).`,
+      `Assuming no antiderivative exists because a solver did not find one: the methods tried are listed in the steps.`,
+    ],
+    graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, estimate.value),
+  };
 }
 
 // Evaluate an antiderivative at a bound, returning a clean exact string or null.
@@ -1457,6 +1803,15 @@ function evalAntiderivNumeric(F, variable, at) {
 
 function evalAntiderivAt(Algebrite, F, variable, at) {
   try {
+    // Algebrite has no sec/csc/cot: F(0) for ½(ln|sec x + tan x| + sec x tan x)
+    // came back as ½·ln(sec(0)). Try the reciprocal-free form first and keep
+    // it when it reduces to a plain constant (0); otherwise the original
+    // form, which reads as written.
+    const rewritten = rewriteReciprocalTrig(F);
+    if (rewritten !== F) {
+      const viaRewrite = String(Algebrite.run(`simplify(real(subst(${at}, ${variable}, ${rewritten})))`)).trim();
+      if (!isAlgebriteFailure(viaRewrite) && !/[a-z]\(/i.test(viaRewrite)) return formatExactValue(viaRewrite);
+    }
     const out = String(Algebrite.run(`simplify(real(subst(${at}, ${variable}, ${F})))`)).trim();
     if (isAlgebriteFailure(out)) return null;
     return formatExactValue(out);
@@ -1564,8 +1919,9 @@ function formatExactValue(raw) {
   s = s
     .replace(/\bexp\(1\)/g, 'e')
     .replace(/\bexp\(([^()]+)\)/g, 'e^($1)')
-    .replace(/\blog\(([^()]+)\)/g, 'ln($1)')
-    .replace(/\bpi\b/g, 'π');
+    .replace(/\blog\(((?:[^()]|\([^()]*\))+)\)/g, 'ln($1)')
+    .replace(/\bpi\b/g, 'π')
+    .replace(/(?<![\w.])(\d+)\^\(1\/2\)/g, '√$1');
   return s;
 }
 
@@ -2064,6 +2420,49 @@ function halfAngleSteps(term, variable, anti) {
   ];
 }
 
+// ∫c·tan(kx), cot, sec, csc: the table entry, derived. tan = sin/cos with
+// u = cos (cot: u = sin); sec and csc by the (sec + tan)/(sec + tan) trick.
+function trigQuotientSteps(term, variable, anti) {
+  const v = variable;
+  const m = String(term).replace(/\s+/g, '').match(new RegExp(`^([+-]?)(\\d+(?:\\.\\d+)?)?\\*?(tan|cot|sec|csc)\\((?:(\\d+(?:\\.\\d+)?)\\*?)?${v}\\)$`, 'i'));
+  if (!m) return null;
+  const c = (m[1] === '-' ? -1 : 1) * (m[2] ? Number(m[2]) : 1);
+  const fn = m[3].toLowerCase();
+  const k = m[4] ? Number(m[4]) : 1;
+  const θ = k === 1 ? v : `${formatNumber(k)}${v}`;
+  const θRaw = k === 1 ? v : `${k}*${v}`;
+  const cText = c === 1 ? '' : c === -1 ? '−' : `${formatNumber(c)}·`;
+  const overK = k === 1 ? '' : `(1/${formatNumber(k)})·`;
+  if (fn === 'tan' || fn === 'cot') {
+    const [num, den] = fn === 'tan' ? ['sin', 'cos'] : ['cos', 'sin'];
+    const sign = fn === 'tan' ? '−' : '';
+    const result = `∫${cText}${fn}(${θ}) d${v} = ${lnify(anti)}`;
+    return {
+      antiderivative: anti,
+      steps: [
+        `Write ${mark(fn)} as a quotient: ${mark(`${fn}(${θ}) = ${num}(${θ})/${den}(${θ})`)}, so ${mark(`∫${cText}${fn}(${θ}) d${v} = ∫${cText}${num}(${θ})/${den}(${θ}) d${v}`)}.`,
+        `The numerator is the derivative of the denominator (up to a constant): let ${mark(`u = ${den}(${θ})`)}, ${mark(`du = ${fn === 'tan' ? '−' : ''}${k === 1 ? '' : `${formatNumber(k)}·`}${num}(${θ}) d${v}`)}, and the integral is ${mark(`${sign}${overK}${cText}∫du/u = ${sign}${overK}${cText}ln|u|`)}.`,
+        `Back-substitute ${mark(`u = ${den}(${θ})`)}: ${mark(result)}${fn === 'tan' ? ` (equivalently ${mark(`${overK}${cText}ln|sec(${θ})|`)})` : ''}.`,
+      ],
+    };
+  }
+  // Algebrite writes ∫sec as ln|tan(x/2 + π/4)|; the derivation gives the
+  // textbook ln|sec + tan|, equal to it, and that form is kept (verified).
+  const [co, sign] = fn === 'sec' ? ['tan', '+'] : ['cot', '−'];
+  const coefRaw = c / k === 1 ? '' : Number.isInteger(c) && Number.isInteger(k) ? `(${c}/${k})*` : `${c / k}*`;
+  const textbook = `${coefRaw}log(${fn}(${θRaw})${sign === '+' ? '+' : '-'}${co}(${θRaw}))`;
+  const antiderivative = derivativeMatchesNumerically(textbook, term, v) ? textbook : anti;
+  const result = `∫${cText}${fn}(${θ}) d${v} = ${lnify(antiderivative)}`;
+  return {
+    antiderivative,
+    steps: [
+      `Multiply by ${mark(`(${fn}(${θ}) ${sign} ${co}(${θ}))/(${fn}(${θ}) ${sign} ${co}(${θ}))`)}: ${mark(`∫${cText}${fn}(${θ}) d${v} = ∫${cText}(${fn}²(${θ}) ${sign} ${fn}(${θ})${co}(${θ}))/(${fn}(${θ}) ${sign} ${co}(${θ})) d${v}`)}.`,
+      `The numerator is now the derivative of the denominator: let ${mark(`u = ${fn}(${θ}) ${sign} ${co}(${θ})`)}, ${mark(`du = ${k === 1 ? '' : `${formatNumber(k)}·`}(${fn === 'sec' ? `sec(${θ})tan(${θ}) + sec²(${θ})` : `csc²(${θ}) − csc(${θ})cot(${θ})`}) d${v}`)}, and the integral is ${mark(`${overK}${cText}∫du/u = ${overK}${cText}ln|u|`)}.`,
+      `Back-substitute: ${mark(result)}.`,
+    ],
+  };
+}
+
 function classifyIntegralRule(term, variable) {
   const v = variable;
 
@@ -2078,16 +2477,41 @@ function classifyIntegralRule(term, variable) {
     return { label: 'Reciprocal rule', hint: mark(`∫1/${v} d${v} = ln|${v}|`) };
   }
 
-  // Products mixing function families usually need integration by parts.
+  // √(x² ± a²), √(a² − x²) in the integrand: a trigonometric substitution
+  // (Algebrite answers 1/(x²√(x² + 9)) in one line; the step used to call
+  // it "u-substitution", with no u in sight — October 2026 review).
+  const radical = inner.replace(/\s+/g, '').match(new RegExp(`(?:sqrt\\(|\\()(?:(?:\\d+\\*?)?${v}\\^2([+-])(\\d+)|(\\d+)([+-])(?:\\d+\\*?)?${v}\\^2)\\)(?:\\^\\(1/2\\))?`));
+  if (radical) {
+    const [, sign1, a2a, a2b, sign2] = radical;
+    const a2 = Number(a2a ?? a2b);
+    const a = Number.isInteger(Math.sqrt(a2)) ? String(Math.sqrt(a2)) : `√${a2}`;
+    const kind = sign1 === '+' || sign2 === '+' ? 'tan' : sign1 === '-' ? 'sec' : 'sin';
+    const form = kind === 'tan' ? `√(${v}² + a²)` : kind === 'sec' ? `√(${v}² − a²)` : `√(a² − ${v}²)`;
+    const subst = kind === 'tan' ? `${v} = ${a}·tan θ` : kind === 'sec' ? `${v} = ${a}·sec θ` : `${v} = ${a}·sin θ`;
+    const root = kind === 'tan' ? `${a}·sec θ` : kind === 'sec' ? `${a}·tan θ` : `${a}·cos θ`;
+    return {
+      label: 'Trigonometric substitution',
+      hint: `the radical ${mark(form)} with ${mark(`a = ${a}`)} calls for ${mark(subst)}, which turns it into ${mark(root)}; integrate in ${mark('θ')} and convert back with a right triangle`,
+    };
+  }
+
+  // Products of two families (x·eˣ, x·sin x, eˣ·sin x) need integration by
+  // parts. Two trig factors (sin²x·cos²x) are one family: an identity.
   const factors = splitTopLevel(inner, '*');
   const varFactors = factors.filter((f) => hasVariable(f, v));
-  const mixesFamilies =
-    varFactors.length >= 2 &&
-    /\b(?:sin|cos|tan|exp|ln|log)\b|e\^/i.test(inner);
-  if (mixesFamilies) {
+  const family = (f) => (/\b(?:sin|cos|tan|sec|csc|cot)\b/i.test(f) ? 'trig' : /\bexp\b|e\^/i.test(f) ? 'exp' : /\b(?:ln|log)\b/i.test(f) ? 'log' : 'algebraic');
+  const families = new Set(varFactors.map(family));
+  if (varFactors.length >= 2 && families.size >= 2) {
     return {
       label: 'Integration by parts',
       hint: `${mark('∫u dv = uv − ∫v du')} (choose ${mark('u')} by LIATE: Log, Inverse-trig, Algebraic, Trig, Exponential)`,
+    };
+  }
+  const evenPower = inner.replace(/\s+/g, '').match(new RegExp(`^(?:[\\d./*]+\\*?)?(sin|cos)\\((?:\\d+(?:\\.\\d+)?\\*?)?${v}\\)\\^(\\d+)$`, 'i'));
+  if ((varFactors.length >= 2 && families.size === 1 && families.has('trig')) || (evenPower && Number(evenPower[2]) % 2 === 0)) {
+    return {
+      label: 'Trigonometric identity',
+      hint: `even powers of ${mark('sin')} and ${mark('cos')} are lowered with ${mark('sin²θ = (1 − cos 2θ)/2')}, ${mark('cos²θ = (1 + cos 2θ)/2')} and ${mark('sin θ cos θ = (sin 2θ)/2')}, repeated until only first powers of cosines remain, then integrated term by term`,
     };
   }
 
@@ -2213,7 +2637,7 @@ function isLogDerivativeShape(term, variable, Algebrite) {
 // absolute-value bars can be dropped. Says so; otherwise the bars stay.
 function positiveArgumentNote(antiderivative, variable) {
   return alwaysPositiveLogArguments(antiderivative, variable)
-    .map((arg) => `Because ${beautify(arg)} > 0 for every ${variable}, the absolute-value bars in ln|${beautify(arg)}| are not needed.`);
+    .map((arg) => `Because ${mark(`${lnify(arg)} > 0`)} for every ${mark(variable)}, the absolute-value bars in ${mark(`ln|${lnify(arg)}|`)} are not needed.`);
 }
 
 // The log arguments in an antiderivative that are positive for every x: a
@@ -2221,10 +2645,11 @@ function positiveArgumentNote(antiderivative, variable) {
 function alwaysPositiveLogArguments(antiderivative, variable) {
   const out = [];
   // log((x^2+1)) too: the pieces of a partial-fraction sum keep their brackets.
-  for (const m of String(antiderivative).matchAll(/log\(\(?([^()]+)\)?\)/g)) {
+  for (const m of String(antiderivative).matchAll(/log\(\(?((?:[^()]|\([^()]*\))+?)\)?\)(?![^()]*\))/g)) {
     const arg = m[1].replace(/\s+/g, '');
     const terms = arg.split(/(?=[+-])/).filter(Boolean);
-    const positive = terms.length > 0 && terms.every((t) => !t.startsWith('-') && (/^\+?\d+(?:\.\d+)?$/.test(t) || new RegExp(`^\\+?(?:\\d+(?:\\.\\d+)?\\*?)?${variable}\\^(?:\\d*[02468])$`).test(t)));
+    // A positive constant, an even power, or an exponential (e^x, e^(2x), exp(x)).
+    const positive = terms.length > 0 && terms.every((t) => !t.startsWith('-') && (/^\+?\d+(?:\.\d+)?$/.test(t) || new RegExp(`^\\+?(?:\\d+(?:\\.\\d+)?\\*?)?${variable}\\^(?:\\d*[02468])$`).test(t) || new RegExp(`^\\+?(?:\\d+(?:\\.\\d+)?\\*?)?(?:e\\^\\(?-?\\d*\\*?${variable}\\)?|exp\\(-?\\d*\\*?${variable}\\))$`).test(t)));
     const hasConstant = terms.some((t) => /^\+?\d+(?:\.\d+)?$/.test(t));
     if (positive && hasConstant) out.push(m[1]);
   }
@@ -2237,8 +2662,7 @@ function alwaysPositiveLogArguments(antiderivative, variable) {
 function dropBarsOnPositiveArguments(shown, antiderivative, variable) {
   let out = shown;
   for (const arg of alwaysPositiveLogArguments(antiderivative, variable)) {
-    const b = beautify(arg);
-    out = out.split(`ln|${b}|`).join(`ln(${b})`);
+    for (const b of new Set([beautify(arg), lnify(arg)])) out = out.split(`ln|${b}|`).join(`ln(${b})`);
   }
   return out;
 }
