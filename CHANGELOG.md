@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.57.2] - 2026-10-28
+
+### Changed
+
+- **The privacy policy names the host.** The policy said the app has no
+  servers and does not track IP addresses, which was true of the app but
+  silent about the hosting: like any website, Netlify sees the request that
+  loads the app, including the IP address, and keeps standard request logs.
+  A new Hosting section says so, says that we may use Netlify's log-based
+  visit counts, and says that this adds no script, cookie or request to the
+  app, which still sends nothing but a submitted feedback message. Netlify
+  is listed under Third-Party Services and the IP bullet points to the note.
+
 ## [1.57.1] - 2026-10-28
 
 Rational functions without Algebrite's `factor()` and `roots()`. An outside

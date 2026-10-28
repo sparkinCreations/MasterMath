@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Last Updated: October 22, 2026
+          Last Updated: October 28, 2026
         </p>
       </div>
 
@@ -96,7 +96,7 @@ export default function PrivacyPolicy() {
             </h3>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
               <li>We do NOT collect any personally identifiable information (name, email, phone number)</li>
-              <li>We do NOT track your IP address or location</li>
+              <li>We do NOT track your IP address or location. Like any website, the host that serves the app sees the address of each request to load it; the app itself never records or sends it (see Hosting below)</li>
               <li>We do NOT use cookies for tracking or advertising</li>
               <li>We do NOT share any data with third parties — the one exception is the Feedback page, which sends only what you type into it, only when you choose to submit it (see Web3Forms below)</li>
               <li>We do NOT send your problems, solutions, history or settings to any external server — they never leave your device</li>
@@ -157,6 +157,22 @@ export default function PrivacyPolicy() {
               your mathematical problems and solutions remain completely private to you.
             </p>
           </div>
+
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">
+              Hosting
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              The app's files are delivered by Netlify, our hosting provider. When your browser loads the
+              app, Netlify receives the request, as any website's host does, including your IP address,
+              the page requested, and your browser's user agent, and keeps standard request logs under its
+              own privacy policy. We may use Netlify's log-based visit counts (page views and visitor
+              totals derived from those logs) to see whether the app is being used. This adds no script,
+              no cookie and no request to the app itself: once the app has loaded, nothing you type, solve,
+              or store is sent to Netlify or anyone else, and the feedback form remains the only outbound
+              request the app makes.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -215,6 +231,8 @@ export default function PrivacyPolicy() {
             <li><strong>Framer Motion:</strong> For UI animations (runs locally in your browser)</li>
             <li><strong>jsPDF:</strong> For PDF export functionality (runs locally in your browser)</li>
             <li><strong>KaTeX and html2canvas-pro:</strong> For typesetting the math on screen and in exported PDFs (run locally in your browser)</li>
+            <li><strong>Netlify:</strong> Hosts and serves the app's files. Netlify sees the request to load
+              the app (see Hosting above) and nothing else; the app sends it no data.</li>
             <li><strong>Web3Forms:</strong> Used on the Feedback page to submit your feedback messages.
               When you submit feedback, your message and optional contact information are sent to
               Web3Forms, a third-party form processing service. No feedback is sent unless you
@@ -222,7 +240,8 @@ export default function PrivacyPolicy() {
           </ul>
           <p className="text-gray-700 dark:text-gray-300 mt-3">
             All math libraries run entirely in your browser and do not collect, transmit, or store
-            your personal data. Web3Forms only receives data when you voluntarily submit the feedback form.
+            your personal data. Netlify only sees the request that loads the app, and Web3Forms only
+            receives data when you voluntarily submit the feedback form.
           </p>
         </CardContent>
       </Card>
