@@ -158,7 +158,10 @@ following the curve; "at (a, b)"),
 `integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` /
 `trigSubstitutionSolver` (√(a² − b²x²)) / `trigPowerSolver` (sin^m·cos^n
 with an odd power, sec^n and csc^n by u = tan or the reduction formula,
-tan^m·sec^n, tan^m) / partial fractions (incl. c/(x⁴ + a⁴) over √2, and
+tan^m·sec^n, tan^m) / partial fractions (the denominator factored over the
+rationals by the exact root finder, never Algebrite's `factor()`, which
+grinds for seconds on x⁴ + 1; coefficients solved exactly; repeated
+irreducible quadratics by the reduction formula; incl. c/(x⁴ + a⁴) over √2, and
 `surdPartialFractions` for any denominator that factors only over the
 reals: factors from the root finder, coefficients recognised as rationals
 or quadratic surds, else full-precision decimals shown rounded with ≈) /

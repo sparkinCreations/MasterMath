@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.57.1] - 2026-10-28
+
+Rational functions without Algebrite's `factor()` and `roots()`. An outside
+tester on 1.56.4 saw ∫(x² + 1)/(x⁴ + 1) dx hit the 10 s budget; on 1.57.0
+the same integral solved, but only after Algebrite's `factor()` had ground
+for 2.3 s on a denominator it cannot factor (4.3 s for x⁶ + 1), which on a
+phone is still most of the budget before the surd path got its turn.
+
+### Changed
+
+- **The denominator is factored by the exact root finder** (`polynomialRoots.js`),
+  not Algebrite's `factor()`: rational real roots become linear factors, a
+  conjugate pair whose sum and product are rationals of the one possible
+  denominator (Gauss's lemma) becomes a quadratic, and the factors are
+  multiplied back together in exact arithmetic before they are used. Proven
+  irreducible over the rationals, the integral goes straight to the surd path;
+  Algebrite's `factor()` is called only when the finder cannot decide. The
+  working with integer coefficients is shown exactly as before, factors in
+  the same order. Measured in Node: (x² + 1)/(x⁴ + 1) 2.3 s → 0.1 s,
+  1/(x⁶ + 1) 4.1 s → 0.13 s, 1/(x⁸ + 1) 4.9 s → 0.19 s, 1/(x³ + x + 1)
+  16 s → 0.1 s.
+- **The distinct-linear partial-fractions stage asks the root finder first**
+  whether every root is real and simple; Algebrite's `roots()` is no longer
+  called to list complex roots that were then thrown away (x⁴ + 3x² + 2:
+  3.0 s → 0.1 s; (x² + 2)/(x⁴ + 5x² + 6): 98 s refused → 0.12 s solved).
+- **Partial-fraction coefficients are solved exactly** (Gaussian elimination
+  on fractions at integer sample points) instead of floating least squares
+  and rounding: 1/(x⁶ − 1), six unknowns, was refused.
+
+### Added
+
+- **Repeated irreducible quadratics by the reduction formula**, any power,
+  with k rational or a surd: 1/(x² + 1)³ = x/(4(x² + 1)²) + 3x/(8(x² + 1)) +
+  (3/8)arctan x, (2x + 3)/(x² + x + 1)² (250 s in Algebrite's `integral()`,
+  then refused → 0.26 s solved), 1/(4x⁴ + 4x² + 1), 1/(x² + 2x + 5)²; the
+  step names the formula and how many times it is applied. (1.57.0 handled
+  the square only, and only with a rational k.)
+
+### Fixed
+
+- **1/(2x² + 2x + 1)** was refused: with k = 1/2 the arctan argument was
+  written (x + 1/2)/1/2. It is arctan(2x + 1) now, and a quadratic factor
+  is shown as x² + x + 1/2, never x² + 1·x + 1/2.
+- A partial-fraction term with a zero numerator produced an empty step, and
+  a coefficient such as 1/3·√3 lost its leading 1 ("/3·√3").
+
 ## [1.57.0] - 2026-10-28
 
 Calculus II integrals, from the October 28 outside review (30 standard
