@@ -304,3 +304,115 @@ test('integrals second review: antiderivatives exist, repeated factors, the work
   assert.match((await plainInt('x^2*sin(x)')).mistakes[0], /^Stopping after one round/);
   assert.match((await plainInt('x*e^x')).mistakes[0], /^Choosing u and dv the wrong way round/);
 });
+
+// 1.62.0, algebra equations: the lessons of Rounds 22–23 built in. One
+// equation per method: more than three insights, its own first insight,
+// nothing repeated, and the equation's own working right after the method.
+const plainAlg = async (p) => {
+  const { stripMathMarkers } = await import('../src/lib/mathMarkers.js');
+  const r = await solveProblem(p, 'algebra');
+  return { ...r, answer: stripMathMarkers(r.answer), tips: r.tips.map(stripMathMarkers), mistakes: r.common_mistakes.map(stripMathMarkers) };
+};
+const EQUATION_METHODS = [
+  ['linear', '2x + 5 = 11', 'Here: 2x + 5 = 11 → 2x = 6 → x = 6/2 = 3.'],
+  ['fractions', 'x/3 + 1/2 = 5/6', 'Here: x/3 + 1/2 = 5/6 → 2x + 3 = 5 → 2x = 2 → x = 2/2 = 1.'],
+  ['contradiction', '5x - 7 = 5x + 2', 'Here the x terms cancel and the two sides always differ by -9, never 0: no x is a solution.'],
+  ['identity', '2(x+3) = 2x+6', 'Here the x terms cancel and the two sides are the same expression: every x is a solution.'],
+  ['factoring', 'x^2 - 5x + 6 = 0', 'Here: x^2 - 5x + 6 = (x - 2)(x - 3) = 0, so x = 2 or x = 3.'],
+  ['common factor', 'x^2 - 3x = 0', 'Here: x(x - 3) = 0, so x = 0 or x = 3.'],
+  ['formula', 'x^2 + x - 1 = 0', 'Here a = 1, b = 1, c = -1 and b² − 4ac = 5, positive, so two real roots: x = (-1 - √5)/2 or x = (-1 + √5)/2.'],
+  ['square roots', 'x^2 = 9', 'Here: x = ±√(9) = ±3, so x = -3 or x = 3.'],
+  ['absolute value', 'abs(2x-3) = 5', 'Here: 2x - 3 = 5 or 2x - 3 = -5, so x = -1 or x = 4.'],
+  ['radical', 'sqrt(x+2) = x', 'Here squaring gives x + 2 = (x)² = x^2, with candidates x = -1 or x = 2; x = -1 is extraneous, so x = 2.'],
+  ['logarithm', 'ln(x) = 1', 'Here: x = e^1, so x = e.'],
+  ['exponential', '2^x = 10', 'Here, taking a logarithm of both sides: x = ln(10)/ln(2) ≈ 3.3219.'],
+  ['rational', 'x/(x-1) = 2', 'Here: clearing the denominators gives -x + 2 = 0, so x = 2.'],
+  ['rational roots', 'x^3 - 6x^2 + 11x - 6 = 0', 'Here p(1) = 0, and dividing leaves x^2 - 5x + 6 = 0: x = 1 or x = 2 or x = 3.'],
+  ['fractional power', 'x^(2/3) = 4', 'Here: (∛x)^2 = 4, so ∛x = ±2 and x = (±2)^3 = ±8.'],
+];
+
+test('algebra: every method has more to show, its own first insight, and the equation worked second', async () => {
+  const leads = new Map();
+  for (const [method, problem, worked] of EQUATION_METHODS) {
+    const r = await plainAlg(problem);
+    assert.ok(r.tips.length > SHOWN_AT_FIRST, `${method}: only ${r.tips.length} insights`);
+    assert.equal(new Set(r.tips).size, r.tips.length, `${method}: a repeated insight`);
+    assert.equal(r.tips[1], worked, method);
+    if (!['contradiction', 'identity', 'common factor'].includes(method)) {
+      assert.ok(!leads.has(r.tips[0]), `${method} and ${leads.get(r.tips[0])} lead with the same insight`);
+      leads.set(r.tips[0], method);
+    }
+  }
+  // Behind the base-10 note, the log case works its own equation.
+  const logs = await plainAlg('log(x) + log(x - 3) = 1');
+  assert.match(logs.tips[2], /^Here, combined and in exponential form: x\(x - 3\) = 10\^1, with candidates x = -2 or x = 5; x = -2 is rejected/);
+  assert.match((await plainAlg('e^x + e^(-x) = 3')).tips[1], /^Here u = e\^x turns it into 1 - 3u \+ u\^2 = 0/);
+  assert.equal((await plainAlg('x^2 - 6x + 9 = 0')).tips[1], 'Here: x^2 - 6x + 9 = (x - 3)^2 = 0, so x = 3.');
+});
+
+test('algebra: statements say where they hold', async () => {
+  assert.ok((await plainAlg('ln(x) = 1')).tips.some((t) => /for a, b > 0\)/.test(t)));
+  assert.match((await plainAlg('2^x = 10')).tips[0], /with a > 0, a ≠ 1 and b > 0/);
+  assert.match((await plainAlg('x^3 - 6x^2 + 11x - 6 = 0')).tips[0], /for a polynomial with integer coefficients/);
+  assert.ok((await plainAlg('x^2 + x + 1 = 0')).tips.some((t) => /^With real coefficients, the discriminant/.test(t)));
+  assert.ok((await plainAlg('x^(2/3) = 4')).tips.some((t) => /undoing an even power gives ± \(when the right side is positive\)/.test(t)));
+  assert.ok((await plainAlg('5x - 7 = 5x + 2')).tips.some((t) => /^For a linear equation two values settle it/.test(t)));
+  assert.ok((await plainAlg('sqrt(72)')).tips.some((t) => /√\(a·b\) = √a · √b for a, b ≥ 0/.test(t)));
+});
+
+test('algebra sweep: edge cases answered correctly', async () => {
+  const cases = [
+    ['sqrt(x) = -2', /^No solution/], ['abs(x-1) = -3', /^No real solution/], ['x/(x-2) = 2/(x-2)', /^No solution/],
+    ['1/(x-1) = 0', /^No real solution/], ['ln(x-1) + ln(x+1) = ln(3)', /^x = 2$/], ['e^x = -2', /^No real solution/],
+    ['3^(2x) = 27', /^x = 3\/2$/], ['sqrt(x) + sqrt(x-5) = 5', /^x = 9$/], ['x^4 - 5x^2 + 4 = 0', /^x = -2 {2}or {2}x = -1 {2}or {2}x = 1 {2}or {2}x = 2$/],
+    ['x/(x+1) + 1/x = 1', /^No real solution/], ['e^(2x) - 3e^x + 2 = 0', /^x = 0 {2}or {2}x = ln\(2\)/],
+  ];
+  for (const [p, re] of cases) assert.match((await plainAlg(p)).answer, re, p);
+});
+
+// Outside review of the algebra content (Round 24): each claim reproduced,
+// and the sweep of the same class.
+test('algebra review: fractional powers in lowest terms, through the root', async () => {
+  for (const p of ['x^(2/3) = 4', 'x^(4/6) = 4', 'x^(6/9) = 4', 'x^(4/3) = 16']) assert.equal((await plainAlg(p)).answer, 'x = -8  or  x = 8', p);
+  assert.equal((await plainAlg('x^(2/4) = 3')).answer, 'x = 9');
+  assert.match((await plainAlg('x^(1/2) = -3')).answer, /^No real solution/);
+  const r = await plainAlg('x^(4/6) = 4');
+  const { stripMathMarkers } = await import('../src/lib/mathMarkers.js');
+  assert.equal(stripMathMarkers(r.steps[0]), 'The exponent 4/6 is 2/3 in lowest terms.');
+  assert.equal(r.tips[1], 'Here: (∛x)^2 = 4, so ∛x = ±2 and x = (±2)^3 = ±8.');
+  assert.match(r.tips[0], /^Read x\^\(p\/q\) as a root, then a power, with p\/q in lowest terms/);
+  // A rejected candidate is one that leaves the original undefined, said so.
+  const { solveProblem: sp } = await import('../src/lib/api.js');
+  const ext = await sp('x^2/(x-1) = 1/(x-1) + 1', 'algebra');
+  assert.match(ext.steps.join('\n'), /leaves the original equation undefined/);
+});
+
+test('algebra review: exact roots of x^n = c', async () => {
+  assert.equal((await plainAlg('x^3 = 2')).answer, 'x = ∛2 (≈ 1.2599)  or  x = ∛2·(−1 − i√3)/2  or  x = ∛2·(−1 + i√3)/2');
+  assert.equal((await plainAlg('x^4 + 1 = 0')).answer, 'x = (−1 − i)/√2  or  x = (−1 + i)/√2  or  x = (1 − i)/√2  or  x = (1 + i)/√2');
+  assert.match((await plainAlg('x^4 = 5')).answer, /x = −∜5 \(≈ -1\.4953\)  or  x = ∜5/);
+  assert.match((await plainAlg('x^3 = 2')).tips[0], /^x\^n = c is solved by an n-th root/);
+  // Perfect powers keep the Rational Root Theorem's working.
+  assert.equal((await plainAlg('x^3 = 8')).answer, 'x = 2  or  x = -1 - i√3  or  x = -1 + i√3');
+});
+
+test('algebra review: mistakes fit the case, common logs in base 10, Lambert W', async () => {
+  const factor = await plainAlg('x^2 - 3x = 0');
+  assert.equal(factor.mistakes.filter((m) => /Dividing both sides by x/.test(m)).length, 1);
+  const abs = await plainAlg('abs(x-1) = -3');
+  assert.match(abs.tips[0], /^An absolute value is never negative/);
+  assert.match(abs.mistakes[0], /^Splitting \|x − 1\| = −3 into cases anyway/);
+  assert.ok(!abs.mistakes.some((m) => /1\/x|logarithm/.test(m)));
+  assert.match((await plainAlg('e^x = -2')).tips[0], /^a\^x with a > 0 is always positive/);
+  const logs = await plainAlg('log(x) + log(x - 3) = 1');
+  assert.match(logs.tips[1], /^log\(x\) = c means x = 10\^c/);
+  assert.ok(!logs.tips.some((t) => /ln\(x\) = c means x = e\^c/.test(t)));
+  assert.ok((await plainAlg('x*e^x = 1')).tips.some((t) => /x = W\(c\), the Lambert W function/.test(t)));
+});
+
+test('algebra review: factor, expand, simplify and radicals show their own result second', async () => {
+  assert.equal((await plainAlg('factor x^2 - 9')).tips[1], 'Here: x^2 - 9 = (x - 3)(x + 3).');
+  assert.equal((await plainAlg('sqrt(72)')).tips[1], 'Here: √72 = 6√2.');
+  assert.equal((await plainAlg('expand (x+1)^2')).tips[1], 'Here: (x + 1)^2 = x^2 + 2x + 1.');
+  assert.equal((await plainAlg('(x^2-1)/(x-1)')).tips[1], 'Here: (x^2 - 1)/(x - 1) = x + 1, for x ≠ 1.');
+});

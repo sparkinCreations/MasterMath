@@ -34,6 +34,12 @@ const EXTRA = [
   ['derivatives', '2^x'], ['derivatives', 'sinh(x)'], ['derivatives', 'erf(x)'], ['derivatives', 'arcsin(x)'], ['derivatives', 'x*y = 1'],
   ['derivatives', '3x^4 - 2x + 7'], ['derivatives', 'x^2*e^(3x)'], ['derivatives', 'ln(x) at x = -1'], ['derivatives', 'third derivative of sin(2x)'],
   ['derivatives', 'fourth derivative of x^5'], ['derivatives', 'x^(1/3) at x = -8'], ['derivatives', 'x^x'], ['derivatives', 'second derivative of x*e^x'],
+  // Every equation method's whole list, with its worked line (1.62.0).
+  ['algebra', 'x^2 - 3x = 0'], ['algebra', 'x^2 - 6x + 9 = 0'], ['algebra', 'x^2 = 9'], ['algebra', 'x^2 = -4'], ['algebra', 'ln(x) + ln(x+1) = ln(6)'],
+  ['algebra', '2^x = 10'], ['algebra', 'x^(2/3) = 4'], ['algebra', 'x/(x-1) = 2'], ['algebra', '2(x+3) = 2x+6'], ['algebra', '5x - 7 = 5x + 2'],
+  ['algebra', 'log(x) + log(x - 3) = 1'], ['algebra', 'sqrt(2x+1) = x - 1'], ['algebra', '1/x + 1/(x+1) = 1'], ['algebra', 'x^2 + x + 1 = 0'],
+  ['algebra', 'x^(4/6) = 4'], ['algebra', 'x^3 = 2'], ['algebra', 'x^4 + 1 = 0'], ['algebra', 'x^4 = 5'], ['algebra', 'abs(x-1) = -3'], ['algebra', 'e^x = -2'],
+  ['algebra', '1/(x-1) = 0'], ['algebra', 'x*e^x = 1'], ['algebra', 'factor x^2 - 9'], ['algebra', 'sqrt(72)'], ['algebra', 'expand (x+1)^2'], ['algebra', '(x^2-1)/(x-1)'],
   // Every integration method's whole list (1.60.0: more insights behind "Show more").
   ['integrals', '2^x'], ['integrals', 'sinh(x)'], ['integrals', 'tan(x)^2'], ['integrals', 'sec(x)^3'], ['integrals', 'ln(x)'],
   ['integrals', 'e^x*sin(x)'], ['integrals', 'x^2*sin(x)'], ['integrals', 'sin(x)^3'], ['integrals', 'sin(x)^2*cos(x)^2'], ['integrals', '(x^3+1)/(x-1)'],

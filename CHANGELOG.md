@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.62.0] - 2026-10-29
+
+### Added
+
+- **More algebra insights and mistakes**, the third topic. Every equation
+  method has four to six insights behind "Show more", and the second one
+  works the student's own equation from its steps: 2x + 5 = 11 → 2x = 6 →
+  x = 3; x² − 5x + 6 = (x − 2)(x − 3) = 0; a, b, c and the sign of the
+  discriminant; the two cases of an absolute value; the squared equation and
+  the extraneous candidate; the exponential form and the rejected log
+  candidate; u = eˣ and its quadratic; the root found by the Rational Root
+  Theorem. Review: `docs/future-work/insights-review/ALGEBRA.md`.
+
+- **Exact roots of xⁿ = c** for n = 3 and 4: x³ = 2 gives ∛2 (≈ 1.2599) and
+  the complex pair ∛2·(−1 ± i√3)/2, x⁴ + 1 = 0 gives (±1 ± i)/√2, where
+  both were decimals.
+- **Factor, expand, simplify and radicals show their own result second**
+  ("Here: x² − 9 = (x − 3)(x + 3)").
+
+### Fixed
+
+- **x^(4/6) = 4 lost x = −8.** A rational exponent is now read in lowest
+  terms everywhere it is evaluated, and the step says so; the even-power case
+  is worked through the root ((∛x)² = 4, ∛x = ±2, x = ±8). An extraneous
+  candidate is now said to leave the equation undefined, not always "a
+  denominator zero".
+- **Insights that did not fit:** |x − 1| = −3 was told about 1/x and
+  logarithms; common logs were taught with ln; a repeated "dividing by x".
+  (An outside review: Round 24 of the review log.)
+
+### Changed
+
+- **Algebra statements say where they hold**: log rules for a, b > 0; aˣ = b
+  for a > 0, a ≠ 1, b > 0; the Rational Root Theorem for integer
+  coefficients; the discriminant for real coefficients; √(ab) = √a·√b for
+  a, b ≥ 0.
+
 ## [1.61.0] - 2026-10-29
 
 ### Added
