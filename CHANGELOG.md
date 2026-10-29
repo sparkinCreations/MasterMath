@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.6] - 2026-10-29
+
+### Changed
+
+- **The arithmetic solver is split into method files.** `arithmeticSolver.js`
+  (1,083 lines) keeps `solveArithmetic` (about 280 lines); notation,
+  fractions over the LCD, undefined cases, the order-of-operations working,
+  exact and big numbers, and complex arithmetic are each in
+  `src/lib/solvers/arithmetic/`. A pure move: the 2,241 golden solves are
+  identical, and nothing changes for users.
+
 ## [1.59.5] - 2026-10-29
 
 ### Changed

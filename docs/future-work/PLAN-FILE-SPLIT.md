@@ -148,6 +148,11 @@ to read around all of them.
   `functions/guidance.js`. 30 statements moved byte for byte.
 - **Not done:** `api.js` is not split. Nothing waits on it, and routing is
   the most delicate move; do it when a change to routing needs the room.
+- **1.59.6 — `arithmeticSolver.js`, the rest:** beyond the plan, at the
+  owner's request (every large file split, not only the tips). Six method
+  files beside `guidance.js`: `notation.js` (the helpers every other file
+  uses), `fractions.js`, `undefinedCases.js`, `working.js`,
+  `exactNumbers.js`, `complex.js`. 48 statements moved byte for byte.
 - **Tips written inline.** Most integral tips (and every inequality tip)
   are written inside the result they belong to, not in a list of their
   own, so `integrals/guidance.js` holds only the shared ones

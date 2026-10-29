@@ -45,7 +45,7 @@ src/
     pdfTypeset.js              the solution PDF: typeset sheet + graph → html2canvas-pro page images + invisible text layer
     graphPalette.js            the graph's light/dark colours (GraphViewer) and the PDF's dark→light recolouring
     solverPrefs.js             solution mode (step-through default), last topic, the bare-expression nudge
-    solvers/                   one module per topic (below) + solverUtils.js shared helpers; algebra/, integrals/, limits/ hold those solvers' methods; arithmetic/, functions/ their tips
+    solvers/                   one module per topic (below) + solverUtils.js shared helpers; a large file's methods sit in a folder of its name (algebra/, integrals/, …)
 tests/        node --test unit suite; tests/corpus/harness.mjs grades the evaluation corpora
 e2e/          Playwright smoke test of the production build
 docs/         evaluations/ (graded CSVs + audits, 2026-10/REVIEW-LOG is the claim log), future-work/ (ROADMAP-2026-10.md is the open list), HOW_THE_APP_WORKS.md, REACT_GUIDE.md
@@ -136,12 +136,11 @@ Each file documents its own methods at the top. Shared invariants:
   the discriminant, the sign chart, the LCD), with tips and mistakes chosen
   from the method used, not one generic list.
 
-A large solver is a folder of method files behind its entry file:
-`algebraSolver.js`, `integralsSolver.js` and `limitsSolver.js` are the only
-imports callers use, and their methods live in `algebra/`, `integrals/` and
-`limits/` (`guidance.js` holds the tips and mistakes). The other solvers
-keep their methods in one file; `arithmetic/guidance.js` and
-`functions/guidance.js` hold their tips and mistakes. Imports run one way
+A large file is a folder of method files behind its entry file, which stays
+the only import callers use: `algebraSolver.js` → `algebra/`,
+`integralsSolver.js` → `integrals/`, `limitsSolver.js` → `limits/`,
+`arithmeticSolver.js` → `arithmetic/`.
+A solver's `guidance.js` holds its tips and mistakes. Imports run one way
 — shared helpers → method files → the entry — and a method file never
 imports its entry. `tests/golden/record.mjs` records every solve the
 project exercises (about 2,200) and compares a refactor against it.
