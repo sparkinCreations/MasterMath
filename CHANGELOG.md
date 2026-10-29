@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.11] - 2026-10-29
+
+### Changed
+
+- **The solve router is split into parts.** `api.js` (1,321 lines) keeps
+  `solveProblem`, the request dispatch and the solver loader (about 630
+  lines; `solveProblem` alone is most of it); topic detection, unknown
+  words and word problems, request phrases, and the result gate
+  (`finalizeResult`) are in `src/lib/api/`. Everything `api.js` exported it
+  still exports. A pure move: the 2,241 golden solves are identical. This
+  completes the split of every large file.
+
 ## [1.59.10] - 2026-10-29
 
 ### Changed

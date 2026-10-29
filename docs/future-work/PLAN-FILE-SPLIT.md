@@ -3,7 +3,7 @@
 **Version referenced:** 1.59.0
 **By:** sparkinCreations™
 **Written:** October 29, 2026
-**Status:** Done (1.59.1–1.59.5) — `algebraSolver.js` split in 1.59.1, `integralsSolver.js` in 1.59.2, `limitsSolver.js` in 1.59.3, the arithmetic tips in 1.59.4, the functions tips in 1.59.5. `api.js` (Wave 2, last) and the inequality tips were not moved; see below
+**Status:** Done (1.59.1–1.59.11). The plan (1.59.1–1.59.5), then, at the owner's request, every other file over about 1,000 lines (1.59.6–1.59.11). See Progress below.
 **Do before:** [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) (this split moves every solver's tips into its own file, which that work then edits)
 
 ---
@@ -146,8 +146,6 @@ to read around all of them.
 - **1.59.5 — functions tips:** `functionGuidance` and
   `variableOutsideExponents` (which only it uses) to
   `functions/guidance.js`. 30 statements moved byte for byte.
-- **Not done:** `api.js` is not split. Nothing waits on it, and routing is
-  the most delicate move; do it when a change to routing needs the room.
 - **1.59.6 — `arithmeticSolver.js`, the rest:** beyond the plan, at the
   owner's request (every large file split, not only the tips). Six method
   files beside `guidance.js`: `notation.js` (the helpers every other file
@@ -167,6 +165,10 @@ to read around all of them.
   no name of its own, stays in `engines.js` beside the `math` it
   configures. All 34 exports are still exported. 47 statements moved byte
   for byte.
+- **1.59.11 — `api.js`:** `api/topic.js`, `words.js`, `requests.js`,
+  `finalize.js`. `solveRequest` stays in `api.js` with `solveProblem`:
+  each calls the other. 48 statements moved byte for byte. `solveProblem`
+  itself is one 470-line function; shortening it is a change, not a move.
 - **Tips written inline.** Most integral tips (and every inequality tip)
   are written inside the result they belong to, not in a list of their
   own, so `integrals/guidance.js` holds only the shared ones

@@ -30,7 +30,7 @@ src/
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
   hooks/                       usePageTitle, useServiceWorker
   lib/
-    api.js                     solveProblem (intent routing) + finalizeResult gate (worker side: imports mathjs)
+    api.js                     solveProblem (intent routing); api/ holds topic detection, words, request phrases and the finalizeResult gate (worker side: imports mathjs)
     problemHistory.js          the history store's IndexedDB wrappers — what pages import; never import api.js from a page
     budgetedSolver.js          the page's entry point: worker, 10 s budget, Cancel, in-thread fallback
     solver.worker.js           runs solveProblem off the main thread
@@ -141,7 +141,7 @@ the only import callers use: `algebraSolver.js` → `algebra/`,
 `integralsSolver.js` → `integrals/`, `limitsSolver.js` → `limits/`,
 `arithmeticSolver.js` → `arithmetic/`, `functionsSolver.js` → `functions/`,
 `inequalitiesSolver.js` → `inequalities/`, `derivativesSolver.js` →
-`derivatives/`, `solverUtils.js` → `utils/`.
+`derivatives/`, `solverUtils.js` → `utils/`, `api.js` → `api/`.
 A solver's `guidance.js` holds its tips and mistakes. Imports run one way
 — shared helpers → method files → the entry — and a method file never
 imports its entry. `tests/golden/record.mjs` records every solve the
@@ -181,7 +181,7 @@ or quadratic surds, else full-precision decimals shown rounded with ≈) /
 form substitutions u = eˣ and x = u² / definite / improper; a definite
 integral with no antiderivative found is estimated numerically and said to
 be: two step sizes must agree, an infinite range must settle), `requestSolver` (one thing asked in words, read by
-`readRequestPhrases` in `api.js` and dispatched by `solveRequest`: the
+`readRequestPhrases` in `api/requests.js` and dispatched by `solveRequest`: the
 period (lcm of the terms' periods), amplitude, tangent-line equation,
 inverse (operations undone one at a time, or (ax + b)/(cx + d); checked by
 f(f⁻¹(x)) = x) and degrees ↔ radians), `intervalSolver` (average value on
@@ -335,7 +335,7 @@ choosing a version number: releases land from other sessions and PRs.
 - Math input: `*` and `^` explicit, standard function names; the parser also
   accepts natural notation (`x²`, `2x`, `∫`, `d/dx`).
 - Topic values: `auto` (Auto-detect, the default for a new visitor:
-  `detectTopic` in `api.js`; never saved to history, which files under the
+  `detectTopic` in `api/topic.js`; never saved to history, which files under the
   detected topic), `derivatives`, `integrals`, `limits`, `functions`,
   `trigonometry`, `algebra`, `other` (= Arithmetic).
 - Dark mode support on every component; respect `prefers-reduced-motion`;
