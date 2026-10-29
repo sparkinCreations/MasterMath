@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.58.1] - 2026-10-29
+
+### Changed
+
+- **Updates arrive quietly.** A page opened after a release is already the
+  new version (pages load network-first), yet a large "A new version of
+  MasterMath is available — Update now" card asked to update to it; tapping
+  it reloaded the page into the same version. Now a waiting worker of the
+  version on screen takes over silently, with no prompt and no reload. Only
+  a page left open across a release, which really is behind, shows
+  "Update to v…" under the version number in the footer; tapping it
+  reloads, ignoring it is fine, and the next visit is current on its own.
+  The card is gone.
+
+### Fixed
+
+- **A new worker never reloads the page unasked.** On a page that was the
+  first visit, tapping Update switched the worker but never reloaded; on
+  others, any tab's update reloaded every open tab, discarding what was
+  typed. Now only the tab whose reader asked reloads.
+
 ## [1.58.0] - 2026-10-29
 
 An outside review of 1.57.3 and a sweep behind it: two confidently wrong

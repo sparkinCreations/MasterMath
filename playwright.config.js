@@ -33,7 +33,10 @@ export default defineConfig({
     timeout: 180_000,
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'phone', use: { ...devices['iPhone 13'], browserName: 'chromium' } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: /update\.spec\.js/ },
+    { name: 'phone', use: { ...devices['iPhone 13'], browserName: 'chromium' }, testIgnore: /update\.spec\.js/ },
+    // Simulates a release by rewriting the served sw.js, so it runs alone,
+    // after the others: a page they opened meanwhile would install the fake.
+    { name: 'update', use: { ...devices['Desktop Chrome'] }, testMatch: /update\.spec\.js/, dependencies: ['desktop', 'phone'] },
   ],
 });

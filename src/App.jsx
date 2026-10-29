@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './Layout';
 import Home from './pages/Home';
@@ -7,7 +7,6 @@ import { ConfirmProvider } from './components/ui/confirm-dialog';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useServiceWorker } from './hooks/useServiceWorker';
-import { RefreshCw } from 'lucide-react';
 
 // Home stays eagerly imported — it is the landing page, and deferring it would
 // only add a round trip to first paint. Every other route is split out, so the
@@ -39,43 +38,15 @@ function RouteFallback() {
   );
 }
 
-function UpdateBanner({ updateAvailable, applyUpdate }) {
-  const [dismissed, setDismissed] = useState(false);
-  if (!updateAvailable || dismissed) return null;
-
-  // Updating reloads the page, so a student mid-problem can put it off; the
-  // waiting version is offered again on the next page load.
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-2rem)] bg-linear-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl flex flex-wrap items-center justify-center gap-3 animate-bounce-in"
-    >
-      <RefreshCw className="w-5 h-5 shrink-0" aria-hidden="true" />
-      <span className="text-sm font-medium">A new version of MasterMath is available. Updating reloads the page.</span>
-      <button
-        onClick={applyUpdate}
-        className="bg-white text-indigo-700 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-indigo-50 transition-colors"
-      >
-        Update now
-      </button>
-      <button
-        onClick={() => setDismissed(true)}
-        className="px-3 py-1 rounded-lg text-sm font-semibold text-white/90 hover:bg-white/15 transition-colors"
-      >
-        Later
-      </button>
-    </div>
-  );
-}
-
 function AppContent() {
-  const { updateAvailable, applyUpdate } = useServiceWorker();
+  // A different version waiting shows as "Update available" beside the
+  // version in the footer; the same version is switched to quietly.
+  const update = useServiceWorker();
 
   return (
     <>
       <Router>
-        <Layout>
+        <Layout update={update}>
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -95,7 +66,6 @@ function AppContent() {
           </Suspense>
         </Layout>
       </Router>
-      <UpdateBanner updateAvailable={updateAvailable} applyUpdate={applyUpdate} />
     </>
   );
 }

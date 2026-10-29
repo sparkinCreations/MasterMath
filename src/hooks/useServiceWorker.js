@@ -1,8 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import pkg from '../../package.json';
+import { askWorkerVersion, compareWorkerToPage, versionFromCacheName } from '../lib/swVersion';
 
+// A waiting worker is either the version already on screen (pages load
+// network-first, so after a deploy the page is new before the worker is):
+// switch to it quietly, no reload, no prompt. Or it is a version this page
+// has not loaded (the tab was open across a release): say so in the footer,
+// "Update available", and leave it to the reader. Either way the next visit
+// is current on its own. (1.58.1; the full-width "Update now" card it
+// replaces asked to update to the version already showing.)
 export function useServiceWorker() {
-  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [update, setUpdate] = useState(null); // { version } when a different version waits
   const [registration, setRegistration] = useState(null);
+  // Set when the reader taps the footer link: only then does a change of
+  // worker reload this page.
+  const asked = useRef(false);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) {
@@ -21,14 +33,9 @@ export function useServiceWorker() {
         console.log('[MasterMath] Service worker registered');
         setRegistration(reg);
 
-        // A new version may already be installed and waiting from an earlier
-        // page load — the user saw the banner, reloaded instead of clicking
-        // it, and 'updatefound' will not fire again for a worker that is
-        // already installed. Offer it again.
-        if (reg.waiting && navigator.serviceWorker.controller) {
-          console.log('[MasterMath] New version already waiting');
-          setUpdateAvailable(true);
-        }
+        // A worker may already be installed and waiting from an earlier page
+        // load, and 'updatefound' will not fire again for it.
+        if (reg.waiting && navigator.serviceWorker.controller) handleWaiting(reg.waiting);
 
         // Check for updates periodically (every 30 minutes)
         const interval = setInterval(() => {
@@ -41,11 +48,7 @@ export function useServiceWorker() {
           if (!newWorker) return;
 
           newWorker.addEventListener('statechange', () => {
-            // New version installed and waiting — notify the user
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[MasterMath] New version available');
-              setUpdateAvailable(true);
-            }
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) handleWaiting(newWorker);
           });
         });
 
@@ -55,21 +58,36 @@ export function useServiceWorker() {
         console.error('[MasterMath] SW registration failed:', error);
       });
 
-    // Handle controller change (new SW took over) — reload to get fresh assets.
-    //
-    // Only when a worker was already controlling this page: on the very first
-    // visit the freshly installed worker claims the page (clients.claim) and
-    // fires controllerchange too, and reloading then threw away a page that
-    // had just loaded from the network — plus anything the user had typed in
-    // that first second. Found by the browser smoke test (September 2026).
-    const hadController = Boolean(navigator.serviceWorker.controller);
+    // A new worker took over. Reload into it only when the reader asked
+    // (tapped the footer link). Never otherwise: the first visit's own worker
+    // claiming the page (same version), the quiet switch below (same
+    // version), or another tab's update (a newer version: this page shows
+    // the footer link instead, and its next visit is current anyway).
+    // Reloading unasked threw away whatever the reader had typed.
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hadController && !refreshing) {
+      if (refreshing) return;
+      if (asked.current) {
         refreshing = true;
         window.location.reload();
+        return;
       }
+      askWorkerVersion(navigator.serviceWorker.controller).then((cacheName) => {
+        if (compareWorkerToPage(cacheName, pkg.version) === 'different') setUpdate({ version: versionFromCacheName(cacheName) });
+      });
     });
+
+    function handleWaiting(worker) {
+      askWorkerVersion(worker).then((cacheName) => {
+        if (compareWorkerToPage(cacheName, pkg.version) === 'same') {
+          console.log('[MasterMath] Waiting worker is this version; switching quietly');
+          worker.postMessage({ type: 'SKIP_WAITING' });
+          return;
+        }
+        console.log('[MasterMath] A different version is waiting:', cacheName);
+        setUpdate({ version: versionFromCacheName(cacheName) });
+      });
+    }
 
     // The worker reports a stale shell when a script or stylesheet URL comes
     // back as HTML — the page was built from an index.html that predates a
@@ -98,12 +116,17 @@ export function useServiceWorker() {
     };
   }, []);
 
-  // Call this to apply the waiting update
+  // Apply the waiting update: the worker takes over, controllerchange
+  // reloads into it. With no worker waiting, a reload alone fetches the
+  // current version (pages are network-first).
   const applyUpdate = () => {
+    asked.current = true;
     if (registration && registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      window.location.reload();
     }
   };
 
-  return { updateAvailable, applyUpdate };
+  return { updateAvailable: Boolean(update), newVersion: update?.version ?? null, applyUpdate };
 }
