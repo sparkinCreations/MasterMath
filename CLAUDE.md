@@ -45,7 +45,7 @@ src/
     pdfTypeset.js              the solution PDF: typeset sheet + graph → html2canvas-pro page images + invisible text layer
     graphPalette.js            the graph's light/dark colours (GraphViewer) and the PDF's dark→light recolouring
     solverPrefs.js             solution mode (step-through default), last topic, the bare-expression nudge
-    solvers/                   one module per topic (below) + solverUtils.js shared helpers
+    solvers/                   one module per topic (below) + solverUtils.js shared helpers; algebra/ holds algebraSolver's methods
 tests/        node --test unit suite; tests/corpus/harness.mjs grades the evaluation corpora
 e2e/          Playwright smoke test of the production build
 docs/         evaluations/ (graded CSVs + audits, 2026-10/REVIEW-LOG is the claim log), future-work/ (ROADMAP-2026-10.md is the open list), HOW_THE_APP_WORKS.md, REACT_GUIDE.md
@@ -135,6 +135,13 @@ Each file documents its own methods at the top. Shared invariants:
 - **Teach the method.** Steps show the working a textbook would (u and dv,
   the discriminant, the sign chart, the LCD), with tips and mistakes chosen
   from the method used, not one generic list.
+
+A large solver is a folder of method files behind its entry file:
+`algebraSolver.js` is the only import callers use, and its methods live in
+`algebra/` (`guidance.js` holds the tips and mistakes). Imports run one way
+— shared helpers → method files → the entry — and a method file never
+imports its entry. `tests/golden/record.mjs` records every solve the
+project exercises (about 2,200) and compares a refactor against it.
 
 Modules: `arithmeticSolver` (PEMDAS working, exact fractions), `algebraSolver`
 (equations: linear → `linearEquationSolver` in exact fractions; one exponential

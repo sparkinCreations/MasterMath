@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.1] - 2026-10-29
+
+### Changed
+
+- **The algebra solver is split into method files.** `algebraSolver.js`
+  (3,255 lines) is now an entry file of about 430 lines and nine files in
+  `src/lib/solvers/algebra/`: guidance (tips and mistakes), roots
+  formatting, radicals, polynomials, absolute-value and radical equations,
+  exponential and logarithmic equations, the numeric search, two-variable
+  equations, and simplify / expand / factor. The code was moved, not
+  changed: all 2,241 solves in the new golden check
+  (`tests/golden/record.mjs`) give identical results, and nothing changes
+  for users.
+
 ## [1.59.0] - 2026-10-29
 
 ### Added

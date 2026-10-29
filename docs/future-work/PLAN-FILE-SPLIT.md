@@ -3,7 +3,7 @@
 **Version referenced:** 1.59.0
 **By:** sparkinCreations™
 **Written:** October 29, 2026
-**Status:** Planned, not started
+**Status:** In progress — `algebraSolver.js` split in 1.59.1
 **Do before:** [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) (this split moves every solver's tips into its own file, which that work then edits)
 
 ---
@@ -110,6 +110,27 @@ to read around all of them.
   reorganised with no change in behaviour.
 - Nothing changes for users.
 - `CLAUDE.md`'s module map is updated in the same pull request as each move.
+
+## Progress
+
+- **Golden file:** `tests/golden/record.mjs` collects every problem the
+  project exercises — the corpora, the October test list, the typesetting
+  problems and every `solveProblem` / `solvePlain` call with a literal
+  problem in `tests/` — and runs each under its own topic and under
+  Auto-detect: 2,241 solves. Two recordings of the same code match byte
+  for byte. `--compare` checks a refactor against a recording.
+- **1.59.1 — `algebraSolver.js`:** as planned, except that `IMAGINARY`,
+  `satisfiesEquation` and the complex-root helpers live in `rootsFormat.js`
+  (they are shared by several methods) and `generateAlgebraGraph` in
+  `expressions.js`. 77 top-level statements moved byte for byte; the golden
+  file, the unit suite and the smoke test pass; the worker bundle is 42
+  bytes smaller (unused imports dropped).
+
+### Found on the way (not fixed: move, never change)
+
+- `TIPS` and `COMMON_MISTAKES` in the algebra solver (now
+  `algebra/guidance.js`) are never used: every equation path takes its
+  lists from `equationGuidance`. Delete them in their own change.
 
 ## Risks
 
