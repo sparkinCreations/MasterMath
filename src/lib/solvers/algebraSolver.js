@@ -68,6 +68,19 @@ function divisionByZeroInEquation(expression) {
   return found;
 }
 
+// The second insight of a factored, expanded or simplified expression is the
+// student's own result (an outside review, 1.62.0: "factor x² − 9 should show
+// (x − 3)(x + 3)"): the expression as typed, then the form it became.
+function withWorkedExpression(result, expression) {
+  if (!result || !Array.isArray(result.tips) || result.tips.length === 0 || result.status && result.status !== 'solved') return result;
+  const typed = beautify(expression.replace(/^\s*(?:factor|expand|simplify)\s+/i, '').trim()).replace(/\bsqrt\((\d+)\)/g, '√$1').replace(/\bsqrt\(/g, '√(');
+  const answer = String(result.answer || '').replace(/\s*\(≈[^)]*\)/, '').trim();
+  const [form, condition] = answer.split(/,\s*for\s+/);
+  if (!form || /[a-z]{4,}/i.test(form.replace(/\b(?:sqrt|ln|log|sin|cos|tan|exp)\b/g, '')) || form.replace(/\s+/g, '') === typed.replace(/\s+/g, '')) return result;
+  const here = `Here: ${mark(`${typed} = ${form}`)}${condition ? `, for ${mark(condition)}` : ''}.`;
+  return { ...result, tips: [result.tips[0], here, ...result.tips.slice(1)] };
+}
+
 export async function solveAlgebra(expression, options = {}) {
   try {
     // Two-equation systems are handled upstream (api.js routes them to the
@@ -102,11 +115,11 @@ export async function solveAlgebra(expression, options = {}) {
     // so the input was just echoed back.
     if (options.intent === 'factor' && !isEquation(expression)) {
       const factored = await factorExpression(expression);
-      if (factored) return factored;
+      if (factored) return withWorkedExpression(factored, expression);
     }
     if (options.intent === 'expand' && !isEquation(expression)) {
       const expanded = await expandExpression(expression);
-      if (expanded) return expanded;
+      if (expanded) return withWorkedExpression(expanded, expression);
     }
 
     if (isEquation(expression)) {
@@ -129,7 +142,7 @@ export async function solveAlgebra(expression, options = {}) {
       }
       return await solveEquation(expression, options);
     }
-    return await simplifyExpression(expression);
+    return withWorkedExpression(await simplifyExpression(expression), expression);
   } catch (error) {
     console.error('Algebra solver error:', error);
     return {
@@ -365,7 +378,7 @@ async function solveEquation(expression, options = {}) {
       const kept = keep.map((x) => `${variable} = ${formatNumber(x)}`);
       steps = [
         ...steps,
-        `Check each candidate in the ORIGINAL equation: ${extraneous.map((x) => `${variable} = ${formatNumber(x)}`).join(', ')} make${extraneous.length === 1 ? 's' : ''} a denominator zero, so ${extraneous.length === 1 ? 'it is' : 'they are'} extraneous — introduced when the equation was multiplied through — and ${extraneous.length === 1 ? 'is' : 'are'} rejected.`,
+        `Check each candidate in the ORIGINAL equation: ${extraneous.map((x) => `${variable} = ${formatNumber(x)}`).join(', ')} leave${extraneous.length === 1 ? 's' : ''} the original equation undefined (a denominator of zero, or an even root or logarithm of a negative number), so ${extraneous.length === 1 ? 'it is' : 'they are'} extraneous and ${extraneous.length === 1 ? 'is' : 'are'} rejected.`,
         keep.length > 0 ? `Solution: ${kept.join('  or  ')}` : 'No solution: every candidate is extraneous.',
       ];
       answer = keep.length > 0 ? kept.join('  or  ') : 'No solution (every candidate makes the original equation undefined)';
@@ -397,7 +410,7 @@ async function solveEquation(expression, options = {}) {
     }
   }
 
-  const guidance = equationGuidance(steps, expression);
+  const guidance = equationGuidance(steps, expression, answer);
   return {
     steps: steps.length > 0 ? steps : [`Solve ${beautify(expression)}`, `Result: ${answer}`],
     answer,

@@ -229,9 +229,11 @@ specific to the method (`tests/tipsByMethod.test.js`); "+C" and "check by
 differentiating" go last. An item that uses a named idea from a specific
 source is `{ text, source: { title, url } }` (a DOI or publisher link,
 `SOURCE_HOSTS`); `finalizeResult` turns it into text and keeps the source in
-`result.sources`. Integrals (1.60.0) and derivatives (1.61.0) are done, each
-with a review document in `docs/future-work/insights-review/`; the other
-topics follow one per release, each with a review document first.
+`result.sources`. Integrals (1.60.0), derivatives (1.61.0) and algebra
+(1.62.0) are done, each with a review document in
+`docs/future-work/insights-review/`; the other topics follow one per release,
+each with a review document first. The second insight works the student's
+own problem (read from its steps), and every statement says where it holds.
 
 Algebrite: always through `loadAlgebrite()` (a throwing direct call poisons
 every later call; the worker's termination also clears it). mathjs: add a

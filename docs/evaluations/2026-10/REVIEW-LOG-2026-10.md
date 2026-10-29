@@ -233,6 +233,22 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 24 (outside review of the algebra content, before 1.62.0 shipped)
+
+A content review of `docs/future-work/insights-review/ALGEBRA.md` ("agree, with revisions"). Every claim was reproduced, and the same class swept.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| The fractional-power rule is too general: reduce p/q to lowest terms and let the denominator's parity decide; teach x^(2/3) = 4 as (∛x)² = 4, ∛x = ±2, x = ±8 | Confirmed, and it was a wrong answer: x^(4/6) = 4 gave x = 8 only. The power solver found ±8, but its check (and the extraneous-root check after it, which then blamed "a denominator zero") evaluated (−8)^(4/6) as complex | 1.62.0 (exponents read in lowest terms, in `realOddRoots` for every evaluation; a step says "4/6 is 2/3 in lowest terms"; the even-power case worked through the root; the tips lead with root, domain, signs) |
+| The common-factor mistakes repeat "dividing by x" | Confirmed (two wordings, so text de-duplication missed it) | 1.62.0 (the second replaced by "factoring when the equation is not set to 0") |
+| \|x − 1\| = −3 is told about 1/x and logarithms | Confirmed; also eˣ = −2 and 1/(x − 1) = 0 shared one list | 1.62.0 (the no-solution lists lead with their own reason: absolute value, even root, positive exponential, a fraction's numerator) |
+| Common logs are taught with natural logs | Confirmed | 1.62.0 (log(x) = c ⟺ x = 10^c; log rules in base 10) |
+| Optional: x·eˣ = 1 has the exact x = W(1) | Agreed, behind Show more, and only for x·eˣ = c with c > 0 | 1.62.0 |
+| Keep x = ∛2, not 1.2599 | Confirmed; the steps even said the roots "cannot be written in a closed form here" | 1.62.0 (xⁿ = c for n = 3, 4: the real root exact with ≈ beside it, the complex roots exact, each checked; x⁴ + 1 = 0 gives (±1 ± i)/√2) |
+| factor x² − 9 and √72 should show their result in the insights | Agreed | 1.62.0 (factor, expand, simplify and radicals show "Here: x² − 9 = (x − 3)(x + 3)" second) |
+| Found in the sweep: the extraneous-candidate step said "makes a denominator zero" for any undefined value | Confirmed | 1.62.0 ("leaves the original equation undefined (a denominator of zero, or an even root or logarithm of a negative number)") |
+| The 28-equation sweep | Re-run with the power cases added (x^(2/4), x^(6/9), x^(4/3), x^(3/4), x⁴ = ±16, x⁵ = 2): all correct after the fixes | — |
+
 ## Round 23 (outside review of the integrals pilot, before 1.60.0 shipped)
 
 A content review of `docs/future-work/insights-review/INTEGRALS.md` ("approve with revisions"). Every claim was reproduced; the fixes ship with 1.61.0, since 1.60.0 had not been pushed.

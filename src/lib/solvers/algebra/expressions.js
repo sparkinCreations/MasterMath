@@ -34,7 +34,7 @@ export async function expandExpression(expression) {
         `Result: ${beautify(expanded)} (confirmed numerically at several values).`,
       ],
       answer: beautify(expanded),
-      tips: ['Expanding is the reverse of factoring; each term of one bracket multiplies each term of the other.', `${mark('(a + b)² = a² + 2ab + b²')} — the middle term is the one students drop.`],
+      tips: ['Expanding is the reverse of factoring; each term of one bracket multiplies each term of the other.', `${mark('(a + b)² = a² + 2ab + b²')} — the middle term is the one students drop.`, `Collect like terms at the end, and check by substituting a value into both forms: at ${mark('x = 1')}, ${mark('(x + 1)² = 4')} and ${mark('x² + 2x + 1 = 4')}.`],
       common_mistakes: [`Writing ${mark('(a + b)²')} as ${mark('a² + b²')}.`, 'Losing a sign when a bracket is subtracted.'],
       graph: generateAlgebraGraph(expression),
     };

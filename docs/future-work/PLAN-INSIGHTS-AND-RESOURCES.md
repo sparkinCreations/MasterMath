@@ -3,7 +3,7 @@
 **Version referenced:** 1.59.0
 **By:** sparkinCreations™
 **Written:** October 29, 2026
-**Status:** In progress: 1.60.0 is "Show more", sources, "Learn more" links and the integrals pilot ([review](insights-review/INTEGRALS.md)); 1.61.0 is derivatives ([review](insights-review/DERIVATIVES.md)). Decisions: the four proposed sites plus Wolfram|Alpha (example pages only, since its step-by-step needs Pro); integrals as the pilot; a review document before each topic ships.
+**Status:** In progress: 1.60.0 is "Show more", sources, "Learn more" links and the integrals pilot ([review](insights-review/INTEGRALS.md)); 1.61.0 is derivatives ([review](insights-review/DERIVATIVES.md)); 1.62.0 is algebra ([review](insights-review/ALGEBRA.md)). Decisions: the four proposed sites plus Wolfram|Alpha (example pages only, since its step-by-step needs Pro); integrals as the pilot; a review document before each topic ships.
 **Do after:** [`PLAN-FILE-SPLIT.md`](PLAN-FILE-SPLIT.md), which moves each solver's tips into its own `guidance.js`
 
 ---
