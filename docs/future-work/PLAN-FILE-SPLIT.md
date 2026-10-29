@@ -162,6 +162,11 @@ to read around all of them.
   byte for byte.
 - **1.59.9 — `derivativesSolver.js`:** `rules.js`, `absLinear.js`,
   `guidance.js`. 23 statements moved byte for byte.
+- **1.59.10 — `solverUtils.js`:** a re-export file over `utils/engines.js`,
+  `text.js`, `numeric.js` and `structure.js`. `math.import(…)`, which has
+  no name of its own, stays in `engines.js` beside the `math` it
+  configures. All 34 exports are still exported. 47 statements moved byte
+  for byte.
 - **Tips written inline.** Most integral tips (and every inequality tip)
   are written inside the result they belong to, not in a list of their
   own, so `integrals/guidance.js` holds only the shared ones

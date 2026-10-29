@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.10] - 2026-10-29
+
+### Changed
+
+- **The shared solver helpers are split by kind.** `solverUtils.js` (980
+  lines) now only re-exports, so every import of it is unchanged; the
+  helpers are in `src/lib/solvers/utils/`: `engines.js` (mathjs with its
+  aliases, and the self-healing Algebrite loader), `text.js` (expression
+  text), `numeric.js` (numeric checks and sampling) and `structure.js`
+  (facts read off the parse tree). A pure move: the 2,241 golden solves
+  are identical.
+
 ## [1.59.9] - 2026-10-29
 
 ### Changed
