@@ -395,6 +395,17 @@ test.describe('MasterMath smoke', () => {
     await expect(page.locator('html')).toHaveClass(/dark/);
   });
 
+  // What the solver understood is shown before the first step (1.58.0).
+  test('an integral shows what it read, in textbook form, above the steps', async ({ page }) => {
+    await openSolver(page);
+    await page.locator('#problem').fill('∫ sec³x dx');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const solution = page.locator('[aria-label="Solution"]');
+    await expect(solution).toContainText('Read as:');
+    await expect(solution).toContainText('Final Answer:');
+    await expect(solution).not.toContainText('sec*x');
+  });
+
   // The comparison is a dated, sourced table one click from the home page (1.58.0).
   test('the home page links to the comparison, a real table with its date and sources', async ({ page }) => {
     await page.goto('/');

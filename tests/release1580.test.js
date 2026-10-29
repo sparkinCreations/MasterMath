@@ -167,3 +167,23 @@ test('parametric and polar curves are refused, not answered f\'(x) = 0', async (
   assert.equal((await solveProblem('x = 2, y = 3', 'auto')).status, STATUS.SOLVED);
   assert.equal((await solveProblem('find dy/dx if x^2 + y^2 = 25', 'auto')).answer, 'dy/dx = -x/y');
 });
+
+test('integrals and derivatives say what they read, before any step', async () => {
+  assert.equal((await solveProblem('∫ sec³x dx', 'auto')).readAs, '∫ sec^3(x) dx');
+  assert.equal((await solveProblem('∫_0^1 x^2 dx', 'auto')).readAs, '∫_0^1 x^2 dx');
+  assert.equal((await solveProblem('d/dx x^2 sin(x)', 'auto')).readAs, 'd/dx (x^2*sin(x))');
+  assert.equal((await solveProblem('second derivative of x*e^x', 'auto')).readAs, 'd^2/dx^2 (x*e^x)');
+  // Nothing to show for input that could not be read.
+  assert.equal((await solveProblem('∫ sec dx', 'auto')).readAs, undefined);
+});
+
+test('the whole-Algebrite fallback is verified too, with other letters as constants', async () => {
+  // These reach the fallback (1.57.3 showed sec·x + C from it, unchecked).
+  // The check gives every other letter a fixed value, so a correct answer
+  // with constants in it still passes and is shown.
+  assert.equal((await solveProblem('∫ x^2 dy', 'auto')).answer, '∫(x^2) dy = x^2*y + C');
+  assert.equal((await solveProblem('∫ sin(k*t) dt', 'auto')).answer, '∫(sin(k*t)) dt = -cos(k*t)/k + C');
+  const src = readFileSync('src/lib/solvers/integralsSolver.js', 'utf8');
+  const fallback = src.slice(src.indexOf('fall back to whole-Algebrite'));
+  assert.match(fallback.slice(0, 2000), /if \(!fallbackTrusted\) throw/);
+});

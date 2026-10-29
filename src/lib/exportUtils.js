@@ -167,6 +167,7 @@ export function exportSolutionAsMarkdown(problem, chosenTopic, solution, topicLa
   const topic = solvedTopic(chosenTopic, solution);
   let markdown = `# ${topicLabels[topic] || topic} Problem\n\n`;
   markdown += `**Problem:** ${problem}\n\n`;
+  if (solution.readAs) markdown += `**Read as:** ${solution.readAs}\n\n`;
   if (status.label) {
     markdown += `**Status:** ${status.label}\n\n`;
   }

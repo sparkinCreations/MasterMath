@@ -20,6 +20,7 @@ import {
   mark,
   bareFunctionName,
   bareFunctionRefusal,
+  readAsText,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
@@ -65,7 +66,11 @@ export async function solveIntegral(rawInput) {
   if (definite) {
     const bare = definite.integrand && bareFunctionName(parseMathExpression(definite.integrand));
     if (bare) return parseError({ input: rawInput, ...bareFunctionRefusal(bare) });
-    return solveDefiniteIntegral(definite);
+    const result = await solveDefiniteIntegral(definite);
+    if (!definite.error && result.status !== 'parse_error') {
+      result.readAs = `∫_${definite.lowerLabel}^${definite.upperLabel} ${readAsText(definite.integrand)} d${definite.variable}`;
+    }
+    return result;
   }
 
   // A bare integral sign with no bounds — "∫x dx", "∫ sin(x) dx" — is the
@@ -97,7 +102,12 @@ export async function solveIntegral(rawInput) {
   if (bareName) return parseError({ input: rawInput, ...bareFunctionRefusal(bareName) });
   // ∫(x^2) and "integral of (x^2)": the brackets group the integrand, and
   // were shown doubled, ∫((x^2)) dx.
-  return solveIndefiniteIntegral(stripOuterParens(expression), dvar ? dvar[1].toLowerCase() : undefined);
+  const integrand = stripOuterParens(expression);
+  const variable = dvar ? dvar[1].toLowerCase() : undefined;
+  const result = await solveIndefiniteIntegral(integrand, variable);
+  // What was integrated, shown above the steps: a misread is visible at once.
+  if (result.status !== 'parse_error') result.readAs = `∫ ${readAsText(integrand)} d${variable || extractVariable(integrand)}`;
+  return result;
 }
 
 async function solveIndefiniteIntegral(expression, variableOverride) {
@@ -200,6 +210,19 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       const forAlgebrite = rewriteReciprocalTrig(expression);
       integral = polishLogArguments(Algebrite, Algebrite.integral(forAlgebrite, variable).toString());
       steps = generateIntegralSteps(expression, integral, variable, Algebrite);
+      // The fallback is checked the same way, and an answer that does not
+      // differentiate back to the integrand is never shown. In 1.57.3 it was
+      // shown unchecked: ∫ sec³x dx (which mathjs could not read, so nothing
+      // could pass) came back as sec·x + C, "verified by differentiating".
+      // Other letters are constants here (∫ x^2 dy = x^2·y): give each a
+      // fixed sample value so the check can evaluate at all.
+      const bind = (e) => bindOtherLetters(e, variable);
+      const dFallback = safeRunLocal(Algebrite, `d(${integral}, ${variable})`);
+      const fallbackCheck = dFallback && !isUnevaluatedOperator(dFallback) ? numericAgreement(bind(dFallback), bind(forAlgebrite), variable) : null;
+      const fallbackTrusted = fallbackCheck && fallbackCheck.seen >= 3
+        ? fallbackCheck.agree === fallbackCheck.seen
+        : derivativeMatchesNumerically(bind(integral), bind(expression), variable);
+      if (!fallbackTrusted) throw new Error('The antiderivative did not differentiate back to the integrand');
     }
 
     // Algebrite doesn't always throw when it can't integrate — it can return
@@ -2898,6 +2921,14 @@ function alwaysPositiveLogArguments(antiderivative, variable) {
 // ln|x² + 1| → ln(x² + 1) in a displayed antiderivative, for every argument
 // that is always positive — so the answer agrees with the step that said the
 // bars were not needed.
+// Every single letter other than the variable (and e, i) replaced by a fixed
+// sample value, distinct per letter, for a numeric check of an expression
+// with constants in it.
+function bindOtherLetters(expr, variable) {
+  const values = { a: 1.37, b: 2.11, c: 0.83, k: 1.59, m: 2.47, n: 1.21, p: 0.67, q: 1.93, r: 2.29, s: 0.91, t: 1.43, u: 1.77, v: 0.59, w: 2.03, x: 1.31, y: 1.69, z: 0.77 };
+  return String(expr).replace(/(?<![a-z_])([a-z])(?![a-z_(])/gi, (m, l) => (l === variable || l === 'e' || l === 'i' || !(l.toLowerCase() in values) ? m : `(${values[l.toLowerCase()]})`));
+}
+
 // ln|A| → ln(A) for every ln(A) in the integrand: the integrand is only
 // defined where A > 0, and there the bars change nothing.
 function dropBarsOnIntegrandLogs(shown, integrand) {

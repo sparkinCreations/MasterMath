@@ -1,6 +1,7 @@
 import {
   loadAlgebrite,
   beautify,
+  readAsText,
   splitTerms,
   sampleFunction,
   hasVariable,
@@ -57,7 +58,20 @@ function clearDenominatorFractions(Algebrite, text) {
 }
 const gcdInt = (a, b) => (b ? gcdInt(b, a % b) : Math.abs(a));
 
+// What was differentiated, shown above the steps ("Read as"), so a misread
+// is visible before the first step.
 export async function solveDerivative(expression, options = {}) {
+  const result = await solveDerivativeInner(expression, options);
+  if (result && result.status !== 'parse_error' && String(expression).trim()) {
+    const variable = options.variable || options.evalAt?.variable || extractVariable(expression);
+    const order = Math.max(1, Math.min(4, Number(options.order) || 1));
+    const op = order === 1 ? `d/d${variable}` : `d^${order}/d${variable}^${order}`;
+    result.readAs = `${op} (${readAsText(expression)})${options.evalAt ? ` at ${variable} = ${options.evalAt.valueText}` : ''}`;
+  }
+  return result;
+}
+
+async function solveDerivativeInner(expression, options = {}) {
   try {
     const Algebrite = await loadAlgebrite();
     const variable = options.variable || options.evalAt?.variable || extractVariable(expression);

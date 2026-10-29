@@ -270,6 +270,17 @@ export function bareFunctionName(expression) {
   return m ? m[1] : null;
 }
 
+// What the solver understood, as a textbook writes it, for the "Read as"
+// line above a solution: (sec(x))^3 and sec(x)^3 → sec^3(x), abs(u) → |u|,
+// so a misread ("sec·x" for sec³x) is visible before the first step.
+const READ_AS_FN = '(sin|cos|tan|sec|csc|cot|ln|log|sinh|cosh|tanh|arcsin|arccos|arctan)';
+const ARG = '([^()]*(?:\\([^()]*\\)[^()]*)*)';
+export function readAsText(expression) {
+  return absBars(beautify(expression))
+    .replace(new RegExp(`\\(${READ_AS_FN}\\(${ARG}\\)\\)\\^(\\d+)`, 'g'), '$1^$3($2)')
+    .replace(new RegExp(`(?<![a-z])${READ_AS_FN}\\(${ARG}\\)\\^(\\d+)`, 'g'), '$1^$3($2)');
+}
+
 // abs(…) as a textbook writes it, |…| (innermost, unnested arguments).
 export function absBars(text) {
   return String(text).replace(/(?<![a-z])abs\(([^()]*)\)/g, '|$1|');

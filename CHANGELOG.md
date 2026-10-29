@@ -20,6 +20,11 @@ integrals, then the presentation and app gaps it listed.
   step claiming the result had been checked. Superscripts on a function now
   mean what `sec^3(x)` means everywhere, and the integral and limit paths
   refuse a function with no argument (`∫ sec dx`) as the other paths did.
+- **No antiderivative is shown unchecked.** When the per-term methods
+  failed their check, the whole-integral fallback's answer was shown without
+  one, under a step saying "verified by differentiating": that is how
+  `sec·x + C` reached the page. The fallback is now differentiated back too,
+  and an answer that does not match is refused as beyond this solver.
 - **The trig-power methods take textbook notation.** `sec^3(x)`,
   `cos^5 x` and `sin^2(x) cos^3(x)` were refused while `sec(x)^3` worked:
   the parser's `(sec(x))^3` was not recognised, and two powers side by side
@@ -82,6 +87,10 @@ integrals, then the presentation and app gaps it listed.
   vendor's own site or App Store listing (a cell they do not settle says
   "Not stated"), and it says which tool to use when. The home page itself
   claims only what MasterMath does.
+- **"Read as" above every integral and derivative.** The solution shows
+  what the solver understood before the first step (`∫ sec^3(x) dx`,
+  `d/dx (x^2·sin(x))`), so a misread input is visible at a glance; the
+  Markdown export carries it too.
 - **Reopen a problem from My Progress.** Each history entry has an
   "Open in Solver" link that shows its saved solution and graph again
   (nothing is re-solved or saved twice).
