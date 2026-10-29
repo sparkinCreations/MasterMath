@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.4] - 2026-10-29
+
+### Changed
+
+- **The arithmetic tips have their own file.** The tips and mistakes for
+  arithmetic and complex-number arithmetic (about 350 lines) moved from
+  `arithmeticSolver.js` to `src/lib/solvers/arithmetic/guidance.js`. A pure
+  move: the 2,241 golden solves are identical.
+
 ## [1.59.3] - 2026-10-29
 
 ### Changed
