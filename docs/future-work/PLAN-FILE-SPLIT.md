@@ -3,7 +3,7 @@
 **Version referenced:** 1.59.0
 **By:** sparkinCreations™
 **Written:** October 29, 2026
-**Status:** In progress — `algebraSolver.js` split in 1.59.1
+**Status:** In progress — `algebraSolver.js` split in 1.59.1, `integralsSolver.js` in 1.59.2
 **Do before:** [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) (this split moves every solver's tips into its own file, which that work then edits)
 
 ---
@@ -125,6 +125,23 @@ to read around all of them.
   `expressions.js`. 77 top-level statements moved byte for byte; the golden
   file, the unit suite and the smoke test pass; the worker bundle is 42
   bytes smaller (unused imports dropped).
+
+- **1.59.2 — `integralsSolver.js`:** two files more than planned.
+  `integrateTerm` and the form substitutions call each other, and the
+  definite and improper paths integrate term by term, so leaving
+  `integrateTerm` in the entry file would have had method files import
+  their entry (rule 3). It lives in `terms.js` with the form
+  substitutions; the helpers definite and improper integrals share
+  (evaluation at a bound, quadrature, named constants, refusals, the area
+  graph) are `evaluate.js`, so `improper.js` and `definite.js` do not
+  import each other. 75 statements moved byte for byte; golden, unit and
+  smoke suites pass.
+- **Tips written inline.** Most integral tips (and every inequality tip)
+  are written inside the result they belong to, not in a list of their
+  own, so `integrals/guidance.js` holds only the shared ones
+  (`directTip`, `directMistake`, the non-elementary notes). Gathering the
+  inline lists into `guidance.js` changes code rather than moving it; it
+  belongs to the insights work, which edits those lists anyway.
 
 ### Found on the way (not fixed: move, never change)
 

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.2] - 2026-10-29
+
+### Changed
+
+- **The integrals solver is split into method files.** `integralsSolver.js`
+  (2,983 lines) is now an entry file of about 390 lines and eight files in
+  `src/lib/solvers/integrals/`: guidance, display tidying, rules and their
+  steps, partial fractions, one term at a time with the form
+  substitutions, evaluation at the bounds, improper integrals, and definite
+  integrals. A pure move: the 2,241 golden solves are identical, and
+  nothing changes for users.
+
 ## [1.59.1] - 2026-10-29
 
 ### Changed
