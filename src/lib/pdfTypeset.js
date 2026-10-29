@@ -26,6 +26,7 @@ import { mathTextToHtml, escapeHtml } from './mathRender.js';
 import { lightGraphSvg } from './graphPalette.js';
 import { pdfSafe } from './exportUtils.js';
 import { stripMathMarkers } from './mathMarkers.js';
+import { sourceOf } from './guidance.js';
 
 // A4 in mm, and the sheet's CSS width: 720 px across 180 mm, 4 px per mm.
 const PAGE_W = 210;
@@ -88,7 +89,7 @@ function graphImage(graph) {
 
 // The sheet's blocks, in order: { html, text }. A section heading is part of
 // its first item's block, so a page never ends on a heading.
-function sheetBlocks({ title, problem, status, solution, graph }) {
+export function sheetBlocks({ title, problem, status, solution, graph }) {
   const blocks = [];
   const statusLine = status.label
     ? `<div style="display:inline-block;margin-top:8px;padding:2px 10px;border-radius:999px;border:1px solid ${THEMES.failed.border};background:${THEMES.failed.bg};color:${THEMES.failed.ink};font-size:12px;font-weight:600">Status: ${escapeHtml(status.label)}</div>`
@@ -143,9 +144,11 @@ function sheetBlocks({ title, problem, status, solution, graph }) {
 
   const list = (items, title, bg, border, color) => {
     items.forEach((item, i) => {
+      const source = sourceOf(solution, item);
+      const cite = source ? `<div style="margin-top:4px;font-size:12px;color:${MUTED}">Source: ${escapeHtml(source.title)}, ${escapeHtml(source.url)}</div>` : '';
       blocks.push({
-        html: `${i === 0 ? `<div style="margin-top:12px">${heading(title, color)}</div>` : ''}<div style="padding:3px 0">${note(mathTextToHtml(item, { mode: 'marked' }), bg, border)}</div>`,
-        text: `${i === 0 ? `${title}\n` : ''}- ${stripMathMarkers(item)}`,
+        html: `${i === 0 ? `<div style="margin-top:12px">${heading(title, color)}</div>` : ''}<div style="padding:3px 0">${note(`${mathTextToHtml(item, { mode: 'marked' })}${cite}`, bg, border)}</div>`,
+        text: `${i === 0 ? `${title}\n` : ''}- ${stripMathMarkers(item)}${source ? `\nSource: ${source.title}, ${source.url}` : ''}`,
       });
     });
   };

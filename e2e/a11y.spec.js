@@ -104,6 +104,18 @@ for (const scheme of ['light', 'dark']) {
       expect(low, 'headings below 4.5:1').toEqual([]);
     });
 
+    test('a solution with every insight shown, its sources and Learn more', async ({ page }) => {
+      await page.goto('/solver');
+      await page.locator('#problem').fill('∫ x*e^x dx');
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      const solution = page.locator('[aria-label="Solution"]');
+      await expect(solution).toContainText('Final Answer:');
+      await solution.getByRole('button', { name: /^Show \d+ more insights?$/ }).click();
+      await solution.getByRole('button', { name: /^Show \d+ more mistakes?$/ }).click();
+      await expect(solution.getByRole('heading', { name: 'Learn more' })).toBeVisible();
+      await audit(page, `solver, insights expanded (${scheme})`);
+    });
+
     test('the solver with a validation error, and with a solution and graph', async ({ page }) => {
       await page.goto('/solver');
       { await page.getByText('Try an example:').waitFor(); const b = page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }); if (!(await b.isVisible())) await page.getByRole('button', { name: /Show all \d+ examples/ }).click(); await b.click(); }

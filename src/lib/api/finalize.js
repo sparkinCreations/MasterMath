@@ -5,6 +5,7 @@ import { usesCommonLog, matchingParen } from '../mathParser.js';
 import { STATUS, isValidStatus, unsupported } from '../solutionEnvelope.js';
 import { math, formatNumber } from '../solvers/solverUtils.js';
 import { stripMathMarkers } from '../mathMarkers.js';
+import { splitGuidance } from '../guidance.js';
 
 export const TOPIC_NAMES = { auto: 'Auto-detect', derivatives: 'Derivatives', integrals: 'Integrals', limits: 'Limits', functions: 'Functions', trigonometry: 'Trigonometry', algebra: 'Algebra', other: 'Arithmetic' };
 
@@ -94,9 +95,14 @@ export function finalizeResult(result, input) {
     result.common_mistakes = [];
   }
   // Tips and mistakes keep their markers (1.53.0): the page typesets only
-  // the marked runs ('marked' mode), and every export strips them.
-  result.tips = result.tips.map(String);
-  result.common_mistakes = result.common_mistakes.map(String);
+  // the marked runs ('marked' mode), and every export strips them. An item
+  // with a source becomes its text, and the source moves to result.sources
+  // (guidance.js).
+  const sources = {};
+  result.tips = splitGuidance(result.tips, sources).texts;
+  result.common_mistakes = splitGuidance(result.common_mistakes, sources).texts;
+  if (Object.keys(sources).length) result.sources = sources;
+  else delete result.sources;
   if (Array.isArray(result.warnings)) result.warnings = result.warnings.map(stripMathMarkers);
   if (!isValidStatus(result.status)) {
     // Legacy shim: the pre-envelope failure convention was an answer string

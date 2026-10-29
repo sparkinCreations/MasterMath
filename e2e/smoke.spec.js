@@ -406,6 +406,40 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).not.toContainText('sec*x');
   });
 
+  // 1.60.0: the first three insights and mistakes, the rest one tap away;
+  // a source under the insight that cites one; lessons elsewhere by topic.
+  test('Show more reveals the rest of a list and folds it back, with sources and Learn more links', async ({ page }) => {
+    await openSolver(page);
+    await page.locator('#problem').fill('∫ x*e^x dx');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const solution = page.locator('[aria-label="Solution"]');
+    await expect(solution).toContainText('Final Answer:');
+    const more = solution.getByRole('button', { name: /^Show \d+ more insights?$/ });
+    await expect(more).toHaveAttribute('aria-expanded', 'false');
+    const list = page.locator(`[id="${await more.getAttribute('aria-controls')}"]`);
+    await expect(list.locator(':scope > div')).toHaveCount(3);
+    const label = await more.textContent();
+    const total = 3 + Number(label.match(/\d+/)[0]);
+    await more.click();
+    await expect(list.locator(':scope > div')).toHaveCount(total);
+    const fewer = solution.getByRole('button', { name: 'Show fewer insights' });
+    await expect(fewer).toHaveAttribute('aria-expanded', 'true');
+    await expect(fewer).toBeFocused();
+    await fewer.click();
+    await expect(list.locator(':scope > div')).toHaveCount(3);
+
+    const source = solution.getByRole('link', { name: /Kasube/ });
+    await expect(source).toHaveAttribute('href', 'https://doi.org/10.1080/00029890.1983.11971195');
+    await expect(source).toHaveAttribute('target', '_blank');
+    await expect(source).toHaveAttribute('rel', 'noopener noreferrer');
+
+    await expect(solution.getByRole('heading', { name: 'Learn more' })).toBeVisible();
+    const lesson = solution.getByRole('link', { name: /Integration techniques/ });
+    await expect(lesson).toHaveAttribute('href', /^https:\/\/tutorial\.math\.lamar\.edu\//);
+    await expect(lesson).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(lesson).toContainText('(opens in a new tab)');
+  });
+
   // A long history: a page at a time, searchable, filtered by topic, and one
   // entry can be deleted (1.59.0). Seeded straight into IndexedDB.
   test('My Progress pages, searches and filters a long history, and deletes one entry', async ({ page }) => {

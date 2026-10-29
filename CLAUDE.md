@@ -45,6 +45,8 @@ src/
     pdfTypeset.js              the solution PDF: typeset sheet + graph → html2canvas-pro page images + invisible text layer
     graphPalette.js            the graph's light/dark colours (GraphViewer) and the PDF's dark→light recolouring
     solverPrefs.js             solution mode (step-through default), last topic, the bare-expression nudge
+    guidance.js                tips and mistakes: ranked lists, first three shown ("Show more" for the rest), an item may carry a source
+    learnMore.js               "Learn more" links by topic: approved sites only, checked before release
     solvers/                   one module per topic (below) + solverUtils.js shared helpers; a large file's methods sit in a folder of its name (algebra/, integrals/, …)
 tests/        node --test unit suite; tests/corpus/harness.mjs grades the evaluation corpora
 e2e/          Playwright smoke test of the production build
@@ -209,7 +211,19 @@ text there stays prose, never guessed at. In a tip about what to type, the
 typed form goes in quotes ("2*x") and stays literal. Markers belong to steps,
 tips and mistakes: `finalizeResult` strips them from answers and warnings,
 the exporters strip them, and code that reads that text (guidance regexes)
-reads `stripMathMarkers(...)`. Tests about wording use
+reads `stripMathMarkers(...)`.
+
+**Rank the tips and mistakes.** Each list is in order of importance and as
+long as is useful: the page shows the first three and puts the rest behind
+"Show more" (`guidance.js`); exports and history keep all of them. Never
+shuffle a list: every student gets the same advice. The first insight is
+specific to the method (`tests/tipsByMethod.test.js`); "+C" and "check by
+differentiating" go last. An item that uses a named idea from a specific
+source is `{ text, source: { title, url } }` (a DOI or publisher link,
+`SOURCE_HOSTS`); `finalizeResult` turns it into text and keeps the source in
+`result.sources`. Integrals are done (1.60.0,
+`docs/future-work/insights-review/INTEGRALS.md`); the other topics follow
+one per release, each with a review document first. Tests about wording use
 `tests/helpers/solvePlain.js`; `tests/typesetting.test.js` (steps) and
 `tests/typesettingTips.test.js` (tips and mistakes) fail on math left in a
 plain-text run, a word inside a math run, or a run KaTeX rejects; every
@@ -281,7 +295,9 @@ the worker load.
   file, so the smoke test fails on any CSP violation. A new outside origin
   needs a `connect-src`/`img-src` entry.
 - The only outbound request is the Feedback form (Web3Forms), only on submit.
-  Privacy wording anywhere must name that exception.
+  Privacy wording anywhere must name that exception. "Learn more" and source
+  links are plain links (new tab, `rel="noopener noreferrer"`) to the sites in
+  `learnMore.js` and `guidance.js`; the app sends them nothing.
 - `npm audit --omit=dev` runs in CI and must stay clean.
 - `/assets/*` is served `max-age=31536000, immutable` (hashed names); nothing
   else gets a Cache-Control rule, so `sw.js` and the shell always revalidate

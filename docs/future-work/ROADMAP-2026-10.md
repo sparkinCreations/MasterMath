@@ -59,7 +59,7 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P3~~ | ~~Implicit curve plot~~ | **Shipped in 1.56.0**: the curve traced to scale, with the tangent at the point | — |
 | ~~P3~~ | ~~General partial fractions within the budget~~ | **Shipped in 1.53.1**: under a second, improper fractions divided first | — |
 | ~~P3~~ | ~~Break up the large solver files~~ | **Shipped in 1.59.1–1.59.11**: every file over about 1,000 lines is a folder of method files behind its entry file, each move checked against 2,241 golden solves. Plan: [`PLAN-FILE-SPLIT.md`](PLAN-FILE-SPLIT.md) | — |
-| P3 | More insights ("Show more"), sources, "Learn more" links | More guidance without random rotation; same lists for every student. Plan: [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) | Large (content) |
+| P3 | More insights ("Show more"), sources, "Learn more" links | More guidance without random rotation; same lists for every student. **1.60.0**: the feature, every topic's links, and the integrals content; the other topics one per release. Plan: [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) | Large (content) |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
 
 **Recommended order (October 29):** the file split (done, 1.59.1–1.59.11),
