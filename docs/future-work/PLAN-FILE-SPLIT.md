@@ -3,7 +3,7 @@
 **Version referenced:** 1.59.0
 **By:** sparkinCreations™
 **Written:** October 29, 2026
-**Status:** In progress — `algebraSolver.js` split in 1.59.1, `integralsSolver.js` in 1.59.2, `limitsSolver.js` in 1.59.3, the arithmetic tips in 1.59.4
+**Status:** Done (1.59.1–1.59.5) — `algebraSolver.js` split in 1.59.1, `integralsSolver.js` in 1.59.2, `limitsSolver.js` in 1.59.3, the arithmetic tips in 1.59.4, the functions tips in 1.59.5. `api.js` (Wave 2, last) and the inequality tips were not moved; see below
 **Do before:** [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) (this split moves every solver's tips into its own file, which that work then edits)
 
 ---
@@ -143,6 +143,11 @@ to read around all of them.
 - **1.59.4 — arithmetic tips:** `arithmeticGuidance` and
   `complexGuidance` (with `complexOperation`, which only it uses) to
   `arithmetic/guidance.js`. 51 statements moved byte for byte.
+- **1.59.5 — functions tips:** `functionGuidance` and
+  `variableOutsideExponents` (which only it uses) to
+  `functions/guidance.js`. 30 statements moved byte for byte.
+- **Not done:** `api.js` is not split. Nothing waits on it, and routing is
+  the most delicate move; do it when a change to routing needs the room.
 - **Tips written inline.** Most integral tips (and every inequality tip)
   are written inside the result they belong to, not in a list of their
   own, so `integrals/guidance.js` holds only the shared ones

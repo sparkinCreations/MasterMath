@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.5] - 2026-10-29
+
+### Changed
+
+- **The functions tips have their own file.** The tips and mistakes for
+  each family of function (about 190 lines) moved from
+  `functionsSolver.js` to `src/lib/solvers/functions/guidance.js`. A pure
+  move: the 2,241 golden solves are identical. This completes the planned
+  split (docs/future-work/PLAN-FILE-SPLIT.md); `api.js` is left as it is.
+
 ## [1.59.4] - 2026-10-29
 
 ### Changed
