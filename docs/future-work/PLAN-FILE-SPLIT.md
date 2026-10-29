@@ -156,6 +156,10 @@ to read around all of them.
 - **1.59.7 — `functionsSolver.js`, the rest:** `features.js` (every
   feature finder, with the window constants they share) and
   `presentation.js`. 28 statements moved byte for byte.
+- **1.59.8 — `inequalitiesSolver.js`:** `roots.js`, `intervals.js`,
+  `linear.js`, `periodic.js`, `presentation.js`. Its tips are still inline
+  in the results (there is no `guidance.js` yet). 37 statements moved
+  byte for byte.
 - **Tips written inline.** Most integral tips (and every inequality tip)
   are written inside the result they belong to, not in a list of their
   own, so `integrals/guidance.js` holds only the shared ones

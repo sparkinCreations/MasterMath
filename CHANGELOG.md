@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.8] - 2026-10-29
+
+### Changed
+
+- **The inequalities solver is split into method files.**
+  `inequalitiesSolver.js` (1,071 lines) keeps the entry point, the compound
+  split and the dispatch (about 380 lines); the boundary points, interval
+  arithmetic, linear and periodic inequalities, and the sign-chart
+  presentation are in `src/lib/solvers/inequalities/`. A pure move: the
+  2,241 golden solves are identical.
+
 ## [1.59.7] - 2026-10-29
 
 ### Changed
