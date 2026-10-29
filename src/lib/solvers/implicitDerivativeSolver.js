@@ -317,16 +317,26 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
 
   const tips = [
     `Treat ${mark(dep)} as an unknown function of ${mark(ind)}: differentiate a ${mark(dep)}-term as you would ${mark(`f(${ind})`)}, so ${mark(`${dep}²`)} gives ${mark(`2${dep}·${dydx}`)}.`,
-    `In one line: for ${mark(`F(${ind}, ${dep}) = 0`)}, ${mark(`${dydx} = −F_${ind}/F_${dep}`)}, the two partial derivatives — a useful check on the term-by-term working.`,
   ];
+  // A product of x and y is what students meet first here, so it comes
+  // second, before the partial-derivative shortcut (outside review, 1.61.0).
+  const shortcut = `In one line: for ${mark(`F(${ind}, ${dep}) = 0`)}, ${mark(`${dydx} = −F_${ind}/F_${dep}`)} wherever ${mark(`F_${dep} ≠ 0`)}, from the two partial derivatives — a useful check on the term-by-term working. Where ${mark(`F_${dep} = 0`)} the tangent is vertical or the curve has a singular point.`;
   const common_mistakes = [
     `Forgetting the ${mark(dydx)} on a ${mark(dep)}-term: ${mark(`d/d${ind}(${dep}²)`)} is ${mark(`2${dep}·${dydx}`)}, not ${mark(`2${dep}`)}.`,
     `Differentiating the constant side as anything but ${mark('0')}.`,
   ];
   if (usedProduct) {
-    tips.push(`A term with both ${mark(ind)} and ${mark(dep)} is a product: ${mark(`d/d${ind}(${ind}${dep}) = ${dep} + ${ind}·${dydx}`)}.`);
-    common_mistakes.push(`Treating ${mark(`${ind}${dep}`)} as a constant times ${mark(ind)}: ${mark(`d/d${ind}(${ind}${dep})`)} is ${mark(`${dep} + ${ind}·${dydx}`)}, not just ${mark(dep)}.`);
+    tips.push(`A term with both ${mark(ind)} and ${mark(dep)} is a product, so the product and chain rules work together: ${mark(`d/d${ind}(${ind}${dep}) = ${dep} + ${ind}·${dydx}`)}.`);
+    common_mistakes.splice(1, 0, `Treating ${mark(`${ind}${dep}`)} as a constant times ${mark(ind)}: ${mark(`d/d${ind}(${ind}${dep})`)} is ${mark(`${dep} + ${ind}·${dydx}`)}, not just ${mark(dep)}.`);
   }
+  tips.push(shortcut);
+  // 1.61.0: the rest of the method, behind "Show more" on the page.
+  tips.push(
+    `Solve for ${mark(dydx)} last: collect every term with ${mark(dydx)} on one side, factor it out, and divide.`,
+    `There is no need to solve for ${mark(dep)} first, and often no way to: ${mark(`${dep}⁵ + ${ind}${dep} = 1`)} has no formula for ${mark(dep)}, yet its slope is found the same way.`,
+    `The answer is checked at a point on the curve: the slope there must match the tangent line drawn at that point.`,
+  );
+  common_mistakes.push(`Factoring ${mark(dydx)} out of only some of its terms before dividing.`);
 
   const curve = forMathjs(`(${lhs}) - (${rhs})`);
   const graphFor = (extra = {}) => implicitGraph({ F: curve, ind, dep, shownEquation, ...extra });
@@ -390,6 +400,9 @@ export async function solveImplicitDerivative(lhsText, rhsText, options = {}) {
   const shownValue = exactText && exactText !== dec && !/^-?\d+$/.test(exactText) ? `${exactText} ≈ ${dec}` : (exactText || dec);
   steps.push(`At ${mark(pointShown)} (on the curve: both sides agree there), substitute ${mark(`${ind} = ${show(px)}, ${dep} = ${show(py)}`)}: ${mark(`${dydx} = ${shownValue}`)}`);
   steps.push(`That is the slope of the tangent line to the curve at ${mark(pointShown)}.`);
-  tips.unshift(`An implicit ${mark(dydx)} usually involves both ${mark(ind)} and ${mark(dep)}, so evaluating it needs the whole point ${mark(`(${ind}, ${dep})`)}, not just ${mark(ind)}.`);
+  tips.unshift(
+    `An implicit ${mark(dydx)} usually involves both ${mark(ind)} and ${mark(dep)}, so evaluating it needs the whole point ${mark(`(${ind}, ${dep})`)}, not just ${mark(ind)}.`,
+    `Here ${mark(`${dydx} = ${show(result)}`)}, so at ${mark(pointShown)} it is ${mark(shownValue)}.`,
+  );
   return solved({ steps, answer: `${dydx} at ${pointShown} = ${shownValue}`, tips, common_mistakes, graph: graphFor({ point: { x: a, y: b }, slope: value }) });
 }

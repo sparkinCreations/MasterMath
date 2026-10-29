@@ -233,6 +233,75 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 23 (outside review of the integrals pilot, before 1.60.0 shipped)
+
+A content review of `docs/future-work/insights-review/INTEGRALS.md` ("approve with revisions"). Every claim was reproduced; the fixes ship with 1.61.0, since 1.60.0 had not been pushed.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Privacy: "the app sends those sites nothing" is inaccurate, since a click sends a request | Partly: the app itself sends nothing, but a click is a visit, and the site sees the IP address and browser. Said too briefly | 1.61.0 (Privacy and Terms say what a visit reveals and that no problem, solution or history is sent) |
+| erf: the first insight does not state ∫e^(−x²) dx = (√π/2)·erf(x) + C; "check by differentiating" missing | Confirmed (both) | 1.61.0 (the result leads; the check closes the list) |
+| ∫1/√(a² − x²) dx = arcsin(x/a) needs a > 0 | Confirmed | 1.61.0 ("for a > 0" before both formulas) |
+| u-substitution: "divide by g′(x)" suggests dividing by a variable expression | Confirmed | 1.61.0 ("account for du = g′(x) dx: … up to a constant multiple") |
+| tan and sec: "an odd tan power → u = sec θ" is too broad (tan³ alone has no sec to keep) | Confirmed | 1.61.0 (keep sec² for u = tan θ; keep sec·tan for u = sec θ, which needs a sec factor) |
+| The second insight should work the student's integral (x³, e^(2x), cos(3x), x·cos(x²), x·eˣ, eˣ·sin x, x²·sin x, 1/(x² − 1), (2x + 3)/(x² + 1), √(1 − x²), tan²x) | Agreed. The steps already did; the insights did not | 1.61.0 ("Here: u = x², du = 2x dx, so …": the pieces the steps chose — u and du, u and dv, the 2I equation, the rounds, the partial-fraction split, the trig substitution — and the answer; for tan²x it leads) |
+| Smaller qualifications: aˣ needs a > 0, a ≠ 1; n! for whole n ≥ 0; two step sizes agreeing is a check, not a proof; LIATE is a heuristic; an irreducible quadratic gives a log, an arctan or both | Confirmed (five of five) | 1.61.0 |
+| Show the finite values of ∫₁^∞ 1/x² and ∫₀¹ 1/√x | Agreed | 1.61.0 ("Here the limit is finite, … = 1: an infinite interval can still have a finite area") |
+| ∫₀¹ √(1 + x⁴) dx ≈ 1.0894; the p-integral criteria | Already right | — |
+| The LIATE attribution to Kasube | Already checked: the DOI resolves to the article's page, title confirmed on October 29 | — |
+
+**Second pass** (the same reviewer, on the revised document: "approve with two final corrections"):
+
+| Claim | Verdict | Release |
+|---|---|---|
+| The numerical estimate says "there is no antiderivative", which is false for a continuous integrand | Confirmed: introduced by our own first-pass rewording ("gives … no antiderivative" became "there is no antiderivative") | 1.61.0 ("gives the value, not a formula"; a function continuous on an interval has an antiderivative there, possibly with no elementary formula, and this solver found none). The reviewer's wording "this integrand has no elementary antiderivative" is not used: the numerical path runs whenever this solver finds no formula, which proves nothing about the integrand |
+| "A repeated factor gives a power" is too broad: its first power gives a logarithm | Confirmed | 1.61.0 ("one term per power: its first power a logarithm, the higher powers a power") |
+| Optional: show ∫₀¹ x² dx = 1/3 second | Agreed | 1.61.0 ("Here F(x) = x³/3, so … = 1/3") |
+| Optional: show lim ln b = ∞ for ∫₁^∞ 1/x dx | Agreed | 1.61.0 ("Here F(x) = ln\|x\|, and F(t) → ∞ as t → ∞") |
+| Optional: cyclic and repeated parts should lead with their own mistake | Agreed | 1.61.0 (not recognising the returning integral; stopping after one round) |
+
+## Round 22 (outside review of the derivatives insights, before 1.61.0 shipped)
+
+A content review of `docs/future-work/insights-review/DERIVATIVES.md` ("approve with revisions"). Every claim was reproduced on the 1.61.0 branch; its spot-check cases are now `tests/insights.test.js`.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| The log-law example ln(x³(x + 1)) = 3ln x + ln(x + 1) needs a domain: the left side is also defined for x < −1 | Confirmed | 1.61.0 ("for x > 0", "on the domain where both sides are defined") |
+| dy/dx = −F_x/F_y needs F_y ≠ 0 | Confirmed | 1.61.0 (says so, and what F_y = 0 means: a vertical tangent or a singular point) |
+| "0 at a peak or a valley" is too absolute: x³ has f′(0) = 0 with no extremum, and a corner has no derivative | Confirmed | 1.61.0 ("where the derivative exists … 0 at a stationary point", with x³ as the example) |
+| "Expanding first is rarely quicker" shown for sin(3x²), ln(x² + 1), e^(3x), where it means nothing | Confirmed | 1.61.0 (only for a power of a polynomial) |
+| "The power rule holds for any real exponent" needs a domain | Confirmed | 1.61.0 ("wherever the function is differentiable (always for x > 0)") |
+| d/dx aˣ = aˣ ln a "for any other base" needs a > 0 | Confirmed | 1.61.0 ("for a constant base a > 0") |
+| The first three insights should show the rule applied to the student's problem | Agreed, and the most useful change | 1.61.0 (the second insight works this problem: the inside and u′ for the chain rule, u, w, u′, w′ for the product and quotient rules, the two slopes for \|ax + b\|; 2ˣ, log x, sec x, a polynomial and 1/x² lead with their own case) |
+| A higher derivative and a value at a point are tasks and should lead | Agreed | 1.61.0 (the f″ insight and "stopping at f′" lead a higher derivative; "differentiate first, then substitute" leads at a point) |
+| Missing mistakes: erf with an inside, the corner of \|2x − 4\|, the product rule for xy before the F_y shortcut, x > 0 for xˣ | Confirmed (four of four) | 1.61.0 |
+| Deduplicate by idea, not by text | Confirmed: "forgetting the inside's derivative" could appear twice (product or exponential lead, chain secondary) | 1.61.0 (a mistake that names an idea already listed is not added again) |
+| Rank by a weighted score (40/30/20/10) | Not adopted: the lists are ranked by hand per rule, and the worked example now fills the second place the score was meant to protect. The reviewer called the weights a heuristic, not a measurement | — |
+| Expected (2x + 1)⁵ → 10(2x + 1)⁴ | The answer was 160x⁴ + 320x³ + 240x² + 80x + 10: equal, but the chain rule's form was lost | 1.61.0 (a power of a polynomial keeps the factored form when it is shorter and numerically the same; (3x − 1)⁴ → 12(3x − 1)³) |
+| Found in the sweep ("invalid logarithm domains"): ln(x) at x = −1 answered f′(−1) = −1; log(x) at −2, √x at −4, arcsin(x) at 2 likewise gave a value | Confirmed, confidently wrong: f′ was evaluated without checking that f is defined there | 1.61.0 (f is evaluated first; not a real number → "does not exist: outside the domain of f") |
+| Found in the sweep: x^(1/3) at x = −8 answered "undefined"; the real derivative is 1/12 | Confirmed (also on 1.60.0): mathjs takes the complex cube root of −8 | 1.61.0 (odd roots evaluated as real; the exact value kept as a fraction instead of Algebrite's (−1)^(1/3)) |
+| Vertical tangents of the circle at (±5, 0); the corner of \|2x − 4\| at x = 2 | Already right | — |
+
+**Second pass** (the same reviewer, on the revised document: "almost ready to ship", no wrong formula found):
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Outside the domain, the first mistake ("substituting before differentiating") is not the student's problem | Confirmed (also found in our own read-back) | 1.61.0 ("Applying the derivative's formula outside the domain of f" leads; the substitution warning is dropped there) |
+| The second derivative's worked insight stops at f′ | Confirmed | 1.61.0 (every round shown: f′ = (x + 1)eˣ, then f″ = (x + 2)eˣ; the "stopping at f′" mistake quotes the student's own f′ and says how many rounds remain) |
+| At a point, the root-rewriting insight is irrelevant; show f′(x) and then f′(a) | Confirmed | 1.61.0 ("Differentiate first, then evaluate: f′(x) = 3x², so f′(2) = 12" third) |
+| For sec x, the first mistake is about cos | Confirmed | 1.61.0 ("Confusing the derivative of sec x with sec² x" leads for sec, csc, cot) |
+| Optional: show the implicit slope at the point | Agreed | 1.61.0 ("dy/dx = −x/y, so at (3, 4) it is −3/4" second) |
+| Optional: "each one part of the answer" for xˣ could suggest adding the two wrong rules is a general method | Partly: it is the general result, d/dx fᵍ = g·fᵍ⁻¹·f′ + fᵍ·ln f·g′, so the statement is true; but it should be said as that formula | 1.61.0 (states the formula for any f(x)^g(x), then xˣ) |
+| Found in our read-back: the product rule's factoring example used e^(3x) for x²·sin x | — | 1.61.0 (the student's own factored answer, or no example) |
+
+**Third pass** (the same reviewer):
+
+| Claim | Verdict | Release |
+|---|---|---|
+| For 3x⁴ − 2x + 7, the negative- and variable-exponent mistakes come before the constant and the sign slips | Confirmed | 1.61.0 (a polynomial's own slips are second and third) |
+| The second derivative repeats f″ = (x + 2)eˣ in a later insight | Confirmed: the factoring insight quoted the answer, which at order 2 is f″, not the product rule's result | 1.61.0 (the student's factored answer only at order 1) |
+| The fᵍ formula assumes f(x) > 0 | Confirmed | 1.61.0 ("with f(x) > 0") |
+
 ## Round 21 (outside tester on the live site: (x² + 1)/(x⁴ + 1) hits the 10 s budget, 1.57.1)
 
 | Claim | Verdict | Release |

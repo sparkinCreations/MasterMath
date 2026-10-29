@@ -2,6 +2,7 @@
 
 **Written:** October 29, 2026
 **For:** MJ, to spot-check before 1.60.0 is pushed
+**Revised:** twice, after an outside review ("approve with revisions", then "approve with two final corrections"), with the fixes in 1.61.0; every claim and verdict is Round 23 of [`../../evaluations/2026-10/REVIEW-LOG-2026-10.md`](../../evaluations/2026-10/REVIEW-LOG-2026-10.md)
 **Plan:** [`../PLAN-INSIGHTS-AND-RESOURCES.md`](../PLAN-INSIGHTS-AND-RESOURCES.md)
 
 Everything below is generated from the solver itself, so it is exactly what a
@@ -20,6 +21,11 @@ every item.
 
 ## Decisions made while writing (say if you disagree)
 
+- **The second insight works the student's integral** (revised): "Here:
+  u = x², du = 2x dx, so ∫x·cos(x²) dx = ½·sin(x²) + C", with u and dv, the
+  2I equation, the rounds of parts, the partial-fraction split or the trig
+  substitution the steps chose. For tan²x it leads; ∫e^(−x²) dx leads with
+  its result; improper integrals show their finite value.
 - **"+C" moved behind Show more as an insight**, but **"Forgetting +C" stays
   a visible mistake** for every indefinite integral, so it is never hidden.
   The first three insights are now all about the method used.
@@ -36,9 +42,10 @@ every item.
   - `2^x` and `sinh(x)` used to lead with ∫tan, ∫cot, ∫sec.
   - `tan(x)^2` was given the sec^n reduction formula.
   - Partial fractions listed "the power rule on 1/x" as a mistake, as filler.
-- **Not extended:** improper integrals that diverge, a singular endpoint, an
-  asymptote inside the interval, and the numerical estimate keep their
-  existing lists (two or three items, so no Show more).
+- **Definite and improper integrals show their own values:** ∫₀¹ x² dx = 1/3
+  second; a convergent improper integral its finite value; ∫₁^∞ 1/x dx its
+  antiderivative running to ∞. An asymptote inside the interval keeps its
+  short list.
 
 ## Learn more links (every topic, not only integrals)
 
@@ -65,8 +72,10 @@ tab with no referrer and say they need an internet connection.
 ## Privacy and Terms
 
 - **Privacy Policy, Third-Party Services:** a new item, "Links to other
-  websites". The app sends those sites nothing. A click opens the site in a
-  new tab without a referrer, and that site's own policy applies.
+  websites". MasterMath never sends those sites a problem, solution or
+  history. A click opens the site in a new tab without a referrer; like any
+  visit, the site sees the request (IP address, browser), and its own policy
+  applies.
 - **Terms, Intellectual Property:** "Links to Other Websites". Those sites are
   not part of MasterMath, and we are not responsible for their content.
 - Both "Last Updated" dates are now October 29, 2026.
@@ -77,15 +86,16 @@ tab with no referrer and say they need an internet connection.
 
 Example: `x^3`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. Power rule: ∫x^n dx = x^(n+1)/(n+1) + C  (n ≠ -1)
-2. Rewrite roots and reciprocals as powers first: √x = x^(1/2), 1/x³ = x^(−3); then the power rule applies.
-3. A sum integrates term by term, and constant factors pull out front: ∫(a·f + b·g) dx = a·∫f dx + b·∫g dx.
+2. Here: ∫(x^3) dx = 1/4*x^4 + C.
+3. Rewrite roots and reciprocals as powers first: √x = x^(1/2), 1/x³ = x^(−3); then the power rule applies.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. A sum integrates term by term, and constant factors pull out front: ∫(a·f + b·g) dx = a·∫f dx + b·∫g dx.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -100,15 +110,16 @@ Example: `x^3`
 
 Example: `sin(x)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. The trig antiderivatives are the trig derivatives read backwards: ∫cos = sin, ∫sin = −cos, ∫sec² = tan, ∫sec·tan = sec.
-2. The signs come from the derivatives: d/dx cos(x) = −sin(x), so ∫sin(x) dx = −cos(x); d/dx cot(x) = −csc²(x), so ∫csc²(x) dx = −cot(x).
-3. A linear inside brings out its reciprocal: ∫sin(3x) dx = −cos(3x)/3 + C.
+2. Here: ∫(sin(x)) dx = -cos(x) + C.
+3. The signs come from the derivatives: d/dx cos(x) = −sin(x), so ∫sin(x) dx = −cos(x); d/dx cot(x) = −csc²(x), so ∫csc²(x) dx = −cot(x).
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. A linear inside brings out its reciprocal: ∫sin(3x) dx = −cos(3x)/3 + C.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -123,15 +134,16 @@ Example: `sin(x)`
 
 Example: `e^(2x)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
-1. ∫e^x dx = e^x — the exponential is its own antiderivative; ∫a^x dx = a^x/ln(a).
-2. A linear exponent brings out its reciprocal: ∫e^(kx) dx = e^(kx)/k + C for k ≠ 0.
-3. Another base becomes e: a^x = e^(x·ln a), which is where the 1/ln(a) comes from.
+1. ∫e^x dx = e^x — the exponential is its own antiderivative; ∫a^x dx = a^x/ln(a) for a > 0, a ≠ 1.
+2. Here: ∫(e^(2x)) dx = 1/2*e^(2x) + C.
+3. A linear exponent brings out its reciprocal: ∫e^(kx) dx = e^(kx)/k + C for k ≠ 0.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. Another base becomes e: a^x = e^(x·ln a), which is where the 1/ln(a) comes from.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -146,14 +158,15 @@ Example: `e^(2x)`
 
 Example: `2^x`
 
-**Key Insights** (4)
+**Key Insights** (5)
 
 1. ∫a^x dx = a^x/ln(a) + C for a > 0, a ≠ 1: write a^x = e^(x·ln a) and use the exponential rule with k = ln a.
-2. Differentiating checks it: d/dx a^x = a^x·ln(a), and dividing by ln(a) undoes that factor.
-3. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+2. Here: ∫(2^x) dx = 2^x/ln(2) + C.
+3. Differentiating checks it: d/dx a^x = a^x·ln(a), and dividing by ln(a) undoes that factor.
 
    *— Show more —*
-4. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -165,15 +178,16 @@ Example: `2^x`
 
 Example: `1/x`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. ∫1/x dx = ln|x| + C — the one power the power rule cannot do (n = −1 would divide by 0).
-2. The absolute value keeps the answer right for negative x too: d/dx ln|x| = 1/x for every x ≠ 0.
-3. The same pattern in general: ∫f′(x)/f(x) dx = ln|f(x)| + C.
+2. Here: ∫(1/x) dx = ln|x| + C.
+3. The absolute value keeps the answer right for negative x too: d/dx ln|x| = 1/x for every x ≠ 0.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. The same pattern in general: ∫f′(x)/f(x) dx = ln|f(x)| + C.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -188,15 +202,16 @@ Example: `1/x`
 
 Example: `1/(2x+1)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. For 1/(ax + b), let u = ax + b: the 1/a from du = a dx is the only extra factor.
-2. The result is a logarithm with an absolute value: ∫1/(ax + b) dx = (1/a)·ln|ax + b| + C.
-3. The same 1/a appears for any function of a linear inside: ∫f(ax + b) dx = (1/a)·F(ax + b) + C.
+2. Here: ∫(1/(2x + 1)) dx = 1/2*ln|2x + 1| + C.
+3. The result is a logarithm with an absolute value: ∫1/(ax + b) dx = (1/a)·ln|ax + b| + C.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. The same 1/a appears for any function of a linear inside: ∫f(ax + b) dx = (1/a)·F(ax + b) + C.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -208,15 +223,16 @@ Example: `1/(2x+1)`
 
 Example: `cos(3x)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
-1. A linear inside, cos(ax + b): let u = ax + b, so du = a dx and a factor 1/a comes out — ∫cos(2x) dx = (1/2)·sin(2x) + C.
-2. In general ∫f(ax + b) dx = (1/a)·F(ax + b) + C, where F is an antiderivative of f.
-3. Differentiating checks the factor: the chain rule multiplies by a, and the 1/a cancels it.
+1. A linear inside, cos(ax + b): let u = ax + b, so du = a dx and a factor 1/a comes out.
+2. Here: ∫(cos(3x)) dx = 1/3*sin(3x) + C.
+3. In general ∫f(ax + b) dx = (1/a)·F(ax + b) + C, where F is an antiderivative of f.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. Differentiating checks the factor: the chain rule multiplies by a, and the 1/a cancels it.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -228,15 +244,16 @@ Example: `cos(3x)`
 
 Example: `sin(x)^2`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. sin²(x) and cos²(x) integrate through the half-angle identities: sin²(x) = (1 − cos(2x))/2, cos²(x) = (1 + cos(2x))/2 — a sum of a constant and a cosine, each easy.
-2. The identities come from the double-angle formula cos(2x) = 1 − 2sin²(x) = 2cos²(x) − 1.
-3. ∫sin²(x) dx = x/2 − sin(2x)/4 + C and ∫cos²(x) dx = x/2 + sin(2x)/4 + C; over a whole period each averages 1/2.
+2. Here: ∫(sin(x)^2) dx = 1/2*(x - 1/2*sin(2x)) + C.
+3. The identities come from the double-angle formula cos(2x) = 1 − 2sin²(x) = 2cos²(x) − 1.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. ∫sin²(x) dx = x/2 − sin(2x)/4 + C and ∫cos²(x) dx = x/2 + sin(2x)/4 + C; over a whole period each averages 1/2.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -248,15 +265,16 @@ Example: `sin(x)^2`
 
 Example: `sin(x)^2*cos(x)^2`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. Even powers of sin and cos are lowered with the half-angle identities (sin²θ = (1 − cos 2θ)/2, cos²θ = (1 + cos 2θ)/2); a product sin θ cos θ is (sin 2θ)/2. Repeat until only first powers of cosines remain.
-2. So sin²θ·cos²θ = sin²(2θ)/4, and one more half-angle step finishes it.
-3. With an odd power, none of this is needed: keep one factor for du and substitute instead.
+2. Here: ∫(sin(x)^2*cos(x)^2) dx = 1/8*(x - 1/4*sin(4x)) + C.
+3. So sin²θ·cos²θ = sin²(2θ)/4, and one more half-angle step finishes it.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. With an odd power, none of this is needed: keep one factor for du and substitute instead.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -268,15 +286,16 @@ Example: `sin(x)^2*cos(x)^2`
 
 Example: `tan(x)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. The table entries ∫tan = −ln|cos|, ∫cot = ln|sin|, ∫sec = ln|sec + tan|, ∫csc = ln|csc − cot| all come from one idea: write the integrand as (derivative of a function)/(that function), and ∫u′/u = ln|u|.
-2. −ln|cos(x)| and ln|sec(x)| are the same function, so either form of ∫tan(x) dx is right.
-3. ∫sec(x) dx comes from multiplying by (sec x + tan x)/(sec x + tan x): the numerator becomes the derivative of the denominator.
+2. Here: ∫(tan(x)) dx = -ln|cos(x)| + C.
+3. −ln|cos(x)| and ln|sec(x)| are the same function, so either form of ∫tan(x) dx is right.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. ∫sec(x) dx comes from multiplying by (sec x + tan x)/(sec x + tan x): the numerator becomes the derivative of the denominator.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -288,14 +307,15 @@ Example: `tan(x)`
 
 Example: `sinh(x)`
 
-**Key Insights** (4)
+**Key Insights** (5)
 
 1. The hyperbolic antiderivatives mirror the trig ones without the sign change: ∫sinh(x) dx = cosh(x), ∫cosh(x) dx = sinh(x).
-2. They follow from the definitions sinh(x) = (e^x − e^(−x))/2 and cosh(x) = (e^x + e^(−x))/2, integrated term by term.
-3. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+2. Here: ∫(sinh(x)) dx = cosh(x) + C.
+3. They follow from the definitions sinh(x) = (e^x − e^(−x))/2 and cosh(x) = (e^x + e^(−x))/2, integrated term by term.
 
    *— Show more —*
-4. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (2)
 
@@ -306,15 +326,16 @@ Example: `sinh(x)`
 
 Example: `1/(1+x^2)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. Inverse-trig antiderivatives come from derivatives you know: d/dx arctan(x) = 1/(1 + x²) and d/dx arcsin(x) = 1/√(1 − x²). A constant a² in the pattern is factored out first.
-2. With the constant in place: ∫1/(a² + x²) dx = (1/a)·arctan(x/a) + C and ∫1/√(a² − x²) dx = arcsin(x/a) + C.
-3. A quadratic with an x term is completed to a square first: x² + 2x + 5 = (x + 1)² + 4, then the pattern applies with x + 1 in place of x.
+2. Here: ∫(1/(1 + x^2)) dx = arctan(x) + C.
+3. With the constant in place, for a > 0: ∫1/(a² + x²) dx = (1/a)·arctan(x/a) + C and ∫1/√(a² − x²) dx = arcsin(x/a) + C.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. A quadratic with an x term is completed to a square first: x² + 2x + 5 = (x + 1)² + 4, then the pattern applies with x + 1 in place of x.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -329,20 +350,21 @@ Example: `1/(1+x^2)`
 
 Example: `x*cos(x^2)`
 
-**Key Insights** (6)
+**Key Insights** (7)
 
 1. u-substitution: look for an inner function whose derivative appears as a factor — ∫g′(x)·h(g(x)) dx = ∫h(u) du with u = g(x).
-2. Good choices for u: the inside of a composite, a denominator, or the base of a power, whichever has its derivative elsewhere in the integrand (up to a constant factor).
-3. After substituting, no x may be left. If one is, that u does not work, or the leftover x has to be written in terms of u.
+2. Here: u = x^2, du = 2x dx, so ∫(x*cos(x^2)) dx = 1/2*sin(x^2) + C.
+3. Good choices for u: the inside of a composite, a denominator, or the base of a power, whichever has its derivative elsewhere in the integrand (up to a constant factor).
 
    *— Show more —*
-4. In a definite integral, change the bounds to values of u as well; then there is no need to substitute back.
-5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. After substituting, no x may be left. If one is, that u does not work, or the leftover x has to be written in terms of u.
+5. In a definite integral, change the bounds to values of u as well; then there is no need to substitute back.
+6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
-1. Forgetting to divide by g′(x) when changing to du — the constant from du = g′(x) dx must be carried.
+1. Forgetting to account for du = g′(x) dx: the inside's derivative must match a factor of the integrand, up to a constant multiple, and that constant is carried into the new integral.
 2. Forgetting the constant of integration (+C).
 3. Leaving the answer in u: substitute u = g(x) back at the end.
 
@@ -353,18 +375,19 @@ Example: `x*cos(x^2)`
 
 Example: `x*e^x`
 
-**Key Insights** (7)
+**Key Insights** (8)
 
-1. Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).
+1. Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential), a rule of thumb: the best u is the one that makes ∫v du simpler.
    Source: [Herbert E. Kasube, "A Technique for Integration by Parts", The American Mathematical Monthly 90(3), 1983](https://doi.org/10.1080/00029890.1983.11971195)
-2. u should get simpler when it is differentiated, and dv must be something you can integrate; du and v then follow.
-3. A power of x times a trig function or an exponential needs one round per power: x²·sin(x) takes two, each lowering the power by one. A table of derivatives of u and integrals of dv, with alternating signs (tabular integration), keeps the rounds straight.
+2. Here: u = x, dv = e^x dx, so ∫(x*e^x) dx = e^x*(x - 1) + C.
+3. u should get simpler when it is differentiated, and dv must be something you can integrate; du and v then follow.
 
    *— Show more —*
-4. When the original integral comes back (∫e^x·sin(x) dx after two rounds), move it to the left side and solve for it like an unknown.
-5. ∫ln(x) dx is by parts with u = ln(x) and dv = dx: ∫ln(x) dx = x·ln(x) − x + C.
-6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. A power of x times a trig function or an exponential needs one round per power: x²·sin(x) takes two, each lowering the power by one. A table of derivatives of u and integrals of dv, with alternating signs (tabular integration), keeps the rounds straight.
+5. When the original integral comes back (∫e^x·sin(x) dx after two rounds), move it to the left side and solve for it like an unknown.
+6. ∫ln(x) dx is by parts with u = ln(x) and dv = dx: ∫ln(x) dx = x·ln(x) − x + C.
+7. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+8. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -379,18 +402,19 @@ Example: `x*e^x`
 
 Example: `ln(x)`
 
-**Key Insights** (7)
+**Key Insights** (8)
 
 1. ∫ln(x) dx is by parts with u = ln(x) and dv = dx: ∫ln(x) dx = x·ln(x) − x + C.
-2. Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).
-   Source: [Herbert E. Kasube, "A Technique for Integration by Parts", The American Mathematical Monthly 90(3), 1983](https://doi.org/10.1080/00029890.1983.11971195)
-3. u should get simpler when it is differentiated, and dv must be something you can integrate; du and v then follow.
+2. Here: u = ln(x), dv = 1 dx, so ∫(ln(x)) dx = x*ln(x) - x + C.
+3. Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential), a rule of thumb: the best u is the one that makes ∫v du simpler.
 
    *— Show more —*
-4. A power of x times a trig function or an exponential needs one round per power: x²·sin(x) takes two, each lowering the power by one. A table of derivatives of u and integrals of dv, with alternating signs (tabular integration), keeps the rounds straight.
-5. When the original integral comes back (∫e^x·sin(x) dx after two rounds), move it to the left side and solve for it like an unknown.
-6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+   Source: [Herbert E. Kasube, "A Technique for Integration by Parts", The American Mathematical Monthly 90(3), 1983](https://doi.org/10.1080/00029890.1983.11971195)
+4. u should get simpler when it is differentiated, and dv must be something you can integrate; du and v then follow.
+5. A power of x times a trig function or an exponential needs one round per power: x²·sin(x) takes two, each lowering the power by one. A table of derivatives of u and integrals of dv, with alternating signs (tabular integration), keeps the rounds straight.
+6. When the original integral comes back (∫e^x·sin(x) dx after two rounds), move it to the left side and solve for it like an unknown.
+7. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+8. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -405,67 +429,72 @@ Example: `ln(x)`
 
 Example: `e^x*sin(x)`
 
-**Key Insights** (7)
+**Key Insights** (8)
 
 1. When the original integral comes back (∫e^x·sin(x) dx after two rounds), move it to the left side and solve for it like an unknown.
-2. Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).
+2. Here: u = sin(x), dv = e^x dx and the integral comes back: 2I = e^x*(-cos(x) + sin(x)), so ∫(e^x*sin(x)) dx = 1/2*e^x*(-cos(x) + sin(x)) + C.
+3. Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential), a rule of thumb: the best u is the one that makes ∫v du simpler.
+
+   *— Show more —*
    Source: [Herbert E. Kasube, "A Technique for Integration by Parts", The American Mathematical Monthly 90(3), 1983](https://doi.org/10.1080/00029890.1983.11971195)
-3. u should get simpler when it is differentiated, and dv must be something you can integrate; du and v then follow.
+4. u should get simpler when it is differentiated, and dv must be something you can integrate; du and v then follow.
+5. A power of x times a trig function or an exponential needs one round per power: x²·sin(x) takes two, each lowering the power by one. A table of derivatives of u and integrals of dv, with alternating signs (tabular integration), keeps the rounds straight.
+6. ∫ln(x) dx is by parts with u = ln(x) and dv = dx: ∫ln(x) dx = x·ln(x) − x + C.
+7. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+8. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
-   *— Show more —*
-4. A power of x times a trig function or an exponential needs one round per power: x²·sin(x) takes two, each lowering the power by one. A table of derivatives of u and integrals of dv, with alternating signs (tabular integration), keeps the rounds straight.
-5. ∫ln(x) dx is by parts with u = ln(x) and dv = dx: ∫ln(x) dx = x·ln(x) − x + C.
-6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+**Common Mistakes** (5)
 
-**Common Mistakes** (4)
-
-1. Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.
+1. Not recognising the original integral when it comes back: instead of a third round, call it I, move it to the left side and solve for it.
 2. Forgetting the constant of integration (+C).
-3. Sign slips in uv − ∫v du, above all on a second round: the signs alternate.
+3. Swapping u and dv on the second round: that undoes the first round and leads back to the start.
 
    *— Show more —*
-4. Swapping u and dv on the second round: that undoes the first round and leads back to the start.
+4. Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.
+5. Sign slips in uv − ∫v du, above all on a second round: the signs alternate.
 
 ### By parts: repeated
 
 Example: `x^2*sin(x)`
 
-**Key Insights** (7)
+**Key Insights** (8)
 
 1. A power of x times a trig function or an exponential needs one round per power: x²·sin(x) takes two, each lowering the power by one. A table of derivatives of u and integrals of dv, with alternating signs (tabular integration), keeps the rounds straight.
-2. Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).
-   Source: [Herbert E. Kasube, "A Technique for Integration by Parts", The American Mathematical Monthly 90(3), 1983](https://doi.org/10.1080/00029890.1983.11971195)
-3. u should get simpler when it is differentiated, and dv must be something you can integrate; du and v then follow.
+2. Here: u = x^2, dv = sin(x) dx and 2 rounds, so ∫(x^2*sin(x)) dx = 2cos(x) + 2x*sin(x) - x^2*cos(x) + C.
+3. Integration by parts: ∫u dv = uv − ∫v du. Pick u by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential), a rule of thumb: the best u is the one that makes ∫v du simpler.
 
    *— Show more —*
-4. When the original integral comes back (∫e^x·sin(x) dx after two rounds), move it to the left side and solve for it like an unknown.
-5. ∫ln(x) dx is by parts with u = ln(x) and dv = dx: ∫ln(x) dx = x·ln(x) − x + C.
-6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+   Source: [Herbert E. Kasube, "A Technique for Integration by Parts", The American Mathematical Monthly 90(3), 1983](https://doi.org/10.1080/00029890.1983.11971195)
+4. u should get simpler when it is differentiated, and dv must be something you can integrate; du and v then follow.
+5. When the original integral comes back (∫e^x·sin(x) dx after two rounds), move it to the left side and solve for it like an unknown.
+6. ∫ln(x) dx is by parts with u = ln(x) and dv = dx: ∫ln(x) dx = x·ln(x) − x + C.
+7. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+8. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
-**Common Mistakes** (4)
+**Common Mistakes** (5)
 
-1. Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.
+1. Stopping after one round: the integral left over still has a power of x in it, and needs parts again until that power is gone.
 2. Forgetting the constant of integration (+C).
 3. Sign slips in uv − ∫v du, above all on a second round: the signs alternate.
 
    *— Show more —*
-4. Swapping u and dv on the second round: that undoes the first round and leads back to the start.
+4. Choosing u and dv the wrong way round — LIATE picks the u that gets simpler when differentiated.
+5. Swapping u and dv on the second round: that undoes the first round and leads back to the start.
 
 ### Partial fractions
 
 Example: `1/(x^2 - 1)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
-1. Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm and an arctan, a repeated factor a power.
-2. Each factor sets the shape of its piece: (x − a) takes A/(x − a); a repeated (x − a)² takes A/(x − a) + B/(x − a)²; an irreducible x² + px + q takes (Bx + C)/(x² + px + q).
-3. The cover-up method finds the constant of a non-repeated linear factor at once: cover (x − a) in the fraction and evaluate what is left at x = a.
+1. Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm, an arctan or both (depending on its numerator), and a repeated factor one term per power: its first power a logarithm, the higher powers a power.
+2. Here: 1/(x^2 - 1) = -1/2·1/(x + 1) + 1/2·1/(x - 1), so ∫(1/(x^2 - 1)) dx = 1/2*(ln|x - 1| - ln|x + 1|) + C.
+3. Each factor sets the shape of its piece: (x − a) takes A/(x − a); a repeated (x − a)² takes A/(x − a) + B/(x − a)²; an irreducible x² + px + q takes (Bx + C)/(x² + px + q).
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. The cover-up method finds the constant of a non-repeated linear factor at once: cover (x − a) in the fraction and evaluate what is left at x = a.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -480,16 +509,17 @@ Example: `1/(x^2 - 1)`
 
 Example: `(x^3+1)/(x-1)`
 
-**Key Insights** (6)
+**Key Insights** (7)
 
 1. When the numerator's degree is not lower than the denominator's, divide first: the quotient integrates term by term, and only the remainder over the denominator needs partial fractions.
-2. Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm and an arctan, a repeated factor a power.
-3. Each factor sets the shape of its piece: (x − a) takes A/(x − a); a repeated (x − a)² takes A/(x − a) + B/(x − a)²; an irreducible x² + px + q takes (Bx + C)/(x² + px + q).
+2. Here: ∫((x^3 + 1)/(x - 1)) dx = 1/3*x^3 + 1/2*x^2 + x + 2ln|x - 1| + C.
+3. Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm, an arctan or both (depending on its numerator), and a repeated factor one term per power: its first power a logarithm, the higher powers a power.
 
    *— Show more —*
-4. The cover-up method finds the constant of a non-repeated linear factor at once: cover (x − a) in the fraction and evaluate what is left at x = a.
-5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. Each factor sets the shape of its piece: (x − a) takes A/(x − a); a repeated (x − a)² takes A/(x − a) + B/(x − a)²; an irreducible x² + px + q takes (Bx + C)/(x² + px + q).
+5. The cover-up method finds the constant of a non-repeated linear factor at once: cover (x − a) in the fraction and evaluate what is left at x = a.
+6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -504,17 +534,18 @@ Example: `(x^3+1)/(x-1)`
 
 Example: `(2x+3)/(x^2+1)`
 
-**Key Insights** (7)
+**Key Insights** (8)
 
 1. A numerator over an irreducible quadratic splits in two: the part that is the denominator's derivative integrates to a logarithm, the constant part to an arctan (∫1/(x² + a²) dx = (1/a)·arctan(x/a)).
-2. Complete the square when the quadratic has an x term: x² + 2x + 5 = (x + 1)² + 4, so the arctan part has x + 1 inside.
-3. Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm and an arctan, a repeated factor a power.
+2. Here: ∫((2x + 3)/(x^2 + 1)) dx = ln(x^2 + 1) + 3arctan(x) + C.
+3. Complete the square when the quadratic has an x term: x² + 2x + 5 = (x + 1)² + 4, so the arctan part has x + 1 inside.
 
    *— Show more —*
-4. Each factor sets the shape of its piece: (x − a) takes A/(x − a); a repeated (x − a)² takes A/(x − a) + B/(x − a)²; an irreducible x² + px + q takes (Bx + C)/(x² + px + q).
-5. The cover-up method finds the constant of a non-repeated linear factor at once: cover (x − a) in the fraction and evaluate what is left at x = a.
-6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm, an arctan or both (depending on its numerator), and a repeated factor one term per power: its first power a logarithm, the higher powers a power.
+5. Each factor sets the shape of its piece: (x − a) takes A/(x − a); a repeated (x − a)² takes A/(x − a) + B/(x − a)²; an irreducible x² + px + q takes (Bx + C)/(x² + px + q).
+6. The cover-up method finds the constant of a non-repeated linear factor at once: cover (x − a) in the fraction and evaluate what is left at x = a.
+7. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+8. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -529,16 +560,17 @@ Example: `(2x+3)/(x^2+1)`
 
 Example: `sqrt(1 - x^2)`
 
-**Key Insights** (6)
+**Key Insights** (7)
 
 1. Trigonometric substitution: √(a² − x²) calls for x = a·sin θ (√(a² + x²) for x = a·tan θ, √(x² − a²) for x = a·sec θ); the root becomes a·cos θ and the integral is one in θ. Convert back with a right triangle.
-2. Each choice rests on an identity that turns the radical into one term: 1 − sin²θ = cos²θ, 1 + tan²θ = sec²θ, sec²θ − 1 = tan²θ.
-3. To convert back, draw the triangle the substitution describes (sin θ = x/a: opposite side x, hypotenuse a) and read the other ratios off it.
+2. Here: x = sin θ, dx = cos θ dθ, so ∫(sqrt(1 - x^2)) dx = 1/2*arcsin(x) + 1/2*x*√(1 - x^2) + C.
+3. Each choice rests on an identity that turns the radical into one term: 1 − sin²θ = cos²θ, 1 + tan²θ = sec²θ, sec²θ − 1 = tan²θ.
 
    *— Show more —*
-4. A quadratic with an x term under the root is completed to a square first: x² + 2x + 5 = (x + 1)² + 4.
-5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. To convert back, draw the triangle the substitution describes (sin θ = x/a: opposite side x, hypotenuse a) and read the other ratios off it.
+5. A quadratic with an x term under the root is completed to a square first: x² + 2x + 5 = (x + 1)² + 4.
+6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (4)
 
@@ -553,15 +585,16 @@ Example: `sqrt(1 - x^2)`
 
 Example: `sin(x)^3`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
-1. Products of powers of sin and cos: with an odd power, keep one factor for du and convert the rest with sin²θ + cos²θ = 1 (odd cos → u = sin θ; odd sin → u = cos θ). Both even: the half-angle identities. For tan and sec: an even sec power → u = tan θ; an odd tan power → u = sec θ.
-2. After the substitution the integral is a polynomial in u, done by the power rule; substitute back at the end.
-3. Both powers even: lower them with sin²θ = (1 − cos 2θ)/2 and cos²θ = (1 + cos 2θ)/2, repeating until only first powers of cosines remain.
+1. Products of powers of sin and cos: with an odd power, keep one factor for du and convert the rest with sin²θ + cos²θ = 1 (odd cos → u = sin θ; odd sin → u = cos θ). Both even: the half-angle identities. For tan^m θ·sec^n θ: keep a factor sec²θ for u = tan θ (an even sec power), or a factor sec θ·tan θ for u = sec θ (an odd tan power with at least one sec).
+2. Here: ∫(sin(x)^3) dx = -cos(x) + 1/3*cos(x)^3 + C.
+3. After the substitution the integral is a polynomial in u, done by the power rule; substitute back at the end.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. Both powers even: lower them with sin²θ = (1 − cos 2θ)/2 and cos²θ = (1 + cos 2θ)/2, repeating until only first powers of cosines remain.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -573,15 +606,16 @@ Example: `sin(x)^3`
 
 Example: `sec(x)^3`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. A reduction formula lowers a power by two: ∫sec^n(θ) dθ = sec^(n−2)(θ)·tan(θ)/(n − 1) + ((n − 2)/(n − 1))·∫sec^(n−2)(θ) dθ. It comes from integration by parts in which the original integral reappears and is solved for, as with ∫e^x·sin(x) dx.
-2. Apply it until the power is 1 or 0: the base cases are ∫sec(θ) dθ = ln|sec θ + tan θ| and ∫1 dθ = θ.
-3. ∫sec³(θ) dθ = (sec θ·tan θ + ln|sec θ + tan θ|)/2 + C comes up often (arc length of a parabola, trigonometric substitutions) and is worth knowing.
+2. Here: ∫(sec(x)^3) dx = 1/2*sec(x)*tan(x) + 1/2*ln|sec(x) + tan(x)| + C.
+3. Apply it until the power is 1 or 0: the base cases are ∫sec(θ) dθ = ln|sec θ + tan θ| and ∫1 dθ = θ.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. ∫sec³(θ) dθ = (sec θ·tan θ + ln|sec θ + tan θ|)/2 + C comes up often (arc length of a parabola, trigonometric substitutions) and is worth knowing.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -593,15 +627,16 @@ Example: `sec(x)^3`
 
 Example: `tan(x)^2`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
-1. Powers of tan come down two at a time with tan²θ = sec²θ − 1: ∫tan^m(θ) dθ = tan^(m−1)(θ)/(m − 1) − ∫tan^(m−2)(θ) dθ, down to ∫tan θ dθ = −ln|cos θ| or ∫1 dθ = θ.
-2. The first part is a substitution: u = tan θ, du = sec²θ dθ, so ∫tan^(m−2)θ·sec²θ dθ = tan^(m−1)θ/(m − 1).
-3. cot works the same way with cot²θ = csc²θ − 1, with a minus sign from du = −csc²θ dθ.
+1. Here: ∫(tan(x)^2) dx = tan(x) - x + C.
+2. Powers of tan come down two at a time with tan²θ = sec²θ − 1: ∫tan^m(θ) dθ = tan^(m−1)(θ)/(m − 1) − ∫tan^(m−2)(θ) dθ, down to ∫tan θ dθ = −ln|cos θ| or ∫1 dθ = θ.
+3. The first part is a substitution: u = tan θ, du = sec²θ dθ, so ∫tan^(m−2)θ·sec²θ dθ = tan^(m−1)θ/(m − 1).
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. cot works the same way with cot²θ = csc²θ − 1, with a minus sign from du = −csc²θ dθ.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -613,15 +648,16 @@ Example: `tan(x)^2`
 
 Example: `1/(1+e^x)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. When the awkward piece is a function of x — e^x, √x — substitute for that piece and change dx with it: u = e^x gives dx = du/u; x = u² gives dx = 2u du. The new integral is rational, and partial fractions or a direct rule finish it.
-2. After u = e^x, every e^(kx) becomes u^k, so an integrand built from exponentials becomes a rational function of u.
-3. Substitute back at the end: the answer is a function of x, so u is replaced by e^x (or √x).
+2. Here: u = e^x, so ∫(1/(1 + e^x)) dx = x - ln(1 + e^x) + C.
+3. After u = e^x, every e^(kx) becomes u^k, so an integrand built from exponentials becomes a rational function of u.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. Substitute back at the end: the answer is a function of x, so u is replaced by e^x (or √x).
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -633,15 +669,16 @@ Example: `1/(1+e^x)`
 
 Example: `abs(x)`
 
-**Key Insights** (5)
+**Key Insights** (6)
 
 1. ∫|ax + b| dx = (ax + b)·|ax + b| / (2a) + C — split at the corner, integrate each piece, and the two pieces match up into one formula.
-2. |x| is x for x ≥ 0 and −x for x < 0: integrate each piece and choose the constants so the pieces join without a jump.
-3. x·|x|/2 has derivative |x| everywhere, including at the corner x = 0.
+2. Here: ∫(abs(x)) dx = 1/2*x*abs(x) + C.
+3. |x| is x for x ≥ 0 and −x for x < 0: integrate each piece and choose the constants so the pieces join without a jump.
 
    *— Show more —*
-4. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
-5. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+4. x·|x|/2 has derivative |x| everywhere, including at the corner x = 0.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -653,14 +690,16 @@ Example: `abs(x)`
 
 Example: `e^(-x^2)`
 
-**Key Insights** (4)
+**Key Insights** (6)
 
-1. erf is a "special function": a named antiderivative, the way ln is the name for ∫1/x dx. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.
-2. Whole-line and half-line definite versions do have closed forms: ∫_{−∞}^∞ e^(−x²) dx = √π, and ∫₀^∞ e^(−x²) dx = √π/2.
-3. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+1. ∫e^(−x²) dx = (√π/2)·erf(x) + C: the antiderivative is written with erf, the error function, erf(x) = (2/√π)·∫_0^x e^(−t²) dt.
+2. erf is a "special function": a named antiderivative, the way ln is the name for ∫1/x dx. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.
+3. Whole-line and half-line definite versions do have closed forms: ∫_{−∞}^∞ e^(−x²) dx = √π, and ∫₀^∞ e^(−x²) dx = √π/2.
 
    *— Show more —*
 4. The bell curve of statistics is this function in disguise: probabilities under the normal distribution are values of erf.
+5. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+6. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
 
 **Common Mistakes** (3)
 
@@ -672,16 +711,17 @@ Example: `e^(-x^2)`
 
 Example: `∫_0^1 x^2 dx`
 
-**Key Insights** (6)
+**Key Insights** (7)
 
 1. The Fundamental Theorem of Calculus: ∫_a^b f dx = F(b) − F(a), where F is any antiderivative.
-2. No “+C” for a definite integral — the constant cancels in the subtraction.
-3. A definite integral is the signed area between the curve and the x-axis over [a, b].
+2. Here F(x) = 1/3*x^3, so ∫_0^1 (x^2) dx = 1/3 (≈ 0.3333).
+3. No “+C” for a definite integral — the constant cancels in the subtraction.
 
    *— Show more —*
-4. Area below the axis counts as negative: ∫_0^{2π} sin(x) dx = 0, although the curve encloses area on both sides. For the total area, integrate |f(x)|.
-5. With a substitution, change the bounds to values of u and finish in u; there is no need to substitute back.
-6. A rough sketch checks the answer: its sign and size should match the area you can see.
+4. A definite integral is the signed area between the curve and the x-axis over [a, b].
+5. Area below the axis counts as negative: ∫_0^{2π} sin(x) dx = 0, although the curve encloses area on both sides. For the total area, integrate |f(x)|.
+6. With a substitution, change the bounds to values of u and finish in u; there is no need to substitute back.
+7. A rough sketch checks the answer: its sign and size should match the area you can see.
 
 **Common Mistakes** (4)
 
@@ -696,14 +736,15 @@ Example: `∫_0^1 x^2 dx`
 
 Example: `∫_1^∞ 1/x^2 dx`
 
-**Key Insights** (4)
+**Key Insights** (5)
 
 1. An improper integral is a limit: replace the infinite bound by t, integrate, then let t → ∞.
-2. It converges when that limit is finite; ∫₁^∞ 1/x^p dx converges exactly when p > 1.
-3. Comparison decides many tails without integrating: if 0 ≤ f(x) ≤ 1/x² for large x, then ∫^∞ f dx converges too.
+2. Here the limit is finite, ∫_1^∞ (1/x^2) dx = 1: an infinite interval can still have a finite area.
+3. It converges when that limit is finite; ∫₁^∞ 1/x^p dx converges exactly when p > 1.
 
    *— Show more —*
-4. An exponential decays faster than any power, so ∫_0^∞ e^(−x) dx = 1 and ∫_0^∞ x^n·e^(−x) dx = n! all converge.
+4. Comparison decides many tails without integrating: if 0 ≤ f(x) ≤ 1/x² for large x, then ∫^∞ f dx converges too.
+5. An exponential decays faster than any power, so ∫_0^∞ e^(−x) dx = 1 and ∫_0^∞ x^n·e^(−x) dx = n! (for whole numbers n ≥ 0) all converge.
 
 **Common Mistakes** (2)
 
@@ -714,10 +755,11 @@ Example: `∫_1^∞ 1/x^2 dx`
 
 Example: `∫_1^∞ 1/x dx`
 
-**Key Insights** (2)
+**Key Insights** (3)
 
 1. An improper integral converges only if the limit defining it is a finite number.
-2. Compare with ∫₁^∞ 1/x^p dx: it converges for p > 1 and diverges for p ≤ 1.
+2. Here F(x) = ln|x|, and F(t) → ∞ as t → ∞: the limit is not a finite number, so the integral diverges.
+3. Compare with ∫₁^∞ 1/x^p dx: it converges for p > 1 and diverges for p ≤ 1.
 
 **Common Mistakes** (2)
 
@@ -728,11 +770,14 @@ Example: `∫_1^∞ 1/x dx`
 
 Example: `∫_0^1 1/sqrt(x) dx`
 
-**Key Insights** (3)
+**Key Insights** (4)
 
 1. An integral whose integrand blows up at an endpoint is improper: replace that endpoint with a variable, integrate, then take the one-sided limit.
-2. It converges only if that limit is a finite number — the area can be finite even though the curve is unbounded (1/√x on (0, 1]).
-3. Compare with a p-integral: ∫₀¹ 1/xᵖ dx converges for p < 1 and diverges for p ≥ 1.
+2. Here the limit is finite, ∫_0^1 (1/sqrt(x)) dx = 2: the curve is unbounded, but the integral is not.
+3. It converges only if that limit is a finite number — the area can be finite even though the curve is unbounded (1/√x on (0, 1]).
+
+   *— Show more —*
+4. Compare with a p-integral: ∫₀¹ 1/xᵖ dx converges for p < 1 and diverges for p ≥ 1.
 
 **Common Mistakes** (2)
 
@@ -756,11 +801,14 @@ Example: `∫_-1^1 1/x^2 dx`
 
 Example: `∫_0^1 sqrt(1+x^4) dx`
 
-**Key Insights** (3)
+**Key Insights** (4)
 
-1. A numerical integral samples the curve and adds up slices (Simpson's rule fits parabolas through triples of points); it gives the value to as many digits as two step sizes agree on, but no antiderivative.
-2. Try a method by hand: the solver's list stops at the techniques named in the steps; a trigonometric identity, a different substitution or a reduction formula may give the exact form.
-3. A definite integral is the signed area between the curve and the x-axis over [0, 1]; a numerical estimate is a fine way to check an exact answer found by hand.
+1. A numerical integral gives the value, not a formula: it samples the curve and adds up slices (Simpson's rule fits parabolas through triples of points), and the digits shown are those two step sizes agree on, a check on the accuracy rather than a proof of it.
+2. A function continuous on an interval has an antiderivative there, but it may have no formula in elementary functions (√(1 + x⁴) is one such); this solver found none here, and a numerical value is the practical answer.
+3. Try a method by hand: the solver's list stops at the techniques named in the steps; a trigonometric identity, a different substitution or a reduction formula may give the exact form.
+
+   *— Show more —*
+4. A definite integral is the signed area between the curve and the x-axis over [0, 1]; a numerical estimate is a fine way to check an exact answer found by hand.
 
 **Common Mistakes** (3)
 

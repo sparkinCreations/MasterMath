@@ -240,9 +240,11 @@ export default function PrivacyPolicy() {
             <li><strong>Links to other websites:</strong> A solution's "Learn more" section links to
               lessons on Khan Academy, Paul's Online Math Notes, OpenStax, 3Blue1Brown and
               Wolfram|Alpha, and some insights link to their published source. These are ordinary
-              links: the app sends those websites nothing, and nothing happens unless you click one.
-              A click opens the website in a new tab without telling it which page you came from
-              (no referrer), and that website's own privacy policy applies there.</li>
+              links: MasterMath never sends your problems, solutions or history to those websites,
+              and nothing reaches them unless you click a link. A click opens the website in a new
+              tab without telling it which page you came from (no referrer); like any visit to a
+              website, that website sees the request itself, including your IP address and browser
+              details, and its own privacy policy applies.</li>
           </ul>
           <p className="text-gray-700 dark:text-gray-300 mt-3">
             All math libraries run entirely in your browser and do not collect, transmit, or store

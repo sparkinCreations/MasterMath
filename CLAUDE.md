@@ -211,7 +211,15 @@ text there stays prose, never guessed at. In a tip about what to type, the
 typed form goes in quotes ("2*x") and stays literal. Markers belong to steps,
 tips and mistakes: `finalizeResult` strips them from answers and warnings,
 the exporters strip them, and code that reads that text (guidance regexes)
-reads `stripMathMarkers(...)`.
+reads `stripMathMarkers(...)`. Tests about wording use
+`tests/helpers/solvePlain.js`; `tests/typesetting.test.js` (steps) and
+`tests/typesettingTips.test.js` (tips and mistakes) fail on math left in a
+plain-text run, a word inside a math run, or a run KaTeX rejects; every
+solver is converted (steps 1.51.0, tips and mistakes 1.53.0), so a new
+template needs its marks and a problem in
+`tests/helpers/typesetProblems.js`. A typed problem (the input preview, the
+example buttons, the Progress history) renders in `'input'` mode: words are
+prose, the rest is math.
 
 **Rank the tips and mistakes.** Each list is in order of importance and as
 long as is useful: the page shows the first three and puts the rest behind
@@ -221,16 +229,9 @@ specific to the method (`tests/tipsByMethod.test.js`); "+C" and "check by
 differentiating" go last. An item that uses a named idea from a specific
 source is `{ text, source: { title, url } }` (a DOI or publisher link,
 `SOURCE_HOSTS`); `finalizeResult` turns it into text and keeps the source in
-`result.sources`. Integrals are done (1.60.0,
-`docs/future-work/insights-review/INTEGRALS.md`); the other topics follow
-one per release, each with a review document first. Tests about wording use
-`tests/helpers/solvePlain.js`; `tests/typesetting.test.js` (steps) and
-`tests/typesettingTips.test.js` (tips and mistakes) fail on math left in a
-plain-text run, a word inside a math run, or a run KaTeX rejects; every
-solver is converted (steps 1.51.0, tips and mistakes 1.53.0), so a new
-template needs its marks and a problem in `tests/helpers/typesetProblems.js`.
-A typed problem (the input preview, the example buttons, the Progress
-history) renders in `'input'` mode: words are prose, the rest is math.
+`result.sources`. Integrals (1.60.0) and derivatives (1.61.0) are done, each
+with a review document in `docs/future-work/insights-review/`; the other
+topics follow one per release, each with a review document first.
 
 Algebrite: always through `loadAlgebrite()` (a throwing direct call poisons
 every later call; the worker's termination also clears it). mathjs: add a
@@ -297,7 +298,9 @@ the worker load.
 - The only outbound request is the Feedback form (Web3Forms), only on submit.
   Privacy wording anywhere must name that exception. "Learn more" and source
   links are plain links (new tab, `rel="noopener noreferrer"`) to the sites in
-  `learnMore.js` and `guidance.js`; the app sends them nothing.
+  `learnMore.js` and `guidance.js`; the app sends them nothing of the user's,
+  but a click is an ordinary visit (they see the IP and browser), and the
+  Privacy Policy says so.
 - `npm audit --omit=dev` runs in CI and must stay clean.
 - `/assets/*` is served `max-age=31536000, immutable` (hashed names); nothing
   else gets a Cache-Control rule, so `sw.js` and the shell always revalidate

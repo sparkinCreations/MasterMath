@@ -76,7 +76,7 @@ export function indefiniteMethod(f) {
 }
 
 const byPartsTips = (v) => ({
-  liate: { text: `Integration by parts: ${mark('∫u dv = uv − ∫v du')}. Pick ${mark('u')} by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).`, source: LIATE_SOURCE },
+  liate: { text: `Integration by parts: ${mark('∫u dv = uv − ∫v du')}. Pick ${mark('u')} by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential), a rule of thumb: the best ${mark('u')} is the one that makes ${mark('∫v du')} simpler.`, source: LIATE_SOURCE },
   choose: `${mark('u')} should get simpler when it is differentiated, and ${mark('dv')} must be something you can integrate; ${mark('du')} and ${mark('v')} then follow.`,
   repeated: `A power of ${mark(v)} times a trig function or an exponential needs one round per power: ${mark(`${v}²·sin(${v})`)} takes two, each lowering the power by one. A table of derivatives of ${mark('u')} and integrals of ${mark('dv')}, with alternating signs (tabular integration), keeps the rounds straight.`,
   cyclic: `When the original integral comes back (${mark(`∫e^${v}·sin(${v}) d${v}`)} after two rounds), move it to the left side and solve for it like an unknown.`,
@@ -88,10 +88,12 @@ export function indefiniteGuidance(method, v) {
     case 'erf':
       return {
         tips: [
+          `${mark(`∫e^(−${v}²) d${v} = (√π/2)·erf(${v}) + C`)}: the antiderivative is written with erf, the error function, ${mark(`erf(${v}) = (2/√π)·∫_0^${v} e^(−t²) dt`)}.`,
           `erf is a "special function": a named antiderivative, the way ln is the name for ${mark('∫1/x dx')}. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.`,
           `Whole-line and half-line definite versions do have closed forms: ${mark('∫_{−∞}^∞ e^(−x²) dx = √π')}, and ${mark('∫₀^∞ e^(−x²) dx = √π/2')}.`,
-          plusC(),
           'The bell curve of statistics is this function in disguise: probabilities under the normal distribution are values of erf.',
+          plusC(),
+          checkByDifferentiating(),
         ],
         mistakes: [
           `Trying ${mark('u = −x²')}: then ${mark('du = −2x dx')}, and there is no ${mark('x')} factor in the integrand to absorb it — the substitution does not close.`,
@@ -147,7 +149,7 @@ export function indefiniteGuidance(method, v) {
     case 'trig power':
       return {
         tips: [
-          `Products of powers of ${mark('sin')} and ${mark('cos')}: with an odd power, keep one factor for ${mark('du')} and convert the rest with ${mark('sin²θ + cos²θ = 1')} (odd ${mark('cos')} → ${mark('u = sin θ')}; odd ${mark('sin')} → ${mark('u = cos θ')}). Both even: the half-angle identities. For ${mark('tan')} and ${mark('sec')}: an even ${mark('sec')} power → ${mark('u = tan θ')}; an odd ${mark('tan')} power → ${mark('u = sec θ')}.`,
+          `Products of powers of ${mark('sin')} and ${mark('cos')}: with an odd power, keep one factor for ${mark('du')} and convert the rest with ${mark('sin²θ + cos²θ = 1')} (odd ${mark('cos')} → ${mark('u = sin θ')}; odd ${mark('sin')} → ${mark('u = cos θ')}). Both even: the half-angle identities. For ${mark('tan^m θ·sec^n θ')}: keep a factor ${mark('sec²θ')} for ${mark('u = tan θ')} (an even ${mark('sec')} power), or a factor ${mark('sec θ·tan θ')} for ${mark('u = sec θ')} (an odd ${mark('tan')} power with at least one ${mark('sec')}).`,
           `After the substitution the integral is a polynomial in ${mark('u')}, done by the power rule; substitute back at the end.`,
           `Both powers even: lower them with ${mark('sin²θ = (1 − cos 2θ)/2')} and ${mark('cos²θ = (1 + cos 2θ)/2')}, repeating until only first powers of cosines remain.`,
           plusC(),
@@ -169,14 +171,18 @@ export function indefiniteGuidance(method, v) {
           : method === 'by parts, repeated' ? [t.repeated, t.liate, t.choose]
             : [t.liate, t.choose, t.repeated];
       const rest = [t.repeated, t.cyclic, t.log].filter((x) => !lead.includes(x));
+      const choose = `Choosing ${mark('u')} and ${mark('dv')} the wrong way round — LIATE picks the ${mark('u')} that gets simpler when differentiated.`;
+      const signs = `Sign slips in ${mark('uv − ∫v du')}, above all on a second round: the signs alternate.`;
+      const swap = `Swapping ${mark('u')} and ${mark('dv')} on the second round: that undoes the first round and leads back to the start.`;
+      // The mistake each variant invites most comes first.
+      const first = method === 'by parts, cyclic'
+        ? `Not recognising the original integral when it comes back: instead of a third round, call it ${mark('I')}, move it to the left side and solve for it.`
+        : method === 'by parts, repeated'
+          ? `Stopping after one round: the integral left over still has a power of ${mark(v)} in it, and needs parts again until that power is gone.`
+          : null;
       return {
         tips: [...lead, ...rest, plusC(), checkByDifferentiating()],
-        mistakes: [
-          `Choosing ${mark('u')} and ${mark('dv')} the wrong way round — LIATE picks the ${mark('u')} that gets simpler when differentiated.`,
-          forgotC(),
-          `Sign slips in ${mark('uv − ∫v du')}, above all on a second round: the signs alternate.`,
-          `Swapping ${mark('u')} and ${mark('dv')} on the second round: that undoes the first round and leads back to the start.`,
-        ],
+        mistakes: first ? [first, forgotC(), method === 'by parts, cyclic' ? swap : signs, choose, method === 'by parts, cyclic' ? signs : swap] : [choose, forgotC(), signs, swap],
       };
     }
     case 'trig substitution':
@@ -200,7 +206,7 @@ export function indefiniteGuidance(method, v) {
       return {
         tips: [
           `Inverse-trig antiderivatives come from derivatives you know: ${mark(`d/d${v} arctan(${v}) = 1/(1 + ${v}²)`)} and ${mark(`d/d${v} arcsin(${v}) = 1/√(1 − ${v}²)`)}. A constant ${mark('a²')} in the pattern is factored out first.`,
-          `With the constant in place: ${mark(`∫1/(a² + ${v}²) d${v} = (1/a)·arctan(${v}/a) + C`)} and ${mark(`∫1/√(a² − ${v}²) d${v} = arcsin(${v}/a) + C`)}.`,
+          `With the constant in place, for ${mark('a > 0')}: ${mark(`∫1/(a² + ${v}²) d${v} = (1/a)·arctan(${v}/a) + C`)} and ${mark(`∫1/√(a² − ${v}²) d${v} = arcsin(${v}/a) + C`)}.`,
           `A quadratic with an ${mark(v)} term is completed to a square first: ${mark(`${v}² + 2${v} + 5 = (${v} + 1)² + 4`)}, then the pattern applies with ${mark(`${v} + 1`)} in place of ${mark(v)}.`,
           plusC(),
           checkByDifferentiating(),
@@ -215,7 +221,7 @@ export function indefiniteGuidance(method, v) {
     case 'partial fractions, divide first':
     case 'irreducible quadratic':
     case 'partial fractions': {
-      const general = 'Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm and an arctan, a repeated factor a power.';
+      const general = 'Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm, an arctan or both (depending on its numerator), and a repeated factor one term per power: its first power a logarithm, the higher powers a power.';
       const forms = `Each factor sets the shape of its piece: ${mark('(x − a)')} takes ${mark('A/(x − a)')}; a repeated ${mark('(x − a)²')} takes ${mark('A/(x − a) + B/(x − a)²')}; an irreducible ${mark('x² + px + q')} takes ${mark('(Bx + C)/(x² + px + q)')}.`;
       const coverUp = `The cover-up method finds the constant of a non-repeated linear factor at once: cover ${mark('(x − a)')} in the fraction and evaluate what is left at ${mark('x = a')}.`;
       const lead = method === 'partial fractions, divide first'
@@ -250,7 +256,7 @@ export function indefiniteGuidance(method, v) {
           checkByDifferentiating(),
         ],
         mistakes: [
-          `Forgetting to divide by ${mark('g′(x)')} when changing to ${mark('du')} — the constant from ${mark('du = g′(x) dx')} must be carried.`,
+          `Forgetting to account for ${mark('du = g′(x) dx')}: the inside's derivative must match a factor of the integrand, up to a constant multiple, and that constant is carried into the new integral.`,
           forgotC(),
           `Leaving the answer in ${mark('u')}: substitute ${mark('u = g(x)')} back at the end.`,
           'Keeping the old bounds after changing variables in a definite integral.',
@@ -306,7 +312,7 @@ export function indefiniteGuidance(method, v) {
     case 'exponential':
       return {
         tips: [
-          `${mark(`∫e^${v} d${v} = e^${v}`)} — the exponential is its own antiderivative; ${mark(`∫a^${v} d${v} = a^${v}/ln(a)`)}.`,
+          `${mark(`∫e^${v} d${v} = e^${v}`)} — the exponential is its own antiderivative; ${mark(`∫a^${v} d${v} = a^${v}/ln(a)`)} for ${mark('a > 0')}, ${mark('a ≠ 1')}.`,
           `A linear exponent brings out its reciprocal: ${mark(`∫e^(k${v}) d${v} = e^(k${v})/k + C`)} for ${mark('k ≠ 0')}.`,
           `Another base becomes ${mark('e')}: ${mark(`a^${v} = e^(${v}·ln a)`)}, which is where the ${mark('1/ln(a)')} comes from.`,
           plusC(),
@@ -382,7 +388,7 @@ export function indefiniteGuidance(method, v) {
     case 'linear inside':
       return {
         tips: [
-          `A linear inside, ${mark(`cos(a${v} + b)`)}: let ${mark(`u = a${v} + b`)}, so ${mark(`du = a d${v}`)} and a factor ${mark('1/a')} comes out — ${mark(`∫cos(2${v}) d${v} = (1/2)·sin(2${v}) + C`)}.`,
+          `A linear inside, ${mark(`cos(a${v} + b)`)}: let ${mark(`u = a${v} + b`)}, so ${mark(`du = a d${v}`)} and a factor ${mark('1/a')} comes out.`,
           `In general ${mark(`∫f(a${v} + b) d${v} = (1/a)·F(a${v} + b) + C`)}, where ${mark('F')} is an antiderivative of ${mark('f')}.`,
           `Differentiating checks the factor: the chain rule multiplies by ${mark('a')}, and the ${mark('1/a')} cancels it.`,
           plusC(),

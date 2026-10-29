@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.61.0] - 2026-10-29
+
+### Added
+
+- **More derivative insights and mistakes**, the second topic after
+  integrals. Every rule has a ranked list of four to six insights and two to
+  five mistakes, where most problems used to show one of each. The rule a
+  problem depends on most leads (the quotient rule over the chain rule over
+  the power rule), and every other rule it used adds its first item. The
+  chain rule's second insight fits the outside function (eᵘ, ln u, uⁿ,
+  trig, inverse trig); a second derivative says what f″ means; implicit
+  differentiation and |ax + b| get more of their method. Review:
+  `docs/future-work/insights-review/DERIVATIVES.md`.
+- **The second insight works the student's own problem**: the inside and
+  its derivative for the chain rule (sin(3x²): u = 3x², u′ = 6x), u, w, u′
+  and w′ for the product and quotient rules, the two slopes for |ax + b|.
+  A higher derivative and a value at a point lead with what they ask for
+  (an outside review: Round 22 of the review log).
+
+- **Integrals revised after an outside review** (Round 23), before 1.60.0
+  was pushed: the second insight works the student's integral ("Here: u =
+  x², du = 2x dx, so ∫x·cos(x²) dx = ½·sin(x²) + C"; u and dv, the 2I
+  equation, the rounds, the partial-fraction split, the trig substitution);
+  ∫e^(−x²) dx leads with its result; improper integrals show their finite
+  value.
+
+### Fixed
+
+- **Integral statements made where they hold**: arcsin(x/a) for a > 0, aˣ
+  for a > 0, a ≠ 1, n! for whole n ≥ 0; the u-substitution mistake no
+  longer says to divide by g′(x); the tan/sec substitutions keep a sec² or a
+  sec·tan factor; two step sizes agreeing is a check, not a proof; LIATE is
+  a rule of thumb; an irreducible quadratic gives a log, an arctan or both.
+- **The Privacy Policy says what a click on an outside link reveals**: the
+  site sees the visit (IP address, browser), never a problem or history.
+- **f′(a) where f is not defined.** `ln(x) at x = -1` answered f′(−1) = −1
+  (from 1/x); log, √ and arcsin outside their domains likewise gave a value.
+  f is now checked first: "f′(−1) does not exist: x = −1 is outside the
+  domain of f".
+- **Odd roots at a negative point.** `x^(1/3) at x = -8` answered
+  "undefined"; the derivative is 1/12, now shown exactly.
+- **A power of a polynomial keeps the chain rule's form**: (2x + 1)⁵ gives
+  10(2x + 1)⁴, not 160x⁴ + 320x³ + 240x² + 80x + 10.
+- **Statements made where they hold**, as the outside review asked: log laws
+  for x > 0, dy/dx = −F_x/F_y where F_y ≠ 0, the power rule where the
+  function is differentiable, aˣ for a > 0, f′ = 0 at a stationary point
+  rather than "at a peak or a valley".
+
 ## [1.60.0] - 2026-10-29
 
 ### Added
@@ -36,8 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"+C" is now the last insight on an indefinite integral, not the
   second.** It stays a visible mistake ("Forgetting the constant of
   integration"), so the first three insights are about the method used.
-- **The Privacy Policy and Terms describe the outside links.** The app sends
-  those sites nothing, and their own policies apply.
+- **The Privacy Policy and Terms describe the outside links.** MasterMath
+  never sends those sites your problems, solutions or history; a click is an
+  ordinary visit (the site sees your IP address and browser, with no
+  referrer), and its own policy applies.
 
 ### Fixed
 

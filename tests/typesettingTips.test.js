@@ -29,11 +29,17 @@ const EXTRA = [
   ['integrals', 'cos(x)'], ['integrals', 'e^x'], ['integrals', '1/x'], ['integrals', '1/(2x+1)'], ['integrals', 'x!'],
   ['integrals', '∫_1^∞ 1/x dx'], ['integrals', '∫_0^1 1/x^2 dx'], ['integrals', '∫_-1^2 1/x^(1/3) dx'], ['integrals', '∫_a^b x dx'],
   ['integrals', '∫'], ['integrals', 'sin(x'], ['integrals', 'x^x'], ['integrals', 'sin(x)/x'], ['functions', '5'], ['functions', 'x +* 2'],
+  // Every differentiation rule's whole list (1.61.0).
+  ['derivatives', '(2x+1)^5'], ['derivatives', 'arctan(2x)'], ['derivatives', 'e^(3x)'], ['derivatives', 'ln(x^2+1)'], ['derivatives', 'sec(x)'],
+  ['derivatives', '2^x'], ['derivatives', 'sinh(x)'], ['derivatives', 'erf(x)'], ['derivatives', 'arcsin(x)'], ['derivatives', 'x*y = 1'],
+  ['derivatives', '3x^4 - 2x + 7'], ['derivatives', 'x^2*e^(3x)'], ['derivatives', 'ln(x) at x = -1'], ['derivatives', 'third derivative of sin(2x)'],
+  ['derivatives', 'fourth derivative of x^5'], ['derivatives', 'x^(1/3) at x = -8'], ['derivatives', 'x^x'], ['derivatives', 'second derivative of x*e^x'],
   // Every integration method's whole list (1.60.0: more insights behind "Show more").
   ['integrals', '2^x'], ['integrals', 'sinh(x)'], ['integrals', 'tan(x)^2'], ['integrals', 'sec(x)^3'], ['integrals', 'ln(x)'],
   ['integrals', 'e^x*sin(x)'], ['integrals', 'x^2*sin(x)'], ['integrals', 'sin(x)^3'], ['integrals', 'sin(x)^2*cos(x)^2'], ['integrals', '(x^3+1)/(x-1)'],
   ['integrals', '(2x+3)/(x^2+1)'], ['integrals', '1/(1+e^x)'], ['integrals', 'e^(-x^2)'], ['integrals', '1/sqrt(x^2+4)'], ['integrals', 'tan(x)'],
   ['integrals', '1/(1+x^2)'], ['integrals', '∫_0^∞ e^(-x) dx'], ['integrals', '∫_0^1 sqrt(1+x^4) dx'], ['integrals', '∫_0^1 1/sqrt(x) dx'],
+  ['integrals', '1/(x^3 - 2)'], ['integrals', 'sqrt(x^2-9)/x'], ['integrals', '1/(x^2*sqrt(x^2+9))'], ['integrals', 'x*e^x'], ['integrals', '∫_0^1 ln(x) dx'],
   // Algebra, systems and inequalities.
   ['algebra', '|2x - 3| = 5'], ['algebra', 'x/(x-2) = 3'], ['algebra', '3x - 6 + 4'], ['algebra', 'expand (x+1)^2'], ['algebra', 'factor x^2 - 9'],
   ['algebra', 'sqrt(72)'], ['algebra', '= 5'], ['algebra', 'x^101 - 1 = 0'], ['algebra', '2x + 3y = 6'], ['algebra', 'sin(x*y) = x + y'],
