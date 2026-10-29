@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.60.0] - 2026-10-29
+
+### Added
+
+- **"Show more" for Key Insights and Common Mistakes.** The first three of
+  each list show as before; when a method has more, "Show 4 more insights"
+  opens the rest in place, and "Show fewer" folds them back. The lists are
+  ranked and the same for everyone (no random rotation). Exports and
+  history keep every item.
+- **Sources.** An insight that uses a named idea from a published source
+  links to it. The first one: LIATE, from Herbert E. Kasube's 1983 article in
+  *The American Mathematical Monthly*, under integration by parts. Exports
+  print the source.
+- **"Learn more" links under every solution**, by the topic it was solved
+  as: lessons on Khan Academy, Paul's Online Math Notes, OpenStax,
+  3Blue1Brown (calculus topics) and Wolfram|Alpha's example pages. Each link
+  was opened and its title checked. They open in a new tab, send no
+  referrer, and say they need an internet connection.
+- **More integral insights and mistakes**, the pilot topic: every
+  integration method now has four to seven insights, led by what that
+  method needs, and three or four mistakes. Integration by parts leads with
+  what the problem needs (∫ln(x) dx, an integral that comes back, repeated
+  rounds).
+
+### Changed
+
+- **"+C" is now the last insight on an indefinite integral, not the
+  second.** It stays a visible mistake ("Forgetting the constant of
+  integration"), so the first three insights are about the method used.
+- **The Privacy Policy and Terms describe the outside links.** The app sends
+  those sites nothing, and their own policies apply.
+
+### Fixed
+
+- **Integral insights about a different method.** `∫2^x dx` and
+  `∫sinh(x) dx` led with the antiderivatives of tan, cot and sec;
+  `∫tan²(x) dx` was given the sec^n reduction formula, though it was solved
+  with tan² = sec² − 1. Partial fractions listed the power rule on 1/x as a
+  mistake.
+
 ## [1.59.11] - 2026-10-29
 
 ### Changed

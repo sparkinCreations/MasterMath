@@ -297,11 +297,15 @@ export async function solveDefiniteIntegral(parsed) {
         `The Fundamental Theorem of Calculus: ${mark(`∫_a^b f d${v} = F(b) − F(a)`)}, where ${mark('F')} is any antiderivative.`,
         `No “${mark('+C')}” for a definite integral — the constant cancels in the subtraction.`,
         `A definite integral is the signed area between the curve and the x-axis over ${mark('[a, b]')}.`,
+        `Area below the axis counts as negative: ${mark('∫_0^{2π} sin(x) dx = 0')}, although the curve encloses area on both sides. For the total area, integrate ${mark('|f(x)|')}.`,
+        `With a substitution, change the bounds to values of ${mark('u')} and finish in ${mark('u')}; there is no need to substitute back.`,
+        'A rough sketch checks the answer: its sign and size should match the area you can see.',
       ],
       common_mistakes: [
         `Keeping the ${mark('+C')} — it cancels when you subtract ${mark('F(a)')} from ${mark('F(b)')}.`,
         `Swapping the bounds: ${mark('∫_a^b = −∫_b^a')}.`,
         `Integrating across a discontinuity (e.g. ${mark('1/x')} on ${mark('[−1, 1]')}) as if the integral were proper.`,
+        `Changing to ${mark('u')} but keeping the ${mark(v)}-bounds.`,
       ],
       graph: generateDefiniteGraph(integrand, v, a, b, lowerLabel, upperLabel, exactValue),
     };

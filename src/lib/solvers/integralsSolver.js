@@ -34,7 +34,7 @@ import { extractVariable, extractFunctionFromProblem, parseMathExpression } from
 import { derivativeMatchesNumerically } from './substitutionSolver.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 import { stripMathMarkers } from '../mathMarkers.js';
-import { directTip, directMistake, nonElementaryNote } from './integrals/guidance.js';
+import { nonElementaryNote, indefiniteMethod, indefiniteGuidance } from './integrals/guidance.js';
 import {
   simplifyRun,
   polishLogArguments,
@@ -243,71 +243,21 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     // One irreducible quadratic and nothing to decompose: the lesson is the
     // ln + arctan split, not partial fractions.
     const singleQuadratic = /Factor the denominator: ([^\n=]+?) = \(\1\)\./.test(stepText);
-    const tips = usesErf ? [
-      `erf is a "special function": a named antiderivative, the way ln is the name for ${mark('∫1/x dx')}. It is not a trick or a shortcut — it is the honest answer, and tables and calculators have it.`,
-      `Whole-line and half-line definite versions do have closed forms: ${mark('∫_{−∞}^∞ e^(−x²) dx = √π')}, and ${mark('∫₀^∞ e^(−x²) dx = √π/2')}.`,
-      `Always add the constant of integration (${mark('+C')}) for an indefinite integral.`,
-    ] : [
-      anyFormSub
-        ? `When the awkward piece is a function of ${mark(variable)} — ${mark(`e^${variable}`)}, ${mark(`√${variable}`)} — substitute for that piece and change ${mark(`d${variable}`)} with it: ${mark(`u = e^${variable}`)} gives ${mark(`d${variable} = du/u`)}; ${mark(`${variable} = u²`)} gives ${mark(`d${variable} = 2u du`)}. The new integral is rational, and partial fractions or a direct rule finish it.`
-        : anyReduction
-        ? `A reduction formula lowers a power by two: ${mark('∫sec^n(θ) dθ = sec^(n−2)(θ)·tan(θ)/(n − 1) + ((n − 2)/(n − 1))·∫sec^(n−2)(θ) dθ')}. It comes from integration by parts in which the original integral reappears and is solved for, as with ${mark('∫e^x·sin(x) dx')}.`
-        : anyTrigPower
-          ? `Products of powers of ${mark('sin')} and ${mark('cos')}: with an odd power, keep one factor for ${mark('du')} and convert the rest with ${mark('sin²θ + cos²θ = 1')} (odd ${mark('cos')} → ${mark('u = sin θ')}; odd ${mark('sin')} → ${mark('u = cos θ')}). Both even: the half-angle identities. For ${mark('tan')} and ${mark('sec')}: an even ${mark('sec')} power → ${mark('u = tan θ')}; an odd ${mark('tan')} power → ${mark('u = sec θ')}.`
-        : anyByParts
-        ? `Integration by parts: ${mark('∫u dv = uv − ∫v du')}. Pick ${mark('u')} by LIATE (Log, Inverse-trig, Algebraic, Trig, Exponential).`
-        : anyTrigSub
-          ? `Trigonometric substitution: ${mark(`√(a² − ${variable}²)`)} calls for ${mark(`${variable} = a·sin θ`)} (${mark(`√(a² + ${variable}²)`)} for ${mark(`${variable} = a·tan θ`)}, ${mark(`√(${variable}² − a²)`)} for ${mark(`${variable} = a·sec θ`)}); the root becomes ${mark('a·cos θ')} and the integral is one in ${mark('θ')}. Convert back with a right triangle.`
-        : anyInverseTrig
-          ? `Inverse-trig antiderivatives come from derivatives you know: ${mark(`d/d${variable} arctan(${variable}) = 1/(1 + ${variable}²)`)} and ${mark(`d/d${variable} arcsin(${variable}) = 1/√(1 − ${variable}²)`)}. A constant ${mark('a²')} in the pattern is factored out first.`
-        : anyPartial
-          ? (/divide first/.test(stepText)
-            ? 'When the numerator\'s degree is not lower than the denominator\'s, divide first: the quotient integrates term by term, and only the remainder over the denominator needs partial fractions.'
-            : singleQuadratic
-              ? `A numerator over an irreducible quadratic splits in two: the part that is the denominator's derivative integrates to a logarithm, the constant part to an arctan (${mark('∫1/(x² + a²) dx = (1/a)·arctan(x/a)')}).`
-              : 'Partial fractions: factor the denominator, write the fraction as a sum of simpler ones (one per factor), find each constant (cover-up or comparing coefficients), then integrate each piece — a linear factor gives a logarithm, an irreducible quadratic a logarithm and an arctan, a repeated factor a power.')
-        : anySubstitution
-          ? `u-substitution: look for an inner function whose derivative appears as a factor — ${mark('∫g′(x)·h(g(x)) dx = ∫h(u) du')} with ${mark('u = g(x)')}.`
-          : anyAbs
-            ? `${mark('∫|ax + b| dx = (ax + b)·|ax + b| / (2a) + C')} — split at the corner, integrate each piece, and the two pieces match up into one formula.`
-            : directTip(directLabels, variable),
-      `Always add the constant of integration (${mark('+C')}) for an indefinite integral.`,
-      `Constant factors pull out front: ${mark('∫c·f dx = c·∫f dx')}.`,
-    ];
-
-    const common_mistakes = usesErf ? [
-      `Trying ${mark('u = −x²')}: then ${mark('du = −2x dx')}, and there is no ${mark('x')} factor in the integrand to absorb it — the substitution does not close.`,
-      `Reading ${mark('e^(−x²)')} as ${mark('(e^(−x))²')} — the square is on ${mark('x')}, not on ${mark('e^(−x)')}. ${mark('(e^(−x))² = e^(−2x)')}, which IS elementary.`,
-      `Forgetting the constant of integration (${mark('+C')}).`,
-    ] : [
-      `Forgetting the constant of integration (${mark('+C')}).`,
-      anyFormSub
-        ? `Substituting ${mark(`u = e^${variable}`)} but leaving ${mark(`d${variable}`)} alone — ${mark(`d${variable} = du/u`)}, and that extra ${mark('1/u')} is what makes the new integrand rational.`
-        : anyReduction
-        ? `Trying ${mark('u = sec θ')} on ${mark('sec³θ')}: ${mark('du = sec θ tan θ dθ')} is not a factor of the integrand, so the substitution does not close — the reduction formula is the way.`
-        : anyTrigPower
-          ? `Splitting off the factor from the EVEN power: the leftover must be convertible with ${mark('sin²θ + cos²θ = 1')}, which needs an even power left behind.`
-        : anyByParts
-        ? `Choosing ${mark('u')} and ${mark('dv')} the wrong way round — LIATE picks the ${mark('u')} that gets simpler when differentiated.`
-        : anyTrigSub
-          ? `Forgetting to change ${mark(`d${variable}`)} as well as the integrand (${mark('dx = a·cos θ dθ')}), or leaving the answer in ${mark('θ')} instead of converting back to ${mark(variable)}.`
-        : anyInverseTrig
-          ? `Reading ${mark(`1/(1 + ${variable}²)`)} as a power of ${mark(variable)} — it is not ${mark(`${variable}^(−2)`)}, and the power rule does not apply.`
-        : anyPartial
-          ? (/divide first/.test(stepText)
-            ? 'Decomposing an improper fraction without dividing first: partial fractions need the numerator\'s degree below the denominator\'s.'
-            : singleQuadratic
-              ? `Integrating ${mark('1/(x² + 1)')} as a logarithm: ${mark('ln(x² + 1)')} differentiates to ${mark('2x/(x² + 1)')}, which has an ${mark('x')} on top. The constant part is an arctan.`
-              : `Splitting ${mark('1/(a·b)')} into ${mark('1/a + 1/b')} — the decomposition needs constants found from the factors, not a guess.`)
-        : anySubstitution
-          ? `Forgetting to divide by ${mark('g′(x)')} when changing to ${mark('du')} — the constant from ${mark('du = g′(x) dx')} must be carried.`
-          : anyAbs
-            ? `Integrating ${mark('|x|')} as if it were ${mark('x')}, giving ${mark('x²/2')} — that is only right for ${mark('x ≥ 0')}.`
-            : directMistake(directLabels, variable),
-      directLabels.has('Power rule') || (!anyByParts && !anySubstitution && !anyAbs && !anyInverseTrig && !anyTrigPower && !anyReduction && !anyFormSub && directLabels.size === 0)
-        ? `Applying the power rule to ${mark('1/x')} — that integrates to ${mark('ln|x|')}, not ${mark('x⁰/0')}.`
-        : 'Skipping the check: differentiate the result and compare it with the integrand.',
-    ];
+    const byParts = perTerm.filter((r) => r.method === 'byparts');
+    const reduction = perTerm.find((r) => r.method === 'reduction');
+    const table = perTerm.filter((r) => r.label === 'Table antiderivative').map((r) => r.term).join(' ');
+    const method = indefiniteMethod({
+      usesErf, anyFormSub, anyReduction, anyTrigPower, anyByParts, anyTrigSub, anyInverseTrig, anyPartial, anySubstitution, anyAbs, directLabels,
+      reductionOfTan: Boolean(reduction && /\b(?:tan|cot)\b/.test(reduction.term) && !/\b(?:sec|csc)\b/.test(reduction.term)),
+      byPartsCyclic: byParts.some((r) => r.cyclic),
+      byPartsLog: byParts.some((r) => new RegExp(`^[-+]?(?:[\\d./]+\\*?)?(?:ln|log)\\(${variable}\\)$`).test(r.term.replace(/\s+/g, ''))),
+      byPartsRepeated: byParts.some((r) => new RegExp(`${variable}\\^\\(?[2-9]`).test(r.term)),
+      divideFirst: /divide first/.test(stepText),
+      singleQuadratic,
+      tableExponential: new RegExp(`(?:\\d|\\))\\s*\\^\\s*\\(?[^)]*\\b${variable}\\b`).test(table) && !/\be\s*\^/.test(table),
+      tableHyperbolic: /\b(?:sinh|cosh|tanh)\b/.test(table),
+    });
+    const { tips, mistakes: common_mistakes } = indefiniteGuidance(method, variable);
 
     // A term that brings its own display (surd partial fractions: nested
     // radicals and ≈ coefficients that lnify would not tidy) is shown as it

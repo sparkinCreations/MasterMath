@@ -2,6 +2,7 @@
 import { statusLabel, isFailureStatus } from './solutionEnvelope.js';
 import { historyTotalsText } from './historyStats.js';
 import { stripMathMarkers } from './mathMarkers.js';
+import { sourceOf } from './guidance.js';
 
 // jsPDF (plus its html2canvas/dompurify dependencies) is ~600 kB — larger than
 // the rest of the app combined. Importing it at module scope pulled it into
@@ -188,6 +189,8 @@ export function exportSolutionAsMarkdown(problem, chosenTopic, solution, topicLa
     markdown += `## Key Insights\n\n`;
     solution.tips.forEach(tip => {
       markdown += `- ${tip}\n`;
+      const source = sourceOf(solution, tip);
+      if (source) markdown += `  Source: [${source.title}](${source.url})\n`;
     });
     markdown += '\n';
   }
@@ -196,6 +199,8 @@ export function exportSolutionAsMarkdown(problem, chosenTopic, solution, topicLa
     markdown += `## Common Mistakes to Avoid\n\n`;
     solution.common_mistakes.forEach(mistake => {
       markdown += `- ${mistake}\n`;
+      const source = sourceOf(solution, mistake);
+      if (source) markdown += `  Source: [${source.title}](${source.url})\n`;
     });
     markdown += '\n';
   }
@@ -420,7 +425,8 @@ function buildTextPDF(jsPDF, problem, topic, solution, topicLabels, status) {
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     solution.tips.forEach(tip => {
-      const tipLines = doc.splitTextToSize(pdfSafe(`• ${tip}`), 165);
+      const source = sourceOf(solution, tip);
+      const tipLines = doc.splitTextToSize(pdfSafe(`• ${tip}${source ? `\nSource: ${source.title}, ${source.url}` : ''}`), 165);
 
       if (yPos + tipLines.length * 6 > doc.internal.pageSize.height - 20) {
         doc.addPage();
@@ -448,7 +454,8 @@ function buildTextPDF(jsPDF, problem, topic, solution, topicLabels, status) {
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     solution.common_mistakes.forEach(mistake => {
-      const mistakeLines = doc.splitTextToSize(pdfSafe(`• ${mistake}`), 165);
+      const source = sourceOf(solution, mistake);
+      const mistakeLines = doc.splitTextToSize(pdfSafe(`• ${mistake}${source ? `\nSource: ${source.title}, ${source.url}` : ''}`), 165);
 
       if (yPos + mistakeLines.length * 6 > doc.internal.pageSize.height - 20) {
         doc.addPage();

@@ -29,6 +29,11 @@ const EXTRA = [
   ['integrals', 'cos(x)'], ['integrals', 'e^x'], ['integrals', '1/x'], ['integrals', '1/(2x+1)'], ['integrals', 'x!'],
   ['integrals', '∫_1^∞ 1/x dx'], ['integrals', '∫_0^1 1/x^2 dx'], ['integrals', '∫_-1^2 1/x^(1/3) dx'], ['integrals', '∫_a^b x dx'],
   ['integrals', '∫'], ['integrals', 'sin(x'], ['integrals', 'x^x'], ['integrals', 'sin(x)/x'], ['functions', '5'], ['functions', 'x +* 2'],
+  // Every integration method's whole list (1.60.0: more insights behind "Show more").
+  ['integrals', '2^x'], ['integrals', 'sinh(x)'], ['integrals', 'tan(x)^2'], ['integrals', 'sec(x)^3'], ['integrals', 'ln(x)'],
+  ['integrals', 'e^x*sin(x)'], ['integrals', 'x^2*sin(x)'], ['integrals', 'sin(x)^3'], ['integrals', 'sin(x)^2*cos(x)^2'], ['integrals', '(x^3+1)/(x-1)'],
+  ['integrals', '(2x+3)/(x^2+1)'], ['integrals', '1/(1+e^x)'], ['integrals', 'e^(-x^2)'], ['integrals', '1/sqrt(x^2+4)'], ['integrals', 'tan(x)'],
+  ['integrals', '1/(1+x^2)'], ['integrals', '∫_0^∞ e^(-x) dx'], ['integrals', '∫_0^1 sqrt(1+x^4) dx'], ['integrals', '∫_0^1 1/sqrt(x) dx'],
   // Algebra, systems and inequalities.
   ['algebra', '|2x - 3| = 5'], ['algebra', 'x/(x-2) = 3'], ['algebra', '3x - 6 + 4'], ['algebra', 'expand (x+1)^2'], ['algebra', 'factor x^2 - 9'],
   ['algebra', 'sqrt(72)'], ['algebra', '= 5'], ['algebra', 'x^101 - 1 = 0'], ['algebra', '2x + 3y = 6'], ['algebra', 'sin(x*y) = x + y'],

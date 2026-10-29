@@ -283,6 +283,8 @@ export async function solveImproperInfinite(parsed, notation) {
     tips: [
       `An improper integral is a limit: replace the infinite bound by ${mark('t')}, integrate, then let ${mark('t → ∞')}.`,
       `It converges when that limit is finite; ${mark('∫₁^∞ 1/x^p dx')} converges exactly when ${mark('p > 1')}.`,
+      `Comparison decides many tails without integrating: if ${mark('0 ≤ f(x) ≤ 1/x²')} for large ${mark('x')}, then ${mark('∫^∞ f dx')} converges too.`,
+      `An exponential decays faster than any power, so ${mark('∫_0^∞ e^(−x) dx = 1')} and ${mark('∫_0^∞ x^n·e^(−x) dx = n!')} all converge.`,
     ],
     common_mistakes: [`Plugging ${mark('∞')} into ${mark('F')} as if it were a number.`, `Forgetting that a limit can fail to exist even when the integrand tends to ${mark('0')}.`],
     graph: generateDefiniteGraph(integrand, v, lowerInf ? Math.min(-10, hi - 10) : finiteBoundVal(lowerRaw), upperInf ? Math.max(10, lo + 10) : finiteBoundVal(upperRaw), lowerLabel, upperLabel, value),
