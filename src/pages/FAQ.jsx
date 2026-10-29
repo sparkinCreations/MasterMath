@@ -110,7 +110,7 @@ export default function FAQ() {
     },
     {
       question: "How do I clear my problem history?",
-      answer: "Go to the 'My Progress' page and click the 'Clear History' button. You'll be asked to confirm before all data is permanently deleted. You can also export your history before clearing if you want to keep a backup."
+      answer: "Go to the 'My Progress' page and click the 'Clear History' button. You'll be asked to confirm before all data is permanently deleted. To remove just one problem, use the trash button on its entry. You can also export your history before clearing if you want to keep a backup."
     },
     {
       question: "Can I contribute to MasterMath?",

@@ -5,7 +5,7 @@
 // GET_VERSION message with it. Pages are fetched network-first, so a page
 // opened after a deploy is already the new version while the new worker is
 // still waiting: that worker is not an update for it, and asking the user to
-// "update" to what is on screen was the October 2026 complaint (1.58.1).
+// "update" to what is on screen was the October 2026 complaint (1.59.0).
 // Every app change bumps the package version (CLAUDE.md), so the version
 // alone says whether a page and a worker are the same app.
 

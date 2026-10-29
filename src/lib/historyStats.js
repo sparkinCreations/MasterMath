@@ -21,7 +21,9 @@ export function historyStats(problems, now = new Date()) {
   };
 }
 
-// The count as words, the same on the Progress page and in every export. The
+// The count as words, the same on the Progress page and in every export.
+// "Worked through", not "solved" (1.59.0): MasterMath solved them; the page
+// cannot tell whether the student did, or learned anything. The
 // page's card said "Total Problems: 1" while an export of the same history
 // said "Total Problems: 2 (solved: 1)" — one name for two numbers (October
 // 2026 release review). Now both count solves, and say how many saved
@@ -31,6 +33,6 @@ export function historyTotalsText(problems) {
   const list = Array.isArray(problems) ? problems : [];
   const { total, notSolved } = historyStats(list);
   return notSolved === 0
-    ? `Problems solved: ${total}`
-    : `Problems solved: ${total} of ${list.length} in history`;
+    ? `Problems worked through: ${total}`
+    : `Problems worked through: ${total} of ${list.length} in history`;
 }

@@ -1,4 +1,4 @@
-// 1.58.1: a waiting service worker of the version already on screen is
+// 1.59.0: a waiting service worker of the version already on screen is
 // switched to quietly; only a different version is offered, in the footer.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,9 +12,9 @@ test('the version is read from the stamped cache name', () => {
 });
 
 test('same version is switched quietly; a different or unknown one is offered', () => {
-  assert.equal(compareWorkerToPage('mastermath-v1.58.1-abc1234', '1.58.1'), 'same');
-  assert.equal(compareWorkerToPage('mastermath-v1.58.2-abc1234', '1.58.1'), 'different');
-  assert.equal(compareWorkerToPage(null, '1.58.1'), 'unknown');
+  assert.equal(compareWorkerToPage('mastermath-v1.59.0-abc1234', '1.59.0'), 'same');
+  assert.equal(compareWorkerToPage('mastermath-v1.58.2-abc1234', '1.59.0'), 'different');
+  assert.equal(compareWorkerToPage(null, '1.59.0'), 'unknown');
 });
 
 test('a worker that never answers resolves to null instead of hanging', async () => {

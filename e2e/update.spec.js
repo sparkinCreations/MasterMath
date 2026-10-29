@@ -1,4 +1,4 @@
-// How a release reaches an open page (1.58.1). A release is simulated by
+// How a release reaches an open page (1.59.0). A release is simulated by
 // rewriting the built dist/sw.js that `vite preview` serves, then asking the
 // page's registration to check for an update, as the browser does on its own.
 //

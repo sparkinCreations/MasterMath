@@ -7,9 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.58.1] - 2026-10-29
+## [1.59.0] - 2026-10-29
+
+### Added
+
+- **My Progress finds things.** A search box matches the problem or its
+  answer (case and spacing ignored), and the topics are filters, each with
+  its count: the breakdown that "Topics Covered: 3" never gave. The list
+  shows the newest 20 with "Show more", so it stays quick after hundreds of
+  problems.
+- **Delete one problem.** Each entry has a delete button (with a
+  confirmation); before, the only choice was clearing everything. Older
+  repeats of the same problem, merged on screen, are deleted with it.
 
 ### Changed
+
+- **My Progress says what it records.** "Your Learning Journey — see how
+  far you've come!" and "Problems Solved" claimed more than the page knows:
+  it records problems MasterMath solved, not what was learned. It is now
+  "Your Problem History", counting problems "worked through", in the
+  exports too. The "Topics Covered" card is replaced by the topic filters.
 
 - **Updates arrive quietly.** A page opened after a release is already the
   new version (pages load network-first), yet a large "A new version of

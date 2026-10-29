@@ -7,7 +7,7 @@ import { askWorkerVersion, compareWorkerToPage, versionFromCacheName } from '../
 // switch to it quietly, no reload, no prompt. Or it is a version this page
 // has not loaded (the tab was open across a release): say so in the footer,
 // "Update available", and leave it to the reader. Either way the next visit
-// is current on its own. (1.58.1; the full-width "Update now" card it
+// is current on its own. (1.59.0; the full-width "Update now" card it
 // replaces asked to update to the version already showing.)
 export function useServiceWorker() {
   const [update, setUpdate] = useState(null); // { version } when a different version waits
