@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.7] - 2026-10-29
+
+### Changed
+
+- **The functions solver is split into method files.** `functionsSolver.js`
+  (1,077 lines) keeps `solveFunctions` and the analysis that ties the
+  features together (about 340 lines); the feature finders and the
+  presentation (steps, summary, graph description) join `guidance.js` in
+  `src/lib/solvers/functions/`. A pure move: the 2,241 golden solves are
+  identical.
+
 ## [1.59.6] - 2026-10-29
 
 ### Changed

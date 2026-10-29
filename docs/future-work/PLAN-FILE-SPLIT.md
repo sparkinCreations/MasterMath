@@ -153,6 +153,9 @@ to read around all of them.
   files beside `guidance.js`: `notation.js` (the helpers every other file
   uses), `fractions.js`, `undefinedCases.js`, `working.js`,
   `exactNumbers.js`, `complex.js`. 48 statements moved byte for byte.
+- **1.59.7 — `functionsSolver.js`, the rest:** `features.js` (every
+  feature finder, with the window constants they share) and
+  `presentation.js`. 28 statements moved byte for byte.
 - **Tips written inline.** Most integral tips (and every inequality tip)
   are written inside the result they belong to, not in a list of their
   own, so `integrals/guidance.js` holds only the shared ones
