@@ -140,7 +140,8 @@ A large file is a folder of method files behind its entry file, which stays
 the only import callers use: `algebraSolver.js` → `algebra/`,
 `integralsSolver.js` → `integrals/`, `limitsSolver.js` → `limits/`,
 `arithmeticSolver.js` → `arithmetic/`, `functionsSolver.js` → `functions/`,
-`inequalitiesSolver.js` → `inequalities/`.
+`inequalitiesSolver.js` → `inequalities/`, `derivativesSolver.js` →
+`derivatives/`.
 A solver's `guidance.js` holds its tips and mistakes. Imports run one way
 — shared helpers → method files → the entry — and a method file never
 imports its entry. `tests/golden/record.mjs` records every solve the

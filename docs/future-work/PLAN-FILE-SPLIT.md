@@ -160,6 +160,8 @@ to read around all of them.
   `linear.js`, `periodic.js`, `presentation.js`. Its tips are still inline
   in the results (there is no `guidance.js` yet). 37 statements moved
   byte for byte.
+- **1.59.9 — `derivativesSolver.js`:** `rules.js`, `absLinear.js`,
+  `guidance.js`. 23 statements moved byte for byte.
 - **Tips written inline.** Most integral tips (and every inequality tip)
   are written inside the result they belong to, not in a list of their
   own, so `integrals/guidance.js` holds only the shared ones

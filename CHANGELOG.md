@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.9] - 2026-10-29
+
+### Changed
+
+- **The derivatives solver is split into method files.**
+  `derivativesSolver.js` (995 lines) keeps `solveDerivative` (about 240
+  lines); the rules and their worked steps, |ax + b| with the derivative's
+  domain, and the tips and mistakes are in `src/lib/solvers/derivatives/`.
+  A pure move: the 2,241 golden solves are identical.
+
 ## [1.59.8] - 2026-10-29
 
 ### Changed
