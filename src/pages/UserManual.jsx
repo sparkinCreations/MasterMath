@@ -333,12 +333,12 @@ export default function UserManual() {
             Navigate to "My Progress" from the sidebar to:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
-            <li>View all problems you've solved: one entry per problem, with how many times you have solved it</li>
-            <li>See your weekly activity and total problems completed</li>
-            <li>Track how many different topics you've covered</li>
-            <li>Review past solutions anytime</li>
-            <li>Export your entire progress history as PDF, CSV, JSON, or Markdown</li>
-            <li>Clear your history when needed (useful for starting fresh each semester)</li>
+            <li>See every problem you've worked through, newest first: one entry per problem, with how many times you have solved it</li>
+            <li>Search your problems and answers, or filter by topic (each topic shows how many problems it holds)</li>
+            <li>See how many problems you've worked through in total and this week</li>
+            <li>Reopen any past solution in the Solver</li>
+            <li>Delete a single problem, or clear your whole history (useful for starting fresh each semester)</li>
+            <li>Export your entire history as PDF, CSV, JSON, or Markdown</li>
           </ul>
         </CardContent>
       </Card>

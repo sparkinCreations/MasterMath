@@ -122,7 +122,7 @@ function AppSidebar() {
   );
 }
 
-export default function Layout({ children }) {
+export default function Layout({ children, update }) {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   return (
@@ -212,6 +212,18 @@ export default function Layout({ children }) {
                 <a href="https://sparkincreations.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-11 px-2 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400">sparkinCreations</a>
               </span>
             </p>
+            {/* Only when this open page is behind a release; the next visit
+                updates on its own, so this is an offer, never a prompt. On a
+                line of its own: in the wrapping row above, its "·" dangled. */}
+            {update?.updateAvailable && (
+              <button
+                type="button"
+                onClick={update.applyUpdate}
+                className="inline-flex items-center min-h-11 px-2 font-medium text-indigo-700 dark:text-indigo-300 underline decoration-indigo-300 dark:decoration-indigo-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-300 transition-colors duration-200"
+              >
+                {update.newVersion ? `Update to v${update.newVersion}` : 'Update available'}
+              </button>
+            )}
             <nav aria-label="Policies and feedback" className="flex flex-wrap items-center justify-center gap-x-4">
               <Link to={createPageUrl("PrivacyPolicy")} className="inline-flex items-center min-h-11 px-2 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400">Privacy Policy</Link>
               <Link to={createPageUrl("TermsOfService")} className="inline-flex items-center min-h-11 px-2 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-indigo-600 dark:hover:decoration-indigo-400">Terms of Service</Link>

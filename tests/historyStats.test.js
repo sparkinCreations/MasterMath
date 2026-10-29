@@ -51,8 +51,8 @@ test('the Progress card and the exports state the count in the same words', () =
   // Problems: 2 (solved: 1)" for the same history (October 2026 release review).
   const solved = { topic: 'algebra', solution: { status: STATUS.SOLVED, answer: 'x = 3' } };
   const diverges = { topic: 'integrals', solution: { status: STATUS.DIVERGES, answer: 'Diverges' } };
-  assert.equal(historyTotalsText([solved, solved]), 'Problems solved: 2');
-  assert.equal(historyTotalsText([solved, diverges]), 'Problems solved: 1 of 2 in history');
+  assert.equal(historyTotalsText([solved, solved]), 'Problems worked through: 2');
+  assert.equal(historyTotalsText([solved, diverges]), 'Problems worked through: 1 of 2 in history');
   assert.equal(historyStats([solved, diverges]).total, 1); // the card's number
-  assert.equal(historyTotalsText([]), 'Problems solved: 0');
+  assert.equal(historyTotalsText([]), 'Problems worked through: 0');
 });

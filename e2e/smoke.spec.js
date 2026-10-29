@@ -119,8 +119,8 @@ test.describe('MasterMath smoke', () => {
     const solution = page.locator('[aria-label="Solution"]');
     await expect(solution).toContainText('Beyond this solver');
     await page.goto('/progress');
-    await expect(page.getByText('Problems Solved', { exact: true })).toBeVisible();
-    await expect(page.getByText('Problems Solved', { exact: true }).locator('..').locator('..')).toContainText('0');
+    await expect(page.getByText('Problems Worked Through', { exact: true })).toBeVisible();
+    await expect(page.getByText('Problems Worked Through', { exact: true }).locator('..').locator('..')).toContainText('0');
     await expect(page.getByText('sin(x^2)', { exact: true })).toHaveCount(0);
   });
 
@@ -133,7 +133,7 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByText('Problem solved!')).toBeVisible();
     await page.goto('/progress');
     await expect(page.getByText('2*x + 5 = 11', { exact: true })).toBeVisible();
-    const totalCard = page.getByText('Problems Solved', { exact: true }).locator('..').locator('..');
+    const totalCard = page.getByText('Problems Worked Through', { exact: true }).locator('..').locator('..');
     await expect(totalCard).toContainText('1');
     await page.getByRole('button', { name: /Clear History/ }).click();
     await page.getByRole('button', { name: 'Confirm' }).click();
@@ -406,6 +406,54 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).not.toContainText('sec*x');
   });
 
+  // A long history: a page at a time, searchable, filtered by topic, and one
+  // entry can be deleted (1.59.0). Seeded straight into IndexedDB.
+  test('My Progress pages, searches and filters a long history, and deletes one entry', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => new Promise((resolve, reject) => {
+      const open = indexedDB.open('MathMasterDB', 1);
+      open.onupgradeneeded = () => {
+        const store = open.result.createObjectStore('problemHistory', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('topic', 'topic', { unique: false });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      };
+      open.onsuccess = () => {
+        const tx = open.result.transaction(['problemHistory'], 'readwrite');
+        const store = tx.objectStore('problemHistory');
+        for (let i = 1; i <= 25; i += 1) {
+          const topic = i <= 5 ? 'integrals' : 'algebra';
+          store.add({ problem: topic === 'integrals' ? `∫ x^${i} dx` : `x + ${i} = ${2 * i}`, topic, solution: { status: 'solved', answer: topic === 'integrals' ? `∫(x^${i}) dx` : `x = ${i}` }, createdAt: new Date(Date.UTC(2026, 9, i)).toISOString() });
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+      open.onerror = () => reject(open.error);
+    }));
+    await page.goto('/progress');
+    await expect(page.getByRole('heading', { name: 'Your Problem History' })).toBeVisible();
+    await expect(page.getByText('Showing 20 of 25')).toBeVisible();
+    await expect(page.locator('main li')).toHaveCount(20);
+    await page.getByRole('button', { name: 'Show 5 more' }).click();
+    await expect(page.locator('main li')).toHaveCount(25);
+    // Topic filters carry their counts.
+    await page.getByRole('button', { name: /^Integrals \(5\)$/ }).click();
+    await expect(page.getByText('Showing 5 of 5 matching (25 in all)')).toBeVisible();
+    await page.getByRole('button', { name: /^All topics \(25\)$/ }).click();
+    // Search ignores spacing.
+    await page.getByRole('searchbox', { name: 'Search your problems and answers' }).fill('x+7=14');
+    await expect(page.locator('main li')).toHaveCount(1);
+    await expect(page.locator('main li')).toContainText('x = 7');
+    // Delete that one entry, after confirming.
+    await page.getByRole('button', { name: 'Delete from history: x + 7 = 14' }).click();
+    await page.getByRole('button', { name: 'Confirm' }).click();
+    await expect(page.getByText('Nothing in your history matches that.')).toBeVisible();
+    await page.getByRole('button', { name: 'Clear search and filter' }).click();
+    await expect(page.getByText('Showing 20 of 24')).toBeVisible();
+    // Gone for good, not just from the screen.
+    await page.reload();
+    await expect(page.getByText('Showing 20 of 24')).toBeVisible();
+  });
+
   // The comparison is a dated, sourced table one click from the home page (1.58.0).
   test('the home page links to the comparison, a real table with its date and sources', async ({ page }) => {
     await page.goto('/');
@@ -430,7 +478,7 @@ test.describe('MasterMath smoke', () => {
     await page.goto('/');
     for (const [path, heading] of [
       ['/solver', /Master Some Math/],
-      ['/progress', /Learning Journey/],
+      ['/progress', /Problem History/],
       ['/usermanual', /User Manual|Manual/],
       ['/faq', /Frequently Asked|FAQ/],
       ['/compare', /How MasterMath Compares/],
@@ -611,7 +659,7 @@ test.describe('MasterMath smoke', () => {
     expect(pdf.startsWith('%PDF-')).toBe(true);
     expect((pdf.match(/\/Subtype\s*\/Image/g) || []).length).toBeGreaterThanOrEqual(1);
     expect(pdf).toContain('MasterMath Progress');
-    expect(pdf).toContain('Problems solved: 1');
+    expect(pdf).toContain('Problems worked through: 1');
   });
 
   // October 2026 roadmap P2: the PDF is the typeset solution and the graph

@@ -99,6 +99,23 @@ export async function updateProblemHistory(entityId, updateData) {
   }
 }
 
+// Delete one entry from the history (1.59.0). An entry on the page may stand
+// for several stored rows (repeats saved before 1.54.0 are merged on read),
+// so every row with its key goes: deleting must not leave an older copy to
+// reappear.
+export async function deleteProblemHistory(entry) {
+  if (!entry || entry.problem === undefined || !entry.topic) {
+    throw new Error('Invalid history entry');
+  }
+  try {
+    const key = problemKey(entry);
+    for (const p of (await getAllProblems()).filter((row) => problemKey(row) === key)) await deleteProblem(p.id);
+  } catch (error) {
+    console.error('Error deleting problem history:', error);
+    throw new Error('Failed to delete that problem. Please try again.', { cause: error });
+  }
+}
+
 // Clear all problem history from local IndexedDB
 export async function clearProblemHistory() {
   try {

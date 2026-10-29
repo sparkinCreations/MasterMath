@@ -86,7 +86,7 @@
 
 /* Accessibility: honour the OS "reduce motion" setting (WCAG 2.3.3).
    Every animation and transition in the app is decorative — sidebar slides,
-   hover fades, the update banner's bounce — so they collapse to an instant
+   hover fades — so they collapse to an instant
    state change. The busy spinner is the exception: it is the only signal that
    work is in progress, so it keeps turning, just slowly enough not to draw
    the eye. Framer Motion is handled separately in SolutionDisplay, which is
@@ -117,24 +117,5 @@
     background-clip: border-box !important;
     -webkit-text-fill-color: currentColor !important;
     color: CanvasText !important;
-  }
-}
-
-/* Service worker update banner animation */
-.animate-bounce-in {
-  animation: bounceIn 0.4s ease-out;
-}
-
-@keyframes bounceIn {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px) scale(0.95);
-  }
-  60% {
-    transform: translateX(-50%) translateY(-4px) scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
   }
 }

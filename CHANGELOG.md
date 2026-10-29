@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.0] - 2026-10-29
+
+### Added
+
+- **My Progress finds things.** A search box matches the problem or its
+  answer (case and spacing ignored), and the topics are filters, each with
+  its count: the breakdown that "Topics Covered: 3" never gave. The list
+  shows the newest 20 with "Show more", so it stays quick after hundreds of
+  problems.
+- **Delete one problem.** Each entry has a delete button (with a
+  confirmation); before, the only choice was clearing everything. Older
+  repeats of the same problem, merged on screen, are deleted with it.
+
+### Changed
+
+- **My Progress says what it records.** "Your Learning Journey — see how
+  far you've come!" and "Problems Solved" claimed more than the page knows:
+  it records problems MasterMath solved, not what was learned. It is now
+  "Your Problem History", counting problems "worked through", in the
+  exports too. The "Topics Covered" card is replaced by the topic filters.
+
+- **Updates arrive quietly.** A page opened after a release is already the
+  new version (pages load network-first), yet a large "A new version of
+  MasterMath is available — Update now" card asked to update to it; tapping
+  it reloaded the page into the same version. Now a waiting worker of the
+  version on screen takes over silently, with no prompt and no reload. Only
+  a page left open across a release, which really is behind, shows
+  "Update to v…" under the version number in the footer; tapping it
+  reloads, ignoring it is fine, and the next visit is current on its own.
+  The card is gone.
+
+### Fixed
+
+- **A new worker never reloads the page unasked.** On a page that was the
+  first visit, tapping Update switched the worker but never reloaded; on
+  others, any tab's update reloaded every open tab, discarding what was
+  typed. Now only the tab whose reader asked reloads.
+
 ## [1.58.0] - 2026-10-29
 
 An outside review of 1.57.3 and a sweep behind it: two confidently wrong
