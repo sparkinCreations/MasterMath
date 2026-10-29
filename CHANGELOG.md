@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.3] - 2026-10-29
+
+### Changed
+
+- **The limits solver is split into method files.** `limitsSolver.js`
+  (1,504 lines) keeps the entry point and the dispatch (about 430 lines);
+  the named techniques, the numeric estimates and the tips and mistakes
+  are in `src/lib/solvers/limits/`. A pure move: the 2,241 golden solves
+  are identical, and nothing changes for users.
+
 ## [1.59.2] - 2026-10-29
 
 ### Changed
