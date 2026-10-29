@@ -7,6 +7,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.11] - 2026-10-29
+
+### Changed
+
+- **The solve router is split into parts.** `api.js` (1,321 lines) keeps
+  `solveProblem`, the request dispatch and the solver loader (about 630
+  lines; `solveProblem` alone is most of it); topic detection, unknown
+  words and word problems, request phrases, and the result gate
+  (`finalizeResult`) are in `src/lib/api/`. Everything `api.js` exported it
+  still exports. A pure move: the 2,241 golden solves are identical. This
+  completes the split of every large file.
+
+## [1.59.10] - 2026-10-29
+
+### Changed
+
+- **The shared solver helpers are split by kind.** `solverUtils.js` (980
+  lines) now only re-exports, so every import of it is unchanged; the
+  helpers are in `src/lib/solvers/utils/`: `engines.js` (mathjs with its
+  aliases, and the self-healing Algebrite loader), `text.js` (expression
+  text), `numeric.js` (numeric checks and sampling) and `structure.js`
+  (facts read off the parse tree). A pure move: the 2,241 golden solves
+  are identical.
+
+## [1.59.9] - 2026-10-29
+
+### Changed
+
+- **The derivatives solver is split into method files.**
+  `derivativesSolver.js` (995 lines) keeps `solveDerivative` (about 240
+  lines); the rules and their worked steps, |ax + b| with the derivative's
+  domain, and the tips and mistakes are in `src/lib/solvers/derivatives/`.
+  A pure move: the 2,241 golden solves are identical.
+
+## [1.59.8] - 2026-10-29
+
+### Changed
+
+- **The inequalities solver is split into method files.**
+  `inequalitiesSolver.js` (1,071 lines) keeps the entry point, the compound
+  split and the dispatch (about 380 lines); the boundary points, interval
+  arithmetic, linear and periodic inequalities, and the sign-chart
+  presentation are in `src/lib/solvers/inequalities/`. A pure move: the
+  2,241 golden solves are identical.
+
+## [1.59.7] - 2026-10-29
+
+### Changed
+
+- **The functions solver is split into method files.** `functionsSolver.js`
+  (1,077 lines) keeps `solveFunctions` and the analysis that ties the
+  features together (about 340 lines); the feature finders and the
+  presentation (steps, summary, graph description) join `guidance.js` in
+  `src/lib/solvers/functions/`. A pure move: the 2,241 golden solves are
+  identical.
+
+## [1.59.6] - 2026-10-29
+
+### Changed
+
+- **The arithmetic solver is split into method files.** `arithmeticSolver.js`
+  (1,083 lines) keeps `solveArithmetic` (about 280 lines); notation,
+  fractions over the LCD, undefined cases, the order-of-operations working,
+  exact and big numbers, and complex arithmetic are each in
+  `src/lib/solvers/arithmetic/`. A pure move: the 2,241 golden solves are
+  identical, and nothing changes for users.
+
+## [1.59.5] - 2026-10-29
+
+### Changed
+
+- **The functions tips have their own file.** The tips and mistakes for
+  each family of function (about 190 lines) moved from
+  `functionsSolver.js` to `src/lib/solvers/functions/guidance.js`. A pure
+  move: the 2,241 golden solves are identical. This completes the planned
+  split (docs/future-work/PLAN-FILE-SPLIT.md); `api.js` is left as it is.
+
+## [1.59.4] - 2026-10-29
+
+### Changed
+
+- **The arithmetic tips have their own file.** The tips and mistakes for
+  arithmetic and complex-number arithmetic (about 350 lines) moved from
+  `arithmeticSolver.js` to `src/lib/solvers/arithmetic/guidance.js`. A pure
+  move: the 2,241 golden solves are identical.
+
+## [1.59.3] - 2026-10-29
+
+### Changed
+
+- **The limits solver is split into method files.** `limitsSolver.js`
+  (1,504 lines) keeps the entry point and the dispatch (about 430 lines);
+  the named techniques, the numeric estimates and the tips and mistakes
+  are in `src/lib/solvers/limits/`. A pure move: the 2,241 golden solves
+  are identical, and nothing changes for users.
+
+## [1.59.2] - 2026-10-29
+
+### Changed
+
+- **The integrals solver is split into method files.** `integralsSolver.js`
+  (2,983 lines) is now an entry file of about 390 lines and eight files in
+  `src/lib/solvers/integrals/`: guidance, display tidying, rules and their
+  steps, partial fractions, one term at a time with the form
+  substitutions, evaluation at the bounds, improper integrals, and definite
+  integrals. A pure move: the 2,241 golden solves are identical, and
+  nothing changes for users.
+
+## [1.59.1] - 2026-10-29
+
+### Changed
+
+- **The algebra solver is split into method files.** `algebraSolver.js`
+  (3,255 lines) is now an entry file of about 430 lines and nine files in
+  `src/lib/solvers/algebra/`: guidance (tips and mistakes), roots
+  formatting, radicals, polynomials, absolute-value and radical equations,
+  exponential and logarithmic equations, the numeric search, two-variable
+  equations, and simplify / expand / factor. The code was moved, not
+  changed: all 2,241 solves in the new golden check
+  (`tests/golden/record.mjs`) give identical results, and nothing changes
+  for users.
+
 ## [1.59.0] - 2026-10-29
 
 ### Added

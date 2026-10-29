@@ -3,7 +3,7 @@
 **Version referenced:** 1.59.0
 **By:** sparkinCreations™
 **Written:** October 29, 2026
-**Status:** Planned, not started
+**Status:** Done (1.59.1–1.59.11). The plan (1.59.1–1.59.5), then, at the owner's request, every other file over about 1,000 lines (1.59.6–1.59.11). See Progress below.
 **Do before:** [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) (this split moves every solver's tips into its own file, which that work then edits)
 
 ---
@@ -110,6 +110,77 @@ to read around all of them.
   reorganised with no change in behaviour.
 - Nothing changes for users.
 - `CLAUDE.md`'s module map is updated in the same pull request as each move.
+
+## Progress
+
+- **Golden file:** `tests/golden/record.mjs` collects every problem the
+  project exercises — the corpora, the October test list, the typesetting
+  problems and every `solveProblem` / `solvePlain` call with a literal
+  problem in `tests/` — and runs each under its own topic and under
+  Auto-detect: 2,241 solves. Two recordings of the same code match byte
+  for byte. `--compare` checks a refactor against a recording.
+- **1.59.1 — `algebraSolver.js`:** as planned, except that `IMAGINARY`,
+  `satisfiesEquation` and the complex-root helpers live in `rootsFormat.js`
+  (they are shared by several methods) and `generateAlgebraGraph` in
+  `expressions.js`. 77 top-level statements moved byte for byte; the golden
+  file, the unit suite and the smoke test pass; the worker bundle is 42
+  bytes smaller (unused imports dropped).
+
+- **1.59.2 — `integralsSolver.js`:** two files more than planned.
+  `integrateTerm` and the form substitutions call each other, and the
+  definite and improper paths integrate term by term, so leaving
+  `integrateTerm` in the entry file would have had method files import
+  their entry (rule 3). It lives in `terms.js` with the form
+  substitutions; the helpers definite and improper integrals share
+  (evaluation at a bound, quadrature, named constants, refusals, the area
+  graph) are `evaluate.js`, so `improper.js` and `definite.js` do not
+  import each other. 75 statements moved byte for byte; golden, unit and
+  smoke suites pass.
+- **1.59.3 — `limitsSolver.js`:** as planned: `limits/techniques.js` (the
+  named techniques and the helpers they share), `limits/numeric.js` (the
+  estimates and one-sided limits, with `evalAt`, which the techniques
+  import) and `limits/guidance.js`. 41 statements moved byte for byte.
+- **1.59.4 — arithmetic tips:** `arithmeticGuidance` and
+  `complexGuidance` (with `complexOperation`, which only it uses) to
+  `arithmetic/guidance.js`. 51 statements moved byte for byte.
+- **1.59.5 — functions tips:** `functionGuidance` and
+  `variableOutsideExponents` (which only it uses) to
+  `functions/guidance.js`. 30 statements moved byte for byte.
+- **1.59.6 — `arithmeticSolver.js`, the rest:** beyond the plan, at the
+  owner's request (every large file split, not only the tips). Six method
+  files beside `guidance.js`: `notation.js` (the helpers every other file
+  uses), `fractions.js`, `undefinedCases.js`, `working.js`,
+  `exactNumbers.js`, `complex.js`. 48 statements moved byte for byte.
+- **1.59.7 — `functionsSolver.js`, the rest:** `features.js` (every
+  feature finder, with the window constants they share) and
+  `presentation.js`. 28 statements moved byte for byte.
+- **1.59.8 — `inequalitiesSolver.js`:** `roots.js`, `intervals.js`,
+  `linear.js`, `periodic.js`, `presentation.js`. Its tips are still inline
+  in the results (there is no `guidance.js` yet). 37 statements moved
+  byte for byte.
+- **1.59.9 — `derivativesSolver.js`:** `rules.js`, `absLinear.js`,
+  `guidance.js`. 23 statements moved byte for byte.
+- **1.59.10 — `solverUtils.js`:** a re-export file over `utils/engines.js`,
+  `text.js`, `numeric.js` and `structure.js`. `math.import(…)`, which has
+  no name of its own, stays in `engines.js` beside the `math` it
+  configures. All 34 exports are still exported. 47 statements moved byte
+  for byte.
+- **1.59.11 — `api.js`:** `api/topic.js`, `words.js`, `requests.js`,
+  `finalize.js`. `solveRequest` stays in `api.js` with `solveProblem`:
+  each calls the other. 48 statements moved byte for byte. `solveProblem`
+  itself is one 470-line function; shortening it is a change, not a move.
+- **Tips written inline.** Most integral tips (and every inequality tip)
+  are written inside the result they belong to, not in a list of their
+  own, so `integrals/guidance.js` holds only the shared ones
+  (`directTip`, `directMistake`, the non-elementary notes). Gathering the
+  inline lists into `guidance.js` changes code rather than moving it; it
+  belongs to the insights work, which edits those lists anyway.
+
+### Found on the way (not fixed: move, never change)
+
+- `TIPS` and `COMMON_MISTAKES` in the algebra solver (now
+  `algebra/guidance.js`) are never used: every equation path takes its
+  lists from `equationGuidance`. Delete them in their own change.
 
 ## Risks
 

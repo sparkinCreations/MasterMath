@@ -58,13 +58,12 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P3~~ | ~~Wordy requests and display gaps~~ | **Shipped in 1.55.0 and 1.56.0**: the period, amplitude, tangent-line equation, inverse, degrees ↔ radians (1.55.0); average value, maximum and minimum on an interval, primes, rounding (1.56.0); complex roots, erf, ln(e²), partial-fraction display | — |
 | ~~P3~~ | ~~Implicit curve plot~~ | **Shipped in 1.56.0**: the curve traced to scale, with the tangent at the point | — |
 | ~~P3~~ | ~~General partial fractions within the budget~~ | **Shipped in 1.53.1**: under a second, improper fractions divided first | — |
-| P3 | Break up the large solver files | Two files of ~3,000 lines each; every fix lands in one of them. Plan: [`PLAN-FILE-SPLIT.md`](PLAN-FILE-SPLIT.md) | Medium |
+| ~~P3~~ | ~~Break up the large solver files~~ | **Shipped in 1.59.1–1.59.11**: every file over about 1,000 lines is a folder of method files behind its entry file, each move checked against 2,241 golden solves. Plan: [`PLAN-FILE-SPLIT.md`](PLAN-FILE-SPLIT.md) | — |
 | P3 | More insights ("Show more"), sources, "Learn more" links | More guidance without random rotation; same lists for every student. Plan: [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) | Large (content) |
 | P4 | Sequences & series; practice mode | Carried over from September | — |
 
-**Recommended order (October 29):** the file split first (moves each
-solver's tips into a `guidance.js`), then the insights work, then practice
-mode, then sequences & series.
+**Recommended order (October 29):** the file split (done, 1.59.1–1.59.11),
+then the insights work, then practice mode, then sequences & series.
 
 ---
 

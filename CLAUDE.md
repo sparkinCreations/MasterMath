@@ -30,7 +30,7 @@ src/
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
   hooks/                       usePageTitle, useServiceWorker
   lib/
-    api.js                     solveProblem (intent routing) + finalizeResult gate (worker side: imports mathjs)
+    api.js                     solveProblem (intent routing); api/ holds topic detection, words, request phrases and the finalizeResult gate (worker side: imports mathjs)
     problemHistory.js          the history store's IndexedDB wrappers — what pages import; never import api.js from a page
     budgetedSolver.js          the page's entry point: worker, 10 s budget, Cancel, in-thread fallback
     solver.worker.js           runs solveProblem off the main thread
@@ -45,7 +45,7 @@ src/
     pdfTypeset.js              the solution PDF: typeset sheet + graph → html2canvas-pro page images + invisible text layer
     graphPalette.js            the graph's light/dark colours (GraphViewer) and the PDF's dark→light recolouring
     solverPrefs.js             solution mode (step-through default), last topic, the bare-expression nudge
-    solvers/                   one module per topic (below) + solverUtils.js shared helpers
+    solvers/                   one module per topic (below) + solverUtils.js shared helpers; a large file's methods sit in a folder of its name (algebra/, integrals/, …)
 tests/        node --test unit suite; tests/corpus/harness.mjs grades the evaluation corpora
 e2e/          Playwright smoke test of the production build
 docs/         evaluations/ (graded CSVs + audits, 2026-10/REVIEW-LOG is the claim log), future-work/ (ROADMAP-2026-10.md is the open list), HOW_THE_APP_WORKS.md, REACT_GUIDE.md
@@ -136,6 +136,17 @@ Each file documents its own methods at the top. Shared invariants:
   the discriminant, the sign chart, the LCD), with tips and mistakes chosen
   from the method used, not one generic list.
 
+A large file is a folder of method files behind its entry file, which stays
+the only import callers use: `algebraSolver.js` → `algebra/`,
+`integralsSolver.js` → `integrals/`, `limitsSolver.js` → `limits/`,
+`arithmeticSolver.js` → `arithmetic/`, `functionsSolver.js` → `functions/`,
+`inequalitiesSolver.js` → `inequalities/`, `derivativesSolver.js` →
+`derivatives/`, `solverUtils.js` → `utils/`, `api.js` → `api/`.
+A solver's `guidance.js` holds its tips and mistakes. Imports run one way
+— shared helpers → method files → the entry — and a method file never
+imports its entry. `tests/golden/record.mjs` records every solve the
+project exercises (about 2,200) and compares a refactor against it.
+
 Modules: `arithmeticSolver` (PEMDAS working, exact fractions), `algebraSolver`
 (equations: linear → `linearEquationSolver` in exact fractions; one exponential
 with a linear exponent isolated and logged (`solveSingleExponential`); quadratics with
@@ -170,7 +181,7 @@ or quadratic surds, else full-precision decimals shown rounded with ≈) /
 form substitutions u = eˣ and x = u² / definite / improper; a definite
 integral with no antiderivative found is estimated numerically and said to
 be: two step sizes must agree, an infinite range must settle), `requestSolver` (one thing asked in words, read by
-`readRequestPhrases` in `api.js` and dispatched by `solveRequest`: the
+`readRequestPhrases` in `api/requests.js` and dispatched by `solveRequest`: the
 period (lcm of the terms' periods), amplitude, tangent-line equation,
 inverse (operations undone one at a time, or (ax + b)/(cx + d); checked by
 f(f⁻¹(x)) = x) and degrees ↔ radians), `intervalSolver` (average value on
@@ -324,7 +335,7 @@ choosing a version number: releases land from other sessions and PRs.
 - Math input: `*` and `^` explicit, standard function names; the parser also
   accepts natural notation (`x²`, `2x`, `∫`, `d/dx`).
 - Topic values: `auto` (Auto-detect, the default for a new visitor:
-  `detectTopic` in `api.js`; never saved to history, which files under the
+  `detectTopic` in `api/topic.js`; never saved to history, which files under the
   detected topic), `derivatives`, `integrals`, `limits`, `functions`,
   `trigonometry`, `algebra`, `other` (= Arithmetic).
 - Dark mode support on every component; respect `prefers-reduced-motion`;
