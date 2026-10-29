@@ -28,10 +28,13 @@ export function ToastProvider({ children }) {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   }, []);
 
-  const addToast = useCallback((message, type = 'info', duration) => {
+  // A toast in a `group` replaces the group's last one: solving three
+  // problems quickly stacked three "Problem solved!" toasts (October 2026
+  // review); one per solve outcome is the news.
+  const addToast = useCallback((message, type = 'info', duration, group) => {
     const id = nextToastId++;
     const resolved = duration === undefined ? DEFAULT_DURATION[type] : duration;
-    setToasts(prev => [...prev, { id, message, type, duration: resolved }]);
+    setToasts(prev => [...(group ? prev.filter(t => t.group !== group) : prev), { id, message, type, duration: resolved, group }]);
   }, []);
 
   // Error and warning toasts stay until dismissed (a slow reader must be
@@ -42,10 +45,10 @@ export function ToastProvider({ children }) {
 
   const toast = {
     clearKinds,
-    success: (message, duration) => addToast(message, 'success', duration),
-    error: (message, duration) => addToast(message, 'error', duration),
-    info: (message, duration) => addToast(message, 'info', duration),
-    warning: (message, duration) => addToast(message, 'warning', duration),
+    success: (message, duration, options) => addToast(message, 'success', duration, options?.group),
+    error: (message, duration, options) => addToast(message, 'error', duration, options?.group),
+    info: (message, duration, options) => addToast(message, 'info', duration, options?.group),
+    warning: (message, duration, options) => addToast(message, 'warning', duration, options?.group),
   };
 
   return (

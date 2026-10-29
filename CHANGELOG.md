@@ -7,6 +7,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.58.0] - 2026-10-29
+
+An outside review of 1.57.3 and a sweep behind it: two confidently wrong
+integrals, then the presentation and app gaps it listed.
+
+### Fixed
+
+- **∫ sec³x dx and ∫ cos³x dx were answered wrong.** A superscript power on
+  a function name (`sec³x`, `sin²x`) was not read as a power: the integral
+  path answered `sec·x + C` and `cos(cos(1))·x + C`, marked solved, with a
+  step claiming the result had been checked. Superscripts on a function now
+  mean what `sec^3(x)` means everywhere, and the integral and limit paths
+  refuse a function with no argument (`∫ sec dx`) as the other paths did.
+- **No antiderivative is shown unchecked.** When the per-term methods
+  failed their check, the whole-integral fallback's answer was shown without
+  one, under a step saying "verified by differentiating": that is how
+  `sec·x + C` reached the page. The fallback is now differentiated back too,
+  and an answer that does not match is refused as beyond this solver.
+- **The trig-power methods take textbook notation.** `sec^3(x)`,
+  `cos^5 x` and `sin^2(x) cos^3(x)` were refused while `sec(x)^3` worked:
+  the parser's `(sec(x))^3` was not recognised, and two powers side by side
+  fused into `^2(cos(x))`. A coefficient such as `1/2` stays a fraction
+  (was `0.25` in the answer), and the trig-power solver no longer calls
+  `eval`, which the CSP forbids; a test now scans `src/` for it.
+- **Statuses agree.** `sin(x) = 2` was "Undefined" while `e^x = −1` was
+  solved: every "no real solution" is now solved, with its reason.
+  `tan(π/2)` was solved with the answer "Undefined"; it is undefined, as
+  `1/0` is, and names the zero (`Undefined — cos(π/2) = 0`). `x/0 = 1` was
+  "beyond this solver"; it is undefined, with the division by zero named.
+- **Parametric and polar curves are refused.** "derivative of x = t^2,
+  y = t^3" was answered `f'(x) = 0`, marked solved; "r = 2cos(theta)" was
+  refused as an unknown word. Both now say plainly that the curve type is
+  not supported yet.
+- **A limit's answer writes `|x|`**, not `abs(x)`.
+- **The y-intercept is exact:** `(0, 1/4)`, not `(0, 0.25)` beside a local
+  maximum `(0, 1/4)`.
+- **"Problem solved!" toasts no longer stack.** Each solve's outcome
+  replaces the last one's.
+- **The Terms of Service name the feedback form.** The Terms (dated March
+  10) said nothing of Web3Forms while the Privacy Policy did; a "Feedback
+  You Send Us" section now matches it, and the date is updated.
+
+### Changed
+
+- **Antiderivatives read as a textbook writes them.** `∫ ln x dx` is
+  `x·ln(x) − x + C` (was `x·(−1 + ln|x|)`), `∫ x ln x dx` is
+  `½x²·ln(x) − ¼x²`, `∫ sin³x dx` takes the worked odd-power route
+  (`−cos x + cos³x/3`), and an integrand's own `ln(A)` keeps its brackets
+  in the answer and steps (`u = ln(x)`, not `u = ln|x|`). `arctan(x − 1)`
+  lost its doubled brackets.
+- **An equation in x and y is solved for y:** `2x + 3y = 6` gives
+  `y = −2/3·x + 2`. A trailing "solve for x" (`2x + 3y = 6, solve for x`,
+  `solve 2x + 3y = 6 for x`) is now read; it was refused as "forx".
+- **√(−8) is exact:** `2√2·i (≈ 2.8284i)`, with the √(−1) step, and the
+  tips for a square root of a negative teach `i` instead of repeating that
+  `√2` is irrational.
+
+### Added
+
+- **Trig substitution worked in θ.** `x^m·(x² ± a²)^(k/2)` and
+  `x^m·(a² − x²)^(k/2)` (a whole) are worked with `x = a·tan θ`,
+  `a·sec θ` or `a·sin θ`: the identity, the θ-integral (by the trig-power
+  solver or in sines and cosines, each differentiated back), and the right
+  triangle back to x. `∫ 1/(x²√(x² + 9)) dx` was one line.
+- **How x⁴ + 4 factors.** The partial-fraction working shows the
+  difference of squares, `(x² + 2)² − (2x)²`, for every `x⁴ + c` that
+  factors that way.
+- **How MasterMath compares.** A new page, linked from the home page and
+  the menu, for choosing a solver rather than selling this one. It opens
+  with what MasterMath does not do (no camera, speech or word problems; no
+  geometry, statistics, series, matrices, differential equations, polar or
+  parametric curves; English only; no app-store app; no practice problems;
+  one independent developer), then sets it beside Photomath, Symbolab,
+  Mathway and Wolfram|Alpha in an unhighlighted table: topics, word
+  problems, science subjects, input, free steps, paid plans, learning
+  extras, languages, apps, account, offline, privacy, ads, how answers are
+  made, open source. It is dated, every competitor cell comes from that
+  vendor's own site or App Store listing (a cell they do not settle says
+  "Not stated"), and it says which tool to use when. The home page itself
+  claims only what MasterMath does.
+- **"Read as" above every integral and derivative.** The solution shows
+  what the solver understood before the first step (`∫ sec^3(x) dx`,
+  `d/dx (x^2·sin(x))`), so a misread input is visible at a glance; the
+  Markdown export carries it too.
+- **Reopen a problem from My Progress.** Each history entry has an
+  "Open in Solver" link that shows its saved solution and graph again
+  (nothing is re-solved or saved twice).
+
 ## [1.57.3] - 2026-10-28
 
 ### Changed

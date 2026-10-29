@@ -140,6 +140,28 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByText('2*x + 5 = 11', { exact: true })).toHaveCount(0);
   });
 
+  // Two quick solves leave one outcome toast, not a stack; a history entry
+  // reopens in the Solver with its saved solution (1.58.0).
+  test('solve toasts replace each other, and Open in Solver brings a history entry back', async ({ page }) => {
+    await openSolver(page);
+    for (const p of ['x + 1 = 2', '2*x + 5 = 11']) {
+      await page.locator('#problem').fill(p);
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
+      await expect(page.getByText('Problem solved!')).toBeVisible();
+    }
+    await expect(page.getByText('Problem solved!')).toHaveCount(1);
+    await page.goto('/progress');
+    await page.getByRole('link', { name: /Open in Solver: 2\*x \+ 5 = 11/ }).click();
+    await expect(page).toHaveURL(/\/solver$/);
+    await expect(page.locator('#problem')).toHaveValue('2*x + 5 = 11');
+    await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
+    await expect(page.locator('[aria-label="Solution"]')).toContainText('x = 3');
+    // Reopening is not a solve: the entry is not counted again.
+    await page.goto('/progress');
+    await expect(page.getByText(/Solved \d+ times/)).toHaveCount(0);
+  });
+
   // Theme 'system' (the default for a new visitor) follows the device setting
   // live; the header toggle makes an explicit choice that then sticks. The
   // class must be on <html> at first paint (the boot script), not only after
@@ -373,6 +395,37 @@ test.describe('MasterMath smoke', () => {
     await expect(page.locator('html')).toHaveClass(/dark/);
   });
 
+  // What the solver understood is shown before the first step (1.58.0).
+  test('an integral shows what it read, in textbook form, above the steps', async ({ page }) => {
+    await openSolver(page);
+    await page.locator('#problem').fill('∫ sec³x dx');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const solution = page.locator('[aria-label="Solution"]');
+    await expect(solution).toContainText('Read as:');
+    await expect(solution).toContainText('Final Answer:');
+    await expect(solution).not.toContainText('sec*x');
+  });
+
+  // The comparison is a dated, sourced table one click from the home page (1.58.0).
+  test('the home page links to the comparison, a real table with its date and sources', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('link', { name: /See how MasterMath compares/ }).click();
+    await expect(page).toHaveURL(/\/compare$/);
+    await expect(page).toHaveTitle(/How MasterMath Compares/);
+    await expect(page.getByText(/Checked on \w+ \d+, 20\d\d/)).toBeVisible();
+    const table = page.getByRole('table');
+    // MasterMath's limits come before the table, and no column is singled out.
+    await expect(page.getByRole('heading', { name: 'What MasterMath does not do' })).toBeVisible();
+    await expect(page.getByText(/No word problems/)).toBeVisible();
+    await expect(table.getByRole('columnheader')).toHaveText(['Feature', 'MasterMath', 'Photomath', 'Symbolab', 'Mathway', 'Wolfram|Alpha']);
+    await expect(table.getByRole('rowheader', { name: 'Math topics' })).toBeVisible();
+    await expect(table.getByRole('rowheader', { name: 'Step-by-step solutions for free' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Photomath', exact: true })).toHaveAttribute('href', 'https://photomath.com/');
+    // The table scrolls inside its own box on a phone; the page never scrolls sideways.
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
   test('every page is reachable from the sidebar and an unknown URL gets a not-found page', async ({ page }) => {
     await page.goto('/');
     for (const [path, heading] of [
@@ -380,6 +433,7 @@ test.describe('MasterMath smoke', () => {
       ['/progress', /Learning Journey/],
       ['/usermanual', /User Manual|Manual/],
       ['/faq', /Frequently Asked|FAQ/],
+      ['/compare', /How MasterMath Compares/],
       ['/settings', /Settings/],
     ]) {
       // The sidebar starts collapsed (and inert); open it for each hop, since

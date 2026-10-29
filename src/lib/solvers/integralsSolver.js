@@ -9,6 +9,7 @@ import {
   hasVariable,
   rewriteReciprocalTrig,
   expressionsNumericallyEqual,
+  numericAgreement,
   parsesAsMath,
   isUnevaluatedOperator,
   isAlgebriteFailure,
@@ -17,11 +18,14 @@ import {
   stripOuterParens,
   gcd,
   mark,
+  bareFunctionName,
+  bareFunctionRefusal,
+  readAsText,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { integrateByParts, needsByParts } from './byPartsSolver.js';
 import { integrateBySubstitution, integrateAbsLinear, derivativeMatchesNumerically } from './substitutionSolver.js';
-import { integrateByTrigSubstitution } from './trigSubstitutionSolver.js';
+import { integrateByTrigSubstitution, integrateByTriangleSubstitution } from './trigSubstitutionSolver.js';
 import { integrateTrigPower } from './trigPowerSolver.js';
 import { integrateBySurdPartialFractions } from './surdPartialFractions.js';
 import { readPolynomial, allRoots } from './polynomialRoots.js';
@@ -60,7 +64,13 @@ function nonElementaryNote(expression) {
 export async function solveIntegral(rawInput) {
   const definite = parseDefiniteIntegral(rawInput);
   if (definite) {
-    return solveDefiniteIntegral(definite);
+    const bare = definite.integrand && bareFunctionName(parseMathExpression(definite.integrand));
+    if (bare) return parseError({ input: rawInput, ...bareFunctionRefusal(bare) });
+    const result = await solveDefiniteIntegral(definite);
+    if (!definite.error && result.status !== 'parse_error') {
+      result.readAs = `∫_${definite.lowerLabel}^${definite.upperLabel} ${readAsText(definite.integrand)} d${definite.variable}`;
+    }
+    return result;
   }
 
   // A bare integral sign with no bounds — "∫x dx", "∫ sin(x) dx" — is the
@@ -85,9 +95,19 @@ export async function solveIntegral(rawInput) {
       tips: [`Write the function after the integral sign, e.g. ${mark('∫ x^2 dx')}, or just ${mark('x^2')}.`],
     });
   }
+  // "∫ sec dx": a function with no argument. Checked on the integrand alone —
+  // in the whole problem the name fuses with "dx" — or the engines read it
+  // as a symbol and answer sec·x + C.
+  const bareName = bareFunctionName(parseMathExpression(expression));
+  if (bareName) return parseError({ input: rawInput, ...bareFunctionRefusal(bareName) });
   // ∫(x^2) and "integral of (x^2)": the brackets group the integrand, and
   // were shown doubled, ∫((x^2)) dx.
-  return solveIndefiniteIntegral(stripOuterParens(expression), dvar ? dvar[1].toLowerCase() : undefined);
+  const integrand = stripOuterParens(expression);
+  const variable = dvar ? dvar[1].toLowerCase() : undefined;
+  const result = await solveIndefiniteIntegral(integrand, variable);
+  // What was integrated, shown above the steps: a misread is visible at once.
+  if (result.status !== 'parse_error') result.readAs = `∫ ${readAsText(integrand)} d${variable || extractVariable(integrand)}`;
+  return result;
 }
 
 async function solveIndefiniteIntegral(expression, variableOverride) {
@@ -138,7 +158,10 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       // A polynomial integrand keeps its expanded antiderivative (x^2 + x):
       // simplify factored ∫(2x + 1) dx into x·(x + 1), which nobody wants.
       const polynomial = perTerm.every((r) => r.method === 'direct' && /^(?:Power rule|Constant rule)$/.test(r.label || ''));
-      integral = perTerm.some((r) => ['partial fractions', 'trig substitution', 'trig power', 'reduction', 'form substitution'].includes(r.method)) || polynomial
+      // A by-parts result with a logarithm is already expanded (x·ln(x) − x);
+      // simplify factored it back into x·(−1 + ln(x)).
+      const byPartsLog = perTerm.some((r) => r.method === 'byparts' && /(?<![a-z])log\(/.test(r.antideriv));
+      integral = perTerm.some((r) => ['partial fractions', 'trig substitution', 'trig power', 'reduction', 'form substitution'].includes(r.method)) || polynomial || byPartsLog
         ? perTerm.map((r) => r.antideriv.trim()).join(' + ').replace(/\+\s*-\s*/g, '- ')
         : (simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) || perTerm.map((r) => r.antideriv).join(' + '));
       // Like terms from separate pieces are combined: ∫(2 + 3) dx was
@@ -175,14 +198,31 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     // An unevaluated d(...) inside the derivative (Algebrite met abs) is not
     // a derivative it could take — fall through to the numeric check.
     const dCheck = dRaw && !isUnevaluatedOperator(dRaw) ? dRaw : null;
-    const trusted = dCheck
-      ? expressionsNumericallyEqual(dCheck, rewriteReciprocalTrig(expression), variable)
+    // The symbolic comparison samples near 0, where √(x² − 9) is not real:
+    // with too few real points to say, the numeric derivative check (which
+    // reaches further out) decides. A disagreement is never overruled.
+    const symbolic = dCheck ? numericAgreement(dCheck, rewriteReciprocalTrig(expression), variable) : null;
+    const trusted = symbolic && symbolic.seen >= 3
+      ? symbolic.agree === symbolic.seen
       : derivativeMatchesNumerically(integral, expression, variable);
     if (!trusted) {
       // The per-term path failed verification — fall back to whole-Algebrite.
       const forAlgebrite = rewriteReciprocalTrig(expression);
       integral = polishLogArguments(Algebrite, Algebrite.integral(forAlgebrite, variable).toString());
       steps = generateIntegralSteps(expression, integral, variable, Algebrite);
+      // The fallback is checked the same way, and an answer that does not
+      // differentiate back to the integrand is never shown. In 1.57.3 it was
+      // shown unchecked: ∫ sec³x dx (which mathjs could not read, so nothing
+      // could pass) came back as sec·x + C, "verified by differentiating".
+      // Other letters are constants here (∫ x^2 dy = x^2·y): give each a
+      // fixed sample value so the check can evaluate at all.
+      const bind = (e) => bindOtherLetters(e, variable);
+      const dFallback = safeRunLocal(Algebrite, `d(${integral}, ${variable})`);
+      const fallbackCheck = dFallback && !isUnevaluatedOperator(dFallback) ? numericAgreement(bind(dFallback), bind(forAlgebrite), variable) : null;
+      const fallbackTrusted = fallbackCheck && fallbackCheck.seen >= 3
+        ? fallbackCheck.agree === fallbackCheck.seen
+        : derivativeMatchesNumerically(bind(integral), bind(expression), variable);
+      if (!fallbackTrusted) throw new Error('The antiderivative did not differentiate back to the integrand');
     }
 
     // Algebrite doesn't always throw when it can't integrate — it can return
@@ -282,11 +322,16 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     // radicals and ≈ coefficients that lnify would not tidy) is shown as it
     // wrote itself, when every term has one.
     const ownDisplay = perTerm.length > 0 && perTerm.length === terms.length && perTerm.every((r) => r.shown);
-    const shownIntegral = usesErf ? prettyErf(integral) : ownDisplay ? perTerm.map((r) => r.shown).join(' + ').replace(/\+ −/g, '− ') : dropBarsOnPositiveArguments(lnify(integral), integral, variable);
+    let shownIntegral = usesErf ? prettyErf(integral) : ownDisplay ? perTerm.map((r) => r.shown).join(' + ').replace(/\+ −/g, '− ') : dropBarsOnPositiveArguments(lnify(integral), integral, variable);
     if (ownDisplay && steps.length) {
       const approx = perTerm.some((r) => r.approximate);
       steps[steps.length - 1] = `Add the constant of integration: ${mark(`∫(${beautify(expression)}) d${variable} ${approx ? '≈' : '='} ${shownIntegral} + C`)}.`;
     }
+    // ∫ ln(x) dx lives where x > 0, so its answer is x·ln(x) − x: the bars
+    // of ln|x| say nothing there, and "u = ln|x|" misquoted the integrand.
+    const unbar = (text) => dropBarsOnIntegrandLogs(text, expression);
+    steps = steps.map(unbar);
+    shownIntegral = unbar(shownIntegral);
     return {
       steps,
       // ∫(x − x) dx: the antiderivative is the constant alone, not "0 + C".
@@ -502,6 +547,12 @@ async function integrateTerm(term, variable, Algebrite) {
   const trig = integrateByTrigSubstitution(term, variable);
   if (trig) {
     return { antideriv: trig.antiderivative, steps: trig.steps, method: 'trig substitution', term };
+  }
+  // x^m·(x² ± a²)^(k/2), x^m·(a² − x²)^(k/2): x = a·tan θ, a·sec θ, a·sin θ,
+  // worked in θ and turned back with the triangle.
+  const triangle = integrateByTriangleSubstitution(term, variable, Algebrite);
+  if (triangle) {
+    return { antideriv: triangle.antiderivative, steps: triangle.steps, method: 'trig substitution', term };
   }
 
   // A rational function over a factorable quadratic-or-higher denominator:
@@ -1126,7 +1177,8 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
       // (x² − x + 1 = (x − 1/2)² + 3/4, k = √3/2). Its coefficient and the
       // arctan argument are then exact: (1/√3)·arctan((2x − 1)/√3), where
       // the decimals from a rounded k used to fail the check.
-      const arcArg = k === 1 ? U : surd && !surd.rational
+      // arctan(x - 1), not arctan((x - 1)): U carries its own brackets.
+      const arcArg = k === 1 ? stripOuterParens(U) : surd && !surd.rational
         ? `(${surd.b / surd.s === 1 ? '' : `${fmtRat(surd.b / surd.s)}*`}${v}${h === 0 ? '' : ` ${h < 0 ? '-' : '+'} ${fmtRat(Math.abs(h * surd.b / surd.s))}`})/sqrt(${surd.t})`
         : surd && surd.rational
           // u/k with k = a/b: (b/a)·u, so (x + 1/2)/(1/2) is 2x + 1.
@@ -1148,7 +1200,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
         const arcCoef = surd && !surd.rational
           ? `${beautify(arcCoefMach(K).replace(/\*$/, ''))}·`.replace(/^1\*/, '').replace(/sqrt\((\d+)\)/, '√$1')
           : Math.abs(K / k - 1) < 1e-12 ? '' : Math.abs(K / k + 1) < 1e-12 ? '−' : `${fmtRat(K / k)}·`;
-        const arcShown = surd ? beautify(arcArg).replace(/sqrt\((\d+)\)/, '√$1') : `${U}${k === 1 ? '' : `/${kDiv}`}`;
+        const arcShown = surd ? beautify(arcArg).replace(/sqrt\((\d+)\)/, '√$1') : k === 1 ? stripOuterParens(U) : `${U}/${kDiv}`;
         pieceSteps.push(`${mark(`∫ ${numTxt}/${Q} d${v}`)}: ${h !== 0 ? `complete the square, ${mark(`${Q} = ${U}^2 + ${fmtRat(k2)}`)}; ` : ''}${Bv !== 0 ? `the ${mark(v)}-part gives ${mark(`${fmtRat(Bv / 2)}·ln${/^\s*-/.test(stripOuterParens(Q)) ? `|${stripOuterParens(Q)}|` : `(${stripOuterParens(Q)})`}`)}` : ''}${Bv !== 0 && Math.abs(K) > 1e-12 ? ', and ' : ''}${Math.abs(K) > 1e-12 ? `the constant part gives ${mark(`${arcCoef}arctan(${arcShown})`)}` : ''}`);
       } else {
         // (Bu + K)/(u² + k²)^j, j ≥ 2, with u = x + h:
@@ -1216,6 +1268,7 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
   })();
   const steps = [
     `${mark(`∫(${beautify(term)}) d${v}`)} — a proper rational function. Factor the denominator: ${mark(`${beautify(den)} = ${constant !== 1 ? `${fmtNum(constant)}·` : ''}${D0.replace(/\*/g, '')}`)}.`,
+    ...sumOfSquaresQuartic(den, v),
     `Partial fractions (a repeated factor gets one term per power; an irreducible quadratic gets a linear numerator): ${mark(`${beautify(term)} = ${ansatzTxt}`)}. The coefficients come from clearing denominators and matching both sides.`,
     ...pieceSteps.map((t) => `  ${t}`),
     // An irreducible quadratic is never zero, so its log needs no bars: the
@@ -1223,6 +1276,21 @@ function integrateByGeneralPartialFractions(term, variable, Algebrite) {
     `Add the pieces: ${mark(dropBarsOnPositiveArguments(lnify(antiSimple), antiSimple, v))}.`,
   ];
   return { antiderivative: antiSimple, steps };
+}
+
+// x⁴ + 4 has no real roots, yet factors over the rationals: add and take
+// away the middle term of a square, and it is a difference of squares,
+// (x² + k)² − (mx)² with k² = c and m² = 2k (Sophie Germain's identity).
+// The factorization alone was shown with no way to find it.
+function sumOfSquaresQuartic(den, v) {
+  const m0 = String(den).replace(/\s+/g, '').match(new RegExp(`^(?:${v}\\^4\\+(\\d+)|(\\d+)\\+${v}\\^4)$`));
+  if (!m0) return [];
+  const c = Number(m0[1] ?? m0[2]);
+  const k = Math.sqrt(c);
+  const m = Math.sqrt(2 * k);
+  if (!Number.isInteger(k) || !Number.isInteger(m)) return [];
+  const mx = m === 1 ? v : `${m}${v}`;
+  return [`  To find it: ${mark(`${v}⁴ + ${c}`)} has no real roots, but adding and taking away ${mark(`${2 * k}${v}²`)} makes it a difference of squares: ${mark(`${v}⁴ + ${c} = (${v}⁴ + ${2 * k}${v}² + ${c}) − ${2 * k}${v}² = (${v}² + ${k})² − (${mx})² = (${v}² − ${mx} + ${k})(${v}² + ${mx} + ${k})`)}.`];
 }
 
 const fmtNum = (x) => (Number.isInteger(x) ? String(x) : (() => { for (let d = 2; d <= 720; d += 1) { const n = x * d; if (Math.abs(n - Math.round(n)) < 1e-9) return `${Math.round(n)}/${d}`; } return String(Math.round(x * 1e6) / 1e6); })());
@@ -2853,6 +2921,24 @@ function alwaysPositiveLogArguments(antiderivative, variable) {
 // ln|x² + 1| → ln(x² + 1) in a displayed antiderivative, for every argument
 // that is always positive — so the answer agrees with the step that said the
 // bars were not needed.
+// Every single letter other than the variable (and e, i) replaced by a fixed
+// sample value, distinct per letter, for a numeric check of an expression
+// with constants in it.
+function bindOtherLetters(expr, variable) {
+  const values = { a: 1.37, b: 2.11, c: 0.83, k: 1.59, m: 2.47, n: 1.21, p: 0.67, q: 1.93, r: 2.29, s: 0.91, t: 1.43, u: 1.77, v: 0.59, w: 2.03, x: 1.31, y: 1.69, z: 0.77 };
+  return String(expr).replace(/(?<![a-z_])([a-z])(?![a-z_(])/gi, (m, l) => (l === variable || l === 'e' || l === 'i' || !(l.toLowerCase() in values) ? m : `(${values[l.toLowerCase()]})`));
+}
+
+// ln|A| → ln(A) for every ln(A) in the integrand: the integrand is only
+// defined where A > 0, and there the bars change nothing.
+function dropBarsOnIntegrandLogs(shown, integrand) {
+  let out = shown;
+  for (const [, arg] of String(integrand).matchAll(/(?<![a-z])(?:ln|log)\(([^()]+)\)/g)) {
+    for (const b of new Set([beautify(arg), lnify(arg)])) out = out.split(`ln|${b}|`).join(`ln(${b})`);
+  }
+  return out;
+}
+
 function dropBarsOnPositiveArguments(shown, antiderivative, variable) {
   let out = shown;
   for (const arg of alwaysPositiveLogArguments(antiderivative, variable)) {

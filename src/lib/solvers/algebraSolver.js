@@ -1,6 +1,6 @@
 import { isEquation, extractVariable, parseMathExpression, matchingParen } from '../mathParser.js';
 import { solveLinearEquation } from './linearEquationSolver.js';
-import { parseError, unsupported } from '../solutionEnvelope.js';
+import { parseError, unsupported, undefinedValue } from '../solutionEnvelope.js';
 import { readPolynomial, allRoots, valueAtDecimal, factorByRationalRoots, MAX_POLYNOMIAL_DEGREE } from './polynomialRoots.js';
 import { getSettings } from '../settings.js';
 import {
@@ -24,6 +24,7 @@ import {
   stripOuterParens,
   realOddRoots,
   gcd,
+  absBars,
 } from './solverUtils.js';
 
 const TIPS = [
@@ -361,6 +362,28 @@ function factoringLines(B, C, v, expanded) {
   ];
 }
 
+// A division whose denominator is the constant 0 (x/0, (x + 1)/(2 − 2)):
+// undefined at every point, so the equation has no solution. Returns the
+// offending term as text, or null. Without this, x/0 = 1 was "beyond what
+// this solver can compute".
+function divisionByZeroInEquation(expression) {
+  let found = null;
+  try {
+    const tree = math.parse(parseMathExpression(expression).replace(/(?<![<>!=])=(?!=)/, '=='));
+    tree.traverse((node) => {
+      if (found || node.type !== 'OperatorNode' || node.op !== '/') return;
+      const denominator = node.args[1];
+      if (denominator.filter((n) => n.type === 'SymbolNode' && !['pi', 'e'].includes(n.name)).length) return;
+      try {
+        if (math.evaluate(denominator.toString()) === 0) found = beautify(node.toString()).replace(/\s*\/\s*/g, '/');
+      } catch { /* not a number: leave it to the solver */ }
+    });
+  } catch {
+    return null;
+  }
+  return found;
+}
+
 export async function solveAlgebra(expression, options = {}) {
   try {
     // Two-equation systems are handled upstream (api.js routes them to the
@@ -403,6 +426,23 @@ export async function solveAlgebra(expression, options = {}) {
     }
 
     if (isEquation(expression)) {
+      const zero = divisionByZeroInEquation(expression);
+      if (zero) {
+        // Undefined, as 1/0 is: the equation is not false at some x, it
+        // has no meaning at any.
+        const result = undefinedValue({
+          input: expression,
+          steps: [
+            `Solve the equation: ${mark(beautify(expression).replace(/\s*=\s*/, ' = '))}`,
+            `The term ${mark(zero)} divides by ${mark('0')}, and division by zero is undefined for every value of the variable.`,
+            'An equation with an undefined side cannot be true, so no value satisfies it.',
+          ],
+          tips: [`Check the denominator: a ${mark('0')} there usually means a typing slip, such as ${mark('x/0')} for ${mark('x/10')}.`],
+          common_mistakes: [`Multiplying both sides by ${mark('0')} to clear the fraction: that turns ${mark('x/0 = 1')} into ${mark('x = 0')}, a step that is not allowed.`],
+        });
+        result.answer = `Undefined — ${zero} divides by zero, so no value satisfies the equation`;
+        return result;
+      }
       return await solveEquation(expression, options);
     }
     return await simplifyExpression(expression);
@@ -448,9 +488,18 @@ async function solveEquation(expression, options = {}) {
       .match(/[a-z]/gi) || []).map((c) => c.toLowerCase())
   );
   if (letters.size >= 2) {
-    const requested = options.solveFor && letters.has(options.solveFor) ? options.solveFor : (letters.has('y') && !options.solveFor && !letters.has('x') ? 'y' : variable);
+    // With no "solve for", an equation in x and y is solved for y, as a
+    // textbook does: 2x + 3y = 6 reads as the line y = −2x/3 + 2, not
+    // x = −3y/2 + 3. When y cannot be isolated, x is tried instead.
+    const asked = options.solveFor && letters.has(options.solveFor) ? options.solveFor : null;
+    const xy = letters.size === 2 && letters.has('x') && letters.has('y');
+    let requested = asked || (xy ? 'y' : letters.has('y') && !letters.has('x') ? 'y' : variable);
+    let solved = await solveForVariable(expression, requested);
+    if (!solved?.relation && !asked && requested !== variable) {
+      requested = variable;
+      solved = await solveForVariable(expression, requested);
+    }
     const others = [...letters].filter((v) => v !== requested).sort();
-    const solved = await solveForVariable(expression, requested);
     const rel = solved?.relation;
     if (rel) {
       const vars = (list) => list.map((v) => mark(v)).join(' and ');
@@ -659,7 +708,7 @@ async function solveEquation(expression, options = {}) {
     if (checks.length === solutions.filter(Number.isFinite).length && checks.length > 0) {
       steps = [
         ...steps,
-        `Check in the original equation: ${checks.map((c) => `${variable} = ${formatNumber(c.x)} gives ${beautify(lhs.trim()).replace(/abs\(([^()]*)\)/g, '|$1|')} = ${formatNumber(c.l)} and ${beautify(rhs.trim()).replace(/abs\(([^()]*)\)/g, '|$1|')} = ${formatNumber(c.r)}`).join('; ')} ✓`,
+        `Check in the original equation: ${checks.map((c) => `${variable} = ${formatNumber(c.x)} gives ${absBars(beautify(lhs.trim()))} = ${formatNumber(c.l)} and ${absBars(beautify(rhs.trim()))} = ${formatNumber(c.r)}`).join('; ')} ✓`,
       ];
     }
   }
@@ -720,7 +769,7 @@ async function solveAbsoluteValueEquation(equation, variable) {
   if (!Number.isFinite(c)) return null;
   const gShown = beautify(abs.g);
   const shownC = beautify(cRaw);
-  const bars = (t) => beautify(t).replace(/abs\(([^()]*)\)/g, '|$1|').replace(/\s*=\s*/, ' = ');
+  const bars = (t) => absBars(beautify(t)).replace(/\s*=\s*/, ' = ');
   const steps = [`This is an absolute-value equation: ${bars(equation)}.`];
   if (abs.k !== '1' || abs.b !== '0') {
     steps.push(`First isolate the absolute value${abs.b !== '0' ? `: move the constant ${beautify(abs.b)} across` : ''}${abs.k !== '1' ? `${abs.b !== '0' ? ' and' : ':'} divide by ${beautify(abs.k)}` : ''}: |${gShown}| = ${shownC}.`);

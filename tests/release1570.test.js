@@ -67,7 +67,7 @@ test('1/(x⁴ + a⁴) factors over a surd; the improper integral is exact', asyn
   assert.equal(improper.answer, '∫_0^∞ (1/(x^4 + 1)) dx = π/(2*√2) (≈ 1.1107)');
   assert.match((await solve('3/(x^4+9)')).answer, /^∫\(3\/\(x\^4 \+ 9\)\) dx = 1\/\(4√6\)/);
   // x⁴ + 4 factors over the rationals and keeps its worked decomposition.
-  assert.match((await solve('1/(x^4+4)')).answer, /arctan\(\(x - 1\)\)/);
+  assert.match((await solve('1/(x^4+4)')).answer, /arctan\(x - 1\)/);
 });
 
 test('a denominator that factors only over the reals: surd coefficients, or decimals marked ≈', async () => {
@@ -129,7 +129,8 @@ test('one-line table steps name and derive their method', async () => {
   assert.match(plain(sec), /Multiply by \(sec\(x\) \+ tan\(x\)\)\/\(sec\(x\) \+ tan\(x\)\)/);
   const radical = await solve('1/(x^2*sqrt(x^2+9))');
   assert.equal(radical.answer, '∫(1/(x^2*sqrt(x^2 + 9))) dx = -√(x^2 + 9)/(9x) + C');
-  assert.match(plain(radical), /Trigonometric substitution: the radical √\(x² \+ a²\) with a = 3 calls for x = 3·tan θ/);
+  // Worked in θ since 1.58.0 (tests/release1580.test.js has the steps).
+  assert.match(plain(radical), /substitute x = 3tan θ/);
   assert.doesNotMatch(plain(radical), /u-substitution/);
   assert.match(plain(await solve('cos(x)^4')), /Trigonometric identity: even powers/);
   assert.match(plain(await solve('sin(x)^2*cos(x)^2')), /Trigonometric identity/);

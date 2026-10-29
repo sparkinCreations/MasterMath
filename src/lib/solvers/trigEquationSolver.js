@@ -17,7 +17,7 @@
 
 import { math, formatNumber, beautify, mark } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
-import { unsupported, undefinedValue } from '../solutionEnvelope.js';
+import { unsupported, undefinedValue, STATUS } from '../solutionEnvelope.js';
 import { getSettings } from '../settings.js';
 
 const TWO_PI = 2 * Math.PI;
@@ -584,7 +584,17 @@ function solveEqualArguments(rawEquation, equation, variable, shown, calls) {
   };
 }
 
+// "No real solution" is an answer about the equation, and the algebra solver
+// reports it as solved: sin(x) = 2 was marked "Undefined" while e^x = −1 was
+// marked solved. Inside the file the no-solution results stay `undefined`,
+// which is how the reductions recognise them; the public call reports them
+// the way every other equation does.
 export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride, nested = false) {
+  const result = solveTrigEquationInner(rawEquation, variable, settingsOverride, nested);
+  return !nested && result && result.status === STATUS.UNDEFINED ? { ...result, status: STATUS.SOLVED } : result;
+}
+
+function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, nested = false) {
   if (!nested) DEGREES = (settingsOverride?.angleUnit ?? getSettings().angleUnit) === 'degrees';
   const equation = parseMathExpression(rawEquation);
   const parsed = parseTrigEquation(equation, variable);
@@ -633,7 +643,8 @@ export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride,
       tips: [`Check the equation for a sign or coefficient slip; values beyond ${mark('±1')} usually mean the trig term wasn't isolated correctly.`],
       common_mistakes: [`Applying arcsin/arccos to a number outside ${mark('[−1, 1]')} and reading the calculator error as a value.`],
     });
-    result.answer = 'No real solution';
+    // With the reason, as the algebra solver gives one: "(e^x is always positive)".
+    result.answer = `No real solution (${fn}(θ) is never outside [−1, 1])`;
     return result;
   }
 

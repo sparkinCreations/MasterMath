@@ -19,6 +19,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 const GraphViewer = lazy(() => import("@/components/solver/GraphViewer"));
 
 const MAX_HISTORY = 20;
+// The outcome of a solve is one toast: the next solve's replaces it.
+const SOLVE_TOAST = { group: "solve" };
 
 export default function Solver() {
   usePageTitle("Solver - Step-by-Step Math Solutions");
@@ -29,14 +31,18 @@ export default function Solver() {
   // Never an empty form: the last topic used, else Auto-detect.
   const [topic, setTopic] = useState(prefill && typeof prefill.topic === 'string' ? prefill.topic : readLastTopic(globalThis.localStorage));
   useEffect(() => { writeLastTopic(globalThis.localStorage, topic); }, [topic]);
+  // A problem reopened from My Progress arrives with its saved solution,
+  // shown as it was solved: no new solve, and nothing saved again.
+  // (Entries saved before statuses existed have none; they count as solved.)
+  const reopened = prefill && prefill.solution && typeof prefill.solution === 'object' && Array.isArray(prefill.solution.steps) ? { status: STATUS.SOLVED, ...prefill.solution } : null;
   // The bare-expression nudge for the solution on screen, if any.
   const [nudge, setNudge] = useState(null);
-  const [solution, setSolution] = useState(null);
+  const [solution, setSolution] = useState(reopened);
   // What the displayed solution was actually produced from. Kept separate from
   // the live `problem`/`topic` state so the exports describe the solution on
   // screen rather than whatever has since been typed into the form.
-  const [solvedInput, setSolvedInput] = useState({ problem: "", topic: "" });
-  const [graphData, setGraphData] = useState(null);
+  const [solvedInput, setSolvedInput] = useState(reopened ? { problem: prefill.problem, topic: prefill.topic } : { problem: "", topic: "" });
+  const [graphData, setGraphData] = useState(reopened ? reopened.graph || null : null);
   const [isLoading, setIsLoading] = useState(false);
   const [inputHistory, setInputHistory] = useState([]);   // recent inputs
   const [historyIndex, setHistoryIndex] = useState(-1);   // -1 = current input
@@ -127,7 +133,7 @@ export default function Solver() {
       // Runs in the worker with a time budget; null means the user cancelled.
       const result = await solveWithBudget(problemText, chosenTopic, { signal: controller.signal });
       if (!result) {
-        toast.warning("Solve cancelled");
+        toast.warning("Solve cancelled", undefined, SOLVE_TOAST);
         return;
       }
       setSolution(result);
@@ -175,11 +181,11 @@ export default function Solver() {
       // solve, red for unreadable input, amber for honest non-answers
       // (unsupported, undefined, indeterminate, overflow).
       if (result.status === STATUS.SOLVED) {
-        toast.success("Problem solved!");
+        toast.success("Problem solved!", undefined, SOLVE_TOAST);
       } else if (result.status === STATUS.PARSE_ERROR) {
-        toast.error("Couldn't read that input — see the notes below");
+        toast.error("Couldn't read that input — see the notes below", undefined, SOLVE_TOAST);
       } else {
-        toast.warning(statusLabel(result.status));
+        toast.warning(statusLabel(result.status), undefined, SOLVE_TOAST);
       }
 
       if (!saved) {
@@ -187,7 +193,7 @@ export default function Solver() {
       }
     } catch (error) {
       console.error("Error solving problem:", error);
-      toast.error("Failed to solve problem. Please try again.");
+      toast.error("Failed to solve problem. Please try again.", undefined, SOLVE_TOAST);
     } finally {
       abortRef.current = null;
       setIsLoading(false);

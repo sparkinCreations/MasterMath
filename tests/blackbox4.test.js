@@ -83,13 +83,15 @@ test('"What is x if …", "What is the limit of …", "solve for y" are read', a
 // ── Two unknowns.
 test('one equation in two unknowns is solved for one in terms of the other, and explained', async () => {
   // Was: "6".
+  // In x and y, solved for y (1.58.0); "solve for x" still gives x.
   const r = await solveProblem('2x + 3y = 6', 'algebra');
-  assert.equal(r.answer, 'x = -3/2*y + 3');
+  assert.equal(r.answer, 'y = -2/3*x + 2');
+  assert.equal((await solveProblem('2x + 3y = 6, solve for x', 'algebra')).answer, 'x = -3/2*y + 3');
   assert.match(r.steps[0], /infinitely many solutions/);
   assert.equal((await solveProblem('a*b = 12', 'algebra')).answer, 'a = 12/b');
   // real form for radicals
   // Since 1.53.1 in textbook form (was x = -(-y^2+25)^(1/2)  or  x = (-y^2+25)^(1/2)).
-  assert.equal((await solveProblem('x^2 + y^2 = 25', 'algebra')).answer, 'x = ±√(25 - y^2)');
+  assert.equal((await solveProblem('x^2 + y^2 = 25', 'algebra')).answer, 'y = ±√(25 - x^2)');
 });
 
 // ── Degenerate input.

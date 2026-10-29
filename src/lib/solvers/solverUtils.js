@@ -270,6 +270,30 @@ export function bareFunctionName(expression) {
   return m ? m[1] : null;
 }
 
+// What the solver understood, as a textbook writes it, for the "Read as"
+// line above a solution: (sec(x))^3 and sec(x)^3 → sec^3(x), abs(u) → |u|,
+// so a misread ("sec·x" for sec³x) is visible before the first step.
+const READ_AS_FN = '(sin|cos|tan|sec|csc|cot|ln|log|sinh|cosh|tanh|arcsin|arccos|arctan)';
+const ARG = '([^()]*(?:\\([^()]*\\)[^()]*)*)';
+export function readAsText(expression) {
+  return absBars(beautify(expression))
+    .replace(new RegExp(`\\(${READ_AS_FN}\\(${ARG}\\)\\)\\^(\\d+)`, 'g'), '$1^$3($2)')
+    .replace(new RegExp(`(?<![a-z])${READ_AS_FN}\\(${ARG}\\)\\^(\\d+)`, 'g'), '$1^$3($2)');
+}
+
+// abs(…) as a textbook writes it, |…| (innermost, unnested arguments).
+export function absBars(text) {
+  return String(text).replace(/(?<![a-z])abs\(([^()]*)\)/g, '|$1|');
+}
+
+// The parse error for a bare function name, worded once for every path.
+export function bareFunctionRefusal(name) {
+  return {
+    hint: `${name} needs an argument in parentheses — ${name}(x), ${name}(2), ${name}^2(x).`,
+    tips: [`Every function call needs parentheses: "${name}(x)", not "${name} x" or "${name}" alone.`],
+  };
+}
+
 export function isUnevaluatedOperator(result) {
   const s = String(result ?? '');
   return /\b(?:d|derivative|integral|defint)\s*\(/.test(s);
@@ -593,6 +617,13 @@ export function hasVariable(expression, variable) {
 const EQUIVALENCE_SAMPLE_POINTS = [-2.31, -1.17, -0.43, 0.29, 0.87, 1.61, 2.53];
 
 export function expressionsNumericallyEqual(exprA, exprB, variable = 'x') {
+  const { seen, agree } = numericAgreement(exprA, exprB, variable);
+  return seen >= 3 && agree === seen;
+}
+
+// How many sample points both expressions are real at, and agree at: lets a
+// caller tell "they differ" from "too few real points to say".
+export function numericAgreement(exprA, exprB, variable = 'x') {
   let seen = 0;
   let agree = 0;
   for (const x of EQUIVALENCE_SAMPLE_POINTS) {
@@ -608,7 +639,7 @@ export function expressionsNumericallyEqual(exprA, exprB, variable = 'x') {
     seen += 1;
     if (Math.abs(a - b) <= 1e-6 * (1 + Math.abs(a))) agree += 1;
   }
-  return seen >= 3 && agree === seen;
+  return { seen, agree };
 }
 
 /**

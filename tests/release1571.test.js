@@ -28,7 +28,7 @@ test('the reviewer\'s (x² + 1)/(x⁴ + 1) solves well inside the budget', async
 
 test('the working with rational coefficients is kept, factors in the same order as before', async () => {
   const quartic = await solve('1/(x^4 + 4)');
-  assert.equal(quartic.answer, '∫(1/(x^4 + 4)) dx = -1/16*ln|x^2 - 2x + 2| + 1/8*arctan((x - 1)) + 1/16*ln|x^2 + 2x + 2| + 1/8*arctan((x + 1)) + C');
+  assert.equal(quartic.answer, '∫(1/(x^4 + 4)) dx = -1/16*ln|x^2 - 2x + 2| + 1/8*arctan(x - 1) + 1/16*ln|x^2 + 2x + 2| + 1/8*arctan(x + 1) + C');
   assert.match(plain(quartic), /Factor the denominator: x\^4 \+ 4 = \(x\^2 - 2x \+ 2\)\(x\^2 \+ 2x \+ 2\)/);
   assert.match(plain(quartic), /complete the square, \(x\^2 - 2\*x \+ 2\) = \(x - 1\)\^2 \+ 1/);
   const pair = await solve('1/(x^4 + 3*x^2 + 2)');

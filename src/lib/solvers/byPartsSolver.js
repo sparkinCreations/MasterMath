@@ -16,7 +16,7 @@
 // One loop handles both "the polynomial fizzles out" and "the integral comes
 // back around." Every result is differentiated and checked before it is trusted.
 
-import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, lnify, runAlgebrite, splitTopLevel, mark } from './solverUtils.js';
+import { math, beautify, loadAlgebrite, expressionsNumericallyEqual, lnify, runAlgebrite, splitTopLevel, splitTerms, mark } from './solverUtils.js';
 
 const MAX_ROUNDS = 8;
 
@@ -204,13 +204,27 @@ export async function integrateByParts(term, v) {
     if (!needsByParts(current, v)) {
       const base = antideriv(Algebrite, current, v);
       if (base === null) return null;
-      const F = simplify(Algebrite, `(${boundary}) + (${coeff})*(${base})`);
+      const F = textbookOrder(Algebrite, simplify(Algebrite, `(${boundary}) + (${coeff})*(${base})`));
       steps.push(...baseStep(current, base, F, v));
       return finalize(Algebrite, F, term, v, steps, cyclic);
     }
   }
 
   return null; // exceeded the round cap
+}
+
+// Algebrite factors x·ln(x) − x as x·(−1 + ln(x)); a textbook writes the
+// logarithm terms out, led by a positive term: x ln x − x, not −x + x ln x.
+// Only when a logarithm is present: e^x·(x − 1) is already how it is written.
+function textbookOrder(Algebrite, F) {
+  if (!/(?<![a-z])log\(/.test(F)) return F;
+  // Plain evaluation multiplies out; expand() gives up on 1/2·x²·(…).
+  const expanded = runAlgebrite(Algebrite, F);
+  if (!expanded) return F;
+  const terms = splitTerms(expanded).map((t) => t.signed);
+  const lead = terms.findIndex((t) => !t.startsWith('-'));
+  const ordered = lead > 0 ? [...terms.slice(lead), ...terms.slice(0, lead)] : terms;
+  return ordered.join('+').replace(/\+-/g, '-');
 }
 
 // Differentiate the antiderivative and confirm it equals the integrand. This is

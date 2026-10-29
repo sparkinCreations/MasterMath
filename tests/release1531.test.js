@@ -17,7 +17,9 @@ test('one equation in two unknowns is solved over the reals, in textbook form', 
     ['x^4 + y^2 = 16', 'x = ±(16 - y^2)^(1/4)'], ['x^5 + y = 3', 'x = (3 - y)^(1/5)'],
     ['2x + 3y = 6', 'x = -3/2*y + 3'], ['x*y = 1', 'x = 1/y'],
   ]) {
-    const r = await solveProblem(p, 'algebra');
+    // Solved for x on request: an equation in x and y alone is solved for y
+    // by default since 1.58.0 (tests/release1580.test.js).
+    const r = await solveProblem(`solve for x: ${p}`, 'algebra');
     assert.equal(r.status, 'solved', p);
     assert.equal(r.answer, answer, p);
   }

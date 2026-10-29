@@ -111,9 +111,10 @@ test('non-special values fall back to decimals and still verify', () => {
 });
 
 test('out-of-range sin/cos is "no real solution", not an error', () => {
+  // Solved, with the reason, as the algebra solver reports e^x = −1 (1.58.0).
   const r = solveTrigEquation('sin(x)=2');
-  assert.equal(r.status, STATUS.UNDEFINED);
-  assert.equal(r.answer, 'No real solution');
+  assert.equal(r.status, STATUS.SOLVED);
+  assert.equal(r.answer, 'No real solution (sin(θ) is never outside [−1, 1])');
 });
 
 test('out-of-family equations are refused explicitly, never mis-solved', () => {
@@ -166,14 +167,14 @@ test('reducible equations: quadratic in one function, sin = cos, Pythagorean rew
   assert.match(solveTrigEquation('sin(x) = cos(x)').answer, /^x = π\/4 \+ πn/);
   assert.match(solveTrigEquation('sin(x)^2 + cos(x) = 1').answer, /on \[0, 2π\): 0, π\/2, 3π\/2/);
   assert.match(solveTrigEquation('2cos(x)^2 + sin(x) = 1').answer, /on \[0, 2π\): π\/2, 7π\/6, 11π\/6/);
-  assert.equal(solveTrigEquation('sin(x)^2 = 2').status, STATUS.UNDEFINED);
+  assert.equal(solveTrigEquation('sin(x)^2 = 2').status, STATUS.SOLVED);
   assert.match(solveTrigEquation('2sin(2x)^2 = 1').answer, /on \[0, 2π\): π\/8, 3π\/8, 5π\/8, 7π\/8, 9π\/8, 11π\/8, 13π\/8, 15π\/8/);
 });
 
 test('auxiliary angle and equal-argument equations', () => {
   assert.equal(solveTrigEquation('sin(x) + cos(x) = 1').answer, 'x = 2πn  or  x = π/2 + 2πn (n ∈ ℤ);  on [0, 2π): 0, π/2');
   assert.match(solveTrigEquation('sin(x) + sqrt(3)cos(x) = 1').answer, /on \[0, 2π\): π\/2, 11π\/6/);
-  assert.equal(solveTrigEquation('sin(x) + cos(x) = 2').status, STATUS.UNDEFINED);
+  assert.equal(solveTrigEquation('sin(x) + cos(x) = 2').status, STATUS.SOLVED);
   assert.equal(solveTrigEquation('sin(x) = sin(2x)').answer, 'x = 2πn  or  x = π/3 + (2π/3)n (n ∈ ℤ);  on [0, 2π): 0, π/3, π, 5π/3');
   assert.match(solveTrigEquation('cos(3x) = cos(x)').answer, /on \[0, 2π\): 0, π\/2, π, 3π\/2/);
   assert.match(solveTrigEquation('sin(2x) = cos(x)').answer, /on \[0, 2π\): π\/6, π\/2, 5π\/6, 3π\/2/);
@@ -182,7 +183,7 @@ test('auxiliary angle and equal-argument equations', () => {
 
 test('reciprocal functions and sin·cos products reduce exactly; the rest fall to the numeric scan under Trigonometry', async () => {
   assert.equal(solveTrigEquation('sec(x) = 2').answer, 'x = π/3 + 2πn  or  x = 5π/3 + 2πn (n ∈ ℤ);  on [0, 2π): π/3, 5π/3');
-  assert.equal(solveTrigEquation('sec(x) = 1/2').status, STATUS.UNDEFINED);
+  assert.equal(solveTrigEquation('sec(x) = 1/2').status, STATUS.SOLVED);
   assert.match(solveTrigEquation('sin(x)*cos(x) = 1/4').answer, /on \[0, 2π\): π\/12, 5π\/12, 13π\/12, 17π\/12/);
   assert.match(solveTrigEquation('sin(x)cos(x) = 0').answer, /^x = \(πn\)\/2/);
   const { solveProblem } = await import('../src/lib/api.js');

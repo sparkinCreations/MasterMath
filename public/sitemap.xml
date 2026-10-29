@@ -32,6 +32,14 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- How MasterMath compares -->
+  <url>
+    <loc>https://mastermath.app/compare</loc>
+    <lastmod>2026-10-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
   <!-- Feedback & Support -->
   <url>
     <loc>https://mastermath.app/feedback</loc>

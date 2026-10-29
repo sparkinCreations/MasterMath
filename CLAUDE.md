@@ -156,7 +156,9 @@ non-linear by substitution), `inequalitiesSolver` (sign charts, compound; period
 `implicitDerivativeSolver` (dy/dx of F(x, y) = 0 term by term, checked by
 following the curve; "at (a, b)"),
 `integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` /
-`trigSubstitutionSolver` (√(a² − b²x²)) / `trigPowerSolver` (sin^m·cos^n
+`trigSubstitutionSolver` (√(a² − b²x²); x^m·(x² ± a²)^(k/2) and
+x^m·(a² − x²)^(k/2) by x = a·tan θ / a·sec θ / a·sin θ, worked in θ and
+turned back with the triangle) / `trigPowerSolver` (sin^m·cos^n
 with an odd power, sec^n and csc^n by u = tan or the reduction formula,
 tan^m·sec^n, tan^m) / partial fractions (the denominator factored over the
 rationals by the exact root finder, never Algebrite's `factor()`, which

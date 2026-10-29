@@ -265,6 +265,14 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           {routing && <RoutingNotice routing={routing} currentTopic={currentTopic} onSwitchTopic={onSwitchTopic} />}
+          {/* What the solver understood, before any step: a misread input
+              ("sec·x" for sec³x) shows here at a glance (1.58.0). */}
+          {solution.readAs && (
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              <span className="font-semibold">Read as:</span>{" "}
+              <MathText mode="input" text={solution.readAs} />
+            </p>
+          )}
           {steps.length > 0 && (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
