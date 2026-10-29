@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.58.0] - 2026-10-28
+## [1.58.0] - 2026-10-29
 
 An outside review of 1.57.3 and a sweep behind it: two confidently wrong
 integrals, then the presentation and app gaps it listed.
