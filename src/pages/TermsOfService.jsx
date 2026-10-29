@@ -330,8 +330,8 @@ export default function TermsOfService() {
               A solution may link to lessons on other websites ("Learn more") and to the source of
               an insight. Those websites are not part of MasterMath and have their own terms and
               privacy policies; we do not control their content and are not responsible for it.
-              The links open in a new tab, and nothing is sent to those websites unless you click
-              one.
+              The links open in a new tab. MasterMath sends those websites nothing of yours; a
+              website you open sees your visit, as any website does.
             </p>
           </div>
         </CardContent>

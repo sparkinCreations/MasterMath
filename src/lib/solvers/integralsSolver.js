@@ -52,6 +52,41 @@ import { parseDefiniteIntegral, solveDefiniteIntegral } from './integrals/defini
 // The integral solver receives the RAW problem text (see api.js), because a
 // definite integral's bounds live in the notation and must be read before
 // parseMathExpression collapses the spacing.
+// "Here: u = x², du = 2x dx, so ∫… = …": the pieces this integral's steps
+// chose, read back from the step templates, and its answer.
+function workedIntegral(method, text, answer) {
+  const pick = (re) => (text.match(re) || [])[1]?.trim();
+  const parts = [];
+  if (method === 'substitution') {
+    const u = pick(/Let u = (.+?)\. Then du = /);
+    const du = pick(/\. Then (du = .+? d[a-z])\b/);
+    if (u && du) parts.push(mark(`u = ${u}`), mark(du));
+  } else if (method.startsWith('by parts')) {
+    const u = pick(/Choose the parts: u = (.+?), dv = /);
+    const dv = pick(/Choose the parts: u = .+?, (dv = .+? d[a-z])\b/);
+    if (u && dv) parts.push(mark(`u = ${u}`), mark(dv));
+    const rounds = [...text.matchAll(/\(round (\d+)\)/g)].map((m) => Number(m[1]));
+    const solved = text.match(/Move it to the left and solve: \((-?[\d/]+)\)·I = (.+)$/m);
+    if (solved) parts.push(`and the integral comes back: ${mark(`${solved[1]}I = ${solved[2].trim()}`)}`);
+    else if (rounds.length) parts.push(`and ${Math.max(...rounds)} rounds`);
+  } else if (method.startsWith('partial fractions') || method === 'irreducible quadratic') {
+    const split = pick(/Partial fractions[^:\n]*: (.+?)\.(?:\s|$)/);
+    // A split that only restates the fraction (one irreducible quadratic) says nothing.
+    const [lhs, rhs] = (split || '').split(' = ');
+    if (split && rhs && lhs.replace(/\s+/g, '') !== rhs.replace(/\s+/g, '') && !/[a-z]{4,}/i.test(split.replace(/\b(?:ln|arctan|sqrt)\b/g, ''))) parts.push(mark(split));
+  } else if (method === 'trig substitution') {
+    const sub = pick(/substitute ([a-z] = [^(,]+?)\s*[(,]/);
+    const dx = pick(/so (d[a-z] = [^,;]+?)(?:,| and\b|;|\.)/);
+    if (sub) parts.push(mark(sub.replace(/\s+$/, '')));
+    if (dx) parts.push(mark(dx));
+  } else if (method === 'form substitution') {
+    const u = pick(/substitute (u = [^,]+?)(?:,| so)/);
+    if (u) parts.push(mark(u));
+  }
+  const pieces = parts.length > 2 ? `${parts.slice(0, -1).join(', ')} ${parts[parts.length - 1]}` : parts.join(', ');
+  return pieces ? `Here: ${pieces}, so ${mark(answer)}.` : `Here: ${mark(answer)}.`;
+}
+
 export async function solveIntegral(rawInput) {
   const definite = parseDefiniteIntegral(rawInput);
   if (definite) {
@@ -273,10 +308,16 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     const unbar = (text) => dropBarsOnIntegrandLogs(text, expression);
     steps = steps.map(unbar);
     shownIntegral = unbar(shownIntegral);
+    // ∫(x − x) dx: the antiderivative is the constant alone, not "0 + C".
+    const answer = `∫(${beautify(expression)}) d${variable} ${perTerm.some((r) => r.approximate) ? '≈' : '='} ${shownIntegral.trim() === '0' ? 'C' : `${shownIntegral} + C`}`;
+    // The second insight works this integral (outside review, 1.61.0): the
+    // pieces the steps chose — u and du, u and dv, the split into partial
+    // fractions, the trig substitution — and the result.
+    const here = workedIntegral(method, stripMathMarkers(steps.join('\n')), answer);
+    if (here && method !== 'erf') tips.splice(method === 'tan reduction' ? 0 : 1, 0, here);
     return {
       steps,
-      // ∫(x − x) dx: the antiderivative is the constant alone, not "0 + C".
-      answer: `∫(${beautify(expression)}) d${variable} ${perTerm.some((r) => r.approximate) ? '≈' : '='} ${shownIntegral.trim() === '0' ? 'C' : `${shownIntegral} + C`}`,
+      answer,
       tips: [...new Set(tips)],
       common_mistakes: [...new Set(common_mistakes)],
       graph: generateIntegralGraph(expression, integral, variable, shownIntegral),

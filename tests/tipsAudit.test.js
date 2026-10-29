@@ -80,7 +80,7 @@ test('integrals: the method the steps used', async () => {
   assert.match((await guidance('(x+1)/(x^2+1)', 'integrals')).all, /splits in two: the part that is the denominator's derivative integrates to a logarithm, the constant part to an arctan/);
   const divide = await guidance('(x^4+1)/(x^2+1)', 'integrals');
   assert.match(divide.all, /divide first: the quotient integrates term by term/);
-  assert.match((await guidance('1/(x^3 + x)', 'integrals')).all, /a linear factor gives a logarithm, an irreducible quadratic a logarithm and an arctan, a repeated factor a power/);
+  assert.match((await guidance('1/(x^3 + x)', 'integrals')).all, /a linear factor gives a logarithm, an irreducible quadratic a logarithm, an arctan or both \(depending on its numerator\), and a repeated factor one term per power/);
   assert.doesNotMatch((await guidance('1/((x^2+1)^2)', 'integrals')).all, /splits in two/);
 });
 

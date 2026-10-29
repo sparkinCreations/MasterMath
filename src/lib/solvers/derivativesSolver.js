@@ -17,6 +17,7 @@ import {
   math,
   formatNumber,
   expressionsNumericallyEqual,
+  realOddRoots,
   mark,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
@@ -99,10 +100,30 @@ async function solveDerivativeInner(expression, options = {}) {
         return expr;
       }
     };
+    // The derivative of one piece (an inside, a factor), for the insight that
+    // shows the rule applied to this problem.
+    const differentiate = (piece) => {
+      try {
+        const out = shorten(Algebrite.derivative(rewriteReciprocalTrig(piece), variable).toString());
+        return out && !isAlgebriteFailure(out) && !isUnevaluatedOperator(out) ? lnify(out) : null;
+      } catch {
+        return null;
+      }
+    };
     // Authoritative, fully-simplified derivative. cos/sin and sin/cos of the
     // same argument are written as cot and tan (ln(sin x) → cot x), after a
     // numeric check that nothing changed.
     let derivative = trigRatioForm(clearDenominatorFractions(Algebrite, shorten(Algebrite.derivative(forAlgebrite, variable).toString())), variable);
+    // A power of a polynomial keeps the chain rule's form: (2x + 1)^5 gave
+    // 160x^4 + 320x^3 + … where a textbook writes 10(2x + 1)^4 (outside
+    // review, 1.61.0). Only for that shape and a modest result, and only when
+    // the factored form is shorter and numerically the same.
+    if (/^\s*(?:[\d.]+\s*\*?\s*)?\([^()]+\)\s*\^\s*\(?\d+\)?\s*$/.test(expression) && derivative.length <= 160) {
+      try {
+        const factored = Algebrite.factor(derivative, variable).toString();
+        if (factored && !isAlgebriteFailure(factored) && !isUnevaluatedOperator(factored) && factored.length < derivative.length && expressionsNumericallyEqual(factored, derivative, variable)) derivative = factored;
+      } catch { /* keep the expanded form */ }
+    }
     // Higher orders: differentiate the previous result again, showing each.
     const orderChain = [derivative];
     for (let k = 2; k <= order; k += 1) {
@@ -192,14 +213,42 @@ async function solveDerivativeInner(expression, options = {}) {
         // Algebrite writes e^n as exp(n); students read 1/e, e^2.
         exact = exact.replace(/exp\(-1\)/g, '1/e').replace(/exp\(1\)/g, 'e').replace(/exp\(-(\d+)\)/g, '1/e^$1').replace(/exp\((\d+)\)/g, 'e^$1');
       } catch { exact = ''; }
+      // f must be defined at the point before f′ can be: ln(x) at x = −1 gave
+      // f′(−1) = −1 from 1/x (outside review sweep, 1.61.0). A value that is
+      // not a real number means the point is outside the domain.
+      // Odd roots are real: x^(1/3) at x = −8 is −2 (mathjs alone gives a
+      // complex root), and its derivative there is 1/12, not "undefined".
+      const real = (e) => realOddRoots(String(e).replace(/(\([^()]*\)|\b[a-z]\b|\d+(?:\.\d+)?)\^\(-(\d+)\/([3579])\)/g, '(1/($1^($2/$3)))'));
+      let outside = false;
+      try {
+        const fv = math.evaluate(real(rewriteReciprocalTrig(expression)), { [variable]: value });
+        outside = typeof fv !== 'number' ? Boolean(fv && typeof fv === 'object' && 'im' in fv && Math.abs(fv.im) > 1e-12) : Number.isNaN(fv);
+      } catch { outside = false; }
+      if (outside) {
+        steps.push(`Check the point first: ${mark(`f(${valueText})`)} is not a real number, so ${mark(`${variable} = ${valueText}`)} is outside the domain of ${mark('f')}, and ${mark(`f${primes}(${valueText})`)} does not exist.`);
+        const { tips, common_mistakes } = derivativeGuidance(expression, variable, { order, differentiate });
+        common_mistakes.unshift(`Applying the derivative's formula outside the domain of ${mark('f')}: the formula may give a number at ${mark(`${variable} = ${valueText}`)}, but ${mark(`f(${valueText})`)} is not a real number, so ${mark(`f${primes}(${valueText})`)} does not exist.`);
+        tips.unshift(`${mark(`f${primes}(a)`)} can exist only where ${mark('f')} itself is defined: check that the point is in the domain of ${mark('f')} before evaluating the derivative's formula there.`);
+        return { steps, answer: `f${primes}(${valueText}) does not exist: ${variable} = ${valueText} is outside the domain of f`, tips, common_mistakes, graph: generateDerivativeGraph(expression, derivative, variable) };
+      }
       let numeric;
-      try { numeric = math.evaluate(rewriteReciprocalTrig(derivative), { [variable]: value }); } catch { numeric = NaN; }
+      try { numeric = math.evaluate(real(rewriteReciprocalTrig(derivative)), { [variable]: value }); } catch { numeric = NaN; }
       // At a corner of |u| the engine's sgn(0) = 0 would read as "slope 0";
       // the derivative does not exist there.
       const atCorner = corners.some((u) => {
         try { const val = math.evaluate(u, { [variable]: value }); return typeof val === 'number' && Math.abs(val) < 1e-12; } catch { return false; }
       });
       if (atCorner) numeric = NaN;
+      // Algebrite's exact value of a real odd root at a negative point goes
+      // through the complex (−1)^(1/3); keep the real value instead, as a
+      // fraction when it is one (x^(1/3) at x = −8: 1/12).
+      if (/\(-1\)\^/.test(exact)) {
+        exact = '';
+        for (let q = 1; q <= 1000 && Number.isFinite(numeric); q += 1) {
+          const p = Math.round(numeric * q);
+          if (Math.abs(p / q - numeric) < 1e-12) { exact = q === 1 ? String(p) : `${p}/${q}`; break; }
+        }
+      }
       // A vertical asymptote of f′ (tan at π/2) evaluates to a huge float,
       // not ∞ — treat anything beyond 1e12 as undefined there.
       if (typeof numeric !== 'number' || !Number.isFinite(numeric) || Math.abs(numeric) > 1e12) {
@@ -211,7 +260,7 @@ async function solveDerivativeInner(expression, options = {}) {
         steps.push(`Evaluate at ${mark(`${variable} = ${valueText}`)}: ${mark(`f${primes}(${valueText}) = ${exactShown}`)}`);
         if (order === 1) steps.push(`That is the slope of the tangent line to f at ${mark(`${variable} = ${valueText}`)}.`);
         answer = `f${primes}(${valueText}) = ${exactShown}`;
-        evalPoint = { x: value, y: numeric };
+        evalPoint = { x: value, y: numeric, valueText, shown: exactShown };
       }
     }
 
@@ -219,7 +268,14 @@ async function solveDerivativeInner(expression, options = {}) {
     // used. A plain polynomial used to be served chain-rule warnings and a
     // pointer to the product and quotient rules that never appeared
     // (September 2026 teaching-quality review).
-    const { tips, common_mistakes } = derivativeGuidance(expression, variable);
+    const { tips, common_mistakes } = derivativeGuidance(expression, variable, {
+      order,
+      atPoint: Boolean(options.evalAt),
+      differentiate,
+      rounds: orderChain.map((d) => lnify(d)),
+      point: evalPoint,
+      result: lnify(derivative),
+    });
 
     if (evalPoint) tips.unshift(`${mark("f'(a)")} is a number — the slope at one point — while ${mark(`f'(${variable})`)} is a function giving the slope everywhere.`);
 

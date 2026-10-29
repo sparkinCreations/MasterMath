@@ -295,6 +295,7 @@ export async function solveDefiniteIntegral(parsed) {
       verificationMethod: 'Fundamental Theorem of Calculus + numeric quadrature',
       tips: [
         `The Fundamental Theorem of Calculus: ${mark(`∫_a^b f d${v} = F(b) − F(a)`)}, where ${mark('F')} is any antiderivative.`,
+        ...(hasAntideriv ? [`Here ${mark(`F(${v}) = ${lnify(F)}`)}, so ${mark(`${notation} ${eqOrApprox(valueText)}`)}.`] : []),
         `No “${mark('+C')}” for a definite integral — the constant cancels in the subtraction.`,
         `A definite integral is the signed area between the curve and the x-axis over ${mark('[a, b]')}.`,
         `Area below the axis counts as negative: ${mark('∫_0^{2π} sin(x) dx = 0')}, although the curve encloses area on both sides. For the total area, integrate ${mark('|f(x)|')}.`,
@@ -342,7 +343,8 @@ function numericOnlyDefinite({ notation, integrand, v, a, b, lowerLabel, upperLa
     steps,
     answer: `${notation} ≈ ${approx} (numerical)`,
     tips: [
-      `A numerical integral samples the curve and adds up slices (Simpson's rule fits parabolas through triples of points); it gives the value to as many digits as two step sizes agree on, but no antiderivative.`,
+      `A numerical integral gives the value, not a formula: it samples the curve and adds up slices (Simpson's rule fits parabolas through triples of points), and the digits shown are those two step sizes agree on, a check on the accuracy rather than a proof of it.`,
+      `A function continuous on an interval has an antiderivative there, but it may have no formula in elementary functions (${mark('√(1 + x⁴)')} is one such); this solver found none here, and a numerical value is the practical answer.`,
       `Try a method by hand: the solver's list stops at the techniques named in the steps; a trigonometric identity, a different substitution or a reduction formula may give the exact form.`,
       `A definite integral is the signed area between the curve and the ${mark(v)}-axis over ${mark(`[${lowerLabel}, ${upperLabel}]`)}; a numerical estimate is a fine way to check an exact answer found by hand.`,
     ],

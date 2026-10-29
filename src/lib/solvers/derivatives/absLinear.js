@@ -162,12 +162,16 @@ export function solveAbsLinear(expression, variable, options, Algebrite) {
     answer,
     tips: [
       `${mark('|u| = u')} for ${mark('u ≥ 0')} and ${mark('−u')} for ${mark('u < 0')}: an absolute value is a piecewise function, and each piece is differentiated on its own.`,
+      `Here: ${mark(`f'(${v}) = ${fmt(left)}`)} for ${mark(`${v} < ${x0Text}`)}, ${mark(`f'(${v}) = ${fmt(right)}`)} for ${mark(`${v} > ${x0Text}`)}, and no derivative at the corner ${mark(`${v} = ${x0Text}`)}.`,
       'A derivative exists at a point only if the left and right derivatives agree. At a corner they do not, so there is no tangent line there.',
       `Away from the corner, ${mark(`d/d${v}|u| = sgn(u)·u′`)} — the sign of ${mark('u')} times the inner derivative.`,
+      `A function can be continuous at a point without being differentiable there: ${mark(`|${v}|`)} has no gap at ${mark('0')}, only a corner.`,
     ],
     common_mistakes: [
       `Applying the power rule to ${mark('|x|')} as if it were ${mark('x')}.`,
+      `Substituting the corner into a formula without checking the two sides first: at ${mark(`${v} = ${x0Text}`)} the slopes ${mark(fmt(left))} and ${mark(fmt(right))} disagree, so there is no derivative there.`,
       `Reporting ${mark(`f'(${x0Text}) = 0`)} because ${mark('sgn(0) = 0')} on a calculator — the derivative does not exist there.`,
+      'Forgetting the inner derivative: the slopes on the two sides are the inside\'s slope with each sign, not just ±1.',
     ],
     graph,
   };

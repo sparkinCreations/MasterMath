@@ -230,7 +230,12 @@ export async function solveImproperInfinite(parsed, notation) {
       steps,
       answer: `${notation} diverges`,
       status: 'diverges',
-      tips: ['An improper integral converges only if the limit defining it is a finite number.', `Compare with ${mark('∫₁^∞ 1/x^p dx')}: it converges for ${mark('p > 1')} and diverges for ${mark('p ≤ 1')}.`],
+      tips: [
+        'An improper integral converges only if the limit defining it is a finite number.',
+        // The limit itself, for this integral (outside review, 1.61.0).
+        ...(divergent.diverges ? [`Here ${mark(`F(${v}) = ${showF(F)}`)}, and ${mark(`F(${divergent === upperPart ? 't' : 's'}) → ${divergent.diverges}`)} as ${mark(divergent === upperPart ? 't → ∞' : 's → −∞')}: the limit is not a finite number, so the integral diverges.`] : []),
+        `Compare with ${mark('∫₁^∞ 1/x^p dx')}: it converges for ${mark('p > 1')} and diverges for ${mark('p ≤ 1')}.`,
+      ],
       common_mistakes: [`Treating ${mark('∞')} as a number and "plugging it in" — the integral is a limit, and it can fail to exist.`, `Assuming a function that tends to ${mark('0')} has a convergent integral (${mark('1/x → 0')} but ${mark('∫₁^∞ 1/x dx = ∞')}).`],
       graph: generateDefiniteGraph(integrand, v, lowerInf ? -10 : finiteBoundVal(lowerRaw), upperInf ? 10 : finiteBoundVal(upperRaw), lowerLabel, upperLabel, NaN),
     };
@@ -282,9 +287,10 @@ export async function solveImproperInfinite(parsed, notation) {
     answer: `${notation} ${eqOrApprox(valueText)}`,
     tips: [
       `An improper integral is a limit: replace the infinite bound by ${mark('t')}, integrate, then let ${mark('t → ∞')}.`,
+      `Here the limit is finite, ${mark(`${notation} ${eqOrApprox(valueText)}`)}: an infinite interval can still have a finite area.`,
       `It converges when that limit is finite; ${mark('∫₁^∞ 1/x^p dx')} converges exactly when ${mark('p > 1')}.`,
       `Comparison decides many tails without integrating: if ${mark('0 ≤ f(x) ≤ 1/x²')} for large ${mark('x')}, then ${mark('∫^∞ f dx')} converges too.`,
-      `An exponential decays faster than any power, so ${mark('∫_0^∞ e^(−x) dx = 1')} and ${mark('∫_0^∞ x^n·e^(−x) dx = n!')} all converge.`,
+      `An exponential decays faster than any power, so ${mark('∫_0^∞ e^(−x) dx = 1')} and ${mark('∫_0^∞ x^n·e^(−x) dx = n!')} (for whole numbers ${mark('n ≥ 0')}) all converge.`,
     ],
     common_mistakes: [`Plugging ${mark('∞')} into ${mark('F')} as if it were a number.`, `Forgetting that a limit can fail to exist even when the integrand tends to ${mark('0')}.`],
     graph: generateDefiniteGraph(integrand, v, lowerInf ? Math.min(-10, hi - 10) : finiteBoundVal(lowerRaw), upperInf ? Math.max(10, lo + 10) : finiteBoundVal(upperRaw), lowerLabel, upperLabel, value),
@@ -474,6 +480,7 @@ export async function integrateAtSingularEndpoint({ integrand, v, a, b, lowerRaw
       verificationMethod: 'one-sided limit of the antiderivative + graded numeric quadrature',
       tips: [
         'An integral whose integrand blows up at an endpoint is improper: replace that endpoint with a variable, integrate, then take the one-sided limit.',
+        `Here the limit is finite, ${mark(`${notation} ${eqOrApprox(valueText)}`)}: the curve is unbounded, but the integral is not.`,
         `It converges only if that limit is a finite number — the area can be finite even though the curve is unbounded (${mark('1/√x')} on ${mark('(0, 1]')}).`,
         `Compare with a p-integral: ${mark(`∫₀¹ 1/${v}ᵖ d${v}`)} converges for ${mark('p < 1')} and diverges for ${mark('p ≥ 1')}.`,
       ],
