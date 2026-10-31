@@ -24,8 +24,9 @@ test('the Functions solver no longer calls sin(x²)·eˣ periodic, and lists the
   const r = await solveProblem('sin(x^2)*e^x', 'functions');
   assert.doesNotMatch(r.answer, /periodic/);
   assert.ok(!r.steps.some((s) => /periodic/.test(s)));
-  assert.match(r.answer, /x-intercepts at x = -3\.07, -2\.5066, -1\.7725, 0, 1\.7725, 2\.5066/);
-  assert.match(r.answer, /local maximum \(1\.3847, 3\.7561\)/);
+  // 1.64.0: roots and extrema located numerically carry ≈.
+  assert.match(r.answer, /x-intercepts at x = 0, x ≈ -3\.07, -2\.5066, -1\.7725, 1\.7725, 2\.5066/);
+  assert.match(r.answer, /local maximum ≈ \(1\.3847, 3\.7561\)/);
   assert.ok(!r.steps.some((s) => /\(-9\./.test(s)), 'no cluster of extrema at the left edge of the window');
   // Periodic claims that are true survive.
   assert.match((await solveProblem('sin(2*x)', 'functions')).answer, /periodic/);
@@ -41,9 +42,12 @@ test('domain: proved everywhere from the structure, or honestly "no restrictions
   const domain = r.steps.find((s) => /^Domain/.test(s));
   assert.match(domain, /^Domain: all real numbers — /);
   assert.doesNotMatch(domain, /analyzed window/);
+  // 1.64.0: a denominator with no real roots proves the domain.
   const h = await solveProblem('1/(x^2+1)', 'functions');
-  assert.match(h.steps.find((s) => /^Domain/.test(s)), /no restrictions found/);
-  assert.match(h.answer, /domain: no restrictions found/);
+  assert.match(h.steps.find((s) => /^Domain/.test(s)), /^Domain: all real numbers — the denominator ⟦x\^2 \+ 1⟧ has no real roots/);
+  assert.match(h.answer, /domain: all real numbers/);
+  // What is not proved still says so.
+  assert.match((await solveProblem('1/(x^2+sin(x)+2)', 'functions')).answer, /domain: no restrictions found/);
   // A real restriction is still reported as before.
   assert.match((await solveProblem('1/(x-2)', 'functions')).answer, /domain: x ≠ 2/);
 });

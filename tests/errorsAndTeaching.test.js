@@ -180,11 +180,13 @@ test('the function analysis differentiates, solves f′ = 0, and gives exact val
   assert.ok(cubic.steps.includes('Local minimum at (1, -2): f′(x) changes from negative to positive there.'));
   // Exact values: 1/e, not 0.3679; π/2, not 1.5708.
   const bump = await solvePlain('x*e^(-x)', 'functions');
-  assert.ok(bump.steps.includes('Differentiate: f′(x) = e^(-x) - x*e^(-x). f′(x) is 0 at x = 1 (found where the slope changes sign).'), bump.steps.join(' | '));
+  // 1.64.0: f′ shown simplified, and its zero solved from the factor.
+  assert.ok(bump.steps.includes('Differentiate: f′(x) = e^(-x)*(-x + 1). Set f′(x) = 0: e^(-x)*(-x + 1) = 0 at x = 1.'), bump.steps.join(' | '));
   assert.ok(bump.steps.includes('Local maximum at (1, 1/e): f′(x) changes from positive to negative there.'));
   assert.match(bump.answer, /local maximum \(1, 1\/e\)/);
   const sine = await solvePlain('sin(x)', 'functions');
-  assert.ok(sine.steps.includes('Local maximum at (π/2, 1): f′(x) changes from positive to negative there.'), sine.steps.join(' | '));
+  // 1.64.0: a sine wave's extrema as a pattern in n, not a window list.
+  assert.ok(sine.steps.some((s) => s.startsWith('Maxima: sin = 1 at x = π/2 + 2πn, where f = 1.')), sine.steps.join(' | '));
   // A zero of f′ that is not an extremum is named.
   const flat = await solvePlain('x^3', 'functions');
   assert.ok(flat.steps.includes('Differentiate: f′(x) = 3x^2. Set f′(x) = 0: 3x^2 = 0 at x = 0.'));

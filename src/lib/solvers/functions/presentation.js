@@ -2,9 +2,24 @@
 // summary answer and the graph's text description.
 
 import { beautify, formatNumber, formatRestriction, piForm, mark } from '../solverUtils.js';
-import { WINDOW } from './features.js';
+import { WINDOW, exactNumber } from './features.js';
+import { fraction } from './guidance.js';
 
 // --- presentation -------------------------------------------------------------
+
+// x-values with = for the exact ones and ≈ for those located numerically:
+// "x = −1, 1" / "x ≈ 2.4142" / "x = −1, x ≈ 2.4142" (1.64.0: e^x − 2 had
+// "x = 0.6931").
+export function xList(items, variable) {
+  const exact = items.filter((r) => !r.approx).map((r) => r.display);
+  const approx = items.filter((r) => r.approx).map((r) => r.display);
+  return [exact.length ? `${variable} = ${exact.join(', ')}` : '', approx.length ? `${variable} ≈ ${approx.join(', ')}` : ''].filter(Boolean).join(', ');
+}
+
+// A point, with ≈ in front when its x was located numerically.
+export function pointText(e) {
+  return `${e.approx ? '≈ ' : ''}(${e.xText}, ${e.yText})`;
+}
 
 export function buildSteps(func, variable, f) {
   // A domain or range is marked as math when it is a condition (x > 0,
@@ -18,6 +33,8 @@ export function buildSteps(func, variable, f) {
     // The grid never landed on the poles (tan at π/2), so no undefined
     // region was measured — but the asymptotes ARE excluded from the domain.
     steps.push(`Domain: all real numbers except where the function blows up — ${mark(`${variable} ≠ ${f.verticalAsymptotes.map((a) => formatNumber(a)).join(', ')}`)} (in the analyzed window ${mark(`${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}`)}${f.isPeriodic ? '; the pattern repeats' : ''}).`);
+  } else if (f.domain.length === 0 && f.domainWhy) {
+    steps.push(`Domain: all real numbers — ${f.domainWhy}`);
   } else if (f.domain.length === 0 && f.provedEverywhere) {
     // Proved from the structure: no quotient, root, log or tan to exclude
     // anything. The ±10 window is where features were searched, not the
@@ -50,24 +67,34 @@ export function buildSteps(func, variable, f) {
     const why = h.simplified
       ? ` Simplifying, f(${variable}) = ${beautify(h.simplified)} for every ${variable} ≠ ${formatNumber(h.x)}: a common factor cancels, but the original is still undefined at ${variable} = ${formatNumber(h.x)}.`
       : '';
-    steps.push(`Hole (removable discontinuity) at ${mark(`(${formatNumber(h.x)}, ${formatNumber(h.y)})`)}: the function is undefined at ${mark(`${variable} = ${formatNumber(h.x)}`)}, but it does not blow up there — the graph is a single point short of continuous.${why}`);
+    steps.push(`Hole (removable discontinuity) at ${mark(`(${formatNumber(h.x)}, ${h.yText ?? formatNumber(h.y)})`)}: the function is undefined at ${mark(`${variable} = ${formatNumber(h.x)}`)}, but it does not blow up there — the graph is a single point short of continuous.${why}`);
   }
 
   // Quadratic-specific insights (exact)
   if (f.quadratic) {
     steps.push(`This is a quadratic (parabola). Leading coefficient ${mark(`a = ${formatNumber(f.quadratic.a)}`)}, so it opens ${f.quadratic.opensUpward ? 'upward' : 'downward'}.`);
-    steps.push(`Axis of symmetry: ${mark(`${variable} = −b/(2a) = ${formatNumber(f.quadratic.axis)}`)}.`);
-    steps.push(`Vertex: ${mark(`(${formatNumber(f.quadratic.vertex.x)}, ${formatNumber(f.quadratic.vertex.y)})`)} — the ${f.quadratic.opensUpward ? 'minimum' : 'maximum'} point.`);
+    steps.push(`Axis of symmetry: ${mark(`${variable} = −b/(2a) = ${exactNumber(f.quadratic.axis)}`)}.`);
+    steps.push(`Vertex: ${mark(`(${exactNumber(f.quadratic.vertex.x)}, ${exactNumber(f.quadratic.vertex.y)})`)} — the ${f.quadratic.opensUpward ? 'minimum' : 'maximum'} point.`);
   }
 
   // Intercepts
   if (f.yIntercept) {
     const y0 = f.yIntercept.yText ?? formatNumber(f.yIntercept.y);
     steps.push(`y-intercept: ${mark(`f(0) = ${y0}`)}, so the graph crosses the y-axis at ${mark(`(0, ${y0})`)}.`);
+  } else if (variable === 'x' || variable) {
+    const holeAt0 = f.holes.find((h) => Math.abs(h.x) < 1e-12);
+    steps.push(`y-intercept: none — ${mark(`${variable} = 0`)} is not in the domain${holeAt0 ? `; the graph approaches ${mark(`(0, ${holeAt0.yText ?? formatNumber(holeAt0.y)})`)} without containing it` : ''}.`);
   }
-  if (f.xIntercepts.list.length > 0) {
-    const xs = f.xIntercepts.list.map((r) => r.display).join(', ');
-    steps.push(`x-intercept${f.xIntercepts.list.length > 1 ? 's' : ''}: ${mark(`${variable} = ${xs}`)}${f.xIntercepts.truncated ? ' (and more outside/inside the window — pattern continues)' : ''}.`);
+  if (f.absWave) {
+    steps.push(`x-intercepts: ${mark(`|${f.absWave.inside}| = 0`)} exactly where ${mark(`${f.absWave.inside} = 0`)}, so ${mark(`${variable} = ${f.absWave.zeros}`)} (${mark('n')} any integer). The graph touches the axis there without crossing.`);
+  } else if (f.waveZeros) {
+    steps.push(`x-intercepts: the numerator is ${mark('0')} at ${mark(`${variable} = ${f.waveZeros.text}`)}, but the function is undefined where the denominator is ${mark('0')} too, so ${mark(`${variable} = ${f.waveZeros.text}`)} (${mark('n')} ${f.waveZeros.which ?? 'any integer'}).`);
+  } else if (f.wave) {
+    const w = f.wave;
+    if (w.intercepts.none) steps.push(`x-intercepts: none — ${mark(`f(${variable}) = 0`)} needs ${mark(w.equation)}, and ${w.fn} never leaves ${mark('[−1, 1]')}.`);
+    else steps.push(`x-intercepts: ${mark(`f(${variable}) = 0`)} when ${mark(w.equation)}, so ${mark(`${variable} = ${w.intercepts.text}`)} (${mark('n')} any integer)${w.intercepts.approxText ? `, that is ${mark(`${variable} ≈ ${w.intercepts.approxText}`)}` : ''}${w.intercepts.touches ? ': the graph touches the axis there without crossing' : ''}.`);
+  } else if (f.xIntercepts.list.length > 0) {
+    steps.push(`x-intercept${f.xIntercepts.list.length > 1 ? 's' : ''}: ${mark(xList(f.xIntercepts.list, variable))}${f.xIntercepts.truncated ? ' (and more outside the window: the list continues)' : ''}.`);
   } else {
     steps.push('x-intercepts: none — the graph never crosses the x-axis.');
   }
@@ -86,17 +113,23 @@ export function buildSteps(func, variable, f) {
           steps.push(`At ${mark(`${variable} = ${saddles.map((r) => r.display).join(', ')}`)} ${mark(fPrime)} is 0 but does not change sign, so there is no extremum there: the graph flattens and carries on.`);
         }
       } else if (stationaryXs.length > 0) {
-        steps.push(`Differentiate: ${d}. ${mark(fPrime)} is 0 at ${mark(`${variable} = ${stationaryXs.map((e) => e.xText).join(', ')}`)} (found where the slope changes sign).`);
+        steps.push(`Differentiate: ${d}. ${mark(fPrime)} is 0 at ${mark(xList(stationaryXs.map((e) => ({ display: e.xText, approx: e.approx })), variable))} (found where the slope changes sign${stationaryXs.some((e) => e.approx) ? ', and located numerically' : ''}).`);
       } else if (f.derivativeNeverZero) {
         steps.push(`Differentiate: ${d}. ${mark(fPrime)} is never 0 (${f.derivativeNeverZero.why}), so there are no stationary points${f.monotonic ? `: ${mark('f')} is strictly ${f.monotonic}` : ''}.`);
       } else {
         steps.push(`Differentiate: ${d}.`);
       }
     }
-    if (f.extrema.length > 0) {
+    if (f.wave) {
+      const w = f.wave;
+      steps.push(`Maxima: ${mark(`${w.fn} = ${w.coef > 0 ? '1' : '−1'}`)} at ${mark(`${variable} = ${w.maxima.x}`)}, where ${mark(`f = ${w.maxima.y}`)}. Minima: ${mark(`${w.fn} = ${w.coef > 0 ? '−1' : '1'}`)} at ${mark(`${variable} = ${w.minima.x}`)}, where ${mark(`f = ${w.minima.y}`)} (${mark('n')} any integer). The period is ${mark(w.period)}.`);
+    } else if (f.absWave) {
+      steps.push(`Maxima: ${mark(`|${f.absWave.inside}| = ${f.absWave.maxima.y}`)} at ${mark(`${variable} = ${f.absWave.maxima.x}`)}. Minima: ${mark('0')} at the corners ${mark(`${variable} = ${f.absWave.zeros}`)} (${mark('n')} any integer). The period is ${mark(f.absWave.period)}.`);
+    } else if (f.extrema.length > 0) {
+      if (f.extremaInWindow) steps.push(`Local extrema found in the analysed window ${mark(`${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}`)} (there may be more outside it):`);
       for (const e of f.extrema) {
         const name = e.kind === 'max' ? 'maximum' : 'minimum';
-        const point = mark(`(${e.xText}, ${e.yText})`);
+        const point = mark(pointText(e));
         if (e.origin === 'cusp') {
           steps.push(`Local ${name} at ${point} — at a corner/cusp: ${mark(fPrime)} does not exist there (the slopes on either side disagree), yet it is still a critical point and an extremum. Not a stationary point: this does NOT come from ${mark(`${fPrime} = 0`)}.`);
         } else {
@@ -135,8 +168,16 @@ export function buildSteps(func, variable, f) {
   }
   if (f.horizontalAsymptote !== null && typeof f.horizontalAsymptote === 'number') {
     steps.push(`Horizontal asymptote: ${mark(`y = ${formatNumber(f.horizontalAsymptote)}`)} as ${mark(`${variable} → ±∞`)}.`);
+  } else if (f.horizontalAsymptote && typeof f.horizontalAsymptote === 'object') {
+    // One side only: eˣ − 2 levels off at −2 as x → −∞ (it was left out).
+    for (const [side, y] of [['−∞', f.horizontalAsymptote.left], ['∞', f.horizontalAsymptote.right]]) {
+      if (y !== null && y !== undefined) steps.push(`Horizontal asymptote: ${mark(`y = ${formatNumber(y)}`)} as ${mark(`${variable} → ${side}`)} only.`);
+    }
   }
 
+  if (f.slant) {
+    steps.push(`Slant asymptote: ${mark(`y = ${f.slant.line}`)}. The top's degree is one more than the bottom's, so divide: ${mark(`f(${variable}) = ${f.slant.line} + ${fraction(f.slant.remainder, f.slant.den)}`)}, and the fraction ${mark('→ 0')} as ${mark(`${variable} → ±∞`)}.`);
+  }
   if (f.isPeriodic) {
     steps.push('This is a periodic function — its pattern of zeros and extrema repeats forever.');
   }
@@ -252,20 +293,32 @@ export function summarizeAnalysis(func, variable, f) {
 
   if (f.range) parts.push(`range: ${f.range.text}`);
   if (f.yIntercept) parts.push(`y-intercept (0, ${f.yIntercept.yText ?? formatNumber(f.yIntercept.y)})`);
-  if (interceptPattern) {
+  else parts.push('no y-intercept');
+  if (f.absWave) {
+    parts.push(`x-intercepts at ${variable} = ${f.absWave.zeros}`);
+  } else if (f.waveZeros) {
+    parts.push(`x-intercepts at ${variable} = ${f.waveZeros.text}${f.waveZeros.which ? ` (n ${f.waveZeros.which})` : ''}`);
+  } else if (f.wave) {
+    parts.push(f.wave.intercepts.none ? 'no x-intercepts' : `x-intercepts at ${variable} = ${f.wave.intercepts.text}${f.wave.intercepts.approxText ? ` (≈ ${f.wave.intercepts.approxText})` : ''}`);
+  } else if (interceptPattern) {
     parts.push(`x-intercepts at ${interceptPattern}`);
   } else if (f.xIntercepts.list.length > 0) {
-    const xs = f.xIntercepts.list.map((r) => r.display).join(', ');
-    parts.push(`x-intercept${f.xIntercepts.list.length > 1 ? 's' : ''} at ${variable} = ${xs}${f.xIntercepts.truncated ? ', …' : ''}`);
+    parts.push(`x-intercept${f.xIntercepts.list.length > 1 ? 's' : ''} at ${xList(f.xIntercepts.list, variable)}${f.xIntercepts.truncated ? ', …' : ''}`);
   } else if (!f.isPeriodic) {
     parts.push('no x-intercepts');
   }
 
   if (f.quadratic) {
-    parts.push(`vertex ${pt(f.quadratic.vertex.x, f.quadratic.vertex.y)} (${f.quadratic.opensUpward ? 'minimum' : 'maximum'}), axis ${variable} = ${formatNumber(f.quadratic.axis)}`);
+    parts.push(`vertex (${exactNumber(f.quadratic.vertex.x)}, ${exactNumber(f.quadratic.vertex.y)}) (${f.quadratic.opensUpward ? 'minimum' : 'maximum'}), axis ${variable} = ${exactNumber(f.quadratic.axis)}`);
   } else {
-    for (const e of f.extrema) {
-      parts.push(`local ${e.kind === 'max' ? 'maximum' : 'minimum'} (${e.xText ?? formatNumber(e.x)}, ${e.yText ?? formatNumber(e.y)})${e.origin === 'cusp' ? ' (cusp)' : ''}`);
+    if (f.absWave) {
+      parts.push(`maxima at ${variable} = ${f.absWave.maxima.x} (value ${f.absWave.maxima.y}), minima at ${variable} = ${f.absWave.zeros} (value 0), period ${f.absWave.period} (n any integer)`);
+    } else if (f.wave) {
+      parts.push(`maxima at ${variable} = ${f.wave.maxima.x} (value ${f.wave.maxima.y}), minima at ${variable} = ${f.wave.minima.x} (value ${f.wave.minima.y}), period ${f.wave.period} (n any integer)`);
+    } else {
+      const listed = f.extrema.map((e) => `local ${e.kind === 'max' ? 'maximum' : 'minimum'} ${pointText(e)}${e.origin === 'cusp' ? ' (cusp)' : ''}`);
+      if (f.extremaInWindow && listed.length) parts.push(`in ${WINDOW.min} ≤ ${variable} ≤ ${WINDOW.max}: ${listed.join(', ')}`);
+      else parts.push(...listed);
     }
     for (const e of f.endpointExtrema) {
       parts.push(`${e.absolute ? 'absolute ' : ''}${e.kind === 'max' ? 'maximum' : 'minimum'} ${pt(e.x, e.y)} at the domain endpoint`);
@@ -273,10 +326,15 @@ export function summarizeAnalysis(func, variable, f) {
     if (f.extrema.length === 0 && f.endpointExtrema.length === 0 && f.monotonic) parts.push(`strictly ${f.monotonic}, no extrema`);
   }
 
-  for (const h of f.holes) parts.push(`hole at ${pt(h.x, h.y)}`);
+  for (const h of f.holes) parts.push(`hole at (${formatNumber(h.x)}, ${h.yText ?? formatNumber(h.y)})`);
   if (asymptotePattern) parts.push(`vertical asymptotes at ${asymptotePattern}`);
   else if (f.verticalAsymptotes.length > 0) parts.push(`vertical asymptote${f.verticalAsymptotes.length > 1 ? 's' : ''} ${f.verticalAsymptotes.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')}`);
   if (typeof f.horizontalAsymptote === 'number') parts.push(`horizontal asymptote y = ${formatNumber(f.horizontalAsymptote)}`);
+  else if (f.horizontalAsymptote && typeof f.horizontalAsymptote === 'object') {
+    if (f.horizontalAsymptote.left != null) parts.push(`horizontal asymptote y = ${formatNumber(f.horizontalAsymptote.left)} as ${variable} → −∞`);
+    if (f.horizontalAsymptote.right != null) parts.push(`horizontal asymptote y = ${formatNumber(f.horizontalAsymptote.right)} as ${variable} → ∞`);
+  }
+  if (f.slant) parts.push(`slant asymptote y = ${f.slant.line}`);
   if (f.inflections.length > 0) parts.push(`inflection at ${variable} = ${f.inflections.map((i) => i.display).join(', ')}`);
   if (f.isPeriodic) parts.push('periodic');
 

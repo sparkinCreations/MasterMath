@@ -38,6 +38,8 @@ import { featureWindow } from '../graphSampling.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 import { functionGuidance } from './functions/guidance.js';
+import { provedRange } from './functions/ranges.js';
+import { readPolynomial, allRoots } from './polynomialRoots.js';
 import {
   WINDOW,
   FINE_STEP,
@@ -52,6 +54,12 @@ import {
   findEndpointExtrema,
   findInflections,
   findHorizontalAsymptote,
+  wavePattern,
+  absWavePattern,
+  quotientWaveZeros,
+  exactNumber,
+  rationalFacts,
+  polynomialRange,
 } from './functions/features.js';
 import {
   buildSteps,
@@ -177,7 +185,22 @@ function analyzeFunction(func, variable, Algebrite) {
   // (trig functions of linear arguments, commensurately combined), never
   // read off the presence of a sin: sin(x²)·eˣ has a sin and is not periodic.
   const isPeriodic = (structuralPeriod(func, variable) || 0) > 0;
-  const provedEverywhere = definedEverywhere(func, variable);
+  const rational = rationalFacts(func, variable, Algebrite);
+  let provedEverywhere = definedEverywhere(func, variable);
+  // x/(x² + 1): the denominator has no real root, so nothing is excluded.
+  let domainWhy = !provedEverywhere && rational?.noRealPoles ? `the denominator ${mark(beautify(rational.den))} has no real roots (it is never ${mark('0')}), so nothing is excluded.` : null;
+  // √P with P a polynomial that is never negative (x² + 1).
+  if (!provedEverywhere && !domainWhy) {
+    const inside = String(func).replace(/\s+/g, '').match(/^sqrt\((.+)\)$/);
+    const P = inside && readPolynomial(inside[1], variable);
+    if (P && !P.tooHigh && P.degree >= 1 && P.degree % 2 === 0 && Number(P.coefficients[P.degree]) > 0 && allRoots(P).real.length === 0) {
+      domainWhy = `the radicand ${mark(beautify(inside[1]))} has no real roots and a positive leading coefficient, so it is always positive.`;
+    }
+  }
+  if (domainWhy) provedEverywhere = true;
+  const wave = wavePattern(func, variable);
+  const absWave = wave ? null : absWavePattern(func, variable);
+  const waveZeros = wave || absWave ? null : quotientWaveZeros(func, variable);
 
   // Fine-grained sample of definedness across the window. Built by index with
   // rounding so grid points land EXACTLY on values like 0 — accumulating
@@ -199,7 +222,7 @@ function analyzeFunction(func, variable, Algebrite) {
   const yIntercept = Number.isFinite(evalAt(func, variable, 0))
     ? { x: 0, y: snap(evalAt(func, variable, 0)), yText: exactValueAt(Algebrite, func, variable, '0', snap(evalAt(func, variable, 0))) }
     : null;
-  let { extrema, monotonic, derivative, stationary, derivativeNeverZero } = findExtrema(func, variable, grid, Algebrite, isPeriodic);
+  let { extrema, monotonic, derivative, derivativeFactored, stationary, derivativeNeverZero } = findExtrema(func, variable, grid, Algebrite, isPeriodic);
   // Monotonic on the part of the window where f is defined — kept for the
   // endpoint reasoning below even when the global claim has to be dropped.
   const monotonicOnDomain = monotonic;
@@ -210,7 +233,7 @@ function analyzeFunction(func, variable, Algebrite) {
   const inflections = findInflections(func, variable, Algebrite);
   const horizontalAsymptote = findHorizontalAsymptote(func, variable);
   const quadratic = analyzeQuadratic(func, variable, Algebrite);
-  const range = detectRange(func, variable, quadratic);
+  const range = detectRange(func, variable, quadratic) ?? polynomialRange(func, variable, Algebrite) ?? absWave?.range ?? provedRange(Algebrite, func, variable);
 
   return {
     range,
@@ -222,6 +245,7 @@ function analyzeFunction(func, variable, Algebrite) {
     endpointExtrema,
     monotonic,
     derivative,
+    derivativeFactored,
     stationary,
     derivativeNeverZero,
     inflections,
@@ -229,7 +253,17 @@ function analyzeFunction(func, variable, Algebrite) {
     horizontalAsymptote,
     isPeriodic,
     provedEverywhere,
+    domainWhy,
     quadratic,
+    wave,
+    absWave,
+    waveZeros,
+    // A window list that is not proved complete says so: sin(x)/x has
+    // infinitely many extrema, at the nonzero solutions of tan(x) = x.
+    extremaInWindow: !wave && !absWave && !readPolynomial(String(func), variable) && !rational && extrema.some((e) => e.approx),
+    isRational: Boolean(rational),
+    slant: rational?.slant ?? null,
+    reduced: rational?.reduced ?? null,
   };
 }
 
@@ -287,6 +321,7 @@ function detectRange(func, variable, quadratic) {
 
   if (quadratic) {
     const k = quadratic.vertex.y;
+    const fmt = exactNumber;
     return quadratic.opensUpward
       ? { text: `y ≥ ${fmt(k)}`, why: `the parabola opens upward, so its lowest value is the vertex height ${mark(fmt(k))} and it takes every value above it.` }
       : { text: `y ≤ ${fmt(k)}`, why: `the parabola opens downward, so its highest value is the vertex height ${mark(fmt(k))} and it takes every value below it.` };

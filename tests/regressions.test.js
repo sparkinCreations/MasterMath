@@ -1636,6 +1636,10 @@ test('the range is stated for recognised function families, and only for them', 
     ['f(x) = ln(x-1)', 'all real numbers'],
     ['f(x) = 2sin(x) + 1', '-1 ≤ y ≤ 3'],
     ['f(x) = cos(2x) - 3', '-4 ≤ y ≤ -2'],
+    // 1.64.0: polynomials, proved (odd degree; the least value at a critical
+    // point, all of them found exactly).
+    ['f(x) = x^3 - x', 'all real numbers'],
+    ['f(x) = x^4 - x^2', 'y ≥ -1/4'],
   ];
   for (const [input, range] of cases) {
     const r = await solvePlain(input, 'functions');
@@ -1645,7 +1649,8 @@ test('the range is stated for recognised function families, and only for them', 
     assert.match(r.answer, new RegExp(`range: ${range.replace(/[-+≤≥≠]/g, (c) => `\\${c}`)}`), input);
   }
   // Outside the recognised families nothing is claimed — never read off the window.
-  for (const input of ['f(x) = x^3 - x', 'f(x) = x^4 - x^2', 'f(x) = x*e^x']) {
+  // x·e^x has a proved range since 1.64.0 (y ≥ −1/e); these still do not.
+  for (const input of ['f(x) = e^x*sin(x)', 'f(x) = x^4 + sin(x)']) {
     const r = await solvePlain(input, 'functions');
     assert.ok(!r.steps.some((s) => /^Range/.test(s)), `${input}: fabricated range`);
     assert.doesNotMatch(r.answer, /range:/, input);

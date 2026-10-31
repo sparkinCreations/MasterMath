@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.64.0] - 2026-10-31
+
+### Added
+
+- **More function insights and mistakes**, the fifth topic. Every family
+  (quadratic, absolute value, cusp, sine and cosine, tangent, logarithm,
+  rational, exponential, root, polynomial) has a ranked list behind "Show
+  more", and the second insight works the student's own function from its
+  features: a, b and the vertex; the corner where the inside of |…| is 0;
+  A, k and d of a wave; the division that gives a slant asymptote; the
+  cancelled factor of a hole. Review:
+  `docs/future-work/insights-review/FUNCTIONS.md`.
+- **Sine and cosine waves give every intercept and extremum as a pattern**:
+  3cos(x) + 1 has x-intercepts at ±arccos(−1/3) + 2πn, maxima at 2πn, minima
+  at π + 2πn, where six window decimals were listed.
+- **Slant asymptotes** (y = x + 1 for (x² + 1)/(x − 1)), **domains proved**
+  when a denominator has no real roots (x/(x² + 1)), and **the range of a
+  polynomial** of degree 3 or more: every value for an odd degree; for an
+  even degree the least or greatest value at a critical point, when every
+  critical point is exact.
+- **More ranges proved** (an outside review, Round 27): a·|P| + k, √Q for a
+  quadratic Q, a rational function with no real poles, P·e^(kx) and
+  c·xᵖ·ln(x), each from its exact critical points and its ends: |x² − 2|
+  has y ≥ 0, √(4 − x²) has 0 ≤ y ≤ 2, x·ln(x) has y ≥ −1/e, x/(x² + 1) has
+  −1/2 ≤ y ≤ 1/2, x·e^(−x) has y ≤ 1/e. One-sided horizontal asymptotes are
+  stated (y = −2 as x → −∞ for eˣ − 2).
+- **Infinitely many features as patterns or labelled**: sin(x)/x has
+  x-intercepts at x = nπ (n any nonzero integer); |sin x| at nπ, with its
+  maxima and range; extrema not proved complete say "in −10 ≤ x ≤ 10". An
+  absent y-intercept is stated.
+
+### Fixed
+
+- **(x² − 3)² said "no x-intercepts"** beside minima at (±√3, 0), and
+  **|x² − 2|** too: roots where the graph touches the axis were missed.
+  Polynomial intercepts now come from the exact root finder (a complete
+  list), and the roots inside an absolute value are checked.
+- **eˣ − 2 gave "x = 0.6931"**, an equals sign on a decimal. A value
+  located numerically is shown exact only when proved (ln 2, 1/e, 1 ± √2,
+  1/∜5, (1 ± √5)/2), and with ≈ otherwise.
+- **Decimals where the exact form was at hand:** the extrema of
+  (x² + 1)/(x − 1) and x·ln(x), the roots of −2x² + 4x + 1 (1 − 1/2·√2·√3),
+  a quadratic's vertex, axis and range (0.5, −1.25), a hole's height.
+- **(x² − 1)/(x − 1) said "f′(x) = 0 at x = 1"**, where f′ is undefined; f′
+  is 1, never 0. The derivative is shown simplified.
+- **sin(x)/x was given the rational-function insights**; they now go only
+  to a quotient of polynomials.
+- **General statements that were too broad** (Round 27): a repeated root
+  only touches the axis when its multiplicity is even; a zero inside an
+  absolute value is a corner only when the inside changes sign with a
+  nonzero slope (|x²| is smooth); a cancelled factor leaves a hole only when
+  the simplified form is finite there (x/x² keeps its asymptote); periods
+  are 2π/|k| for k ≠ 0; a zero shared by numerator and denominator is
+  checked for a hole or an asymptote (Round 28). x·ln(x) has its own
+  insights (it has no vertical asymptote).
+- **|sin x| listed only x = 0 as an x-intercept**, and **sin(−2x)** lost its
+  patterns; **√(x² + 1)** said "no restrictions found".
+
 ## [1.63.0] - 2026-10-29
 
 ### Added

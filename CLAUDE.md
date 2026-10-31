@@ -163,7 +163,10 @@ exact bisection, verified complex roots, cap `MAX_POLYNOMIAL_DEGREE` = 100), `sy
 non-linear by substitution), `inequalitiesSolver` (sign charts, compound; periodic ones on one period + every period; refuses two variables),
 `trigonometrySolver` (values, identities; exports `detectTrigAsymptote`),
 `trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
-`functionsSolver` (exact extrema/intercepts/asymptotes), `limitsSolver`
+`functionsSolver` (exact extrema/intercepts/asymptotes: a numeric value is
+shown exact only when `recognizeExact` proves it by substitution, else ≈;
+polynomial intercepts from the exact root finder; sine and cosine waves as
+patterns in n; slant asymptotes; ranges and domains only when proved), `limitsSolver`
 (named techniques incl. 1^∞ by logarithms, the conjugate at ±∞, growth rates
 read off c·x^p·e^(kx)·ln(x)^m (`limits/growth.js`), each verified; a
 function defined on one side only is limited from that side, said so; 0⁰
@@ -232,8 +235,8 @@ specific to the method (`tests/tipsByMethod.test.js`); "+C" and "check by
 differentiating" go last. An item that uses a named idea from a specific
 source is `{ text, source: { title, url } }` (a DOI or publisher link,
 `SOURCE_HOSTS`); `finalizeResult` turns it into text and keeps the source in
-`result.sources`. Integrals (1.60.0), derivatives (1.61.0) and algebra
-(1.62.0) are done, each with a review document in
+`result.sources`. Integrals (1.60.0), derivatives (1.61.0), algebra
+(1.62.0), limits (1.63.0) and functions (1.64.0) are done, each with a review document in
 `docs/future-work/insights-review/`; the other topics follow one per release,
 each with a review document first. The second insight works the student's
 own problem (read from its steps), and every statement says where it holds.

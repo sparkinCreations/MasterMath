@@ -609,3 +609,143 @@ test('limits second review, swept: the domain at ±∞, roots that do not cancel
   // Seven bare zeros now say they are underflow.
   assert.match((await plainLim('lim x->infinity x*e^(-x^2)')).steps.find((s) => /^Samples:/.test(s)), /cannot be represented in double precision/);
 });
+
+// 1.64.0: functions. Exact values where they are proved, ≈ where a value was
+// located numerically, whole-line patterns for sine and cosine waves, and the
+// family's first insight applied to the function second.
+const plainFn = async (p) => {
+  const { stripMathMarkers } = await import('../src/lib/mathMarkers.js');
+  const r = await solveProblem(p, 'functions');
+  return { ...r, steps: r.steps.map(stripMathMarkers), tips: r.tips.map(stripMathMarkers), mistakes: r.common_mistakes.map(stripMathMarkers) };
+};
+
+test('functions: exact where proved, ≈ where located numerically', async () => {
+  for (const [p, part] of [
+    ['e^x - 2', 'x-intercept at x = ln(2)'], // was "x = 0.6931"
+    ['x*ln(x)', 'local minimum (1/e, -1/e)'], // was (0.3679, -0.3679)
+    ['(x^2+1)/(x-1)', 'local maximum (1 - √2, 2 - 2√2)'], // was (-0.4142, -0.8284)
+    ['-2x^2 + 4x + 1', 'x-intercepts at x = 1 - √6/2, 1 + √6/2'], // was 1 - 1/2*√2*√3
+    ['x^5 - x', 'local maximum (-1/∜5, 4/(5∜5))'],
+    ['x^4 + x', 'local minimum (-1/∛4, -3/(4∛4))'],
+    ['sin(x)/x', 'x-intercepts at x = nπ (n any nonzero integer)'], // Round 27: the pattern, not six window values
+    ['(x^3+1)/(x^2-1)', 'hole at (-1, -3/2)'],
+  ]) {
+    assert.ok((await plainFn(p)).answer.includes(part), `${p}: ${(await plainFn(p)).answer}`);
+  }
+  assert.match((await plainFn('sin(x)/x')).answer, /local maximum ≈ \(-7\.7253, 0\.1284\)/);
+  assert.match((await plainFn('x^5-x-1')).answer, /x-intercept at x ≈ 1\.1673/);
+});
+
+test('functions: wrong answers found in the sweep — touching roots, a slant asymptote that was a hole', async () => {
+  // (x² − 3)² said "no x-intercepts" beside minima at (±√3, 0); |x² − 2| too.
+  assert.match((await plainFn('(x^2-3)^2')).answer, /x-intercepts at x = -√3, √3/);
+  assert.match((await plainFn('abs(x^2-2)')).answer, /x-intercepts at x = -√2, √2/);
+  // (x² − 1)/(x − 1) is the line x + 1 with a hole: no asymptote.
+  const hole = await plainFn('(x^2-1)/(x-1)');
+  assert.doesNotMatch(hole.answer, /slant/);
+  assert.match(hole.answer, /hole at \(1, 2\)/);
+});
+
+test('functions: sine and cosine waves give every intercept and extremum as a pattern', async () => {
+  for (const [p, part] of [
+    ['3cos(x)+1', 'x-intercepts at x = ±arccos(-1/3) + 2πn (≈ ±1.9106 + 2πn); maxima at x = 2πn (value 4), minima at x = π + 2πn (value -2), period 2π (n any integer)'],
+    ['sin(2x)', 'maxima at x = π/4 + nπ (value 1), minima at x = -π/4 + nπ (value -1), period π'],
+    ['2sin(x)+1', 'x-intercepts at x = -π/6 + 2πn or 7π/6 + 2πn'],
+    ['-2sin(3x)+1', 'x-intercepts at x = π/18 + 2nπ/3 or 5π/18 + 2nπ/3'],
+    ['sin(x)+2', 'no x-intercepts'],
+    ['cos(x)-1', 'x-intercepts at x = 2πn'],
+  ]) {
+    assert.ok((await plainFn(p)).answer.includes(part), `${p}: ${(await plainFn(p)).answer}`);
+  }
+});
+
+test('functions: domains, ranges and slant asymptotes proved', async () => {
+  assert.match((await plainFn('x/(x^2+1)')).answer, /domain: all real numbers/); // was "no restrictions found"
+  assert.match((await plainFn('(x^2+1)/(x-1)')).answer, /slant asymptote y = x \+ 1/);
+  assert.ok((await plainFn('(x^2+1)/(x-1)')).steps.includes('Slant asymptote: y = x + 1. The top\'s degree is one more than the bottom\'s, so divide: f(x) = x + 1 + 2/(x - 1), and the fraction → 0 as x → ±∞.'));
+  assert.match((await plainFn('x^3 - 3x')).answer, /range: all real numbers/);
+  assert.match((await plainFn('x^4 - 2x^2')).answer, /range: y ≥ -1/);
+  assert.match((await plainFn('-x^4+2x^2+3')).answer, /range: y ≤ 4/);
+});
+
+test('functions: each family\'s insight is applied to the function second', async () => {
+  for (const [p, here] of [
+    ['x^2 - 4x + 3', 'Here: a = 1 and b = -4, so x = −b/(2a) = 2, and f(2) = -1: the vertex is (2, -1), a minimum.'],
+    ['abs(x-1)', 'Here: the corner is where x - 1 = 0, at x = 1: a minimum (1, 0).'],
+    ['3cos(x)+1', 'Here: A = 3, k = 1 and d = 1, so the amplitude is 3, the period 2π and the midline y = 1.'],
+    ['tan(x)', 'Here: the asymptotes nearest 0 are at x = -π/2, π/2, and the pattern repeats.'],
+    ['ln(x-2)', 'Here: the inside x - 2 must be > 0, so the domain is x > 2 and the vertical asymptote is x = 2.'],
+    ['(x^2+1)/(x-1)', 'Here: dividing, (x^2 + 1)/(x - 1) = x + 1 + 2/(x - 1), so the slant asymptote is y = x + 1.'],
+    ['(x^2-1)/(x-1)', 'Here: (x^2 - 1)/(x - 1) = x + 1 for x ≠ 1, so there is a hole at (1, 2).'],
+    ['1/(x-2)', 'Here: the denominator is 0 at x = 2 and nothing cancels, so that is a vertical asymptote; the degrees give y = 0.'],
+    ['e^x - 2', 'Here: the horizontal asymptote is y = -2, the range is y > -2, and it crosses the x-axis at x = ln(2).'],
+    ['sqrt(x-2)', 'Here: the radicand is ≥ 0 on the domain, and the graph starts at (2, 0), its minimum there.'],
+    ['x^3 - 3x', 'Here: f′(x) = 3x^2 - 3 is 0 at x = -1, 1, and it changes sign at each: a maximum (-1, 2), a minimum (1, -2).'],
+  ]) {
+    assert.equal((await plainFn(p)).tips[1], here, p);
+  }
+  // sin(x)/x is not a rational function: no "factor the numerator".
+  assert.doesNotMatch((await plainFn('sin(x)/x')).tips[0], /Factor the numerator/);
+  // More than three insights in every family.
+  for (const p of ['x^2 - 4x + 3', 'abs(x-1)', '3cos(x)+1', 'tan(x)', 'ln(x-2)', '1/(x-2)', 'x*e^(-x)', 'e^x - 2', 'sqrt(x-2)', 'x^3 - 3x']) {
+    assert.ok((await plainFn(p)).tips.length > 3, p);
+  }
+});
+
+// Round 27 (outside review of FUNCTIONS.md): four general statements made
+// exact, infinite families given as patterns, and the ranges proved.
+test('functions review: the general statements say where they hold', async () => {
+  const poly = (await plainFn('x^3 - 3x')).tips.join('\n');
+  assert.match(poly, /A root of even multiplicity touches the axis without crossing .*a root of odd multiplicity crosses, even when repeated/);
+  assert.doesNotMatch(poly, /A repeated root touches the axis without crossing/);
+  const abs = (await plainFn('abs(x-1)')).tips.join('\n');
+  assert.match(abs, /\|x\^2\| = x\^2 is smooth at 0/);
+  assert.match(abs, /The rest of the range depends on how large \|g\| gets: \|sin\(x\)\| stays between 0 and 1/);
+  const rational = await plainFn('x/x^2');
+  assert.match(rational.tips[0], /a zero of the simplified denominator is a vertical asymptote \(x\/x\^2 = 1\/x still has one at 0\)/);
+  assert.equal(rational.tips[1], 'Here: x/x^2 = 1/x for x ≠ 0, and the simplified denominator is still 0 there, so that is a vertical asymptote, not a hole.');
+  assert.match((await plainFn('sin(2x)')).tips[0], /period 2π\/\|k\|/);
+  assert.match((await plainFn('tan(x)')).tips[0], /period π\/\|k\|/);
+});
+
+test('functions review: infinitely many features are patterns or labelled as the window', async () => {
+  const sinc = await plainFn('sin(x)/x');
+  assert.match(sinc.answer, /x-intercepts at x = nπ \(n any nonzero integer\)/);
+  assert.match(sinc.answer, /no y-intercept/);
+  assert.match(sinc.answer, /in -10 ≤ x ≤ 10: local maximum ≈ \(-7\.7253, 0\.1284\)/);
+  assert.ok(sinc.steps.includes('y-intercept: none — x = 0 is not in the domain; the graph approaches (0, 1) without containing it.'));
+  // |sin x| listed only x = 0; sin(−2x) fell back to a window list.
+  assert.match((await plainFn('abs(sin(x))')).answer, /range: 0 ≤ y ≤ 1; y-intercept \(0, 0\); x-intercepts at x = nπ; maxima at x = π\/2 \+ nπ \(value 1\), minima at x = nπ \(value 0\), period π/);
+  assert.match((await plainFn('sin(-2x)')).answer, /maxima at x = -π\/4 \+ nπ \(value 1\), minima at x = π\/4 \+ nπ \(value -1\), period π/);
+  assert.match((await plainFn('sin(-2x)')).tips[1], /k = -2 .*the period 2π\/\|-2\| = π/);
+  assert.match((await plainFn('sin(2x)/(x^2-1)')).answer, /x-intercepts at x = nπ\/2;/);
+});
+
+test('functions review: the ranges and asymptotes that follow from the analysis', async () => {
+  for (const [p, part] of [
+    ['abs(x^2-2)', 'range: y ≥ 0'], ['sqrt(4-x^2)', 'range: 0 ≤ y ≤ 2'], ['x*ln(x)', 'range: y ≥ -1/e'],
+    ['x/(x^2+1)', 'range: -1/2 ≤ y ≤ 1/2'], ['x*e^(-x)', 'range: y ≤ 1/e'], ['(x^2-1)/(x^2+1)', 'range: -1 ≤ y < 1'],
+    ['x^2*e^x', 'range: y ≥ 0'], ['sqrt(x^2+1)', 'range: y ≥ 1'],
+    ['e^x - 2', 'horizontal asymptote y = -2 as x → −∞'], ['x*e^(-x)', 'horizontal asymptote y = 0 as x → ∞'],
+  ]) {
+    assert.ok((await plainFn(p)).answer.includes(part), `${p}: ${(await plainFn(p)).answer}`);
+  }
+  assert.match((await plainFn('sqrt(x^2+1)')).answer, /domain: all real numbers/);
+  // x·ln x has its own list: no vertical asymptote at 0.
+  const xlnx = await plainFn('x*ln(x)');
+  assert.match(xlnx.tips[0], /so there is no vertical asymptote at 0, unlike ln\(x\) alone/);
+  assert.equal(xlnx.tips[1], 'Here: f′(x) = 1 + ln(x) is 0 at x = 1/e, the minimum (1/e, -1/e), so the range is y ≥ -1/e.');
+  assert.equal((await plainFn('sqrt(4-x^2)')).tips[1], 'Here: the graph runs from (-2, 0) up to its highest point (0, 2) and down to (2, 0), so the range is 0 ≤ y ≤ 2.');
+});
+
+// Round 28 (second outside review of FUNCTIONS.md).
+test('functions second review: the shared rational mistake, the triple root, k ≠ 0', async () => {
+  for (const p of ['1/(x-2)', '(x^2-1)/(x-1)', 'x/x^2', '(x^2+1)/(x-1)']) {
+    const mistakes = (await plainFn(p)).mistakes.join('\n');
+    assert.doesNotMatch(mistakes, /that is a hole/, p);
+    assert.match(mistakes, /Taking a zero shared by the numerator and the denominator as an x-intercept: the original function is undefined there\. Simplify, then check whether that point is a hole or a vertical asymptote\./, p);
+  }
+  assert.equal((await plainFn('(x-1)^3')).tips[1], 'Here: f′(x) = 3(x - 1)^2 is 0 at x = 1 but does not change sign there, so there is no maximum or minimum, and the graph crosses the x-axis at x = 1.');
+  assert.match((await plainFn('sin(2x)')).tips[0], /\(with k ≠ 0\) have amplitude \|A\|, period 2π\/\|k\|/);
+  assert.match((await plainFn('tan(x)')).tips[0], /period π\/\|k\| \(for k ≠ 0\)/);
+});

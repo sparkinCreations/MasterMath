@@ -37,6 +37,13 @@ const EXTRA = [
   ['limits', 'lim x->infinity -3x^2*cos(x)'], ['limits', 'lim x->1 arcsin(x)'], ['limits', 'lim x->infinity x^(1/x)'],
   ['limits', 'lim x->-infinity x*e^x'], ['limits', 'lim x->-infinity e^x'], ['limits', 'lim x->-infinity ln(x)'], ['limits', 'lim x->infinity sqrt(4x^2)-x'],
   ['limits', 'lim x->-infinity sqrt(x^2+x)-x'], ['limits', 'lim x->infinity x/1.5^x'], ['limits', 'lim x->0 1/x'],
+  // Functions, 1.64.0: every family's lists, worked lines included.
+  ['functions', 'x^2 - 4x + 3'], ['functions', 'abs(x-1)'], ['functions', 'abs(x^2-2)'], ['functions', 'x^(2/3)'], ['functions', '3cos(x)+1'],
+  ['functions', 'sin(2x)'], ['functions', 'tan(x)'], ['functions', 'ln(x-2)'], ['functions', 'x*ln(x)'], ['functions', '(x^2+1)/(x-1)'],
+  ['functions', '(x^2-1)/(x-1)'], ['functions', '1/(x-2)'], ['functions', 'x/(x^2+1)'], ['functions', 'x*e^(-x)'], ['functions', 'e^x - 2'],
+  ['functions', 'sqrt(x-2)'], ['functions', 'sqrt(4-x^2)'], ['functions', 'sin(x)/x'], ['functions', 'x^3 - 3x'], ['functions', 'x^4 - 2x^2'],
+  ['functions', 'x/x^2'], ['functions', 'abs(sin(x))'], ['functions', 'sin(-2x)'], ['functions', '(x-1)^3'], ['functions', 'sqrt(x^2+1)'],
+  ['functions', '(x^2-1)/(x^2+1)'], ['functions', 'x^2*e^x'], ['functions', 'sin(2x)/(x^2-1)'], ['functions', '(x^2-4)/(x-2)^2'],
   // Integrals and functions.
   ['integrals', 'cos(x)'], ['integrals', 'e^x'], ['integrals', '1/x'], ['integrals', '1/(2x+1)'], ['integrals', 'x!'],
   ['integrals', '∫_1^∞ 1/x dx'], ['integrals', '∫_0^1 1/x^2 dx'], ['integrals', '∫_-1^2 1/x^(1/3) dx'], ['integrals', '∫_a^b x dx'],

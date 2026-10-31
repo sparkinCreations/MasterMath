@@ -233,6 +233,36 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 28 (second outside review of the functions content, before 1.64.0 shipped)
+
+A second review of `FUNCTIONS.md` ("conditional approval, one correction"). Reproduced, and the same class swept.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| The shared rational mistake still says a zero shared by numerator and denominator "is a hole" (x/x² keeps an asymptote) | Confirmed | 1.64.0 ("not an x-intercept, since the original is undefined there; simplify, then check hole or vertical asymptote") |
+| Optional: (x − 1)³ should get its own worked line | Agreed | 1.64.0 ("f′(x) = 3(x − 1)² is 0 at x = 1 but does not change sign … the graph crosses the x-axis at x = 1"; f′ factored for that line) |
+| Optional: the period formulas need k ≠ 0 | Agreed | 1.64.0 |
+| Found in the sweep: the limits list said "a cancelled factor is a hole" | Right where it is shown (factor and cancel ends at a finite value), but stated as a rule | 1.64.0 ("when the cancelled form has a finite value at the point") |
+
+## Round 27 (outside review of the functions content, before 1.64.0 shipped)
+
+A content review of `docs/future-work/insights-review/FUNCTIONS.md` ("approve with revisions"). Every claim was reproduced, and the same class swept.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| "A repeated root touches the axis without crossing" is false for odd multiplicity ((x − 1)³) | Confirmed | 1.64.0 (even multiplicity touches, odd crosses even when repeated; a mistake added) |
+| "Where g = 0, \|g\| has a corner and f′ does not exist" is false (\|x²\| = x² is smooth) | Confirmed in the wording (the solver itself classifies corners by the slopes on each side) | 1.64.0 (zeros of g are candidates; a corner where g changes sign with a nonzero slope) |
+| The range rule for a\|g\| + k is too broad (\|sin x\| is [0, 1]) | Confirmed | 1.64.0 (k is the least value when g reaches 0; the rest depends on how large \|g\| gets) |
+| "A factor that cancels is a hole" is false (x/x² = 1/x keeps its asymptote) | Confirmed in the wording; the solver already found the asymptote, but the worked line said "nothing cancels" | 1.64.0 (look at the simplified form at each excluded input; the worked line says x/x² = 1/x and keeps the asymptote) |
+| sin(x)/x shows six intercepts and four extrema as if complete | Confirmed | 1.64.0 (x = nπ, n any nonzero integer, for sin(kx) over a polynomial; extrema not proved complete are labelled "in −10 ≤ x ≤ 10"; "no y-intercept", the graph approaches (0, 1)) |
+| Missing ranges: \|x² − 2\|, √(4 − x²), x·ln x, x/(x² + 1), x·e^(−x); missing one-sided asymptotes of eˣ − 2 and x·e^(−x) | Confirmed (all six) | 1.64.0 (`functions/ranges.js`: a·\|P\| + k, √Q, P/Q with no real poles, P·e^(kx), c·xᵖ·ln x, each from exact critical points and the ends, by the intermediate value theorem; one-sided horizontal asymptotes stated) |
+| x·ln x reuses the logarithm list, which talks about ln x's vertical asymptote | Confirmed | 1.64.0 (its own list: → 0 as x → 0⁺, no asymptote; the product rule; the least value) |
+| Periods 2π/\|k\| and π/\|k\| (sin(−2x)) | Confirmed; and sin(−2x) fell back to window lists | 1.64.0 (the pattern works with \|k\|; the worked line says 2π/\|−2\| = π) |
+| The semicircle's worked line should name both endpoints and the top | Agreed | 1.64.0 |
+| Found in the sweep: \|sin x\| listed only x = 0 as an intercept | Confirmed | 1.64.0 (\|A·sin(kx)\| and \|A·cos(kx)\|: zeros, maxima and the range as patterns) |
+| Found in the sweep: √(x² + 1) said "no restrictions found" | Confirmed | 1.64.0 (a radicand with no real roots and a positive leading coefficient proves the domain) |
+| The rest (quadratics, waves, logarithms, slant asymptotes, rational extrema, critical and inflection points, exact values) | Already right | — |
+
 ## Round 26 (second outside review of the limits content, before 1.63.0 shipped)
 
 A second review of `LIMITS.md` ("approve with two small corrections"). Both reproduced; the sweep the reviewer asked for (domain boundaries, negative infinity, underflow) found one more wrong answer.

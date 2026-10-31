@@ -88,7 +88,7 @@ const LISTS = {
     tips: [
       `For a quotient of polynomials that gives ${mark('0/0')} at ${mark('x = a')}, both have the factor ${mark('(x − a)')}: factor them, cancel it (allowed, since ${mark('x ≠ a')} near the point), then substitute.`,
       'The cancelled form equals the original everywhere except at the point itself — that is exactly what a limit needs.',
-      'On the graph, a cancelled factor is a hole (removable discontinuity), not an asymptote.',
+      'When the cancelled form has a finite value at the point, the graph has a hole there (a removable discontinuity), not an asymptote.',
       `By the Factor Theorem, if a polynomial is ${mark('0')} at ${mark('x = a')}, then ${mark('(x − a)')} is one of its factors: that is the factor to look for.`,
       `If ${mark('0/0')} remains after one cancellation, the factor is repeated: factor and cancel again.`,
     ],

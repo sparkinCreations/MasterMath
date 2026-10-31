@@ -13,11 +13,23 @@ import {
   piForm,
   neverZeroSide,
   exactForm,
+  mark,
 } from '../solverUtils.js';
+import { readPolynomial, allRoots } from '../polynomialRoots.js';
 
 export const WINDOW = { min: -10, max: 10 };
 export const FINE_STEP = 0.05;
 const BIG = 1e6;
+
+// A number as a fraction when it is one (1/2, -5/4), else formatted: a
+// quadratic's vertex and range were 0.5 and -1.25 (1.64.0).
+export function exactNumber(x) {
+  for (let q = 1; q <= 100; q += 1) {
+    const p = Math.round(x * q);
+    if (Math.abs(x - p / q) < 1e-12 * (1 + Math.abs(x))) return q === 1 ? String(p) : `${p}/${q}`;
+  }
+  return formatNumber(x);
+}
 
 // --- numeric primitives ------------------------------------------------------
 
@@ -55,6 +67,109 @@ export function snap(x) {
   return x;
 }
 
+// A root as a textbook writes it: √6/2, not 1/2*√2*√3; 1/√3, not −1/(√3);
+// 1/∜5 for 5^(−1/4).
+const ROOT_SIGN = { 3: '∛', 4: '∜', 5: '⁵√' };
+export function tidyRoot(text) {
+  let t = String(text);
+  for (let i = 0; i < 3; i += 1) t = t.replace(/√(\d+)\*√(\d+)/g, (_, a, b) => `√${Number(a) * Number(b)}`);
+  return t
+    .replace(/(?<![\w.)])1\/(\d+)\*√(\d+)/g, '√$2/$1')
+    .replace(/(?<![\w.)])(\d+)\/(\d+)\*√(\d+)/g, '$1√$3/$2')
+    .replace(/\/\((√\d+)\)/g, '/$1')
+    .replace(/(?<![\w.])(\d+)\^\(-1\/([345])\)/g, (_, b, n) => `1/${ROOT_SIGN[n]}${b}`)
+    .replace(/(?<![\w.])(\d+)\^\(1\/([45])\)/g, (_, b, n) => `${ROOT_SIGN[n]}${b}`)
+    .replace(/(?<![\w.])(\d+)\^\(2\/3\)/g, (_, b) => `∛${Number(b) ** 2}`)
+    .replace(/(\d)\*([√∛∜⁵])/g, '$1$2')
+    .replace(/\/\(([√∛∜]\d+)\)/g, '/$1');
+}
+
+// Algebrite reads ln as an unknown function; log is its natural logarithm.
+export const toAlgebrite = (s) => rewriteReciprocalTrig(String(s)).replace(/(?<![a-z])ln\(/g, 'log(');
+
+// The insides of every abs(…) in f, where its corners can be.
+function absArguments(func) {
+  try {
+    return math.parse(String(func)).filter((n) => n.type === 'FunctionNode' && n.fn?.name === 'abs').map((n) => n.args[0].toString());
+  } catch {
+    return [];
+  }
+}
+
+// The exact number a numeric root x of g stands for, or null: a rational, a
+// multiple of π, (a ± √m)/q, ln of a rational, ±(p/q)^(1/n). A candidate is
+// accepted only when Algebrite substitutes it into g and gets exactly 0, so a
+// near miss is never printed as exact (e^x − 2 = 0 at "x = 0.6931" is ln 2;
+// 1.64.0).
+export function recognizeExact(Algebrite, g, variable, x) {
+  if (!Algebrite || !g || !Number.isFinite(x)) return null;
+  const close = (a, b) => Math.abs(a - b) < 1e-7 * (1 + Math.abs(b));
+  const cands = [];
+  const ratio = (value, max = 12) => {
+    for (let q = 1; q <= max; q += 1) {
+      const p = Math.round(value * q);
+      if (close(value, p / q)) return { p, q };
+    }
+    return null;
+  };
+  const r = ratio(x);
+  if (r) cands.push(r.q === 1 ? String(r.p) : `${r.p}/${r.q}`);
+  const pi = ratio(x / Math.PI);
+  if (pi && pi.p !== 0) cands.push(`${pi.p}*pi/${pi.q}`);
+  for (let q = 1; q <= 4; q += 1) {
+    for (let a = -12; a <= 12; a += 1) {
+      const d = x * q - a;
+      const m = Math.round(d * d);
+      if (m > 1 && m <= 300 && !Number.isInteger(Math.sqrt(m)) && close(Math.abs(d), Math.sqrt(m))) {
+        // Shown as written: 1 + √6/2, (1 + √5)/2, 3 − √2.
+        const sign = d < 0 ? '−' : '+';
+        const surd = q === 1 ? `√${m}` : `√${m}/${q}`;
+        const display = a === 0 ? `${d < 0 ? '-' : ''}${surd}`
+          : q === 1 || a % q === 0 ? `${a / q} ${sign} ${surd}`
+            : `(${a} ${sign} √${m})/${q}`;
+        cands.push({ cand: `(${a}${d < 0 ? '-' : '+'}${m}^(1/2))/${q}`, display: display.replace(/ − /g, ' - ') });
+      }
+    }
+  }
+  if (x > 0) {
+    const lg = ratio(Math.log(x));
+    if (lg && lg.p !== 0) cands.push(`exp(${lg.p}/${lg.q})`);
+  }
+  const ex = ratio(Math.exp(x));
+  if (ex && ex.p > 0 && ex.p !== ex.q) cands.push(`log(${ex.p}/${ex.q})`);
+  for (const n of [3, 4, 5]) {
+    const pw = ratio(Math.abs(x) ** n);
+    if (pw && pw.p > 0) cands.push(`${x < 0 ? '-' : ''}(${pw.p}/${pw.q})^(1/${n})`);
+  }
+  const target = toAlgebrite(g);
+  // A cheap numeric screen first: the candidate's value must match x and
+  // make g vanish to near double precision before Algebrite is asked (each
+  // exact substitution into a transcendental g can take a second).
+  const screen = (cand) => {
+    try {
+      const value = Number(math.evaluate(cand.replace(/(?<![a-z])log\(/g, 'log(')));
+      if (!Number.isFinite(value) || !close(value, x)) return false;
+      const y = evalAt(String(g).replace(/(?<![a-z])log\(/g, 'log('), variable, value);
+      // The size of g nearby, from whichever side it is defined on (√(x − 2)
+      // is undefined left of its root).
+      const scale = [1e-3, -1e-3].map((h) => Math.abs(evalAt(String(g).replace(/(?<![a-z])log\(/g, 'log('), variable, value + h))).filter(Number.isFinite).reduce((a, b) => a + b, 0);
+      return Number.isFinite(y) && Math.abs(y) < 1e-9 * Math.max(1, scale);
+    } catch {
+      return false;
+    }
+  };
+  for (const entry of cands.map((c) => (typeof c === 'string' ? { cand: c } : c)).filter((c) => screen(c.cand)).slice(0, 4)) {
+    try {
+      if (String(Algebrite.run(`simplify(subst(${entry.cand}, ${variable}, ${target}))`)).trim() !== '0') continue;
+      const raw = String(Algebrite.run(`simplify(${entry.cand})`)).trim();
+      const check = math.evaluate(raw.replace(/(?<![a-z])log\(/g, 'log(').replace(/\bpi\b/g, 'pi'));
+      if (typeof check !== 'number' || !close(check, x)) continue;
+      return { raw: entry.cand, display: entry.display ?? tidyRoot(exactForm(raw)) };
+    } catch { /* next candidate */ }
+  }
+  return null;
+}
+
 // Parse an Algebrite bracketed root list into {display, numeric} pairs.
 function parseRoots(raw) {
   const inner = String(raw).trim().replace(/^\[|\]$/g, '');
@@ -75,7 +190,7 @@ function parseRoots(raw) {
       numeric = typeof v === 'number' ? v : NaN;
     } catch { numeric = NaN; }
     // Algebrite's 3^(1/2) is shown as √3 (x-intercepts at x = -√3, 0, √3).
-    return { raw: p.trim(), display: beautify(p.trim()).replace(/(\d+)\^\(1\/2\)/g, '√$1').replace(/(\d+)\^\(1\/3\)/g, '∛$1'), numeric };
+    return { raw: p.trim(), display: tidyRoot(beautify(p.trim()).replace(/(\d+)\^\(1\/2\)/g, '√$1').replace(/(\d+)\^\(1\/3\)/g, '∛$1')), numeric };
   }).filter((r) => Number.isFinite(r.numeric)); // real roots only
 }
 
@@ -142,7 +257,27 @@ export function findHoles(func, variable, domain, verticalAsymptotes, Algebrite)
         if (s && !/nil|stop|error/i.test(s) && s.replace(/\s/g, '') !== func.replace(/\s/g, '')) simplified = s;
       } catch { /* optional */ }
     }
-    holes.push({ x: snap(c), y, simplified });
+    // Its height exactly, from the simplified form: (−1, −3/2), not −1.5.
+    let yText = null;
+    if (Algebrite && simplified) {
+      try {
+        const at = String(Algebrite.run(`simplify(subst(${snap(c)}, ${variable}, ${simplified}))`)).trim();
+        if (/^-?\d+(?:\/\d+)?$/.test(at) && Math.abs(Number(math.evaluate(at)) - y) < 1e-6) yText = at;
+      } catch { /* the decimal stays */ }
+    }
+    // P/Q with P(c) = Q(c) = 0: the height is P′(c)/Q′(c) when Q′(c) ≠ 0.
+    if (Algebrite && !yText) {
+      try {
+        let top = math.parse(String(func));
+        while (top.type === 'ParenthesisNode') top = top.content;
+        if (top.type === 'OperatorNode' && top.op === '/') {
+          const [p, q] = top.args.map((n) => toAlgebrite(n.toString()));
+          const at = String(Algebrite.run(`simplify(subst(${snap(c)}, ${variable}, d(${p}, ${variable})/d(${q}, ${variable})))`)).trim();
+          if (/^-?\d+(?:\/\d+)?$/.test(at) && Math.abs(Number(math.evaluate(at)) - y) < 1e-6) yText = at;
+        }
+      } catch { /* the decimal stays */ }
+    }
+    holes.push({ x: snap(c), y, simplified, yText });
   }
   return holes;
 }
@@ -228,8 +363,24 @@ export function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
     const r = evalAt(func, variable, numeric + 1e-3);
     if (!(Number.isFinite(l) && Math.abs(l) > Math.abs(y)) && !(Number.isFinite(r) && Math.abs(r) > Math.abs(y))) return;
     if (found.some((r2) => Math.abs(r2.numeric - numeric) < 1e-6)) return;
-    found.push({ numeric: snap(numeric), display: display ?? formatNumber(snap(numeric)) });
+    if (display) { found.push({ numeric: snap(numeric), display }); return; }
+    // A root located numerically is exact only when proved so; else ≈.
+    const exact = recognizeExact(Algebrite, func, variable, numeric);
+    found.push(exact ? { numeric: snap(numeric), display: exact.display } : { numeric: snap(numeric), display: formatNumber(snap(numeric)), approx: true });
   };
+
+  // A polynomial: every real root, from the exact root finder (Sturm
+  // counting), so a repeated root is never missed: (x² − 3)² touches at ±√3
+  // and was given "no x-intercepts", beside minima at (±√3, 0) (1.64.0).
+  const poly = readPolynomial(String(func), variable);
+  if (poly && !poly.tooHigh && poly.degree >= 1) {
+    for (const r of allRoots(poly).real) {
+      if (r.value < WINDOW.min || r.value > WINDOW.max) continue;
+      const display = r.exact ? (r.exact.d === 1n ? String(r.exact.m) : `${r.exact.m}/${r.exact.d}`) : recognizeExact(Algebrite, func, variable, r.value)?.display;
+      if (display) push(r.value, display);
+      else push(r.value);
+    }
+  }
 
   // Symbolic roots first (exact displays like 1/3^(1/2)).
   if (Algebrite) {
@@ -267,6 +418,19 @@ export function findXIntercepts(func, variable, grid, Algebrite, isPeriodic) {
     if (Math.sign(a.y) !== Math.sign(b.y)) {
       const root = bisect((x) => evalAt(func, variable, x), a.x, b.x);
       if (root !== null) push(root);
+    }
+  }
+
+  // The roots of an absolute value's inside: |x² − 2| touches the axis at
+  // ±√2 without changing sign, between grid points, and was given "no
+  // x-intercepts" (1.64.0).
+  if (Algebrite) {
+    for (const g of absArguments(func)) {
+      try {
+        for (const r of parseRoots(Algebrite.roots(toAlgebrite(g), variable).toString())) {
+          if (r.numeric >= WINDOW.min && r.numeric <= WINDOW.max) push(r.numeric, r.display);
+        }
+      } catch { /* not a polynomial inside */ }
     }
   }
 
@@ -344,15 +508,25 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
     const nearPi = Math.round((sx * 12) / Math.PI) * (Math.PI / 12);
     const inPi = !root && isPeriodic && Math.abs(sx - nearPi) < 1e-6 ? piForm(nearPi) : null;
     const piRaw = inPi && /π/.test(inPi) ? inPi.replace(/(\d)π/g, '$1*pi').replace(/π/g, 'pi') : null;
-    const raw = root?.raw ?? piRaw ?? (Number.isInteger(sx * 4) ? String(sx) : null);
+    // Otherwise a numeric critical point is exact only when proved a root of
+    // f′ (x·ln(x) has its minimum at 1/e; it was 0.3679).
+    // A corner or cusp is a root of an absolute value's inside, or of 1/f′
+    // (x^(2/3): 1/f′ = (3/2)x^(1/3) is 0 at 0).
+    const origin = extremumOrigin(func, variable, x);
+    const recognised = root || piRaw || !derivativeStr ? null : origin === 'cusp'
+      ? [...absArguments(func), `1/(${derivativeStr})`].reduce((hit, g) => hit ?? recognizeExact(Algebrite, g, variable, x), null)
+      : recognizeExact(Algebrite, derivativeStr, variable, x);
+    const raw = root?.raw ?? piRaw ?? recognised?.raw ?? null;
     const exact = raw ? exactValueAt(Algebrite, func, variable, raw, y) : null;
+    const exactY = exact ?? (raw && Number.isInteger(snap(y) * 4) && Math.abs(snap(y) - y) < 1e-12 ? formatNumber(snap(y)) : null);
     extrema.push({
       x: sx,
       y: snap(y),
       kind,
-      origin: extremumOrigin(func, variable, x),
-      xText: root?.display ?? (piRaw ? inPi : formatNumber(sx)),
-      yText: exact ?? formatNumber(snap(y)),
+      origin,
+      xText: root?.display ?? (piRaw ? inPi : recognised?.display ?? formatNumber(sx)),
+      yText: exactY ?? formatNumber(snap(y)),
+      approx: !raw,
     });
   };
 
@@ -360,11 +534,18 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
   const stationary = [];
   if (Algebrite) {
     try {
-      derivativeStr = Algebrite.derivative(rewriteReciprocalTrig(func), variable).toString();
+      derivativeStr = Algebrite.derivative(toAlgebrite(func), variable).toString();
     } catch { derivativeStr = null; }
     try {
       // Symbolic critical points when f' is polynomial-rootable.
-      for (const r of parseRoots(Algebrite.roots(derivativeStr, variable).toString())) {
+      // A rational f′ has the roots of its numerator: (x² + 1)/(x − 1) has
+      // f′ = (x² − 2x − 1)/(x − 1)², so x = 1 ± √2 exactly (it was ±0.4142).
+      const numerator = String(Algebrite.run(`numerator(${derivativeStr})`)).trim();
+      for (const r of parseRoots(Algebrite.roots(numerator || derivativeStr, variable).toString())) {
+        // A root of the numerator is a zero of f′ only where f′ is defined:
+        // (x² − 1)/(x − 1) has f′ = (x − 1)²/(x − 1)², and "1 = 0 at x = 1".
+        const slope = evalAt(derivativeStr, variable, r.numeric);
+        if (!Number.isFinite(slope) || Math.abs(slope) > 1e-6) continue;
         if (r.numeric >= WINDOW.min && r.numeric <= WINDOW.max) {
           stationary.push(r);
           classify(r.numeric, r);
@@ -408,16 +589,35 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
   extrema.sort((a, b) => Math.abs(a.x) - Math.abs(b.x) || a.x - b.x);
   // f′ as the page shows it: ln, e^x and √ for Algebrite's log, exp and
   // ^(1/2), and (x − 2)^2 without its extra brackets.
-  const derivative = derivativeStr ? exactForm(derivativeStr).replace(/\(\(([^()]+)\)\^(\d+|\([^()]+\))\)/g, '($1)^$2') : null;
+  // Shown simplified: (x² − 2x − 1)/(x − 1)², not three fractions.
+  let derivativeShown = derivativeStr;
+  try {
+    const simpler = derivativeStr ? String(Algebrite.run(`simplify(${derivativeStr})`)).trim() : null;
+    if (simpler && !/nil|Stop/.test(simpler) && simpler.length < derivativeStr.length) derivativeShown = simpler;
+  } catch { /* keep it as differentiated */ }
+  const derivative = derivativeShown ? exactForm(derivativeShown).replace(/\(\(([^()]+)\)\^(\d+|\([^()]+\))\)/g, '($1)^$2') : null;
   // "f′ is never 0" is a claim about every x: proved from the structure of
   // f′ (a fraction with a nonzero numerator, a positive base to a power) or
   // not made at all. Also the lone extremum message for 1/(x − 2), which
   // used to be "No local extrema found in the analyzed window".
   let derivativeNeverZero = null;
   if (derivativeStr && extrema.length === 0 && stationary.length === 0) {
-    try { derivativeNeverZero = neverZeroSide(derivativeStr.replace(/(?<![a-z])log\(/g, 'log('), '0', variable); } catch { derivativeNeverZero = null; }
+    // The simplified f′ ((x² − 1)/(x − 1) has f′ = 1, a constant).
+    const constant = (() => { try { const c = Number(math.evaluate(derivativeShown)); return Number.isFinite(c) && c !== 0 ? c : null; } catch { return null; } })();
+    if (constant !== null) derivativeNeverZero = { why: `it is the constant ${formatNumber(constant)}` };
+    else
+    try { derivativeNeverZero = neverZeroSide(derivativeShown.replace(/(?<![a-z])log\(/g, 'log('), '0', variable) ?? neverZeroSide(derivativeStr.replace(/(?<![a-z])log\(/g, 'log('), '0', variable); } catch { derivativeNeverZero = null; }
   }
-  return { extrema: extrema.slice(0, keep).sort((a, b) => a.x - b.x), monotonic, derivative, stationary: stationary.slice(0, keep), derivativeNeverZero };
+  // f′ factored, for the line that says why a zero of f′ is no extremum:
+  // 3(x − 1)^2, not 3x^2 − 6x + 3.
+  let derivativeFactored = null;
+  try {
+    if (derivativeShown && readPolynomial(derivativeShown, variable)) {
+      const fac = String(Algebrite.run(`factor(${derivativeShown})`)).trim();
+      if (fac && !/nil|Stop/.test(fac) && /\(/.test(fac)) derivativeFactored = exactForm(fac).replace(/\*/g, '');
+    }
+  } catch { derivativeFactored = null; }
+  return { extrema: extrema.slice(0, keep).sort((a, b) => a.x - b.x), monotonic, derivative, derivativeFactored, stationary: stationary.slice(0, keep), derivativeNeverZero };
 }
 
 // f(x) at an exact x, by substitution, shown as a textbook writes it (1/e,
@@ -429,7 +629,7 @@ export function exactValueAt(Algebrite, func, variable, raw, numericY) {
     if (!value || /nil|Stop|\bi\b|\(-1\)\^/.test(value)) return null;
     const check = math.evaluate(value.replace(/(?<![a-z])log\(/g, 'log(').replace(/\bexp\(/g, 'exp('));
     if (typeof check !== 'number' || !Number.isFinite(check) || Math.abs(check - numericY) > 1e-6 * (1 + Math.abs(numericY))) return null;
-    const shown = exactForm(value);
+    const shown = tidyRoot(exactForm(value));
     // A plain decimal is no better than the formatted number.
     return /^-?\d+(?:\.\d+)?$/.test(shown) ? null : shown;
   } catch {
@@ -440,7 +640,7 @@ export function exactValueAt(Algebrite, func, variable, raw, numericY) {
 export function findInflections(func, variable, Algebrite) {
   if (!Algebrite) return [];
   try {
-    const f1 = Algebrite.derivative(rewriteReciprocalTrig(func), variable).toString();
+    const f1 = Algebrite.derivative(toAlgebrite(func), variable).toString();
     const f2 = Algebrite.derivative(f1, variable).toString();
     const out = [];
     for (const r of parseRoots(Algebrite.roots(f2, variable).toString())) {
@@ -472,4 +672,220 @@ export function findHorizontalAsymptote(func, variable) {
   if (right !== null && left !== null && Math.abs(right - left) < 1e-9) return right;
   if (right !== null || left !== null) return { left, right };
   return null;
+}
+
+// --- whole-line patterns and proofs (1.64.0) -----------------------------------
+
+// A rational multiple of π as text (π/18, -2π/3), or null.
+function piText(x) {
+  if (Math.abs(x) < 1e-12) return '0';
+  for (let q = 1; q <= 72; q += 1) {
+    const p = Math.round((x / Math.PI) * q);
+    if (p !== 0 && Math.abs(x - (p * Math.PI) / q) < 1e-10) {
+      const g = (a, b) => (b ? g(b, a % b) : a);
+      const r = g(Math.abs(p), q);
+      const [pp, qq] = [p / r, q / r];
+      return `${pp < 0 ? '-' : ''}${Math.abs(pp) === 1 ? '' : Math.abs(pp)}π${qq === 1 ? '' : `/${qq}`}`;
+    }
+  }
+  return null;
+}
+
+// The step n·(step/k) of a family of solutions: "2πn", "nπ", "2nπ/3".
+function stepOf(step, k) {
+  const t = piText(step / k);
+  if (!t) return `${formatNumber(step / k)}n`;
+  const m = t.match(/^(\d*)π(?:\/(\d+))?$/);
+  if (!m) return `${t}·n`;
+  if (!m[2]) return m[1] ? `${m[1]}πn` : 'nπ';
+  return `${m[1]}nπ/${m[2]}`;
+}
+
+// "x = π/4 + nπ": the family θ/k + n·(step/k). θ is a number, or a symbol
+// ("±arccos(-1/3)") when it is not a rational multiple of π.
+function family(theta, k, step = 2 * Math.PI) {
+  const stepText = stepOf(step, k);
+  if (typeof theta === 'string') return k === 1 ? `${theta} + ${stepText}` : `(${theta} + ${stepOf(step, 1)})/${formatNumber(k)}`;
+  const base = piText(theta / k);
+  if (base === null) return null;
+  return base === '0' ? stepText : `${base} + ${stepText}`;
+}
+
+// A·sin(kx) + d or A·cos(kx) + d: every intercept and extremum as a pattern
+// in n. 3cos(x) + 1 listed six window decimals as "the" x-intercepts, while
+// its own tips called that a common mistake (1.64.0).
+export function wavePattern(func, v) {
+  const t = String(func).replace(/\s+/g, '');
+  const m = t.match(/^(-?(?:\d+(?:\.\d+)?|\d+\/\d+)?\*?|-)?(sin|cos)\(([^()]+)\)([+-](?:\d+(?:\.\d+)?|\d+\/\d+))?$/);
+  if (!m) return null;
+  const typedCoef = m[1] === undefined || m[1] === '' ? 1 : m[1] === '-' ? -1 : Number(math.evaluate(m[1].replace(/\*$/, '')));
+  let coef = typedCoef;
+  const d = m[4] ? Number(math.evaluate(m[4])) : 0;
+  let k;
+  const fn = m[2];
+  try {
+    const at = (x) => Number(math.evaluate(m[3], { [v]: x }));
+    k = at(1);
+    if (!(Number.isFinite(k) && k !== 0 && at(0) === 0 && Math.abs(at(2) - 2 * k) < 1e-12)) return null;
+  } catch { return null; }
+  // sin(−2x) = −sin(2x), cos(−2x) = cos(2x): worked with |k| (sin(−2x) fell
+  // back to a window list; 1.64.0 review).
+  if (k < 0) { k = -k; if (fn === 'sin') coef = -coef; }
+  if (!Number.isFinite(coef) || coef === 0) return null;
+  const c = -d / coef;
+  const top = { sin: Math.PI / 2, cos: 0 }[fn];
+  const bottom = { sin: -Math.PI / 2, cos: Math.PI }[fn];
+  const [maxAt, minAt] = coef > 0 ? [top, bottom] : [bottom, top];
+  const out = {
+    fn, coef, k, d, typedCoef, arg: beautify(m[3]),
+    period: piForm(2 * Math.PI / k) ?? formatNumber(2 * Math.PI / k),
+    maxima: { x: family(maxAt, k), y: formatNumber(d + Math.abs(coef)) },
+    minima: { x: family(minAt, k), y: formatNumber(d - Math.abs(coef)) },
+  };
+  const exactC = (() => { for (let q = 1; q <= 12; q += 1) { const p = Math.round(c * q); if (Math.abs(c - p / q) < 1e-12) return q === 1 ? String(p) : `${p}/${q}`; } return formatNumber(c); })();
+  out.equation = `${fn}(${beautify(m[3])}) = ${exactC}`;
+  if (Math.abs(c) > 1 + 1e-12) out.intercepts = { none: true };
+  else if (Math.abs(c) < 1e-12) out.intercepts = { text: family(fn === 'sin' ? 0 : Math.PI / 2, k, Math.PI) };
+  else if (Math.abs(Math.abs(c) - 1) < 1e-12) out.intercepts = { text: family(c > 0 ? top : bottom, k), touches: true };
+  else {
+    const inv = fn === 'sin' ? Math.asin(c) : Math.acos(c);
+    const named = piText(inv);
+    if (fn === 'cos') {
+      out.intercepts = named
+        ? { text: `±${family(inv, k)}` }
+        : { text: family(`±arccos(${exactC})`, k), approxText: `±${formatNumber(inv / k)} + ${stepOf(2 * Math.PI, k)}` };
+    } else {
+      const second = Math.PI - inv;
+      out.intercepts = named
+        ? { text: `${family(inv, k)} or ${family(second, k)}` }
+        : { text: `${family(`arcsin(${exactC})`, k)} or ${family(`π − arcsin(${exactC})`, k)}` };
+    }
+  }
+  if (!out.maxima.x || !out.minima.x || (out.intercepts.text === null)) return null;
+  return out;
+}
+
+// A quotient of polynomials P/Q: no real root of Q proves the domain is all
+// real numbers (x/(x² + 1) said "no restrictions found"), and deg P = deg Q
+// + 1 gives a slant asymptote, the quotient of the division (1.64.0).
+export function rationalFacts(func, variable, Algebrite) {
+  if (!Algebrite || !/\//.test(String(func))) return null;
+  try {
+    const run = (cmd) => { const out = String(Algebrite.run(cmd)).trim(); return /nil|Stop|error/i.test(out) ? null : out; };
+    const target = toAlgebrite(func);
+    // Numerator and denominator as typed (Algebrite's numerator() cancels
+    // first, and (x³ − x)/(x² − 1) came back as x over 1).
+    let top;
+    try { top = math.parse(String(func)); } catch { return null; }
+    while (top.type === 'ParenthesisNode') top = top.content;
+    if (!(top.type === 'OperatorNode' && top.op === '/')) return null;
+    const bare = (n) => (n.type === 'ParenthesisNode' ? bare(n.content) : n);
+    const num = bare(top.args[0]).toString();
+    const den = bare(top.args[1]).toString();
+    if (!num || !den || !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(den)) return null;
+    const P = readPolynomial(num, variable);
+    const Q = readPolynomial(den, variable);
+    if (!P || !Q || P.tooHigh || Q.tooHigh || Q.degree < 1) return null;
+    const facts = { num, den };
+    // No real root of the original denominator: nothing is excluded.
+    if (allRoots(Q).real.length === 0) facts.noRealPoles = true;
+    // The slant asymptote of the reduced form: (x² − 1)/(x − 1) is the line
+    // x + 1 with a hole, and has no asymptote at all.
+    const reduced = run(`simplify(${target})`);
+    // The cancelled form, when a factor cancels without leaving a hole
+    // (x/x² = 1/x): said so in the worked line.
+    if (reduced && beautify(reduced).replace(/\s+/g, '') !== beautify(func).replace(/\s+/g, '')) facts.reduced = beautify(reduced);
+    const rNum = reduced && run(`numerator(${reduced})`);
+    const rDen = reduced && run(`denominator(${reduced})`);
+    const RP = rNum && readPolynomial(rNum, variable);
+    const RQ = rDen && readPolynomial(rDen, variable);
+    if (RP && RQ && !RP.tooHigh && !RQ.tooHigh && RQ.degree >= 1 && RP.degree === RQ.degree + 1) {
+      const q = run(`quotient(${rNum}, ${rDen}, ${variable})`);
+      const r = q && run(`simplify((${rNum}) - (${rDen})*(${q}))`);
+      if (q && r && r !== '0') facts.slant = { line: beautify(q), remainder: beautify(r), den: beautify(rDen) };
+    }
+    return facts;
+  } catch {
+    return null;
+  }
+}
+
+// The range of a polynomial of degree 3 or more, proved: an odd degree takes
+// every value; an even degree reaches its least (or greatest) value at a
+// critical point, and every real root of f′ is found exactly, or nothing is
+// said (1.64.0).
+export function polynomialRange(func, variable, Algebrite) {
+  const P = readPolynomial(String(func), variable);
+  if (!P || P.tooHigh || P.degree < 3) return null;
+  if (P.degree % 2 === 1) {
+    return { text: 'all real numbers', why: `an odd-degree polynomial goes to ${mark('−∞')} at one end and ${mark('+∞')} at the other, and it is continuous, so it takes every value in between.` };
+  }
+  const lead = Number(P.coefficients[P.degree]);
+  const dP = { coefficients: P.coefficients.slice(1).map((c, i) => c.mul(i + 1)), degree: P.degree - 1 };
+  const roots = allRoots(dP).real;
+  if (!roots.length) return null;
+  // An irrational critical point counts when its exact form is proved (x⁴ −
+  // x² has its minima at ±√2/2, value −1/4).
+  let derivative = null;
+  try { derivative = Algebrite ? String(Algebrite.run(`d(${func}, ${variable})`)).trim() : null; } catch { derivative = null; }
+  const raws = roots.map((r) => (r.exact ? `${r.exact.m}/${r.exact.d}` : recognizeExact(Algebrite, derivative, variable, r.value)?.raw ?? null));
+  if (raws.some((raw) => raw === null)) return null;
+  const values = roots.map((r, i) => {
+    const raw = raws[i];
+    const y = evalAt(func, variable, r.value);
+    let plain = null;
+    try {
+      const at = String(Algebrite.run(`simplify(subst(${raw}, ${variable}, ${toAlgebrite(func)}))`)).trim();
+      if (/^-?\d+(?:\/\d+)?$/.test(at)) plain = at;
+    } catch { plain = null; }
+    return { y, text: plain ?? exactValueAt(Algebrite, func, variable, raw, y) };
+  });
+  if (values.some((v) => v.text === null || !Number.isFinite(v.y))) return null;
+  const best = values.reduce((a, b) => (lead > 0 ? (b.y < a.y ? b : a) : (b.y > a.y ? b : a)));
+  return lead > 0
+    ? { text: `y ≥ ${best.text}`, why: `an even-degree polynomial with a positive leading coefficient rises at both ends, so its least value is at a critical point; the real roots of ${mark('f′')} are all found, and the lowest value there is ${mark(best.text)}.` }
+    : { text: `y ≤ ${best.text}`, why: `an even-degree polynomial with a negative leading coefficient falls at both ends, so its greatest value is at a critical point; the real roots of ${mark('f′')} are all found, and the highest value there is ${mark(best.text)}.` };
+}
+
+// |A·sin(kx)| and |A·cos(kx)|: the zeros of the inside, as a pattern, are the
+// minima (corners on the axis); the maxima are where the inside is ±A, every
+// half period. |sin(x)| listed only x = 0 as an intercept (1.64.0 review).
+export function absWavePattern(func, v) {
+  const t = String(func).replace(/\s+/g, '');
+  const m = t.match(/^abs\((.+)\)$/);
+  if (!m) return null;
+  const w = wavePattern(m[1], v);
+  if (!w || w.d !== 0) return null;
+  const top = { sin: Math.PI / 2, cos: 0 }[w.fn];
+  const zero = { sin: 0, cos: Math.PI / 2 }[w.fn];
+  const A = formatNumber(Math.abs(w.coef));
+  return {
+    inside: beautify(m[1]),
+    period: piText(Math.PI / w.k) ?? formatNumber(Math.PI / w.k),
+    zeros: family(zero, w.k, Math.PI),
+    maxima: { x: family(top, w.k, Math.PI), y: A },
+    range: { text: `0 ≤ y ≤ ${A}`, why: `${mark(`|${beautify(m[1])}|`)} is ${mark('0')} where the inside is ${mark('0')} and at most ${mark(A)}, where ${w.fn} is ${mark('±1')}.` },
+  };
+}
+
+// sin(kx)/D(x) with D a polynomial: the zeros are the sine's, except where D
+// is 0 too. sin(x)/x listed six window values; its zeros are nπ, n ≠ 0.
+export function quotientWaveZeros(func, v) {
+  let top;
+  try { top = math.parse(String(func)); } catch { return null; }
+  while (top.type === 'ParenthesisNode') top = top.content;
+  if (!(top.type === 'OperatorNode' && top.op === '/')) return null;
+  const bare = (n) => (n.type === 'ParenthesisNode' ? bare(n.content) : n);
+  const w = wavePattern(bare(top.args[0]).toString(), v);
+  const D = readPolynomial(bare(top.args[1]).toString(), v);
+  if (!w || w.d !== 0 || w.fn !== 'sin' || !D || D.tooHigh || D.degree < 1) return null;
+  const roots = allRoots(D).real;
+  // A root of D that is also a zero of sin(kx) (x = nπ/k) is excluded; the
+  // others (x = ±1 for sin(2x)/(x² − 1)) are poles, not on the pattern.
+  const n = roots.map((r) => (r.value * w.k) / Math.PI).filter((q) => Math.abs(q - Math.round(q)) < 1e-12);
+  const excluded = [...new Set(n.map((q) => Math.round(q)))].sort((a, b) => a - b);
+  const pattern = family(0, w.k, Math.PI);
+  if (!excluded.length) return { text: pattern };
+  const which = excluded.length === 1 && excluded[0] === 0 ? 'any nonzero integer' : `any integer except ${excluded.join(', ')}`;
+  return { text: pattern, which };
 }

@@ -48,20 +48,21 @@ test('trig values: sec warns about sec, a π input gets no degree warning, no li
 });
 
 test('functions: corners and cusps, products with an exponential, sine curves, non-polynomials', async () => {
+  // 1.64.0 reworded these lists (ranked, with a worked line); the facts stay.
   const corner = await guidance('abs(x)', 'functions');
-  assert.match(corner.all, /A corner or cusp is a critical point where f′\(x\) does not exist/);
+  assert.match(corner.all, /Critical points are where f′ = 0 OR where f′ does not exist/);
   assert.match(corner.all, /An absolute value is piecewise/);
   assert.doesNotMatch(corner.all, /leading term decides the ends|polynomial of degree/);
   const cusp = await guidance('x^(2/3)', 'functions');
   assert.match(cusp.all, /x\^\(2\/3\) = \(∛x\)²: the odd root first/);
   const bump = await guidance('x*e^(-x)', 'functions');
-  assert.match(bump.all, /the zeros of the product are the zeros of the other factor/);
+  assert.match(bump.all, /the zeros of a product with it are the zeros of the other factor/);
   assert.doesNotMatch(bump.all, /Giving e\^x an x-intercept/);
   // A pure exponential keeps the exponential list.
   assert.match((await guidance('e^x', 'functions')).all, /Giving e\^x an x-intercept: e\^x = 0 has no solution/);
   assert.match((await guidance('e^(-x^2)', 'functions')).all, /passes through \(0, 1\)/);
   const sine = await guidance('sin(2x)', 'functions');
-  assert.match(sine.all, /sin and cos stay between −1 and 1/);
+  assert.match(sine.all, /The range is the midline plus or minus the amplitude/);
   assert.doesNotMatch(sine.all, /tan\(x\) has a vertical asymptote|period of tan/);
   assert.match((await guidance('tan(x)', 'functions')).all, /tan\(x\) and sec\(x\) have a vertical asymptote/);
   const notPolynomial = await guidance('sin(x^2)', 'functions');
