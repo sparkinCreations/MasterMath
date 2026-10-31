@@ -80,17 +80,19 @@ test('integrals: the method the steps used', async () => {
   assert.match((await guidance('(x+1)/(x^2+1)', 'integrals')).all, /splits in two: the part that is the denominator's derivative integrates to a logarithm, the constant part to an arctan/);
   const divide = await guidance('(x^4+1)/(x^2+1)', 'integrals');
   assert.match(divide.all, /divide first: the quotient integrates term by term/);
-  assert.match((await guidance('1/(x^3 + x)', 'integrals')).all, /a linear factor gives a logarithm, an irreducible quadratic a logarithm and an arctan, a repeated factor a power/);
+  assert.match((await guidance('1/(x^3 + x)', 'integrals')).all, /a linear factor gives a logarithm, an irreducible quadratic a logarithm, an arctan or both \(depending on its numerator\), and a repeated factor one term per power/);
   assert.doesNotMatch((await guidance('1/((x^2+1)^2)', 'integrals')).all, /splits in two/);
 });
 
 test('equations: power, no solution, located root, identity and contradiction, LCD, squares', async () => {
   const power = await guidance('x^(2/3) = 4', 'algebra');
-  assert.match(power.all, /raise both sides to the reciprocal exponent/);
+  // 1.62.0: taught through the root (an outside review), in lowest terms.
+  assert.match(power.all, /Read x\^\(p\/q\) as a root, then a power, with p\/q in lowest terms/);
   assert.doesNotMatch(power.all, /Undo the operations in reverse order/);
   const never = await guidance('1/x = 0', 'algebra');
-  assert.match(never.all, /An equation has no solution when one side can never take the other's value/);
-  assert.match((await guidance('e^x = -2', 'algebra')).all, /Taking a logarithm of a negative number to "solve" e\^x = −2/);
+  // 1.62.0: the no-solution lists say why first (a fraction's numerator).
+  assert.match(never.all, /A fraction is 0 only when its numerator is/);
+  assert.match((await guidance('e^x = -2', 'algebra')).all, /Taking a logarithm of a negative number to "solve" it/);
   assert.doesNotMatch((await guidance('e^x = -2', 'algebra')).all, /is solved by taking a logarithm of both sides/);
   // Clearing denominators keeps its own guidance.
   assert.match((await guidance('x/(x-1) = 1', 'algebra')).all, /Clear the denominators by multiplying both sides by them/);

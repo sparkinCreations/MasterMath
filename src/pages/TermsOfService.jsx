@@ -15,7 +15,7 @@ export default function TermsOfService() {
           Terms of Service
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Last Updated: October 28, 2026
+          Last Updated: October 29, 2026
         </p>
       </div>
 
@@ -319,6 +319,19 @@ export default function TermsOfService() {
                 Privacy Policy
               </Link>
               .
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">
+              Links to Other Websites
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              A solution may link to lessons on other websites ("Learn more") and to the source of
+              an insight. Those websites are not part of MasterMath and have their own terms and
+              privacy policies; we do not control their content and are not responsible for it.
+              The links open in a new tab. MasterMath sends those websites nothing of yours; a
+              website you open sees your visit, as any website does.
             </p>
           </div>
         </CardContent>

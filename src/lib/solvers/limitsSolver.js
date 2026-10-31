@@ -26,9 +26,14 @@ import { limitGuidance } from './limits/guidance.js';
 import {
   evaluateOneSidedLimit,
   evalAt,
+  valueAt,
+  domainEdgeStep,
+  zeroToZero,
   estimateFiniteLimitNumeric,
   estimateInfiniteLimit,
 } from './limits/numeric.js';
+import { tryGrowthRates, tryZeroToZero, tryNoContestAtZero } from './limits/growth.js';
+import { tryTwoSequences } from './limits/sequences.js';
 import {
   tryNamedTechnique,
   tryAlgebriteSimplify,
@@ -37,6 +42,8 @@ import {
   trySqueezeAtInfinity,
   tryOneToInfinity,
   tryLeadingTerms,
+  tryConjugateAtInfinity,
+  tryPoleSigns,
 } from './limits/techniques.js';
 
 export async function solveLimit(expression) {
@@ -240,30 +247,29 @@ export async function solveLimit(expression) {
     const result = !Number.isFinite(target)
       ? await evaluateInfiniteLimit(func, variable, target)
       : side !== 0
-        ? evaluateOneSidedLimit(func, variable, target, side)
+        ? await evaluateOneSided(func, variable, target, side)
         : await evaluateFiniteLimit(func, variable, target);
 
+    // Defined on one side only (ln(x) at 0): the answer is written as the
+    // one-sided limit it is, and the last step says courses differ on the
+    // plain one (1.63.0 review).
+    const edge = side === 0 && result.domainEdge ? (result.domainEdge > 0 ? '⁺' : '⁻') : '';
+    const answerTarget = displayTarget + edge;
+    const shownFunc = absBars(beautify(func));
+    const valueText = result.answer === 'Does not exist' ? ' does not exist' : ` = ${result.answer}`;
     const steps = [
-      `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`,
+      `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${shownFunc}`)}`,
       ...result.steps,
+      ...(edge ? [`${mark(shownFunc)} is defined only to the ${edge === '⁺' ? 'right' : 'left'} of ${mark(displayTarget)} near it, so the answer is its ${edge === '⁺' ? 'right' : 'left'}-hand limit, ${mark(`lim (${variable}→${answerTarget}) ${shownFunc}${valueText.replace(/\s*\(≈[^)]*\)$/, '')}`)}. Whether the plain ${mark(`lim (${variable}→${displayTarget})`)} is accepted depends on your course: some take a limit over the function's domain, others require both sides and call it nonexistent.`] : []),
     ];
 
     return {
       steps,
       // "lim (x→0) 1/x does not exist", not "lim … = Does not exist".
-      answer: `lim (${variable}→${displayTarget}) ${absBars(beautify(func))}${result.answer === 'Does not exist' ? ' does not exist' : ` = ${result.answer}`}`,
+      answer: `lim (${variable}→${answerTarget}) ${shownFunc}${valueText}`,
       verified: result.verified ?? false,
       verificationMethod: result.verified ? (result.verificationMethod ?? 'numeric check') : null,
-      tips: side !== 0 ? [
-        'A one-sided limit only follows the function along one side of the point — the other side is ignored entirely.',
-        'The two-sided limit exists exactly when the left- and right-hand limits agree.',
-        'One-sided limits are the right tool at domain boundaries, jump discontinuities, and vertical asymptotes.',
-      ] : limitGuidance(result).tips,
-      common_mistakes: side !== 0 ? [
-        `Mixing up the notation: ${mark('x → a⁺')} approaches from the right (values above ${mark('a')}), ${mark('x → a⁻')} from the left.`,
-        'Reporting a two-sided limit when only one side was asked for (or exists).',
-        'Assuming a one-sided limit exists where the function is not even defined on that side.',
-      ] : limitGuidance(result).common_mistakes,
+      ...pick(limitGuidance(result, { func, variable, displayTarget, side, infinite: !Number.isFinite(target) })),
       graph: generateLimitGraph(func, variable, target, displayTarget, result.answer),
     };
   } catch (error) {
@@ -275,6 +281,9 @@ export async function solveLimit(expression) {
     });
   }
 }
+
+// The lists only: the method name stays internal.
+const pick = ({ tips, common_mistakes }) => ({ tips, common_mistakes });
 
 function resolveApproachValue(approachValue) {
   if (typeof approachValue === 'number') return approachValue;
@@ -315,13 +324,20 @@ async function evaluateFiniteLimit(func, variable, target) {
   // that value *is* the limit and we are done. This is exact by evaluation —
   // stronger than a numeric cross-check — so it carries its own method label
   // rather than surfacing as unverified alongside the sampled cases.
-  const direct = evalAt(func, variable, target);
+  const direct = valueAt(func, variable, target);
   if (Number.isFinite(direct) && Math.abs(direct) < EXPLODED_MAGNITUDE) {
+    // √x at 0: defined at the point but on one side only. Say so: the limit
+    // is then one-sided, a convention some courses do not use (1.63.0).
+    const edge = oneSidedDomain(func, variable, target);
     return {
-      steps: [`Substitute directly: at ${mark(`${variable} = ${formatNumber(target)}`)}, the function is defined and equals ${mark(formatNumber(direct))}.`],
+      steps: [
+        `Substitute directly: at ${mark(`${variable} = ${formatNumber(target)}`)}, the function is defined and equals ${mark(formatNumber(direct))}.`,
+        ...(edge ? [domainEdgeStep(variable, target, edge), `From that side the function is continuous at ${mark(formatNumber(target))}, so the limit is its value there, ${mark(formatNumber(direct))}.`] : []),
+      ],
       answer: formatNumber(direct),
       verified: true,
       verificationMethod: 'direct substitution',
+      domainEdge: edge || undefined,
     };
   }
 
@@ -363,6 +379,28 @@ async function evaluateFiniteLimit(func, variable, target) {
     if (lhopital && lhopital.verified) return lhopital;
   }
 
+  // Rung 4b: x^p·ln(x)^m at 0, defined only on the right: 0·∞ settled by
+  // growth rates (x·ln(x) → 0), too slow for sampling to see.
+  const edge = oneSidedDomain(func, variable, target);
+  if (edge === 1) {
+    try {
+      const growth = zeroToZero(func, variable, target) ? tryZeroToZero(func, variable) : (target === 0 && tryNoContestAtZero(func, variable)) || tryGrowthRates(Algebrite, func, variable, target);
+      if (growth && growth.verified) return { ...growth, steps: [domainEdgeStep(variable, target, 1), ...growth.steps], domainEdge: 1 };
+    } catch { /* fall through */ }
+  }
+
+  // Rung 4b′: a rational function's vertical asymptote, by the signs.
+  try {
+    const pole = tryPoleSigns(Algebrite, func, variable, target);
+    if (pole && pole.verified) return pole;
+  } catch { /* fall through */ }
+
+  // Rung 4c: sin(1/x) at 0 — no limit, shown by two sequences, not samples.
+  try {
+    const sequences = tryTwoSequences(func, variable, target);
+    if (sequences && sequences.verified) return sequences;
+  } catch { /* fall through */ }
+
   // Rung 5: numeric sampling from both sides. Unchanged legacy behaviour, now
   // reached only when every exact method above declined. Still the right tool
   // for genuine jump/oscillation cases and one-sided divergence.
@@ -389,8 +427,52 @@ async function evaluateInfiniteLimit(func, variable, target) {
       const leading = tryLeadingTerms(Algebrite, func, variable, target);
       if (leading && leading.verified) return leading;
     } catch { /* fall through */ }
+    try {
+      const conjugate = tryConjugateAtInfinity(Algebrite, func, variable, target);
+      if (conjugate && conjugate.verified) return conjugate;
+    } catch { /* fall through */ }
   }
+  try {
+    const growth = tryGrowthRates(Algebrite, func, variable, target);
+    if (growth && growth.verified) return growth;
+  } catch { /* fall through */ }
+  try {
+    const sequences = tryTwoSequences(func, variable, target);
+    if (sequences && sequences.verified) return sequences;
+  } catch { /* fall through */ }
   return estimateInfiniteLimit(func, variable, target);
+}
+
+// A one-sided limit: growth rates first at 0⁺ (x·ln(x)), then sampling.
+async function evaluateOneSided(func, variable, target, side) {
+  try {
+    const pole = tryPoleSigns(await loadAlgebrite(), func, variable, target, side);
+    if (pole && pole.verified) {
+      return { ...pole, steps: [`This is a one-sided limit: only the ${side > 0 ? 'right' : 'left'}-hand behaviour (${mark(`${variable} → ${formatNumber(target)}${side > 0 ? '⁺' : '⁻'}`)}) matters.`, ...pole.steps] };
+    }
+  } catch { /* fall through */ }
+  if (side === 1 && target === 0) {
+    try {
+      const growth = zeroToZero(func, variable, target) ? tryZeroToZero(func, variable) : tryNoContestAtZero(func, variable) || tryGrowthRates(await loadAlgebrite(), func, variable, target);
+      if (growth && growth.verified) {
+        return { ...growth, steps: [`This is a one-sided limit: only the right-hand behaviour (${mark(`${variable} → 0⁺`)}) matters.`, ...growth.steps] };
+      }
+    } catch { /* fall through */ }
+  }
+  return evaluateOneSidedLimit(func, variable, target, side);
+}
+
+// 1 when the function is defined just right of the point but not just left
+// of it (√x, ln(x) at 0), −1 for the reverse, 0 otherwise.
+function oneSidedDomain(func, variable, target) {
+  const defined = (x) => !Number.isNaN(evalAt(func, variable, x));
+  const left = [1e-6, 1e-8].every((d) => defined(target - d));
+  const right = [1e-6, 1e-8].every((d) => defined(target + d));
+  const leftOut = [1e-6, 1e-8].every((d) => !defined(target - d));
+  const rightOut = [1e-6, 1e-8].every((d) => !defined(target + d));
+  if (right && leftOut) return 1;
+  if (left && rightOut) return -1;
+  return 0;
 }
 
 function generateLimitGraph(func, variable, target, displayTarget, limitAnswer) {

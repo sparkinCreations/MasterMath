@@ -106,8 +106,9 @@ test('tips fit the method: square roots and i, the formula, an absolute-value in
   const sq = await solvePlain('x^2 + 1 = 0', 'algebra');
   assert.match(sq.tips[0], /x\^2 = c is solved by square roots/);
   assert.doesNotMatch([...sq.tips, ...sq.common_mistakes].join('\n'), /\(x − 2\)\(x − 3\)/);
-  assert.match((await solvePlain('x^2 + x - 1 = 0', 'algebra')).tips[1], /discriminant/);
-  assert.match((await solvePlain('x^2 - 5x + 6 = 0', 'algebra')).tips[1], /\(x − a\)\(x − b\) = 0/);
+  // Third since 1.62.0: the equation's own working is second.
+  assert.match((await solvePlain('x^2 + x - 1 = 0', 'algebra')).tips[2], /discriminant/);
+  assert.match((await solvePlain('x^2 - 5x + 6 = 0', 'algebra')).tips[2], /\(x − a\)\(x − b\) = 0/);
   const abs = await solvePlain('|2x-1| < 5', 'algebra');
   assert.match(abs.tips[0], /\|g\| < c/);
   assert.doesNotMatch(abs.tips.join('\n'), /numerator/);

@@ -7,6 +7,186 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.63.0] - 2026-10-29
+
+### Added
+
+- **More limit insights and mistakes**, the fourth topic. About twenty
+  techniques each have a ranked list behind "Show more", and the second
+  insight works the student's own limit from its steps: x² − 1 over x − 1 is
+  x + 1 for x ≠ 1; sin(3x)/x = 3·sin(3x)/(3x); the squeeze bounds; E·u = 2
+  in a 1^∞; the series' first terms; how many rounds of L'Hôpital's rule
+  were needed; the degrees of the leading terms; each side of a jump or an
+  asymptote. Review: `docs/future-work/insights-review/LIMITS.md`.
+- **Growth rates, worked instead of sampled:** x³/e^(2x), x²·e^(−x),
+  (x² + 1)/e^x and e^x/x² by rounds of L'Hôpital's rule, one per power of x;
+  ln(x)²/√x and x/ln(x), one round per power of ln x; x·ln(x) and
+  √x·ln(x) at 0⁺ as 0·∞ rewritten as a quotient. Where nothing pulls the
+  other way (e^(−x), e^(−x)/x, x²·eˣ, ln x) the limit is read off directly.
+- **The conjugate at infinity:** √(x² + x) − x → 1/2 is worked as ∞ − ∞
+  turned into a quotient, at ∞ and at −∞ (√(x²) = −x there), where it was
+  only sampled.
+- **The Taylor step reads lowest powers first**: x + x²/2 + x³/6 + …, not
+  1/40320·x⁸ + … + x.
+- **Proofs where there were samples** (an outside review, Round 25): x^x
+  and x^(2x) at 0⁺ by logarithms (x^x = e^(x·ln x), and x·ln x → 0);
+  sin x, cos(2x), x·sin x at ∞ and sin(1/x) at 0 shown to have no limit by
+  two sequences (x_n = π/2 + 2πn, y_n = 3π/2 + 2πn); x/2^x and 3^x/x² by
+  growth rates; a rational function's vertical asymptote (1/x, 1/x²,
+  (x + 1)/(x − 2)) by the sign of (x − a)^k on each side; ln(x) → −∞ at
+  0⁺ from ln being increasing; limits at −∞ by t = −x (x·eˣ = −t/eᵗ → 0,
+  from below); a root minus a linear term whose leading terms do not cancel
+  (√(4x²) − x → ∞). A limit still found by sampling says it is an estimate.
+
+### Fixed
+
+- **lim x→∞ ln(x) said "does not exist"** (the slow growth looked like
+  not settling); it is ∞.
+- **lim x→−∞ ln(x) said −∞**: every sample was undefined. Outside the
+  domain at ±∞ the limit now does not exist, and says why.
+- **lim x→∞ x·sin(x) said ∞** from the sign of the last sample; the values
+  swing between signs, so it does not exist.
+- **A function defined on one side only** (ln(x) at 0) was said to have
+  one-sided limits that "disagree", with −18.42 read as the right-hand
+  value. The answer is now the one-sided limit, written lim (x→0⁺) ln(x) =
+  −∞, and the last step says some courses accept the plain limit and others
+  call it nonexistent; √x and x^x at 0 and arcsin x at 1 say the same. A left side that only looked defined
+  because a tiny imaginary part was rounded away (x²·ln(x)) is caught.
+- **x^x at 0 claimed "the function is defined and equals 1"**, then
+  "simplify: x^x, substitute: 1". 0⁰ is now named as an indeterminate form
+  and never a value by substitution.
+- **A bare polynomial at infinity** was "divided by x⁰"; it is now its
+  highest-power term.
+- **"0/0 means a common factor is hiding"** was stated as a rule; it holds
+  for a quotient of polynomials, and now says so.
+
+## [1.62.0] - 2026-10-29
+
+### Added
+
+- **More algebra insights and mistakes**, the third topic. Every equation
+  method has four to six insights behind "Show more", and the second one
+  works the student's own equation from its steps: 2x + 5 = 11 → 2x = 6 →
+  x = 3; x² − 5x + 6 = (x − 2)(x − 3) = 0; a, b, c and the sign of the
+  discriminant; the two cases of an absolute value; the squared equation and
+  the extraneous candidate; the exponential form and the rejected log
+  candidate; u = eˣ and its quadratic; the root found by the Rational Root
+  Theorem. Review: `docs/future-work/insights-review/ALGEBRA.md`.
+
+- **Exact roots of xⁿ = c** for n = 3 and 4: x³ = 2 gives ∛2 (≈ 1.2599) and
+  the complex pair ∛2·(−1 ± i√3)/2, x⁴ + 1 = 0 gives (±1 ± i)/√2, where
+  both were decimals.
+- **Factor, expand, simplify and radicals show their own result second**
+  ("Here: x² − 9 = (x − 3)(x + 3)").
+
+### Fixed
+
+- **x^(4/6) = 4 lost x = −8.** A rational exponent is now read in lowest
+  terms everywhere it is evaluated, and the step says so; the even-power case
+  is worked through the root ((∛x)² = 4, ∛x = ±2, x = ±8). An extraneous
+  candidate is now said to leave the equation undefined, not always "a
+  denominator zero".
+- **Insights that did not fit:** |x − 1| = −3 was told about 1/x and
+  logarithms; common logs were taught with ln; a repeated "dividing by x".
+  (An outside review: Round 24 of the review log.)
+
+### Changed
+
+- **Algebra statements say where they hold**: log rules for a, b > 0; aˣ = b
+  for a > 0, a ≠ 1, b > 0; the Rational Root Theorem for integer
+  coefficients; the discriminant for real coefficients; √(ab) = √a·√b for
+  a, b ≥ 0.
+
+## [1.61.0] - 2026-10-29
+
+### Added
+
+- **More derivative insights and mistakes**, the second topic after
+  integrals. Every rule has a ranked list of four to six insights and two to
+  five mistakes, where most problems used to show one of each. The rule a
+  problem depends on most leads (the quotient rule over the chain rule over
+  the power rule), and every other rule it used adds its first item. The
+  chain rule's second insight fits the outside function (eᵘ, ln u, uⁿ,
+  trig, inverse trig); a second derivative says what f″ means; implicit
+  differentiation and |ax + b| get more of their method. Review:
+  `docs/future-work/insights-review/DERIVATIVES.md`.
+- **The second insight works the student's own problem**: the inside and
+  its derivative for the chain rule (sin(3x²): u = 3x², u′ = 6x), u, w, u′
+  and w′ for the product and quotient rules, the two slopes for |ax + b|.
+  A higher derivative and a value at a point lead with what they ask for
+  (an outside review: Round 22 of the review log).
+
+- **Integrals revised after an outside review** (Round 23), before 1.60.0
+  was pushed: the second insight works the student's integral ("Here: u =
+  x², du = 2x dx, so ∫x·cos(x²) dx = ½·sin(x²) + C"; u and dv, the 2I
+  equation, the rounds, the partial-fraction split, the trig substitution);
+  ∫e^(−x²) dx leads with its result; improper integrals show their finite
+  value.
+
+### Fixed
+
+- **Integral statements made where they hold**: arcsin(x/a) for a > 0, aˣ
+  for a > 0, a ≠ 1, n! for whole n ≥ 0; the u-substitution mistake no
+  longer says to divide by g′(x); the tan/sec substitutions keep a sec² or a
+  sec·tan factor; two step sizes agreeing is a check, not a proof; LIATE is
+  a rule of thumb; an irreducible quadratic gives a log, an arctan or both.
+- **The Privacy Policy says what a click on an outside link reveals**: the
+  site sees the visit (IP address, browser), never a problem or history.
+- **f′(a) where f is not defined.** `ln(x) at x = -1` answered f′(−1) = −1
+  (from 1/x); log, √ and arcsin outside their domains likewise gave a value.
+  f is now checked first: "f′(−1) does not exist: x = −1 is outside the
+  domain of f".
+- **Odd roots at a negative point.** `x^(1/3) at x = -8` answered
+  "undefined"; the derivative is 1/12, now shown exactly.
+- **A power of a polynomial keeps the chain rule's form**: (2x + 1)⁵ gives
+  10(2x + 1)⁴, not 160x⁴ + 320x³ + 240x² + 80x + 10.
+- **Statements made where they hold**, as the outside review asked: log laws
+  for x > 0, dy/dx = −F_x/F_y where F_y ≠ 0, the power rule where the
+  function is differentiable, aˣ for a > 0, f′ = 0 at a stationary point
+  rather than "at a peak or a valley".
+
+## [1.60.0] - 2026-10-29
+
+### Added
+
+- **"Show more" for Key Insights and Common Mistakes.** The first three of
+  each list show as before; when a method has more, "Show 4 more insights"
+  opens the rest in place, and "Show fewer" folds them back. The lists are
+  ranked and the same for everyone (no random rotation). Exports and
+  history keep every item.
+- **Sources.** An insight that uses a named idea from a published source
+  links to it. The first one: LIATE, from Herbert E. Kasube's 1983 article in
+  *The American Mathematical Monthly*, under integration by parts. Exports
+  print the source.
+- **"Learn more" links under every solution**, by the topic it was solved
+  as: lessons on Khan Academy, Paul's Online Math Notes, OpenStax,
+  3Blue1Brown (calculus topics) and Wolfram|Alpha's example pages. Each link
+  was opened and its title checked. They open in a new tab, send no
+  referrer, and say they need an internet connection.
+- **More integral insights and mistakes**, the pilot topic: every
+  integration method now has four to seven insights, led by what that
+  method needs, and three or four mistakes. Integration by parts leads with
+  what the problem needs (∫ln(x) dx, an integral that comes back, repeated
+  rounds).
+
+### Changed
+
+- **"+C" is now the last insight on an indefinite integral, not the
+  second.** It stays a visible mistake ("Forgetting the constant of
+  integration"), so the first three insights are about the method used.
+- **The Privacy Policy and Terms describe the outside links.** MasterMath
+  never sends those sites your problems, solutions or history; a click is an
+  ordinary visit (the site sees your IP address and browser, with no
+  referrer), and its own policy applies.
+
+### Fixed
+
+- **Integral insights about a different method.** `∫2^x dx` and
+  `∫sinh(x) dx` led with the antiderivatives of tan, cot and sec;
+  `∫tan²(x) dx` was given the sec^n reduction formula, though it was solved
+  with tan² = sec² − 1. Partial fractions listed the power rule on 1/x as a
+  mistake.
+
 ## [1.59.11] - 2026-10-29
 
 ### Changed

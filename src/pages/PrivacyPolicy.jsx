@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Last Updated: October 28, 2026
+          Last Updated: October 29, 2026
         </p>
       </div>
 
@@ -237,6 +237,14 @@ export default function PrivacyPolicy() {
               When you submit feedback, your message and optional contact information are sent to
               Web3Forms, a third-party form processing service. No feedback is sent unless you
               explicitly submit the feedback form.</li>
+            <li><strong>Links to other websites:</strong> A solution's "Learn more" section links to
+              lessons on Khan Academy, Paul's Online Math Notes, OpenStax, 3Blue1Brown and
+              Wolfram|Alpha, and some insights link to their published source. These are ordinary
+              links: MasterMath never sends your problems, solutions or history to those websites,
+              and nothing reaches them unless you click a link. A click opens the website in a new
+              tab without telling it which page you came from (no referrer); like any visit to a
+              website, that website sees the request itself, including your IP address and browser
+              details, and its own privacy policy applies.</li>
           </ul>
           <p className="text-gray-700 dark:text-gray-300 mt-3">
             All math libraries run entirely in your browser and do not collect, transmit, or store

@@ -17,7 +17,15 @@ import { formatNumber } from './text.js';
  * variable, a number, or one parenthesised group; odd n up to 9.
  */
 export function realOddRoots(expression) {
-  return String(expression).replace(
+  // A rational exponent is read in lowest terms: x^(4/6) is x^(2/3), real
+  // for x < 0 (an outside review, 1.62.0: the unreduced form lost x = −8).
+  const lowest = String(expression).replace(/\^\((\d+)\/(\d+)\)/g, (_, a, b) => {
+    let x = Number(a);
+    let y = Number(b);
+    while (y) [x, y] = [y, x % y];
+    return x > 1 ? `^(${Number(a) / x}/${Number(b) / x})` : `^(${a}/${b})`;
+  });
+  return lowest.replace(
     /(\([^()]*\)|\b[a-z]\b|\d+(?:\.\d+)?)\^\((\d+)\/([3579])\)/g,
     (_, base, k, n) => (k === '1' ? `nthRoot(${base}, ${n})` : `nthRoot(${base}, ${n})^${k}`)
   );

@@ -94,7 +94,8 @@ export function solvePowerEquation(equation, variable) {
   } else {
     return null;
   }
-  if (Number.isInteger(r) || k === 0) return null;
+  if (k === 0) return null;
+  if (Number.isInteger(r)) return pureIntegerPower(base, r, -C / k, v);
   // r = p/q in lowest terms, q ≤ 12.
   let p = null;
   let q = null;
@@ -120,6 +121,10 @@ export function solvePowerEquation(equation, variable) {
   };
   const mText = fmt(m) ?? formatNumber(m);
   const steps = [`Isolate the power: ${mark(`${powerShown} = ${mText}`)}.`];
+  // x^(4/6) is x^(2/3): a rational exponent is read in lowest terms (an
+  // outside review, 1.62.0: the unreduced 4/6 lost x = −8).
+  const typed = (equation.match(/\^\(\s*(-?\d+)\s*\/\s*(\d+)\s*\)/) || []).slice(1).map(Number);
+  if (typed.length === 2 && (typed[0] !== p || typed[1] !== q)) steps.unshift(`The exponent ${mark(`${typed[0]}/${typed[1]}`)} is ${mark(rText)} in lowest terms.`);
   const evenRoot = q % 2 === 0;
   const evenPower = p % 2 === 0;
   const none = (why) => ({ steps: [...steps, why, 'Solution: no real solution'], answer: `No real solution (${why.replace(/\.$/, '').replace(/⟦|⟧/g, '')})`, solutions: [] });
@@ -135,13 +140,23 @@ export function solvePowerEquation(equation, variable) {
   else values.push(m < 0 ? -magnitude : magnitude);
   const magText = fmt(magnitude);
   if (m === 0) steps.push(`A power is ${mark('0')} only when its base is: ${mark(`${baseShown} = 0`)}.`);
-  else if (evenPower && !evenRoot) steps.push(`Raise both sides to the power ${mark(`${q}/${p}`)}. The numerator ${mark(String(p))} is even, so both signs: ${mark(`${baseShown} = ±${mText}^(${q}/${p}) = ±${magText ?? formatNumber(magnitude)}`)}.`);
+  else if (evenPower && !evenRoot) {
+    // Through the root, as a textbook does: (∛x)² = 4, so ∛x = ±2, so x = ±8.
+    const root = q === 3 ? `∛${/^[\w.]+$/.test(baseShown) ? baseShown : `(${baseShown})`}` : `(${baseShown})^(1/${q})`;
+    const rootValue = Math.abs(m) ** (1 / p);
+    const rootText = fmt(rootValue) ?? formatNumber(rootValue);
+    steps.push(`Write the power through its root: ${mark(`(${root})^${p} = ${mText}`)}. The power ${mark(String(p))} is even, so both signs: ${mark(`${root} = ±${rootText}`)}, and so ${mark(`${baseShown} = (±${rootText})^${q} = ±${magText ?? formatNumber(magnitude)}`)}.`);
+  }
   else if (!evenRoot && m < 0) steps.push(`Raise both sides to the power ${mark(`${q}/${p}`)}: the ${mark(String(q))}-th root is real for a negative number, so the sign carries through: ${mark(`${baseShown} = −${formatNumber(Math.abs(m))}^(${q}/${p}) = ${fmt(-magnitude) ?? formatNumber(-magnitude)}`)}.`);
   else steps.push(`Raise both sides to the power ${mark(`${q}/${p}`)}${evenRoot ? ` (the base of a square root is ${mark('≥ 0')}, and ${mark(mText)} is)` : ''}: ${mark(`${baseShown} = ${mText}^(${q}/${p}) = ${magText ?? formatNumber(magnitude)}`)}.`);
   // Solve the linear base for each value, and check each in the original.
   const evalOriginal = (x) => {
     try {
-      const value = math.evaluate(realOddRoots(`(${sides[0].trim()}) - (${sides[1].trim()})`), { [v]: x });
+      const lowest = `(${sides[0].trim()}) - (${sides[1].trim()})`.replace(/\^\(\s*(-?\d+)\s*\/\s*(\d+)\s*\)/g, (_, a, b) => {
+        const g = gcd(Math.abs(Number(a)), Number(b)) || 1;
+        return `^(${Number(a) / g}/${Number(b) / g})`;
+      });
+      const value = math.evaluate(realOddRoots(lowest), { [v]: x });
       return typeof value === 'number' ? value : NaN;
     } catch {
       return NaN;
@@ -163,6 +178,72 @@ export function solvePowerEquation(equation, variable) {
   const answer = found.map((f) => (f.text ? `${v} = ${f.text}` : `${v} ≈ ${formatNumber(f.x)}`)).join('  or  ');
   steps.push(`Solution: ${answer}`);
   return { steps, answer, solutions: found.map((f) => f.x) };
+}
+
+// xⁿ = c for n = 3 or 4 and a c that is not a perfect n-th power: the real
+// root exactly (∛2, not ≈ 1.2599; an outside review, 1.62.0) and, for the
+// cube, the complex pair from x³ − c = (x − ∛c)(x² + ∛c·x + ∛c²). Only for
+// the variable itself as the base; anything else is left to the polynomial
+// path. Each root is checked by substitution.
+function pureIntegerPower(base, n, m, v) {
+  if (!(base.type === 'SymbolNode' && base.name === v) || ![3, 4].includes(n) || !Number.isFinite(m) || m === 0) return null;
+  const real = Math.sign(m) * Math.abs(m) ** (1 / n);
+  // A perfect power with a real root: the Rational Root Theorem does it.
+  if (Math.abs(real - Math.round(real)) < 1e-9 && !(n === 4 && m < 0)) return null;
+  let mText = null;
+  for (let d = 1; d <= 64 && mText === null; d += 1) {
+    const k = Math.round(Math.abs(m) * d);
+    if (Math.abs(Math.abs(m) * d - k) < 1e-9) mText = d === 1 ? String(k) : `(${k}/${d})`;
+  }
+  if (mText === null) return null;
+  const rootSym = n === 3 ? '∛' : '∜';
+  const r = `${rootSym}${mText}`;
+  const sign = m < 0 ? '−' : '';
+  const dec = formatNumber(Math.abs(real));
+  // x⁴ = −c: no real root; the four are ∜c·(±1 ± i)/√2.
+  const quarter = Math.abs(m) ** (1 / 4) / Math.SQRT2;
+  const k4 = Math.abs(m) ** (1 / 4);
+  const pre = Math.abs(k4 - Math.round(k4)) < 1e-9 ? (Math.round(k4) === 1 ? '' : `${Math.round(k4)}·`) : `${r}·`;
+  const roots = n === 4 && m < 0
+    ? [[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([a, b]) => ({ text: `${pre}(${a < 0 ? '−1' : '1'} ${b < 0 ? '−' : '+'} i)/√2`, re: a * quarter, im: b * quarter }))
+    : n === 3
+    ? [
+      { text: `${sign}${r}`, re: real, im: 0 },
+      { text: `${m < 0 ? '' : ''}${r}·(${m < 0 ? '1' : '−1'} − i√3)/2`, re: -real / 2, im: -Math.abs(real) * Math.sqrt(3) / 2 },
+      { text: `${r}·(${m < 0 ? '1' : '−1'} + i√3)/2`, re: -real / 2, im: Math.abs(real) * Math.sqrt(3) / 2 },
+    ]
+    : [
+      { text: `−${r}`, re: -real, im: 0 },
+      { text: r, re: real, im: 0 },
+      { text: `−i${r}`, re: 0, im: -real },
+      { text: `i${r}`, re: 0, im: real },
+    ];
+  // Each root checked: zⁿ = m.
+  for (const z of roots) {
+    const w = math.pow(math.complex(z.re, z.im), n);
+    if (Math.abs(w.re - m) > 1e-9 * (1 + Math.abs(m)) || Math.abs(w.im) > 1e-9 * (1 + Math.abs(m))) return null;
+  }
+  const mShown = mText.replace(/^\((.*)\)$/, '$1');
+  const steps = n === 4 && m < 0
+    ? [
+      `${mark(`${v}⁴ = −${mShown}`)}: a fourth power is never negative, so there is no real root.`,
+      `Over the complex numbers the four roots are ${mark(`${v} = ${pre}(±1 ± i)/√2`)}: each has modulus ${mark(mText === '1' ? '1' : `∜${mShown}`)} and an angle of ${mark('45°')}, ${mark('135°')}, ${mark('225°')} or ${mark('315°')}.`,
+      `Check: each root to the fourth power gives ${mark(`−${mShown}`)} ✓`,
+    ]
+    : n === 3
+    ? [
+      `${mark(`${v}³ = ${m < 0 ? '−' : ''}${mShown}`)}: a cube has exactly one real cube root, ${mark(`${v} = ${sign}${r}`)} (${mark(`≈ ${m < 0 ? '−' : ''}${dec}`)}).`,
+      `Dividing ${mark(`${v}³ − (${sign}${r})³`)} by ${mark(`${v} − ${sign}${r}`)} leaves a quadratic with a negative discriminant, whose roots are the complex pair ${mark(`${roots[1].text}`)} and ${mark(`${roots[2].text}`)}.`,
+      `Check: each root cubed gives ${mark(`${m < 0 ? '−' : ''}${mShown}`)} ✓`,
+    ]
+    : [
+      `${mark(`${v}⁴ = ${mShown}`)}: the real fourth roots are ${mark(`${v} = ±${r}`)} (${mark(`≈ ±${dec}`)}).`,
+      `${mark(`${v}⁴ − ${mShown} = (${v}² − √${mShown})(${v}² + √${mShown})`)}, and the second factor gives the imaginary pair ${mark(`${v} = ±i${r}`)}.`,
+      `Check: each root to the fourth power gives ${mark(mShown)} ✓`,
+    ];
+  const answer = roots.map((z) => (z.im === 0 ? `${v} = ${z.text} (≈ ${formatNumber(z.re)})` : `${v} = ${z.text}`)).join('  or  ');
+  steps.push(`Solution: ${answer}`);
+  return { steps, answer, solutions: roots.filter((z) => z.im === 0).map((z) => z.re) };
 }
 
 export function solveSingleExponential(equation, variable) {

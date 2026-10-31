@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { readSolutionMode, writeSolutionMode } from "@/lib/solverPrefs";
+import { SHOWN_AT_FIRST, sourceOf } from "@/lib/guidance";
+import { learnMoreFor } from "@/lib/learnMore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import MathText from "@/components/MathText";
 import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
@@ -116,6 +118,88 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
           Switch topic to {to}
         </Button>
       )}
+    </div>
+  );
+}
+
+const LINK_CLASS = "text-indigo-700 dark:text-indigo-300 underline underline-offset-2 hover:text-indigo-900 dark:hover:text-indigo-200";
+
+// A link to another website: a new tab, no referrer, and said so.
+function ExternalAnchor({ href, children }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
+      {children}
+      <ExternalLink className="inline w-3.5 h-3.5 ml-1 -mt-0.5" aria-hidden="true" />
+      <span className="sr-only"> (opens in a new tab)</span>
+    </a>
+  );
+}
+
+// Key Insights or Common Mistakes: the first three, then the rest one tap
+// away (guidance.js). The same list, in the same order, for everyone.
+function GuidanceList({ solution, items, heading, Icon, iconClass, itemClass, noun }) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  const extra = items.length - SHOWN_AT_FIRST;
+  const shown = open || extra <= 0 ? items : items.slice(0, SHOWN_AT_FIRST);
+  return (
+    <div className="space-y-3">
+      <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
+        <Icon className={`w-5 h-5 ${iconClass}`} />
+        {heading}
+      </h3>
+      <div id={listId} className="space-y-2">
+        {shown.map((item, idx) => {
+          const source = sourceOf(solution, item);
+          return (
+            <div key={idx} className={`p-3 rounded-lg border ${itemClass}`}>
+              <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={item} /></p>
+              {source && (
+                <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
+                  Source: <ExternalAnchor href={source.url}>{source.title}</ExternalAnchor>
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {extra > 0 && (
+        <Button
+          variant="ghost"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => setOpen(!open)}
+          className="gap-1.5 min-h-11 px-3"
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+          {open ? `Show fewer ${noun}s` : `Show ${extra} more ${noun}${extra === 1 ? "" : "s"}`}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// Lessons elsewhere on the topic the problem was solved as (learnMore.js).
+function LearnMore({ topic }) {
+  const links = learnMoreFor(topic);
+  if (!links.length) return null;
+  return (
+    <div className="space-y-2">
+      <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
+        <GraduationCap className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        Learn more
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-300">
+        Free lessons on other websites. They open in a new tab and need an internet connection.
+      </p>
+      <ul className="space-y-1.5">
+        {links.map((link) => (
+          <li key={link.url} className="text-gray-700 dark:text-gray-200">
+            <span className="font-medium">{link.site}:</span>{" "}
+            <ExternalAnchor href={link.url}>{link.title}</ExternalAnchor>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -384,42 +468,32 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
           )}
 
           {solution.tips && solution.tips.length > 0 && allRevealed && (
-            <div className="space-y-3">
-              <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
-                <Lightbulb className="w-5 h-5 text-amber-500" />
-                Key Insights:
-              </h3>
-              <div className="space-y-2">
-                {solution.tips.map((tip, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-lg bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border border-amber-200 dark:border-amber-700/60"
-                  >
-                    <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={tip} /></p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <GuidanceList
+              key={`tips|${problem}|${solution.answer}`}
+              solution={solution}
+              items={solution.tips}
+              heading="Key Insights:"
+              Icon={Lightbulb}
+              iconClass="text-amber-500"
+              itemClass="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border-amber-200 dark:border-amber-700/60"
+              noun="insight"
+            />
           )}
 
           {solution.common_mistakes && solution.common_mistakes.length > 0 && allRevealed && (
-            <div className="space-y-3">
-              <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
-                <AlertCircle className="w-5 h-5 text-red-500" />
-                Common Mistakes to Avoid:
-              </h3>
-              <div className="space-y-2">
-                {solution.common_mistakes.map((mistake, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-lg bg-linear-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border border-red-200 dark:border-red-800/60"
-                  >
-                    <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={mistake} /></p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <GuidanceList
+              key={`mistakes|${problem}|${solution.answer}`}
+              solution={solution}
+              items={solution.common_mistakes}
+              heading="Common Mistakes to Avoid:"
+              Icon={AlertCircle}
+              iconClass="text-red-500"
+              itemClass="bg-linear-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border-red-200 dark:border-red-800/60"
+              noun="mistake"
+            />
           )}
+
+          {walkable && allRevealed && <LearnMore topic={solution.routedTopic || topic} />}
         </CardContent>
       </Card>
     </motion.div>
