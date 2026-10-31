@@ -164,7 +164,10 @@ non-linear by substitution), `inequalitiesSolver` (sign charts, compound; period
 `trigonometrySolver` (values, identities; exports `detectTrigAsymptote`),
 `trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
 `functionsSolver` (exact extrema/intercepts/asymptotes), `limitsSolver`
-(named techniques incl. 1^∞ by logarithms, each verified; numeric estimate last), `derivativesSolver`
+(named techniques incl. 1^∞ by logarithms, the conjugate at ±∞, growth rates
+read off c·x^p·e^(kx)·ln(x)^m (`limits/growth.js`), each verified; a
+function defined on one side only is limited from that side, said so; 0⁰
+is never a value; numeric estimate last), `derivativesSolver`
 (rule classification and worked rule steps, orders 1–4, evalAt),
 `implicitDerivativeSolver` (dy/dx of F(x, y) = 0 term by term, checked by
 following the curve; "at (a, b)"),

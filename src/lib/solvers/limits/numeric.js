@@ -6,13 +6,60 @@ import { math, formatNumber, gcd, mark } from '../solverUtils.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
 import { EXPLODED_MAGNITUDE } from '../trigonometrySolver.js';
 
+// ln(u) and √u need u ≥ 0 (ln(0) stays −∞), checked on the argument itself:
+// x²·ln(x) at x = −10⁻⁸ is complex with an imaginary part (π·10⁻¹⁶) small
+// enough that mathjs rounds it away, so the left side of 0 read as defined
+// (1.63.0). Parsed once per expression.
+const GUARDS = new Map();
+function guardsFor(func) {
+  if (GUARDS.has(func)) return GUARDS.get(func);
+  const guards = [];
+  try {
+    math.parse(func).traverse((node) => {
+      if (node.type !== 'FunctionNode' || node.args.length !== 1) return;
+      const name = node.fn?.name;
+      if (name === 'ln' || name === 'log' || name === 'sqrt') guards.push(node.args[0].compile());
+    });
+  } catch { /* evaluate will fail on its own */ }
+  if (GUARDS.size > 500) GUARDS.clear();
+  GUARDS.set(func, guards);
+  return guards;
+}
+
 export function evalAt(func, variable, x) {
   try {
-    const y = math.evaluate(func, { [variable]: x });
+    const scope = { [variable]: x };
+    for (const g of guardsFor(func)) {
+      const u = g.evaluate(scope);
+      if (typeof u === 'number' && u < 0) return NaN;
+    }
+    const y = math.evaluate(func, scope);
     return typeof y === 'number' ? y : Number(y);
   } catch {
     return NaN;
   }
+}
+
+// 0^0 hides inside a direct substitution: mathjs evaluates it as 1, so x^x at
+// 0 read "the function is defined and equals 1". A power whose base and
+// exponent are both 0 at the point is the indeterminate form 0⁰ (1.63.0).
+export function zeroToZero(func, variable, x) {
+  let found = false;
+  try {
+    const at = (n) => { try { return Number(n.evaluate({ [variable]: x })); } catch { return NaN; } };
+    math.parse(func).traverse((node) => {
+      const pow = (node.type === 'OperatorNode' && node.op === '^') || (node.type === 'FunctionNode' && node.fn?.name === 'pow');
+      if (!found && pow && at(node.args[0]) === 0 && at(node.args[1]) === 0) found = true;
+    });
+  } catch {
+    return false;
+  }
+  return found;
+}
+
+// The function's value at a point for direct substitution: NaN at a 0⁰.
+export function valueAt(func, variable, x) {
+  return zeroToZero(func, variable, x) ? NaN : evalAt(func, variable, x);
 }
 
 export function estimateFiniteLimitNumeric(func, variable, target) {
@@ -20,7 +67,7 @@ export function estimateFiniteLimitNumeric(func, variable, target) {
   // `verified`: cross-checking a numeric estimate with more numeric sampling
   // would be circular. Answers from here surface as unverified, which honestly
   // signals "numerical estimate" rather than "proven symbolically".
-  const direct = evalAt(func, variable, target);
+  const direct = valueAt(func, variable, target);
   const steps = [];
 
   // A huge magnitude means the point sits on a vertical asymptote and the
@@ -30,7 +77,9 @@ export function estimateFiniteLimitNumeric(func, variable, target) {
     return { steps, answer: formatNumber(direct) };
   }
 
-  if (Number.isNaN(direct)) {
+  if (zeroToZero(func, variable, target)) {
+    steps.push(`Direct substitution at ${mark(`${variable} = ${formatNumber(target)}`)} gives ${mark('0^0')}: an indeterminate form, not ${mark('1')}. So approach the point instead.`);
+  } else if (Number.isNaN(direct)) {
     steps.push(`Direct substitution at ${mark(`${variable} = ${formatNumber(target)}`)} is undefined (an indeterminate form), so approach from both sides.`);
   } else {
     steps.push(`Direct substitution at ${mark(`${variable} = ${formatNumber(target)}`)} blows up instead of settling on a value, so approach from both sides.`);
@@ -48,6 +97,20 @@ export function estimateFiniteLimitNumeric(func, variable, target) {
 
   const left = sampleSide(func, variable, target, -1);
   const right = sampleSide(func, variable, target, 1);
+  // Defined on one side only (ln(x) at 0): the limit is taken over the
+  // domain, from that side. Reported as "the one-sided limits disagree",
+  // with −18.42 read off as the right-hand value of ln(x) (1.63.0).
+  if (left.outOfDomain !== right.outOfDomain) {
+    const side = left.outOfDomain ? 1 : -1;
+    const one = evaluateOneSidedLimit(func, variable, target, side);
+    steps.push(domainEdgeStep(variable, target, side));
+    steps.push(...one.steps.slice(1));
+    return { ...one, steps, domainEdge: side };
+  }
+  if (left.outOfDomain && right.outOfDomain) {
+    steps.push(`The function is not defined on either side of ${mark(`${variable} = ${formatNumber(target)}`)}, so there is nothing to approach: the limit does not exist.`);
+    return { steps, answer: 'Does not exist' };
+  }
   steps.push(`From the left (${mark(`${variable} → ${formatNumber(target)}⁻`)}): ${sideText(left)}`);
   steps.push(`From the right (${mark(`${variable} → ${formatNumber(target)}⁺`)}): ${sideText(right)}`);
 
@@ -64,12 +127,20 @@ export function estimateFiniteLimitNumeric(func, variable, target) {
   const bothConverge = left.value !== undefined && right.value !== undefined;
   if (bothConverge && Math.abs(left.value - right.value) < 1e-4) {
     const value = formatLimitConstant((left.value + right.value) / 2);
-    steps.push(`Both sides approach ${mark(value)}, so the limit exists.`);
+    steps.push(`Both sides approach ${mark(value)}, so the limit is ${mark(value)}, as estimated from these samples (an estimate, not a proof).`);
     return { steps, answer: value };
   }
 
   steps.push('The one-sided limits disagree, so the limit does not exist.');
   return { steps, answer: 'Does not exist' };
+}
+
+// The step that says a limit is taken from the one side the function lives on.
+export function domainEdgeStep(variable, target, side) {
+  const point = formatNumber(target);
+  return side > 0
+    ? `The function is not defined just to the left of ${mark(`${variable} = ${point}`)}, so ${mark(variable)} can only approach ${mark(point)} from the right: the limit is the right-hand limit, ${mark(`${variable} → ${point}⁺`)}.`
+    : `The function is not defined just to the right of ${mark(`${variable} = ${point}`)}, so ${mark(variable)} can only approach ${mark(point)} from the left: the limit is the left-hand limit, ${mark(`${variable} → ${point}⁻`)}.`;
 }
 
 // Does the function oscillate as it approaches the point from one side?
@@ -177,7 +248,7 @@ export function evaluateOneSidedLimit(func, variable, target, side) {
 
   // Convergence: consecutive samples settle within a tight tolerance.
   if (lastDelta <= 1e-4 * (1 + Math.abs(last))) {
-    const direct = evalAt(func, variable, target);
+    const direct = valueAt(func, variable, target);
     if (
       Number.isFinite(direct) &&
       Math.abs(direct) < EXPLODED_MAGNITUDE &&
@@ -186,7 +257,7 @@ export function evaluateOneSidedLimit(func, variable, target, side) {
       steps.push(`The values settle onto the function's own value there: ${mark(`f(${formatNumber(target)}) = ${formatNumber(direct)}`)}.`);
       return { steps, answer: formatNumber(direct), verified: true, verificationMethod: 'direct substitution' };
     }
-    steps.push(`The values settle toward ${mark(formatLimitConstant(last))}, so that is the one-sided limit.`);
+    steps.push(`The values settle toward ${mark(formatLimitConstant(last))}: the one-sided limit, as estimated from these samples (an estimate, not a proof).`);
     return { steps, answer: formatLimitConstant(last) };
   }
 
@@ -240,15 +311,28 @@ export function estimateInfiniteLimit(func, variable, target) {
   const finite = samples.filter((v) => Number.isFinite(v));
 
   const steps = [`Evaluate the function at increasingly large ${sign > 0 ? 'positive' : 'negative'} values of ${variable}.`];
+  // Not defined out there at all (ln(x) as x → −∞): there is nothing to
+  // approach. Undefined samples were shown as "±∞" and the limit given as −∞
+  // (1.63.0, second review sweep).
+  if (samples.slice(-3).every(Number.isNaN)) {
+    steps.push(`The function is not defined for large ${sign > 0 ? 'positive' : 'negative'} ${mark(variable)} (it is outside the domain), so there is nothing to approach: the limit does not exist.`);
+    return { steps, answer: 'Does not exist', outOfDomain: true };
+  }
   // A value the display precision would round to 0 is shown in scientific
   // notation instead: "0, 0, 0, 0" hid the convergence of x/e^x (3.7e-42,
   // then values too small for double precision) and looked like a bug.
   const shown = samples.map((v) => {
-    if (!Number.isFinite(v)) return '±∞';
+    if (Number.isNaN(v)) return 'undefined';
+    if (!Number.isFinite(v)) return v > 0 ? '∞' : '−∞';
     const text = formatNumber(v);
     return v !== 0 && /^-?0(?:\.0+)?$/.test(text) ? v.toExponential(2) : text;
   });
-  const underflowed = samples.some((v, i) => v === 0 && i > 0 && samples[i - 1] !== 0 && Math.abs(samples[i - 1]) < 1e-30);
+  // A 0 that is really an underflow: the one before it was tiny, or every
+  // sample is 0 although the function is not 0 nearer in (x·e^(−x²) is
+  // 3.7e-43 at x = 10, and 0 from x = 100 on).
+  const nearer = evalAt(func, variable, sign * 10);
+  const underflowed = samples.some((v, i) => v === 0 && i > 0 && samples[i - 1] !== 0 && Math.abs(samples[i - 1]) < 1e-30)
+    || (samples[0] === 0 && Number.isFinite(nearer) && nearer !== 0 && Math.abs(nearer) < 1e-30);
   steps.push(`Samples: ${mark(shown.join(', '))}${underflowed ? ' (a value smaller than about 1e-308 cannot be represented in double precision and is computed as exactly 0)' : ''}`);
 
   if (finite.length < 2) {
@@ -268,14 +352,33 @@ export function estimateInfiniteLimit(func, variable, target) {
   const shrinking = diffs.length >= 3 && diffs.slice(-3).every((d, i, arr) => i === 0 || d <= arr[i - 1] * 1.01);
   if (Math.abs(last - prev) < 1e-3 || (shrinking && Math.abs(last - prev) < 1e-4 * (1 + Math.abs(last)))) {
     const value = formatLimitConstant(last);
-    steps.push(`The values settle toward ${mark(value)}, so that is the limit.`);
+    steps.push(`The values settle toward ${mark(value)}: the limit, as estimated from these samples (an estimate, not a proof).`);
     return { steps, answer: value };
   }
 
+  // Growing in size but changing sign (x·sin(x)) is no limit at all: it was
+  // answered ∞ from the last sample's sign (1.63.0).
+  const tail = finite.slice(-4);
+  if (Math.abs(last) > Math.abs(prev) * 5 && tail.some((v) => Math.sign(v) !== Math.sign(last))) {
+    steps.push('The values swing between positive and negative and keep growing in size, so they approach no number and no single infinity: the limit does not exist.');
+    return { steps, answer: 'Does not exist' };
+  }
   if (Math.abs(last) > Math.abs(prev) * 5) {
     const answer = last > 0 ? '∞' : '-∞';
     steps.push(`The values keep growing, so the limit is ${mark(answer)}.`);
     return { steps, answer };
+  }
+
+  // Slow, steady growth (ln(x): +2.3 for every factor of 10) never settles
+  // either; it was reported as "does not exist" (1.63.0).
+  if (diffs.length >= 3) {
+    const signed = finite.slice(1).map((v, i) => v - finite[i]);
+    const steady = signed.every((d) => d !== 0 && Math.sign(d) === Math.sign(signed[0]));
+    if (steady && Math.abs(signed[signed.length - 1]) >= 0.5 * Math.abs(signed[0])) {
+      const answer = signed[0] > 0 ? '∞' : '-∞';
+      steps.push(`The values keep moving the same way by steady amounts without settling — a slow divergence to ${mark(answer)}.`);
+      return { steps, answer };
+    }
   }
 
   steps.push('The values do not settle, so the limit does not exist.');

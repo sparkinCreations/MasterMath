@@ -233,6 +233,35 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 26 (second outside review of the limits content, before 1.63.0 shipped)
+
+A second review of `LIMITS.md` ("approve with two small corrections"). Both reproduced; the sweep the reviewer asked for (domain boundaries, negative infinity, underflow) found one more wrong answer.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| "√(4x²) − x: the two parts grow at different rates" is imprecise: √(4x²) = 2x, the same rate with a different coefficient | Confirmed; and the solver sampled that very example | 1.63.0 (the insight now says the leading growth does not cancel, 2x − x = x → ∞; a root minus a linear term whose leading terms do not cancel is read off, √P − Q ≈ (√a ∓ q)·\|x\|) |
+| lim x→−∞ x·eˣ is sampled; let t = −x, then x·eˣ = −t/eᵗ → 0, from below | Confirmed; every exponential at −∞ was sampled (eˣ, x²·eˣ, x·e^(−x)) | 1.63.0 (t = −x turns a limit at −∞ into one at +∞ for the growth methods; the last step says which side 0 is approached from; the worked line says it too) |
+| Found in the sweep: lim x→−∞ ln(x) answered −∞ | Confirmed, a wrong answer: every sample was undefined, shown as "±∞", and the sign test read NaN as negative | 1.63.0 (outside the domain at ±∞ the limit does not exist, said so; undefined samples shown as "undefined") |
+| Found in the sweep: x·e^(−x²) showed seven bare zeros with no underflow note | Confirmed (the note needed an earlier nonzero sample) | 1.63.0 (also noted when the function is nonzero nearer in) |
+| The rest | Already right | — |
+
+## Round 25 (outside review of the limits content, before 1.63.0 shipped)
+
+A content review of `docs/future-work/insights-review/LIMITS.md` ("agree, with revisions"): a correct answer can rest on reasoning that does not prove it. Every claim was reproduced, and the same class swept.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| "0/0 means a common factor is hiding" is false in general (sin x/x is 0/0 with no factor) | Confirmed | 1.63.0 (stated for a quotient of polynomials: both have the factor (x − a); cancel it, allowed since x ≠ a near the point) |
+| Do not present lim x→0 ln x as a two-sided answer; give lim x→0⁺ and say the convention depends on the course; the same for √x and x^x at 0 | Agreed. The steps said so, but the answer line read "lim (x→0)" | 1.63.0 (the answer is written lim (x→0⁺) …, and the last step says some courses accept the plain limit over the domain and others call it nonexistent; also arcsin x at 1 → x → 1⁻). A course-convention setting is not built |
+| x^x at 0 is concluded from samples, though the insights hold the proof | Confirmed; sin(x)^x too | 1.63.0 ((x^a)^(c·x^p) at 0⁺ by logarithms: x^x = e^(x·ln x), x·ln x → 0 by L'Hôpital's rule, so e^0 = 1; what is still sampled says "an estimate, not a proof") |
+| x·sin x at ∞ is concluded from seven samples; use x_n = π/2 + 2πn, y_n = 3π/2 + 2πn | Confirmed; the sweep found sin(1/x) at 0, sin x and cos(2x) at ∞ concluded from samples too | 1.63.0 (a two-sequence proof for c·(growing)·sin/cos(kx) at ∞ and c·sin/cos(k/x) at 0) |
+| Found in the sweep: every vertical asymptote (1/x, 1/x², (x + 1)/(x − 2)) and ln(x) → −∞ at 0⁺ were concluded from samples | Confirmed | 1.63.0 (a rational function at a root of its denominator by sign analysis: near a it behaves like R/(x − a)^k, and the sign of (x − a)^k on each side decides; ln(x) → −∞ from ln increasing and ln(e^(−M)) = −M; c·x^p·ln(x)^m at 0⁺ read off when nothing pulls the other way) |
+| L'Hôpital: show the chain, not only the number of rounds | Agreed | 1.63.0 (the worked line lists the bottom after each round: 3x², then 6x, then 6) |
+| Conjugate at infinity: the insights switch from x² + 3x to x² + x | Agreed | 1.63.0 (the insights are general, √(x² + bx); the worked line is the student's) |
+| x/2^x is sampled though the growth sections could prove it | Confirmed | 1.63.0 (b^x for whole b > 1 joins the exponential contest, with its ln(b) factors) |
+| "Only an undefined result needs a technique" | Agreed | 1.63.0 ("When substitution gives a finite value by continuity, no other technique is needed; a 0/0 form or a division by 0 needs more analysis") |
+| The rest (direct substitution, standard limits, conjugate at infinity, squeeze, series, growth rates, jumps, infinite limits) | Already right | — |
+
 ## Round 24 (outside review of the algebra content, before 1.62.0 shipped)
 
 A content review of `docs/future-work/insights-review/ALGEBRA.md` ("agree, with revisions"). Every claim was reproduced, and the same class swept.

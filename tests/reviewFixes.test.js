@@ -89,11 +89,13 @@ test('sqrt(x + 2) = x: domain, squaring, both candidates, the extraneous one rej
   assert.match((await solvePlain('sqrt(x) = -2', 'algebra')).answer, /^No solution \(a square root cannot equal a negative number\)/);
 });
 
-test('lim x/e^x samples are shown at their true size, with the underflow explained', async () => {
-  const r = await solvePlain('lim x->infinity x/exp(x)', 'limits');
+test('lim x/1.5^x: samples are shown at their true size, with the underflow explained', async () => {
+  // x/e^x, x/2^x and x·e^x at −∞ are worked by growth rates since 1.63.0;
+  // a base that is not a whole number is still sampled.
+  const r = await solvePlain('lim x->infinity x/1.5^x', 'limits');
   assert.match(r.answer, /= 0$/);
   const samples = r.steps.find((s) => /^Samples:/.test(s));
-  assert.match(samples, /^Samples: 3\.72e-42, 0, 0/);
+  assert.match(samples, /^Samples: 2\.46e-16, 8\.10e-174, 0/);
   assert.match(samples, /cannot be represented in double precision/);
 });
 

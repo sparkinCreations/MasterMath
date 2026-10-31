@@ -1677,7 +1677,9 @@ test('the cosine standard limit is derived from the sine limit', async () => {
 
 test('guidance follows the concept: limits by technique, trig by function, fractions by operation', async () => {
   assert.match((await solvePlain('lim x->0 sin(3x)/x', 'limits')).tips[0], /standard limits sin\(u\)\/u → 1/);
-  assert.match((await solvePlain('lim x->1 (x^2-1)/(x-1)', 'limits')).tips[0], /common factor is hiding/);
+  // 1.63.0 review: "0/0 means a common factor" is false in general (sin x/x);
+  // the tip now says it of a quotient of polynomials.
+  assert.match((await solvePlain('lim x->1 (x^2-1)/(x-1)', 'limits')).tips[0], /For a quotient of polynomials that gives 0\/0/);
   assert.match((await solvePlain('lim x->infinity (3x^2+1)/(x^2-4)', 'limits')).tips[0], /highest power dominates/);
   assert.match((await solvePlain('lim x->2 x^2+1', 'limits')).tips[0], /substituting the value directly/);
 
@@ -1780,7 +1782,10 @@ test('the common-log rewrite never reaches the screen', async () => {
 
 test('limit guidance covers two-sided divergence and sampling at infinity', async () => {
   assert.match((await solveProblem('lim x->0 1/x', 'limits')).tips[0], /check each side separately/);
-  assert.match((await solveProblem('lim x->infinity e^(-x)', 'limits')).tips[0], /highest power dominates/);
+  // e^(−x) is read off directly since 1.63.0 (1/e^x, nothing pulls against
+  // it); x/1.5^x is still sampled, and says so.
+  assert.match((await solveProblem('lim x->infinity e^(-x)', 'limits')).tips[0], /no indeterminate form/);
+  assert.match((await solveProblem('lim x->infinity x/1.5^x', 'limits')).tips[0], /estimated by sampling large values/);
 });
 
 // Partial fractions read the numerator and denominator with a regex that

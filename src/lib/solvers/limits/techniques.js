@@ -15,7 +15,7 @@ import {
 } from '../solverUtils.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
 import { EXPLODED_MAGNITUDE } from '../trigonometrySolver.js';
-import { evalAt } from './numeric.js';
+import { evalAt, zeroToZero } from './numeric.js';
 
 // --- Symbolic rungs ---------------------------------------------------------
 
@@ -281,6 +281,82 @@ function tryConjugate(Algebrite, func, variable, target) {
   return attempt(parts.num, parts.den, true) || attempt(parts.den, parts.num, false);
 }
 
+// √P − Q as x → ±∞, P quadratic and Q linear, growing alike: the form
+// ∞ − ∞. The conjugate turns it into (P − Q²)/(√P + Q), a ratio of leading
+// terms. √(x² + x) − x was only sampled, while the tips named this method
+// (1.63.0).
+export function tryConjugateAtInfinity(Algebrite, func, variable, target) {
+  const v = variable;
+  const sum = splitTopLevelSum(func);
+  if (!sum) return null;
+  // E = σ·(√P − Q): find the root and the sign it carries.
+  let sigma;
+  let root;
+  let q;
+  if (isWholeSqrt(sum.right)) {
+    sigma = sum.sign === '-' ? -1 : 1;
+    root = sum.right;
+    q = sigma === 1 ? `-(${sum.left})` : `(${sum.left})`;
+  } else if (isWholeSqrt(sum.left)) {
+    sigma = 1;
+    root = sum.left;
+    q = sum.sign === '-' ? `(${sum.right})` : `-(${sum.right})`;
+  } else {
+    return null;
+  }
+  const p = leadingCall(noSpaces(root), 'sqrt').arg;
+  if (!isPolynomial(p, v) || !isPolynomial(q, v)) return null;
+  const num = (t) => { try { const n = Number(math.evaluate(String(t))); return Number.isFinite(n) ? n : null; } catch { return null; } };
+  const run = (cmd) => { const out = String(Algebrite.run(cmd)).trim(); return isAlgebriteFailure(out) ? null : out; };
+  const qExpanded = run(`expand(${q})`);
+  if (qExpanded === null || run(`deg(${p}, ${v})`) !== '2' || run(`deg(${qExpanded}, ${v})`) !== '1') return null;
+  const a = num(run(`coeff(${p}, ${v}, 2)`));
+  const lead = num(run(`coeff(${qExpanded}, ${v}, 1)`));
+  if (a === null || lead === null || a <= 0) return null;
+  const rootA = Math.sqrt(a);
+  const s = target === Infinity ? 1 : -1;
+  if (rationalText(rootA) === null) return null;
+  // Leading terms that do not cancel: √P − Q ≈ (√a − s·q)·|x|, which
+  // diverges; no conjugate needed (√(4x²) − x was sampled; second review).
+  if (Math.abs(lead - s * rootA) > 1e-12) {
+    const slope = rootA - s * lead;
+    const answer = sigma * slope > 0 ? '∞' : '-∞';
+    const toward = target === Infinity ? '∞' : '−∞';
+    const rootLike = `${s > 0 ? '' : '−'}${rootA === 1 ? '' : rationalText(rootA)}${v}`;
+    const qShown = beautify(qExpanded);
+    const steps = [
+      `As ${mark(`${v} → ${toward}`)}, ${mark(`√(${beautify(p)})`)} behaves like ${mark(rootLike)} (${s > 0 ? `${mark(`√(${v}^2) = ${v}`)} for ${mark(`${v} > 0`)}` : `${mark(`√(${v}^2) = −${v}`)} for ${mark(`${v} < 0`)}`}) and ${mark(qShown)} like ${mark(`${rationalText(lead) === '1' ? '' : rationalText(lead) === '-1' ? '-' : rationalText(lead)}${v}`)}: the leading terms do not cancel, so there is no ${mark('∞ − ∞')} to resolve.`,
+      `${mark(absBars(beautify(func)))} ${mark('≈')} ${mark(`${sigma < 0 ? '−' : ''}(${rationalText(rootA)} ${s * lead >= 0 ? '−' : '+'} ${rationalText(Math.abs(lead))})·|${v}|`)}, a nonzero multiple of ${mark(`|${v}|`)}, so the limit is ${mark(answer)}.`,
+    ];
+    return { steps, answer, verified: verifyInfiniteLimit(func, v, target, answer), verificationMethod: 'leading terms of a root + numeric check' };
+  }
+  const n = run(`simplify(expand((${p}) - (${qExpanded})^2))`);
+  if (n === null) return null;
+  const nDeg = n === '0' ? 0 : Number(run(`deg(${n}, ${v})`));
+  if (!(nDeg === 0 || nDeg === 1)) return null;
+  const n1 = nDeg === 1 ? num(run(`coeff(${n}, ${v}, 1)`)) : 0;
+  if (n1 === null) return null;
+  const value = (sigma * n1) / (2 * lead);
+  const exact = rationalText(value);
+  if (exact === null) return null;
+  const shownValue = Number.isInteger(value) ? exact : `${exact} (≈ ${formatNumber(value)})`;
+  const toward = target === Infinity ? '∞' : '−∞';
+  const rootShown = `√(${beautify(p)})`;
+  const qShown = beautify(qExpanded);
+  const steps = [];
+  if (sigma === -1) steps.push(`Factor out the sign: ${mark(`${absBars(beautify(func))} = −(${rootShown} − ${wrapSum(qShown)})`)}.`);
+  steps.push(`As ${mark(`${v} → ${toward}`)}, both ${mark(rootShown)} and ${mark(qShown)} grow without bound at the same rate: the form ${mark('∞ − ∞')}, which on its own says nothing.`);
+  const conjugateShown = qShown.startsWith('-') ? `${rootShown} − ${qShown.slice(1)}` : `${rootShown} + ${wrapSum(qShown)}`;
+  steps.push(`Multiply and divide by the conjugate ${mark(conjugateShown)}. Since ${mark('(a − b)(a + b) = a² − b²')}, the top becomes ${mark(`(${beautify(p)}) − (${qShown})^2 = ${beautify(n)}`)}: the square root is gone.`);
+  steps.push(nDeg === 1
+    ? `Divide the top and the bottom by ${mark(v)}. The top ${mark(`→ ${rationalText(n1)}`)}; on the bottom, ${mark(`${rootShown}/${v} → ${s > 0 ? '' : '−'}${rationalText(rootA)}`)} (${s > 0 ? `${mark(`√(${v}^2) = ${v}`)} for ${mark(`${v} > 0`)}` : `${mark(`√(${v}^2) = −${v}`)} for ${mark(`${v} < 0`)}`}) and ${mark(`${qShown}/${v} → ${rationalText(lead)}`)}, so the bottom ${mark(`→ ${rationalText(2 * lead)}`)}.`
+    : `The top is the constant ${mark(beautify(n))} while the bottom grows without bound, so the quotient ${mark('→ 0')}.`);
+  steps.push(`So the limit is ${mark(sigma === -1 && value !== 0 ? `−(${rationalText(-value)}) = ${exact}` : exact)}.`);
+  return { steps, answer: shownValue, verified: verifyInfiniteLimit(func, v, target, value), verificationMethod: 'conjugate at infinity + numeric check' };
+}
+
+const wrapSum = (t) => (/[+\-−]/.test(t.slice(1)) ? `(${t})` : t);
+
 // P(x)/Q(x), both polynomials vanishing at a: factor, cancel (x − a), substitute.
 function tryFactorAndCancel(Algebrite, func, variable, target) {
   const parts = splitQuotient(func);
@@ -374,6 +450,15 @@ export function tryLeadingTerms(Algebrite, func, variable, target) {
   const ratioSign = Math.sign(Number(math.evaluate(cn)) / Number(math.evaluate(cd)));
   const parity = (dn - dd) % 2 === 1 && target === -Infinity ? -1 : 1;
   const answer = ratioSign * parity > 0 ? '∞' : '-∞';
+  // A bare polynomial: no denominator to divide by ("divide by x^0").
+  if (dd === 0 && noSpaces(parts.den) === '1') {
+    const leadTerm = `${cn === '1' ? '' : cn === '-1' ? '-' : beautify(cn)}${pow(dn)}`;
+    const steps = [
+      `For a limit at ${toward}, a polynomial behaves like its highest-power term, ${mark(leadTerm)}: the other terms grow more slowly.`,
+      `As ${mark(`${v} → ${toward}`)}, ${mark(leadTerm)} ${mark(`→ ${answer}`)}, so the limit is ${mark(answer)}.`,
+    ];
+    return { steps, answer, verified: verifyInfiniteLimit(func, v, target, answer), verificationMethod: method };
+  }
   const steps = [
     `For a limit at ${toward}, only the highest powers matter. The numerator has degree ${dn}, the denominator degree ${dd}.`,
     `Divide numerator and denominator by ${mark(pow(dd))}: the quotient behaves like ${mark(`(${beautify(cn)}/${beautify(cd)})·${pow(dn - dd)}`)}, which grows without bound.`,
@@ -487,6 +572,9 @@ export function tryAlgebriteSimplify(Algebrite, func, variable, target) {
   try {
     const simplified = String(Algebrite.run(`simplify(${func})`)).trim();
     if (!simplified || /nil|error/i.test(simplified)) return null;
+    // Nothing simplified, or a 0⁰ left in it (Algebrite makes 0^0 = 1): x^x
+    // at 0 read "simplify: x^x, substitute: 1" (1.63.0).
+    if (noSpaces(beautify(simplified)) === noSpaces(beautify(func)) || zeroToZero(simplified, variable, target)) return null;
 
     // Re-substitute into the simplified form.
     const value = algebriteNumber(Algebrite, `(${simplified})`, variable, target);
@@ -517,6 +605,32 @@ function taylorExpand(Algebrite, expr, variable, target) {
   }
 }
 
+// A Taylor polynomial about 0 as a textbook writes it: lowest powers first,
+// three terms, then "+ …" (x + x^2/2 + x^3/6 + …, not 1/40320*x^8 + … + x).
+function seriesShown(Algebrite, expr, variable, target) {
+  if (target !== 0) return beautify(expr);
+  const terms = [];
+  for (let k = 0; k <= 8; k += 1) {
+    const raw = String(Algebrite.run(`coeff(${expr}, ${variable}, ${k})`)).trim();
+    if (isAlgebriteFailure(raw)) return beautify(expr);
+    const c = Number(math.evaluate(raw));
+    if (!Number.isFinite(c)) return beautify(expr);
+    if (c !== 0) terms.push({ c, k });
+  }
+  if (!terms.length) return '0';
+  const body = (k) => (k === 0 ? '' : k === 1 ? variable : `${variable}^${k}`);
+  const text = (c, k) => {
+    const f = rationalText(Math.abs(c));
+    if (f === null) return `${formatNumber(Math.abs(c))}${body(k)}`;
+    const [a, b] = f.split('/');
+    if (k === 0) return f;
+    const top = a === '1' ? body(k) : `${a}${body(k)}`;
+    return b ? `${top}/${b}` : top;
+  };
+  const shown = terms.slice(0, 3).map(({ c, k }, i) => `${i === 0 ? (c < 0 ? '-' : '') : c < 0 ? ' - ' : ' + '}${text(c, k)}`).join('');
+  return terms.length > 3 ? `${shown} + …` : shown;
+}
+
 export function trySeriesLimit(Algebrite, func, variable, target) {
   // Algebrite refuses to Taylor-expand a whole fraction whose denominator
   // vanishes ("divide by zero"). The correct move for a 0/0 quotient is to
@@ -545,7 +659,7 @@ export function trySeriesLimit(Algebrite, func, variable, target) {
     return {
       steps: [
         `Direct substitution gives ${mark('0/0')}, so expand the numerator and denominator as Taylor series about ${mark(`${variable} = ${formatNumber(target)}`)}.`,
-        `Numerator ${mark(`≈ ${beautify(numExp)}`)}; denominator ${mark(`≈ ${beautify(denExp)}`)}.`,
+        `Numerator ${mark(`≈ ${seriesShown(Algebrite, numExp, variable, target)}`)}; denominator ${mark(`≈ ${seriesShown(Algebrite, denExp, variable, target)}`)}.`,
         `Divide the series and cancel the common factor; the limit is ${mark(shown)}.`,
       ],
       answer: shown,
@@ -655,4 +769,72 @@ function verifyLimitNumerically(func, variable, target, claimed) {
     if (Math.abs(y - claimed) < tol) agree += 1;
   }
   return seen >= 3 && agree >= seen - 1;
+}
+
+// P(x)/Q(x) at a root a of Q where P(a) ≠ 0: a vertical asymptote. Near a,
+// Q = c·(x − a)^k·(…), so the quotient behaves like R/(x − a)^k with
+// R = P(a)/c, and the sign of (x − a)^k on each side decides ±∞. 1/x,
+// 1/x² and (x + 1)/(x − 2) were settled by sampling each side (1.63.0
+// review, the same class as the proofs asked for).
+export function tryPoleSigns(Algebrite, func, variable, target, side = 0) {
+  if (!Algebrite || !Number.isFinite(target)) return null;
+  const v = variable;
+  const parts = splitQuotient(func);
+  if (!parts || !isPolynomial(parts.num, v) || !isPolynomial(parts.den, v)) return null;
+  const at = rationalText(target);
+  if (at === null) return null;
+  const top = algebriteNumber(Algebrite, `(${parts.num})`, v, at);
+  if (top === null || top === 0 || algebriteNumber(Algebrite, `(${parts.den})`, v, at) !== 0) return null;
+  // The multiplicity k of the root, and c = Q^(k)(a)/k!.
+  let derivative = parts.den;
+  let k = 0;
+  let lead = 0;
+  for (let factorial = 1; k < 8; ) {
+    derivative = String(Algebrite.run(`d(${derivative}, ${v})`)).trim();
+    if (isAlgebriteFailure(derivative)) return null;
+    k += 1;
+    factorial *= k;
+    const value = algebriteNumber(Algebrite, `(${derivative})`, v, at);
+    if (value === null) return null;
+    if (value !== 0) { lead = value / factorial; break; }
+  }
+  if (lead === 0) return null;
+  const r = top / lead;
+  const rText = rationalText(r);
+  if (rText === null) return null;
+  const a = formatNumber(target);
+  const factor = target === 0 ? v : target < 0 ? `(${v} + ${formatNumber(-target)})` : `(${v} − ${a})`;
+  const powered = k === 1 ? factor : `${factor}^${k}`;
+  const rightSign = Math.sign(r);
+  const leftSign = Math.sign(r) * (k % 2 ? -1 : 1);
+  const inf = (s) => (s > 0 ? '∞' : '-∞');
+  const f = absBars(beautify(func));
+  const [rTop, rBottom] = rText.split('/');
+  const behaves = rBottom ? `${rTop}/(${rBottom}${powered})` : `${rText}/${powered}`;
+  const steps = [
+    `Substituting ${mark(`${v} = ${a}`)} gives ${mark(`${rationalText(top)}/0`)}: the top is not ${mark('0')} while the bottom is, so ${mark(f)} grows without bound near ${mark(a)}. The sign on each side decides which way.`,
+    `The bottom has the factor ${mark(factor)} ${k === 1 ? 'once' : k === 2 ? 'twice' : `${k} times`}, so near ${mark(`${v} = ${a}`)} the function behaves like ${mark(behaves)}.`,
+  ];
+  const sideStep = (s) => (s > 0
+    ? `From the right (${mark(`${v} → ${a}⁺`)}): ${mark(`${powered} > 0`)}, so the function diverges to ${mark(inf(rightSign))}.`
+    : `From the left (${mark(`${v} → ${a}⁻`)}): ${mark(`${powered} ${k % 2 ? '<' : '>'} 0`)}, so the function diverges to ${mark(inf(leftSign))}.`);
+  if (side !== 0) {
+    steps.push(sideStep(side));
+    const answer = inf(side > 0 ? rightSign : leftSign);
+    return { steps, answer, verified: verifyPole(func, v, target, side, answer), verificationMethod: 'sign analysis + numeric check' };
+  }
+  steps.push(sideStep(-1), sideStep(1));
+  const sides = { left: inf(leftSign), right: inf(rightSign) };
+  if (leftSign === rightSign) {
+    steps.push(`Both sides grow without bound in the same direction, so the limit diverges to ${mark(sides.right)}.`);
+    return { steps, answer: sides.right, verified: verifyPole(func, v, target, -1, sides.left) && verifyPole(func, v, target, 1, sides.right), verificationMethod: 'sign analysis + numeric check', sides };
+  }
+  steps.push('The two sides run off to opposite infinities (a vertical asymptote), so the limit does not exist.');
+  return { steps, answer: 'Does not exist', verified: verifyPole(func, v, target, -1, sides.left) && verifyPole(func, v, target, 1, sides.right), verificationMethod: 'sign analysis + numeric check', sides };
+}
+
+function verifyPole(func, variable, target, side, claimed) {
+  const ys = [1e-3, 1e-5, 1e-7].map((d) => evalAt(func, variable, target + side * d));
+  const want = claimed === '∞' ? 1 : -1;
+  return ys.every((y) => Number.isFinite(y) && Math.sign(y) === want) && Math.abs(ys[2]) > Math.abs(ys[1]) && Math.abs(ys[1]) > Math.abs(ys[0]);
 }

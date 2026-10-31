@@ -416,3 +416,196 @@ test('algebra review: factor, expand, simplify and radicals show their own resul
   assert.equal((await plainAlg('expand (x+1)^2')).tips[1], 'Here: (x + 1)^2 = x^2 + 2x + 1.');
   assert.equal((await plainAlg('(x^2-1)/(x-1)')).tips[1], 'Here: (x^2 - 1)/(x - 1) = x + 1, for x ≠ 1.');
 });
+
+// 1.63.0: limits. Growth rates, the conjugate at infinity, one-sided domains
+// and 0⁰ are worked, not sampled; each method's first insight is followed
+// by the same insight applied to the limit.
+const plainLim = async (p) => {
+  const { stripMathMarkers } = await import('../src/lib/mathMarkers.js');
+  const r = await solveProblem(p, 'limits');
+  return { ...r, steps: r.steps.map(stripMathMarkers), tips: r.tips.map(stripMathMarkers), mistakes: r.common_mistakes.map(stripMathMarkers) };
+};
+
+test('limits: growth rates are worked by L\'Hôpital\'s rule, not sampled', async () => {
+  for (const [p, answer] of [
+    ['lim x->infinity x/e^x', '0'], ['lim x->infinity x^3/e^(2x)', '0'], ['lim x->infinity x^2*e^(-x)', '0'],
+    ['lim x->infinity (x^2+1)/e^x', '0'], ['lim x->infinity e^x/x^2', '∞'], ['lim x->infinity x/e^(x/2)', '0'],
+    ['lim x->infinity ln(x)/x', '0'], ['lim x->infinity ln(x)^2/sqrt(x)', '0'], ['lim x->infinity x/ln(x)', '∞'],
+    ['lim x->0+ sqrt(x)*ln(x)', '0'], ['lim x->0 x*ln(x)', '0'],
+  ]) {
+    const r = await plainLim(p);
+    assert.equal(r.answer.split(' = ').pop(), answer, p);
+    assert.ok(!r.steps.some((s) => /^Samples:|^Sample ever closer/.test(s)), `${p} was sampled`);
+  }
+  const r = await plainLim('lim x->infinity x^3/e^(2x)');
+  assert.match(r.steps.join('\n'), /3x\^2\/\(2e\^\(2x\)\), then 6x\/\(4e\^\(2x\)\), then 6\/\(8e\^\(2x\)\)/);
+  assert.match(r.tips[0], /^An exponential outgrows every power/);
+  assert.match(r.tips[1], /^Here: 3 rounds of L'Hôpital's rule, one per power of x/);
+  const zero = await plainLim('lim x->0 x*ln(x)');
+  assert.match(zero.steps[1], /not defined just to the left of x = 0/);
+  assert.match(zero.steps.join('\n'), /Rewrite the product as a quotient, ln\(x\)\/x\^\(-1\), which is ∞\/∞/);
+  assert.match(zero.tips[0], /^0·∞ is indeterminate/);
+});
+
+test('limits: what pulls one way is read off; ln(x) and x·sin(x) at ∞ were wrong', async () => {
+  // ln(x) → ∞ "did not exist"; x·sin(x) "= ∞" from the sign of the last sample.
+  assert.equal((await plainLim('lim x->infinity ln(x)')).answer, 'lim (x→∞) ln(x) = ∞');
+  assert.equal((await plainLim('lim x->infinity x*sin(x)')).answer, 'lim (x→∞) x*sin(x) does not exist');
+  assert.equal((await plainLim('lim x->infinity x*sin(x)')).tips[1], 'Here: x_n = π/2 + 2πn and y_n = 3π/2 + 2πn both → ∞, but x*sin(x) → ∞ along one and → -∞ along the other.');
+  const decay = await plainLim('lim x->infinity e^(-x)/x');
+  assert.equal(decay.answer, 'lim (x→∞) e^(-x)/x = 0');
+  assert.match(decay.steps[1], /^Write it as 1\/\(x·e\^x\)/);
+  assert.equal((await plainLim('lim x->infinity -2e^x')).answer, 'lim (x→∞) -2e^x = -∞');
+  // A bare polynomial is its leading term, not "divide by x^0".
+  const poly = await plainLim('lim x->-infinity x^3-2x');
+  assert.match(poly.steps[1], /behaves like its highest-power term, x\^3/);
+  assert.ok(!poly.steps.some((s) => /x\^0/.test(s)));
+});
+
+test('limits: the conjugate at infinity, both signs and both directions', async () => {
+  for (const [p, answer] of [
+    ['lim x->infinity sqrt(x^2+x)-x', '1/2 (≈ 0.5)'], ['lim x->infinity x - sqrt(x^2 + 3x)', '-3/2 (≈ -1.5)'],
+    ['lim x->-infinity sqrt(x^2+x)+x', '-1/2 (≈ -0.5)'], ['lim x->infinity sqrt(4x^2+x)-2x', '1/4 (≈ 0.25)'],
+  ]) {
+    const r = await plainLim(p);
+    assert.equal(r.answer.split(' = ').pop(), answer, p);
+    assert.match(r.steps.join('\n'), /the form ∞ − ∞/, p);
+  }
+  const r = await plainLim('lim x->infinity x - sqrt(x^2 + 3x)');
+  assert.equal(r.tips[1], 'Here: x - sqrt(x^2 + 3x) = −3x/(√(x^2 + 3x) + x), a quotient whose top and bottom grow at the same rate.');
+});
+
+test('limits: a one-sided domain is said, and 0⁰ is never 1 by substitution', async () => {
+  // ln(x) at 0: "the one-sided limits disagree", with −18.42 read as a value.
+  const ln = await plainLim('lim x->0 ln(x)');
+  assert.equal(ln.answer, 'lim (x→0⁺) ln(x) = -∞');
+  assert.ok(!ln.steps.some((s) => /disagree/.test(s)));
+  assert.match(ln.tips[1], /x → 0 can only mean x → 0⁺/);
+  assert.ok(ln.tips.some((t) => /Courses differ on the plain two-sided notation/.test(t)));
+  assert.match(ln.steps.at(-1), /depends on your course/);
+  const root = await plainLim('lim x->0 sqrt(x)');
+  assert.equal(root.answer, 'lim (x→0⁺) sqrt(x) = 0');
+  assert.match(root.steps.join('\n'), /not defined just to the left of x = 0/);
+  // x^x at 0 was "defined and equals 1", then "simplify: x^x, substitute: 1".
+  const xx = await plainLim('lim x->0 x^x');
+  assert.equal(xx.answer, 'lim (x→0⁺) x^x = 1');
+  assert.match(xx.steps.join('\n'), /gives 0\^0: an indeterminate form, not 1/);
+  assert.ok(!xx.steps.some((s) => /Simplify the expression|defined and equals 1/.test(s)));
+  assert.equal(xx.tips[1], 'Here: x^x = e^(x·ln(x)) and x·ln(x) → 0, so the limit is e^0 = 1.');
+});
+
+test('limits: each technique\'s insight is applied to the limit second', async () => {
+  for (const [p, here] of [
+    ['lim x->2 x^2+1', 'Here: x^2 + 1 is defined at x = 2, and substituting gives 5, a number, so no technique is needed.'],
+    ['lim x->1 (x^2-1)/(x-1)', 'Here: (x^2 - 1)/(x - 1) = x + 1 for x ≠ 1, and x + 1 → 2 as x → 1.'],
+    ['lim x->0 sin(3x)/x', 'Here: sin(3x)/x = (3) · sin(3x)/(3x), and the fraction → 1, so the limit is 3.'],
+    ['lim x->0 x*sin(1/x)', 'Here: −|x| ≤ x·sin(1/x) ≤ |x|, and both bounds → 0, so the limit is 0.'],
+    ['lim x->infinity (1+1/x)^(2x)', 'Here: E·u = (2x)·(1/x) = 2, so ln L = 2 and the limit is e^2.'],
+    ['lim x->0 (e^x-1-x)/x^2', 'Here: the numerator starts x^2/2 and the denominator x^2; after cancelling, the limit is 1/2.'],
+    ['lim x->0 (tan(x)-x)/x^3', 'Here: the bottom goes 3x^2, then 6x, then 6; only after round 3 is it not 0 at x = 0, and substitution gives 1/3.'],
+    ['lim x->infinity (3x^2+1)/(2x^2-5)', 'Here: top and bottom both have degree 2, so the limit is the ratio of the leading coefficients, 3/2.'],
+    ['lim x->0 1/x', 'Here: from the left 1/x → -∞, from the right → ∞.'],
+    ['lim x->0 abs(x)/x', 'Here: from the left |x|/x → -1, from the right → 1.'],
+  ]) {
+    assert.equal((await plainLim(p)).tips[1], here, p);
+  }
+  // The Taylor step reads lowest powers first, not 1/40320*x^8 + … + x.
+  assert.match((await plainLim('lim x->0 (e^x-1)/x')).steps[2], /^Numerator ≈ x \+ x\^2\/2 \+ x\^3\/6 \+ …; denominator ≈ x\./);
+  // Sampled limits say they were sampled.
+  assert.match((await plainLim('lim x->infinity x/1.5^x')).tips[0], /estimated by sampling large values, not proved/);
+});
+
+// Round 25 (outside review of LIMITS.md): proof, not samples; a one-sided
+// domain answered as the one-sided limit; the factor rule stated where true.
+test('limits review: no limit is concluded from samples where a proof is at hand', async () => {
+  // x^x by logarithms: x^x = e^(x·ln x), and x·ln x → 0 by L'Hôpital's rule.
+  const xx = await plainLim('lim x->0 x^x');
+  assert.ok(!xx.steps.some((s) => /Sample|samples/.test(s)), xx.steps.join('\n'));
+  assert.match(xx.steps.join('\n'), /Take logarithms: for x > 0, x\^x = e\^\(x·ln\(x\)\)/);
+  assert.equal((await plainLim('lim x->0+ x^(2x)')).answer, 'lim (x→0⁺) x^(2x) = 1');
+  // Oscillation by two sequences: x·sin(x), sin(x), cos(2x) at ∞; sin(1/x) at 0.
+  for (const [p, along] of [
+    ['lim x->infinity x*sin(x)', /Along x_n = π\/2 \+ 2πn .*x_n\*sin\(x_n\) = x_n → ∞/],
+    ['lim x->infinity sin(x)', /Along x_n = π\/2 \+ 2πn .*sin\(x_n\) = 1\./],
+    ['lim x->infinity cos(2x)', /Along x_n = πn .*cos\(2x_n\) = 1\./],
+    ['lim x->0 sin(1/x)', /Along x_n = 1\/\(π\/2 \+ 2πn\) \(x_n → 0⁺ as n → ∞\), sin\(1\/x_n\) = 1\./],
+    ['lim x->infinity -3x^2*cos(x)', /cos\(x_n\) = 1, so -3x_n\^2\*cos\(x_n\) = -3x_n\^2 → -∞/],
+  ]) {
+    const r = await plainLim(p);
+    assert.match(r.answer, / does not exist$/, p);
+    assert.ok(r.steps.some((s) => along.test(s)), `${p}\n${r.steps.join('\n')}`);
+    assert.ok(!r.steps.some((s) => /^Samples:|^Sampling ever closer/.test(s)), p);
+  }
+  // b^x is an exponential too: x/2^x is worked, with its ln(2) factors.
+  const two = await plainLim('lim x->infinity x/2^x');
+  assert.match(two.steps.join('\n'), /1\/\(ln\(2\)·2\^x\)/);
+  assert.equal((await plainLim('lim x->infinity 3^x/x^2')).answer, 'lim (x→∞) 3^x/x^2 = ∞');
+  // What is still sampled says it is an estimate.
+  assert.match((await plainLim('lim x->infinity x^(1/x)')).steps.at(-1), /an estimate, not a proof/);
+});
+
+test('limits review: the wording fixes', async () => {
+  const factor = await plainLim('lim x->1 (x^2-1)/(x-1)');
+  assert.match(factor.tips[0], /^For a quotient of polynomials that gives 0\/0 at x = a, both have the factor \(x − a\)/);
+  assert.ok(!factor.tips.some((t) => /0\/0 means a common factor/.test(t)));
+  assert.ok((await plainLim('lim x->2 x^2+1')).tips.some((t) => /^When substitution gives a finite value by continuity, no other technique is needed/.test(t)));
+  // The conjugate's insights are general; the worked line is the student's.
+  const conj = await plainLim('lim x->infinity x - sqrt(x^2 + 3x)');
+  assert.ok(!conj.tips.some((t) => /x² \+ x\b/.test(t)), conj.tips.join('\n'));
+  assert.match(conj.tips[1], /x - sqrt\(x\^2 \+ 3x\)/);
+  assert.equal((await plainLim('lim x->0 sin(x)/(x+x^2)')).tips[1], 'Here: after one round the bottom is 2x + 1, not 0 at x = 0, so substitution gives 1.');
+});
+
+test('limits review, swept: vertical asymptotes and ln(x) at 0⁺ by proof, not samples', async () => {
+  for (const [p, answer, step] of [
+    ['lim x->0 1/x', 'lim (x→0) 1/x does not exist', /From the left \(x → 0⁻\): x < 0, so the function diverges to -∞/],
+    ['lim x->0 1/x^2', 'lim (x→0) 1/x^2 = ∞', /has the factor x twice/],
+    ['lim x->2 (x+1)/(x-2)', 'lim (x→2) (x + 1)/(x - 2) does not exist', /behaves like 3\/\(x − 2\)/],
+    ['lim x->2+ 1/(x^2-4)', 'lim (x→2⁺) 1/(x^2 - 4) = ∞', /behaves like 1\/\(4\(x − 2\)\)/],
+    ['lim x->-1 x/(x+1)^2', 'lim (x→-1) x/(x + 1)^2 = -∞', /\(x \+ 1\)\^2 > 0/],
+    ['lim x->0 ln(x)', 'lim (x→0⁺) ln(x) = -∞', /ln is increasing and ln\(e\^\(−M\)\) = −M/],
+    ['lim x->0+ ln(x)/x', 'lim (x→0⁺) ln(x)/x = -∞', /both parts pull the same way/],
+  ]) {
+    const r = await plainLim(p);
+    assert.equal(r.answer, answer, p);
+    assert.ok(r.steps.some((s) => step.test(s)), `${p}\n${r.steps.join('\n')}`);
+    assert.ok(!r.steps.some((s) => /^Sample|^Samples:/.test(s)), p);
+  }
+  assert.equal((await plainLim('lim x->0 1/x')).tips[1], 'Here: from the left 1/x → -∞, from the right → ∞.');
+});
+
+// Round 26 (second outside review of LIMITS.md): the growth-rate wording, and
+// limits at −∞ by t = −x; swept: outside the domain at ±∞, roots whose
+// leading terms do not cancel, underflow with no earlier nonzero sample.
+test('limits second review: growth rates at −∞ through t = −x, not samples', async () => {
+  for (const [p, answer, side] of [
+    ['lim x->-infinity x*e^x', '0', 'below'], ['lim x->-infinity x^2*e^x', '0', 'above'], ['lim x->-infinity e^x', '0', 'above'],
+    ['lim x->-infinity x^3/e^(-x)', '0', 'below'], ['lim x->-infinity x*e^(-x)', '-∞', null],
+  ]) {
+    const r = await plainLim(p);
+    assert.equal(r.answer.split(' = ').pop(), answer, p);
+    assert.match(r.steps[1], /^Let t = −x: as x → −∞, t → ∞/, p);
+    assert.ok(!r.steps.some((s) => /^Samples:/.test(s)), p);
+    if (side) assert.match(r.steps.at(-1), new RegExp(`approaches 0 from ${side}`), p);
+  }
+  assert.equal((await plainLim('lim x->-infinity x*e^x')).tips[1], 'Here: with t = −x → ∞, x*e^x = -t*e^(-t); the exponential outgrows the power of t, so the limit is 0, approached from below.');
+});
+
+test('limits second review, swept: the domain at ±∞, roots that do not cancel, underflow', async () => {
+  // ln(x) as x → −∞ was "−∞": every sample was undefined, shown as "±∞".
+  for (const p of ['lim x->-infinity ln(x)', 'lim x->-infinity sqrt(x)', 'lim x->infinity sqrt(-x)']) {
+    const r = await plainLim(p);
+    assert.match(r.answer, / does not exist$/, p);
+    assert.match(r.steps.join('\n'), /not defined for large (negative|positive) x/, p);
+    assert.ok(!r.steps.some((s) => /±∞/.test(s)), p);
+  }
+  // √(4x²) − x: the leading terms do not cancel (it was sampled).
+  for (const [p, answer] of [['lim x->infinity sqrt(4x^2)-x', '∞'], ['lim x->-infinity sqrt(x^2+x)-x', '∞'], ['lim x->infinity x - sqrt(9x^2+1)', '-∞']]) {
+    const r = await plainLim(p);
+    assert.equal(r.answer.split(' = ').pop(), answer, p);
+    assert.match(r.steps.join('\n'), /the leading terms do not cancel/, p);
+  }
+  assert.ok((await plainLim('lim x->infinity x - sqrt(x^2 + 3x)')).tips.some((t) => t === 'When the leading growth does not cancel, there is no ∞ − ∞ to resolve and the difference diverges: as x → ∞, √(4x²) − x = 2x − x = x → ∞.'));
+  // Seven bare zeros now say they are underflow.
+  assert.match((await plainLim('lim x->infinity x*e^(-x^2)')).steps.find((s) => /^Samples:/.test(s)), /cannot be represented in double precision/);
+});
