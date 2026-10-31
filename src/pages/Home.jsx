@@ -144,8 +144,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* The solver at work (1.56.4): the laptop shows the real Solver
-              page graphing x³ − 3x. Two WebP sizes, 36 kB and 92 kB. It is
+          {/* The solver at work (1.56.4; new photo 1.59.12): the laptop
+              shows the real Solver page differentiating x² + 3x. Two WebP
+              sizes, 33 kB and 87 kB. It is
               part of the hero on large screens now, so it loads eagerly;
               in dark mode the bright scene is dimmed a little so it does
               not glow. */}
@@ -157,7 +158,7 @@ export default function Home() {
               width="1600"
               height="900"
               decoding="async"
-              alt="MasterMath open on a laptop, graphing f(x) = x³ − 3x with its maximum and minimum marked, while a student copies the steps into a notebook"
+              alt="MasterMath open on a laptop, differentiating f(x) = x² + 3x: the graph shows the parabola with its derivative 2x + 3 as a dashed line, beside the first steps, while a student copies the working into a notebook"
               className="w-full h-auto rounded-xl md:rounded-2xl border-2 border-indigo-200 dark:border-gray-600 shadow-2xl dark:brightness-[.85]"
             />
           </figure>

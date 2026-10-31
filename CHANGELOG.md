@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.59.12] - 2026-10-31
+
+### Changed
+
+- **A new photo on the home page.** The laptop now shows the Solver
+  differentiating x² + 3x: the graph of the parabola with its derivative
+  2x + 3, the "Read as" line and the first steps, larger on screen than
+  before. Same two WebP sizes (33 kB and 87 kB, from 36 kB and 92 kB), and
+  the image description is rewritten to match.
+
 ## [1.59.11] - 2026-10-29
 
 ### Changed
