@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.63.0] - 2026-10-29
+
+### Added
+
+- **More limit insights and mistakes**, the fourth topic. About twenty
+  techniques each have a ranked list behind "Show more", and the second
+  insight works the student's own limit from its steps: x² − 1 over x − 1 is
+  x + 1 for x ≠ 1; sin(3x)/x = 3·sin(3x)/(3x); the squeeze bounds; E·u = 2
+  in a 1^∞; the series' first terms; how many rounds of L'Hôpital's rule
+  were needed; the degrees of the leading terms; each side of a jump or an
+  asymptote. Review: `docs/future-work/insights-review/LIMITS.md`.
+- **Growth rates, worked instead of sampled:** x³/e^(2x), x²·e^(−x),
+  (x² + 1)/e^x and e^x/x² by rounds of L'Hôpital's rule, one per power of x;
+  ln(x)²/√x and x/ln(x), one round per power of ln x; x·ln(x) and
+  √x·ln(x) at 0⁺ as 0·∞ rewritten as a quotient. Where nothing pulls the
+  other way (e^(−x), e^(−x)/x, x²·eˣ, ln x) the limit is read off directly.
+- **The conjugate at infinity:** √(x² + x) − x → 1/2 is worked as ∞ − ∞
+  turned into a quotient, at ∞ and at −∞ (√(x²) = −x there), where it was
+  only sampled.
+- **The Taylor step reads lowest powers first**: x + x²/2 + x³/6 + …, not
+  1/40320·x⁸ + … + x.
+- **Proofs where there were samples** (an outside review, Round 25): x^x
+  and x^(2x) at 0⁺ by logarithms (x^x = e^(x·ln x), and x·ln x → 0);
+  sin x, cos(2x), x·sin x at ∞ and sin(1/x) at 0 shown to have no limit by
+  two sequences (x_n = π/2 + 2πn, y_n = 3π/2 + 2πn); x/2^x and 3^x/x² by
+  growth rates; a rational function's vertical asymptote (1/x, 1/x²,
+  (x + 1)/(x − 2)) by the sign of (x − a)^k on each side; ln(x) → −∞ at
+  0⁺ from ln being increasing; limits at −∞ by t = −x (x·eˣ = −t/eᵗ → 0,
+  from below); a root minus a linear term whose leading terms do not cancel
+  (√(4x²) − x → ∞). A limit still found by sampling says it is an estimate.
+
+### Fixed
+
+- **lim x→∞ ln(x) said "does not exist"** (the slow growth looked like
+  not settling); it is ∞.
+- **lim x→−∞ ln(x) said −∞**: every sample was undefined. Outside the
+  domain at ±∞ the limit now does not exist, and says why.
+- **lim x→∞ x·sin(x) said ∞** from the sign of the last sample; the values
+  swing between signs, so it does not exist.
+- **A function defined on one side only** (ln(x) at 0) was said to have
+  one-sided limits that "disagree", with −18.42 read as the right-hand
+  value. The answer is now the one-sided limit, written lim (x→0⁺) ln(x) =
+  −∞, and the last step says some courses accept the plain limit and others
+  call it nonexistent; √x and x^x at 0 and arcsin x at 1 say the same. A left side that only looked defined
+  because a tiny imaginary part was rounded away (x²·ln(x)) is caught.
+- **x^x at 0 claimed "the function is defined and equals 1"**, then
+  "simplify: x^x, substitute: 1". 0⁰ is now named as an indeterminate form
+  and never a value by substitution.
+- **A bare polynomial at infinity** was "divided by x⁰"; it is now its
+  highest-power term.
+- **"0/0 means a common factor is hiding"** was stated as a rule; it holds
+  for a quotient of polynomials, and now says so.
+
 ## [1.62.0] - 2026-10-29
 
 ### Added

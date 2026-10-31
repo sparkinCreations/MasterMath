@@ -25,6 +25,18 @@ const EXTRA = [
   ['derivatives', 'x^2 + y^2 = 25 at (5, 0)'], ['derivatives', 'foo(x)'], ['derivatives', 'x^2 +* 3'],
   ['limits', 'lim x->0 1/x'], ['limits', 'lim x->0 tan(pi/2)'], ['limits', 'lim x->0 1/0'], ['limits', 'lim h->0 ((x+h)^2 - x^2)/h'],
   ['limits', 'lim h->0 abs(x+h)/h'], ['limits', 'lim sin(x)/x'], ['limits', 'lim'], ['limits', 'lim x->0 (x+'],
+  // Limits, 1.63.0: every technique's lists, worked lines included.
+  ['limits', 'lim x->0 sqrt(x)'], ['limits', 'lim x->0 ln(x)'], ['limits', 'lim x->0 sin(x)/x'], ['limits', 'lim x->0 (1-cos(2x))/x^2'],
+  ['limits', 'lim x->infinity sqrt(x^2+x)-x'], ['limits', 'lim x->infinity x - sqrt(x^2 + 3x)'], ['limits', 'lim x->infinity sin(x)/x'],
+  ['limits', 'lim x->0 (tan(x)-x)/x^3'], ['limits', 'lim x->infinity x^3/e^(2x)'], ['limits', 'lim x->infinity e^x/x^2'],
+  ['limits', 'lim x->infinity ln(x)^2/sqrt(x)'], ['limits', 'lim x->0 x*ln(x)'], ['limits', 'lim x->0+ sqrt(x)*ln(x)'],
+  ['limits', 'lim x->infinity e^(-x)/x'], ['limits', 'lim x->infinity ln(x)'], ['limits', 'lim x->-infinity x^3-2x'],
+  ['limits', 'lim x->0 x^x'], ['limits', 'lim x->infinity x*sin(x)'], ['limits', 'lim x->0 1/x^2'], ['limits', 'lim x->infinity x/2^x'],
+  ['limits', 'lim x->0+ 1/x'], ['limits', 'lim x->2 x^2+1'],
+  ['limits', 'lim x->infinity sin(x)'], ['limits', 'lim x->infinity cos(2x)'], ['limits', 'lim x->0+ x^(2x)'], ['limits', 'lim x->infinity 3^x/x^2'],
+  ['limits', 'lim x->infinity -3x^2*cos(x)'], ['limits', 'lim x->1 arcsin(x)'], ['limits', 'lim x->infinity x^(1/x)'],
+  ['limits', 'lim x->-infinity x*e^x'], ['limits', 'lim x->-infinity e^x'], ['limits', 'lim x->-infinity ln(x)'], ['limits', 'lim x->infinity sqrt(4x^2)-x'],
+  ['limits', 'lim x->-infinity sqrt(x^2+x)-x'], ['limits', 'lim x->infinity x/1.5^x'], ['limits', 'lim x->0 1/x'],
   // Integrals and functions.
   ['integrals', 'cos(x)'], ['integrals', 'e^x'], ['integrals', '1/x'], ['integrals', '1/(2x+1)'], ['integrals', 'x!'],
   ['integrals', '∫_1^∞ 1/x dx'], ['integrals', '∫_0^1 1/x^2 dx'], ['integrals', '∫_-1^2 1/x^(1/3) dx'], ['integrals', '∫_a^b x dx'],
