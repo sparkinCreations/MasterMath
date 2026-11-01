@@ -53,13 +53,13 @@ test('angle unit preference changes how bare numbers are interpreted', async () 
 
   // radians: sin(30) is 30 radians, with a cross-check note offered
   const rad = plain(await solveTrigonometry('sin(30)', { angleUnit: 'radians' }));
-  assert.match(rad.answer, /^-0\.988/);
+  assert.match(rad.answer, /^≈ -0\.988/); // 1.65.0: a value with no exact form carries ≈.
   assert.ok(rad.steps.some((s) => /set to radians/i.test(s)));
   assert.ok(rad.steps.some((s) => /if you meant 30°/i.test(s)));
 
   // degrees: even non-common angles convert (auto would treat 37 as radians)
   const deg = await solveTrigonometry('sin(37)', { angleUnit: 'degrees' });
-  assert.ok(Math.abs(parseFloat(deg.answer) - 0.6018) < 1e-3);
+  assert.ok(Math.abs(parseFloat(deg.answer.replace(/^≈\s*/, '')) - 0.6018) < 1e-3);
   assert.ok(deg.steps.some((s) => /set to degrees/i.test(s)));
 });
 

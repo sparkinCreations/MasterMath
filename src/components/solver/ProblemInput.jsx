@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Calculator, Lightbulb, AlertCircle, Keyboard, ChevronUp, ChevronDown, X } from "lucide-react";
 import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validation";
 import { readPlainEnglish } from "@/lib/plainEnglish";
+import { getSettings, autoDegreeAngle } from "@/lib/settings";
 
 const TOPICS = [
   { value: "auto", label: "Auto-detect" },
@@ -246,6 +247,16 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             <span className="text-lg leading-snug break-words min-w-0"><MathText mode="input" text={readPlainEnglish(problem)} /></span>
           </div>
         )}
+        {/* Auto reads a bare common angle as degrees (sin(30) is sin(30°));
+            said here, before the solve, as well as in the steps. */}
+        {(() => {
+          const angle = getSettings().angleUnit === 'auto' ? autoDegreeAngle(problem) : null;
+          return angle === null ? null : (
+            <p className="text-sm text-gray-600 dark:text-gray-300 px-1">
+              Angle unit is Auto: {angle} is read as {angle}°. Write {angle}° or use pi to be explicit, or set the angle unit in Settings.
+            </p>
+          );
+        })()}
         <div className="flex justify-between items-center gap-3 min-h-11">
           <div className="flex items-center gap-2">
             <p className="text-xs text-gray-500 dark:text-gray-400">

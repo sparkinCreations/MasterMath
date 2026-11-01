@@ -17,10 +17,11 @@ import {
   mark,
   gcd,
 } from './solverUtils.js';
-import { getSettings } from '../settings.js';
+import { getSettings, COMMON_DEGREE_VALUES } from '../settings.js';
+import { createMath } from '../mathInstance.js';
+import { valueGuidance, identityGuidance, equationGuidance } from './trigonometry/guidance.js';
 import { parseError, unsupported, solved, undefinedValue } from '../solutionEnvelope.js';
 
-const COMMON_DEGREE_VALUES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360];
 
 // Trig functions with vertical asymptotes, keyed by the function whose zero
 // causes them: tan/sec blow up where cos = 0, cot/csc where sin = 0.
@@ -77,59 +78,6 @@ export function detectTrigAsymptote(expression, result, treatAsDegrees) {
   return null;
 }
 
-// Tips and mistakes for a trig evaluation, chosen by the function that was
-// evaluated and by whether a unit or a special angle came up — instead of
-// the same four lines (all about sin and degrees) for every input.
-function trigGuidance(expression, steps) {
-  const text = stripMathMarkers(steps.join('\n'));
-  const fn = (expression.match(/\b(arcsin|arccos|arctan|asin|acos|atan|sin|cos|tan|sec|csc|cot)\b/i) || [])[1]?.toLowerCase();
-  const tips = [];
-  const mistakes = [];
-  const special = /special angle/.test(text);
-  // The unit warning is for an angle that could be either; an input written
-  // with π is radians, and "sin(30) in radians is −0.988" is noise beside it.
-  const unit = /degrees|radians/.test(text) && !/pi|π/i.test(expression);
-  if (/^arc|^a(sin|cos|tan)$/.test(fn || '')) {
-    tips.push(`An inverse trig function returns an ANGLE: ${mark('arcsin(1/2)')} asks "which angle has sine ${mark('1/2')}?" — the principal one, in ${mark('[−π/2, π/2]')} for arcsin and arctan, ${mark('[0, π]')} for arccos.`);
-    tips.push(`arcsin and arccos only accept inputs in ${mark('[−1, 1]')}; arctan accepts any real number.`);
-    mistakes.push(`Reading ${mark('arcsin(x)')} as ${mark('1/sin(x)')} — that is ${mark('csc(x)')}, a different function.`);
-    mistakes.push('Reporting an angle outside the principal range, or in the wrong unit.');
-  } else if (fn === 'tan' || fn === 'cot' || fn === 'sec' || fn === 'csc') {
-    tips.push(fn === 'tan' ? `${mark('tan = sin/cos')}, so tan is undefined wherever ${mark('cos = 0')} (${mark('90°')}, ${mark('270°')}, …) and its period is ${mark('180°')}, not ${mark('360°')}.` : `${fn} is a reciprocal: ${mark('sec = 1/cos')}, ${mark('csc = 1/sin')}, ${mark('cot = 1/tan')} — undefined wherever the function it inverts is ${mark('0')}.`);
-    tips.push(`Key identity: ${mark('1 + tan²(x) = sec²(x)')}.`);
-    const undefinedAt = { tan: 'tan(90°)', sec: 'sec(90°)', csc: 'csc(0°)', cot: 'cot(0°)' }[fn];
-    const because = { tan: 'cos(90°) = 0', sec: 'cos(90°) = 0', csc: 'sin(0°) = 0', cot: 'sin(0°) = 0' }[fn];
-    mistakes.push(`Forgetting that ${mark(undefinedAt)} is undefined (${mark(because)}) — a calculator shows a huge number, not the truth.`);
-    mistakes.push(fn === 'tan'
-      ? `Using ${mark('360°')} as the period of tan (it repeats every ${mark('180°')}).`
-      : fn === 'sec'
-        ? `Confusing sec with ${mark('1/sin')} (${mark('sec = 1/cos')}).`
-        : fn === 'csc'
-          ? `Confusing csc with ${mark('1/cos')} (${mark('csc = 1/sin')}).`
-          : `Reading cot as ${mark('1/sin')} or ${mark('1/cos')}: ${mark('cot = cos/sin = 1/tan')}.`);
-  } else {
-    tips.push(fn === 'cos'
-      ? `Remember: ${mark('cos(0°) = 1')}, ${mark('cos(30°) = √3/2')}, ${mark('cos(45°) = √2/2')}, ${mark('cos(60°) = 1/2')}, ${mark('cos(90°) = 0')}.`
-      : `Remember: ${mark('sin(0°) = 0')}, ${mark('sin(30°) = 1/2')}, ${mark('sin(45°) = √2/2')}, ${mark('sin(60°) = √3/2')}, ${mark('sin(90°) = 1')}.`);
-    tips.push(`Key identity: ${mark('sin²(x) + cos²(x) = 1')} — and sin and cos are cofunctions: ${mark('sin(θ) = cos(90° − θ)')}.`);
-    mistakes.push(`Confusing sin and cos values for complementary angles (${mark('sin 30° = cos 60°')}).`);
-    if (special) mistakes.push('Not memorising the special-angle values — they are expected exactly, not as decimals.');
-  }
-  if (unit) {
-    tips.push(`${mark('π')} radians = ${mark('180°')}: multiply degrees by ${mark('π/180')} to get radians. Write "pi" for ${mark('π')} ("sin(pi/6)") or set the angle unit in Settings.`);
-    mistakes.unshift(`Mixing up radians and degrees — ${mark('sin(30)')} in radians is ${mark('−0.988')}, not ${mark('1/2')}.`);
-  }
-  // A degree-looking angle (a multiple of 15) read as radians: sin(30) with
-  // the angle unit on Radians is −0.988, and the table tip "sin(30°) = 1/2"
-  // beside it read as the app contradicting itself. Lead with why.
-  const arg = expression.match(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\(\s*(-?\d+)\s*\)/i);
-  const n = arg ? Number(arg[1]) : NaN;
-  if (fn && Number.isInteger(n) && n !== 0 && n % 15 === 0 && /treated as -?\d+ radians|Interpreting -?\d+ as radians/.test(text)) {
-    tips.unshift(`Here ${mark(`${fn}(${n})`)} is ${mark(String(n))} radians (about ${mark(`${Math.round((n * 1800) / Math.PI) / 10}°`)}), not ${mark(`${n}°`)} — which is why the answer is not the value of ${mark(`${fn}(${n}°)`)}. For degrees, write ${mark(`${fn}(${n}°)`)} or set the angle unit to Degrees in Settings.`);
-  }
-  return { tips: tips.slice(0, 3), common_mistakes: mistakes.slice(0, 3) };
-}
-
 export async function solveTrigonometry(expression, settingsOverride) {
   try {
     // Equations go to the trig-equation solver and never reach the numeric
@@ -167,7 +115,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
           'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.',
           ...(numeric.steps || []),
         ];
-        numeric.tips = ['Equations that mix trig terms with different arguments or with x itself usually have no closed form — numeric solutions are the honest answer.', ...(numeric.tips || [])].slice(0, 3);
+        Object.assign(numeric, equationGuidance(numeric) ?? {});
         return numeric;
       }
       return exact;
@@ -430,7 +378,9 @@ export async function solveTrigonometry(expression, settingsOverride) {
     // otherwise — with the other unit as a note either way.
     if (inverseWhole && typeof result === 'number' && Number.isFinite(result)) {
       const degrees = result * 180 / Math.PI;
-      const degShown = `${formatNumber(degrees)}°`;
+      // 30° exactly for arcsin(1/2); ≈ 17.4576° for arcsin(0.3) (1.65.0).
+      const wholeDegrees = /^≈/.test(formatTrigResult(result, expression)) ? false : Math.abs(degrees * 4 - Math.round(degrees * 4)) < 1e-9;
+      const degShown = `${wholeDegrees ? '' : '≈ '}${formatNumber(degrees)}°`;
       if (angleUnit === 'degrees') {
         steps.push(`The result is an angle. Angle unit is set to degrees (Settings), so convert from radians: ${mark(`${formatNumber(result)} × 180/π = ${degShown}`)}`);
         steps.push(`Note: in radians the result would be ${mark(formattedResult)}.`);
@@ -453,7 +403,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
     return {
       steps,
       answer: formattedResult,
-      ...trigGuidance(expression, steps),
+      ...valueGuidance(expression, steps, formattedResult),
       graph: generateTrigGraph(expression),
     };
   } catch (error) {
@@ -500,6 +450,10 @@ async function simplifyTrigExpression(expression, variable) {
       [`-cos(2*${v})`, `double-angle identity ${mark('cos(2θ) = cos²(θ) − sin²(θ)')}`],
       [`tan(2*${v})`, `double-angle identity ${mark('tan(2θ) = 2tan(θ)/(1 − tan²(θ))')}`],
       [`sin(${v})^2`, `Pythagorean identity ${mark('sin²(θ) = 1 − cos²(θ)')}`],
+      [`tan(${v})^2`, `Pythagorean identity ${mark('sec²(θ) − 1 = tan²(θ)')}`],
+      [`cot(${v})^2`, `Pythagorean identity ${mark('csc²(θ) − 1 = cot²(θ)')}`],
+      [`sin(2*${v})/2`, `double-angle identity ${mark('sin(θ)·cos(θ) = sin(2θ)/2')}`],
+      [`2/sin(2*${v})`, `identities ${mark('tan(θ) + cot(θ) = 1/(sin(θ)·cos(θ)) = 2/sin(2θ)')}`],
       [`cos(${v})^2`, `Pythagorean identity ${mark('cos²(θ) = 1 − sin²(θ)')}`],
       [`sec(${v})^2`, `Pythagorean identity ${mark('1 + tan²(θ) = sec²(θ)')}`],
       [`csc(${v})^2`, `Pythagorean identity ${mark('1 + cot²(θ) = csc²(θ)')}`],
@@ -524,7 +478,11 @@ async function simplifyTrigExpression(expression, variable) {
     }
 
     const usable = Boolean(simplified) && !isAlgebriteFailure(simplified);
-    const verified = usable && expressionsNumericallyEqual(expression, simplified, variable);
+    // Proved, not sampled: both sides written in sin and cos of one angle,
+    // then the identity checked as a rational function of t = tan(θ/2)
+    // (1.65.0; it was "confirmed numerically at several values").
+    const proved = usable && proveTrigIdentity(Algebrite, expression, simplified, variable);
+    const verified = proved || (usable && expressionsNumericallyEqual(expression, simplified, variable));
     // "Changed" requires a strictly shorter form — a mere reordering of terms
     // is not a simplification worth presenting as one.
     const changed = usable &&
@@ -540,12 +498,18 @@ async function simplifyTrigExpression(expression, variable) {
       } else {
         steps.push('Apply trigonometric identities and combine terms.');
       }
-      steps.push(`Result: ${mark(beautify(simplified))} (confirmed numerically at several values of ${mark(variable)}).`);
+      // The simplified form can be defined where the original is not:
+      // tan(x)·cos(x) = sin(x) only where cos(x) ≠ 0.
+      const lost = lostDomain(expression, simplified, variable);
+      steps.push(proved
+        ? `Check: writing both sides in ${mark(`sin(${variable})`)} and ${mark(`cos(${variable})`)} and substituting ${mark(`t = tan(${variable}/2)`)} turns them into the same rational function of ${mark('t')}; at ${mark(`${variable} = π + 2πn`)}, where ${mark('t')} is undefined, the two sides are compared directly. So the identity holds wherever both sides are defined.`
+        : `Result checked numerically at several values of ${mark(variable)} (not proved symbolically).`);
+      if (lost) steps.push(`The original is undefined where ${mark(lost)} and the result is not, so the equality holds for ${mark(lost.replace('= 0', '≠ 0'))}: ${mark(`${display} = ${beautify(simplified)}`)} there.`);
+      steps.push(`Result: ${mark(beautify(simplified))}${lost ? `, for ${mark(lost.replace('= 0', '≠ 0'))}` : ''}.`);
       return {
         steps,
-        answer: beautify(simplified),
-        tips,
-        common_mistakes: commonMistakes,
+        answer: `${beautify(simplified)}${lost ? ` (for ${lost.replace('= 0', '≠ 0')})` : ''}`,
+        ...identityGuidance(display, beautify(simplified), lost, identityUsed ?? (simplified === '1' && isPythagoreanIdentity(expression) ? `Pythagorean identity ${mark('sin²(θ) + cos²(θ) = 1')}` : null)),
         graph: generateSymbolicTrigGraph(expression, variable, beautify(simplified)),
       };
     }
@@ -572,6 +536,128 @@ async function simplifyTrigExpression(expression, variable) {
       tips,
     });
   }
+}
+
+// sin(mθ), cos(mθ) (|m| ≤ 4) and sin/cos(θ + kπ/2) in S = sin θ, C = cos θ.
+function trigInSC(expression, variable) {
+  const S = 'S';
+  const C = 'C';
+  const multiple = { 1: [S, C] };
+  for (let m = 2; m <= 4; m += 1) {
+    const [sp, cp] = multiple[m - 1];
+    multiple[m] = [`((${sp})*${C} + (${cp})*${S})`, `((${cp})*${C} - (${sp})*${S})`];
+  }
+  const sinCos = (arg) => {
+    const at = (x) => { try { return Number(arg.evaluate({ [variable]: x })); } catch { return NaN; } };
+    const m = at(1) - at(0);
+    const shift = at(0);
+    if (!(Number.isInteger(m) && m !== 0 && Math.abs(m) <= 4 && Math.abs(at(2) - at(0) - 2 * m) < 1e-12)) return null;
+    const q = shift / (Math.PI / 2);
+    if (Math.abs(q - Math.round(q)) > 1e-12) return null;
+    let [sn, cs] = multiple[Math.abs(m)];
+    if (m < 0) sn = `(-(${sn}))`;
+    // sin(u + kπ/2), cos(u + kπ/2): a quarter turn rotates (sin, cos).
+    for (let k = ((Math.round(q) % 4) + 4) % 4; k > 0; k -= 1) [sn, cs] = [cs, `(-(${sn}))`];
+    return [sn, cs];
+  };
+  let tree;
+  try { tree = math.parse(rewriteReciprocalTrig(String(expression))); } catch { return null; }
+  let ok = true;
+  const out = tree.transform((n) => {
+    if (n.type === 'FunctionNode' && ['sin', 'cos', 'tan'].includes(n.fn?.name) && n.args.length === 1) {
+      const sc = sinCos(n.args[0]);
+      if (!sc) { ok = false; return n; }
+      const text = n.fn.name === 'sin' ? sc[0] : n.fn.name === 'cos' ? sc[1] : `((${sc[0]})/(${sc[1]}))`;
+      return math.parse(text);
+    }
+    return n;
+  });
+  if (!ok || out.filter((n) => n.type === 'SymbolNode' && n.name === variable).length) return null;
+  return out.toString();
+}
+
+// Is a = b as functions of θ, wherever both are defined? In S and C both are
+// rational, and on the circle S = 2t/(1 + t²), C = (1 − t²)/(1 + t²), so a − b
+// is a rational function R(t) whose numerator has degree at most d, read off
+// the parse tree. If R is exactly 0 (fractions, not floats) at d + 1 rational
+// t, its numerator is the zero polynomial: the identity holds (1.65.0; it
+// was "confirmed numerically at several values").
+const exactMath = createMath({ number: 'Fraction' });
+function degreeInT(node) {
+  let n = node;
+  while (n.type === 'ParenthesisNode') n = n.content;
+  if (n.type === 'ConstantNode') return [0, 0];
+  if (n.type === 'SymbolNode') return n.name === 'S' || n.name === 'C' ? [2, 2] : null;
+  if (n.type === 'OperatorNode') {
+    if (n.fn === 'unaryMinus' || n.fn === 'unaryPlus') return degreeInT(n.args[0]);
+    const [a, b] = n.args.map(degreeInT);
+    if (!a || (n.args.length > 1 && !b)) return null;
+    if (n.op === '+' || n.op === '-') return [Math.max(a[0] + b[1], b[0] + a[1]), a[1] + b[1]];
+    if (n.op === '*') return [a[0] + b[0], a[1] + b[1]];
+    if (n.op === '/') return [a[0] + b[1], a[1] + b[0]];
+    if (n.op === '^') {
+      const k = Number(n.args[1].toString());
+      if (!Number.isInteger(k)) return null;
+      return k >= 0 ? [k * a[0], k * a[1]] : [-k * a[1], -k * a[0]];
+    }
+  }
+  return null;
+}
+function proveTrigIdentity(Algebrite, a, b, variable) {
+  const A = trigInSC(a, variable);
+  const B = trigInSC(b, variable);
+  if (!A || !B) return false;
+  try {
+    const diff = `(${A}) - (${B})`;
+    const bound = degreeInT(math.parse(diff));
+    if (!bound || bound[0] > 200) return false;
+    const code = exactMath.parse(diff).compile();
+    let zeros = 0;
+    for (let i = 1; i < 4 * bound[0] + 40 && zeros <= bound[0]; i += 1) {
+      const t = exactMath.fraction(i, 7);
+      const one = exactMath.fraction(1);
+      const den = one.add(t.mul(t));
+      const scope = { S: t.mul(2).div(den), C: one.sub(t.mul(t)).div(den) };
+      let value;
+      try { value = code.evaluate(scope); } catch { continue; } // a pole of a or b
+      if (exactMath.typeOf(value) !== 'Fraction') return false;
+      if (!value.equals(0)) return false;
+      zeros += 1;
+    }
+    if (zeros <= bound[0]) return false;
+    // t = tan(x/2) misses x = π + 2πn, the point (S, C) = (0, −1): there the
+    // two sides are compared directly, when both are defined (1.65.0 review).
+    try {
+      const at = code.evaluate({ S: exactMath.fraction(0), C: exactMath.fraction(-1) });
+      if (exactMath.typeOf(at) === 'Fraction' && !at.equals(0)) return false;
+    } catch { /* one side is undefined at x = π: nothing to compare there */ }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Where the original is undefined but the simplified form is not, read off
+// exactly: on the circle, cos(x) = 0 is (S, C) = (±1, 0) and sin(x) = 0 is
+// (0, ±1), so evaluating both in exact fractions there decides it.
+// tan(x)·cos(x) = sin(x) only where cos(x) ≠ 0; tan(x) + cot(x) = 2/sin(2x)
+// loses nothing (1.65.0).
+function lostDomain(original, simplified, variable) {
+  const A = trigInSC(original, variable);
+  const B = trigInSC(simplified, variable);
+  if (!A || !B) return null;
+  const defined = (text, S, C) => {
+    try {
+      const v = exactMath.evaluate(text, { S: exactMath.fraction(S), C: exactMath.fraction(C) });
+      return exactMath.typeOf(v) === 'Fraction';
+    } catch {
+      return false;
+    }
+  };
+  const loses = (points) => points.some(([S, C]) => !defined(A, S, C) && defined(B, S, C));
+  if (loses([[1, 0], [-1, 0]])) return `cos(${variable}) = 0`;
+  if (loses([[0, 1], [0, -1]])) return `sin(${variable}) = 0`;
+  return null;
 }
 
 function normalizeForCompare(s) {
@@ -617,7 +703,7 @@ function formatTrigResult(result, expression = '') {
     const ratio = result / Math.PI;
     for (const d of [1, 2, 3, 4, 6, 8, 12, 5, 10, 9, 18, 16, 24]) {
       const n = ratio * d;
-      if (Math.abs(n - Math.round(n)) < 1e-6) {
+      if (Math.abs(n - Math.round(n)) < 1e-9) {
         const k = Math.round(n);
         if (k === 0) return '0';
         const num = Math.abs(k) === 1 ? '' : String(Math.abs(k));
@@ -626,7 +712,7 @@ function formatTrigResult(result, expression = '') {
         return `${exactAngle} (≈ ${dec})`;
       }
     }
-    return dec;
+    return approx(result, dec);
   }
 
   const exact = [
@@ -661,12 +747,20 @@ function formatTrigResult(result, expression = '') {
     [Math.SQRT2 + 1, '√2 + 1'],
     [-(Math.SQRT2 + 1), '-(√2 + 1)'],
   ];
+  // Matched to double precision, not 1e-4: sin(1.0472) is not √3/2 (1.0472
+  // only approximates π/3), and it was shown as exactly √3/2 (1.65.0).
   for (const [value, label] of exact) {
-    if (Math.abs(result - value) < 1e-4) {
+    if (Math.abs(result - value) < 1e-12) {
       return `${label} (≈ ${dec})`;
     }
   }
-  return dec;
+  return approx(result, dec);
+}
+
+// A value with no exact form found is shown with ≈ (sin(1) ≈ 0.8415), and
+// an integer only when it is one to double precision.
+function approx(result, dec) {
+  return Math.abs(result - Math.round(result)) < 1e-12 ? formatNumber(Math.round(result)) : `≈ ${dec}`;
 }
 
 function generateTrigGraph(expression) {

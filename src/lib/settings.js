@@ -10,6 +10,21 @@ export const ANGLE_UNITS = ['auto', 'degrees', 'radians'];
 export const DECIMAL_PLACES_MIN = 2;
 export const DECIMAL_PLACES_MAX = 6;
 
+// The angles Auto reads as degrees when typed bare: sin(30) is sin(30°).
+// Shared by the trig solver and the input's note, which says so before the
+// solve (1.65.0 review).
+export const COMMON_DEGREE_VALUES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360];
+
+// The bare common angle Auto will read as degrees in this input, or null:
+// "sin(30)" → 30; "sin(30°)", "sin(pi/6)", "sin(1)" → null.
+export function autoDegreeAngle(text) {
+  if (/pi|π|°/i.test(String(text))) return null;
+  const m = String(text).match(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*\(?\s*(-?\d+)\s*\)?/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n !== 0 && COMMON_DEGREE_VALUES.includes(Math.abs(n)) ? n : null;
+}
+
 export const DEFAULT_SETTINGS = Object.freeze({
   // 'auto' keeps the historical heuristic: bare common angles like sin(30)
   // are treated as degrees, anything with pi as radians.

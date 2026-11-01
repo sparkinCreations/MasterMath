@@ -96,10 +96,11 @@ test('linear wrapping is isolated first: A·f(x) + B = C and f on the right', ()
 test('argument kx: divide (or multiply) through, and list every solution in [0, 2π)', () => {
   const r = solveTrigEquation('sin(2x)=1/2');
   assert.equal(solutionsOf(r), 'π/12, 5π/12, 13π/12, 17π/12');
-  assert.match(r.answer, /x = \(π\/6 \+ 2πn\)\/2/);
+  // 1.65.0: the families divided through: π/12 + πn, not (π/6 + 2πn)/2.
+  assert.match(r.answer, /x = π\/12 \+ πn  or  x = 5π\/12 \+ πn/);
   const half = solveTrigEquation('tan(x/2)=sqrt(3)');
   assert.equal(solutionsOf(half), '2π/3');
-  assert.match(half.answer, /x = 2\(π\/3 \+ πn\)/);
+  assert.match(half.answer, /x = 2π\/3 \+ 2πn/);
   assert.match(half.steps.join('\n'), /Multiply by 2/);
 });
 
@@ -160,7 +161,8 @@ test('the graph marks the [0, 2π) solutions and overlays y = c', () => {
 
 test('reducible equations: quadratic in one function, sin = cos, Pythagorean rewrite', () => {
   const q = solveTrigEquation('2sin(x)^2 - sin(x) - 1 = 0');
-  assert.equal(q.answer, 'x = 7π/6 + 2πn  or  x = 11π/6 + 2πn  or  x = π/2 + 2πn (n ∈ ℤ);  on [0, 2π): π/2, 7π/6, 11π/6');
+  // 1.65.0: the cases in the order of their first solution.
+  assert.equal(q.answer, 'x = π/2 + 2πn  or  x = 7π/6 + 2πn  or  x = 11π/6 + 2πn (n ∈ ℤ);  on [0, 2π): π/2, 7π/6, 11π/6');
   assert.ok(q.steps.some((s) => /Let u = sin\(x\): 2u² − u − 1 = 0/.test(s)));
   assert.equal(solveTrigEquation('sin(x)^2 = 1/4').answer.split('on [0, 2π): ')[1], 'π/6, 5π/6, 7π/6, 11π/6');
   assert.match(solveTrigEquation('tan(x)^2 = 3').answer, /on \[0, 2π\): π\/3, 2π\/3, 4π\/3, 5π\/3/);
@@ -185,7 +187,7 @@ test('reciprocal functions and sin·cos products reduce exactly; the rest fall t
   assert.equal(solveTrigEquation('sec(x) = 2').answer, 'x = π/3 + 2πn  or  x = 5π/3 + 2πn (n ∈ ℤ);  on [0, 2π): π/3, 5π/3');
   assert.equal(solveTrigEquation('sec(x) = 1/2').status, STATUS.SOLVED);
   assert.match(solveTrigEquation('sin(x)*cos(x) = 1/4').answer, /on \[0, 2π\): π\/12, 5π\/12, 13π\/12, 17π\/12/);
-  assert.match(solveTrigEquation('sin(x)cos(x) = 0').answer, /^x = \(πn\)\/2/);
+  assert.match(solveTrigEquation('sin(x)cos(x) = 0').answer, /^x = \(π\/2\)n/);
   const { solveProblem } = await import('../src/lib/api.js');
   const numeric = await solveProblem('sin(x)*cos(2x) = 1/3', 'trigonometry');
   assert.equal(numeric.status, 'solved');

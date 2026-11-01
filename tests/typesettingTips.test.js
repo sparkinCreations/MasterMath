@@ -44,6 +44,13 @@ const EXTRA = [
   ['functions', 'sqrt(x-2)'], ['functions', 'sqrt(4-x^2)'], ['functions', 'sin(x)/x'], ['functions', 'x^3 - 3x'], ['functions', 'x^4 - 2x^2'],
   ['functions', 'x/x^2'], ['functions', 'abs(sin(x))'], ['functions', 'sin(-2x)'], ['functions', '(x-1)^3'], ['functions', 'sqrt(x^2+1)'],
   ['functions', '(x^2-1)/(x^2+1)'], ['functions', 'x^2*e^x'], ['functions', 'sin(2x)/(x^2-1)'], ['functions', '(x^2-4)/(x-2)^2'],
+  // Trigonometry, 1.65.0: values, identities and equations, worked lines included.
+  ['trigonometry', 'sin(5pi/6)'], ['trigonometry', 'cos(210°)'], ['trigonometry', 'sec(pi/3)'], ['trigonometry', 'sin(1)'], ['trigonometry', 'arcsin(0.3)'],
+  ['trigonometry', 'tan(x)*cos(x)'], ['trigonometry', '2sin(x)cos(x)'], ['trigonometry', 'sin(x)^2 + cos(x)^2'], ['trigonometry', 'sin(x) = 0.3'],
+  ['trigonometry', 'cos(x) = 1'], ['trigonometry', 'tan(2x) = 1'], ['trigonometry', 'sec(x) = 2'], ['trigonometry', '2sin(x)^2 - sin(x) - 1 = 0'],
+  ['trigonometry', 'sin(x) + cos(x) = 1'], ['trigonometry', 'sin(x)cos(x) = 1/4'], ['trigonometry', 'sin(x) = sin(2x)'], ['trigonometry', 'sin(x) = 2'],
+  ['trigonometry', 'sin(x) = x/2'],
+  ['trigonometry', 'cot(x) = 0'], ['trigonometry', '-sin(x) + cos(x) = 1'], ['trigonometry', 'sin(30)'], ['trigonometry', 'sin(x) = -1/2'],
   // Integrals and functions.
   ['integrals', 'cos(x)'], ['integrals', 'e^x'], ['integrals', '1/x'], ['integrals', '1/(2x+1)'], ['integrals', 'x!'],
   ['integrals', '∫_1^∞ 1/x dx'], ['integrals', '∫_0^1 1/x^2 dx'], ['integrals', '∫_-1^2 1/x^(1/3) dx'], ['integrals', '∫_a^b x dx'],

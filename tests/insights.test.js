@@ -749,3 +749,127 @@ test('functions second review: the shared rational mistake, the triple root, k �
   assert.match((await plainFn('sin(2x)')).tips[0], /\(with k ≠ 0\) have amplitude \|A\|, period 2π\/\|k\|/);
   assert.match((await plainFn('tan(x)')).tips[0], /period π\/\|k\| \(for k ≠ 0\)/);
 });
+
+// 1.65.0: trigonometry. Exact only when exact, identities proved, equations
+// with exact names for non-special angles, and each method's worked line.
+const plainTrig = async (p) => {
+  const { stripMathMarkers } = await import('../src/lib/mathMarkers.js');
+  const r = await solveProblem(p, 'trigonometry');
+  return { ...r, steps: r.steps.map(stripMathMarkers), tips: r.tips.map(stripMathMarkers), mistakes: r.common_mistakes.map(stripMathMarkers) };
+};
+
+test('trigonometry: an exact value only when the angle is exact; ≈ otherwise', async () => {
+  // sin(1.0472) was "√3/2" (matched to 1e-4); 1.0472 only approximates π/3.
+  assert.equal((await plainTrig('sin(1.0472)')).answer, '≈ 0.866');
+  assert.equal((await plainTrig('cos(0.7854)')).answer, '≈ 0.7071');
+  assert.equal((await plainTrig('sin(pi/3)')).answer, '√3/2 (≈ 0.866)');
+  assert.equal((await plainTrig('sin(1)')).answer, '≈ 0.8415');
+  assert.equal((await plainTrig('tan(pi/4)')).answer, '1');
+  assert.equal((await plainTrig('arcsin(0.3)')).answer, '≈ 0.3047');
+});
+
+test('trigonometry: identities are proved, and say where they hold', async () => {
+  for (const [p, answer] of [
+    ['sin(x)^2 + cos(x)^2', '1'], ['2sin(x)cos(x)', 'sin(2x)'], ['cos(x)^4 - sin(x)^4', 'cos(2x)'],
+    ['sec(x)^2 - 1', 'tan(x)^2'], ['sin(x)*cos(x)', 'sin(2x)/2'], ['tan(x)+cot(x)', '2/sin(2x)'],
+    ['tan(x)*cos(x)', 'sin(x) (for cos(x) ≠ 0)'], ['cot(x)*sin(x)', 'cos(x) (for sin(x) ≠ 0)'], ['sin(x)/cos(x)', 'tan(x)'],
+  ]) {
+    const r = await plainTrig(p);
+    assert.equal(r.answer, answer, p);
+    assert.ok(r.steps.some((s) => /substituting t = tan\(x\/2\) turns them into the same rational function of t/.test(s)), `${p} not proved`);
+  }
+});
+
+test('trigonometry: equations — exact names, simplified families, cases in order', async () => {
+  for (const [p, answer] of [
+    ['sin(x) = 0.3', 'x = arcsin(3/10) + 2πn  or  x = π − arcsin(3/10) + 2πn (n ∈ ℤ);  on [0, 2π): x ≈ 0.3047, 2.8369'],
+    ['cos(x) = -0.4', 'x = ±arccos(-2/5) + 2πn (n ∈ ℤ);  on [0, 2π): x ≈ 1.9823, 4.3009'],
+    ['tan(2x) = 1', 'x = π/8 + (π/2)n (n ∈ ℤ);  on [0, 2π): π/8, 5π/8, 9π/8, 13π/8'],
+    ['cos(x/2) = 1', 'x = 4πn (n ∈ ℤ);  on [0, 2π): 0'],
+    ['sin(x)^2 = 1/4', 'x = π/6 + 2πn  or  x = 5π/6 + 2πn  or  x = 7π/6 + 2πn  or  x = 11π/6 + 2πn (n ∈ ℤ);  on [0, 2π): π/6, 5π/6, 7π/6, 11π/6'],
+  ]) {
+    assert.equal((await plainTrig(p)).answer, answer, p);
+  }
+  // cos(x) = 1 said "x = 0 and x = −0 both work … 2π − 0 = 2π".
+  const once = await plainTrig('cos(x) = 1');
+  assert.ok(once.steps.includes('Cosine reaches 1 only once per period, at the top of the wave: x = 0.'));
+  assert.ok(!once.steps.some((s) => /−0/.test(s)));
+});
+
+test('trigonometry: each method\'s insight is applied to the problem second', async () => {
+  for (const [p, here] of [
+    ['sin(5pi/6)', 'Here: 5π/6 = 150° is in quadrant II with reference angle 30°; sin is positive there, so sin(150°) = sin(30°) = 1/2.'],
+    ['cos(210°)', 'Here: 210° is in quadrant III with reference angle 30°; cos is negative there, so cos(210°) = −cos(30°) = -√3/2.'],
+    ['arcsin(1/2)', 'Here: arcsin(1/2) asks for the angle in [−π/2, π/2] whose sine is 1/2: π/6.'],
+    ['sin(1)', 'Here: sin(1) is not a special angle (1 radian is about 57.3°), so its value is a decimal: ≈ 0.8415.'],
+    ['tan(x)*cos(x)', 'Here: written in sin and cos, tan(x)*cos(x) = sin(x), for cos(x) ≠ 0.'],
+    ['sin(x) = 1/2', 'Here: arcsin(1/2) = π/6, and the second solution in the period is π − π/6 = 5π/6: x = π/6 + 2πn  or  x = 5π/6 + 2πn.'],
+    ['sin(x) = 0.3', 'Here: arcsin(3/10) ≈ 0.3047, and the second solution in the period is π − 0.3047 ≈ 2.8369: x = arcsin(3/10) + 2πn  or  x = π − arcsin(3/10) + 2πn.'],
+    ['tan(2x) = 1', 'Here: arctan(1) = π/4, and tan repeats every π: x = π/8 + (π/2)n.'],
+    ['sec(x) = 2', 'Here: the equation is cos(x) = 1/2, solved as usual: x = π/3 + 2πn  or  x = 5π/3 + 2πn.'],
+    ['2sin(x)^2 - sin(x) - 1 = 0', 'Here: with u = sin(x), 2u² − u − 1 = 0 gives u = -1/2  or  u = 1; each value is solved for the angle.'],
+    ['sin(x) + cos(x) = 1', 'Here: R = √2 and φ = π/4, so sin(x + π/4) = 1/√2 = √2/2.'],
+    ['sin(x)cos(x) = 1/4', 'Here: the product is ½·sin(2x), so sin(2x) = 1/2.'],
+  ]) {
+    assert.equal((await plainTrig(p)).tips[1], here, p);
+  }
+  // The value-specific advice still leads (tests/tipsAudit.test.js).
+  assert.match((await plainTrig('sin(2x) = 1')).tips[0], /^sin reaches 1 only once in each period/);
+});
+
+// Round 29 (outside review of TRIGONOMETRY.md).
+test('trigonometry review: cot = 0, the phase quadrant, the Auto reading', async () => {
+  // cot(x) = 0 was "No real solution" (from 1/0); it is cos(x) = 0.
+  assert.equal((await plainTrig('cot(x) = 0')).answer, 'x = π/2 + πn (n ∈ ℤ);  on [0, 2π): π/2, 3π/2');
+  assert.equal((await plainTrig('cot(2x) = 0')).answer, 'x = π/4 + (π/2)n (n ∈ ℤ);  on [0, 2π): π/4, 3π/4, 5π/4, 7π/4');
+  assert.equal((await plainTrig('sec(x) = 0')).answer, 'No real solution');
+  // φ in its quadrant: the step said "φ = arctan(b/a) = 3π/4" for a = −1.
+  for (const [p, sols] of [
+    ['sin(x) + cos(x) = 1', '0, π/2'], ['-sin(x) + cos(x) = 1', '0, 3π/2'],
+    ['sin(x) - cos(x) = 1', 'π/2, π'], ['-sin(x) - cos(x) = 1', 'π, 3π/2'],
+  ]) {
+    const r = await plainTrig(p);
+    assert.match(r.answer, new RegExp(`on \\[0, 2π\\): ${sols.replace(/[/()]/g, '\\$&')}$`), p);
+    // arctan(b/a) is named only when a > 0 (sin x − cos x: −π/4 is right).
+    if (/^-sin/.test(p)) assert.ok(!r.steps.some((s) => /φ = arctan\(b\/a\)/.test(s)), p);
+  }
+  assert.match((await plainTrig('-sin(x) + cos(x) = 1')).steps.join('\n'), /φ = 3π\/4 \(in quadrant II, since a < 0\)/);
+  // A bare common angle under Auto: read as degrees, and the first insight says so.
+  const auto = await plainTrig('sin(30)');
+  assert.equal(auto.answer, '1/2 (≈ 0.5)');
+  assert.match(auto.tips[0], /^The angle unit is on Auto, so a bare common angle such as 30 is read as degrees/);
+  assert.ok(auto.steps.some((s) => /if you meant radians, the result would be -0\.988/.test(s)));
+});
+
+test('trigonometry review: the general statements say where they hold', async () => {
+  assert.match((await plainTrig('sin(1)')).tips.join('\n'), /others have exact forms too \(sin\(15°\) = \(√6 − √2\)\/4, sin\(22\.5°\) = √\(2 − √2\)\/2\)/);
+  assert.doesNotMatch((await plainTrig('sin(1)')).tips.join('\n'), /Only some angles have exact values/);
+  const sec = (await plainTrig('sec(x) = 2')).tips.join('\n');
+  assert.match(sec, /A reciprocal turns into a basic equation when c ≠ 0/);
+  assert.match(sec, /cot\(θ\) = cos\(θ\)\/sin\(θ\) = 0 exactly where cos\(θ\) = 0/);
+  assert.match((await plainTrig('tan(2x) = 1')).tips.join('\n'), /For tan\(x\) = c there are two solutions in \[0, 2π\).*for a nonzero integer k, tan\(kx\) = c has 2\|k\|\. For other k, count/);
+  assert.match((await plainTrig('sin(x) = -1/2')).steps.join('\n'), /the principal value is arcsin\(-1\/2\) = -π\/6/);
+  assert.ok(!(await plainTrig('sin(x) = -1/2')).steps.some((s) => /reference angle is arcsin/.test(s)));
+  // The identity proof covers x = π + 2πn, where t = tan(x/2) is undefined.
+  assert.match((await plainTrig('sin(x)^2 + cos(x)^2')).steps.join('\n'), /at x = π \+ 2πn, where t is undefined, the two sides are compared directly/);
+});
+
+// Round 30 (second outside review of TRIGONOMETRY.md).
+test('trigonometry second review: a negative principal value, the angle unit in every mode', async () => {
+  const neg = await plainTrig('sin(x) = -1/2');
+  assert.ok(neg.steps.includes('The principal value -π/6 lies outside [0, 2π). Sine takes each value twice per period, so the two solutions on [0, 2π) are x = π − (-π/6) = 7π/6 and x = 2π + (-π/6) = 11π/6.'));
+  assert.ok(!neg.steps.some((s) => /within one period: x = -π\/6/.test(s)));
+  // sin(30) in every angle mode, and the explicit forms.
+  // Set as the worker does (this file has no localStorage for saveSettings).
+  const { primeSettings, autoDegreeAngle } = await import('../src/lib/settings.js');
+  const at = async (p, unit) => { primeSettings(unit ? { angleUnit: unit } : null); try { return (await solveProblem(p, 'trigonometry')).answer; } finally { primeSettings(null); } };
+  assert.equal(await at('sin(30)'), '1/2 (≈ 0.5)'); // Auto, the default
+  assert.equal(await at('sin(30)', 'radians'), '≈ -0.988');
+  assert.equal(await at('sin(30)', 'degrees'), '1/2 (≈ 0.5)');
+  assert.equal(await at('sin(30°)', 'radians'), '1/2 (≈ 0.5)');
+  assert.equal(await at('sin(pi/6)', 'degrees'), '1/2 (≈ 0.5)');
+  // The note under the input names the bare common angle Auto will read as degrees.
+  assert.equal(autoDegreeAngle('sin(30)'), 30);
+  assert.equal(autoDegreeAngle('2*cos(60) + 1'), 60);
+  for (const t of ['sin(30°)', 'sin(pi/6)', 'sin(1)', 'sin(0)', 'x^2']) assert.equal(autoDegreeAngle(t), null, t);
+});

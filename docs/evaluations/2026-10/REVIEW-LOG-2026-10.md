@@ -233,6 +233,32 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 30 (second outside review of the trigonometry content, before 1.65.0 shipped)
+
+A second review of `TRIGONOMETRY.md` ("conditional approval, two final corrections"). Both reproduced.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| "2\|k\| solutions with kx inside" holds for nonzero integer k only (k = 1/3 gives 2/3) | Confirmed | 1.65.0 (stated for a nonzero integer k; otherwise count the family members in the interval; the same for the sin/cos "\|k\| times as many") |
+| sin(x) = −1/2's working lists −π/6 "within one period" though the period shown is [0, 2π) | Confirmed | 1.65.0 (the principal value −π/6 lies outside [0, 2π); the two solutions there are π − (−π/6) = 7π/6 and 2π + (−π/6) = 11π/6) |
+| Test sin(30) in all three angle modes | Done: Auto 1/2, Radians ≈ −0.988, Degrees 1/2; sin(30°) and sin(pi/6) 1/2 in any mode | 1.65.0 (a test) |
+| The Auto reading should be clear near the input, not only after solving | Agreed | 1.65.0 (a line under the input when Auto will read a bare common angle as degrees: "Angle unit is Auto: 30 is read as 30°…") |
+
+## Round 29 (outside review of the trigonometry content, before 1.65.0 shipped)
+
+A content review of `docs/future-work/insights-review/TRIGONOMETRY.md` ("approve with revisions"). Every claim was reproduced, and the same class swept.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| sin(30) = 1/2 contradicts the radians convention; it should be ≈ −0.988 | Partly. The Auto angle unit (the default) reads a bare common angle (0, 30, 45, 60, 90, …) as degrees, by design, and the steps say so with the radian value beside it; other bare numbers (sin(1)) are radians. The review document's heading for it ("read as radians") was wrong. | 1.65.0 (the heading fixed; the first insight now says the angle unit is on Auto and 30 was read as 30°, with how to be explicit). Whether Auto should stay the default is a product decision, not changed here |
+| "Only multiples of 15° and 18° have exact values" is false (sin 22.5° = √(2 − √2)/2; sin(1) is itself exact) | Confirmed | 1.65.0 (the familiar special angles from the table, others with exact forms too; a decimal with ≈ when no simpler form is found) |
+| "cot(θ) = c is tan(θ) = 1/c" fails at c = 0 | Confirmed, and it was a wrong answer: cot(x) = 0 gave "No real solution" (from 1/0) | 1.65.0 (cot(x) = 0 is cos(x) = 0: x = π/2 + πn; the tip says c ≠ 0 and gives the zero cases; sec = 0 and csc = 0 have none) |
+| φ = arctan(b/a) needs the quadrant (atan2) | The solver already used atan2, so every answer was right; but the step said "φ = arctan(b/a) = 3π/4" for −sin x + cos x, which is false | 1.65.0 (φ from cos φ = a/R and sin φ = b/R, its quadrant named when a ≤ 0; the tip and a mistake say so) |
+| tan(2x) = 1 lists four solutions while the tip says tangent has two on [0, 2π) | Agreed | 1.65.0 (two for tan(x) = c, 2\|k\| with kx inside) |
+| t = tan(x/2) is undefined at x = π + 2πn | Agreed | 1.65.0 (both sides compared directly there, exactly; the step says so; the tip names the hand proof by algebra) |
+| arcsin(c) called the "reference angle" when it is negative | Agreed | 1.65.0 ("the principal value") |
+| Found in the sweep: a·sin + b·cos families out of order (3π/2 + 2πn before 2πn) | Confirmed | 1.65.0 |
+
 ## Round 28 (second outside review of the functions content, before 1.64.0 shipped)
 
 A second review of `FUNCTIONS.md` ("conditional approval, one correction"). Reproduced, and the same class swept.

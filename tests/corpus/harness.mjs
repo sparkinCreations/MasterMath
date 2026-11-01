@@ -465,7 +465,8 @@ async function grade(category, problem, expected, meta = {}) {
     const expList = /\s+on\s+\[/.test(expected) ? list(expected.replace(/\s+on\s+\[.*$/, '')) : [];
     const gotPart = ans.match(/on\s+\[0[^\]]*[)\]]\s*:\s*(.+)$/);
     if (!expList.length || !gotPart) return { verdict: 'SKIP', detail: 'no period listing to compare' };
-    const gotList = list(gotPart[1]);
+    // "x ≈ 1.1071, 4.2487": a listing of decimals says ≈ once (1.65.0).
+    const gotList = list(gotPart[1].replace(/^[a-z]\s*≈\s*/, ''));
     const ok = gotList.length === expList.length && gotList.every((v, i) => numClose(v, expList[i]));
     return { verdict: ok ? 'CORRECT' : 'WRONG', got: ans };
   }

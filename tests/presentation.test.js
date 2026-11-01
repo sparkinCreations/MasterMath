@@ -58,8 +58,8 @@ test('trigonometry: special values exact-first, inverse trig as multiples of π'
   assert.equal((await solveProblem('arccos(0)', 'trigonometry')).answer, 'π/2 (≈ 1.5708)');
   assert.equal((await solveProblem('arctan(-1)', 'trigonometry')).answer, '-π/4 (≈ -0.7854)');
   // non-special stays decimal
-  assert.equal((await solveProblem('arcsin(0.3)', 'trigonometry')).answer, '0.3047');
-  assert.equal((await solveProblem('sin(1)', 'trigonometry')).answer, '0.8415');
+  assert.equal((await solveProblem('arcsin(0.3)', 'trigonometry')).answer, '≈ 0.3047'); // 1.65.0: a value with no exact form carries ≈.
+  assert.equal((await solveProblem('sin(1)', 'trigonometry')).answer, '≈ 0.8415');
 });
 
 // ── QA report (Low): "50% of 80".

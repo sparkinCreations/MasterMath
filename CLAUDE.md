@@ -161,7 +161,10 @@ anything above degree 12 to `polynomialRoots`; simplification; factoring),
 `polynomialRoots` (exact reader, `factorByRationalRoots`, Sturm counting,
 exact bisection, verified complex roots, cap `MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,
 non-linear by substitution), `inequalitiesSolver` (sign charts, compound; periodic ones on one period + every period; refuses two variables),
-`trigonometrySolver` (values, identities; exports `detectTrigAsymptote`),
+`trigonometrySolver` (values, exact only to double precision, else ≈;
+identities proved in sin and cos by t = tan(x/2) in exact fractions, with
+the domain a simplification loses; exports `detectTrigAsymptote`; tips in
+`trigonometry/guidance.js`),
 `trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
 `functionsSolver` (exact extrema/intercepts/asymptotes: a numeric value is
 shown exact only when `recognizeExact` proves it by substitution, else ≈;
@@ -236,7 +239,7 @@ differentiating" go last. An item that uses a named idea from a specific
 source is `{ text, source: { title, url } }` (a DOI or publisher link,
 `SOURCE_HOSTS`); `finalizeResult` turns it into text and keeps the source in
 `result.sources`. Integrals (1.60.0), derivatives (1.61.0), algebra
-(1.62.0), limits (1.63.0) and functions (1.64.0) are done, each with a review document in
+(1.62.0), limits (1.63.0), functions (1.64.0) and trigonometry (1.65.0) are done, each with a review document in
 `docs/future-work/insights-review/`; the other topics follow one per release,
 each with a review document first. The second insight works the student's
 own problem (read from its steps), and every statement says where it holds.

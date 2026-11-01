@@ -27,17 +27,17 @@ test('degree symbol inside a trig call is read, not a syntax error', async () =>
 test('angle unit = degrees applies to decimal arguments too', async () => {
   resetSettings(); saveSettings({ angleUnit: 'degrees' });
   const r = await solveProblem('sin(0.5)', 'trigonometry');
-  assert.equal(r.answer, '0.0087'); // sin(0.5°)
+  assert.equal(r.answer, '≈ 0.0087'); // sin(0.5°); 1.65.0: no exact form, so ≈
   const t = await solveProblem('tan(1.5)', 'trigonometry');
-  assert.equal(t.answer, '0.0262'); // tan(1.5°)
+  assert.equal(t.answer, '≈ 0.0262'); // tan(1.5°); 1.65.0: no exact form, so ≈
   resetSettings();
   const u = await solveProblem('sin(0.5)', 'trigonometry');
-  assert.equal(u.answer, '0.4794'); // radians by default
+  assert.equal(u.answer, '≈ 0.4794'); // radians by default
 });
 
 test('inverse trig reports its angle in the chosen unit', async () => {
   resetSettings(); saveSettings({ angleUnit: 'degrees' });
-  assert.equal((await solveProblem('arcsin(0.3)', 'trigonometry')).answer, '17.4576°');
+  assert.equal((await solveProblem('arcsin(0.3)', 'trigonometry')).answer, '≈ 17.4576°'); // 1.65.0: ≈
   assert.equal((await solveProblem('arcsin(1/2)', 'trigonometry')).answer, '30°');
   assert.equal((await solveProblem('arctan(1)', 'trigonometry')).answer, '45°');
   resetSettings();
@@ -61,7 +61,7 @@ test('trig equations report solutions in degrees when the angle unit is degrees'
 test('decimal places setting flows through the numeric answers', async () => {
   resetSettings(); saveSettings({ decimalPlaces: 2 });
   assert.equal((await solveProblem('sqrt(2)', 'other')).answer, '√2 (≈ 1.41)'); // exact first (1.54.0), the decimal to the setting
-  assert.equal((await solveProblem('cos(1)', 'trigonometry')).answer, '0.54');
+  assert.equal((await solveProblem('cos(1)', 'trigonometry')).answer, '≈ 0.54'); // 1.65.0: a value with no exact form carries ≈.
   assert.match((await solveProblem('x^2 - 3 > 0', 'algebra')).answer, /1\.73/);
   saveSettings({ decimalPlaces: 6 });
   assert.equal((await solveProblem('sqrt(2)', 'other')).answer, '√2 (≈ 1.414214)');
@@ -117,7 +117,7 @@ test('touch roots between grid points are found (squared factors)', async () => 
   // These two are now solved exactly by the trig-equation solver; the
   // between-grid touch-root scan is exercised by a non-trig squared factor.
   const r = await solveProblem('sin^2(3x) + 1 = 1', 'algebra');
-  assert.match(r.answer, /x = \(πn\)\/3/);
+  assert.match(r.answer, /x = \(π\/3\)n/); // 1.65.0: x = (π/3)n, not (πn)/3
   const s = await solveProblem('(x - 0.3)^2 * (x + 1.7)^2 = 0', 'algebra');
   // The exact root finder now takes this (a polynomial): exact fractions,
   // each a double root, in the app's exact style.

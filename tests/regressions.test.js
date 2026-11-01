@@ -1324,7 +1324,7 @@ test('word arithmetic is read as arithmetic: add / subtract from / times / divid
 
 test('sin(1) says it is reading radians, the way sin(45) says it is reading degrees', async () => {
   const radians = await solvePlain('sin(1)', 'trigonometry');
-  assert.equal(radians.answer, '0.8415');
+  assert.equal(radians.answer, '≈ 0.8415'); // 1.65.0: a value with no exact form carries ≈.
   assert.match(radians.steps.join('\n'), /Interpreting 1 as radians, which is 1 × 180\/π ≈ 57\.2958°/);
   const half = await solvePlain('sin(0.5)', 'trigonometry');
   assert.match(half.steps.join('\n'), /Interpreting 0\.5 as radians/);

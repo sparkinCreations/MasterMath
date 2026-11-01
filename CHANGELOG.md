@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.65.0] - 2026-11-01
+
+### Added
+
+- **More trigonometry insights and mistakes**, the sixth topic. Values,
+  identities and equations each have ranked lists behind "Show more", and
+  the second insight works the student's own problem: the reference angle,
+  quadrant and sign (5π/6 = 150°, quadrant II, so sin(150°) = sin(30°)); the
+  principal value of an inverse; the identity used and where it holds;
+  arcsin(c) and π − arcsin(c); a reciprocal rewritten; u and its roots for a
+  quadratic; R and φ for a·sin + b·cos. The solver's own value-specific
+  advice still leads. Review: `docs/future-work/insights-review/TRIGONOMETRY.md`.
+- **Identities are proved**: both sides in sin and cos of one angle, then
+  compared as rational functions of t = tan(x/2) in exact fractions, where
+  they were "confirmed numerically at several values". A simplification
+  that loses points says so: tan(x)·cos(x) = sin(x), for cos(x) ≠ 0.
+- **sec²(x) − 1, sin(x)·cos(x) and tan(x) + cot(x)** simplify (tan²(x),
+  sin(2x)/2, 2/sin(2x)).
+- **A note under the input** when the Auto angle unit will read a bare
+  common angle as degrees: "Angle unit is Auto: 30 is read as 30°" (Round
+  30).
+
+### Fixed
+
+- **sin(1.0472) was "√3/2"**, and cos(0.7854) "√2/2": exact values were
+  matched to 0.0001, so a decimal near π/3 was called exactly π/3. They are
+  matched to double precision now, and a value with no exact form carries ≈
+  (sin(1) ≈ 0.8415, arcsin(0.3) ≈ 0.3047).
+- **sin(x) = 0.3 gave "x = 0.3047 + 2πn"**; it is x = arcsin(3/10) + 2πn or
+  x = π − arcsin(3/10) + 2πn, with the solutions in [0, 2π) ≈ 0.3047, 2.8369.
+- **cos(x) = 1 said "x = 0 and x = −0 both work"**: a value reached once per
+  period is said once.
+- **Families divided through**: tan(2x) = 1 is x = π/8 + (π/2)n (was
+  (π/4 + πn)/2), cos(x/2) = 1 is x = 4πn (was 2(2πn)); a quadratic's cases
+  in order.
+- **cot(x) = 0 said "No real solution"** (from 1/0); it is cos(x) = 0, so
+  x = π/2 + πn (an outside review, Round 29).
+- **The phase of a·sin + b·cos** was written "φ = arctan(b/a)" even when a <
+  0, where that is false (the answers used atan2 and were right); φ is now
+  stated by cos φ = a/R and sin φ = b/R, with its quadrant.
+- **Wording** (Round 29): which angles have exact values, the reciprocal
+  rule for c = 0, the number of tan solutions with kx inside, "principal
+  value" for arcsin(c); the identity proof also compares x = π + 2πn
+  directly; a bare common angle under Auto says it was read as degrees.
+- **A negative principal value** (sin(x) = −1/2) was listed among the
+  solutions "within one period"; the working now says −π/6 lies outside
+  [0, 2π) and gives 7π/6 and 11π/6 (Round 30). The 2|k| count of tan
+  solutions is stated for integer k.
+
 ## [1.64.0] - 2026-10-31
 
 ### Added

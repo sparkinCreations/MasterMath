@@ -19,6 +19,7 @@ import { math, formatNumber, beautify, mark } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
 import { unsupported, undefinedValue, STATUS } from '../solutionEnvelope.js';
 import { getSettings } from '../settings.js';
+import { equationGuidance } from './trigonometry/guidance.js';
 
 const TWO_PI = 2 * Math.PI;
 
@@ -92,10 +93,21 @@ function mergeFamilies(families) {
 
 // "base + period·n" as text, with the trivial cases tidied.
 function familyText(variable, base, period) {
-  const per = near(period, TWO_PI) ? PERIOD_FULL() : near(period, Math.PI) ? PERIOD_HALF() : `(${fmtRad(period)})`;
+  const pt = fmtRad(period);
+  // 2πn, πn, 4πn; a fraction of π in brackets: (2π/3)n.
+  const per = near(period, TWO_PI) ? PERIOD_FULL() : near(period, Math.PI) ? PERIOD_HALF() : /^\d*π$/.test(pt) ? pt : `(${pt})`;
   const b = fmtRad(base);
   if (b === '0') return `${variable} = ${per}n`;
   return `${variable} = ${b} + ${per}n`;
+}
+
+// c as an exact fraction when it is one (3/10), else as shown.
+function exactC(c) {
+  for (let q = 1; q <= 100; q += 1) {
+    const p = Math.round(c * q);
+    if (Math.abs(c - p / q) < 1e-12) return q === 1 ? String(p) : `${p}/${q}`;
+  }
+  return fmtValue(c);
 }
 
 // Exact display of a special angle, or a rounded decimal (radians).
@@ -245,6 +257,16 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
     const argShownR = argR.replace(/\*/g, '');
     const outer = [`Solve the equation: ${mark(shown)}`];
     if (DEGREES) outer.push('Angle unit is set to degrees (Settings): angles are reported in degrees.');
+    // cot(θ) = 0 is cos(θ) = 0 (cot = cos/sin): it was "no real solution",
+    // from 1/0 (1.65.0 review). sec and csc are never 0.
+    if (Math.abs(c) < 1e-12 && fnR === 'cot') {
+      outer.push(`Isolate: ${mark(`cot(${argShownR}) = 0`)}. Since ${mark('cot(θ) = cos(θ)/sin(θ)')}, it is ${mark('0')} exactly where ${mark('cos(θ) = 0')} (and ${mark('sin(θ) = ±1 ≠ 0')} there): ${mark(`cos(${argShownR}) = 0`)}.`);
+      const inner = solveTrigEquation(`cos(${argR}) = 0`, variable, undefined, true);
+      if (inner && inner.status !== 'unsupported' && Array.isArray(inner.steps)) {
+        return { ...inner, steps: [...outer, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t) && !/^Angle unit/.test(t))] };
+      }
+      return null;
+    }
     outer.push(`Isolate: ${fnR}(${argShownR}) = ${fmtValue(c)}. Since ${fnR}(θ) = 1/${partner}(θ), this is ${partner}(${argShownR}) = ${Math.abs(c) < 1e-12 ? '1/0' : fmtValue(1 / c)}.`);
     if (Math.abs(c) < 1e-12) {
       outer.push(`${fnR}(θ) is never 0 (its reciprocal would have to be infinite), so there is no solution.`);
@@ -339,7 +361,9 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
         const rShown = fmtValue(R) === formatNumber(R) ? (Math.abs(R - Math.round(R)) < 1e-9 ? String(Math.round(R)) : `√${niceNumber(R * R)}`) : fmtValue(R);
         const cf = (v) => (Math.abs(Math.abs(v) - 1) < 1e-9 ? '' : `${fmtValue(Math.abs(v))}·`);
         outerSteps.push(`Sine and cosine both appear to the first power with a nonzero constant: ${mark(`${a < 0 ? '−' : ''}${cf(a)}sin(${argShown}) ${b < 0 ? '−' : '+'} ${cf(b)}cos(${argShown}) = ${fmtValue(c)}`)}.`);
-        outerSteps.push(`Combine them into one sine: ${mark('a·sin θ + b·cos θ = R·sin(θ + φ)')} with ${mark(`R = √(a² + b²) = ${rShown}`)} and ${mark(`φ = arctan(b/a) = ${fmtRad(phi)}`)}.`);
+        // φ with cos φ = a/R and sin φ = b/R, in its quadrant: arctan(b/a)
+        // only when a > 0 (−sin x + cos x has φ = 3π/4, not −π/4).
+        outerSteps.push(`Combine them into one sine: ${mark('a·sin θ + b·cos θ = R·sin(θ + φ)')} with ${mark(`R = √(a² + b²) = ${rShown}`)} and ${mark('φ')} the angle with ${mark('cos φ = a/R')} and ${mark('sin φ = b/R')}: ${mark(a > 0 ? `φ = arctan(b/a) = ${fmtRad(phi)}` : `φ = ${fmtRad(phi)}`)}${a > 0 ? '' : ` (in quadrant ${phi > Math.PI / 2 ? 'II' : phi < -Math.PI / 2 ? 'III' : phi > 0 ? 'I' : 'IV'}, since ${mark('a < 0')}${a === 0 ? '' : ''})`.replace('since ⟦a < 0⟧', a === 0 ? 'since ⟦a = 0⟧' : 'since ⟦a < 0⟧')}.`);
         if (Math.abs(c) > R + 1e-9) {
           outerSteps.push(`So ${mark(`${rShown}·sin(${argShown} ${phi < 0 ? `− ${fmtRad(-phi)}` : `+ ${fmtRad(phi)}`}) = ${fmtValue(c)}`)} would need ${mark('sin')} to be ${mark(fmtValue(c / R))}, outside ${mark('[−1, 1]')} — no real solution.`);
           const result = undefinedValue({ input: rawEquation, reason: `|${fmtValue(c)}| exceeds R = ${rShown}, so no angle works.`, steps: outerSteps });
@@ -371,7 +395,8 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
         const ok = list.every((x) => { try { return Math.abs(math.evaluate(L, { [variable]: x }) - math.evaluate(Rr, { [variable]: x })) < 1e-6; } catch { return false; } });
         if (!ok) return null;
         const per = TWO_PI / Math.abs(km);
-        const general = bases.map((b0) => familyText(variable, ((b0 / km) % per + per) % per, per)).join('  or  ');
+        // In order (x = 2πn before 3π/2 + 2πn).
+        const general = bases.map((b0) => ((b0 / km) % per + per) % per).sort((x, y) => x - y).map((b0) => familyText(variable, b0, per)).join('  or  ');
         outerSteps.push(`Then ${mark(`${argShown} = θ ${phi < 0 ? `+ ${fmtRad(-phi)}` : `− ${fmtRad(phi)}`}`)}${km !== 1 ? `, and divide by ${mark(formatNumber(km))}` : ''}: ${mark(general)}`);
         outerSteps.push(`On ${mark(RANGE_TEXT())}: ${mark(list.map((x) => `${variable} = ${fmtRad(x)}`).join(',  '))}`);
         outerSteps.push(`Check: substituting each value back into ${mark(shown)} balances both sides.`);
@@ -457,6 +482,10 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
     result.answer = 'No real solution';
     return result;
   }
+  // Cases in the order of their first solution (π/6 before 7π/6).
+  const order = parts.map((pt, i) => ({ i, first: Math.min(...(pt.graph?.solutions ?? [Infinity])) })).sort((a, b) => a.first - b.first).map((o) => o.i);
+  const familyOrdered = order.map((i) => familyTexts[i]);
+  familyTexts.splice(0, familyTexts.length, ...familyOrdered);
   const merged = [...new Set(allSolutions.map((x) => Math.round(x * 1e8) / 1e8))].sort((x, y) => x - y);
   const toRad = (x) => (DEGREES ? x * Math.PI / 180 : x);
   const listText = merged.map((x) => fmtRad(toRad(x))).join(', ');
@@ -591,7 +620,12 @@ function solveEqualArguments(rawEquation, equation, variable, shown, calls) {
 // the way every other equation does.
 export function solveTrigEquation(rawEquation, variable = 'x', settingsOverride, nested = false) {
   const result = solveTrigEquationInner(rawEquation, variable, settingsOverride, nested);
-  return !nested && result && result.status === STATUS.UNDEFINED ? { ...result, status: STATUS.SOLVED } : result;
+  if (nested || !result) return result;
+  // The ranked lists and the worked line, from the method the steps used
+  // (1.65.0); a refusal keeps its own advice.
+  const guidance = result.status === STATUS.UNSUPPORTED ? null : equationGuidance(result);
+  const out = guidance ? { ...result, ...guidance } : result;
+  return out.status === STATUS.UNDEFINED ? { ...out, status: STATUS.SOLVED } : out;
 }
 
 function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, nested = false) {
@@ -649,6 +683,10 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
   }
 
   const p = principalAngle(fn, c);
+  // An angle that is not a special one is named exactly (arcsin(3/10)) and
+  // its decimal carries ≈: sin(x) = 0.3 gave "x = 0.3047 + 2πn" (1.65.0).
+  const eq = p.isExact ? '=' : '≈';
+  const cName = p.isExact ? cShown : exactC(c);
   const theta = k === 1 ? variable : 'θ';
   // sin = ±1 and cos = ±1 are reached once per period; sin = 0, cos = 0 twice.
   const oncePerPeriod = fn !== 'tan' && Math.abs(Math.abs(c) - 1) < 1e-12;
@@ -658,23 +696,30 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
   // General solution, first for θ = kx (or directly for x when k = 1).
   let general; // [{ base (rad), period (rad) }] for θ
   if (fn === 'sin') {
-    steps.push(`Take the inverse sine: the reference angle is ${mark(`arcsin(${cShown}) = ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
+    steps.push(`Take the inverse sine: the principal value is ${mark(`arcsin(${cName}) ${eq} ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
     const second = fmtRad(Math.PI - p.rad);
-    steps.push(`Sine takes each value twice per period (quadrants I and II for positive values, III and IV for negative), so within one period: ${mark(`${theta} = ${p.exact}`)} and ${mark(`${theta} = ${PERIOD_HALF()} − (${p.exact}) = ${second}`)}.`);
+    if (oncePerPeriod) steps.push(`Sine reaches ${mark(cShown)} only once per period, at the ${c > 0 ? 'top' : 'bottom'} of the wave: ${mark(`${theta} = ${p.exact}`)}.`);
+    // A negative principal value is outside [0, 2π): say so and give the
+    // period's two solutions (sin(x) = −1/2 listed "x = −π/6 and 7π/6").
+    else if (p.rad < 0 && !DEGREES && k === 1) steps.push(`The principal value ${mark(p.exact)} lies outside ${mark(RANGE_TEXT())}. Sine takes each value twice per period, so the two solutions on ${mark(RANGE_TEXT())} are ${mark(`${theta} = π − (${p.exact}) ${eq} ${second}`)} and ${mark(`${theta} = 2π + (${p.exact}) ${eq} ${fmtRad(TWO_PI + p.rad)}`)}.`);
+    else steps.push(`Sine takes each value twice per period (quadrants I and II for positive values, III and IV for negative), so within one period: ${mark(`${theta} ${eq} ${p.exact}`)} and ${mark(`${theta} = ${PERIOD_HALF()} − ${p.isExact ? `(${p.exact})` : `arcsin(${cName})`} ${eq} ${second}`)}.`);
     general = [
       { base: p.rad, period: TWO_PI },
       { base: Math.PI - p.rad, period: TWO_PI },
     ];
   } else if (fn === 'cos') {
-    steps.push(`Take the inverse cosine: the reference angle is ${mark(`arccos(${cShown}) = ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
+    steps.push(`Take the inverse cosine: the principal value is ${mark(`arccos(${cName}) ${eq} ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
     const coterminal = fmtRad(TWO_PI - p.rad);
-    steps.push(`Cosine is even (${mark('cos(−θ) = cos θ')}), so ${mark(`${theta} = ${p.exact}`)} and ${mark(`${theta} = −${p.exact}`)} both work. Within one period ${mark(`[0, ${PERIOD_FULL()})`)}, ${mark(`−${p.exact}`)} is the same angle as ${mark(`${PERIOD_FULL()} − ${p.exact} = ${coterminal}`)}.`);
+    // cos = ±1 once per period: "x = 0 and x = −0 both work … 2π − 0 = 2π"
+    // was said for cos(x) = 1 (1.65.0).
+    if (oncePerPeriod) steps.push(`Cosine reaches ${mark(cShown)} only once per period, at the ${c > 0 ? 'top' : 'bottom'} of the wave: ${mark(`${theta} = ${p.exact}`)}.`);
+    else steps.push(`Cosine is even (${mark('cos(−θ) = cos θ')}), so ${mark(`${theta} = ${p.exact}`)} and ${mark(`${theta} = −${p.exact}`)} both work. Within one period ${mark(`[0, ${PERIOD_FULL()})`)}, ${mark(`−${p.exact}`)} is the same angle as ${mark(`${PERIOD_FULL()} − ${p.exact} = ${coterminal}`)}.`);
     general = [
       { base: p.rad, period: TWO_PI },
       { base: -p.rad, period: TWO_PI },
     ];
   } else {
-    steps.push(`Take the inverse tangent: the reference angle is ${mark(`arctan(${cShown}) = ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
+    steps.push(`Take the inverse tangent: the principal value is ${mark(`arctan(${cName}) ${eq} ${p.exact}`)}${p.isExact || DEGREES ? '' : ' rad'}.`);
     steps.push(`Tangent repeats every ${mark(PERIOD_HALF())} (not ${mark(PERIOD_FULL())}), so one solution per period suffices.`);
     general = [{ base: p.rad, period: Math.PI }];
   }
@@ -683,11 +728,41 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
   // Normalise bases into [0, period) for a clean listing, then render.
   general = general.map((g) => ({ base: ((g.base % g.period) + g.period) % g.period, period: g.period }))
     .sort((a, b) => a.base - b.base);
-  const thetaText = general.map((g) => familyText(theta, g.base, g.period)).join('  or  ');
+  const inverse = { sin: 'arcsin', cos: 'arccos', tan: 'arctan' }[fn];
+  const perText = fn === 'tan' ? PERIOD_HALF() : PERIOD_FULL();
+  const symbolic = !p.isExact && !DEGREES
+    ? (fn === 'sin' ? [`${inverse}(${cName})`, `π − ${inverse}(${cName})`] : fn === 'cos' ? [`±${inverse}(${cName})`] : [`${inverse}(${cName})`])
+    : null;
+  const thetaText = symbolic
+    ? symbolic.map((nm) => `${theta} = ${nm} + ${perText}n`).join('  or  ')
+    : general.map((g) => familyText(theta, g.base, g.period)).join('  or  ');
 
   // If the argument was kx, convert θ-solutions to x by dividing by k.
   let generalText = thetaText;
-  if (k !== 1) {
+  // θ/k written out when every family stays a multiple of π: tan(2x) = 1 is
+  // x = π/8 + (π/2)n, not (π/4 + πn)/2; cos(x/2) = 1 is x = 4πn, not 2(2πn).
+  const simplified = k !== 1 && !symbolic
+    ? general.map((g) => {
+      const base = g.base / k;
+      const period = g.period / Math.abs(k);
+      const ok = /π|^0$/.test(fmtRad(base)) && /π/.test(fmtRad(period));
+      return ok ? familyText(variable, ((base % period) + period) % period, period) : null;
+    })
+    : null;
+  if (k !== 1 && symbolic) {
+    const kShown = formatNumber(k);
+    steps.push(`Let ${mark(`θ = ${argShown}`)}. General solution for ${mark('θ')} (${mark(nSym)} any integer): ${mark(thetaText)}`);
+    generalText = symbolic.map((nm) => `${variable} = (${nm} + ${perText}n)/${kShown}`).join('  or  ');
+    steps.push(`Divide by ${mark(kShown)} to get ${mark(variable)}: ${mark(generalText)}`);
+  } else if (simplified && simplified.every(Boolean)) {
+    steps.push(`Let ${mark(`θ = ${argShown}`)}. General solution for ${mark('θ')} (${mark(nSym)} any integer): ${mark(thetaText)}`);
+    generalText = simplified.join('  or  ');
+    const inv = 1 / k;
+    const isReciprocal = Math.abs(k) < 1 && near(inv, Math.round(inv));
+    steps.push(isReciprocal
+      ? `Multiply by ${mark(Math.round(inv))} to get ${mark(variable)}: ${mark(generalText)}`
+      : `Divide by ${mark(formatNumber(k))} to get ${mark(variable)}: ${mark(generalText)}`);
+  } else if (k !== 1) {
     steps.push(`Let ${mark(`θ = ${argShown}`)}. General solution for ${mark('θ')} (${mark(nSym)} any integer): ${mark(thetaText)}`);
     // θ = kx ⇒ x = θ/k. When k is a reciprocal (x/2 ⇒ k = 1/2), say
     // "multiply by 2" and write 2(...) — that is how the step is taught.
@@ -726,7 +801,7 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
     }
   }
   list.sort((a, b) => a - b);
-  const listed = list.map((x) => `${variable} = ${fmtRad(x)}`);
+  const listed = list.map((x) => `${variable} ${eq} ${fmtRad(x)}`);
   steps.push(`On ${mark(RANGE_TEXT())}: ${mark(listed.join(',  '))}`);
 
   // Verify each listed solution against the original equation.
@@ -772,7 +847,7 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
 
   return {
     steps,
-    answer: `${generalText} (${nSym} ∈ ℤ);  on ${RANGE_TEXT()}: ${list.map(fmtRad).join(', ')}`,
+    answer: `${generalText} (${nSym} ∈ ℤ);  on ${RANGE_TEXT()}: ${p.isExact ? '' : `${variable} ≈ `}${list.map(fmtRad).join(', ')}`,
     // Said for THIS value: sin = ±1 and cos = ±1 happen once per period, 0
     // twice half a period apart, anything else in two quadrants; the
     // divide-by-k warning only when there is a k (the same two lines used
@@ -792,10 +867,10 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
       fn === 'tan'
         ? `Reporting only the calculator's value ${mark(`arctan(${cShown}) = ${p.exact}`)} and missing ${mark(`${p.exact} + ${PERIOD_HALF()}`)}, which is also in ${mark(RANGE_TEXT())}.`
         : oncePerPeriod
-          ? `Adding a "second quadrant" solution: ${mark(`${PERIOD_HALF()} − (${p.exact})`)} is the same angle, and ${fn} takes the value ${mark(cShown)} nowhere else in the period.`
+          ? `Adding a second solution: ${mark(fn === 'sin' ? `${PERIOD_HALF()} − (${p.exact})` : p.exact === '0' ? '−0' : `−(${p.exact})`)} is the same angle, and ${fn} takes the value ${mark(cShown)} nowhere else in the period.`
           : atZero
             ? `Listing ${mark(`${theta} = ${p.exact}`)} alone and missing the second crossing, ${mark(`${theta} = ${fmtRad(p.rad + Math.PI)}`)}.`
-            : `Reporting only the calculator's principal value (${mark(`${fn === 'sin' ? 'arcsin' : 'arccos'}(${cShown}) = ${p.exact}`)}) and missing the second solution in the period.`,
+            : `Reporting only the calculator's principal value (${mark(`${fn === 'sin' ? 'arcsin' : 'arccos'}(${cName}) ${eq} ${p.exact}`)}) and missing the second solution in the period.`,
       k !== 1
         ? `Forgetting to divide by ${mark(formatNumber(k))}: the families found are for ${mark(`${formatNumber(k)}${variable}`)}, and ${mark(variable)} is each of them divided by ${mark(formatNumber(k))} — ${Math.abs(k) > 1 ? `${formatNumber(Math.abs(k))} times as many solutions in ${mark(RANGE_TEXT())}` : `fewer solutions in ${mark(RANGE_TEXT())}`}.`
         : `Giving the solutions in one period only, without the "${mark(`+ ${fn === 'tan' ? PERIOD_HALF() : PERIOD_FULL()}n`)}" that lists every period.`,
