@@ -195,8 +195,6 @@ const EQUATION_LISTS = {
       'Check each solution in the original equation: a slip in the quadrant shows up at once.',
     ],
     mistakes: [
-      'Reporting only the calculator\'s principal value and missing the second solution in the period.',
-      `Giving the solutions in one period only, without the "${mark('+ 2πn')}" that lists every period.`,
       `Dividing the period by ${mark('k')} but not the base angle (or the reverse).`,
     ],
   },
@@ -205,20 +203,17 @@ const EQUATION_LISTS = {
       `${mark('sin = ±1')} and ${mark('cos = ±1')} happen once per period, at the top or the bottom of the wave: one family of solutions, not two.`,
       `${mark('sin = 0')} and ${mark('cos = 0')} happen twice per period, half a period apart, so they too are one family, stepping by ${mark('π')}.`,
     ],
-    mistakes: [
-      `Adding a "second quadrant" solution: ${mark('π − π/2')} is the same angle.`,
-      `Giving the solution in one period only, without the "${mark('+ 2πn')}".`,
-    ],
+    mistakes: [],
   },
   tan: {
     tips: [
       `${mark('tan(θ) = c')} has one solution per period, ${mark('arctan(c)')}, and its period is ${mark('π')}: the general solution steps by ${mark('πn')}, not ${mark('2πn')}.`,
       `tan takes every real value, so ${mark('tan(θ) = c')} always has solutions; it is undefined where ${mark('cos(θ) = 0')}.`,
-      `For ${mark('tan(x) = c')} there are two solutions in ${mark('[0, 2π)')}, ${mark('arctan(c)')} and ${mark('arctan(c) + π')}; for a nonzero integer ${mark('k')}, ${mark('tan(kx) = c')} has ${mark('2|k|')}. For other ${mark('k')}, count the members of the general family that fall in the interval.`,
+      `The general solution is ${mark('x = arctan(c) + πn')}, ${mark('n')} any integer: choose the values of ${mark('n')} that put ${mark('x')} in the interval asked for (${mark('tan(x) = −1')} gives ${mark('3π/4')} and ${mark('7π/4')} in ${mark('[0, 2π)')}, since ${mark('arctan(−1) = −π/4')} is outside it). For a nonzero integer ${mark('k')}, ${mark('tan(kx) = c')} has ${mark('2|k|')} solutions in ${mark('[0, 2π)')}.`,
     ],
     mistakes: [
       `Stepping by ${mark('2π')}: half of the solutions are lost.`,
-      `Reporting only ${mark('arctan(c)')} and missing ${mark('arctan(c) + π')} in ${mark('[0, 2π)')}.`,
+
     ],
   },
   reciprocal: {
@@ -265,7 +260,7 @@ const EQUATION_LISTS = {
       `${mark('sin(x)·cos(x) = c')} has no solution when ${mark('|c| > 1/2')}.`,
     ],
     mistakes: [
-      `Dividing by ${mark('cos(x)')} to get ${mark('tan')}: the solutions where ${mark('cos(x) = 0')} are lost, and the equation is not in ${mark('tan')} alone.`,
+      `Dividing by ${mark('cos(x)')} to get ${mark('tan')}: ${mark('sin(x)·cos(x)/cos(x)')} is ${mark('sin(x)')}, and the other side becomes ${mark('c/cos(x)')}, so the equation is not in ${mark('tan')} alone. (Dividing by something that can be ${mark('0')} also loses any solutions where it is ${mark('0')}; here ${mark('cos(x) = 0')} makes the left side ${mark('0')}, so none are lost when ${mark('c ≠ 0')}.)`,
       `Forgetting the ${mark('½')}: ${mark('sin(x)·cos(x)')} is ${mark('½·sin(2x)')}, not ${mark('sin(2x)')}.`,
     ],
   },
@@ -297,7 +292,7 @@ const EQUATION_LISTS = {
   numeric: {
     tips: [
       'Equations that mix trig terms with different arguments or with x itself usually have no closed form: numeric solutions are the honest answer, shown with ≈.',
-      'Each root was located by scanning and then checked by substitution; there can be more outside the range searched.',
+      'Each root was located by scanning and then checked by substitution; without a bound like the one above, there can be more outside the range searched.',
     ],
     mistakes: ['Expecting an exact answer for every trig equation: most mixed ones have none.'],
   },
@@ -359,6 +354,12 @@ export function equationGuidance(result) {
   if (!list) return null;
   let here = null;
   try { here = equationHere(method, text, String(result.answer || '')); } catch { here = null; }
+  // A bounded scan: every root lies in the interval, said for this equation.
+  if (method === 'numeric' && result.bounded) {
+    const b = result.bounded;
+    const f = (x) => (Number.isInteger(x) ? String(x) : String(Math.round(x * 1e4) / 1e4));
+    here = `Here: ${b.fn === 'cos' ? 'cosine' : 'sine'} is never beyond ${mark('±1')}, so every solution lies in ${mark(`${f(b.lo)} ≤ x ≤ ${f(b.hi)}`)}: none can be outside it. The scan found these there; that they are all of them is not proved by the scan.`;
+  }
   // The numeric scan's own lists come from the algebra solver, with its
   // x·eˣ examples: those stay out of a trig equation.
   const keep = (t) => method !== 'numeric' || !/e\^x|e\^\(/.test(stripMathMarkers(t));
@@ -376,6 +377,6 @@ export function equationGuidance(result) {
   else if (['reciprocal', 'numeric', 'no solution'].includes(method)) tips = [list.tips[0], here, ...(method === 'reciprocal' && own.length > 1 ? [own[1], own[0], ...own.slice(2)] : own), ...extra];
   else if (own.length) tips = [own[0], here, ...own.slice(1), ...extra];
   else tips = [list.tips[0], here, ...extra];
-  const kMistakes = list.mistakes.filter((m) => /Let θ = /.test(text) || !/by ⟦k⟧/.test(m));
+  const kMistakes = result.cotZero ? [] : list.mistakes.filter((m) => /Let θ = /.test(text) || !/by ⟦k⟧/.test(m));
   return { tips: distinct(tips), common_mistakes: distinct([...(result.common_mistakes || []).filter(keep), ...kMistakes]) };
 }

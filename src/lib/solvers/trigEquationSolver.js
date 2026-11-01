@@ -263,7 +263,15 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
       outer.push(`Isolate: ${mark(`cot(${argShownR}) = 0`)}. Since ${mark('cot(θ) = cos(θ)/sin(θ)')}, it is ${mark('0')} exactly where ${mark('cos(θ) = 0')} (and ${mark('sin(θ) = ±1 ≠ 0')} there): ${mark(`cos(${argShownR}) = 0`)}.`);
       const inner = solveTrigEquation(`cos(${argR}) = 0`, variable, undefined, true);
       if (inner && inner.status !== 'unsupported' && Array.isArray(inner.steps)) {
-        return { ...inner, steps: [...outer, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t) && !/^Angle unit/.test(t))] };
+        return {
+          ...inner,
+          steps: [...outer, ...inner.steps.filter((t) => !/^Solve the equation:/.test(t) && !/^Angle unit/.test(t))],
+          cotZero: true,
+          common_mistakes: [
+            `Forgetting that cotangent repeats every ${mark('π')}: the complete solution is ${mark('x = π/2 + πn')}, not only the angles in one plotted interval.`,
+            `Rewriting ${mark('cot(x) = 0')} as ${mark('tan(x) = 1/0')} and concluding there is no solution.`,
+          ],
+        };
       }
       return null;
     }
@@ -865,7 +873,11 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
     ],
     common_mistakes: [
       fn === 'tan'
-        ? `Reporting only the calculator's value ${mark(`arctan(${cShown}) = ${p.exact}`)} and missing ${mark(`${p.exact} + ${PERIOD_HALF()}`)}, which is also in ${mark(RANGE_TEXT())}.`
+        // arctan(−1) = −π/4 is not itself in [0, 2π): name the two that are
+        // (it said "missing −π/4 + π, which is also in [0, 2π)"; Round 31).
+        ? (p.rad < 0 && k === 1 && !DEGREES
+          ? `Reporting the calculator's value ${mark(`arctan(${cName}) ${eq} ${p.exact}`)} as a solution in ${mark(RANGE_TEXT())}: it lies outside; the general solution ${mark(`${p.exact} + πn`)} gives ${mark(list.map(fmtRad).join(' and '))} there.`
+          : `Reporting only the calculator's value ${mark(`arctan(${cName}) ${eq} ${p.exact}`)} and missing ${mark(`${p.exact} + ${PERIOD_HALF()}`)}, which is also in ${mark(RANGE_TEXT())}.`)
         : oncePerPeriod
           ? `Adding a second solution: ${mark(fn === 'sin' ? `${PERIOD_HALF()} − (${p.exact})` : p.exact === '0' ? '−0' : `−(${p.exact})`)} is the same angle, and ${fn} takes the value ${mark(cShown)} nowhere else in the period.`
           : atZero
@@ -873,7 +885,9 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
             : `Reporting only the calculator's principal value (${mark(`${fn === 'sin' ? 'arcsin' : 'arccos'}(${cName}) ${eq} ${p.exact}`)}) and missing the second solution in the period.`,
       k !== 1
         ? `Forgetting to divide by ${mark(formatNumber(k))}: the families found are for ${mark(`${formatNumber(k)}${variable}`)}, and ${mark(variable)} is each of them divided by ${mark(formatNumber(k))} — ${Math.abs(k) > 1 ? `${formatNumber(Math.abs(k))} times as many solutions in ${mark(RANGE_TEXT())}` : `fewer solutions in ${mark(RANGE_TEXT())}`}.`
-        : `Giving the solutions in one period only, without the "${mark(`+ ${fn === 'tan' ? PERIOD_HALF() : PERIOD_FULL()}n`)}" that lists every period.`,
+        // The family's own step: πn for tan and for sin = 0, cos = 0 (it said
+        // "+ 2πn" for cos(x) = 0; Round 31).
+        : `Giving the solutions in one period only, without the "${mark(`+ ${fn === 'tan' || atZero ? PERIOD_HALF() : PERIOD_FULL()}n`)}" that lists every period.`,
     ],
     graph,
   };

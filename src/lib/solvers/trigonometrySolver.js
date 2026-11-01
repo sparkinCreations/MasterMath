@@ -19,6 +19,7 @@ import {
 } from './solverUtils.js';
 import { getSettings, COMMON_DEGREE_VALUES } from '../settings.js';
 import { createMath } from '../mathInstance.js';
+import { readPolynomial } from './polynomialRoots.js';
 import { valueGuidance, identityGuidance, equationGuidance } from './trigonometry/guidance.js';
 import { parseError, unsupported, solved, undefinedValue } from '../solutionEnvelope.js';
 
@@ -111,10 +112,16 @@ export async function solveTrigonometry(expression, settingsOverride) {
           numeric.common_mistakes = [`Treating the points where ${mark('tan(x)')} or ${mark('sec(x)')} is undefined as solutions because the simplified form ${mark('0 = 0')} allows them.`];
           return numeric;
         }
+        // A·sin(u) + d = mx + b: |sin| ≤ 1 bounds every solution, a fact the
+        // scan alone cannot give (sin(x) = x/2 has all its roots in [−2, 2];
+        // Round 31).
+        const bound = waveLineBound(expression, variable);
         numeric.steps = [
           'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.',
+          ...(bound ? [bound.step] : []),
           ...(numeric.steps || []),
         ];
+        if (bound) numeric.bounded = bound;
         Object.assign(numeric, equationGuidance(numeric) ?? {});
         return numeric;
       }
@@ -414,6 +421,36 @@ export async function solveTrigonometry(expression, settingsOverride) {
       tips: [`Use pi for ${mark('π')} (e.g., ${mark('sin(pi/4)')}).`, `For degrees, write ${mark('sin(30°)')} or multiply by ${mark('pi/180')}.`],
     });
   }
+}
+
+// A·f(u) + d on one side (f = sin or cos) and a line m·x + b on the other:
+// since |f| ≤ 1, a solution needs |m·x + b − d| ≤ |A|, an interval of x.
+function waveLineBound(equation, variable) {
+  const sides = String(equation).replace(/\s+/g, '').split('=');
+  if (sides.length !== 2) return null;
+  const wave = /^(-?(?:\d+(?:\.\d+)?|\d+\/\d+)?\*?|-)?(sin|cos)\(([^()]+)\)([+-](?:\d+(?:\.\d+)?|\d+\/\d+))?$/;
+  for (const [w, l] of [[sides[0], sides[1]], [sides[1], sides[0]]]) {
+    const m = w.match(wave);
+    if (!m) continue;
+    const line = readPolynomial(l, variable);
+    if (!line || line.tooHigh || line.degree !== 1) continue;
+    const A = m[1] === undefined || m[1] === '' ? 1 : m[1] === '-' ? -1 : Number(math.evaluate(m[1].replace(/\*$/, '')));
+    const d = m[4] ? Number(math.evaluate(m[4])) : 0;
+    const [b, slope] = line.coefficients.map(Number);
+    if (!Number.isFinite(A) || A === 0 || slope === 0) continue;
+    const R = Math.abs(A);
+    const ends = [(d - R - b) / slope, (d + R - b) / slope].sort((x, y) => x - y);
+    const fmt = (x) => (Number.isInteger(x) ? String(x) : formatNumber(x));
+    const fn = m[2];
+    const lineShown = beautify(l);
+    return {
+      fn,
+      lo: ends[0],
+      hi: ends[1],
+      step: `Every solution is in ${mark(`${fmt(ends[0])} ≤ ${variable} ≤ ${fmt(ends[1])}`)}: ${mark(`|${fn}(${beautify(m[3])})| ≤ 1`)}, so ${mark(lineShown)} must lie between ${mark(fmt(d - R))} and ${mark(fmt(d + R))}. The search covers that interval, but a scan can still miss a root that only touches the axis or two roots closer than its step, so this bounds the solutions without proving the list complete.`,
+    };
+  }
+  return null;
 }
 
 // Symbolic trig input (contains a variable): simplify with Algebrite and only

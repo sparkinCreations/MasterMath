@@ -847,7 +847,8 @@ test('trigonometry review: the general statements say where they hold', async ()
   const sec = (await plainTrig('sec(x) = 2')).tips.join('\n');
   assert.match(sec, /A reciprocal turns into a basic equation when c ≠ 0/);
   assert.match(sec, /cot\(θ\) = cos\(θ\)\/sin\(θ\) = 0 exactly where cos\(θ\) = 0/);
-  assert.match((await plainTrig('tan(2x) = 1')).tips.join('\n'), /For tan\(x\) = c there are two solutions in \[0, 2π\).*for a nonzero integer k, tan\(kx\) = c has 2\|k\|\. For other k, count/);
+  // Reworded again in Round 31 (the general solution, then n for the interval).
+  assert.match((await plainTrig('tan(2x) = 1')).tips.join('\n'), /For a nonzero integer k, tan\(kx\) = c has 2\|k\| solutions in \[0, 2π\)/);
   assert.match((await plainTrig('sin(x) = -1/2')).steps.join('\n'), /the principal value is arcsin\(-1\/2\) = -π\/6/);
   assert.ok(!(await plainTrig('sin(x) = -1/2')).steps.some((s) => /reference angle is arcsin/.test(s)));
   // The identity proof covers x = π + 2πn, where t = tan(x/2) is undefined.
@@ -872,4 +873,25 @@ test('trigonometry second review: a negative principal value, the angle unit in 
   assert.equal(autoDegreeAngle('sin(30)'), 30);
   assert.equal(autoDegreeAngle('2*cos(60) + 1'), 60);
   for (const t of ['sin(30°)', 'sin(pi/6)', 'sin(1)', 'sin(0)', 'x^2']) assert.equal(autoDegreeAngle(t), null, t);
+});
+
+// Round 31 (third outside review of TRIGONOMETRY.md).
+test('trigonometry third review: tan with a negative value, the period of cot, a bounded scan', async () => {
+  const neg = await plainTrig('tan(x) = -1');
+  assert.equal(neg.answer, 'x = 3π/4 + πn (n ∈ ℤ);  on [0, 2π): 3π/4, 7π/4');
+  assert.match(neg.tips.join('\n'), /The general solution is x = arctan\(c\) \+ πn, n any integer: choose the values of n that put x in the interval asked for \(tan\(x\) = −1 gives 3π\/4 and 7π\/4/);
+  assert.ok(neg.mistakes.includes('Reporting the calculator\'s value arctan(-1) = -π/4 as a solution in [0, 2π): it lies outside; the general solution -π/4 + πn gives 3π/4 and 7π/4 there.'));
+  assert.ok(!neg.mistakes.some((m) => /which is also in/.test(m)));
+  // cot(x) = 0: cot's own period, and no sec advice.
+  const cot = await plainTrig('cot(x) = 0');
+  assert.match(cot.mistakes[0], /^Forgetting that cotangent repeats every π: the complete solution is x = π\/2 \+ πn/);
+  assert.ok(!cot.mistakes.some((m) => /\+ 2πn|sec\(θ\) = 2/.test(m)), cot.mistakes.join('\n'));
+  // sin = 0 and cos = 0 step by π, so the "+ …n" mistake says πn.
+  for (const p of ['cos(x) = 0', 'sin(x) = 0']) assert.ok((await plainTrig(p)).mistakes.some((m) => /without the "\+ πn"/.test(m)), p);
+  // |sin x| ≤ 1 bounds every root of sin(x) = x/2.
+  const bounded = await plainTrig('sin(x) = x/2');
+  // Round 32: the bound is proved; the scan's completeness is not, and says so.
+  assert.ok(bounded.steps.includes('Every solution is in -2 ≤ x ≤ 2: |sin(x)| ≤ 1, so x/2 must lie between -1 and 1. The search covers that interval, but a scan can still miss a root that only touches the axis or two roots closer than its step, so this bounds the solutions without proving the list complete.'));
+  assert.equal(bounded.tips[1], 'Here: sine is never beyond ±1, so every solution lies in -2 ≤ x ≤ 2: none can be outside it. The scan found these there; that they are all of them is not proved by the scan.');
+  assert.match((await plainTrig('sin(x)cos(x) = 1/4')).mistakes.join('\n'), /here cos\(x\) = 0 makes the left side 0, so none are lost when c ≠ 0/);
 });

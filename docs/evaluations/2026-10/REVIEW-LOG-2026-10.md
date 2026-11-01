@@ -233,6 +233,25 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 32 (fourth outside review of the trigonometry content, before 1.65.0 shipped)
+
+A fourth review of `TRIGONOMETRY.md` ("approve for release, one recommendation"). Reproduced.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| The bound proves every root of sin(x) = x/2 lies in [−2, 2], not that the scan found all of them | Agreed: the wording ("the scan covered it") could be read that way | 1.65.0 (the step and the worked line say the bound is proved and the list's completeness is not). A general completeness proof (f″ of one sign on each interval between zeros of the sine, so at most two roots there) is a separate solver change, not built here |
+| Optional: for sin(x)·cos(x) = 1/4, dividing by cos(x) loses nothing, since cos(x) = 0 makes the left side 0 | Agreed | 1.65.0 (the mistake now says the division does not leave an equation in tan, and that no solutions are lost when c ≠ 0) |
+
+## Round 31 (third outside review of the trigonometry content, before 1.65.0 shipped)
+
+A third review of `TRIGONOMETRY.md` ("conditional approval, two final corrections, one optional"). All reproduced, and the same class swept.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| "tan(x) = c has arctan(c) and arctan(c) + π in [0, 2π)" fails for c < 0 (arctan(−1) = −π/4) | Confirmed; the tan(x) = −1 mistake said "missing −π/4 + π, which is also in [0, 2π)" too | 1.65.0 (the general solution arctan(c) + πn, choosing n for the interval, with tan(x) = −1 as the example; the mistake names 3π/4 and 7π/4) |
+| cot(x) = 0's mistakes warn about "+ 2πn" though cot repeats every π | Confirmed; and cos(x) = 0 and sin(x) = 0, whose families step by π, had the same "+ 2πn", and cot(x) = 0 was given two sec mistakes | 1.65.0 (cot's own mistakes: the period π, and tan = 1/0; the "+ …n" mistake uses the family's step) |
+| Optional: sin(x) = x/2 has every root in [−2, 2], since \|sin x\| ≤ 1 | Agreed | 1.65.0 (A·sin/cos(u) + d = mx + b bounds every solution; the step and the worked line say so, and that the scan covered it) |
+
 ## Round 30 (second outside review of the trigonometry content, before 1.65.0 shipped)
 
 A second review of `TRIGONOMETRY.md` ("conditional approval, two final corrections"). Both reproduced.

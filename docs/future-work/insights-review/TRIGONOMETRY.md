@@ -2,7 +2,7 @@
 
 **Written:** November 1, 2026
 **For:** MJ, to spot-check before 1.65.0 is pushed
-**Revised:** after two outside reviews ("approve with revisions", then "conditional approval, two final corrections"); every claim and verdict is Rounds 29 and 30 of [`../../evaluations/2026-10/REVIEW-LOG-2026-10.md`](../../evaluations/2026-10/REVIEW-LOG-2026-10.md)
+**Revised:** after four outside reviews (the fourth: "approve for release"); every claim and verdict is Rounds 29–32 of [`../../evaluations/2026-10/REVIEW-LOG-2026-10.md`](../../evaluations/2026-10/REVIEW-LOG-2026-10.md)
 **Plan:** [`../PLAN-INSIGHTS-AND-RESOURCES.md`](../PLAN-INSIGHTS-AND-RESOURCES.md) · **Before this:** [Integrals](INTEGRALS.md), [Derivatives](DERIVATIVES.md), [Algebra](ALGEBRA.md), [Limits](LIMITS.md), [Functions](FUNCTIONS.md)
 
 Generated from the solver, so it is exactly what a student sees for each
@@ -593,7 +593,7 @@ Example: `tan(2x) = 1` → x = π/8 + (π/2)n (n ∈ ℤ);  on [0, 2π): π/8, 5
 
    *— Show more —*
 4. tan takes every real value, so tan(θ) = c always has solutions; it is undefined where cos(θ) = 0.
-5. For tan(x) = c there are two solutions in [0, 2π), arctan(c) and arctan(c) + π; for a nonzero integer k, tan(kx) = c has 2|k|. For other k, count the members of the general family that fall in the interval.
+5. The general solution is x = arctan(c) + πn, n any integer: choose the values of n that put x in the interval asked for (tan(x) = −1 gives 3π/4 and 7π/4 in [0, 2π), since arctan(−1) = −π/4 is outside it). For a nonzero integer k, tan(kx) = c has 2|k| solutions in [0, 2π).
 
 **Common Mistakes** (3)
 
@@ -752,14 +752,41 @@ Example: `cot(x) = 0` → x = π/2 + πn (n ∈ ℤ);  on [0, 2π): π/2, 3π/2
 5. sec and csc are never strictly between −1 and 1: sec(θ) = 1/2 has no solution.
 6. Then solve the basic equation as usual: both solutions per period, and the general solution.
 
-**Common Mistakes** (4)
+**Common Mistakes** (2)
 
-1. Listing x = π/2 alone and missing the second crossing, x = 3π/2.
-2. Giving the solutions in one period only, without the "+ 2πn" that lists every period.
-3. Inverting the wrong function: sec is 1/cos, csc is 1/sin.
+1. Forgetting that cotangent repeats every π: the complete solution is x = π/2 + πn, not only the angles in one plotted interval.
+2. Rewriting cot(x) = 0 as tan(x) = 1/0 and concluding there is no solution.
+
+### Equation, tan with a negative value
+
+Example: `tan(x) = -1` → x = 3π/4 + πn (n ∈ ℤ);  on [0, 2π): 3π/4, 7π/4
+
+<details><summary>Working</summary>
+
+- Solve the equation: tan(x) = -1
+- Take the inverse tangent: the principal value is arctan(-1) = -π/4.
+- Tangent repeats every π (not 2π), so one solution per period suffices.
+- General solution (n any integer): x = 3π/4 + πn
+- On [0, 2π): x = 3π/4,  x = 7π/4
+- Check: substituting each value back into tan(x) = -1 balances both sides.
+
+</details>
+
+**Key Insights** (5)
+
+1. tan has period π, so its general solution steps by πn rather than 2πn.
+2. Here: arctan(-1) = -π/4, and tan repeats every π: x = 3π/4 + πn.
+3. A trig equation has infinitely many solutions because the functions repeat — the general solution captures all of them; the [0, 2π) list is one period's worth.
 
    *— Show more —*
-4. Writing sec(θ) = 2 as cos(θ) = 2: the value is inverted too.
+4. tan takes every real value, so tan(θ) = c always has solutions; it is undefined where cos(θ) = 0.
+5. The general solution is x = arctan(c) + πn, n any integer: choose the values of n that put x in the interval asked for (tan(x) = −1 gives 3π/4 and 7π/4 in [0, 2π), since arctan(−1) = −π/4 is outside it). For a nonzero integer k, tan(kx) = c has 2|k| solutions in [0, 2π).
+
+**Common Mistakes** (3)
+
+1. Reporting the calculator's value arctan(-1) = -π/4 as a solution in [0, 2π): it lies outside; the general solution -π/4 + πn gives 3π/4 and 7π/4 there.
+2. Giving the solutions in one period only, without the "+ πn" that lists every period.
+3. Stepping by 2π: half of the solutions are lost.
 
 ### Equation, a product
 
@@ -775,14 +802,11 @@ Example: `sin(x)cos(x) = 1/4` → x = π/12 + πn  or  x = 5π/12 + πn (n ∈ �
 4. Solve sin(2x) = 2c for 2x, then divide by 2: there are four solutions in [0, 2π) when |2c| < 1.
 5. sin(x)·cos(x) = c has no solution when |c| > 1/2.
 
-**Common Mistakes** (4)
+**Common Mistakes** (3)
 
 1. Reporting only the calculator's principal value (arcsin(1/2) = π/6) and missing the second solution in the period.
 2. Forgetting to divide by 2: the families found are for 2x, and x is each of them divided by 2 — 2 times as many solutions in [0, 2π).
-3. Dividing by cos(x) to get tan: the solutions where cos(x) = 0 are lost, and the equation is not in tan alone.
-
-   *— Show more —*
-4. Forgetting the ½: sin(x)·cos(x) is ½·sin(2x), not sin(2x).
+3. Dividing by cos(x) to get tan: sin(x)·cos(x)/cos(x) is sin(x), and the other side becomes c/cos(x), so the equation is not in tan alone. (Dividing by something that can be 0 also loses any solutions where it is 0; here cos(x) = 0 makes the left side 0, so none are lost when c ≠ 0.)
 
 ### Equation, equal functions
 
@@ -826,18 +850,30 @@ Example: `sin(x) = 2` → No real solution (sin(θ) is never outside [−1, 1])
 
 1. Applying arcsin/arccos to a number outside [−1, 1] and reading the calculator error as a value.
 
-### Equation, solved numerically
+### Equation, solved numerically (bounded)
 
 Example: `sin(x) = x/2` → x ≈ -1.8955  or  x = 0  or  x ≈ 1.8955
 
-**Key Insights** (4)
+<details><summary>Working</summary>
+
+- This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.
+- Every solution is in -2 ≤ x ≤ 2: |sin(x)| ≤ 1, so x/2 must lie between -1 and 1. The search covers that interval, but a scan can still miss a root that only touches the axis or two roots closer than its step, so this bounds the solutions without proving the list complete.
+- Rewrite as (sin(x)) - (x/2) = 0
+- Search for values where the expression crosses zero, then verify each candidate by substituting it back.
+- Solution: x ≈ -1.8955  or  x = 0  or  x ≈ 1.8955
+- Check in the original equation: x = -1.8955 gives sin(x) = -0.9477 and x/2 = -0.9477; x = 0 gives sin(x) = 0 and x/2 = 0; x = 1.8955 gives sin(x) = 0.9477 and x/2 = 0.9477 ✓
+
+</details>
+
+**Key Insights** (5)
 
 1. Equations that mix trig terms with different arguments or with x itself usually have no closed form: numeric solutions are the honest answer, shown with ≈.
-2. ≈ means the root is known to the decimals shown, not exactly; substitute it back and the two sides agree to those decimals.
-3. Sketch both sides: each crossing is a solution, and the picture says how many to expect.
+2. Here: sine is never beyond ±1, so every solution lies in -2 ≤ x ≤ 2: none can be outside it. The scan found these there; that they are all of them is not proved by the scan.
+3. ≈ means the root is known to the decimals shown, not exactly; substitute it back and the two sides agree to those decimals.
 
    *— Show more —*
-4. Each root was located by scanning and then checked by substitution; there can be more outside the range searched.
+4. Sketch both sides: each crossing is a solution, and the picture says how many to expect.
+5. Each root was located by scanning and then checked by substitution; without a bound like the one above, there can be more outside the range searched.
 
 **Common Mistakes** (3)
 

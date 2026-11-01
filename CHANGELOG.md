@@ -55,6 +55,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   solutions "within one period"; the working now says −π/6 lies outside
   [0, 2π) and gives 7π/6 and 11π/6 (Round 30). The 2|k| count of tan
   solutions is stated for integer k.
+- **tan(x) = c with c < 0**: the advice now gives the general solution
+  arctan(c) + πn and picks n for the interval (tan(x) = −1: 3π/4, 7π/4), not
+  "arctan(c) and arctan(c) + π"; **cot(x) = 0, sin(x) = 0, cos(x) = 0**: the
+  mistakes give the period π, not "+ 2πn" (Round 31).
+- **sin(x) = x/2**: every root is shown to lie in [−2, 2], since |sin x| ≤ 1
+  (any A·sin/cos(u) + d = mx + b); the steps say the scan's list is not
+  thereby proved complete (Round 32).
 
 ## [1.64.0] - 2026-10-31
 
