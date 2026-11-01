@@ -51,6 +51,7 @@ const EXTRA = [
   ['trigonometry', 'sin(x) + cos(x) = 1'], ['trigonometry', 'sin(x)cos(x) = 1/4'], ['trigonometry', 'sin(x) = sin(2x)'], ['trigonometry', 'sin(x) = 2'],
   ['trigonometry', 'sin(x) = x/2'],
   ['trigonometry', 'cot(x) = 0'], ['trigonometry', '-sin(x) + cos(x) = 1'], ['trigonometry', 'sin(30)'], ['trigonometry', 'sin(x) = -1/2'],
+  ['trigonometry', 'sin(x) = x/10'], ['trigonometry', 'sin(x) = 0.99x'], ['trigonometry', '3sin(2x) = x - 1'], ['trigonometry', 'tan(x) = -1'],
   // Integrals and functions.
   ['integrals', 'cos(x)'], ['integrals', 'e^x'], ['integrals', '1/x'], ['integrals', '1/(2x+1)'], ['integrals', 'x!'],
   ['integrals', '∫_1^∞ 1/x dx'], ['integrals', '∫_0^1 1/x^2 dx'], ['integrals', '∫_-1^2 1/x^(1/3) dx'], ['integrals', '∫_a^b x dx'],

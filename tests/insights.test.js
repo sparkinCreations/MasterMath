@@ -890,8 +890,58 @@ test('trigonometry third review: tan with a negative value, the period of cot, a
   for (const p of ['cos(x) = 0', 'sin(x) = 0']) assert.ok((await plainTrig(p)).mistakes.some((m) => /without the "\+ πn"/.test(m)), p);
   // |sin x| ≤ 1 bounds every root of sin(x) = x/2.
   const bounded = await plainTrig('sin(x) = x/2');
-  // Round 32: the bound is proved; the scan's completeness is not, and says so.
-  assert.ok(bounded.steps.includes('Every solution is in -2 ≤ x ≤ 2: |sin(x)| ≤ 1, so x/2 must lie between -1 and 1. The search covers that interval, but a scan can still miss a root that only touches the axis or two roots closer than its step, so this bounds the solutions without proving the list complete.'));
-  assert.equal(bounded.tips[1], 'Here: sine is never beyond ±1, so every solution lies in -2 ≤ x ≤ 2: none can be outside it. The scan found these there; that they are all of them is not proved by the scan.');
+  // Round 32 and after: the bound, then the count by convexity, complete.
+  assert.ok(bounded.steps.includes('Every solution is in -2 ≤ x ≤ 2: |sin(x)| ≤ 1, so x/2 must lie between -1 and 1. f(x) = sin(x) − x/2 has f″(x) = -1·sin(x), which keeps one sign between consecutive zeros of sin(x). On each of those 2 pieces f is concave or convex, so it rises then falls (or the reverse) and has at most two roots; the signs of f at the ends and at its turning point give exactly 3 in all, each located by bisection on its piece.'));
+  assert.equal(bounded.tips[1], 'Here: sine is never beyond ±1, so every solution lies in -2 ≤ x ≤ 2: none can be outside it. And between consecutive zeros of sin the difference of the two sides is concave or convex, so each piece holds at most two roots; counting them piece by piece gives exactly 3, each located on its piece: the list is complete.');
   assert.match((await plainTrig('sin(x)cos(x) = 1/4')).mistakes.join('\n'), /here cos\(x\) = 0 makes the left side 0, so none are lost when c ≠ 0/);
+});
+
+// The convexity count (the task the fourth review asked for): every root of
+// A·sin/cos(kx + c) + d = mx + b counted exactly and located; the scan, which
+// steps by 0.5, had missed roots.
+test('trigonometry: the roots of a wave equal to a line are counted and all found', async () => {
+  const { countWaveLineRoots } = await import('../src/lib/solvers/trigonometry/rootCount.js');
+  for (const [p, roots] of [
+    ['sin(x) = x/2', ['-1.8955', '0', '1.8955']],
+    ['sin(x) = 0.99x', ['-0.2453', '0', '0.2453']], // was x = 0 only
+    ['sin(x) = x/10', ['-8.4232', '-7.0682', '-2.8523', '0', '2.8523', '7.0682', '8.4232']], // ±8.4232 were missed
+    ['3sin(2x) = x - 1', ['-1.1672', '-0.207', '1.4889', '3.7024', '3.9819']], // 3.9819 was missed
+    ['2cos(x) + 1 = x', ['1.3798']], ['cos(x) = x', ['0.7391']], ['cos(x) = x + 5', ['-4.8564']],
+  ]) {
+    const r = await plainTrig(p);
+    const got = (r.answer.match(/-?\d+(?:\.\d+)?/g) || []);
+    assert.deepEqual(got, roots, p);
+    assert.match(r.steps.join('\n'), /give exactly \d+ in all, each located by bisection/, p);
+    assert.equal(r.graph.solutions.length, roots.length, `${p}: graph marks`);
+  }
+  // The count itself: a tangency that cannot be told from two close roots is undecided.
+  assert.equal(countWaveLineRoots({ A: 1, fn: 'sin', k: 1, c: 0, d: 0, m: 0.5, b: 0, lo: -2, hi: 2 }).count, 3);
+  assert.equal(countWaveLineRoots({ A: 1, fn: 'sin', k: 1, c: 0, d: 0, m: 1, b: 0, lo: -1, hi: 1 }).decided, true); // sin x = x: 0 only
+  assert.equal(countWaveLineRoots({ A: 1, fn: 'sin', k: 1, c: 0, d: 0, m: 1, b: 0, lo: -1, hi: 1 }).count, 1);
+});
+
+// Round 33 (the review of the root count): the precision said truthfully,
+// and the hard cases — a tangent, two close roots, roots on the ends.
+test('trigonometry: the root count at a tangent, at close roots and at the ends', async () => {
+  const { countWaveLineRoots } = await import('../src/lib/solvers/trigonometry/rootCount.js');
+  const ends = (m, b) => [(-1 - b) / m, (1 - b) / m].sort((p, q) => p - q);
+  const count = (m, b) => { const [lo, hi] = ends(m, b); return countWaveLineRoots({ A: 1, fn: 'sin', k: 1, c: 0, d: 0, m, b, lo, hi }); };
+  const m = Math.cos(2);
+  const b = Math.sin(2) - 2 * Math.cos(2); // the tangent to sin at x = 2
+  assert.equal(count(m, b).decided, false); // a touch: never claimed either way
+  assert.equal(count(m, b - 1e-6).count, 3); // two roots 0.003 apart, both counted
+  assert.equal(count(m, b + 1e-3).count, 1); // the line just misses the touch
+  // sin(x) = 2x/π: roots at ±π/2, the ends of the interval, counted once.
+  const edge = count(2 / Math.PI, 0);
+  assert.equal(edge.count, 3);
+  assert.ok(Math.abs(edge.roots[0].x + Math.PI / 2) < 1e-9 && Math.abs(edge.roots[2].x - Math.PI / 2) < 1e-9);
+  assert.match((await plainTrig('sin(x) = 2x/pi')).answer, /^x ≈ -1\.5708  or  x = 0  or  x ≈ 1\.5708$/);
+  // Two close roots the scan steps over are found by the count.
+  const close = await plainTrig(`sin(x) = ${m.toFixed(12)}*x + ${(b - 1e-3).toFixed(12)}`);
+  assert.match(close.answer, /x ≈ 1\.9533  or  x ≈ 2\.0471  or  x ≈ 5\.6345/);
+  // At the tangent the count is undecided, so the scan's list is not claimed complete.
+  const touch = await plainTrig(`sin(x) = ${m.toFixed(15)}*x + ${b.toFixed(15)}`);
+  assert.ok(touch.steps.some((s) => /without proving the list complete/.test(s)), touch.steps.join('\n'));
+  // The check says which values balance to 10^(−12): the unrounded ones.
+  assert.ok((await plainTrig('sin(x) = x/2')).steps.some((s) => s === 'Check: each root was located to high precision, and substituting its unrounded value back makes the two sides agree to within 10^(−12). The values shown are rounded to 4 decimal places, so they balance only to about that many.'));
 });

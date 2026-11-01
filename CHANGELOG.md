@@ -59,9 +59,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   arctan(c) + πn and picks n for the interval (tan(x) = −1: 3π/4, 7π/4), not
   "arctan(c) and arctan(c) + π"; **cot(x) = 0, sin(x) = 0, cos(x) = 0**: the
   mistakes give the period π, not "+ 2πn" (Round 31).
-- **sin(x) = x/2**: every root is shown to lie in [−2, 2], since |sin x| ≤ 1
-  (any A·sin/cos(u) + d = mx + b); the steps say the scan's list is not
-  thereby proved complete (Round 32).
+- **The roots of a wave equal to a line were missed.** The numeric scan
+  steps by 0.5: sin(x) = 0.99x gave x = 0 only (also ≈ ±0.2453), sin(x) =
+  x/10 five roots of seven (±8.4232 missing), 3sin(2x) = x − 1 four of five.
+  For A·sin/cos(kx + c) + d = mx + b, every root now lies in the interval
+  |sin| ≤ 1 allows, and is counted exactly there: f″ keeps one sign between
+  zeros of the sine, so each piece holds at most two roots, decided by the
+  signs at its ends and turning point; each root is located by bisection
+  on its piece, and the list is complete (the fourth outside review's
+  recommendation, Round 32). A tangency is never claimed either way; the
+  check says the unrounded roots balance to 10⁻¹² and the shown values are
+  rounded (Round 33).
 
 ## [1.64.0] - 2026-10-31
 

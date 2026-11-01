@@ -2,7 +2,7 @@
 
 **Written:** November 1, 2026
 **For:** MJ, to spot-check before 1.65.0 is pushed
-**Revised:** after four outside reviews (the fourth: "approve for release"); every claim and verdict is Rounds 29–32 of [`../../evaluations/2026-10/REVIEW-LOG-2026-10.md`](../../evaluations/2026-10/REVIEW-LOG-2026-10.md)
+**Revised:** after four outside reviews (the fourth: "approve for release"); every claim and verdict is Rounds 29–33 of [`../../evaluations/2026-10/REVIEW-LOG-2026-10.md`](../../evaluations/2026-10/REVIEW-LOG-2026-10.md)
 **Plan:** [`../PLAN-INSIGHTS-AND-RESOURCES.md`](../PLAN-INSIGHTS-AND-RESOURCES.md) · **Before this:** [Integrals](INTEGRALS.md), [Derivatives](DERIVATIVES.md), [Algebra](ALGEBRA.md), [Limits](LIMITS.md), [Functions](FUNCTIONS.md)
 
 Generated from the solver, so it is exactly what a student sees for each
@@ -58,6 +58,9 @@ changed, it is included (open "Working").
   the reciprocal rule at c = 0, the tan count with kx, "principal value"
   worded exactly; the identity proof checks x = π + 2πn; sin(30) under the
   Auto angle unit says it was read as 30°.
+- **After the fourth review:** A·sin/cos(kx + c) + d = mx + b is counted
+  exactly by convexity and every root located; the numeric scan had missed
+  roots (sin(x) = 0.99x: ±0.2453; sin(x) = x/10: ±8.4232).
 - **No sources:** every insight here is a standard textbook fact ("All
   Students Take Calculus" is a common classroom mnemonic, not a citation).
 
@@ -850,30 +853,57 @@ Example: `sin(x) = 2` → No real solution (sin(θ) is never outside [−1, 1])
 
 1. Applying arcsin/arccos to a number outside [−1, 1] and reading the calculator error as a value.
 
-### Equation, solved numerically (bounded)
+### Equation, solved numerically (counted by convexity, new)
 
 Example: `sin(x) = x/2` → x ≈ -1.8955  or  x = 0  or  x ≈ 1.8955
 
 <details><summary>Working</summary>
 
-- This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.
-- Every solution is in -2 ≤ x ≤ 2: |sin(x)| ≤ 1, so x/2 must lie between -1 and 1. The search covers that interval, but a scan can still miss a root that only touches the axis or two roots closer than its step, so this bounds the solutions without proving the list complete.
+- This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: every root is counted exactly, then located by bisection.
+- Every solution is in -2 ≤ x ≤ 2: |sin(x)| ≤ 1, so x/2 must lie between -1 and 1. f(x) = sin(x) − x/2 has f″(x) = -1·sin(x), which keeps one sign between consecutive zeros of sin(x). On each of those 2 pieces f is concave or convex, so it rises then falls (or the reverse) and has at most two roots; the signs of f at the ends and at its turning point give exactly 3 in all, each located by bisection on its piece.
 - Rewrite as (sin(x)) - (x/2) = 0
-- Search for values where the expression crosses zero, then verify each candidate by substituting it back.
-- Solution: x ≈ -1.8955  or  x = 0  or  x ≈ 1.8955
-- Check in the original equation: x = -1.8955 gives sin(x) = -0.9477 and x/2 = -0.9477; x = 0 gives sin(x) = 0 and x/2 = 0; x = 1.8955 gives sin(x) = 0.9477 and x/2 = 0.9477 ✓
+- Solution: x ≈ -1.8955  or  x = 0  or  x ≈ 1.8955.
+- Check: each root was located to high precision, and substituting its unrounded value back makes the two sides agree to within 10^(−12). The values shown are rounded to 4 decimal places, so they balance only to about that many.
 
 </details>
 
-**Key Insights** (5)
+**Key Insights** (4)
 
 1. Equations that mix trig terms with different arguments or with x itself usually have no closed form: numeric solutions are the honest answer, shown with ≈.
-2. Here: sine is never beyond ±1, so every solution lies in -2 ≤ x ≤ 2: none can be outside it. The scan found these there; that they are all of them is not proved by the scan.
+2. Here: sine is never beyond ±1, so every solution lies in -2 ≤ x ≤ 2: none can be outside it. And between consecutive zeros of sin the difference of the two sides is concave or convex, so each piece holds at most two roots; counting them piece by piece gives exactly 3, each located on its piece: the list is complete.
 3. ≈ means the root is known to the decimals shown, not exactly; substitute it back and the two sides agree to those decimals.
 
    *— Show more —*
 4. Sketch both sides: each crossing is a solution, and the picture says how many to expect.
-5. Each root was located by scanning and then checked by substitution; without a bound like the one above, there can be more outside the range searched.
+
+**Common Mistakes** (3)
+
+1. Treating a located root as exact — its next digits are not zeros.
+2. Stopping at one root when the graphs cross more than once.
+3. Expecting an exact answer for every trig equation: most mixed ones have none.
+
+### Equation, roots the scan missed (fixed)
+
+Example: `sin(x) = x/10` → x ≈ -8.4232  or  x ≈ -7.0682  or  x ≈ -2.8523  or  x = 0  or  x ≈ 2.8523  or  x ≈ 7.0682  or  x ≈ 8.4232
+
+<details><summary>Working</summary>
+
+- This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: every root is counted exactly, then located by bisection.
+- Every solution is in -10 ≤ x ≤ 10: |sin(x)| ≤ 1, so x/10 must lie between -1 and 1. f(x) = sin(x) − x/10 has f″(x) = -1·sin(x), which keeps one sign between consecutive zeros of sin(x). On each of those 8 pieces f is concave or convex, so it rises then falls (or the reverse) and has at most two roots; the signs of f at the ends and at its turning point give exactly 7 in all, each located by bisection on its piece.
+- Rewrite as (sin(x)) - (x/10) = 0
+- Solution: x ≈ -8.4232  or  x ≈ -7.0682  or  x ≈ -2.8523  or  x = 0  or  x ≈ 2.8523  or  x ≈ 7.0682  or  x ≈ 8.4232.
+- Check: each root was located to high precision, and substituting its unrounded value back makes the two sides agree to within 10^(−12). The values shown are rounded to 4 decimal places, so they balance only to about that many.
+
+</details>
+
+**Key Insights** (4)
+
+1. Equations that mix trig terms with different arguments or with x itself usually have no closed form: numeric solutions are the honest answer, shown with ≈.
+2. Here: sine is never beyond ±1, so every solution lies in -10 ≤ x ≤ 10: none can be outside it. And between consecutive zeros of sin the difference of the two sides is concave or convex, so each piece holds at most two roots; counting them piece by piece gives exactly 7, each located on its piece: the list is complete.
+3. ≈ means the root is known to the decimals shown, not exactly; substitute it back and the two sides agree to those decimals.
+
+   *— Show more —*
+4. Sketch both sides: each crossing is a solution, and the picture says how many to expect.
 
 **Common Mistakes** (3)
 

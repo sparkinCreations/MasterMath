@@ -233,13 +233,22 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 33 (review of the convexity root count, before 1.65.0 shipped)
+
+A review of the root count added after Round 32 ("educational content approved, one clarification"). Reproduced.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| "The two sides agree to within 10^(−12)" is not true of the four-decimal values shown (sin(1.8955) − 1.8955/2 ≈ −4.7 × 10⁻⁶) | Agreed: the residual is of the unrounded roots, which is what the check computed | 1.65.0 (the check says the unrounded values agree to 10^(−12) and the shown values are rounded to the decimal places setting) |
+| Test a tangent root, roots close together, and roots at the interval's ends | Done: a line tangent to the sine is undecided, and the scan's list is not claimed complete; two roots 0.003 apart are both counted (the scan steps over them); sin(x) = 2x/π's roots ±π/2 sit on the ends and are counted once | 1.65.0 (tests) |
+
 ## Round 32 (fourth outside review of the trigonometry content, before 1.65.0 shipped)
 
 A fourth review of `TRIGONOMETRY.md` ("approve for release, one recommendation"). Reproduced.
 
 | Claim | Verdict | Release |
 |---|---|---|
-| The bound proves every root of sin(x) = x/2 lies in [−2, 2], not that the scan found all of them | Agreed: the wording ("the scan covered it") could be read that way | 1.65.0 (the step and the worked line say the bound is proved and the list's completeness is not). A general completeness proof (f″ of one sign on each interval between zeros of the sine, so at most two roots there) is a separate solver change, not built here |
+| The bound proves every root of sin(x) = x/2 lies in [−2, 2], not that the scan found all of them | Agreed: the wording ("the scan covered it") could be read that way | 1.65.0: built. f″ keeps one sign between zeros of the sine, so each piece holds at most two roots, counted exactly by the signs at its ends and turning point, each located by bisection. It found wrong answers the scan gave: sin(x) = 0.99x had x = 0 only (±0.2453 missed), sin(x) = x/10 five of seven roots, 3sin(2x) = x − 1 four of five. The count now replaces the scan's list for this family; elsewhere the "not proved complete" wording stays |
 | Optional: for sin(x)·cos(x) = 1/4, dividing by cos(x) loses nothing, since cos(x) = 0 makes the left side 0 | Agreed | 1.65.0 (the mistake now says the division does not leave an equation in tan, and that no solutions are lost when c ≠ 0) |
 
 ## Round 31 (third outside review of the trigonometry content, before 1.65.0 shipped)

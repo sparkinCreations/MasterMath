@@ -21,6 +21,7 @@ import { getSettings, COMMON_DEGREE_VALUES } from '../settings.js';
 import { createMath } from '../mathInstance.js';
 import { readPolynomial } from './polynomialRoots.js';
 import { valueGuidance, identityGuidance, equationGuidance } from './trigonometry/guidance.js';
+import { countWaveLineRoots } from './trigonometry/rootCount.js';
 import { parseError, unsupported, solved, undefinedValue } from '../solutionEnvelope.js';
 
 
@@ -116,8 +117,32 @@ export async function solveTrigonometry(expression, settingsOverride) {
         // scan alone cannot give (sin(x) = x/2 has all its roots in [−2, 2];
         // Round 31).
         const bound = waveLineBound(expression, variable);
-        numeric.steps = [
-          'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.',
+        // Then the exact number of roots in that interval, by convexity, and
+        // each one located on its piece: the scan steps by 0.5 and missed
+        // roots (sin(x) = 0.99x gave x = 0 only; ±0.2447 too; sin(x) = x/10
+        // lost ±8.4232). The count replaces the scan's list (1.65.0).
+        const counted = bound?.wave?.linearArg ? countWaveLineRoots({ ...bound.wave, lo: bound.lo, hi: bound.hi }) : null;
+        if (bound && counted?.decided) {
+          const w = bound.wave;
+          const fText = `${w.waveText} − (${w.lineText})`.replace(/− \((-?[\w./^]+)\)$/, '− $1');
+          const exactX = (r) => (r.exact && Math.abs(r.x - Math.round(r.x)) < 1e-12 ? String(Math.round(r.x)) : null);
+          const shown = counted.roots.map((r) => (exactX(r) !== null ? `${variable} = ${exactX(r)}` : `${variable} ≈ ${formatNumber(r.x)}`));
+          bound.complete = { count: counted.count, pieces: counted.pieces };
+          bound.step = `${bound.boundText} ${mark(`f(${variable}) = ${fText}`)} has ${mark(`f″(${variable}) = ${formatNumber(-w.A * w.k * w.k)}·${w.fn}(${w.arg})`)}, which keeps one sign between consecutive zeros of ${mark(`${w.fn}(${w.arg})`)}. On each of those ${counted.pieces} pieces ${mark('f')} is concave or convex, so it rises then falls (or the reverse) and has at most two roots; the signs of ${mark('f')} at the ends and at its turning point give exactly ${counted.count} in all, each located by bisection on its piece.`;
+          numeric.answer = counted.count ? shown.join('  or  ') : 'No real solution';
+          // The graph marks every root, not the scan's five of seven.
+          if (numeric.graph) numeric.graph = { ...numeric.graph, solutions: counted.roots.map((r) => r.x) };
+          // The scan's own solution and check lines would list fewer roots.
+          numeric.steps = (numeric.steps || []).filter((t) => !/^Solution:|^Check in the original equation|^Search for values where the expression crosses zero|^The equation has more solutions in range/.test(stripMathMarkers(t)));
+          numeric.steps.push(`Solution: ${mark(shown.join('  or  ') || 'no real solution')}.`);
+          const residual = Math.max(0, ...counted.roots.map((r) => Math.abs(w.A * (w.fn === 'sin' ? Math.sin : Math.cos)(w.k * r.x + w.c) + w.d - (w.m * r.x + w.b))));
+          // The residual is of the unrounded roots; the values shown are
+          // rounded, so they balance only to their decimals (Round 33).
+          if (counted.count) numeric.steps.push(`Check: each root was located to high precision, and substituting its unrounded value back makes the two sides agree to within ${mark(residual < 1e-12 ? '10^(−12)' : formatNumber(residual))}. The values shown are rounded to ${getSettings().decimalPlaces} decimal places, so they balance only to about that many.`);
+        }        numeric.steps = [
+          bound?.complete
+            ? 'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: every root is counted exactly, then located by bisection.'
+            : 'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.',
           ...(bound ? [bound.step] : []),
           ...(numeric.steps || []),
         ];
@@ -443,10 +468,16 @@ function waveLineBound(equation, variable) {
     const fmt = (x) => (Number.isInteger(x) ? String(x) : formatNumber(x));
     const fn = m[2];
     const lineShown = beautify(l);
+    // The argument k·x + c, for the root count.
+    const at = (x) => { try { return Number(math.evaluate(m[3], { [variable]: x })); } catch { return NaN; } };
+    const [c0, c1, c2] = [at(0), at(1), at(2)];
+    const linearArg = [c0, c1, c2].every(Number.isFinite) && Math.abs(c2 - 2 * c1 + c0) < 1e-12;
     return {
       fn,
       lo: ends[0],
       hi: ends[1],
+      wave: { A, fn, d, k: c1 - c0, c: c0, m: slope, b, waveText: beautify(w), lineText: lineShown, arg: beautify(m[3]), linearArg },
+      boundText: `Every solution is in ${mark(`${fmt(ends[0])} ≤ ${variable} ≤ ${fmt(ends[1])}`)}: ${mark(`|${fn}(${beautify(m[3])})| ≤ 1`)}, so ${mark(lineShown)} must lie between ${mark(fmt(d - R))} and ${mark(fmt(d + R))}.`,
       step: `Every solution is in ${mark(`${fmt(ends[0])} ≤ ${variable} ≤ ${fmt(ends[1])}`)}: ${mark(`|${fn}(${beautify(m[3])})| ≤ 1`)}, so ${mark(lineShown)} must lie between ${mark(fmt(d - R))} and ${mark(fmt(d + R))}. The search covers that interval, but a scan can still miss a root that only touches the axis or two roots closer than its step, so this bounds the solutions without proving the list complete.`,
     };
   }

@@ -358,7 +358,7 @@ export function equationGuidance(result) {
   if (method === 'numeric' && result.bounded) {
     const b = result.bounded;
     const f = (x) => (Number.isInteger(x) ? String(x) : String(Math.round(x * 1e4) / 1e4));
-    here = `Here: ${b.fn === 'cos' ? 'cosine' : 'sine'} is never beyond ${mark('±1')}, so every solution lies in ${mark(`${f(b.lo)} ≤ x ≤ ${f(b.hi)}`)}: none can be outside it. The scan found these there; that they are all of them is not proved by the scan.`;
+    here = `Here: ${b.fn === 'cos' ? 'cosine' : 'sine'} is never beyond ${mark('±1')}, so every solution lies in ${mark(`${f(b.lo)} ≤ x ≤ ${f(b.hi)}`)}: none can be outside it. ${b.complete ? `And between consecutive zeros of ${b.fn} the difference of the two sides is concave or convex, so each piece holds at most two roots; counting them piece by piece gives exactly ${b.complete.count}, each located on its piece: the list is complete.` : 'The scan found these there; that they are all of them is not proved by the scan.'}`;
   }
   // The numeric scan's own lists come from the algebra solver, with its
   // x·eˣ examples: those stay out of a trig equation.
@@ -377,6 +377,11 @@ export function equationGuidance(result) {
   else if (['reciprocal', 'numeric', 'no solution'].includes(method)) tips = [list.tips[0], here, ...(method === 'reciprocal' && own.length > 1 ? [own[1], own[0], ...own.slice(2)] : own), ...extra];
   else if (own.length) tips = [own[0], here, ...own.slice(1), ...extra];
   else tips = [list.tips[0], here, ...extra];
+  // A counted list is complete: the "there can be more" tip and the
+  // "stopping at one root" mistake no longer apply.
+  if (result.bounded?.complete) {
+    for (let i = tips.length - 1; i >= 0; i -= 1) if (/there can be more outside the range searched/.test(stripMathMarkers(tips[i] || ''))) tips.splice(i, 1);
+  }
   const kMistakes = result.cotZero ? [] : list.mistakes.filter((m) => /Let θ = /.test(text) || !/by ⟦k⟧/.test(m));
   return { tips: distinct(tips), common_mistakes: distinct([...(result.common_mistakes || []).filter(keep), ...kMistakes]) };
 }
