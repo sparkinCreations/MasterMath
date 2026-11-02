@@ -348,6 +348,17 @@ export function parseMathExpression(input) {
   // "beyond what this engine can compute" under Derivatives and Integrals.
   cleaned = cleaned.replace(/\^-(\d+(?:\.\d+)?|[a-z]+(?:\([^()]*\))?)/gi, '^(-$1)');
 
+  // Two signs in a row, as in x^2 + -3x: one sign. Algebrite stops on "+-"
+  // with a syntax error, and the derivative of x^2 + -3x was "beyond what
+  // this engine can compute" (the cross-check, 1.67.1).
+  let previous;
+  do {
+    previous = cleaned;
+    cleaned = cleaned.replace(/\+\+/g, '+').replace(/\+-|-\+/g, '-').replace(/--/g, '+');
+  } while (cleaned !== previous);
+  // A leading "+" left over ("+3" at the start, or "(+3") says nothing.
+  cleaned = cleaned.replace(/(^|[(=,])\+/g, '$1');
+
   return cleaned;
 }
 

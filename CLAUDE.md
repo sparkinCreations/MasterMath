@@ -170,8 +170,9 @@ period + every period, their zeros the real roots of a polynomial in the
 tangent of the half-angle (`trigonometry/circle.js`); every zero proved
 (`inequalities/zeros.js`: the exact root finder, else monotone stretches
 between turning points with end signs read off growth rates, convexity for
-a wave against a line, branches for an absolute value; refused when not
-proved); poles read from the typed expression, so a cancelled factor stays
+a wave against a line, branches for an absolute value, squaring for one
+square root against a polynomial; refused when not proved; checked
+against a dense grid by `tests/crossCheck.test.js`); poles read from the typed expression, so a cancelled factor stays
 out; a boundary point decided by the value there; refuses two variables),
 `trigonometrySolver` (values, exact only to double precision, else ≈;
 identities proved in sin and cos by t = tan(x/2) in exact fractions, with
@@ -346,7 +347,9 @@ placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
 
 ## Tests and verification
 
-- `npm test` — unit suite (node --test), includes the corpus harness
+- `npm test` — unit suite (node --test), includes the randomized
+  cross-check (`tests/crossCheck.test.js`, seeded: answers against a dense
+  grid used only as an oracle), the corpus harness
   (`tests/corpus/`: July + September 2026 evaluations, 288 graded problems,
   0 confidently-wrong is the bar), the October 2026 test list
   (`tests/octoberTestList.test.js`, 95 cases from
@@ -383,7 +386,8 @@ choosing a version number: releases land from other sessions and PRs.
   (`1e-6`) leaves the parser as its plain decimal (`expandScientific` for a
   solver that reads the typed text): Algebrite reads `1e-6` as `1·e − 6`.
   A repeating decimal (`0.333...`, `0.1666…`) is read as its fraction
-  (`readRepeatingDecimals`), and `finalizeResult` says how.
+  (`readRepeatingDecimals`), and `finalizeResult` says how. Two signs in a
+  row are one (`x + -3` is `x-3`): Algebrite stops on `+-`.
 - Topic values: `auto` (Auto-detect, the default for a new visitor:
   `detectTopic` in `api/topic.js`; never saved to history, which files under the
   detected topic), `derivatives`, `integrals`, `limits`, `functions`,

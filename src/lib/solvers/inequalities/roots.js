@@ -126,6 +126,15 @@ function prettyRoot(t) {
     const [, a, b, op, c, n] = q;
     return `(${a} ${op} ${c === '1' ? '' : c}√${n})/${b}`;
   }
+  // 3/√5 → 3√5/5: no radical in a denominator.
+  const over = String(t).replace(/\s+/g, '').match(/^(-?)(\d+)\/\(?(\d+)\^\(1\/2\)\)?$/);
+  if (over) {
+    const [, sign, a, b] = over;
+    const g = (x, y) => (y ? g(y, x % y) : x);
+    const k = g(Number(a), Number(b));
+    const [num, den] = [Number(a) / k, Number(b) / k];
+    return `${sign}${num === 1 ? '' : num}√${b}${den === 1 ? '' : `/${den}`}`;
+  }
   // √3/√2 → √6/2: no radical in a denominator.
   const r = String(t).replace(/\s+/g, '').match(/^(-?)(\d+)\^\(1\/2\)\/\(?(\d+)\^\(1\/2\)\)?$/);
   if (r) return `${r[1]}√${Number(r[2]) * Number(r[3])}/${r[3]}`;

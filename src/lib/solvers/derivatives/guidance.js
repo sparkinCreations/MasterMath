@@ -310,7 +310,7 @@ function lists(rule, v, ctx) {
             `Here: ${mark(`d/d${v}(1/${v}^${n}) = d/d${v}(${v}^(−${n})) = −${n}${v}^(−${n + 1}) = −${n}/${v}^${n + 1}`)}.`,
             sum,
           ]
-          : [...(sumFirst ? [sum, rule1] : [rule1]), rewrite, ...(sumFirst ? [] : [sum]), `The derivative of a constant is ${mark('0')}: a constant does not change, so its slope is ${mark('0')}.`],
+          : [...(sumFirst ? [sum, ctx.sumWorked, rule1] : [rule1, ctx.worked || ctx.sumWorked]), rewrite, ...(sumFirst ? [] : [sum]), `The derivative of a constant is ${mark('0')}: a constant does not change, so its slope is ${mark('0')}.`],
         // A polynomial's own slips (its constant, its subtracted terms) come
         // before warnings about exponents it does not have.
         mistakes: sumFirst
@@ -375,6 +375,25 @@ export function derivativeGuidance(expression, variable, { order = 1, atPoint = 
     base: base ? base[1] : null,
     commonLog: /(?<![a-z])log\(/i.test(expression) && !/\bln\(/i.test(expression),
     coFunction: /\b(?:sec|csc|cot)\(/i.test(expression),
+    // A sum of powers, term by term: "d/dx(x^2) = 2x and d/dx(−3x) = −3,
+    // so f′(x) = 2x − 3" (the browser pass found the line missing, 1.67.1).
+    sumWorked: (() => {
+      if (terms.length < 1 || !differentiate) return null;
+      if (terms.length === 1) {
+        // One power: the exponent comes down and drops by one.
+        const d = differentiate(terms[0].signed);
+        const m = beautify(terms[0].signed).match(new RegExp(`^(-?\\d*)${v}\\^(\\d+)$`));
+        if (d === null || d === undefined || !m) return null;
+        return `Here: ${mark(`d/d${v}(${beautify(terms[0].signed)}) = ${beautify(String(d))}`)}: the exponent ${mark(m[2])} comes down as a factor, and the power drops to ${mark(String(Number(m[2]) - 1))}.`;
+      }
+      const parts = [];
+      for (const t of terms) {
+        const d = differentiate(t.signed);
+        if (d === null || d === undefined) return null;
+        parts.push(`${mark(`d/d${v}(${beautify(t.signed)}) = ${beautify(String(d))}`)}`);
+      }
+      return `Here: ${parts.join(', ')}${result ? `, so ${mark(`f′(${v}) = ${result}`)}` : ''}.`;
+    })(),
     // The answer, when it is the factored form of a two-term product rule.
     // At a higher order the answer is f″, not the product rule's result.
     factored: order === 1 && result && lead === 'product' && /\*\(/.test(result) && !/^[^(]*\+/.test(result) ? result : null,

@@ -84,9 +84,42 @@ export async function provedZeros(Algebrite, raw, v, { labels = new Map(), lhs, 
     if (wave) return wave;
   }
   if (/(?<![a-z])abs\(/.test(expr)) return absoluteZeros(Algebrite, expr, v, labels);
+  const radical = radicalZeros(Algebrite, expr, v, labels);
+  if (radical) return radical;
   const exponential = await exponentialZeros(Algebrite, expr, v, labels);
   if (exponential) return exponential;
   return monotoneZeros(Algebrite, expr, v, 0);
+}
+
+// One square root, P + Q·√u with P, Q and u polynomials (√(9 − x²) − 2x,
+// √(x + 3) − x − 1): every zero has P = −Q·√u, so P² = Q²·u, a polynomial
+// whose real roots the exact root finder gives; a root is a zero of the
+// original where u ≥ 0 and P·Q ≤ 0 (squaring adds the others). The
+// monotone argument ran out of derivatives here (the cross-check, 1.67.1).
+function radicalZeros(Algebrite, expr, v, labels) {
+  const roots = [...new Set(String(expr).match(/(?:sqrt\(([^()]*(?:\([^()]*\))*[^()]*)\)|\(([^()]*(?:\([^()]*\))*[^()]*)\)\^\(1\/2\))/g) || [])];
+  if (roots.length !== 1) return null;
+  const inner = roots[0].replace(/^sqrt\(|^\(|\)\^\(1\/2\)$|\)$/g, '');
+  if (!readPolynomial(inner, v)) return null;
+  const withS = String(expr).split(roots[0]).join('s');
+  if (/(?<![a-z])sqrt\(|\^\(1\/2\)/.test(withS)) return null;
+  if (safeRun(Algebrite, `deg(${withS}, s)`) !== '1') return null;
+  const P = safeRun(Algebrite, `simplify(subst(0, s, ${withS}))`);
+  const Q = safeRun(Algebrite, `simplify(coeff(${withS}, s, 1))`);
+  if (P === null || Q === null || !readPolynomial(P, v) || !readPolynomial(Q, v)) return null;
+  const R = safeRun(Algebrite, `expand((${P})^2 - (${Q})^2*(${inner}))`);
+  if (R === null) return null;
+  if (R === '0') return null; // the identity √u = √u: zero on a whole interval
+  if (!hasVariable(R, v)) return [];
+  if (!readPolynomial(R, v)) return null;
+  const candidates = realRoots(Algebrite, R, v, labels);
+  if (!candidates) return null;
+  const at = (e) => evaluator(e, v);
+  const [p, q, u, f] = [at(P), at(Q), at(inner), evaluator(expr, v)];
+  const zeros = candidates.filter((x) => u(x) >= -1e-12 && p(x) * q(x) <= 1e-12 && Math.abs(f(x)) < 1e-9);
+  zeros.sort((a, b) => a - b);
+  zeros.proof = { kind: 'radical', squared: R };
+  return zeros;
 }
 
 // Through an absolute value: every zero of f lies where the inside u is

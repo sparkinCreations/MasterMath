@@ -35,7 +35,11 @@ export function movedText(lhs, rhs, simplified) {
   if (readPolynomial(String(simplified), variableOf(simplified))) return shown(simplified);
   const terms = splitTerms(beautify(rhs));
   if (!terms.length) return `${bars(beautify(lhs))} - (${bars(right)})`;
-  return `${bars(beautify(lhs))}${terms.map(({ sign, term }) => ` ${sign === '-' ? '+' : '-'} ${bars(term)}`).join('')}`;
+  // A term that carries its own minus (−1x) crosses as +, not "− −1x".
+  return `${bars(beautify(lhs))}${terms.map(({ sign, term }) => {
+    const negative = (sign === '-') !== /^-/.test(term);
+    return ` ${negative ? '+' : '-'} ${bars(term.replace(/^-/, ''))}`;
+  }).join('')}`;
 }
 const variableOf = (text) => (String(text).match(/(?<![a-z])[a-z](?![a-z(])/i) || ['x'])[0];
 

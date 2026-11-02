@@ -398,6 +398,8 @@ async function solveSingle(rawText) {
     if (proof?.kind === 'wave') {
       const b = (x) => (Number.isInteger(x) ? String(x) : formatNumber(x));
       zeroProof = `These are all of its zeros: ${mark(`|${proof.fn}(${proof.arg})| ≤ 1`)} confines them to ${mark(`${b(proof.lo)} ≤ ${variable} ≤ ${b(proof.hi)}`)}, and between consecutive zeros of ${mark(`${proof.fn}(${proof.arg})`)} the expression is concave or convex, so it has at most two zeros there: counted piece by piece, there are exactly ${proof.count}.`;
+    } else if (proof?.kind === 'radical') {
+      zeroProof = `These are all of its zeros: written as ${mark('P + Q·√u')}, a zero has ${mark('P² = Q²·u')}, the polynomial ${mark(`${shown(proof.squared)} = 0`)}, whose real roots come from the exact root finder; each is kept only where it satisfies the original, since squaring can add roots.`;
     } else if (proof?.kind === 'exp' && proof.t) {
       zeroProof = `These are all of its zeros: with ${mark(`t = ${proof.t}`)}, which is always positive, ${proof.whole ? `it is the polynomial ${mark(shown(proof.polynomial))}` : `its numerator is the polynomial ${mark(shown(proof.polynomial))}`}, whose real roots come from the exact root finder, and each positive root gives one ${mark(variable)}.`;
     } else if (proof?.kind === 'monotone' && numericZeros.length) {

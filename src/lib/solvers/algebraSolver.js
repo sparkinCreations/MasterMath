@@ -75,7 +75,11 @@ function withWorkedExpression(result, expression) {
   if (!result || !Array.isArray(result.tips) || result.tips.length === 0 || result.status && result.status !== 'solved') return result;
   const typed = beautify(expression.replace(/^\s*(?:factor|expand|simplify)\s+/i, '').trim()).replace(/\bsqrt\((\d+)\)/g, '√$1').replace(/\bsqrt\(/g, '√(');
   const answer = String(result.answer || '').replace(/\s*\(≈[^)]*\)/, '').trim();
-  const [form, condition] = answer.split(/,\s*for\s+/);
+  const [whole, condition] = answer.split(/,\s*for\s+/);
+  // The answer "x^2 - 9 = (x - 3)(x + 3)" already starts with what was typed:
+  // only the form it became, or the line read "x^2 - 9 = x^2 - 9 = …" (the
+  // browser pass, 1.67.1).
+  const form = whole && whole.includes(' = ') ? whole.split(' = ').pop().trim() : whole;
   if (!form || /[a-z]{4,}/i.test(form.replace(/\b(?:sqrt|ln|log|sin|cos|tan|exp)\b/g, '')) || form.replace(/\s+/g, '') === typed.replace(/\s+/g, '')) return result;
   const here = `Here: ${mark(`${typed} = ${form}`)}${condition ? `, for ${mark(condition)}` : ''}.`;
   return { ...result, tips: [result.tips[0], here, ...result.tips.slice(1)] };

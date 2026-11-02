@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.67.1] - 2026-11-02
+
+### Added
+
+- **A randomized cross-check** (`tests/crossCheck.test.js`): seeded random
+  inequalities (twelve families, from polynomials and holes to exponentials,
+  logarithms, absolute values, waves against lines, periodic ones, close and
+  double roots), trig polynomials and line-and-curve systems, each answer
+  read back into a set and compared with the inequality itself on a dense
+  grid, used only as an oracle. In a wider offline run, 1,050 inequalities
+  agreed everywhere away from their endpoints.
+- **A square root against a polynomial is solved exactly**: P + Q·√u is 0
+  only where P² = Q²·u, a polynomial the exact root finder solves, each
+  root kept where it satisfies the original (√(9 − x²) ≥ 2x is
+  −3 ≤ x ≤ 3√5/5). They were refused.
+
+### Fixed
+
+- **Two signs in a row stopped Algebrite**: "x^2 + -3x" was a syntax error
+  to it, so its derivative was "beyond what this engine can compute", and
+  inequalities such as ln(x) + −x/4 ≤ 0 and e^(2x) + −3eˣ ≥ 2 were refused.
+  The parser writes one sign ("+ −" is "−", "− −" is "+").
+- Moving a term with its own minus across no longer writes "− −1x"; a root
+  in a denominator is rationalized (3/√5 is 3√5/5).
+- **Known-answer tests**: inequalities built from chosen rational roots,
+  double roots, holes, square-root edges, far zeros and close periodic
+  zeros, systems built from chosen points and 3×3 systems from chosen
+  solutions, each required to return exactly those values.
+- **`finalizeResult` is idempotent** (tested): a finished result passed
+  through it again added the repeating-decimal step a second time.
+- **Found in a hands-on pass in the browser**, all eight topics: the
+  factoring worked line repeated the expression ("x^2 − 9 = x^2 − 9 =
+  (x − 3)(x + 3)"); a derivative of a sum of powers, or of one power, had no
+  worked line (now "d/dx(3x^4) = 12x^3, d/dx(−2x) = −2, d/dx(7) = 0, so
+  f′(x) = 12x^3 − 2").
+
 ## [1.67.0] - 2026-11-01
 
 ### Added

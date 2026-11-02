@@ -128,7 +128,9 @@ export function finalizeResult(result, input) {
   // second step (after the one that restates the problem); for a problem
   // that is only that decimal, it is the worked line too (1.67.0).
   const repeats = repeatingDecimalNotes(input || '');
-  if (repeats.length && result.status === STATUS.SOLVED && result.steps.length) {
+  // Once only: a finished result passes through here unchanged (tested).
+  const alreadyRead = result.steps.some((t) => / is a repeating decimal: the block /.test(stripMathMarkers(String(t))));
+  if (repeats.length && !alreadyRead && result.status === STATUS.SOLVED && result.steps.length) {
     const note = repeats.map((r) => `${mark(r.typed.replace(/\.\.\.$/, '…'))} is a repeating decimal: the block ${mark(r.block)} repeats forever, so ${mark(r.worked)}.`).join(' ');
     // The first step restates the problem as typed: "Evaluate: 0.333…", not
     // the "(1/3)" the parser made of it (Round 38).
