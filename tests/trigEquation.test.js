@@ -251,3 +251,42 @@ test('degrees: a family through 0 is written 180°n, not 0° + 180°n', () => {
   const r = solveTrigMarked('sin(x) = 0', 'x', { angleUnit: 'degrees' });
   assert.match(r.answer, /^x = 180°n \(n ∈ ℤ\)/);
 });
+
+// ── Degrees divide through by k as radians do (1.68.1): tan(2x) = 1 was
+// "x = (45° + 180°n)/2". Each general solution is checked on its own: its
+// members for n = −3…3 satisfy the equation, and over one turn it gives
+// exactly the listed angles, no more and no fewer.
+test('degrees: the general solution is divided through by k, and each family is checked', () => {
+  const cases = [
+    ['cos(4x) = 1', 'x = 90°n'],
+    ['tan(2x) = 1', 'x = 22.5° + 90°n'],
+    ['sin(3x) = 1/2', 'x = 10° + 120°n  or  x = 50° + 120°n'],
+    ['tan(3x) = -1', 'x = 45° + 60°n'],
+    ['sin(x/2) = 1/2', 'x = 60° + 720°n  or  x = 300° + 720°n'],
+  ];
+  for (const [problem, general] of cases) {
+    const r = solveTrigMarked(problem, 'x', { angleUnit: 'degrees' });
+    const [gen, list] = r.answer.split(' (n ∈ ℤ);  on [0°, 360°): ');
+    assert.equal(gen, general, problem);
+    const [lhs, rhs] = problem.split('=');
+    const f = (deg) => {
+      const x = (deg * Math.PI) / 180;
+      const sides = [lhs, rhs].map((side) => Function('x', `return ${side.replace(/(\d)x/g, '$1*x').replace(/(sin|cos|tan)\(/g, 'Math.$1(')};`)(x));
+      return sides[0] - sides[1];
+    };
+    const fams = gen.split('  or  ').map((t) => {
+      const m = t.match(/^x = (?:(-?[\d.]+)° \+ )?([\d.]+)°n$/);
+      return { base: m[1] ? Number(m[1]) : 0, period: Number(m[2]) };
+    });
+    const turn = new Set();
+    for (const { base, period } of fams) {
+      for (let n = -3; n <= 3; n += 1) assert.ok(Math.abs(f(base + period * n)) < 1e-9, `${problem}: ${base} + ${period}·${n}`);
+      for (let x = base; x < 360 - 1e-9; x += period) turn.add(Math.round(x * 1e6) / 1e6);
+    }
+    const listed = list.split(', ').map((t) => Number(t.replace('°', '')));
+    assert.deepEqual([...turn].sort((p, q) => p - q), listed, `${problem}: the families give exactly the listed angles`);
+  }
+  // A value that is no whole decimal number of degrees keeps the undivided
+  // form, as radians does: 90°/7 would be rounded.
+  assert.match(solveTrigMarked('sin(7x) = 1', 'x', { angleUnit: 'degrees' }).answer, /^x = \(90° \+ 360°n\)\/7/);
+});

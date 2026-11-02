@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.1] - 2026-11-02
+
+### Fixed
+
+- **In degrees, the general solution was left undivided**: tan(2x) = 1 read
+  "x = (45° + 180°n)/2" and cos(4x) = 1 "x = (360°n)/4", where radians
+  gave x = π/8 + (π/2)n and x = (π/2)n. The last step is now done in
+  degrees too: x = 22.5° + 90°n, x = 90°n, sin(3x) = 1/2 is
+  x = 10° + 120°n or x = 50° + 120°n. A value that only prints rounded
+  (90°/7 for sin(7x) = 1) keeps the undivided form, as in radians. Each
+  family is tested on its own: its members satisfy the equation, and over
+  one turn it gives exactly the listed angles.
+
 ## [1.68.0] - 2026-11-02
 
 ### Added

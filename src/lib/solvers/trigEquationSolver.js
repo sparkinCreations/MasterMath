@@ -755,12 +755,22 @@ function solveTrigEquationInner(rawEquation, variable = 'x', settingsOverride, n
   let generalText = thetaText;
   // θ/k written out when every family stays a multiple of π: tan(2x) = 1 is
   // x = π/8 + (π/2)n, not (π/4 + πn)/2; cos(x/2) = 1 is x = 4πn, not 2(2πn).
+  // In degrees too, when the values print exactly: tan(2x) = 1 is
+  // x = 22.5° + 90°n, not (45° + 180°n)/2 (1.68.1). A degree value that
+  // rounds (θ/3 of an angle that is no whole number of degrees) keeps the
+  // undivided form.
+  const exactAngle = (rad) => {
+    const t = fmtRad(rad);
+    if (!DEGREES) return /π|^0$/.test(t);
+    const deg = Number(t.replace(/°$/, ''));
+    return Number.isFinite(deg) && Math.abs((deg * Math.PI) / 180 - rad) < 1e-9;
+  };
   const simplified = k !== 1 && !symbolic
     ? general.map((g) => {
-      const base = g.base / k;
       const period = g.period / Math.abs(k);
-      const ok = /π|^0$/.test(fmtRad(base)) && /π/.test(fmtRad(period));
-      return ok ? familyText(variable, ((base % period) + period) % period, period) : null;
+      const base = ((g.base / k) % period + period) % period;
+      const ok = exactAngle(base) && exactAngle(period) && (DEGREES || /π/.test(fmtRad(period)));
+      return ok ? familyText(variable, base, period) : null;
     })
     : null;
   if (k !== 1 && symbolic) {
