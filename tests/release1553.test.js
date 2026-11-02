@@ -24,7 +24,8 @@ test('a number too small or too large for a float is kept as an exact fraction',
   assert.equal((await solveProblem('1.5^100', 'other')).answer, '≈ 4.0656 × 10^17');
   assert.equal((await solveProblem('1/2^1000', 'other')).answer, '≈ 9.3326 × 10^-302');
   // Ordinary results are unchanged.
-  assert.equal((await solveProblem('3/4 + 5/6', 'other')).answer, '19/12 (= 1.5833)');
+  // 1.67.0: 1.5833 is rounded, so ≈.
+  assert.equal((await solveProblem('3/4 + 5/6', 'other')).answer, '19/12 (≈ 1.5833)');
   assert.equal((await solveProblem('0.1+0.2', 'other')).answer, '3/10 (= 0.3)');
 });
 

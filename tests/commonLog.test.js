@@ -60,11 +60,12 @@ test('parser: only a PLAIN log(A)/log(B) ratio is left in place', () => {
 });
 
 test('change-of-base quotients evaluate with log read as base 10 throughout', async () => {
+  // 1.67.0: an irrational value is shown with ≈.
   const cases = [
-    ['log(log(1000))/log(2)', '1.585'],   // log2(log10 1000) = log2(3); was 2.7882
+    ['log(log(1000))/log(2)', '≈ 1.585'],   // log2(log10 1000) = log2(3); was 2.7882
     ['log(100)/log(10)^2', '2'],          // was 0.8686
-    ['2^log(100)/log(3)', '8.3836'],      // 2^2 / log10(3); was 22.1539
-    ['100/log(100)/log(2)', '166.0964'],  // (100/2) / log10(2); was 31.3277
+    ['2^log(100)/log(3)', '≈ 8.3836'],      // 2^2 / log10(3); was 22.1539
+    ['100/log(100)/log(2)', '≈ 166.0964'],  // (100/2) / log10(2); was 31.3277
     ['log(8)/log(2)/log(10)', '3'],       // plain ratio then a base-10 divisor
   ];
   for (const [input, expected] of cases) {

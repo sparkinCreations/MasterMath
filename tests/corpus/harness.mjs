@@ -322,7 +322,7 @@ function solutionNumbers(s) {
     for (const m of clauses) {
       for (const piece of m[1].split(',')) {
         const expr = piece
-          .replace(/\(≈[^)]*\)/g, '')
+          .replace(/\((?:≈|=)[^)]*\)/g, '')
           .replace(/\(repeated root[^)]*\)/g, '')
           .replace(/√\s*(\d+)/g, 'sqrt($1)')
           .replace(/\bln\b/g, 'log')
@@ -506,7 +506,8 @@ async function grade(category, problem, expected, meta = {}) {
         return { verdict: isRefusal(ans) || /improper|diverge/i.test(ans) ? 'CORRECT' : 'WRONG', got: ans };
       }
       if (isRefusal(ans) || /improper/i.test(ans)) return { verdict: 'REFUSED', got: ans };
-      const gotNum = toNumber(ans.replace(/^.*=\s*/, ''));
+      // The decimal beside an exact value, "(= 0.5)" or "(≈ 0.3333)", goes first.
+      const gotNum = toNumber(ans.replace(/\s*\((?:≈|=)[^)]*\)\s*$/, '').replace(/^.*=\s*/, ''));
       return { verdict: numClose(gotNum, toNumber(expected)) ? 'CORRECT' : 'WRONG', got: ans };
     }
     if (isRefusal(ans)) return { verdict: 'REFUSED', got: ans };

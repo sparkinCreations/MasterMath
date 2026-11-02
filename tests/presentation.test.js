@@ -8,7 +8,8 @@ import { STATUS } from '../src/lib/solutionEnvelope.js';
 
 test('arithmetic: rational results are shown as fractions first, decimal alongside', async () => {
   assert.equal((await solveProblem('1/3+1/6', 'other')).answer, '1/2 (= 0.5)');
-  assert.equal((await solveProblem('2/3', 'other')).answer, '2/3 (= 0.6667)');
+  // 1.67.0: "=" only where the decimal ends; 0.6667 is rounded.
+  assert.equal((await solveProblem('2/3', 'other')).answer, '2/3 (≈ 0.6667)');
   assert.equal((await solveProblem('0.1+0.2', 'other')).answer, '3/10 (= 0.3)');
   // integers stay integers; a root stays exact, the decimal alongside (1.54.0)
   assert.equal((await solveProblem('(5 + 3) * 4 - 2^3', 'other')).answer, '24');
@@ -23,7 +24,7 @@ test('arithmetic: constant expressions in e and π keep the exact form', async (
   // A trig call is solved as Trigonometry (1.52.3), which gives its exact
   // value — it was the decimal 0.5 under Arithmetic.
   const trig = await solveProblem('sin(pi/6)', 'other');
-  assert.equal(trig.answer, '1/2 (≈ 0.5)');
+  assert.equal(trig.answer, '1/2 (= 0.5)');
   assert.equal(trig.routing?.to, 'trigonometry');
 });
 
@@ -51,7 +52,7 @@ test('arithmetic: division by zero is undefined, not ∞', async () => {
 
 test('trigonometry: special values exact-first, inverse trig as multiples of π', async () => {
   assert.equal((await solveProblem('sin(pi/4)', 'trigonometry')).answer, '√2/2 (≈ 0.7071)');
-  assert.equal((await solveProblem('cos(60)', 'trigonometry')).answer, '1/2 (≈ 0.5)');
+  assert.equal((await solveProblem('cos(60)', 'trigonometry')).answer, '1/2 (= 0.5)');
   assert.equal((await solveProblem('tan(pi/3)', 'trigonometry')).answer, '√3 (≈ 1.7321)');
   assert.equal((await solveProblem('arcsin(1/2)', 'trigonometry')).answer, 'π/6 (≈ 0.5236)');
   assert.equal((await solveProblem('asin(1/2)', 'trigonometry')).answer, 'π/6 (≈ 0.5236)');

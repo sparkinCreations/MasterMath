@@ -10,6 +10,12 @@ import { simplifiedRoot, exactLog, exact, asMath } from './notation.js';
 // decimal alongside ("1/2 (= 0.5)"); a constant expression in e or π keeps
 // its exact form with the approximation alongside ("e^2 ≈ 7.3891"); anything
 // else is the plain number. Integers stay integers.
+// The decimal shown is the value itself, up to floating point's own error.
+export function shownExactly(text, value) {
+  const shown = Number(String(text).replace(/^-/, '-'));
+  return Number.isFinite(shown) && Math.abs(shown - value) <= 1e-12 * Math.max(1, Math.abs(value));
+}
+
 export function formatArithmeticResult(result, cleaned, root = simplifiedRoot(cleaned)) {
   // Complex (sqrt(-1), ln(-1)): format each part to the decimal setting,
   // and write a clean multiple of π as such (ln(-1) = πi, not 3.14159…i).
@@ -26,7 +32,10 @@ export function formatArithmeticResult(result, cleaned, root = simplifiedRoot(cl
     const re = Math.abs(result.re) < 1e-12 ? '' : part(result.re);
     const imAbs = part(Math.abs(result.im));
     const im = `${result.im < 0 ? '-' : re ? '+' : ''}${imAbs === '1' ? '' : imAbs}i`;
-    return re ? `${re} ${im[0]} ${im.slice(1)}` : im;
+    // A part that is a rounded decimal makes the whole value approximate:
+    // log(−1) ≈ 1.3644i (1.67.0).
+    const rounded = (re && !/π/.test(re) && !shownExactly(re, result.re)) || (!/π/.test(imAbs) && !shownExactly(imAbs, Math.abs(result.im)));
+    return `${rounded ? '≈ ' : ''}${re ? `${re} ${im[0]} ${im.slice(1)}` : im}`;
   }
   const formatted = formatNumber(result);
   if (typeof result !== 'number') return formatted;
@@ -55,7 +64,9 @@ export function formatArithmeticResult(result, cleaned, root = simplifiedRoot(cl
     const r = exact.evaluate(cleaned);
     if (exact.typeOf(r) === 'Fraction' && r.d > 1 && r.d <= 10000) {
       const sign = r.s < 0 ? '-' : '';
-      return `${sign}${r.n}/${r.d} (= ${formatted})`;
+      // 1/8 (= 0.125), but 1/7 (≈ 0.1429): "=" only when the decimal shown
+      // is the fraction's whole value (it said "1/7 (= 0.1429)", 1.67.0).
+      return `${sign}${r.n}/${r.d} (${shownExactly(formatted, result) ? '=' : '≈'} ${formatted})`;
     }
   } catch {
     // not rational — fall through
@@ -64,10 +75,21 @@ export function formatArithmeticResult(result, cleaned, root = simplifiedRoot(cl
   // Constant expression built only from e, π, digits and operators (no
   // function calls — sin(π/6) has its own exact value, not "sin(π/6) ≈"):
   // keep the exact form, approximate alongside.
-  if (/\b(?:e|pi)\b/.test(cleaned) && /^[\d\s+\-*/^().]*(?:\b(?:e|pi)\b[\d\s+\-*/^().]*)+$/.test(cleaned)) {
-    return `${beautify(cleaned).replace(/pi/g, "π")} ≈ ${formatted}`;
+  if (/\b(?:e|pi)\b/i.test(cleaned) && /^[\d\s+\-*/^().]*(?:\b(?:e|pi)\b[\d\s+\-*/^().]*)+$/i.test(cleaned)) {
+    return `${beautify(cleaned.replace(/\bE\b/g, 'e').replace(/\bPI\b/gi, 'pi')).replace(/pi/g, "π")} ≈ ${formatted}`;
   }
 
+  // A decimal that does not end (ln(8), 3.5!) is rounded: it says so with ≈.
+  // A single logarithm keeps its exact form beside it: log(8) ≈ 0.9031.
+  // They were shown as bare decimals, as if exact (1.67.0).
+  // Floating point leaves log(0.001) at −2.9999999999999996: within the
+  // rounding error of the decimal shown, it is that decimal.
+  if (!shownExactly(formatted, result)) {
+    // log(8, 10) is log(8), log(8) alone is ln(8), log(8, 2) is log_2(8).
+    const log = String(cleaned).replace(/\s+/g, '').match(/^(?:log|ln)\((\d+(?:\.\d+)?)(?:,(\d+(?:\.\d+)?))?\)$/);
+    if (log) return `${!log[2] ? `ln(${log[1]})` : log[2] === '10' ? `log(${log[1]})` : `log_${log[2]}(${log[1]})`} ≈ ${formatted}`;
+    return `≈ ${formatted}`;
+  }
   return formatted;
 }
 
@@ -99,7 +121,9 @@ export function scientific(v) {
 // setting to show anything but 0.
 export const unshowable = (v) => typeof v === 'number' && Number.isFinite(v) && v !== 0
   && (Math.abs(v) >= SAFE || Math.abs(v) < 0.5 * 10 ** -getSettings().decimalPlaces);
-export const numText = (v) => (unshowable(v) ? `≈ ${scientific(v)}` : formatNumber(v));
+// A step's value: ≈ when the decimal shown is rounded (2^0.5 ≈ 1.4142, not
+// "= 1.4142"; 1.67.0).
+export const numText = (v) => (unshowable(v) ? `≈ ${scientific(v)}` : shownExactly(formatNumber(v), v) ? formatNumber(v) : `≈ ${formatNumber(v)}`);
 // "a = b", or "a ≈ b" when b is approximate.
 export const equals = (left, valueText) => (/^≈/.test(valueText) ? `${left} ${valueText}` : `${left} = ${valueText}`);
 

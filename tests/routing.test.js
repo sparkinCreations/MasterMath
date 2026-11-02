@@ -18,7 +18,7 @@ test('a routed result says where it went and why, and keeps the step for exports
 });
 
 test('a trig function or a degree sign under Arithmetic is solved as Trigonometry, with the angle setting', async () => {
-  for (const [p, answer] of [['sin(30)', '1/2 (≈ 0.5)'], ['sin(30°)', '1/2 (≈ 0.5)'], ['sin(pi/6)', '1/2 (≈ 0.5)'], ['2*sin(pi/4)', '√2 (≈ 1.4142)'], ['sin(x)^2 + cos(x)^2', '1']]) {
+  for (const [p, answer] of [['sin(30)', '1/2 (= 0.5)'], ['sin(30°)', '1/2 (= 0.5)'], ['sin(pi/6)', '1/2 (= 0.5)'], ['2*sin(pi/4)', '√2 (≈ 1.4142)'], ['sin(x)^2 + cos(x)^2', '1']]) {
     const r = await solveProblem(p, 'other');
     assert.equal(r.status, 'solved', p);
     assert.equal(r.answer, answer, p);

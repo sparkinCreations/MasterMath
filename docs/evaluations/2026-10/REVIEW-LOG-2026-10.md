@@ -233,6 +233,35 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 38 (third outside review of the arithmetic content, before 1.67.0 shipped)
+
+A third review of `ARITHMETIC.md` ("content review passed"; it recommends stopping the content cycle and moving to release verification). Reproduced.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Optional: the repeating decimal's working begins "Evaluate: (1/3)", not the 0.333... typed | Agreed | 1.67.0 (the first step restates the problem as typed: "Evaluate: 0.333…") |
+| Next: cross-topic regression testing (parser, exact versus approximate, domains, real versus complex) | Done for this release: the golden record of about 2,255 solves compared before and after (only intended changes: the ≈ / = rule and the new answers), the unit suite with the corpora, and the smoke suite | — |
+
+## Round 37 (second outside review of the arithmetic content, before 1.67.0 shipped)
+
+A second review of `ARITHMETIC.md` ("educational content approved"). It confirms Round 36's fixes, and closes the planned review of all eight topics. Reproduced.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| Optional: 0.333…'s third insight is "multiplication and division share a tier", the rest of the order of operations' list | Agreed (its mistakes were replaced in Round 36, its insights were not) | 1.67.0 (its own: a repeating decimal is exact, 0.333… = 1/3 while 0.333 = 333/1000; digits before the repeat taken off first; check by dividing) |
+
+## Round 36 (outside review of the arithmetic content, before 1.67.0 shipped)
+
+A review of `ARITHMETIC.md` ("conditional approval: three corrections outstanding"). It refers to a previous review, which did not reach this session: its points are taken as they stand here. Reproduced, and the same class swept.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| log(−1)'s answer is only "≈ 1.3644i"; the complex reading is in the working alone | Agreed: students read the answer first | 1.67.0 ("No real value; principal complex value πi/ln(10) ≈ 1.3644i"; ln(−1) is "… πi", ln(−2) "… ln(2) + πi ≈ 0.6931 + 3.1416i") |
+| 3.5! is worked by the gamma function, beside a mistake "Applying ! to a fraction or a negative number" | Agreed | 1.67.0 (the ordinary factorial is for 0, 1, 2, …; the gamma function extends it to most other numbers and is undefined at the negative whole numbers) |
+| The logarithm rules omit x > 0, y > 0 | Agreed, more so now that complex values are shown, where they can fail | 1.67.0 (stated for real logarithms, with the complex caveat; the "log of a negative number" mistake says "in the real numbers") |
+| 0.333... gets the order of operations' mistakes | Agreed | 1.67.0 (its own: 0.333 for 0.333…, the block over ten instead of nine, the digits that do not repeat, 0.999… = 1) |
+| Swept: other rules that do not say where they hold | Four: a⁰ = 1 and a^(−n) = 1/a^n (a ≠ 0), (a^m)^n = a^(mn) (whole exponents, else a > 0); gcd × lcm = the product (positive whole numbers); a mod b between 0 and b − 1 (b > 0); ∛a = a^(1/3) (the real cube root for a < 0) | 1.67.0 (each qualified) |
+
 ## Round 35 (third outside review of the inequality and system content, before 1.66.0 shipped)
 
 A third review of `INEQUALITIES-AND-SYSTEMS.md` ("conditional approval: one consistency correction"). It confirms Round 34's six fixes. Reproduced.

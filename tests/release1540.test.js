@@ -25,7 +25,8 @@ test('a logarithm is worked in the notation typed, as the power it asks for', as
   // The steps showed "(log(8)/log(10))" and "log(8) = 2.0794": the natural
   // log under a base-10 name, over the parser's internal rewrite.
   const r = await solvePlain('log(8)', 'other');
-  assert.equal(r.answer, '0.9031');
+  // 1.67.0: an irrational value says ≈, with the logarithm beside it.
+  assert.equal(r.answer, 'log(8) ≈ 0.9031');
   assert.equal(r.steps[0], 'Evaluate: log(8)');
   assert.equal(r.steps[1], 'log(8) asks for the power of 10 that gives 8: 10^0.9031 ≈ 8, so log(8) ≈ 0.9031.');
   assert.doesNotMatch(r.steps.join('\n'), /2\.0794|log\(10\)/);

@@ -362,6 +362,23 @@ export function hasVariable(expression, variable) {
   return new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'i').test(text);
 }
 
+// "1/2 (≈ 0.5)" → "1/2 (= 0.5)": a fraction followed by a decimal that is
+// its whole value says so with "=", in every topic; one that is rounded
+// keeps "≈" (1/3 (≈ 0.3333)). Decided in whole numbers, p·10^k = D·q, so a
+// rounded decimal is never called exact. Topics wrote "≈" beside every
+// decimal while arithmetic wrote "=" beside every one, the same 0.5 shown
+// two ways (1.67.0).
+export function exactDecimalSigns(text) {
+  return String(text).replace(/(?<![\w.^/√∛])(-?\d+)\/(\d+)(\)?)(\s*)\(≈\s*(-?\d+)(?:\.(\d+))?\)/g, (all, n, d, close, gap, whole, frac = '') => {
+    const num = BigInt(n);
+    const den = BigInt(d);
+    if (den === 0n) return all;
+    const D = BigInt(`${whole.replace('-', '')}${frac}`) * (whole.startsWith('-') ? -1n : 1n);
+    const exact = num * 10n ** BigInt(frac.length) === D * den;
+    return exact ? `${n}/${d}${close}${gap}(= ${whole}${frac ? `.${frac}` : ''})` : all;
+  });
+}
+
 // Every decimal as the fraction it is, reduced and in brackets: 0.5 → (1/2),
 // 1.5 → (3/2), 0.001 → (1/1000), 3.0 → 3. For the engines: on a decimal
 // Algebrite turns to floating point, writes x^2.0, and fails on integrals

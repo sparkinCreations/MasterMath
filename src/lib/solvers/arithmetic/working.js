@@ -3,7 +3,7 @@
 
 import { math, formatNumber, mark } from '../solverUtils.js';
 import { logNotation, exact, exactLog } from './notation.js';
-import { unshowable, scientific, numText, equals } from './exactNumbers.js';
+import { unshowable, scientific, numText, equals, shownExactly } from './exactNumbers.js';
 
 // Evaluate a parenthesis-free expression one operation at a time in PEMDAS
 // order — functions, then exponents (right to left), then multiplication and
@@ -86,7 +86,7 @@ export function showWorking(expr, steps) {
     if (!Number.isInteger(value) && !/\d\.\d{4,}/.test(opText)) {
       try {
         const fr = exact.evaluate(opText);
-        if (exact.typeOf(fr) === 'Fraction' && fr.d > 1 && fr.d <= 10000) valueText = `${fr.s < 0 ? '-' : ''}${fr.n}/${fr.d} (≈ ${formatNumber(value)})`;
+        if (exact.typeOf(fr) === 'Fraction' && fr.d > 1 && fr.d <= 10000) valueText = `${fr.s < 0 ? '-' : ''}${fr.n}/${fr.d} (${shownExactly(formatNumber(value), value) ? '=' : '≈'} ${formatNumber(value)})`;
       } catch { /* not rational */ }
     }
     // A logarithm is a question about a power: log_b(a) is the k with

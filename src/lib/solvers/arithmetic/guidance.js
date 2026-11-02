@@ -1,15 +1,159 @@
 // Tips and mistakes for the arithmetic solver, chosen by the operations the
-// working used, and for complex-number arithmetic.
+// working used, and for complex-number arithmetic. Each list is ranked, with
+// a worked "Here: …" line second, read from this solve's own steps (1.67.0,
+// the last topic of the insights plan).
 
 import { math, stripMathMarkers, mark } from '../solverUtils.js';
+
+const dedupe = (list) => [...new Set(list.filter(Boolean))];
+const assemble = (tips, here, mistakes) => ({ tips: dedupe([tips[0], here, ...tips.slice(1)]), common_mistakes: dedupe(mistakes) });
+// "a = b" parts of a working line, the answer's exact part.
+const exactPart = (answer) => String(answer || '').replace(/\s*\((?:=|≈)[^)]*\)\s*$/, '').trim();
+
+// The lists for a plain arithmetic evaluation, with the worked line second.
+export function arithmeticGuidance(steps, expr, answer) {
+  const picked = pickArithmetic(steps, expr);
+  const text = stripMathMarkers(steps.join('\n'));
+  let here = null;
+  try { here = arithmeticHere(picked.method, text, String(expr), exactPart(stripMathMarkers(String(answer || '')))); } catch { here = null; }
+  const tips = [...picked.tips];
+  const mistakes = [...picked.common_mistakes];
+  if (picked.method === 'order') {
+    // 8/2(2+2): the reading is a convention, said with this problem's own
+    // numbers; 2^3^2: stacked powers go right to left.
+    if (/\d\/\d+\*?\(/.test(String(expr).replace(/\s+/g, ''))) {
+      tips.splice(1, 0, `A number in front of a bracket is a multiplication, on the same tier as division: ${mark('8/2(2+2)')} is read left to right, ${mark('(8/2)·4 = 16')}. Some books bind the implicit product first and get ${mark('1')}, so write ${mark('(8/2)(2+2)')} or ${mark('8/(2(2+2))')} to say which.`);
+      mistakes.splice(1, 0, `Multiplying before dividing because the product is written without a sign: ${mark('8/2(2+2)')} is not ${mark('8/8')} in the usual reading.`);
+    }
+    if (/\^[^^]*\^/.test(String(expr))) {
+      tips.splice(1, 0, `Stacked powers are worked from the top down: ${mark('2^3^2 = 2^(3^2) = 2^9 = 512')}, not ${mark('(2^3)^2 = 64')}.`);
+      mistakes.splice(1, 0, `Working ${mark('2^3^2')} left to right as ${mark('(2^3)^2')}.`);
+    }
+  }
+  return assemble(tips, here, mistakes);
+}
+
+// The worked line for each method, from the steps the solve wrote.
+function arithmeticHere(method, text, expr, answer) {
+  const pick = (re) => (text.match(re) || [])[1];
+  switch (method) {
+    case 'negative exponent': {
+      const f = pick(/a\^\(-n\) = 1\/a\^n \(the base cannot be 0\): (.+?)(?:\s{2}→|$)/m);
+      return f ? `Here: ${mark(f.replace(/\s*\((?:≈|=)[^)]*\)\s*$/, ''))}: the power moves to the denominator, and the value stays positive.` : null;
+    }
+    case 'factorial': {
+      const gamma = pick(/(\d+\.\d+)! is not a factorial/);
+      if (gamma) return `Here: ${mark(gamma)} is not a whole number, so ${mark(`${gamma}!`)} is not a product of whole numbers; the value shown is ${mark(`Γ(${Number(gamma) + 1})`)}, which the gamma function extends the factorial to.`;
+      const f = pick(/(\d+! means the product[^:]*: .+?)\.\s*$/m);
+      const prod = f && f.match(/: (.+)$/);
+      const n = f && f.match(/^(\d+)!/);
+      return prod && n ? `Here: ${mark(`${n[1]}! = ${prod[1]}`)}.` : null;
+    }
+    case 'percent': {
+      const m = String(expr).replace(/\s+/g, '').match(/^\(?(\d+(?:\.\d+)?)\/100\)?\*(\d+(?:\.\d+)?)$/) || text.match(/rewrite .+? as \((\d+(?:\.\d+)?)\/100\)\*(\d+(?:\.\d+)?)/);
+      return m ? `Here: ${mark(`${m[1]}% of ${m[2]} = ${m[1]}/100 × ${m[2]} = ${answer}`)}.` : null;
+    }
+    case 'logarithm': {
+      // log(−1): there is no power to ask for.
+      const negative = text.match(/((?:log|ln)(?:_\d+)?\(−\d+(?:\.\d+)?\)) has no real value: no power of ([^ ]+) is negative/);
+      if (negative) return `Here: ${mark(negative[1])} would be the power of ${mark(negative[2])} that gives a negative number, and every power of ${mark(negative[2])} is positive: in real arithmetic it is undefined.`;
+      const f = text.match(/((?:log|ln)(?:_\d+)?\([^)]*\)) asks for the power of ([^ ]+) that gives ([^:]+): ([^,\n]+), so ([^,\n]+?)\.?(?:,|$)/m);
+      return f ? `Here: ${mark(f[1])} asks for the power of ${mark(f[2])} that gives ${mark(f[3])}: ${mark(f[4])}, so ${mark(f[5].replace(/\.$/, ''))}.` : null;
+    }
+    case 'gcd lcm': {
+      const f = pick(/Factor each number into primes: (.+?)\.\s*$/m);
+      const g = pick(/(?:The gcd|The lcm) takes [^:]+: (.+?)\.\s*$/m);
+      const none = /They share no prime factor/.test(text);
+      // The factorizations, marked again ("12 = 2^2 × 3"; "7 is prime").
+      const parts = f ? f.split(/,? and /).map((t) => (/ is prime$/.test(t) ? `${mark(t.replace(/ is prime$/, ''))} is prime` : / has no prime factors$/.test(t) ? `${mark('1')} has no prime factors` : mark(t))) : [];
+      return f ? `Here: ${parts.join(' and ')}; ${none ? `they share no prime, so the gcd is ${mark('1')}` : `${/The gcd/.test(text) ? 'the shared primes at their lower powers give' : 'every prime at its higher power gives'} ${mark(g || answer)}`}.` : null;
+    }
+    case 'mod': {
+      const f = pick(/: (-?\d+ = \(?-?\d+\)? × -?\d+ \+ \d+)/);
+      return f ? `Here: ${mark(f)}, so the remainder is ${mark(answer)}.` : null;
+    }
+    case 'negative base': {
+      const m = String(expr).replace(/\s+/g, '').match(/^-(\d+(?:\.\d+)?)\^(\d+)$/);
+      return m ? `Here: ${mark(`−${m[1]}^${m[2]} = −(${m[1]}^${m[2]}) = ${answer}`)}; the minus waits until the power is done.` : null;
+    }
+    case 'power': {
+      const m = String(expr).replace(/\s+/g, '').match(/^\(?(-?\d+(?:\.\d+)?(?:\/\d+)?)\)?\^\(?(\d+)\)?$/);
+      if (!m) return null;
+      const [, b, n] = m;
+      const k = Number(n);
+      const factor = /[-/]/.test(b) ? `(${b})` : b;
+      return k >= 2 && k <= 6 ? `Here: ${mark(`${factor}^${k} = ${Array(k).fill(factor).join(' × ')} = ${answer}`)}.` : `Here: ${mark(`${factor}^${k}`)} is ${k} factors of ${mark(b)}: ${mark(answer)}.`;
+    }
+    case 'sum': {
+      const m = String(expr).replace(/\s+/g, '').match(/^(-?\d+(?:\.\d+)?)([-+])(-?\d+(?:\.\d+)?)$/);
+      if (!m) return null;
+      const [, a, op, b] = m;
+      if (/\./.test(a + b)) {
+        const places = Math.max(...[a, b].map((t) => (t.split('.')[1] || '').length));
+        const as = (t) => `${Math.round(Number(t) * 10 ** places)}/${10 ** places}`;
+        return `Here: in ${10 ** places === 10 ? 'tenths' : 10 ** places === 100 ? 'hundredths' : `parts of ${10 ** places}`}, ${mark(`${as(a)} ${op} ${as(b)} = ${answer}`)}.`;
+      }
+      if (op === '-' && Number(b) > Number(a) && Number(a) >= 0) return `Here: ${mark(`${b} − ${a} = ${Number(b) - Number(a)}`)}, and the larger number is the one taken away, so ${mark(`${a} − ${b} = ${answer}`)}.`;
+      if (op === '+' && Number(a) >= 0 && Number(b) >= 0) {
+        const ones = (Number(a) % 10) + (Number(b) % 10);
+        return ones >= 10 ? `Here: the ones make ${mark(`${Number(a) % 10} + ${Number(b) % 10} = ${ones}`)}: write ${mark(String(ones % 10))} and carry ${mark('1')}, so ${mark(`${a} + ${b} = ${answer}`)}.` : `Here: no column reaches ${mark('10')}, so there is nothing to carry: ${mark(`${a} + ${b} = ${answer}`)}.`;
+      }
+      return `Here: ${mark(`${a} ${op} ${b} = ${answer}`)}.`;
+    }
+    case 'product': {
+      const m = String(expr).replace(/\s+/g, '').match(/^(-?\d+(?:\.\d+)?)([*/×÷])(-?\d+(?:\.\d+)?)$/);
+      if (!m) return null;
+      const [, a, op, b] = m;
+      if (/[/÷]/.test(op) && /^\d+$/.test(a) && /^\d+$/.test(b)) {
+        const g = (x, y) => (y ? g(y, x % y) : x);
+        const d = g(Number(a), Number(b));
+        const dec = Number(a) / Number(b);
+        const decText = Number.isInteger(dec) ? '' : ` ${Math.abs(dec * 1e4 - Math.round(dec * 1e4)) < 1e-9 ? '=' : '≈'} ${Math.round(dec * 1e4) / 1e4}`;
+        return d > 1 ? `Here: ${mark(a)} and ${mark(b)} share the factor ${mark(String(d))}: ${mark(`${a}/${b} = ${Number(b) / d === 1 ? Number(a) / d : `${Number(a) / d}/${Number(b) / d}${decText}`}`)}.` : `Here: ${mark(a)} and ${mark(b)} share no factor, so ${mark(`${a}/${b}`)} is already in lowest terms${decText ? `: ${mark(`${a}/${b}${decText}`)}` : ''}.`;
+      }
+      if (/^\d{2,}$/.test(b) && /^\d+$/.test(a)) {
+        const parts = String(b).split('').map((dgt, i, arr) => Number(dgt) * 10 ** (arr.length - 1 - i)).filter(Boolean);
+        return `Here: split ${mark(b)} by place value: ${mark(`${a} × ${b} = ${parts.map((q) => `${a} × ${q}`).join(' + ')} = ${parts.map((q) => Number(a) * q).join(' + ')} = ${answer}`)}.`;
+      }
+      return `Here: ${mark(`${a} ${op === '*' ? '×' : op} ${b} = ${answer}`)}${/-/.test(a + b) ? `; ${(a + b).split('-').length - 1 === 1 ? 'one negative factor makes it negative' : 'two negatives make a positive'}` : ''}.`;
+    }
+    case 'perfect square': {
+      const n = Number(pick(/sqrt\((\d+)\)/) || String(expr).match(/sqrt\((\d+)\)/)?.[1]);
+      const r = Math.sqrt(n);
+      return Number.isInteger(r) ? `Here: ${mark(`√${n} = ${r}`)} because ${mark(`${r}² = ${n}`)}.` : null;
+    }
+    case 'odd root': {
+      const f = pick(/Then (\d+\^\(1\/\d+\) = \d+, since \d+\^\d+ = \d+)/);
+      return f ? `Here: ${mark(f.split(', since ')[0])}, since ${mark(f.split(', since ')[1])}; the root of the negative number is ${mark(answer)}.` : null;
+    }
+    case 'imaginary': {
+      const f = pick(/Take out √\(−1\) = i: (.+?)\.\s*$/m);
+      return f ? `Here: ${mark(f.split(', since ')[0])}.` : `Here: the square root of a negative number is ${mark('i')} times the root of the positive one: ${mark(answer)}.`;
+    }
+    case 'root': {
+      const simp = pick(/pull out the largest perfect (?:square|cube) factor, (.+?)\.\s*$/m);
+      if (simp) return `Here: ${mark(simp.split(', so ')[0])}, so ${mark(simp.split(', so ')[1] || answer)}.`;
+      const half = String(expr).replace(/\s+/g, '').match(/^(\d+)\^\(?(?:0\.5|1\/2)\)?$/);
+      return half ? `Here: ${mark(`${half[1]}^0.5 = √${half[1]}`)}, an irrational number: ${mark(`√${half[1]} ≈ ${answer.replace(/^≈\s*/, '')}`)}.` : null;
+    }
+    case 'order': {
+      const ops = [...text.matchAll(/^(?:Work inside the parentheses|Exponents first|Multiplication and division next, left to right|Addition and subtraction last, left to right|Then [a-z ]+|Evaluate the function|The exponent binds[^:]*): (.+?)(?:\s{2}→.*)?$/gm)].map((m) => m[1].trim().replace(/\s*\((?:≈|=)[^)]*\)/g, ''));
+      if (ops.length < 2) return null;
+      return `Here: ${ops.map((o) => mark(o.replace(/\s\*\s/g, ' × ').replace(/\s\/\s/g, ' ÷ '))).join(', then ')}.`;
+    }
+    default:
+      return null;
+  }
+}
 
 // Tips and mistakes for a plain arithmetic evaluation, chosen by what the
 // expression actually used — a negative exponent, a factorial, a percent, a
 // root or function — instead of the PEMDAS list for everything.
-export function arithmeticGuidance(steps, expr) {
+function pickArithmetic(steps, expr) {
   const text = stripMathMarkers(steps.join('\n'));
   if (/negative exponent means a reciprocal/.test(text)) {
     return {
+      method: 'negative exponent',
       tips: [
         `${mark('a^(−n) = 1/a^n')}: a negative exponent moves the power to the denominator — it does not make the result negative.`,
         `The base cannot be ${mark('0')} (${mark('0^(−n)')} would be ${mark('1/0')}), and the sign of the result comes from the base: ${mark('(−2)^(−3) = 1/(−8) = −1/8')}.`,
@@ -24,6 +168,7 @@ export function arithmeticGuidance(steps, expr) {
   }
   if (/!/.test(expr)) {
     return {
+      method: 'factorial',
       tips: [
         `${mark('n! = n × (n − 1) × … × 2 × 1')} — the product of every whole number from ${mark('n')} down to ${mark('1')}.`,
         `${mark('0! = 1')} by definition, so that formulas for combinations and permutations work at the edges.`,
@@ -32,12 +177,13 @@ export function arithmeticGuidance(steps, expr) {
       common_mistakes: [
         `Reading ${mark('7!')} as ${mark('7 × 1')}, or as ${mark('7 + 6 + … + 1')}.`,
         `Treating ${mark('(n − 1)!')} as ${mark('n! − 1')}.`,
-        'Applying ! to a fraction or a negative number.',
+        `Applying the ordinary factorial outside the whole numbers: ${mark('n!')} as a product is for ${mark('n = 0, 1, 2, …')}. The gamma function extends it to most other numbers (${mark('3.5! = Γ(4.5)')}), but it is undefined at the negative whole numbers.`,
       ],
     };
   }
   if (/%/.test(expr) || /Percent means/.test(text)) {
     return {
+      method: 'percent',
       tips: [
         `"Per cent" means per hundred: ${mark('50% = 50/100 = 1/2')}, and "of" means multiply.`,
         `To find ${mark('p%')} of a number, multiply by ${mark('p/100')} (or move the decimal point two places).`,
@@ -54,15 +200,16 @@ export function arithmeticGuidance(steps, expr) {
   // base. (ln(8) and log(8) were given the PEMDAS list; October 2026 review.)
   if (/(?<![a-z_])(?:log|ln)\(/i.test(expr)) {
     return {
+      method: 'logarithm',
       tips: [
         `${mark('log_b(a)')} asks for the power of ${mark('b')} that gives ${mark('a')}: ${mark('log_b(a) = k')} means ${mark('b^k = a')}, so ${mark('log_2(8) = 3')} because ${mark('2^3 = 8')}.`,
         `${mark('ln')} is the natural logarithm, base ${mark('e')}. For a base other than ${mark('10')} or ${mark('e')}, change base: ${mark('log_b(a) = ln(a)/ln(b)')}.`,
-        `The rules: ${mark('log(xy) = log(x) + log(y)')}, ${mark('log(x/y) = log(x) − log(y)')}, ${mark('log(x^n) = n·log(x)')}.`,
+        `The rules, for ${mark('x > 0')} and ${mark('y > 0')} (real logarithms): ${mark('log(xy) = log(x) + log(y)')}, ${mark('log(x/y) = log(x) − log(y)')}, ${mark('log(x^n) = n·log(x)')}. With complex logarithms they can fail, because of which value is taken.`,
       ],
       common_mistakes: [
         `Mixing up ${mark('log')} and ${mark('ln')}: ${mark('log(8) ≈ 0.9031')} but ${mark('ln(8) ≈ 2.0794')}.`,
         `Splitting ${mark('log(a + b)')} into ${mark('log(a) + log(b)')}: the product rule is for ${mark('log(ab)')}.`,
-        `Taking the logarithm of ${mark('0')} or a negative number: it is defined only for positive numbers.`,
+        `Taking the logarithm of ${mark('0')} or a negative number as a real number: in the real numbers it is defined only for positive numbers (${mark('log(−1)')} has only a complex value).`,
       ],
     };
   }
@@ -71,12 +218,14 @@ export function arithmeticGuidance(steps, expr) {
   if (/(?<![a-z])(?:gcd|lcm)\s*\(/i.test(expr)) {
     const lcm = /(?<![a-z])lcm\s*\(/i.test(expr);
     return {
+      method: 'gcd lcm',
       tips: [
         lcm
           ? `The lcm is the smallest number both divide into: take every prime from either factorization, each to its higher power — for 4 and 6, ${mark('2² × 3 = 12')}.`
           : `The gcd is the largest number dividing both: take the primes they share, each to its lower power — for 12 and 18, ${mark('2 × 3 = 6')}.`,
-        'Euclid\'s algorithm is quicker: replace the larger number by its remainder on division by the smaller, until a remainder is 0 — 18 and 12, then 12 and 6, then 6 and 0: the gcd is 6.',
-        `The gcd times the lcm is the product of the two numbers (${mark('6 × 36 = 12 × 18')}), so one gives the other: the lcm of 12 and 18 is ${mark('12 × 18 / 6 = 36')}.`,
+        ...(lcm ? [] : ['Euclid\'s algorithm is quicker: replace the larger number by its remainder on division by the smaller, until a remainder is 0 — 18 and 12, then 12 and 6, then 6 and 0: the gcd is 6.']),
+        `For two positive whole numbers, the gcd times the lcm is their product (${mark('6 × 36 = 12 × 18')}), so one gives the other: the lcm of 12 and 18 is ${mark('12 × 18 / 6 = 36')}.`,
+        ...(lcm ? ['For the gcd, Euclid\'s algorithm is quicker than factoring: replace the larger number by its remainder on division by the smaller, until a remainder is 0.'] : []),
       ],
       common_mistakes: [
         lcm
@@ -89,9 +238,10 @@ export function arithmeticGuidance(steps, expr) {
   }
   if (/(?<![a-z])mod(?![a-z])/i.test(expr)) {
     return {
+      method: 'mod',
       tips: [
         `${mark('a mod b')} is the remainder when ${mark('a')} is divided by ${mark('b')}: ${mark('17 = 3 × 5 + 2')}, so ${mark('17 mod 5 = 2')}.`,
-        `The result is always between ${mark('0')} and ${mark('b − 1')}; a result of ${mark('0')} means ${mark('b')} divides ${mark('a')} exactly.`,
+        `For a positive ${mark('b')}, the result is always between ${mark('0')} and ${mark('b − 1')}; a result of ${mark('0')} means ${mark('b')} divides ${mark('a')} exactly.`,
         `Clock arithmetic: 17 o'clock on a 5-hour clock reads 2 — the multiples of ${mark('5')} wrap around.`,
       ],
       common_mistakes: [
@@ -103,6 +253,7 @@ export function arithmeticGuidance(steps, expr) {
   }
   if (/^\s*-\s*\(?\d+(?:\.\d+)?\)?\s*\^\s*\(?\d+\)?\s*$/.test(expr) && !/^\s*-\s*\(/.test(expr)) {
     return {
+      method: 'negative base',
       tips: [
         `The exponent binds before the minus sign: ${mark('−3^2')} is ${mark('−(3^2) = −9')}. The square of ${mark('−3')} is written ${mark('(−3)^2 = 9')}.`,
         `An even power of a negative number is positive, an odd power negative: ${mark('(−3)^2 = 9')}, ${mark('(−3)^3 = −27')}.`,
@@ -117,11 +268,12 @@ export function arithmeticGuidance(steps, expr) {
   if (/^\s*\(?-?\d+(?:\.\d+)?(?:\/\d+)?\)?\s*\^\s*\(?-?\d+\)?\s*$/.test(expr)) {
     const fractionBase = /\//.test(expr);
     return {
+      method: 'power',
       tips: [
         fractionBase
           ? `A power of a fraction raises top and bottom: ${mark('(1/2)^3 = 1^3/2^3 = 1/8')}.`
           : `${mark('a^n')} is ${mark('a')} multiplied by itself ${mark('n')} times: ${mark('2^10 = 2 × 2 × … × 2')} (ten factors) ${mark('= 1024')}.`,
-        `The rules: ${mark('a^m · a^n = a^(m+n)')}, ${mark('(a^m)^n = a^(mn)')}, ${mark('a^0 = 1')}, and ${mark('a^(−n) = 1/a^n')}.`,
+        `The rules: ${mark('a^m · a^n = a^(m+n)')} and ${mark('(a^m)^n = a^(mn)')} for whole-number exponents (for other exponents, take ${mark('a > 0')}), and ${mark('a^0 = 1')}, ${mark('a^(−n) = 1/a^n')} for ${mark('a ≠ 0')}.`,
         fractionBase
           ? `A fraction between ${mark('0')} and ${mark('1')} gets smaller when raised to a power: ${mark('(1/2)^3 < 1/2')}.`
           : `Powers grow fast: doubling ten times is ${mark('1024')}, twenty times is over a million.`,
@@ -138,12 +290,13 @@ export function arithmeticGuidance(steps, expr) {
     const decimals = /\./.test(expr);
     const subtraction = /\d\s*-/.test(expr);
     return {
+      method: 'sum',
       tips: [
         decimals
           ? `Line up the decimal points and add column by column: ${mark('0.1 + 0.2 = 0.3')} exactly. (A calculator working in binary shows ${mark('0.30000000000000004')}; the fraction ${mark('3/10')} is the true value.)`
           : subtraction
             ? `When the number subtracted is the larger one, the result is negative: ${mark('5 − 8 = −(8 − 5) = −3')} — the distance is the same, the sign flips.`
-            : `Add column by column from the right, carrying when a column reaches ${mark('10')}: ${mark('1000000 + 2 = 1000002')}.`,
+            : `Add column by column from the right, ones with ones and tens with tens, carrying ${mark('1')} to the next column when a column reaches ${mark('10')}.`,
         subtraction
           ? `On a number line, subtracting moves left: start at the first number and step back by the second; past ${mark('0')} the answer is negative.`
           : 'Check with an estimate: round each number and add the rounded values; the exact answer should be close.',
@@ -163,6 +316,7 @@ export function arithmeticGuidance(steps, expr) {
   if (/^\s*-?\d+(?:\.\d+)?\s*[*/×÷]\s*-?\d+(?:\.\d+)?\s*$/.test(expr)) {
     const division = /[/÷]/.test(expr);
     return {
+      method: 'product',
       tips: [
         division
           ? `A division is a fraction: ${mark('100/8 = 25/2')} after cancelling the common factor ${mark('4')}; as a decimal, ${mark('12.5')}.`
@@ -187,8 +341,9 @@ export function arithmeticGuidance(steps, expr) {
     const [n] = perfectSquares;
     const r = Math.sqrt(n);
     return {
+      method: 'perfect square',
       tips: [
-        `${mark(`√${n} = ${r}`)} because ${mark(`${r}² = ${n}`)}: a perfect square has a whole-number root.`,
+        `A perfect square has a whole-number root: ${mark('√n = r')} exactly when ${mark('r² = n')} for a whole number ${mark('r ≥ 0')} (${mark('√16 = 4')}, ${mark('√81 = 9')}).`,
         perfectSquares.length > 1
           ? `Roots of different numbers do not combine: ${mark('√16 + √9 = 4 + 3 = 7')}, not ${mark('√25 = 5')}.`
           : `The radical symbol means the non-negative root: ${mark(`√${n}`)} is ${mark(String(r))}, and ${mark(`−${r}`)} is the other solution of ${mark(`x² = ${n}`)}, not part of ${mark(`√${n}`)}.`,
@@ -203,6 +358,7 @@ export function arithmeticGuidance(steps, expr) {
   // the step that did so is the signal.)
   if (/the base is negative and the root is odd/.test(text) || /cbrt\(\s*-|nthRoot\(\s*-/i.test(expr)) {
     return {
+      method: 'odd root',
       tips: [
         `An odd root of a negative number is real: ${mark('∛(−8) = −2')} because ${mark('(−2)³ = −8')}.`,
         `An even root of a negative number is not real: ${mark('√(−4)')} has no real value (it is ${mark('2i')}).`,
@@ -218,6 +374,7 @@ export function arithmeticGuidance(steps, expr) {
   // (the general root tips below mentioned √2 under an answer of 2i).
   if (/the result is a complex number/.test(text)) {
     return {
+      method: 'imaginary',
       tips: [
         `The imaginary unit is ${mark('i = √(−1)')}, so ${mark('i² = −1')}. A square root of a negative number is a multiple of ${mark('i')}.`,
         `Take out the ${mark('−1')} first: ${mark('√(−4) = √4·√(−1) = 2i')}, and ${mark('√(−8) = √8·i = 2√2·i')}.`,
@@ -232,11 +389,12 @@ export function arithmeticGuidance(steps, expr) {
   if (/\b(?:sqrt|cbrt|nthRoot)\b|√|\^\s*\(?\d+\/\d+\)?|\^\s*0?\.\d+/i.test(expr)) {
     const halfPower = /\^\s*\(?\s*(?:0?\.5|1\s*\/\s*2)\s*\)?(?![0-9.])/.test(expr) && !/sqrt|√/.test(expr);
     return {
+      method: 'root',
       tips: [
         halfPower
           ? `A power of ${mark('0.5')} is a square root: ${mark('a^0.5 = a^(1/2) = √a')}, so ${mark('2^0.5 = √2 ≈ 1.4142')}.`
           : `${mark('√a')} is the non-negative number whose square is ${mark('a')}; ${mark('√2')} is irrational, so its decimal never ends or repeats.`,
-        `Rewrite roots as powers when combining them: ${mark('√a = a^(1/2)')}, ${mark('∛a = a^(1/3)')}.`,
+        `Rewrite roots as powers when combining them: ${mark('√a = a^(1/2)')} for ${mark('a ≥ 0')}, and ${mark('∛a = a^(1/3)')}, read as the real cube root when ${mark('a < 0')} (${mark('∛(−8) = −2')}).`,
         `Simplify by pulling out perfect squares: ${mark('√8 = √4·√2 = 2√2')}.`,
       ],
       common_mistakes: [
@@ -247,6 +405,7 @@ export function arithmeticGuidance(steps, expr) {
     };
   }
   return {
+    method: 'order',
     tips: [
       'PEMDAS/BODMAS order: Parentheses, Exponents, Multiplication & Division (left to right), Addition & Subtraction (left to right).',
       'Multiplication and division share a tier — resolve them left to right, not multiplication first.',

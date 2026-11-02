@@ -36,6 +36,7 @@ export {
   piForm,
   exactForm,
   exactDecimals,
+  exactDecimalSigns,
 } from './utils/text.js';
 export {
   linearCoefficients,

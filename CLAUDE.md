@@ -131,7 +131,9 @@ Each file documents its own methods at the top. Shared invariants:
   guess. Never decide a mathematical property (linearity, completeness of a
   root list) from fixed sample points — construct a proof or refuse.
 - **Exact first.** Fractions and radicals stay exact (18/5, √2, π/6); a
-  decimal is shown alongside. `formatNumber` honours the `decimalPlaces`
+  decimal is shown alongside, "=" when it is the whole value (1/2 (= 0.5)),
+  "≈" when rounded (1/3 (≈ 0.3333)): write "(≈ …)" and `finalizeResult`
+  corrects an exact one (`exactDecimalSigns`). `formatNumber` honours the `decimalPlaces`
   setting. A root located numerically is shown with ≈, `=` only when it is
   exactly the number shown.
 - **Teach the method.** Steps show the working a textbook would (u and dv,
@@ -149,7 +151,8 @@ A solver's `guidance.js` holds its tips and mistakes. Imports run one way
 imports its entry. `tests/golden/record.mjs` records every solve the
 project exercises (about 2,200) and compares a refactor against it.
 
-Modules: `arithmeticSolver` (PEMDAS working, exact fractions), `algebraSolver`
+Modules: `arithmeticSolver` (PEMDAS working, exact fractions; gcd, lcm and
+mod worked; ≈ beside a rounded decimal, = only beside an exact one), `algebraSolver`
 (equations: linear → `linearEquationSolver` in exact fractions; one exponential
 with a linear exponent isolated and logged (`solveSingleExponential`); quadratics with
 factoring or the formula; cubics and higher by the Rational Root Theorem and
@@ -251,10 +254,10 @@ differentiating" go last. An item that uses a named idea from a specific
 source is `{ text, source: { title, url } }` (a DOI or publisher link,
 `SOURCE_HOSTS`); `finalizeResult` turns it into text and keeps the source in
 `result.sources`. Integrals (1.60.0), derivatives (1.61.0), algebra
-(1.62.0), limits (1.63.0), functions (1.64.0), trigonometry (1.65.0) and
-inequalities and systems (1.66.0) are done, each with a review document in
-`docs/future-work/insights-review/`; the other topics follow one per release,
-each with a review document first. The second insight works the student's
+(1.62.0), limits (1.63.0), functions (1.64.0), trigonometry (1.65.0),
+inequalities and systems (1.66.0) and arithmetic (1.67.0) are done, each
+with a review document in `docs/future-work/insights-review/`; a new
+method gets its list the same way, with a review document first. The second insight works the student's
 own problem (read from its steps), and every statement says where it holds.
 
 Algebrite: always through `loadAlgebrite()` (a throwing direct call poisons
@@ -379,6 +382,8 @@ choosing a version number: releases land from other sessions and PRs.
   accepts natural notation (`x²`, `2x`, `∫`, `d/dx`). Scientific notation
   (`1e-6`) leaves the parser as its plain decimal (`expandScientific` for a
   solver that reads the typed text): Algebrite reads `1e-6` as `1·e − 6`.
+  A repeating decimal (`0.333...`, `0.1666…`) is read as its fraction
+  (`readRepeatingDecimals`), and `finalizeResult` says how.
 - Topic values: `auto` (Auto-detect, the default for a new visitor:
   `detectTopic` in `api/topic.js`; never saved to history, which files under the
   detected topic), `derivatives`, `integrals`, `limits`, `functions`,

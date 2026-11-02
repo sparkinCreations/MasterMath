@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.67.0] - 2026-11-01
+
+### Added
+
+- **More arithmetic insights and mistakes**, the eighth and last topic of
+  the insights plan. Each method keeps its own ranked list behind "Show
+  more", and the second insight works the student's own problem: the
+  operations in order, the common denominator, the carry, the place-value
+  split of a product, the common factor of a division, the factors of a
+  power or factorial, 15/100 × 80, the power a logarithm asks for, the
+  primes of a gcd or lcm, the remainder of a mod, the square pulled out of
+  a root; for numbers, the primes tried, the primes divided out, the
+  deciding digit. The order of operations says its conventions where the
+  problem relies on them: 8/2(2+2) is read left to right, 2^3^2 is 2^(3^2).
+  Review: `docs/future-work/insights-review/ARITHMETIC.md`.
+- **gcd, lcm and mod are worked**: from the prime factorizations ("the
+  shared primes at their lower powers"), and as a division with remainder
+  (17 = 3 × 5 + 2). (−8)^(1/3) is worked: 8^(1/3) = 2, since 2³ = 8.
+- **Repeating decimals**: 0.333… and 0.142857142857... are read as 1/3 and
+  1/7, and the step says how (0.1666… = (16 − 1)/90 = 1/6).
+
+### Fixed
+
+- **−7 mod 5 was −2**, against the solver's own mistake list: the minus was
+  applied after the mod. It is 3.
+- **0.333... was 333/1000**: the dots were dropped as punctuation.
+- **3.5! was 11.6317**, as if it were a factorial: it is the gamma
+  function's Γ(4.5) ≈ 11.6317, and the step says so. (−5)! showed the
+  engine's "Value must be non-negative"; it is undefined, in words.
+- **A rounded decimal was shown as exact**: log(8) was "0.9031" (now
+  log(8) ≈ 0.9031), 1/7 was "1/7 (= 0.1429)" (now ≈), and a step said
+  "2 ^ 0.5 = 1.4142". "=" stays only where the decimal is the whole value
+  (1/8 = 0.125).
+- **log(−1) was "1.3644i"** beside a tip that logarithms need positive
+  numbers: the step says it has no real value, and that what is shown is
+  the principal complex value, πi/ln(10) ≈ 1.3644i.
+- The addition tip's example was "1000000 + 2" for every sum; the worked
+  line now carries the student's own numbers.
+- The common-log note no longer pushes the worked line out of second place.
+- **2^3^2 did not typeset** (a double superscript): stacked powers are
+  nested, 2^{3^{2}}.
+- **One rule for the decimal beside a fraction, in every topic**:
+  trigonometry, limits, integrals and the rest wrote "1/2 (≈ 0.5)" while
+  arithmetic wrote "=", the same 0.5 shown two ways. Now "=" when the
+  decimal is the fraction's whole value (1/2 (= 0.5), 9/8 (= 1.125)) and
+  "≈" when it is rounded (1/3 (≈ 0.3333), 1/32 (≈ 0.0313)), decided in
+  whole numbers by `exactDecimalSigns` and applied once, in
+  `finalizeResult`.
+- **After the outside review (Round 36):** log(−1)'s answer says "No real
+  value; principal complex value πi/ln(10) ≈ 1.3644i", not "≈ 1.3644i";
+  the factorial mistake says where the gamma function applies; the
+  logarithm, power, gcd × lcm, mod and cube-root rules each say where they
+  hold; a repeating decimal has its own mistakes, and (Round 37) its own
+  insights after the worked line; its working starts from the problem as
+  typed, "Evaluate: 0.333…" (Round 38).
+
 ## [1.66.0] - 2026-11-01
 
 ### Added

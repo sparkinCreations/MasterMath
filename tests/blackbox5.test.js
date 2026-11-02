@@ -144,7 +144,7 @@ test('a bare function name is a parse error with a hint, not an engine error', a
 });
 
 test('"sin x", "cos 30", "2 sin(x)": spaced function arguments', async () => {
-  assert.equal((await solveProblem('sin 30', 'trigonometry')).answer, '1/2 (≈ 0.5)');
+  assert.equal((await solveProblem('sin 30', 'trigonometry')).answer, '1/2 (= 0.5)');
   assert.match((await solveProblem('sin x = 1/2', 'trigonometry')).answer, /^x = π\/6 \+ 2πn/);
   assert.equal((await solveProblem('2 sin x', 'derivatives')).answer, "f'(x) = 2cos(x)");
   assert.equal((await solveProblem('2 sin(x)', 'derivatives')).answer, "f'(x) = 2cos(x)"); // was f'(s) = 0
@@ -186,7 +186,7 @@ test('edge: arithmetic — ln(0) undefined, 0^-1 undefined, 0^0 by convention, "
   assert.equal((await solveProblem('0^-1', 'other')).status, 'undefined');
   assert.equal((await solveProblem('0^0', 'other')).answer, '1 (by convention)');
   assert.equal((await solveProblem('2 3', 'other')).status, 'parse_error');
-  assert.equal((await solveProblem('ln(-1)', 'other')).answer, 'πi');
+  assert.equal((await solveProblem('ln(-1)', 'other')).answer, 'No real value; principal complex value πi'); // 1.67.0 (Round 36): the answer says there is no real value first
   assert.equal((await solveProblem('sqrt(-4)', 'other')).answer, '2i');
   const s = await solveProblem('sqrt(-1)', 'other');
   assert.ok(s.steps.filter((x) => /Work inside/.test(x)).length <= 1, 'no repeated paren steps');
@@ -272,7 +272,7 @@ test('improper integrals to ±∞ are evaluated as limits, or reported divergent
   assert.equal(d.status, 'diverges');
   assert.match(d.answer, /diverges$/);
   assert.equal((await solveProblem('∫_0^∞ sin(x) dx', 'integrals')).status, 'diverges');
-  assert.match((await solveProblem('integral of e^(-2x) from 0 to infinity', 'integrals')).answer, /= 1\/2 \(≈ 0\.5\)$/);
+  assert.match((await solveProblem('integral of e^(-2x) from 0 to infinity', 'integrals')).answer, /= 1\/2 \(= 0\.5\)$/); // 1.67.0: "=" beside an exact decimal
 });
 
 test('3×3 linear systems by elimination, exact, with the trichotomy', async () => {

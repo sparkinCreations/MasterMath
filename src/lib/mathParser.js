@@ -165,6 +165,11 @@ export function parseMathExpression(input) {
   // factorial so it stays one.
   cleaned = cleaned.replace(/([\w)])!\s*=(?!=)/g, '($1!) =');
 
+  // 0.333… and 0.142857142857... are repeating decimals: the block that
+  // repeats is read as repeating forever (1/3, 1/7), not cut off at the
+  // dots, which made 0.333... the number 333/1000 (1.67.0).
+  cleaned = readRepeatingDecimals(cleaned);
+
   // Remove trailing sentence punctuation ("What is 5+3?") — but preserve a
   // factorial `!` that follows a number or a closing paren (`7!`, `(x+1)!`).
   cleaned = cleaned.replace(/[.?]+$/, '').trim();
@@ -265,6 +270,9 @@ export function parseMathExpression(input) {
   // Word operator "mod". Every space is stripped further down, which would
   // fuse "7 mod 3" into the symbol "7mod3"; rewrite the numeric infix form
   // to mathjs's function form first.
+  // A minus at the start, or after an operator or "(", belongs to the
+  // dividend: −7 mod 5 is (−7) mod 5 = 3, not −(7 mod 5) = −2 (1.67.0).
+  cleaned = cleaned.replace(/(^|[(,*/^+]\s*|^\s*)-\s*(\d+(?:\.\d+)?)\s+mod\s+(\d+(?:\.\d+)?)/gi, '$1mod(-$2,$3)');
   cleaned = cleaned.replace(/(\d+(?:\.\d+)?)\s+mod\s+(\d+(?:\.\d+)?)/gi, 'mod($1,$2)');
 
   // First, protect mathematical constants and functions by replacing them with placeholders
@@ -429,8 +437,9 @@ export function extractFunctionFromProblem(problemText) {
   // "What is 5 + 3?" -> "5 + 3"
   // "d/dx x^3" -> "x^3"
 
-  // Clean up trailing sentence punctuation, but keep a factorial `!`.
-  let text = problemText.trim().replace(/[.?]+$/, '').trim();
+  // Clean up trailing sentence punctuation, but keep a factorial `!`; a
+  // repeating decimal's dots are read first (0.333… is 1/3).
+  let text = readRepeatingDecimals(problemText.trim()).replace(/[.?]+$/, '').trim();
   text = text.replace(/(?<![\d)])!+$/, '').trim();
   // A trailing parenthetical instruction — "(solve for y)", "(find x)" — is
   // routing information, not part of the expression.
@@ -540,4 +549,67 @@ function scientificAsDecimal(mantissa, exponent) {
   out = out.replace(/^0+(?=\d)/, '');
   if (out.includes('.')) out = out.replace(/0+$/, '').replace(/\.$/, '');
   return out;
+}
+
+// Every repeating decimal in a text (0.333…, 0.1666...) as its fraction.
+export function readRepeatingDecimals(text) {
+  return String(text).replace(/(\d+)\.(\d+)(?:\.{3}|…)/g, (m, whole, digits) => repeatingDecimal(whole, digits) ?? `${whole}.${digits}`);
+}
+
+// How each repeating decimal in a text is read, worked: "0.1666… =
+// (16 − 1)/90 = 15/90 = 1/6". For the step that says so (finalize.js).
+export function repeatingDecimalNotes(text) {
+  const out = [];
+  for (const m of String(text).matchAll(/(\d+)\.(\d+)(?:\.{3}|…)/g)) {
+    const [typed, whole, digits] = m;
+    const value = repeatingDecimal(whole, digits);
+    if (!value) continue;
+    const parts = repeatingParts(whole, digits);
+    const reduced = value.replace(/^\((.*)\)$/, '$1');
+    const raw = `${parts.n}/${parts.d}`;
+    const worked = parts.without === '0'
+      ? `${typed.replace(/\.\.\.$/, '…')} = ${raw}${raw === reduced ? '' : ` = ${reduced}`}`
+      : `${typed.replace(/\.\.\.$/, '…')} = (${parts.withBlock} − ${parts.without})/${parts.d} = ${raw}${raw === reduced ? '' : ` = ${reduced}`}`;
+    out.push({ typed, block: parts.block, worked, value: reduced });
+  }
+  return out;
+}
+
+function repeatingParts(whole, digits) {
+  for (let p = 1; p <= 6; p += 1) {
+    const block = digits.slice(-p);
+    if (digits.length < 2 * p || digits.slice(-2 * p, -p) !== block) continue;
+    let start = digits.length - 2 * p;
+    while (start >= p && digits.slice(start - p, start) === block) start -= p;
+    const lead = digits.slice(0, start);
+    const withBlock = BigInt(`${whole}${lead}${block}`);
+    const without = BigInt(`${whole}${lead}`);
+    return { block, withBlock: String(withBlock), without: String(without), n: String(withBlock - without), d: String(10n ** BigInt(lead.length) * (10n ** BigInt(p) - 1n)) };
+  }
+  return null;
+}
+
+// "0.1666…" as a fraction: the shortest block (of up to six digits) that the
+// digits end with, at least twice (a single digit at least twice: 0.33…).
+// Null when no block repeats, so the decimal is read as typed.
+function repeatingDecimal(whole, digits) {
+  for (let p = 1; p <= 6; p += 1) {
+    const block = digits.slice(-p);
+    if (digits.length < 2 * p || digits.slice(-2 * p, -p) !== block) continue;
+    // The digits before the repeats start: 0.1666… is 0.1 then 6 repeating.
+    let start = digits.length - 2 * p;
+    while (start >= p && digits.slice(start - p, start) === block) start -= p;
+    const lead = digits.slice(0, start);
+    const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+    // x = whole.lead(block)… = (whole·lead·block − whole·lead) / (10^lead·(10^p − 1))
+    const withBlock = BigInt(`${whole}${lead}${block}`);
+    const without = BigInt(`${whole}${lead}`);
+    let n = withBlock - without;
+    let d = (10n ** BigInt(lead.length)) * (10n ** BigInt(p) - 1n);
+    const g = gcd(n, d);
+    n /= g;
+    d /= g;
+    return d === 1n ? String(n) : `(${n}/${d})`;
+  }
+  return null;
 }

@@ -107,11 +107,15 @@ export function primeCheck(text) {
     steps.push(`Try the primes in order: ${mark(`${n} ÷ ${p} = ${q}`)} exactly, so ${mark(String(p))} divides ${mark(String(n))}.`);
     steps.push(`${mark(`${n} = ${p} × ${q}`)}: it has a divisor other than ${mark('1')} and itself, so it is not prime (it is composite).`);
     if (factors.length > 1 || factors[0].k > 1) steps.push(`Its prime factorization: ${mark(`${n} = ${productText(factors)}`)}.`);
-    return { steps, answer: `${n} is not prime: ${n} = ${p} × ${q}`, tips, common_mistakes, graph: null };
+    // The worked line second (1.67.0): how far the trial division had to go.
+    const tried = primesUpTo(Number(p)).map(String);
+    const here = `Here: ${tried.length > 1 ? `${tried.slice(0, -1).map((t) => mark(t)).join(', ')} leave a remainder, and ` : ''}${mark(String(p))} divides it: ${mark(`${n} = ${p} × ${q}`)}, so ${mark(String(n))} is composite.`;
+    return { steps, answer: `${n} is not prime: ${n} = ${p} × ${q}`, tips: [tips[0], here, ...tips.slice(1)], common_mistakes, graph: null };
   }
   if (n === 2n || n === 3n) {
     steps.push(`${mark(String(n))} has no divisor between ${mark('1')} and itself, so it is prime${n === 2n ? ' (the only even prime)' : ''}.`);
-    return { steps, answer: `${n} is prime`, tips, common_mistakes, graph: null };
+    const here = `Here: the only whole numbers between ${mark('1')} and ${mark(String(n))} are ${n === 2n ? 'none' : mark('2')}${n === 2n ? '' : `, and it leaves a remainder`}, so ${mark(String(n))} is prime.`;
+    return { steps, answer: `${n} is prime`, tips: [tips[0], here, ...tips.slice(1)], common_mistakes, graph: null };
   }
   steps.push(`If ${mark(String(n))} had a divisor other than ${mark('1')} and itself, one would be at most ${mark(`√${n} ≈ ${formatNumber(Math.sqrt(Number(n)))}`)}, so only the primes up to ${mark(String(root))} need testing.`);
   if (root <= 60n) {
@@ -125,7 +129,9 @@ export function primeCheck(text) {
     steps.push(`No prime from ${mark('2')} to ${mark(String(root))} divides ${mark(String(n))}: each division leaves a remainder.`);
   }
   steps.push(`So ${mark(String(n))} is prime.`);
-  return { steps, answer: `${n} is prime`, tips, common_mistakes, graph: null };
+  const primes = root <= 60n ? primesUpTo(Number(root)).map(String) : null;
+  const here = `Here: ${mark(`√${n} ≈ ${formatNumber(Math.sqrt(Number(n)))}`)}, so ${primes ? `only ${primes.map((t) => mark(t)).join(', ')} need trying, and` : `only the primes up to ${mark(String(root))} need trying, and`} none of them divides ${mark(String(n))}: it is prime.`;
+  return { steps, answer: `${n} is prime`, tips: [tips[0], here, ...tips.slice(1)], common_mistakes, graph: null };
 }
 
 export function primeFactorization(text) {
@@ -147,11 +153,15 @@ export function primeFactorization(text) {
   }
   const answer = factors.length === 1 && factors[0].k === 1 ? `${n} = ${n} (${n} is prime)` : `${n} = ${productText(factors)}`;
   steps.push(`So ${mark(answer.replace(/ \(.*\)$/, ''))}${factors.length === 1 && factors[0].k === 1 ? `: ${mark(String(n))} is prime` : ''}.`);
+  const here = factors.length === 1 && factors[0].k === 1
+    ? `Here: no prime smaller than ${mark(String(n))} divides it, so ${mark(String(n))} is its own factorization.`
+    : `Here: ${factors.map((f) => `${mark(String(f.p))} goes in ${f.k === 1 ? 'once' : f.k === 2 ? 'twice' : `${TIMES[f.k] || f.k} times`}`).join(', ')}, so ${mark(answer)}.`;
   return {
     steps,
     answer,
     tips: [
       'Every whole number greater than 1 is a product of primes in exactly one way (the Fundamental Theorem of Arithmetic).',
+      here,
       `Group repeated factors with exponents: ${mark('2 × 2 × 2 = 2^3')}.`,
       'The factorization gives the divisors, the GCD and the LCM: the GCD takes the lower power of each prime, the LCM the higher.',
     ],
@@ -277,6 +287,9 @@ export function roundNumber(valueText, spec) {
     answer: out,
     tips: [
       `Look only at the digit just after the last one you keep: ${mark('5')} or more rounds up, less than ${mark('5')} rounds down.`,
+      places >= scale
+        ? `Here: ${mark(dec.digits)} has nothing past the ${placeName} place, so it is already rounded: ${mark(out)}.`
+        : `Here: the deciding digit, just after the ${mark(String(kept))} in the ${placeName} place, is ${mark(String(next))}, so ${roundedUp ? 'round up' : 'round down'}: ${mark(out)}.`,
       spec.sig !== undefined
         ? `Significant figures count from the first non-zero digit: ${mark('0.004567')} to 2 significant figures is ${mark('0.0046')}.`
         : places <= 0

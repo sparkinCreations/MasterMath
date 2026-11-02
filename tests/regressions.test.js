@@ -379,9 +379,9 @@ test('regression: symbolic trig that cannot simplify says so honestly', async ()
 
 test('regression: numeric trig still evaluates after the symbolic split', async () => {
   const r = await solveProblem('sin(pi/6)', 'trigonometry');
-  // Exact-first since v1.19.0: "1/2 (≈ 0.5)". The point of this regression is
+  // Exact-first since v1.19.0: "1/2 (= 0.5)". The point of this regression is
   // that the value is computed at all — assert the value, in either form.
-  assert.match(r.answer, /^(?:1\/2 \(≈ 0\.5\)|0\.5)/);
+  assert.match(r.answer, /^(?:1\/2 \([=≈] 0\.5\)|0\.5)/);
 });
 
 // ---------------------------------------------------------------------------
@@ -1202,7 +1202,7 @@ test('inequalities: "and" intersects, "or" unites, and the trivial outcomes are 
 test('fractions: sums and differences are taught by common denominators, never via decimals', async () => {
   for (const input of ['1/3 + 1/7', '(1/3) + (1/7)', 'add 1/3 and 1/7', 'what is the sum of 1/3 and 1/7?']) {
     const r = await solvePlain(input, 'other');
-    assert.equal(r.answer, '10/21 (= 0.4762)', input);
+    assert.equal(r.answer, '10/21 (≈ 0.4762)', input); // 1.67.0: a rounded decimal says ≈
     const work = r.steps.join('\n');
     assert.match(work, /least common denominator is 21/, input);
     assert.match(work, /1\/3 = 7\/21/, input);
@@ -1218,7 +1218,7 @@ test('fractions: sums and differences are taught by common denominators, never v
   assert.match(mixed.steps.join('\n'), /\(8 - 1 \+ 2\)\/4 = 9\/4/);
   const negative = await solvePlain('-1/3 + 1/7', 'other');
   assert.match(negative.steps.join('\n'), /\(-7 \+ 3\)\/21 = -4\/21/);
-  assert.equal(negative.answer, '-4/21 (= -0.1905)');
+  assert.equal(negative.answer, '-4/21 (≈ -0.1905)'); // 1.67.0: a rounded decimal says ≈
   // Fraction-relevant guidance, not PEMDAS boilerplate.
   assert.match(reduce.tips.join('\n'), /common denominator/);
   assert.match(reduce.common_mistakes.join('\n'), /1\/3 \+ 1\/7 is not 2\/10/);
@@ -1229,7 +1229,7 @@ test('fractions: products multiply across and quotients use the reciprocal', asy
   assert.equal(product.answer, '1/2 (= 0.5)');
   assert.match(product.steps.join('\n'), /\(2 × 3\)\/\(3 × 4\) = 6\/12/);
   const quotient = await solvePlain('(1/2)/(3/4)', 'other');
-  assert.equal(quotient.answer, '2/3 (= 0.6667)');
+  assert.equal(quotient.answer, '2/3 (≈ 0.6667)'); // 1.67.0: a rounded decimal says ≈
   assert.match(quotient.steps.join('\n'), /reciprocal: 1\/2 ÷ 3\/4 = 1\/2 × 4\/3/);
   // A parenthesised group that works out to a fraction is shown as one.
   const grouped = await solvePlain('(1/3 + 1/7)*21', 'other');
@@ -1300,12 +1300,13 @@ test('∫e^(−x²) dx explains the error function instead of calling it a rule'
 
 test('word arithmetic is read as arithmetic: add / subtract from / times / divided by / sum of', async () => {
   const cases = [
-    ['add 1/3 and 1/7', '10/21 (= 0.4762)'],
+    // 1.67.0: a rounded decimal says ≈.
+    ['add 1/3 and 1/7', '10/21 (≈ 0.4762)'],
     ['add 2 to 3', '5'],
     ['subtract 2 from 9', '7'],
     ['multiply 2/3 by 3/4', '1/2 (= 0.5)'],
-    ['divide 1/2 by 3/4', '2/3 (= 0.6667)'],
-    ['the quotient of 1/2 and 3/4', '2/3 (= 0.6667)'],
+    ['divide 1/2 by 3/4', '2/3 (≈ 0.6667)'],
+    ['the quotient of 1/2 and 3/4', '2/3 (≈ 0.6667)'],
     ['calculate the product of 5 and 6', '30'],
     ['the difference between 10 and 4', '6'],
     ['what is 5 plus 3', '8'],
@@ -1772,7 +1773,9 @@ test('arithmetic guidance follows the feature: negative exponent, factorial, per
   assert.match((await solvePlain('2^-3', 'other')).common_mistakes[1], /minus sign is in the exponent/);
   const fact = await solvePlain('7!', 'other');
   assert.equal(fact.steps[1], '7! means the product of every whole number from 7 down to 1: 7 × 6 × 5 × 4 × 3 × 2 × 1 = 5040.');
-  assert.match(fact.tips[1], /0! = 1 by definition/);
+  // 1.67.0: the second insight works the problem; the 0! rule follows it.
+  assert.match(fact.tips[1], /^Here: 7! = 7 × 6 × 5 × 4 × 3 × 2 × 1 = 5040\.$/);
+  assert.match(fact.tips[2], /0! = 1 by definition/);
   assert.match((await solvePlain('50% of 80', 'other')).answer, /^40$/);
   assert.match((await solvePlain('sqrt(2)', 'other')).tips[0], /√2 is irrational/);
   assert.match((await solvePlain('(5 + 3) * 4 - 2^3', 'other')).tips[0], /^PEMDAS/);

@@ -1,9 +1,9 @@
 // The result gate (finalizeResult): every result's status enforced and
 // anything that is not presentable text refused; the routing note.
 
-import { usesCommonLog, matchingParen } from '../mathParser.js';
+import { usesCommonLog, matchingParen, repeatingDecimalNotes } from '../mathParser.js';
 import { STATUS, isValidStatus, unsupported } from '../solutionEnvelope.js';
-import { math, formatNumber } from '../solvers/solverUtils.js';
+import { math, formatNumber, mark, exactDecimalSigns } from '../solvers/solverUtils.js';
 import { stripMathMarkers } from '../mathMarkers.js';
 import { splitGuidance } from '../guidance.js';
 
@@ -104,6 +104,13 @@ export function finalizeResult(result, input) {
   if (Object.keys(sources).length) result.sources = sources;
   else delete result.sources;
   if (Array.isArray(result.warnings)) result.warnings = result.warnings.map(stripMathMarkers);
+  // One rule for the decimal beside a fraction, in every topic: "=" when it
+  // is the whole value (1/2 (= 0.5)), "≈" when rounded (exactDecimalSigns).
+  result.answer = exactDecimalSigns(result.answer);
+  result.steps = result.steps.map(exactDecimalSigns);
+  result.tips = result.tips.map(exactDecimalSigns);
+  result.common_mistakes = result.common_mistakes.map(exactDecimalSigns);
+  if (result.sources) result.sources = Object.fromEntries(Object.entries(result.sources).map(([k, v]) => [exactDecimalSigns(k), v]));
   if (!isValidStatus(result.status)) {
     // Legacy shim: the pre-envelope failure convention was an answer string
     // starting with "Unable to". Anything else counts as solved. Only an
@@ -117,8 +124,42 @@ export function finalizeResult(result, input) {
     }
   }
   // Say which logarithm convention was applied, once, on solved results only.
+  // 0.333… was read as the repeating decimal 1/3: say so, worked, as the
+  // second step (after the one that restates the problem); for a problem
+  // that is only that decimal, it is the worked line too (1.67.0).
+  const repeats = repeatingDecimalNotes(input || '');
+  if (repeats.length && result.status === STATUS.SOLVED && result.steps.length) {
+    const note = repeats.map((r) => `${mark(r.typed.replace(/\.\.\.$/, '…'))} is a repeating decimal: the block ${mark(r.block)} repeats forever, so ${mark(r.worked)}.`).join(' ');
+    // The first step restates the problem as typed: "Evaluate: 0.333…", not
+    // the "(1/3)" the parser made of it (Round 38).
+    let first = result.steps[0];
+    for (const r of repeats) first = first.split(`(${r.value})`).join(r.typed.replace(/\.\.\.$/, '…'));
+    result.steps = [first, note, ...result.steps.slice(1)];
+    if (repeats.length === 1 && String(input).trim().replace(/\.\.\.$|…$/, '') === repeats[0].typed.replace(/\.\.\.$|…$/, '')) {
+      const here = `Here: ${mark(repeats[0].worked)}: the repeating block over as many 9s as it has digits${repeats[0].worked.includes('−') ? ', after the digits that do not repeat are taken off' : ''}.`;
+      // Its own insights after the worked line, not the rest of the order of
+      // operations' list (Round 37).
+      result.tips = [
+        `A repeating decimal is a fraction: a block of ${mark('k')} digits repeating forever is that block over ${mark('k')} nines (${mark('0.333… = 3/9')}, ${mark('0.142857… = 142857/999999')}), reduced.`,
+        here,
+        `A repeating decimal is exact, not approximate: the dots mean the digits go on forever, so ${mark('0.333… = 1/3')}, while ${mark('0.333 = 333/1000')}.`,
+        `When some digits come before the repeat starts, take them off first: ${mark('0.1666… = (16 − 1)/90 = 15/90 = 1/6')}.`,
+        `Check by dividing: ${mark('1 ÷ 3 = 0.333…')}. Every fraction is a decimal that ends or repeats, and every such decimal is a fraction.`,
+      ];
+      // Its own mistakes, not the order of operations' (Round 37).
+      result.common_mistakes = [
+        `Taking the rounded ${mark('0.333')} for the exact ${mark('0.333…')}: ${mark('0.333 = 333/1000')}, which is ${mark('1/3000')} short of ${mark('1/3')}.`,
+        `Putting the repeating block over a power of ten: ${mark('0.333…')} is ${mark('3/9')}, not ${mark('3/10')}.`,
+        `Forgetting the digits that do not repeat: ${mark('0.1666…')} is ${mark('(16 − 1)/90 = 1/6')}, not ${mark('16/99')}.`,
+        `Thinking ${mark('0.999…')} is just below ${mark('1')}: it is ${mark('9/9 = 1')} exactly.`,
+      ];
+    }
+  }
+  // After the method's insight and its worked "Here: …" line, which stay
+  // first and second (1.67.0); first when there is no worked line.
   if (result.status === STATUS.SOLVED && usesCommonLog(input || '') && !result.tips.includes(COMMON_LOG_TIP)) {
-    result.tips = [COMMON_LOG_TIP, ...result.tips];
+    const at = /^Here:/.test(stripMathMarkers(String(result.tips[1] || ''))) ? 2 : 0;
+    result.tips = [...result.tips.slice(0, at), COMMON_LOG_TIP, ...result.tips.slice(at)];
   }
   // 8/2(2+2), 6/2x, 1/2pi: division followed by implicit multiplication is
   // read left to right (as every calculator and the parser do), but many

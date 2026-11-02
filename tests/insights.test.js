@@ -464,8 +464,8 @@ test('limits: what pulls one way is read off; ln(x) and x·sin(x) at ∞ were wr
 
 test('limits: the conjugate at infinity, both signs and both directions', async () => {
   for (const [p, answer] of [
-    ['lim x->infinity sqrt(x^2+x)-x', '1/2 (≈ 0.5)'], ['lim x->infinity x - sqrt(x^2 + 3x)', '-3/2 (≈ -1.5)'],
-    ['lim x->-infinity sqrt(x^2+x)+x', '-1/2 (≈ -0.5)'], ['lim x->infinity sqrt(4x^2+x)-2x', '1/4 (≈ 0.25)'],
+    ['lim x->infinity sqrt(x^2+x)-x', '1/2 (= 0.5)'], ['lim x->infinity x - sqrt(x^2 + 3x)', '-3/2 (= -1.5)'],
+    ['lim x->-infinity sqrt(x^2+x)+x', '-1/2 (= -0.5)'], ['lim x->infinity sqrt(4x^2+x)-2x', '1/4 (= 0.25)'],
   ]) {
     const r = await plainLim(p);
     assert.equal(r.answer.split(' = ').pop(), answer, p);
@@ -836,7 +836,7 @@ test('trigonometry review: cot = 0, the phase quadrant, the Auto reading', async
   assert.match((await plainTrig('-sin(x) + cos(x) = 1')).steps.join('\n'), /φ = 3π\/4 \(in quadrant II, since a < 0\)/);
   // A bare common angle under Auto: read as degrees, and the first insight says so.
   const auto = await plainTrig('sin(30)');
-  assert.equal(auto.answer, '1/2 (≈ 0.5)');
+  assert.equal(auto.answer, '1/2 (= 0.5)');
   assert.match(auto.tips[0], /^The angle unit is on Auto, so a bare common angle such as 30 is read as degrees/);
   assert.ok(auto.steps.some((s) => /if you meant radians, the result would be -0\.988/.test(s)));
 });
@@ -864,11 +864,11 @@ test('trigonometry second review: a negative principal value, the angle unit in 
   // Set as the worker does (this file has no localStorage for saveSettings).
   const { primeSettings, autoDegreeAngle } = await import('../src/lib/settings.js');
   const at = async (p, unit) => { primeSettings(unit ? { angleUnit: unit } : null); try { return (await solveProblem(p, 'trigonometry')).answer; } finally { primeSettings(null); } };
-  assert.equal(await at('sin(30)'), '1/2 (≈ 0.5)'); // Auto, the default
+  assert.equal(await at('sin(30)'), '1/2 (= 0.5)'); // Auto, the default
   assert.equal(await at('sin(30)', 'radians'), '≈ -0.988');
-  assert.equal(await at('sin(30)', 'degrees'), '1/2 (≈ 0.5)');
-  assert.equal(await at('sin(30°)', 'radians'), '1/2 (≈ 0.5)');
-  assert.equal(await at('sin(pi/6)', 'degrees'), '1/2 (≈ 0.5)');
+  assert.equal(await at('sin(30)', 'degrees'), '1/2 (= 0.5)');
+  assert.equal(await at('sin(30°)', 'radians'), '1/2 (= 0.5)');
+  assert.equal(await at('sin(pi/6)', 'degrees'), '1/2 (= 0.5)');
   // The note under the input names the bare common angle Auto will read as degrees.
   assert.equal(autoDegreeAngle('sin(30)'), 30);
   assert.equal(autoDegreeAngle('2*cos(60) + 1'), 60);
@@ -1071,7 +1071,7 @@ test('decimals reach the engines as fractions: integrals and derivatives solve e
     ['integrals', 'integral of 0.5*sin(x) dx', '∫(0.5sin(x)) dx = -1/2*cos(x) + C'],
     ['integrals', 'integral of e^(0.5x) dx', '∫(e^(0.5x)) dx = 2e^(1/2*x) + C'],
     ['integrals', 'integral of x^1.5 dx', '∫(x^1.5) dx = 2/5*x^(5/2) + C'],
-    ['integrals', 'integral from 0 to 1.5 of x dx', '∫_0^1.5 (x) dx = 9/8 (≈ 1.125)'],
+    ['integrals', 'integral from 0 to 1.5 of x dx', '∫_0^1.5 (x) dx = 9/8 (= 1.125)'],
     // The exact value's natural log was shown as Algebrite's log after a digit: 2log(2).
     ['integrals', 'integral from 0.5 to 2 of 1/x dx', '∫_0.5^2 (1/x) dx = 2ln(2) (≈ 1.3863)'],
     ['integrals', 'integral from 1/2 to 2 of 1/x dx', '∫_1/2^2 (1/x) dx = 2ln(2) (≈ 1.3863)'],
@@ -1112,4 +1112,113 @@ test('inequalities and systems, Round 34: each shared statement says where it ho
   assert.match((await plainIneq('y = x + 1; x^2 + y^2 = 25')).tips[2], /A line can meet a parabola or a circle at 0, 1 or 2 points/);
   // A pivot with no equation to swap in: that variable is free.
   assert.match(await all('x + y + z = 6; 2x - y + z = 3; x + 2y - z = 2'), /If none has it, that variable is free/);
+});
+
+// --- Arithmetic (1.67.0) ----------------------------------------------------------
+
+const plainArith = async (p, topic = 'other') => (await import('./helpers/solvePlain.js')).solvePlain(p, topic);
+
+test('arithmetic: each method leads with its own insight, and the second works the problem', async () => {
+  const cases = [
+    ['order', '(5 + 3) * 4 - 2^3', /^Here: \(5\+3\) = 8, then 2 \^ 3 = 8, then 8 × 4 = 32, then 32 - 8 = 24\.$/],
+    ['fractions', '3/4 + 5/6', /^Here: over the common denominator, 9\/12 \+ 10\/12 = \(9 \+ 10\)\/12 = 19\/12\.$/],
+    ['fraction product', '2/3 * 9/4', /18\/12, which reduces: 18\/12 = 3\/2/],
+    ['fraction quotient', '(1/2) / (3/4)', /1\/2 × 4\/3 = \(1 × 4\)\/\(2 × 3\) = 4\/6/],
+    ['negative exponent', '2^-3', /^Here: 2\^\(-3\) = 1\/2\^3 = 1\/8/],
+    ['factorial', '7!', /^Here: 7! = 7 × 6 × 5 × 4 × 3 × 2 × 1 = 5040\.$/],
+    ['percent', '15% of 80', /^Here: 15% of 80 = 15\/100 × 80 = 12\.$/],
+    ['logarithm', 'ln(8)', /^Here: ln\(8\) asks for the power of e that gives 8/],
+    ['gcd', 'gcd(12, 18)', /^Here: 12 = 2\^2 × 3 and 18 = 2 × 3\^2; the shared primes at their lower powers give 2 × 3 = 6\.$/],
+    ['mod', '17 mod 5', /^Here: 17 = 3 × 5 \+ 2, so the remainder is 2\.$/],
+    ['negative base', '-3^2', /−\(3\^2\) = -9/],
+    ['power', '2^5', /2 × 2 × 2 × 2 × 2 = 32/],
+    ['sum', '25 + 17', /write 2 and carry 1/],
+    ['product', '23 * 47', /23 × 40 \+ 23 × 7 = 920 \+ 161 = 1081/],
+    ['division', '100/8', /share the factor 4: 100\/8 = 25\/2 = 12\.5/],
+    ['perfect square', 'sqrt(16)', /^Here: √16 = 4 because 4² = 16\.$/],
+    ['root', 'sqrt(50)', /50 = 25 × 2, so √50 = √25·√2 = 5√2/],
+    ['odd root', '(-8)^(1/3)', /8\^\(1\/3\) = 2, since 2\^3 = 8/],
+    ['complex', '(2+3i)*(1-i)', /^Here: \(2 \+ 3i\)\(1 - i\) = 2 − 2i \+ 3i − 3i\^2 = 2 \+ 3 \+ i = 5 \+ i\.$/],
+  ];
+  const seen = new Map();
+  for (const [method, problem, here] of cases) {
+    const r = await plainArith(problem);
+    const first = r.tips[0];
+    assert.ok(!seen.has(first) || seen.get(first) === method, `"${method}" and "${seen.get(first)}" share "${first}"`);
+    seen.set(first, method);
+    assert.match(r.tips[1], here, `${method}: ${r.tips[1]}`);
+  }
+  // The order of operations says the conventions this problem relies on.
+  assert.match((await plainArith('8/2(2+2)')).tips.join('\n'), /read left to right, \(8\/2\)·4 = 16/);
+  assert.match((await plainArith('2^3^2')).tips.join('\n'), /2\^3\^2 = 2\^\(3\^2\) = 2\^9 = 512/);
+  // The common-log note comes after the worked line, not before it.
+  const log = await plainArith('log(8)');
+  assert.match(log.tips[1], /^Here: log\(8\) asks for the power of 10/);
+  // Number questions work the problem too.
+  assert.match((await plainArith('is 91 prime', 'auto')).tips[1], /^Here: 2, 3, 5 leave a remainder, and 7 divides it: 91 = 7 × 13/);
+  assert.match((await plainArith('prime factorization of 360', 'auto')).tips[1], /^Here: 2 goes in three times, 3 goes in twice, 5 goes in once/);
+  assert.match((await plainArith('round 3.14159 to 2 decimal places', 'auto')).tips[1], /^Here: the deciding digit, just after the 4 in the hundredths place, is 1, so round down: 3\.14\.$/);
+});
+
+test('arithmetic: answers found wrong by the sweep, and ≈ only where the decimal is rounded', async () => {
+  const cases = [
+    ['-7 mod 5', '3'], // was −(7 mod 5) = −2, against its own tip
+    ['10 - 7 mod 5', '8'],
+    ['0.333...', '1/3 (≈ 0.3333)'], ['0.142857142857...', '1/7 (≈ 0.1429)'], ['0.999...', '1'], // a repeating decimal, not 333/1000
+    ['3.5!', '≈ 11.6317'], // the gamma function, and rounded
+    ['log(8)', 'log(8) ≈ 0.9031'], ['ln(8)', 'ln(8) ≈ 2.0794'], ['log(5, 2)', 'log_2(5) ≈ 2.3219'], ['log(0.001)', '-3'],
+    ['1/7', '1/7 (≈ 0.1429)'], ['1/8', '1/8 (= 0.125)'], ['2^0.5', '≈ 1.4142'],
+    // Round 36: no real value said first, then the complex value shown.
+    ['log(-1)', 'No real value; principal complex value πi/ln(10) ≈ 1.3644i'], ['ln(-1)', 'No real value; principal complex value πi'],
+    ['ln(-2)', 'No real value; principal complex value ln(2) + πi ≈ 0.6931 + 3.1416i'],
+  ];
+  for (const [p, answer] of cases) assert.equal((await solveProblem(p, 'other')).answer, answer, p);
+  const neg = await solveProblem('(-5)!', 'other');
+  assert.equal(neg.status, 'undefined');
+  assert.match(neg.answer, /factorial of a negative number is undefined/);
+  const gamma = await plainArith('3.5!');
+  assert.ok(gamma.steps.some((s) => /3\.5! = Γ\(4\.5\)/.test(s)));
+  assert.ok((await plainArith('log(-1)')).steps.some((s) => /log\(−1\) has no real value: no power of 10 is negative/.test(s)));
+  // A step that rounds says ≈.
+  assert.ok((await plainArith('2^0.5')).steps.some((s) => s === 'Exponents first: 2 ^ 0.5 ≈ 1.4142'));
+  // gcd, lcm and mod are worked, not looked up.
+  assert.ok((await plainArith('gcd(7, 9)')).steps.some((s) => /They share no prime factor, so the gcd is 1/.test(s)));
+  assert.ok((await plainArith('-7 mod 5')).steps.some((s) => /-7 = \(-2\) × 5 \+ 3, with 0 ≤ 3 < 5/.test(s)));
+});
+
+test('one rule for the decimal beside a fraction, in every topic: = when exact, ≈ when rounded', async () => {
+  const cases = [
+    ['sin(pi/6)', 'trigonometry', '1/2 (= 0.5)'],
+    ['lim x->infinity sqrt(x^2+x)-x', 'limits', 'lim (x→∞) sqrt(x^2 + x) - x = 1/2 (= 0.5)'],
+    ['∫_0^1 x^3 dx', 'integrals', '∫_0^1 (x^3) dx = 1/4 (= 0.25)'],
+    ['1/8', 'other', '1/8 (= 0.125)'],
+    ['1/7', 'other', '1/7 (≈ 0.1429)'],
+    ['average value of x^2 on [0, 1]', 'auto', 'The average value is 1/3 (≈ 0.3333)'],
+  ];
+  for (const [p, topic, answer] of cases) assert.equal((await solveProblem(p, topic)).answer, answer, p);
+  const { exactDecimalSigns } = await import('../src/lib/solvers/solverUtils.js');
+  // Decided in whole numbers: 1/32 is 0.03125, so its four-place 0.0313 is rounded.
+  assert.equal(exactDecimalSigns('1/32 (≈ 0.0313)'), '1/32 (≈ 0.0313)');
+  assert.equal(exactDecimalSigns('-3/2 (≈ -1.5) and √2/2 (≈ 0.7071)'), '-3/2 (= -1.5) and √2/2 (≈ 0.7071)');
+});
+
+test('arithmetic, Round 36: each rule says where it holds', async () => {
+  const all = async (p) => { const r = await plainArith(p); return [...r.tips, ...r.common_mistakes].join('\n'); };
+  assert.match(await all('3.5!'), /The gamma function extends it to most other numbers \(3\.5! = Γ\(4\.5\)\), but it is undefined at the negative whole numbers/);
+  assert.doesNotMatch(await all('3.5!'), /Applying ! to a fraction or a negative number/);
+  assert.match(await all('log(8)'), /The rules, for x > 0 and y > 0 \(real logarithms\)/);
+  assert.match(await all('2^5'), /a\^0 = 1, a\^\(−n\) = 1\/a\^n for a ≠ 0/);
+  assert.match(await all('lcm(4, 6)'), /For two positive whole numbers, the gcd times the lcm/);
+  assert.match(await all('17 mod 5'), /For a positive b, the result is always between 0 and b − 1/);
+  assert.match(await all('2^0.5'), /√a = a\^\(1\/2\) for a ≥ 0/);
+  // A repeating decimal gets its own mistakes, not the order of operations'.
+  const rep = await plainArith('0.333...');
+  assert.match(rep.common_mistakes[0], /Taking the rounded 0\.333 for the exact 0\.333…/);
+  assert.doesNotMatch(rep.common_mistakes.join('\n'), /multiplying or dividing/);
+  // The working starts from the problem as typed (Round 38).
+  assert.equal(rep.steps[0], 'Evaluate: 0.333…');
+  assert.equal((await plainArith('0.1666… + 1/3')).steps[0], 'Evaluate: 0.1666…+1/3');
+  // …and its own insights after the worked line (Round 37).
+  assert.match(rep.tips[2], /A repeating decimal is exact, not approximate/);
+  assert.doesNotMatch(rep.tips.join('\n'), /share a tier|order of operations/);
 });

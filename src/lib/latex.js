@@ -200,7 +200,26 @@ function replaceCaret(s) {
       // \pi) — never a \right that closes bars after it (ln|1 + e^x|
       // typeset as e^{x\right}| until 1.57.0).
       const m = s.slice(i).match(/^-?(?:\\(?!right\b|left\b)[A-Za-z]+|[\w.]+)/);
-      if (m) { out += `^{${m[0]}}`; i += m[0].length; } else { out += '^'; }
+      if (!m) { out += '^'; continue; }
+      // A stacked power, 2^3^2, is 2^(3^2): the rest of the chain is the
+      // exponent (KaTeX rejects 2^{3}^{2} as a double superscript; 1.67.0).
+      let end = i + m[0].length;
+      while (s[end] === '^') {
+        const next = s.slice(end + 1).match(/^-?(?:\\(?!right\b|left\b)[A-Za-z]+|[\w.]+)/);
+        if (s[end + 1] === '(') {
+          let depth = 0;
+          let j = end + 1;
+          for (; j < s.length; j += 1) {
+            if (s[j] === '(') depth += 1;
+            else if (s[j] === ')') { depth -= 1; if (depth === 0) break; }
+          }
+          end = j + 1;
+        } else if (next) end += 1 + next[0].length;
+        else break;
+      }
+      const chain = s.slice(i, end);
+      out += /\^/.test(chain) ? `^{${replaceCaret(chain)}}` : `^{${m[0]}}`;
+      i = end;
     }
   }
   return out;

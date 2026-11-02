@@ -20,7 +20,7 @@ test('e^(-x^2) = 0 has no solution: an underflowed-to-zero tail is not a touch r
 // ── High: the degrees converter rewrote every integer.
 test('sin(45)^2 = 1/2 — only the angle inside the trig call is converted to radians', async () => {
   // Was 0.988: sin(45)^2 became sin(45°)^(2°).
-  assert.equal((await solveProblem('sin(45)^2', 'trigonometry')).answer, '1/2 (≈ 0.5)');
+  assert.equal((await solveProblem('sin(45)^2', 'trigonometry')).answer, '1/2 (= 0.5)');
   assert.equal((await solveProblem('2*sin(30)', 'trigonometry')).answer, '1');
   assert.equal((await solveProblem('sin(30)^2 + cos(30)^2', 'trigonometry')).answer, '1');
 });
@@ -43,8 +43,9 @@ test('an uppercase variable is the same unknown as its lowercase form', async ()
   // …without breaking the things that legitimately use capitals
   assert.equal((await solveProblem('C(5,2)', 'other')).answer, '10');
   assert.equal((await solveProblem('5C2', 'other')).answer, '10');
-  assert.equal((await solveProblem('E^2', 'other')).answer, '7.3891');
-  assert.equal((await solveProblem('PI/2', 'other')).answer, '1.5708');
+  // 1.67.0: E is e, kept exact with the decimal alongside, as e^2 is.
+  assert.equal((await solveProblem('E^2', 'other')).answer, 'e^2 ≈ 7.3891');
+  assert.equal((await solveProblem('PI/2', 'other')).answer, 'π/2 ≈ 1.5708'); // 1.67.0: PI is π, kept exact
 });
 
 // ── Medium: bare integral sign, "limit of" phrasing.

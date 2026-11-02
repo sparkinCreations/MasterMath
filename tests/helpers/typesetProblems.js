@@ -110,6 +110,10 @@ export const CONVERTED = [
   ['algebra', 'x + y + x*(x-1)*(x-2)*(x+1) = 3; x - y = 1'], ['algebra', 'x+y+z=1; x+y+2z=2; x+y+3z=4'], ['algebra', 'x+y+z=1; x+y+2z=2; x+y+3z=3'],
   ['algebra', 'e^(2x) - 3e^x + 2 > 0'], ['algebra', 'sinh(x) > 1'], ['algebra', '4^x - 3*2^x + 2 < 0'], ['algebra', 'x^2 > sin(x)'], ['algebra', 'abs(x) >= x'],
   ['integrals', 'integral of 0.5*x^2 dx'], ['integrals', 'integral from 0.5 to 2 of 1/x dx'], ['derivatives', 'x^1.5'],
+  // 1.67.0: arithmetic worked lines; gcd, lcm, mod worked; repeating decimals, the gamma function, logs of negatives.
+  ['other', 'gcd(12, 18)'], ['other', 'gcd(7, 9)'], ['other', 'lcm(4, 6)'], ['other', '-7 mod 5'], ['other', '23 * 47'], ['other', '25 + 17'],
+  ['other', '8/2(2+2)'], ['other', '2^3^2'], ['other', '3.5!'], ['other', '(-5)!'], ['other', 'log(-1)'], ['other', '0.333...'], ['other', '(-8)^(2/3)'],
+  ['other', '2/3 * 9/4'], ['other', '(1/2) / (3/4)'], ['auto', 'is 97 prime'], ['auto', 'is 2 prime'], ['auto', 'prime factorization of 13'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a
