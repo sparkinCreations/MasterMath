@@ -172,9 +172,9 @@ export function numericIntegral(integrand, variable, a, b, N = 2000) {
 export function formatExactValue(raw) {
   let s = beautify(String(raw));
   s = s
-    .replace(/\bexp\(1\)/g, 'e')
-    .replace(/\bexp\(([^()]+)\)/g, 'e^($1)')
-    .replace(/\blog\(((?:[^()]|\([^()]*\))+)\)/g, 'ln($1)')
+    .replace(/(?<![a-z])exp\(1\)/g, 'e')
+    .replace(/(?<![a-z])exp\(([^()]+)\)/g, 'e^($1)')
+    .replace(/(?<![a-z])log\(((?:[^()]|\([^()]*\))+)\)/g, 'ln($1)')
     .replace(/\bpi\b/g, 'π')
     .replace(/(?<![\w.])(\d+)\^\(1\/2\)/g, '√$1');
   return s;

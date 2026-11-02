@@ -272,10 +272,12 @@ export function parseMathExpression(input) {
   let placeholder = 0;
 
   // Scientific notation (1e3, 2.5e-4) must be protected as a single number
-  // before the constant e is protected, or "1e3" splits into 1·e·3.
+  // before the constant e is protected, or "1e3" splits into 1·e·3. It is
+  // handed on as the plain decimal: Algebrite reads 1e-6 as 1·e − 6, and
+  // x^2 = 1e-6 was an equation in two unknowns, e and x (1.66.0).
   cleaned = cleaned.replace(/\b(\d+(?:\.\d+)?)[eE]([+-]?\d+)\b/g, (m, mant, exp) => {
     const token = `__PROTECTED_${placeholder}__`;
-    protectedTerms.push({ token, value: `${mant}e${exp}` });
+    protectedTerms.push({ token, value: scientificAsDecimal(mant, exp) });
     placeholder++;
     return token;
   });
@@ -515,4 +517,27 @@ export function extractFunctionFromProblem(problemText) {
 export function isEquation(expression) {
   // Check for a single '=' that is not part of >=, <=, ==, or !=
   return /(?<![><!!=])=(?!=)/.test(expression);
+}
+
+// Every number in scientific notation in a text, as its decimal: for the
+// solvers that read the typed text itself (systems).
+export function expandScientific(text) {
+  return String(text).replace(/\b(\d+(?:\.\d+)?)[eE]([+-]?\d+)\b/g, (m, mant, exp) => scientificAsDecimal(mant, exp));
+}
+
+// 2.5e-4 → 0.00025, 1e3 → 1000: the digits moved, nothing rounded. A huge
+// exponent stays a power of ten.
+function scientificAsDecimal(mantissa, exponent) {
+  const e = Number(exponent);
+  if (Math.abs(e) > 50) return `(${mantissa}*10^(${e}))`;
+  const [whole, fraction = ''] = mantissa.split('.');
+  const digits = whole + fraction;
+  const point = whole.length + e;
+  let out;
+  if (point >= digits.length) out = digits + '0'.repeat(point - digits.length);
+  else if (point <= 0) out = `0.${'0'.repeat(-point)}${digits}`;
+  else out = `${digits.slice(0, point)}.${digits.slice(point)}`;
+  out = out.replace(/^0+(?=\d)/, '');
+  if (out.includes('.')) out = out.replace(/0+$/, '').replace(/\.$/, '');
+  return out;
 }

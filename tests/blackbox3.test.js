@@ -99,7 +99,9 @@ test('sin(2x)/sin(x) → 2cos(x); scientific notation; "2 x 3"', async () => {
   // 1.65.0: the original is undefined where sin(x) = 0, and says so.
   assert.equal((await solveProblem('sin(2x)/sin(x)', 'trigonometry')).answer, '2cos(x) (for sin(x) ≠ 0)');
   assert.equal((await solveProblem('1e3 + 1', 'other')).answer, '1001');
-  assert.equal((await solveProblem('2.5e-2 * 4', 'other')).answer, '0.1');
+  // 1.66.0: scientific notation is read as its decimal, so 2.5e-2 · 4 is
+  // answered as 0.025 · 4 is, exact first.
+  assert.equal((await solveProblem('2.5e-2 * 4', 'other')).answer, '1/10 (= 0.1)');
   assert.equal((await solveProblem('2 x 3', 'other')).answer, '6');
   // e as a constant is untouched
   assert.equal((await solveProblem('e^2', 'other')).answer, 'e^2 ≈ 7.3891');

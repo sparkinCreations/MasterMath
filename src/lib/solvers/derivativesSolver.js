@@ -10,6 +10,7 @@ import {
   loadAlgebrite,
   beautify,
   readAsText,
+  exactDecimals,
   rewriteReciprocalTrig,
   parsesAsMath,
   isUnevaluatedOperator,
@@ -55,7 +56,14 @@ const gcdInt = (a, b) => (b ? gcdInt(b, a % b) : Math.abs(a));
 // What was differentiated, shown above the steps ("Read as"), so a misread
 // is visible before the first step.
 export async function solveDerivative(expression, options = {}) {
-  const result = await solveDerivativeInner(expression, options);
+  // 1.5 as 3/2: x^1.5 differentiates to (3/2)√x, not 1.5x^0.5 (exactDecimals).
+  // The function is shown as typed: f(x) = 0.5x^2, not (1/2)*x^2.
+  const exact = exactDecimals(expression);
+  const result = await solveDerivativeInner(exact, options);
+  if (result && exact !== expression) {
+    const [from, to] = [beautify(exact), beautify(expression)];
+    result.steps = (result.steps || []).map((t) => (typeof t === 'string' ? t.split(from).join(to) : t));
+  }
   if (result && result.status !== 'parse_error' && String(expression).trim()) {
     const variable = options.variable || options.evalAt?.variable || extractVariable(expression);
     const order = Math.max(1, Math.min(4, Number(options.order) || 1));

@@ -52,16 +52,18 @@ test('inequality endpoints are exact, with the decimal alongside', async () => {
   ]) assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
   // A root with no closed form stays a decimal, and the step says it was located numerically.
   const cubic = await solvePlain('x^3 - x - 1 > 0', 'algebra');
-  assert.equal(cubic.answer, 'x > 1.3247');
+  // 1.66.0: and the answer names it, with its decimal (Round 34).
+  assert.equal(cubic.answer, 'x > α, where α ≈ 1.3247 is a zero of x^3 - x - 1');
   assert.ok(cubic.steps.some((s) => /located numerically/.test(s)));
 });
 
 test('two wrong inequality answers: x³ − 2 > 0 had "No solution", ln(x) < 1 included x ≤ 0', async () => {
   // Algebrite wrote the real root of x³ − 2 with i and (−1)^(1/3) in it, and every root containing i was dropped.
   assert.equal((await solveProblem('x^3 - 2 > 0', 'algebra')).answer, 'x > ∛2  (∛2 ≈ 1.2599)');
-  // The sign chart now splits at the edge of the domain.
+  // The sign chart now splits at the edge of the domain. 1.66.0: an edge is
+  // in the solution when the inequality holds there: √(1 − 1) = 0 < 3.
   for (const [p, answer] of [
-    ['ln(x) < 1', '0 < x < e  (e ≈ 2.7183)'], ['sqrt(x - 1) < 3', '1 < x < 10'], ['ln(x - 2) <= 0', '2 < x ≤ 3'],
+    ['ln(x) < 1', '0 < x < e  (e ≈ 2.7183)'], ['sqrt(x - 1) < 3', '1 ≤ x < 10'], ['ln(x - 2) <= 0', '2 < x ≤ 3'],
     ['sqrt(4 - x^2) >= 1', '-√3 ≤ x ≤ √3  (√3 ≈ 1.7321)'], ['ln(x) >= 2', 'x ≥ e^2  (e^2 ≈ 7.3891)'],
   ]) assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
   // The steps show ln, not Algebrite's log (a bare log reads as base 10 here).

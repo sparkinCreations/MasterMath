@@ -1745,7 +1745,8 @@ test('divergence is stated with its sign, and the principal value is named for a
   // Endpoint and infinite-bound wording carry the sign too.
   assert.match((await solvePlain('∫_0^1 1/x dx', 'integrals')).steps.join('\n'), /the integrand → \+∞ as x → 0⁺.*\n.*\n.*\n.*F\(s\) → −∞/);
   assert.match((await solvePlain('∫_0^1 ln(x) dx', 'integrals')).steps[1], /the integrand → −∞ as x → 0⁺/);
-  assert.match((await solvePlain('∫_1^∞ 1/x dx', 'integrals')).steps.join('\n'), /F\(t\) → ∞ — slowly, but steadily/);
+  // 1.66.0: ln(t) → ∞ is proved from the growth rates, not seen in samples.
+  assert.match((await solvePlain('∫_1^∞ 1/x dx', 'integrals')).steps.join('\n'), /F\(t\) → ∞: the fastest-growing term of F decides it/);
   // A divergent integral's graph never says "signed area NaN".
   assert.match((await solvePlain('∫_1^∞ 1/x dx', 'integrals')).graph.description, /diverges — the shaded region has no finite area/);
 });

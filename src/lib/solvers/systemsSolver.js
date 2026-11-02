@@ -4,21 +4,34 @@
 // real capability. Receives the RAW problem text (see api.js) because the
 // single-expression extractor mangles the first equation of a system.
 //
-// The approach: split into two equations, extract each one's coefficients by
-// sampling (which also proves linearity), then solve by Cramer's rule in exact
+// The approach: split into two equations, read each one's coefficients off
+// its parse tree (which proves linearity), then solve by Cramer's rule in exact
 // rational arithmetic (mathjs fractions → 18/5, not 3.6). The worked steps show
 // substitution; the final answer is confirmed by substituting back into BOTH
 // original equations before it is reported — the same "verify before you
 // claim" gate the rest of the solver uses.
 
-import { math, sampleFunction, beautify, formatNumber, loadAlgebrite, isAlgebriteFailure, mark, gcd } from './solverUtils.js';
-import { parseMathExpression } from '../mathParser.js';
+import { math, sampleFunction, beautify, formatNumber, loadAlgebrite, isAlgebriteFailure, mark, gcd, linearCoefficientsIn } from './solverUtils.js';
+import { parseMathExpression, expandScientific } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
-import { splitRootsList, prettyRadicals } from './algebraSolver.js';
+import { prettyRadicals } from './algebraSolver.js';
+import { readPolynomial, allRoots } from './polynomialRoots.js';
+import { realRoots, labelKey } from './inequalities/roots.js';
+import { systemGuidance } from './systems/guidance.js';
 
 const FUNCTION_NAMES = /\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sinh|cosh|tanh|asin|acos|atan|sqrt|log|ln|exp|abs|pi)\b/gi;
 
+// The solve, then its guide turned into the ranked tips and mistakes
+// (systems/guidance.js).
 export async function solveSystem(rawText) {
+  const result = await solveSystemCase(rawText);
+  if (!result || typeof result !== 'object' || !result.guide) return result;
+  const { guide, ...rest } = result;
+  const guided = systemGuidance(guide);
+  return guided ? { ...rest, ...guided } : rest;
+}
+
+async function solveSystemCase(rawText) {
   try {
     const equations = splitEquations(rawText);
     const variables = collectVariables(equations.join(' '));
@@ -64,6 +77,7 @@ export async function solveSystem(rawText) {
       // Line ∩ parabola, line ∩ circle, xy = 6 with x + y = 5, …: substitution.
       // (Roadmap 2026-09 item 4.)
       const solved = await solveNonlinear2x2(equations, v1, v2);
+      if (solved?.refused) return refuse(solved.refused, 'A non-linear system is solved here when substituting leaves a polynomial equation: y = x + 1; x² + y² = 25.', 'unsupported');
       if (solved) return solved;
       return refuse(
         'At least one equation is not linear, and neither equation can be solved for one variable to substitute into the other.',
@@ -120,6 +134,7 @@ export async function solveSystem(rawText) {
         return {
           steps,
           answer: `Infinitely many solutions — the two equations describe the same line: ${param}, t any real number`,
+          guide: { kind: 'same', proportional: Number(k.n) === Number(k.d) && Number(k.s) > 0 ? 'the two equations are the same' : `equation 2 is ${kText} × equation 1`, line: eq1Disp, param },
           tips: [
             'When one equation is a constant multiple of the other, the system is dependent.',
             `A dependent system has infinitely many solutions: describe them with a parameter, one point for each value of ${mark('t')}.`,
@@ -143,6 +158,13 @@ export async function solveSystem(rawText) {
           'Geometrically the two lines have the same slope but different intercepts — they are parallel and never meet.',
         ],
         answer: 'No solution — the two lines are parallel',
+        guide: {
+          kind: 'parallel',
+          gap: fmtFrac(gap),
+          proportional: Number(k.n) === Number(k.d) && Number(k.s) > 0
+            ? 'the two left sides are the same, but the constants differ'
+            : `the left side of equation 2 is ${kText} × that of equation 1, but its constant is ${fmtFrac(c2)}, not ${fmtFrac(mul(k, c1))}`,
+        },
         tips: [
           'Equal coefficients ratios but a different constant ratio means the lines are parallel.',
           'A system with no solution is called inconsistent.',
@@ -172,6 +194,7 @@ export async function solveSystem(rawText) {
       answer: `${v1} = ${fmtFrac(x)},  ${v2} = ${fmtFrac(y)}`,
       verified: true,
       verificationMethod: 'substituted back into both equations',
+      guide: { kind: 'unique', route: steps.route },
       tips: [
         'Two independent linear equations in two unknowns meet at exactly one point.',
         'Substitution and elimination give the same answer — use whichever is cleaner.',
@@ -220,9 +243,11 @@ async function solveNonlinear2x2(equations, first, second) {
   });
   const zeroForm = (e) => `(${e.lhs})-(${e.rhs})`;
 
-  // Which equation, and which variable in it, can be isolated?
+  // Which equation, and which variable in it, can be isolated? Of all that
+  // can, the shortest result: x − y = 1 gives y = x − 1, simpler to carry
+  // than y from the quartic equation (1.66.0).
   let iso = null;
-  for (let i = 0; i < 2 && !iso; i += 1) {
+  for (let i = 0; i < 2; i += 1) {
     for (const w of [v2, v1]) {
       const expr = zeroForm(eqs[i]);
       if (algebrite(Algebrite, `deg(${expr}, ${w})`) !== '1') continue;
@@ -232,8 +257,7 @@ async function solveNonlinear2x2(equations, first, second) {
       if (c0 === null) continue;
       const isolated = algebrite(Algebrite, `simplify(-(${c0})/(${c1}))`);
       if (isolated === null || new RegExp(`\\b${w}\\b`).test(isolated)) continue;
-      iso = { i, w, u: w === v1 ? v2 : v1, isolated };
-      break;
+      if (!iso || isolated.length < iso.isolated.length) iso = { i, w, u: w === v1 ? v2 : v1, isolated };
     }
   }
   if (!iso) return null;
@@ -276,11 +300,6 @@ async function solveNonlinear2x2(equations, first, second) {
     };
   }
 
-  const rootsRaw = algebrite(Algebrite, `roots(${substituted}, ${u})`);
-  if (!rootsRaw) return null;
-  const parts = splitRootsList(rootsRaw).map((p) => p.trim()).filter(Boolean);
-  if (parts.length === 0) return null;
-
   const residual = (e, uVal, wVal) => {
     try {
       const l = math.evaluate(e.lhs, { [u]: uVal, [w]: wVal });
@@ -292,47 +311,52 @@ async function solveNonlinear2x2(equations, first, second) {
     }
   };
 
+  // Every real root, from the exact root finder (Sturm counting, so none is
+  // missed): Algebrite's roots() wrote the real roots of x⁵ − 4x with i and
+  // (−1)^(3/4) in them, and a cubic's by Cardano's formula. An exact form is
+  // kept when it is short and real (√2); otherwise the root is a decimal,
+  // marked ≈ (1.66.0).
+  const P = readPolynomial(String(substituted), u);
+  if (!P || P.tooHigh) {
+    return { refused: `Substituting gives ${prettyRadicals(beautify(substituted))} = 0, which is not a polynomial equation in ${u}; solving that is not supported here.` };
+  }
+  const labels = new Map();
+  const values = realRoots(Algebrite, substituted, u, labels) || [];
+  let complexCount = 0;
+  try { complexCount = allRoots(P).complexCount || 0; } catch { complexCount = 0; }
+  const toAlgebrite = (label) => label.replace(/√\(([^()]*)\)/g, 'sqrt($1)').replace(/√(\d+)/g, 'sqrt($1)').replace(/∛(\d+)/g, '($1)^(1/3)').replace(/·/g, '*');
   const pairs = [];
-  const complex = [];
-  for (const part of parts) {
-    let uNum;
-    try {
-      const val = math.evaluate(part);
-      uNum = typeof val === 'number' ? val : (val && typeof val === 'object' && Math.abs(val.im) < 1e-9 ? val.re : NaN);
-    } catch {
-      uNum = NaN;
-    }
-    const uShown = prettyRadicals(beautify(part));
-    if (!Number.isFinite(uNum)) {
-      complex.push(uShown);
-      continue;
-    }
-    const wRaw = algebrite(Algebrite, `simplify(subst(${part}, ${u}, ${isolated}))`);
+  for (const uNum of values) {
+    const label = labels.get(labelKey(uNum));
+    const uExact = label ?? (Number.isInteger(uNum) ? String(uNum) : null);
     let wNum = NaN;
-    try { wNum = wRaw ? Number(math.evaluate(wRaw)) : NaN; } catch { wNum = NaN; }
-    if (!Number.isFinite(wNum)) {
-      try { wNum = Number(math.evaluate(isolated, { [u]: uNum })); } catch { wNum = NaN; }
-    }
+    try { wNum = Number(math.evaluate(isolated, { [u]: uNum })); } catch { wNum = NaN; }
     if (!Number.isFinite(wNum)) continue;
     if (!residual(eqs[0], uNum, wNum) || !residual(eqs[1], uNum, wNum)) continue;
-    const wShown = wRaw ? prettyRadicals(beautify(wRaw)) : formatNumber(wNum);
-    pairs.push({ uNum, wNum, uShown, wShown });
+    let wExact = null;
+    if (uExact !== null) {
+      const wRaw = algebrite(Algebrite, `simplify(subst((${toAlgebrite(uExact)}), ${u}, ${isolated}))`);
+      if (wRaw && !/(?<![a-z])i(?![a-z])|\(-1\)\^/.test(wRaw) && wRaw.length <= 40) wExact = prettyRadicals(beautify(wRaw));
+    }
+    const exact = uExact !== null && wExact !== null;
+    pairs.push({ uNum, wNum, exact, uShown: exact ? uExact : formatNumber(uNum), wShown: exact ? wExact : formatNumber(wNum) });
   }
 
-  const pairText = (p) => (u === v1 ? `(${p.uShown}, ${p.wShown})` : `(${p.wShown}, ${p.uShown})`);
+  const pairText = (p) => `${p.exact ? '' : '≈ '}${u === v1 ? `(${p.uShown}, ${p.wShown})` : `(${p.wShown}, ${p.uShown})`}`;
   const steps = [systemLine, isolateLine, substLine];
-  const realRoots = pairs.map((p) => `${u} = ${p.uShown}`);
-  if (realRoots.length) steps.push(`Solve for ${mark(u)}: ${mark(realRoots.join('  or  '))}.`);
-  if (complex.length) steps.push(`The root${complex.length > 1 ? 's' : ''} ${mark(complex.join(', '))} ${complex.length > 1 ? 'are' : 'is'} not real, so ${complex.length > 1 ? 'they give' : 'it gives'} no real intersection.`);
+  const rootList = pairs.map((p) => `${u} ${p.exact ? '=' : '≈'} ${p.uShown}`);
+  if (rootList.length) steps.push(`Solve for ${mark(u)}: ${mark(rootList.join('  or  '))}${pairs.some((p) => !p.exact) ? ' (located numerically, to the decimals shown)' : ''}.`);
+  if (complexCount) steps.push(`The other ${complexCount === 1 ? 'root is' : `${complexCount} roots are`} not real, so ${complexCount === 1 ? 'it gives' : 'they give'} no real intersection.`);
   if (pairs.length === 0) {
     steps.push('No real root survives, so the curves do not meet.');
     return {
       steps,
       answer: 'No real solution — the curves do not intersect',
+      guide: { kind: 'curves', w, isolated: prettyRadicals(beautify(isolated)), substituted: prettyRadicals(beautify(substituted)), roots: null, degree: P.coefficients.length - 1 },
       tips, common_mistakes: mistakes, graph: buildCurveGraph(Algebrite, eqs, v1, v2, []),
     };
   }
-  steps.push(`Back-substitute into ${mark(`${w} = ${prettyRadicals(beautify(isolated))}`)}: ${pairs.map((p) => mark(`${u} = ${p.uShown} → ${w} = ${p.wShown}`)).join(';  ')}.`);
+  steps.push(`Back-substitute into ${mark(`${w} = ${prettyRadicals(beautify(isolated))}`)}: ${pairs.map((p) => mark(`${u} ${p.exact ? '=' : '≈'} ${p.uShown} → ${w} ${p.exact ? '=' : '≈'} ${p.wShown}`)).join(';  ')}.`);
   steps.push(`Check: each pair satisfies both original equations. Solutions ${mark(`(${v1}, ${v2})`)}: ${mark(pairs.map(pairText).join('  or  '))}.`);
 
   return {
@@ -340,6 +364,7 @@ async function solveNonlinear2x2(equations, first, second) {
     answer: `(${v1}, ${v2}) = ${pairs.map(pairText).join('  or  ')}`,
     verified: true,
     verificationMethod: 'each pair substituted into both equations',
+    guide: { kind: 'curves', w, isolated: prettyRadicals(beautify(isolated)), substituted: prettyRadicals(beautify(substituted)), roots: rootList.join('  or  '), degree: P.coefficients.length - 1 },
     tips,
     common_mistakes: mistakes,
     graph: buildCurveGraph(Algebrite, eqs, v1, v2, pairs.map((p) => (u === v1 ? { x: p.uNum, y: p.wNum } : { x: p.wNum, y: p.uNum }))),
@@ -398,7 +423,8 @@ function buildCurveGraph(Algebrite, eqs, v1, v2, points) {
 // word "and", and a comma between two equations. Leading verbs ("solve the
 // system") are stripped.
 function splitEquations(rawText) {
-  let s = String(rawText || '')
+  // 1e-3 as 0.001: read as typed, its e was a third variable.
+  let s = expandScientific(String(rawText || ''))
     .replace(/−/g, '-')
     .replace(/^\s*solve\s+(?:the\s+)?(?:system\s+(?:of\s+equations\s+)?)?/i, '')
     .trim();
@@ -426,9 +452,8 @@ function collectVariables(text) {
 }
 
 // Extract { a, b, c } for the linear equation `a·v1 + b·v2 = c`, or null when
-// the equation is not linear in (v1, v2). Works by sampling g = LHS − RHS at a
-// few points: a linear g satisfies g(p,q) = a·p + b·q + k exactly, so we read
-// off the coefficients and then confirm linearity at extra points.
+// the equation is not linear in (v1, v2), read off the parse tree of
+// g = LHS − RHS. It was read off sample points at whole numbers (1.66.0).
 function linearCoefficients(equation, v1, v2) {
   const eqIdx = equation.indexOf('=');
   if (eqIdx === -1) return null;
@@ -436,24 +461,13 @@ function linearCoefficients(equation, v1, v2) {
   const rhs = parseMathExpression(equation.slice(eqIdx + 1));
   const g = `(${lhs}) - (${rhs})`;
 
-  const at = (p, q) => {
-    const val = math.evaluate(g, { [v1]: p, [v2]: q });
-    return typeof val === 'number' ? val : NaN;
-  };
-
   try {
-    const k = at(0, 0);
-    const a = at(1, 0) - k;
-    const b = at(0, 1) - k;
+    // Linear by the parse tree, not by sample points (linearCoefficientsIn).
+    const read = linearCoefficientsIn(g, [v1, v2]);
+    if (!read) return null;
+    const [a, b] = read.coeffs;
+    const k = read.d;
     if (![k, a, b].every(Number.isFinite)) return null;
-
-    // Linearity checks: g must be exactly a·p + b·q + k everywhere.
-    const linear =
-      approx(at(2, 0) - k, 2 * a) &&
-      approx(at(0, 2) - k, 2 * b) &&
-      approx(at(1, 1) - k, a + b) &&
-      approx(at(-1, 3) - k, -a + 3 * b);
-    if (!linear) return null;
 
     // Equation a·v1 + b·v2 + k = 0  ⇒  a·v1 + b·v2 = -k.
     if (approx(a, 0) && approx(b, 0)) return null; // 0 = c, degenerate
@@ -463,7 +477,8 @@ function linearCoefficients(equation, v1, v2) {
   }
 }
 
-// Coefficients of a linear equation in n variables by sampling: g(p) = Σ aᵢpᵢ + k.
+// Coefficients of a linear equation in n variables: g = Σ aᵢvᵢ + k, read off
+// the parse tree.
 // Returns { coeffs: [a1..an], c } or null when not linear.
 function linearCoefficientsN(equation, vars) {
   const eqIdx = equation.indexOf('=');
@@ -471,23 +486,13 @@ function linearCoefficientsN(equation, vars) {
   const lhs = parseMathExpression(equation.slice(0, eqIdx));
   const rhs = parseMathExpression(equation.slice(eqIdx + 1));
   const g = `(${lhs}) - (${rhs})`;
-  const at = (vals) => {
-    const scope = {};
-    vars.forEach((v, i) => { scope[v] = vals[i]; });
-    const val = math.evaluate(g, scope);
-    return typeof val === 'number' ? val : NaN;
-  };
   try {
-    const zeros = vars.map(() => 0);
-    const k = at(zeros);
-    const coeffs = vars.map((_, i) => at(zeros.map((z, j) => (j === i ? 1 : 0))) - k);
+    // Linear by the parse tree, not by sample points (linearCoefficientsIn).
+    const read = linearCoefficientsIn(g, vars);
+    if (!read) return null;
+    const { coeffs } = read;
+    const k = read.d;
     if (![k, ...coeffs].every(Number.isFinite)) return null;
-    // Linearity: check a few mixed points.
-    const probes = [vars.map((_, i) => i + 1), vars.map((_, i) => (i % 2 ? -2 : 3)), vars.map(() => 2)];
-    for (const pnt of probes) {
-      const expected = k + coeffs.reduce((acc, a, i) => acc + a * pnt[i], 0);
-      if (!approx(at(pnt), expected)) return null;
-    }
     if (coeffs.every((a) => approx(a, 0))) return null;
     return { coeffs: coeffs.map(clean), c: clean(-k) };
   } catch {
@@ -553,9 +558,16 @@ function solve3x3(equations, vars) {
     applyElim(1, 0, 0);
     applyElim(2, 0, 0);
   }
-  steps.push(`Eliminate ${mark(vars[1])} from (3) using (2):`);
   const pivot2 = swapForPivot(1, 1);
-  if (pivot2) applyElim(2, 1, 1);
+  if (pivot2) {
+    steps.push(`Eliminate ${mark(vars[1])} from (3) using (2):`);
+    applyElim(2, 1, 1);
+  } else if (swapForPivot(2, 1)) {
+    // Neither (2) nor (3) has a y left: eliminate z instead. That system
+    // was refused as "not a 2×2 system" (a division by the zero pivot).
+    steps.push(`Neither (2) nor (3) has a ${mark(vars[1])} term left, so eliminate ${mark(vars[2])} from (3) using (2):`);
+    applyElim(2, 1, 2);
+  }
 
   // Rank / consistency.
   const rowAllZero = (m) => m.slice(0, 3).every(isZero);
@@ -565,17 +577,19 @@ function solve3x3(equations, vars) {
     return {
       steps,
       answer: 'No solution — the equations are inconsistent',
+      guide: { kind: 'gaussNone' },
       tips: [`A row of the form ${mark('0 = c')} with ${mark('c ≠ 0')} after elimination means no triple satisfies all three equations.`],
       common_mistakes: ['Dividing by a zero pivot instead of swapping rows.'],
       graph: null,
     };
   }
   const zeroRows = M.filter(rowAllZero).length;
-  if (zeroRows > 0 || isZero(M[2][2])) {
+  if (zeroRows > 0 || !pivot2 || isZero(M[2][2])) {
     steps.push('One equation is a combination of the others — the system does not pin down a single point.');
     return {
       steps,
       answer: 'Infinitely many solutions — the equations are dependent (a line or plane of solutions)',
+      guide: { kind: 'gaussMany' },
       tips: ['With fewer independent equations than unknowns, the solution set is a line or a plane, not a point.'],
       common_mistakes: [`Reporting "no solution" when a row becomes ${mark('0 = 0')} — that row is simply redundant.`],
       graph: null,
@@ -608,6 +622,7 @@ function solve3x3(equations, vars) {
   return {
     steps,
     answer: `${vars[0]} = ${fr(x)},  ${vars[1]} = ${fr(y)},  ${vars[2]} = ${fr(z)}`,
+    guide: { kind: 'gauss', last: vars[2], lastValue: fr(z), rest: `${vars[1]} = ${fr(y)}, ${vars[0]} = ${fr(x)}` },
     tips: [
       'Elimination on a 3×3 system: clear one variable from two equations, then clear a second from one of those, then back-substitute.',
       'Keep the arithmetic exact (fractions) — decimals accumulate rounding across the row operations.',
@@ -713,18 +728,21 @@ function buildSubstitutionSteps({ a1, b1, c1, a2, b2, c2, x, y, v1, v2, eq1Disp,
     steps.push(`Equation 1 has no ${mark(v1)} term: ${mark(`${sumText([[b1, v2]])} = ${fmtFrac(c1)}`)} gives ${mark(`${v2} = ${divided(c1, b1)}`)} directly.`);
     steps.push(`Substitute ${mark(`${v2} = ${fmtFrac(y)}`)} into equation 2: ${mark(oneUnknown(a2, v1, b2, y, v2, c2, x))}.`);
     steps.push(check);
+    steps.route = `equation 1 has only ${mark(v2)} in it, so it gives ${mark(`${v2} = ${fmtFrac(y)}`)} at once, and equation 2 then has one unknown: ${mark(`${v1} = ${fmtFrac(x)}`)}`;
     return steps;
   }
   if (isZero(a2)) {
     steps.push(`Equation 2 has no ${mark(v1)} term: ${mark(`${sumText([[b2, v2]])} = ${fmtFrac(c2)}`)} gives ${mark(`${v2} = ${divided(c2, b2)}`)} directly.`);
     steps.push(`Substitute ${mark(`${v2} = ${fmtFrac(y)}`)} into equation 1: ${mark(oneUnknown(a1, v1, b1, y, v2, c1, x))}.`);
     steps.push(check);
+    steps.route = `equation 2 has only ${mark(v2)} in it, so it gives ${mark(`${v2} = ${fmtFrac(y)}`)} at once, and equation 1 then has one unknown: ${mark(`${v1} = ${fmtFrac(x)}`)}`;
     return steps;
   }
   if (isZero(b1)) {
     steps.push(`Equation 1 has no ${mark(v2)} term: ${mark(`${sumText([[a1, v1]])} = ${fmtFrac(c1)}`)} gives ${mark(`${v1} = ${divided(c1, a1)}`)} directly.`);
     steps.push(`Substitute ${mark(`${v1} = ${fmtFrac(x)}`)} into equation 2: ${mark(oneUnknown(b2, v2, a2, x, v1, c2, y))}.`);
     steps.push(check);
+    steps.route = `equation 1 has only ${mark(v1)} in it, so it gives ${mark(`${v1} = ${fmtFrac(x)}`)} at once, and equation 2 then has one unknown: ${mark(`${v2} = ${fmtFrac(y)}`)}`;
     return steps;
   }
 
@@ -770,6 +788,7 @@ function buildSubstitutionSteps({ a1, b1, c1, a2, b2, c2, x, y, v1, v2, eq1Disp,
     : `${v1} = (${plugged})/${fmtFrac(den)} = ${factor(value)}/${fmtFrac(den)} = ${fmtFrac(x)}`;
   steps.push(`Back-substitute ${mark(`${v2} = ${fmtFrac(y)}`)} into ${mark(`${v1} = ${isolated}`)}: ${mark(back)}.`);
   steps.push(check);
+  steps.route = `equation 1 gives ${mark(`${v1} = ${isolated}`)}; put into equation 2 it leaves one equation in ${mark(v2)}, so ${mark(`${v2} = ${fmtFrac(y)}`)}, and then ${mark(`${v1} = ${fmtFrac(x)}`)}`;
   return steps;
 }
 

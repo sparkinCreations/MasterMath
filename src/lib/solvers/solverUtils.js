@@ -35,9 +35,11 @@ export {
   hasVariable,
   piForm,
   exactForm,
+  exactDecimals,
 } from './utils/text.js';
 export {
   linearCoefficients,
+  linearCoefficientsIn,
   structuralPeriod,
   definedEverywhere,
   trigUndefinedPoints,

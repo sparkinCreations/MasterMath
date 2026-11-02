@@ -102,10 +102,12 @@ test('a definite integral with no antiderivative is estimated numerically, and s
   assert.equal(improper.answer, '∫_0^∞ (e^(-x^2)/(1 + x^2)) dx ≈ 0.6716 (numerical)');
   assert.match(plain(improper), /Integrating from 0 to t: t = 100 gives ≈ 0\.671647, 1000 gives ≈ 0\.671647/);
   assert.match(plain(improper), /maps the infinite range onto \[0, 1\)/);
-  // A slow tail is still refused — the estimates do not settle.
-  const slow = await solve('∫_1^∞ 1/x^1.1 dx');
+  // A slow tail with no antiderivative is still refused — the estimates do not settle.
+  // (1.66.0: ∫_1^∞ 1/x^1.1 dx has one, x^(−1/10)·(−10), and its limit is proved: 10.)
+  const slow = await solve('∫_1^∞ 1/(x^1.1 + 1) dx');
   assert.equal(slow.status, 'unsupported');
   assert.match(plain(slow), /do not settle/);
+  assert.equal((await solve('∫_1^∞ 1/x^1.1 dx')).answer, '∫_1^∞ (1/x^1.1) dx = 10');
   // Famous non-elementary integrands say which special function, never "may have an elementary answer".
   assert.match((await solve('e^x/x')).answer, /exponential integral Ei\(x\)/);
   assert.match((await solve('e^(-x)/x')).answer, /exponential integral −Ei\(−x\)/);

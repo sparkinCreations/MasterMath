@@ -10,7 +10,7 @@
 // L'Hôpital's rule are worked as a course works them, and a numeric check far
 // out confirms the result before it is reported.
 
-import { math, beautify, mark, isAlgebriteFailure } from '../solverUtils.js';
+import { math, beautify, mark, isAlgebriteFailure, splitTerms } from '../solverUtils.js';
 import { evalAt } from './numeric.js';
 
 const unwrap = (n) => (n && n.type === 'ParenthesisNode' ? unwrap(n.content) : n);
@@ -482,4 +482,76 @@ function atNegativeInfinity(Algebrite, func, v) {
     return ys.every((y) => Math.sign(y) === want) && Math.abs(ys[ys.length - 1]) >= Math.abs(ys[0]);
   })();
   return { ...inner, steps, verified, substitution: { t, from: f, approach: far < 0 ? 'below' : 'above' } };
+}
+
+// --- Limits of sums, proved ----------------------------------------------------
+//
+// The limit of a sum of terms c·x^p·e^(kx)·ln(x)^m (growthForm each) at ±∞,
+// or at 0⁺, read off the dominant term: at +∞ the largest (k, p, m) in that
+// order, at 0⁺ the smallest p, then the largest m; a group that cancels
+// gives way to the next. A number, ±Infinity, or null when a term is not of
+// that form. Used where a limit decides a claim: the zeros of an
+// inequality (inequalities/zeros.js) and an improper integral's
+// antiderivative at ∞ (integrals/improper.js), which was read off samples
+// and called −2/√t "not settling" (1.66.0).
+
+// Each term as { c, p, k, m }, or null when one is not of that form.
+function termForms(expr, v) {
+  const terms = splitTerms(String(expr));
+  const forms = [];
+  for (const { signed } of terms) {
+    if (!new RegExp(`(?<![a-z])${v}(?![a-z])`).test(signed)) {
+      let c;
+      try { c = Number(math.evaluate(signed)); } catch { return null; }
+      if (!Number.isFinite(c)) return null;
+      forms.push({ c, p: 0, k: 0, m: 0 });
+      continue;
+    }
+    const g = growthForm(signed, v);
+    if (!g) return null;
+    forms.push({ c: g.c, p: g.p, k: g.k, m: g.m });
+  }
+  return forms;
+}
+
+// The dominant group of terms by `order` (a comparator, greatest first), its
+// coefficients summed; a group that cancels gives way to the next.
+function dominant(forms, order) {
+  const sorted = forms.slice().sort(order);
+  while (sorted.length) {
+    const lead = sorted[0];
+    const group = sorted.filter((t) => order(t, lead) === 0);
+    const c = group.reduce((sum, t) => sum + t.c, 0);
+    if (Math.abs(c) > 1e-12 * Math.max(1, ...group.map((t) => Math.abs(t.c)))) return { ...lead, c };
+    for (const t of group) sorted.splice(sorted.indexOf(t), 1);
+  }
+  return null;
+}
+
+export function growthLimitAtInfinity(expr, v, dir) {
+  let forms = termForms(expr, v);
+  if (!forms) return null;
+  // x → −∞ as t = −x → ∞: (−t)^p = (−1)^p·t^p, e^(kx) = e^(−kt); ln is
+  // not defined there.
+  if (dir < 0) {
+    if (forms.some((t) => t.m !== 0 || !Number.isInteger(t.p))) return null;
+    forms = forms.map((t) => ({ ...t, c: t.p % 2 === 0 ? t.c : -t.c, k: -t.k }));
+  } else if (forms.some((t) => t.m !== 0 && !Number.isInteger(t.m))) return null;
+  const lead = dominant(forms, (a, b) => (b.k - a.k) || (b.p - a.p) || (b.m - a.m));
+  if (!lead) return 0;
+  const grows = lead.k > 0 || (lead.k === 0 && (lead.p > 0 || (lead.p === 0 && lead.m > 0)));
+  if (grows) return lead.c > 0 ? Infinity : -Infinity;
+  return lead.k === 0 && lead.p === 0 && lead.m === 0 ? lead.c : 0;
+}
+
+// t → 0⁺: e^(kt) → 1, so x^p·ln(t)^m decides; ln(t) < 0 there.
+export function growthLimitAtZeroRight(expr, t) {
+  const forms = termForms(expr, t);
+  if (!forms || forms.some((f) => !Number.isInteger(f.m))) return null;
+  const merged = forms.map((f) => ({ ...f, k: 0 }));
+  const lead = dominant(merged, (a, b) => (a.p - b.p) || (b.m - a.m));
+  if (!lead) return 0;
+  const sign = Math.sign(lead.c) * (lead.m % 2 === 0 ? 1 : -1);
+  if (lead.p < 0 || (lead.p === 0 && lead.m > 0)) return sign > 0 ? Infinity : -Infinity;
+  return lead.p === 0 && lead.m === 0 ? lead.c : 0;
 }

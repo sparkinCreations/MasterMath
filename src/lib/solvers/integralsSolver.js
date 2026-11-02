@@ -29,6 +29,7 @@ import {
   bareFunctionName,
   bareFunctionRefusal,
   readAsText,
+  exactDecimals,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { derivativeMatchesNumerically } from './substitutionSolver.js';
@@ -92,7 +93,10 @@ export async function solveIntegral(rawInput) {
   if (definite) {
     const bare = definite.integrand && bareFunctionName(parseMathExpression(definite.integrand));
     if (bare) return parseError({ input: rawInput, ...bareFunctionRefusal(bare) });
-    const result = await solveDefiniteIntegral(definite);
+    // Decimals as fractions for the engines (exactDecimals); the bounds'
+    // labels stay as typed, and so does the integrand where it is shown.
+    const exactIntegrand = definite.integrand && exactDecimals(definite.integrand);
+    const result = asTyped(await solveDefiniteIntegral({ ...definite, integrand: exactIntegrand, lowerRaw: definite.lowerRaw && exactDecimals(definite.lowerRaw), upperRaw: definite.upperRaw && exactDecimals(definite.upperRaw) }), exactIntegrand, definite.integrand);
     if (!definite.error && result.status !== 'parse_error') {
       result.readAs = `∫_${definite.lowerLabel}^${definite.upperLabel} ${readAsText(definite.integrand)} d${definite.variable}`;
     }
@@ -130,10 +134,21 @@ export async function solveIntegral(rawInput) {
   // were shown doubled, ∫((x^2)) dx.
   const integrand = stripOuterParens(expression);
   const variable = dvar ? dvar[1].toLowerCase() : undefined;
-  const result = await solveIndefiniteIntegral(integrand, variable);
+  // 0.5x² as (1/2)x²: Algebrite fails on the decimal (exactDecimals).
+  const result = asTyped(await solveIndefiniteIntegral(exactDecimals(integrand), variable), exactDecimals(integrand), integrand);
   // What was integrated, shown above the steps: a misread is visible at once.
   if (result.status !== 'parse_error') result.readAs = `∫ ${readAsText(integrand)} d${variable || extractVariable(integrand)}`;
   return result;
+}
+
+// The integrand as typed wherever the result shows it: ∫(0.5x^2) dx, not
+// the ∫((1/2)*x^2) dx the engines were given.
+function asTyped(result, exact, typed) {
+  if (!result || !exact || exact === typed) return result;
+  const from = beautify(exact);
+  const to = beautify(typed);
+  const swap = (t) => (typeof t === 'string' ? t.split(`(${from})`).join(`(${to})`) : t);
+  return { ...result, steps: (result.steps || []).map(swap), answer: swap(result.answer) };
 }
 
 async function solveIndefiniteIntegral(expression, variableOverride) {

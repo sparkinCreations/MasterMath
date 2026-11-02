@@ -65,7 +65,7 @@ export const endpoint = (x, labels) => labels?.get(labelKey(x)) ?? formatNumber(
 // endpoint in the answer gets its decimal alongside, once.
 export function withApproximations(answer, pieces, labels) {
   if (!labels?.size) return answer;
-  const notes = [];
+  const entries = [];
   for (const x of pieces.flatMap((p) => [p.lo, p.hi]).filter(Number.isFinite)) {
     const label = labels.get(labelKey(x));
     if (!label || /^-?\d+$/.test(label)) continue;
@@ -73,10 +73,22 @@ export function withApproximations(answer, pieces, labels) {
     if (/^-?\d+\/\d+$/.test(label) && Math.abs(Number(formatNumber(x)) - x) < 1e-12) continue;
     // −√2 and √2: one note, for √2.
     const shown = label.startsWith('-') && labels.get(labelKey(-x)) === label.slice(1) ? label.slice(1) : label;
-    const note = `${shown} ≈ ${formatNumber(shown === label ? x : -x)}`;
-    if (!notes.includes(note)) notes.push(note);
+    if (!entries.some((e) => e.shown === shown)) entries.push({ shown, value: shown === label ? x : -x });
   }
+  // Two different values that round alike get the digits that tell them
+  // apart: √2 and √2000001/1000 are both 1.4142 to four places.
+  const digits = distinctDigits(entries.map((e) => e.value));
+  const notes = entries.map((e) => `${e.shown} ≈ ${digits === null ? formatNumber(e.value) : e.value.toFixed(digits)}`);
   return notes.length ? `${answer}  (${notes.join(', ')})` : answer;
+}
+
+// null when formatNumber already tells the values apart, else the fewest
+// decimals (up to 15) that do.
+export function distinctDigits(values) {
+  const clash = (fmt) => values.some((a, i) => values.some((b, j) => j > i && Math.abs(a - b) > 1e-15 && fmt(a) === fmt(b)));
+  if (!clash(formatNumber)) return null;
+  for (let d = 5; d <= 15; d += 1) if (!clash((x) => x.toFixed(d))) return d;
+  return 15;
 }
 
 export function rhsIsPositiveNumber(rhs) {

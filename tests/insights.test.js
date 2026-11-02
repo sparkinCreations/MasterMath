@@ -945,3 +945,171 @@ test('trigonometry: the root count at a tangent, at close roots and at the ends'
   // The check says which values balance to 10^(−12): the unrounded ones.
   assert.ok((await plainTrig('sin(x) = x/2')).steps.some((s) => s === 'Check: each root was located to high precision, and substituting its unrounded value back makes the two sides agree to within 10^(−12). The values shown are rounded to 4 decimal places, so they balance only to about that many.'));
 });
+
+// --- Inequalities and systems (1.66.0) ------------------------------------------
+
+const plainIneq = async (p) => (await import('./helpers/solvePlain.js')).solvePlain(p, 'algebra');
+
+
+test('inequalities and systems: each method leads with its own insight, and the second works the problem', async () => {
+  const cases = [
+    ['linear', '-2x > 4', /dividing by -2, a negative number, reverses > to <: x < -2/],
+    ['polynomial', 'x^2 - 4 > 0', /x\^2 - 4 is 0 at x = -2 and 2/],
+    ['polynomial', '(x-1)^2*(x+2) >= 0', /does not change at x = 1, a zero of even multiplicity/],
+    ['rational', '(x-1)/(x+2) <= 0', /numerator is 0 at x = 1 and the denominator at x = -2/],
+    ['holes', '(x^2-1)/(x-1) > 0', /undefined at x = 1, even though that factor cancels/],
+    ['absolute value', 'abs(2x-1) < 5', /\|2x - 1\| < 5 means −5 < 2x - 1 < 5/],
+    ['absolute value, chart', 'abs(x) < x + 1', null],
+    ['domain', 'ln(x) < 1', /defined only where x > 0/],
+    ['transcendental', 'x - ln(x) > 2', /turns only at x = 1/],
+    ['wave', 'sin(x) > x/2', /counting by convexity there gives exactly 3/],
+    ['periodic', 'sin(x) > 1/2', /0 at π\/6 and 5π\/6/],
+    ['compound', '-1 < 2x+1 <= 5', /part 1 gives x > -1 and part 2 gives x ≤ 2/],
+    ['system, one point', '2x + 3y = 6; x - y = 4', /equation 1 gives x = \(6 - 3y\)\/2/],
+    ['system, parallel', 'x + y = 1; x + y = 3', /subtracting leaves 0 = 2/],
+    ['system, same line', 'x + y = 2; 2x + 2y = 4', /equation 2 is 2 × equation 1/],
+    ['system, 3×3', 'x + y + z = 6; 2x - y + z = 3; x + 2y - z = 2', /only z left, so z = 3/],
+    ['system, 3×3 none', 'x+y+z=1; x+y+2z=2; x+y+3z=4', /contradict/],
+    ['system, 3×3 many', 'x+y+z=1; x+y+2z=2; x+y+3z=3', /one variable is free/],
+    ['system, curves', 'y = x + 1; x^2 + y^2 = 25', /y = x \+ 1 put into the other equation/],
+  ];
+  const seen = new Map();
+  for (const [method, problem, here] of cases) {
+    const r = await plainIneq(problem);
+    const first = r.tips[0];
+    assert.ok(!seen.has(first) || seen.get(first) === method, `"${method}" and "${seen.get(first)}" share the first insight "${first}"`);
+    seen.set(first, method);
+    if (here) assert.match(r.tips[1], here, `${method}: ${r.tips[1]}`);
+  }
+});
+
+test('inequalities: zeros proved, not scanned; boundary points decided at the point', async () => {
+  const answers = [
+    // Found by the sweep (1.66.0): each was confidently wrong.
+    ['x - ln(x) > 2', '0 < x < α  or  x > β, where α ≈ 0.1586 and β ≈ 3.1462 are zeros of x - ln(x) - 2'], // 0 < x < 0.1586 was lost next to the domain's edge
+    ['e^(x/20) > x', 'x < α  or  x > β, where α ≈ 1.0541 and β ≈ 89.9951 are zeros of e^(x/20) - x'], // the zero past the ±50 window was lost
+    ['(x^2-1)/(x-1) > 0', '-1 < x < 1  or  x > 1'], // x = 1 was kept: the factor cancelled
+    ['x/x > 0', 'x < 0  or  x > 0'], // "No solution"
+    ['x/x - 1 >= 0', 'x < 0  or  x > 0'],
+    ['sqrt(x) > -1', 'x ≥ 0'], ['sqrt(x) >= 0', 'x ≥ 0'], ['sqrt(x-1) <= 0', 'x = 1'], ['sqrt(4-x^2) >= 0', '-2 ≤ x ≤ 2'],
+    ['sqrt(x^2-2) >= 0', 'x ≤ -√2  or  x ≥ √2  (√2 ≈ 1.4142)'],
+    ['sqrt(x^2-2) - 0.001 < 0', '-√2000001/1000 < x < -√2  or  √2 < x < √2000001/1000  (√2000001/1000 ≈ 1.4142139, √2 ≈ 1.4142136)'],
+    ['sin(x) > 0.99x', 'x < α  or  0 < x < β, where α ≈ -0.2453 and β ≈ 0.2453 are zeros of sin(x) - 0.99x'],
+    ['e^x > e*x', 'x < 1  or  x > 1'], ['e^x - x - 1 > 0', 'x < 0  or  x > 0'],
+    ['x^5 - 4x > 0', '-√2 < x < 0  or  x > √2  (√2 ≈ 1.4142)'], ['x^6 > 8', 'x < -√2  or  x > √2  (√2 ≈ 1.4142)'],
+    ['abs(x) < x + 1', 'x > -1/2'], ['abs(x) >= x', 'All real numbers satisfy the inequality'], ['abs(x) > x', 'x < 0'],
+    ['x^2 - 1e-6 < 0', '-1/1000 < x < 1/1000'], // 1e-6 was read as 1·e − 6
+    // Wrong before the sweep's second pass, too: log(x) < 2 was x > 0; ln(x) > x − 2 lost 0 < x < 0.1586.
+    ['log(x) < 2', '0 < x < 100'], ['ln(x) > x - 2', 'α < x < β, where α ≈ 0.1586 and β ≈ 3.1462 are zeros of ln(x) - x + 2'], ['sqrt(x+3) > x + 1', '-3 ≤ x < 1'],
+    // Exponentials of one rate: a polynomial in t = e^x (or 2^x), exact.
+    ['e^(2x) - 3e^x + 2 > 0', 'x < 0  or  x > ln(2)  (ln(2) ≈ 0.6931)'], ['4^x - 3*2^x + 2 < 0', '0 < x < 1'],
+    ['sinh(x) > 1', 'x > ln(1 + √2)  (ln(1 + √2) ≈ 0.8814)'], ['cosh(x) < 2', 'ln(2 - √3) < x < ln(2 + √3)  (ln(2 - √3) ≈ -1.317, ln(2 + √3) ≈ 1.317)'],
+    // A derivative bounded away from 0 (2 + sin(x) ≥ 1; a sum of roots > 0) proves the turning points.
+    ['x^2 > sin(x)', 'x < 0  or  x > α, where α ≈ 0.8767 is a zero of x^2 - sin(x)'], ['sqrt(x) + sqrt(x-1) > 1', 'x > 1'],
+    // Periodic: every zero on one period, exactly, and the period exact.
+    ['sin(10x) > 0', 'πn/5 < x < π/10 + πn/5, for every integer n'],
+    ['cos(5x) <= 1/2', 'π/15 + 2πn/5 ≤ x ≤ π/3 + 2πn/5, for every integer n'],
+    ['abs(sin(2x)) < 0.5', '-π/12 + πn < x < π/12 + πn  or  5π/12 + πn < x < 7π/12 + πn, for every integer n'],
+    ['sin(x) > 0.9999999', 'α + 2πn < x < β + 2πn, for every integer n, where α ≈ 1.5703 and β ≈ 1.5712 are zeros of sin(x) - 0.9999999 in [0, 2π)'],
+    ['sin(x) >= 0.99999999999', 'α + 2πn ≤ x ≤ β + 2πn, for every integer n, where α ≈ 1.57079 and β ≈ 1.57080 are zeros of sin(x) - 0.99999999999 in [0, 2π)'], // two places that round alike get more digits
+  ];
+  for (const [p, answer] of answers) assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
+  // The working says why the list of zeros is complete.
+  assert.ok((await plainIneq('x - ln(x) > 2')).steps.some((s) => /^These are all of its zeros: its derivative is 0 only at x = 1/.test(s)));
+  assert.ok((await plainIneq('sin(x) > 1/2')).steps.some((s) => /and nowhere else: written in the tangent of the half-angle it becomes a polynomial/.test(s)));
+  // Numerically located zeros are named where they are found, and every
+  // solution set in the working uses the names (Round 35).
+  const far = await plainIneq('e^(x/20) > x');
+  assert.ok(far.steps.some((s) => s.startsWith('Find where the expression is zero: x = α ≈ 1.0541, x = β ≈ 89.9951')), far.steps.join('\n'));
+  assert.ok(far.steps.some((s) => s === 'In interval notation: (-∞, α) ∪ (β, ∞).'));
+  for (const p of ['x - ln(x) > 2', 'x^2 > sin(x)', 'sin(x) > x/2', 'sin(x) > 0.9999999']) {
+    const r = await plainIneq(p);
+    const sets = r.steps.filter((s) => /^(?:Collect|In interval notation|Keep the|Test the sign between|  • On)/.test(s)).join('\n');
+    assert.ok(sets.length > 0, p);
+    assert.doesNotMatch(sets, /\d\.\d{4}/, `${p}: a rounded boundary in the working`);
+  }
+  // Beyond what can be proved, a refusal, never a scan's guess.
+  const r = await solveProblem('x^7 > e^x', 'algebra');
+  assert.equal(r.status, 'unsupported');
+});
+
+test('systems: linearity read off the parse tree, every real root of the substitution, the 3×3 rank', async () => {
+  const answers = [
+    // A term that is 0 at every whole-number sample made a quartic look like a line (1.66.0).
+    ['x + y + x*(x-1)*(x-2)*(x+1) = 3; x - y = 1', '(x, y) = ≈ (-1.5214, -2.5214)  or  (2, 1)'],
+    // Algebrite wrote the real roots with i and (−1)^(3/4) in them.
+    ['y = x^5 - 3x; y = x', '(x, y) = (-√2, -√2)  or  (0, 0)  or  (√2, √2)'],
+    ['x+y+z=1; x+y+2z=2; x+y+3z=4', 'No solution — the equations are inconsistent'], // was "not a 2×2 system"
+    ['x+y+z=1; x+y+2z=2; x+y+3z=3', 'Infinitely many solutions — the equations are dependent (a line or plane of solutions)'],
+    ['x + y = 1e-3; x - y = 0', 'x = 1/2000,  y = 1/2000'], // e was a third variable
+    ['y = x + 1; x^2 + y^2 = 25', '(x, y) = (-4, -3)  or  (3, 4)'],
+    ['2x + 3y = 6; x - y = 4', 'x = 18/5,  y = -2/5'],
+  ];
+  for (const [p, answer] of answers) assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
+  assert.equal((await solveProblem('x + y + sin(pi*x) = 3; x - y = 1', 'algebra')).status, 'unsupported');
+  // A substitution that leaves no polynomial is refused in those words.
+  assert.match((await solveProblem('y = sqrt(x); y = x - 2', 'algebra')).answer, /not a polynomial equation/);
+  const { linearCoefficientsIn } = await import('../src/lib/solvers/solverUtils.js');
+  assert.deepEqual(linearCoefficientsIn('2*x - 3*y + 4', ['x', 'y']), { coeffs: [2, -3], d: 4 });
+  assert.equal(linearCoefficientsIn('x + y + x*(x-1)*(x-2)*(x+1) - 3', ['x', 'y']), null);
+  assert.equal(linearCoefficientsIn('x*y', ['x', 'y']), null);
+});
+
+test('scientific notation is read as a number on every path', async () => {
+  assert.equal((await solveProblem('x^2 = 1e-6', 'algebra')).answer, 'x = -1/1000  or  x = 1/1000');
+  assert.equal((await solveProblem('1e3 + 1', 'other')).answer, '1001');
+  const { parseMathExpression, expandScientific } = await import('../src/lib/mathParser.js');
+  assert.equal(parseMathExpression('x^2 - 1e-6'), 'x^2-0.000001');
+  assert.equal(expandScientific('2.5e-4 + 1E3 + 6.02e23'), '0.00025 + 1000 + 602000000000000000000000');
+});
+
+test('decimals reach the engines as fractions: integrals and derivatives solve exactly', async () => {
+  const cases = [
+    // Algebrite turns to floating point on a decimal: ∫ 0.5x² dx was "could not solve", ∫ 0.001x dx was 0.0005x^2.0 + C.
+    ['integrals', 'integral of 0.5*x^2 dx', '∫(0.5x^2) dx = 1/6*x^3 + C'],
+    ['integrals', 'integral of 0.001*x dx', '∫(0.001x) dx = 1/2000*x^2 + C'],
+    ['integrals', 'integral of 0.5*sin(x) dx', '∫(0.5sin(x)) dx = -1/2*cos(x) + C'],
+    ['integrals', 'integral of e^(0.5x) dx', '∫(e^(0.5x)) dx = 2e^(1/2*x) + C'],
+    ['integrals', 'integral of x^1.5 dx', '∫(x^1.5) dx = 2/5*x^(5/2) + C'],
+    ['integrals', 'integral from 0 to 1.5 of x dx', '∫_0^1.5 (x) dx = 9/8 (≈ 1.125)'],
+    // The exact value's natural log was shown as Algebrite's log after a digit: 2log(2).
+    ['integrals', 'integral from 0.5 to 2 of 1/x dx', '∫_0.5^2 (1/x) dx = 2ln(2) (≈ 1.3863)'],
+    ['integrals', 'integral from 1/2 to 2 of 1/x dx', '∫_1/2^2 (1/x) dx = 2ln(2) (≈ 1.3863)'],
+    // An improper integral's limit at ∞ was read off samples: −2/√t "did not settle", so ∫_1^∞ x^(−3/2) dx "diverged".
+    ['integrals', '∫_1^∞ x^(-3/2) dx', '∫_1^∞ (x^(-3/2)) dx = 2'],
+    ['integrals', '∫_1^∞ 1/x^1.1 dx', '∫_1^∞ (1/x^1.1) dx = 10'],
+    ['integrals', '∫_2^∞ 1/(x*ln(x)^2) dx', '∫_2^∞ (1/(x*ln(x)^2)) dx = 1/(ln(2)) (≈ 1.4427)'],
+    ['integrals', '∫_1^∞ 1/sqrt(x) dx', '∫_1^∞ (1/sqrt(x)) dx diverges'],
+    ['derivatives', 'x^1.5', "f'(x) = 3/2*√x, x ≥ 0"],
+    ['derivatives', '3.5*sin(x)', "f'(x) = 7/2*cos(x)"],
+  ];
+  for (const [topic, p, answer] of cases) assert.equal((await solveProblem(p, topic)).answer, answer, p);
+  // The function is shown as typed.
+  const d = await solveProblem('0.5x^2', 'derivatives');
+  assert.ok(d.steps.some((s) => /f\(x\) = 0\.5x\^2/.test(s)) && !d.steps.some((s) => /\(1\/2\)\*/.test(s)), d.steps.join('\n'));
+  const { exactDecimals } = await import('../src/lib/solvers/solverUtils.js');
+  assert.equal(exactDecimals('0.5*x^2 + 1.5 - 0.001x + 3.0 + x^2.25'), '(1/2)*x^2 + (3/2) - (1/1000)x + 3 + x^(9/4)');
+});
+
+test('inequalities and systems, Round 34: each shared statement says where it holds', async () => {
+  const all = async (p) => { const r = await plainIneq(p); return [...r.steps, ...r.tips, ...r.common_mistakes].join('\n'); };
+  // A numerator's zero is a solution of ≤ only where the denominator is not 0.
+  assert.match(await all('(x-1)/(x+2) <= 0'), /a zero of the numerator is a solution where the denominator is not 0/);
+  // t = tan(x/2) never reaches x = π: the step and the tip say it is checked on its own.
+  const atPi = await all('cos(x) <= -1');
+  assert.match(atPi, /except at the half-turn, where that tangent is undefined; that one angle is checked on its own/);
+  assert.match(atPi, /The one angle t never reaches, θ = π, is checked on its own/);
+  // The second inverse value only for −1 < c < 1, and for the function the inequality has.
+  assert.match(await all('sin(x) >= 1'), /for −1 < c < 1, sin\(x\) = c has a second zero.*at c = ±1 the two are the same point/);
+  assert.match(await all('cos(x) > 1/2'), /Using arccos alone/);
+  assert.doesNotMatch(await all('cos(x) > 1/2'), /arcsin/);
+  // A square root's domain gets the root's rule, not ln's.
+  const root = await plainIneq('sqrt(x-1) <= 0');
+  assert.match(root.tips[2], /A square root is never negative/);
+  assert.doesNotMatch(root.tips.join('\n'), /ln\(x\) < 1 is x < e/);
+  // The root count names the degree the substitution left.
+  assert.match((await plainIneq('x + y + x*(x-1)*(x-2)*(x+1) = 3; x - y = 1')).tips[2], /degree 4, so the curves meet at most 4 times/);
+  assert.match((await plainIneq('y = x + 1; x^2 + y^2 = 25')).tips[2], /A line can meet a parabola or a circle at 0, 1 or 2 points/);
+  // A pivot with no equation to swap in: that variable is free.
+  assert.match(await all('x + y + z = 6; 2x - y + z = 3; x + 2y - z = 2'), /If none has it, that variable is free/);
+});

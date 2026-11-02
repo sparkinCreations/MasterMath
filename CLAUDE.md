@@ -160,13 +160,22 @@ substitutions; Algebrite roots checked for completeness against the degree,
 anything above degree 12 to `polynomialRoots`; simplification; factoring),
 `polynomialRoots` (exact reader, `factorByRationalRoots`, Sturm counting,
 exact bisection, verified complex roots, cap `MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,
-non-linear by substitution), `inequalitiesSolver` (sign charts, compound; periodic ones on one period + every period; refuses two variables),
+non-linear by substitution; linearity read off the parse tree by
+`linearCoefficientsIn`, the substitution's real roots from the exact root
+finder), `inequalitiesSolver` (sign charts, compound; periodic ones on one
+period + every period, their zeros the real roots of a polynomial in the
+tangent of the half-angle (`trigonometry/circle.js`); every zero proved
+(`inequalities/zeros.js`: the exact root finder, else monotone stretches
+between turning points with end signs read off growth rates, convexity for
+a wave against a line, branches for an absolute value; refused when not
+proved); poles read from the typed expression, so a cancelled factor stays
+out; a boundary point decided by the value there; refuses two variables),
 `trigonometrySolver` (values, exact only to double precision, else ≈;
 identities proved in sin and cos by t = tan(x/2) in exact fractions, with
 the domain a simplification loses; A·sin/cos(kx + c) + d = mx + b counted
 exactly by convexity and every root located (`trigonometry/rootCount.js`),
 where the numeric scan missed roots; exports `detectTrigAsymptote`; tips in
-`trigonometry/guidance.js`),
+`trigonometry/guidance.js`; identities proved in `trigonometry/circle.js`),
 `trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
 `functionsSolver` (exact extrema/intercepts/asymptotes: a numeric value is
 shown exact only when `recognizeExact` proves it by substitution, else ≈;
@@ -208,7 +217,8 @@ on the digits as typed, half away from zero).
 `splitTerms`, `splitTopLevel`, `stripOuterParens`, `gcd`, `runAlgebrite`,
 `loadAlgebrite`, `lnify`, `piForm`, `exactForm` (an Algebrite value as a
 textbook writes it: 1/e, √2, π/6), and the structural proofs
-`linearCoefficients`, `structuralPeriod`, `definedEverywhere`,
+`linearCoefficients`, `linearCoefficientsIn` (several variables),
+`structuralPeriod`, `definedEverywhere`,
 `trigUndefinedPoints`, `neverZeroSide` (facts read off the parse tree: use
 these for any "periodic" / "defined everywhere" / "undefined at" / "never
 0" claim) — import them, never copy them. Never strip parentheses with `/^\((.*)\)$/`.
@@ -241,7 +251,8 @@ differentiating" go last. An item that uses a named idea from a specific
 source is `{ text, source: { title, url } }` (a DOI or publisher link,
 `SOURCE_HOSTS`); `finalizeResult` turns it into text and keeps the source in
 `result.sources`. Integrals (1.60.0), derivatives (1.61.0), algebra
-(1.62.0), limits (1.63.0), functions (1.64.0) and trigonometry (1.65.0) are done, each with a review document in
+(1.62.0), limits (1.63.0), functions (1.64.0), trigonometry (1.65.0) and
+inequalities and systems (1.66.0) are done, each with a review document in
 `docs/future-work/insights-review/`; the other topics follow one per release,
 each with a review document first. The second insight works the student's
 own problem (read from its steps), and every statement says where it holds.
@@ -365,7 +376,9 @@ choosing a version number: releases land from other sessions and PRs.
 ## Conventions
 
 - Math input: `*` and `^` explicit, standard function names; the parser also
-  accepts natural notation (`x²`, `2x`, `∫`, `d/dx`).
+  accepts natural notation (`x²`, `2x`, `∫`, `d/dx`). Scientific notation
+  (`1e-6`) leaves the parser as its plain decimal (`expandScientific` for a
+  solver that reads the typed text): Algebrite reads `1e-6` as `1·e − 6`.
 - Topic values: `auto` (Auto-detect, the default for a new visitor:
   `detectTopic` in `api/topic.js`; never saved to history, which files under the
   detected topic), `derivatives`, `integrals`, `limits`, `functions`,

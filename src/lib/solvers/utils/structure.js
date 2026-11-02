@@ -67,6 +67,70 @@ export function linearCoefficients(expr, variable) {
   return walk(node);
 }
 
+// The coefficients of expr ≡ a₁·v₁ + … + aₙ·vₙ + d in several variables,
+// read off the parse tree: { coeffs: [a₁, …, aₙ], d }, or null when expr is
+// not linear in them. The systems solver read linearity off sample points at
+// whole numbers, and x + y + x(x − 1)(x − 2)(x + 1) = 3, whose last term is 0
+// at every one of them, was taken for a line (1.66.0).
+export function linearCoefficientsIn(expr, variables) {
+  let node;
+  try {
+    node = math.parse(String(expr));
+  } catch {
+    return null;
+  }
+  const n0 = variables.length;
+  const zero = () => Array(n0).fill(0);
+  const isConst = (t) => t.k.every((c) => c === 0);
+  const constant = (n) => {
+    try {
+      const v = n.evaluate({});
+      return typeof v === 'number' && Number.isFinite(v) ? v : null;
+    } catch {
+      return null;
+    }
+  };
+  const walk = (n) => {
+    if (n.type === 'ConstantNode') return typeof n.value === 'number' ? { k: zero(), d: n.value } : null;
+    if (n.type === 'SymbolNode') {
+      const i = variables.indexOf(n.name);
+      if (i !== -1) return { k: zero().map((_, j) => (j === i ? 1 : 0)), d: 0 };
+      const v = constant(n);
+      return v === null ? null : { k: zero(), d: v };
+    }
+    if (n.type === 'ParenthesisNode') return walk(n.content);
+    if (n.type === 'OperatorNode') {
+      if (n.args.length === 1) {
+        const a = walk(n.args[0]);
+        if (!a) return null;
+        return n.op === '-' ? { k: a.k.map((c) => -c), d: -a.d } : n.op === '+' ? a : null;
+      }
+      const [a, b] = n.args.map(walk);
+      if (!a || !b) return null;
+      if (n.op === '+') return { k: a.k.map((c, i) => c + b.k[i]), d: a.d + b.d };
+      if (n.op === '-') return { k: a.k.map((c, i) => c - b.k[i]), d: a.d - b.d };
+      if (n.op === '*') {
+        if (isConst(a)) return { k: b.k.map((c) => a.d * c), d: a.d * b.d };
+        if (isConst(b)) return { k: a.k.map((c) => c * b.d), d: a.d * b.d };
+        return null;
+      }
+      if (n.op === '/') return isConst(b) && b.d !== 0 ? { k: a.k.map((c) => c / b.d), d: a.d / b.d } : null;
+      if (isConst(a) && isConst(b)) {
+        const v = constant(n);
+        return v === null ? null : { k: zero(), d: v };
+      }
+      return null;
+    }
+    if (n.type === 'FunctionNode') {
+      const v = constant(n);
+      return v === null ? null : { k: zero(), d: v };
+    }
+    return null;
+  };
+  const out = walk(node);
+  return out ? { coeffs: out.k, d: out.d } : null;
+}
+
 const TRIG_PERIOD = { sin: 2 * Math.PI, cos: 2 * Math.PI, sec: 2 * Math.PI, csc: 2 * Math.PI, tan: Math.PI, cot: Math.PI };
 const ALWAYS_DEFINED_FUNCTIONS = new Set(['sin', 'cos', 'exp', 'abs', 'sinh', 'cosh', 'tanh', 'atan', 'arctan']);
 

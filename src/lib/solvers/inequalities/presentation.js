@@ -1,7 +1,8 @@
 // The sign-chart working, the trivial cases (identical sides), the graph,
 // and refusals.
 
-import { beautify, sampleFunction, mark } from '../solverUtils.js';
+import { beautify, sampleFunction, mark, splitTerms } from '../solverUtils.js';
+import { readPolynomial } from '../polynomialRoots.js';
 import { parseError, unsupported } from '../../solutionEnvelope.js';
 import { bars, shown, labelKey } from './roots.js';
 import {
@@ -14,16 +15,35 @@ import {
 
 // --- display -----------------------------------------------------------------
 
-export function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles, zeros, chartRows, solution, nonStrict, labels, edges = [] }) {
+// The expression once everything is on one side. A number on the right
+// moves across as it is: |2x − 1| − 5, not the engine's −5 + |−2x + 1|
+// (October 2026 test list).
+// With 0 on the right the left side stays as typed: (x − 1)²(x + 2) shows
+// its double zero, the engine's x³ − 3x + 2 does not. Anything else on the
+// right is subtracted as typed: e^(x/20) − x, not −x + e^(1/20·x)
+// (1.66.0).
+export function movedText(lhs, rhs, simplified) {
+  const right = beautify(rhs).trim();
+  const rhsNumber = /^-?\d+(?:\.\d+)?$/.test(right) ? Number(right) : null;
+  if (rhsNumber === 0) return bars(beautify(lhs));
+  if (rhsNumber !== null) return `${bars(beautify(lhs))} ${rhsNumber < 0 ? '+' : '-'} ${beautify(String(Math.abs(rhsNumber)))}`;
+  const single = /^[\w.√π^()/*·]+$/.test(right.replace(/\s+/g, '')) && !/[+-]/.test(right.replace(/^\(|\)$/g, ''));
+  if (single) return `${bars(beautify(lhs))} - ${bars(right)}`;
+  // A sum on the right of a polynomial is distributed: x² − 2x − 1, not
+  // x² − (2x + 1); otherwise each term crosses with its sign flipped:
+  // ln(x) − x + 2, not ln(x) − (x − 2).
+  if (readPolynomial(String(simplified), variableOf(simplified))) return shown(simplified);
+  const terms = splitTerms(beautify(rhs));
+  if (!terms.length) return `${bars(beautify(lhs))} - (${bars(right)})`;
+  return `${bars(beautify(lhs))}${terms.map(({ sign, term }) => ` ${sign === '-' ? '+' : '-'} ${bars(term)}`).join('')}`;
+}
+const variableOf = (text) => (String(text).match(/(?<![a-z])[a-z](?![a-z(])/i) || ['x'])[0];
+
+export function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical, poles, zeros, chartRows, solution, nonStrict, labels, edges = [], zeroProof = null, approximations = new Map() }) {
   const opShown = op.replace('<=', '≤').replace('>=', '≥');
   const steps = [`Solve the inequality ${mark(`${bars(beautify(lhs))} ${opShown} ${bars(beautify(rhs))}`)}.`];
 
-  // A number on the right moves across as it is: |2x − 1| − 5, not the
-  // engine's −5 + |−2x + 1| (October 2026 test list).
-  const rhsNumber = /^-?\d+(?:\.\d+)?$/.test(beautify(rhs).trim()) ? Number(beautify(rhs)) : null;
-  const moved = rhsNumber !== null && rhsNumber !== 0
-    ? `${bars(beautify(lhs))} ${rhsNumber < 0 ? '+' : '-'} ${beautify(String(Math.abs(rhsNumber)))}`
-    : shown(simplified);
+  const moved = movedText(lhs, rhs, simplified);
   if (beautify(rhs) !== '0') {
     steps.push(`Move everything to one side: ${mark(`${moved} ${opShown} 0`)}.`);
   }
@@ -31,8 +51,17 @@ export function buildSteps({ lhs, rhs, op, variable, fExpr, simplified, critical
   if (critical.length > 0) {
     const zeroList = zeros.filter((z) => !poles.some((p) => Math.abs(p - z) < 1e-9));
     if (zeroList.length) {
-      steps.push(`Find where the expression is zero: ${mark(`${variable} = ${zeroList.map((z) => endpoint(z, labels)).join(', ')}`)}${zeroList.some((z) => !labels?.has(labelKey(z)) && !Number.isInteger(z)) ? ' (located numerically, to the decimals shown)' : ''}.`);
+      // A zero located numerically is named where it is found, α ≈ 0.1586,
+      // and goes by its name after (Round 35); one with no name is a decimal
+      // written with ≈.
+      const named = (z) => approximations.has(labelKey(z));
+      const located = (z) => named(z) || (!labels?.has(labelKey(z)) && !Number.isInteger(z));
+      const zeroText = zeroList.some(located)
+        ? zeroList.map((z) => (named(z) ? `${variable} = ${approximations.get(labelKey(z))}` : `${variable} ${located(z) ? '≈' : '='} ${endpoint(z, labels)}`)).join(', ')
+        : `${variable} = ${zeroList.map((z) => endpoint(z, labels)).join(', ')}`;
+      steps.push(`Find where the expression is zero: ${mark(zeroText)}${zeroList.some(located) ? ' (located numerically, to the decimals shown)' : ''}.`);
     }
+    if (zeroProof) steps.push(zeroProof);
     if (poles.length) {
       steps.push(`Note where it is undefined (denominator zero): ${mark(`${variable} = ${poles.map((p) => endpoint(p, labels)).join(', ')}`)}.`);
     }

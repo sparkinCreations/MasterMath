@@ -2,16 +2,18 @@
 // every period.
 
 import { math, beautify, formatNumber, piForm, mark } from '../solverUtils.js';
-import { shown } from './roots.js';
-import { coalesce } from './intervals.js';
-import { buildGraph } from './presentation.js';
+import { shown, exactDecimals } from './roots.js';
+import { coalesce, distinctDigits } from './intervals.js';
+import { circleZeros } from '../trigonometry/circle.js';
+import { readPolynomial, allRoots } from '../polynomialRoots.js';
+import { buildGraph, movedText } from './presentation.js';
 
 // --- periodic inequalities -----------------------------------------------------
 //
 // f with a period T proved from its structure (structuralPeriod) and defined
-// everywhere: locate the zeros on one period [0, T) — sign changes, and
-// touching zeros as minima of |f| that reach 0 — test the sign between them,
-// and state the solution on that period plus every multiple of T. An
+// everywhere: find every zero on one period [0, T) (circleZeros, exact),
+// test the sign between them, and state the solution on that period plus
+// every multiple of T. An
 // endpoint is written as a multiple of π only when Algebrite confirms f is
 // exactly 0 there; otherwise it is a decimal, marked ≈. The general answer is
 // cross-checked at points across −50 ≤ x ≤ 50 before it is returned.
@@ -26,70 +28,50 @@ export function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simpli
       return NaN;
     }
   };
-  const N = 1440;
-  const xs = Array.from({ length: N + 1 }, (_, i) => (T * i) / N);
-  const ys = xs.map(f);
-  if (!ys.every(Number.isFinite)) return null;
-  const scale = Math.max(1, ...ys.map(Math.abs));
   const roots = [];
   const addRoot = (r) => {
     const x = ((r % T) + T) % T;
     const xr = Math.abs(x - T) < 1e-9 ? 0 : x;
-    if (!roots.some((q) => Math.abs(q - xr) < 1e-7)) roots.push(xr);
+    if (!roots.some((q) => Math.abs(q - xr) < 1e-9)) roots.push(xr);
   };
-  for (let i = 0; i < N; i += 1) {
-    const [a, b] = [xs[i], xs[i + 1]];
-    const [fa, fb] = [ys[i], ys[i + 1]];
-    if (fa === 0) addRoot(a);
-    if ((fa < 0) !== (fb < 0) && fa !== 0 && fb !== 0) {
-      let lo = a;
-      let hi = b;
-      let flo = fa;
-      for (let k = 0; k < 80; k += 1) {
-        const mid = (lo + hi) / 2;
-        const fm = f(mid);
-        if ((fm < 0) === (flo < 0)) { lo = mid; flo = fm; } else hi = mid;
-      }
-      addRoot((lo + hi) / 2);
-    }
-  }
-  // Touching zeros (sin(x) ≥ 1 at π/2): |f| has a local minimum that reaches 0.
-  for (let i = 1; i < N; i += 1) {
-    const [l, m, r] = [Math.abs(ys[i - 1]), Math.abs(ys[i]), Math.abs(ys[i + 1])];
-    if (!(m <= l && m <= r && m < 1e-2 * scale)) continue;
-    if ((ys[i - 1] < 0) !== (ys[i + 1] < 0)) continue; // a crossing, found above
-    let lo = xs[i - 1];
-    let hi = xs[i + 1];
-    for (let k = 0; k < 120; k += 1) {
-      const m1 = lo + (hi - lo) / 3;
-      const m2 = hi - (hi - lo) / 3;
-      if (Math.abs(f(m1)) < Math.abs(f(m2))) hi = m2; else lo = m1;
-    }
-    const x = (lo + hi) / 2;
-    if (Math.abs(f(x)) < 1e-10 * scale) addRoot(x);
-  }
+  // Every zero on one turn, proved: the exact root finder on the
+  // expression as a polynomial in tan(θ/2) (trigonometry/circle.js). A
+  // grid of 1440 points a period stood in for that.
+  const found = periodicZeros(fExpr, v);
+  if (!found) return null;
+  for (const r of found) addRoot(r);
   if (roots.length > 24) return null;
   roots.sort((a, b) => a - b);
 
   // Exact endpoints: a multiple of π, confirmed by Algebrite.
   const exact = (x) => {
-    const pf = piForm(x);
+    const pf = piMultiple(x);
     if (pf === null) return null;
     const alg = pf.replace(/(\d)π/g, '$1*pi').replace(/π/g, 'pi');
     try {
-      const out = String(Algebrite.run(`simplify(subst(${alg}, ${v}, ${fExpr}))`)).trim();
+      const out = String(Algebrite.run(`simplify(subst(${alg}, ${v}, ${exactDecimals(fExpr)}))`)).trim();
       return out === '0' ? pf : null;
     } catch {
       return null;
     }
   };
   let inexact = false;
+  // Decimals that tell the zeros apart: 1.5708 and 1.5708 are not two
+  // endpoints a reader can use.
+  const digits = distinctDigits(roots);
+  const decimal = (x) => (digits === null ? formatNumber(x) : x.toFixed(digits));
+  // A zero located numerically is named, α, β, …, in the answer, its decimal
+  // said once (Round 34): a rounded decimal is not the boundary.
+  const NAMES = ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'κ'];
+  const numeric = roots.filter((x) => exact(x) === null);
+  const nameOf = (x) => (numeric.length <= NAMES.length ? NAMES[numeric.indexOf(x)] : null);
   const show = (x) => {
     const e = exact(x);
     if (e !== null) return e;
     inexact = true;
-    return formatNumber(x);
+    return decimal(x);
   };
+  const named = (x) => (exact(x) === null && nameOf(x) ? nameOf(x) : show(x));
 
   const nonStrict = op === '<=' || op === '>=';
   const wantPositive = op === '>' || op === '>=';
@@ -119,11 +101,14 @@ export function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simpli
     }
   }
 
-  const Tshown = piForm(T) ?? formatNumber(T);
-  const plusT = Tshown === '0' ? '' : ` + ${Tshown === 'π' ? 'π' : Tshown}n`;
+  const Tshown = piMultiple(T) ?? formatNumber(T);
+  // n multiples of the period: 2πn, πn/5 (not π/5n, which reads as π/(5n)).
+  const fractional = Tshown.match(/^(-?\d*)π\/(\d+)$/);
+  const Tn = fractional ? `${fractional[1]}πn/${fractional[2]}` : `${Tshown}n`;
+  const plusT = Tshown === '0' ? '' : ` + ${Tn}`;
   const endpoint = (x) => {
-    const t = show(x);
-    return t === '0' ? `${Tshown}n` : `${t}${plusT}`;
+    const t = named(x);
+    return t === '0' ? Tn : `${t}${plusT}`;
   };
   const whole = onePeriod.length === 1 && Math.abs(onePeriod[0].hi - onePeriod[0].lo - T) < 1e-9;
 
@@ -137,7 +122,11 @@ export function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simpli
     pieceTexts = onePeriod.map((p) => (Math.abs(p.hi - p.lo) < 1e-12
       ? `${v} = ${endpoint(p.lo)}`
       : `${endpoint(p.lo)} ${p.loC ? '≤' : '<'} ${v} ${p.hiC ? '≤' : '<'} ${endpoint(p.hi)}`));
-    answer = `${pieceTexts.join('  or  ')}, for every integer n${inexact ? ' (endpoints ≈)' : ''}`;
+    const used = numeric.filter((x) => pieceTexts.some((t) => t.includes(nameOf(x) || '\u0000')));
+    const where = used.length && nameOf(used[0])
+      ? `, where ${used.map((x) => `${nameOf(x)} ≈ ${decimal(x)}`).join(used.length > 2 ? ', ' : ' and ')} ${used.length > 1 ? 'are zeros' : 'is a zero'} of ${movedText(lhs, rhs, simplified)} in [0, ${Tshown})`
+      : '';
+    answer = `${pieceTexts.join('  or  ')}, for every integer n${where}`;
   }
 
   // Cross-check the general answer away from the period it was found on.
@@ -156,14 +145,15 @@ export function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simpli
 
   const opShown = op.replace('<=', '≤').replace('>=', '≥');
   // The ends of the period are 0 and T themselves, not zeros of f.
-  const cut = (x) => (Math.abs(x) < 1e-12 ? '0' : Math.abs(x - T) < 1e-9 ? Tshown : show(x));
+  const cut = (x) => (Math.abs(x) < 1e-12 ? '0' : Math.abs(x - T) < 1e-9 ? Tshown : named(x));
   const steps = [
     `Solve the inequality ${mark(`${beautify(lhs)} ${opShown} ${beautify(rhs)}`)}.`,
-    `Move everything to one side: ${mark(`${shown(simplified)} ${opShown} 0`)}.`,
+    // cos(x) ≤ 0 is on one side already.
+    ...(beautify(rhs) === '0' ? [] : [`Move everything to one side: ${mark(`${movedText(lhs, rhs, simplified)} ${opShown} 0`)}.`]),
     `The left side is periodic with period ${mark(Tshown)}: its trig functions repeat every ${mark(Tshown)}. So solve on one period, ${mark(`0 ≤ ${v} < ${Tshown}`)}, and the solution repeats.`,
     roots.length
-      ? `On that period it is ${mark('0')} at ${mark(`${v} = ${roots.map(show).join(', ')}`)}${inexact ? ' (located numerically, to the decimals shown)' : ''}.`
-      : `It is never ${mark('0')}, so it keeps one sign throughout.`,
+      ? `On that period it is ${mark('0')} at ${mark(`${v} = ${roots.map((x) => (exact(x) === null && nameOf(x) ? `${nameOf(x)} ≈ ${decimal(x)}` : show(x))).join(', ')}`)}${inexact ? ' (located numerically, to the decimals shown)' : ''}, and nowhere else: written in the tangent of the half-angle it becomes a polynomial, whose real roots give every zero except at the half-turn, where that tangent is undefined; that one angle is checked on its own.`
+      : `It is never ${mark('0')}: written in the tangent of the half-angle it becomes a polynomial with no real root, and at the half-turn, where that tangent is undefined, it is not ${mark('0')} either. So it keeps one sign throughout.`,
     `Test the sign between them: ${rows.map((r) => `${mark(`(${cut(r.a)}, ${cut(r.b)})`)} ${signWord(r.y)}`).join('; ')}.`,
   ];
   if (pieceTexts.length) {
@@ -198,5 +188,64 @@ export function solvePeriodic({ Algebrite, lhs, rhs, op, variable, fExpr, simpli
     graph,
     periodic: true,
     variable,
+    guide: {
+      method: 'periodic',
+      fn: /(?<![a-z])sin\(/.test(fExpr) && !/(?<![a-z])(?:cos|tan)\(/.test(fExpr) ? 'sin' : /(?<![a-z])cos\(/.test(fExpr) && !/(?<![a-z])(?:sin|tan)\(/.test(fExpr) ? 'cos' : 'other',
+      variable: v,
+      period: Tshown,
+      zeros: roots.map((x) => (exact(x) === null && nameOf(x) ? `${nameOf(x)} ≈ ${decimal(x)}` : show(x))),
+      rows: rows.map((r) => ({ interval: `(${cut(r.a)}, ${cut(r.b)})`, sign: signWord(r.y) })),
+      pieces: pieceTexts.join('  or  '),
+      answer,
+    },
   };
+}
+
+// x as a fraction of π (π/5, 2π/15): piForm's denominators, and the others
+// up to 60 that a multiple angle brings (sin(10x) has period π/5).
+function piMultiple(x) {
+  const known = piForm(x);
+  if (known !== null) return known;
+  const ratio = x / Math.PI;
+  for (let d = 5; d <= 60; d += 1) {
+    const n = ratio * d;
+    if (Math.abs(n - Math.round(n)) < 1e-9) {
+      const k = Math.round(n);
+      if (k === 0) return '0';
+      return `${k < 0 ? '-' : ''}${Math.abs(k) === 1 ? '' : Math.abs(k)}π/${d}`;
+    }
+  }
+  return null;
+}
+
+// circleZeros, and through an absolute value: every zero of f lies where
+// the inside u is ≥ 0 or ≤ 0, so it is a zero of f with |u| written as u or
+// as −u; a zero of either branch counts when u has that branch's sign there
+// (|sin(x)| > 1/2 is sin(x) = ±1/2).
+function periodicZeros(fExpr, v) {
+  let tree;
+  try { tree = math.parse(String(fExpr)); } catch { return null; }
+  const absNodes = tree.filter((n) => n.type === 'FunctionNode' && n.fn?.name === 'abs');
+  if (!absNodes.length) return circleZeros(fExpr, v, { readPolynomial, allRoots });
+  if (absNodes.length > 3 || absNodes.some((n) => n.filter((c) => c !== n && c.type === 'FunctionNode' && c.fn?.name === 'abs').length)) return null;
+  const inside = absNodes.map((n) => n.args[0]);
+  const f = (x) => { try { return Number(tree.evaluate({ [v]: x })); } catch { return NaN; } };
+  const zeros = [];
+  for (let mask = 0; mask < 2 ** absNodes.length; mask += 1) {
+    const signs = absNodes.map((_, i) => ((mask >> i) & 1 ? -1 : 1));
+    const branch = tree.transform((n) => {
+      const i = absNodes.indexOf(n);
+      return i === -1 ? n : math.parse(`${signs[i] < 0 ? '-' : ''}(${n.args[0].toString()})`);
+    });
+    const found = circleZeros(branch.toString(), v, { readPolynomial, allRoots });
+    if (!found) return null;
+    for (const x of found) {
+      const fits = inside.every((u, i) => {
+        const y = Number(u.evaluate({ [v]: x }));
+        return Math.abs(y) < 1e-12 || Math.sign(y) === signs[i];
+      });
+      if (fits && Math.abs(f(x)) < 1e-9 && !zeros.some((z) => Math.abs(z - x) < 1e-9)) zeros.push(x);
+    }
+  }
+  return zeros.sort((a, b) => a - b);
 }

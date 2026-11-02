@@ -74,11 +74,13 @@ export function solveLinear({ Algebrite, lhs, rhs, op, variable, fExpr, simplifi
   const reads = (x) => `${formatNumber(math.evaluate(lhs, { [variable]: x }))} ${pretty(op)} ${formatNumber(math.evaluate(rhs, { [variable]: x }))}`;
   steps.push(`Check: at ${mark(`${variable} = ${formatNumber(inside)}`)} the original reads ${mark(reads(inside))}, true; at ${mark(`${variable} = ${formatNumber(outside)}`)} it reads ${mark(reads(outside))}, false. ✓`);
 
+  const reciprocal = /\//.test(a) && aValue !== 1 && aValue !== -1 ? beautify(safeRun(Algebrite, `simplify(1/(${a}))`) || `1/(${a})`) : null;
   return {
     steps,
     answer: pieceToInequality(piece, variable),
     verified: true,
     verificationMethod: 'test points on either side of the boundary, and the boundary itself',
+    guide: { method: 'linear', variable, a: aValue, aText: beautify(a), reciprocal, op, finalOp, answer: pieceToInequality(piece, variable) },
     tips: [
       'Solve a linear inequality like a linear equation, with one extra rule: multiplying or dividing both sides by a negative number reverses the inequality sign.',
       'Adding or subtracting the same quantity on both sides never changes the direction.',

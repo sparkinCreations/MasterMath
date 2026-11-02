@@ -362,6 +362,22 @@ export function hasVariable(expression, variable) {
   return new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'i').test(text);
 }
 
+// Every decimal as the fraction it is, reduced and in brackets: 0.5 → (1/2),
+// 1.5 → (3/2), 0.001 → (1/1000), 3.0 → 3. For the engines: on a decimal
+// Algebrite turns to floating point, writes x^2.0, and fails on integrals
+// it solves exactly (∫ 0.5x² dx was "could not solve", 1.66.0).
+export function exactDecimals(text) {
+  const gcdBig = (a, b) => (b ? gcdBig(b, a % b) : a);
+  return String(text).replace(/(?<![\w.])(\d+)\.(\d+)(?![\d.])/g, (m, whole, fraction) => {
+    let n = BigInt(whole + fraction);
+    let d = 10n ** BigInt(fraction.length);
+    const g = gcdBig(n, d);
+    n /= g;
+    d /= g;
+    return d === 1n ? String(n) : `(${n}/${d})`;
+  });
+}
+
 // A multiple of π/12 written as such: π/2, -3π/4, 2π. Null otherwise.
 // Shared by the functions solver (periodic patterns) and the graph viewer
 // (asymptote labels), so an asymptote reads "x = 3π/2", not a 15-digit float.

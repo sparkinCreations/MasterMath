@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.66.0] - 2026-11-01
+
+### Added
+
+- **More inequality and system insights and mistakes**, the seventh topic.
+  Each method has a ranked list behind "Show more", and the second insight
+  works the student's own problem: the division that reverses (or keeps)
+  the sign; the zeros and the sign on each interval, with a zero of even
+  multiplicity named; the denominator's zero left out; |g| < c unfolded to
+  −c < g < c; where a logarithm or root is defined; the turning points
+  that prove a list of zeros complete; the zeros on one period; the two
+  parts of a compound inequality; the substitution or elimination of a
+  system, its contradiction (0 = 2) or its parameterised line. Review:
+  `docs/future-work/insights-review/INEQUALITIES-AND-SYSTEMS.md`.
+- **Zeros are proved, not scanned.** A polynomial's come from the exact
+  root finder. For one mixing x with eˣ or ln x, the turning points (the
+  zeros of f′, found the same way) split the line into stretches on which
+  f only rises or only falls, so each holds at most one zero, decided by
+  the signs at its ends; the end behaviour is read off the growth rates.
+  The working says why the list is complete. Exponentials of one rate
+  (e^(2x) − 3eˣ + 2, 4^x − 3·2^x + 2, sinh, cosh, tanh) become a polynomial
+  in t = eˣ (or 2^x), solved exactly: sinh(x) > 1 is x > ln(1 + √2). A
+  derivative bounded away from 0 (2 + sin(x) ≥ 1, a sum of square roots)
+  has no zeros, read off the parse tree. A sine against a line is counted
+  by convexity, as in 1.65.0's equations. A periodic inequality's zeros on
+  one period are the real roots of a polynomial in the tangent of the
+  half-angle, found exactly. An absolute value, nested or not, is split
+  into its two branches. What cannot be proved (x⁷ > eˣ) is refused.
+- **Exact periods and endpoints for multiple angles**: sin(10x) > 0 is
+  πn/5 < x < π/10 + πn/5, not 0.6283n < x < 0.3142 + 0.6283n.
+
+### Fixed
+
+- **x − ln(x) > 2 lost 0 < x < 0.1586**, **ln(x) > x − 2 lost the same
+  stretch**, **e^(x/20) > x lost x > 89.995**, and **log(x) < 2 was x > 0**
+  (it is 0 < x < 100): the scan stepped by 0.25 over −50 ≤ x ≤ 50, so it
+  missed a root next to the domain's edge and one outside the window.
+- **(x² − 1)/(x − 1) > 0 was x > −1**, x = 1 included, and **x/x > 0 was
+  "No solution"**: the simplified form lost the point where the typed
+  expression divides by 0. Those points are read from the typed expression
+  now.
+- **√(x − 1) ≤ 0 was "No solution"** (it is x = 1), and **√x ≥ 0 was
+  x > 0**: the edge of a square root's domain was always left out. A
+  boundary point is decided by the value there; √(x − 1) < 3 is 1 ≤ x < 10,
+  x·√x < 8 is 0 ≤ x < 4, √(x + 3) > x + 1 is −3 ≤ x < 1.
+- **A system with a term that is 0 at whole numbers was taken for linear**:
+  x + y + x(x − 1)(x − 2)(x + 1) = 3; x − y = 1 had one solution reported, of
+  two. Linearity was read off sample points; it is read off the parse tree
+  now (`linearCoefficientsIn`).
+- **y = x⁵ − 3x; y = x showed roots with i and (−1)^(3/4) in them**; a
+  system's roots come from the exact root finder, exact when short (±√2),
+  else marked ≈.
+- **A 3×3 system with no y left after the first elimination** was refused
+  as "not a 2×2 system"; it is solved (no solution, or infinitely many).
+- **1e-6 was read as 1·e − 6** outside Arithmetic: x² = 1e-6 was "one
+  equation in two unknowns", a system with 1e-3 had three variables.
+  Scientific notation is the plain decimal on every path.
+- **A numerically located endpoint is marked in the answer**, named and
+  with its decimal (x³ − x − 1 > 0 is x > α, where α ≈ 1.3247 is a zero of
+  x³ − x − 1), and two that round alike get the digits that tell them
+  apart.
+- Radicals as a textbook writes them: √2000001/1000, not √3√666667/1000;
+  ⁴√4 = √2.
+- **After the outside review (Round 34):** an endpoint located numerically
+  is named in the answer (0 < x < α or x > β, where α ≈ 0.1586 and
+  β ≈ 3.1462 are zeros of x − ln(x) − 2), not written as a rounded
+  boundary; "a numerator's zero is a solution of ≤" says where the
+  denominator is not 0; the half-angle proof says x = π is checked on its
+  own; the second inverse value is said for −1 < c < 1, with arccos for a
+  cosine; a square root's domain has its own insight; a system's root
+  count names the degree; a pivot with nothing to swap in leaves a free
+  variable. After the third (Round 35), the names are used in the working
+  too: the zero is named where it is found (x = α ≈ 0.1586), and the sign
+  chart, the collected intervals and the interval notation read
+  (0, α) ∪ (β, ∞); x − ln(x) = 2 has "no elementary closed form" (its roots
+  are −W(−e⁻²)), not "none".
+- **Decimals in integrals and derivatives**: ∫ 0.5x² dx and ∫ 0.5·sin(x) dx
+  were "could not solve", ∫ 0.001x dx was 0.0005x^2.0 + C, d/dx x^1.5 was
+  1.5x^0.5: on a decimal Algebrite turns to floating point. Each decimal
+  reaches the engines as its fraction (`exactDecimals`, now shared), so
+  they are x³/6 + C, −cos(x)/2 + C, x²/2000 + C and (3/2)√x; the integrand
+  is still shown as typed. A definite integral's exact value showed
+  Algebrite's log after a digit (2log(2)); it is 2ln(2).
+- **∫₁^∞ x^(−3/2) dx was "diverges"** (it is 2), and ∫₁^∞ x^(−1.1) dx was
+  refused (it is 10): an improper integral's limit of F at ∞ was read off
+  samples at 10² to 10⁸, and −2/√t was said not to settle. It is proved
+  from the growth rates of F's terms now (shared with the inequality
+  zeros: `growthLimitAtInfinity` in `limits/growth.js`), and the numeric
+  check compares the stretch it integrates with F there, the tail being
+  what the limit accounts for. Sampling remains only where no term reading
+  applies.
+
 ## [1.65.0] - 2026-11-01
 
 ### Added

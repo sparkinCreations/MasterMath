@@ -103,6 +103,13 @@ export const CONVERTED = [
   ['integrals', '∫ sec³x dx'], ['integrals', '∫ sin^2(x) cos^3(x) dx'], ['integrals', 'ln(x)'], ['integrals', 'x*ln(x)'], ['integrals', '1/(x^4+4)'],
   ['integrals', 'sqrt(x^2+4)'], ['integrals', 'x^2/sqrt(9-x^2)'], ['integrals', '1/(x^2+9)^(3/2)'], ['integrals', 'sqrt(x^2-4)/x'], ['integrals', '1/sqrt(x^2-9)'], ['integrals', '1/(x^2*sqrt(x^2-1))'],
   ['algebra', 'x/0 = 1'], ['algebra', '2x + 3y = 6'], ['other', 'sqrt(-4)'], ['other', 'sqrt(-8)'], ['trigonometry', 'sin(x) = 2'],
+  // 1.66.0: inequality and system guidance; zeros proved (monotone pieces, convexity, the half-angle polynomial); holes, edges, ≈.
+  ['algebra', '(x-1)^2*(x+2) >= 0'], ['algebra', '(x^2-1)/(x-1) > 0'], ['algebra', 'abs(x-3) > 2'], ['algebra', 'abs(x) < x + 1'], ['algebra', 'sqrt(x-1) <= 0'],
+  ['algebra', 'x - ln(x) > 2'], ['algebra', 'e^(x/20) > x'], ['algebra', 'sin(x) > x/2'], ['algebra', 'sin(10x) > 0'], ['algebra', 'abs(sin(x)) > 1/2'],
+  ['algebra', 'x^2 > 2x + 1'], ['algebra', 'x < 1 or x > 3'], ['algebra', 'x + y = 1; x + y = 3'], ['algebra', 'y = x^5 - 3x; y = x'],
+  ['algebra', 'x + y + x*(x-1)*(x-2)*(x+1) = 3; x - y = 1'], ['algebra', 'x+y+z=1; x+y+2z=2; x+y+3z=4'], ['algebra', 'x+y+z=1; x+y+2z=2; x+y+3z=3'],
+  ['algebra', 'e^(2x) - 3e^x + 2 > 0'], ['algebra', 'sinh(x) > 1'], ['algebra', '4^x - 3*2^x + 2 < 0'], ['algebra', 'x^2 > sin(x)'], ['algebra', 'abs(x) >= x'],
+  ['integrals', 'integral of 0.5*x^2 dx'], ['integrals', 'integral from 0.5 to 2 of 1/x dx'], ['derivatives', 'x^1.5'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

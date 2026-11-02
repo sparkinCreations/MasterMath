@@ -2,7 +2,7 @@
 // difference and the edges of its domain, exact where a method proves them,
 // located numerically (and said to be) otherwise.
 
-import { math, beautify, isAlgebriteFailure, absBars } from '../solverUtils.js';
+import { math, beautify, isAlgebriteFailure, absBars, exactDecimals } from '../solverUtils.js';
 import { parseMathExpression } from '../../mathParser.js';
 import { readPolynomial, allRoots } from '../polynomialRoots.js';
 
@@ -21,43 +21,19 @@ export const labelKey = (x) => Number(x).toFixed(9);
 // Algebrite's notation in the app's: its log is the natural log (a bare log
 // here means base 10), exp(u) is e^u, and (u)^(1/2) is a square root. For
 // the steps a reader sees and for the exact lookup by the algebra solver.
-function inAppNotation(expr) {
+export function inAppNotation(expr) {
   let out = String(expr).replace(/(?<![a-z])log\(/g, 'ln(');
   let m;
   let guard = 0;
   while ((m = out.match(/\(([^()]*)\)\^\(1\/2\)/)) && guard++ < 8) out = out.replace(m[0], `sqrt(${m[1]})`);
   return out.replace(/(?<![a-z])exp\(([^()]*)\)/g, (all, u) => (/^[a-z0-9]+$/i.test(u) ? `e^${u}` : `e^(${u})`));
 }
+// 0.3 as (3/10), for Algebrite: shared (solverUtils.js).
+export { exactDecimals };
+
 // abs(u) is typed and computed; |u| is what a textbook writes.
 export const bars = absBars;
 export const shown = (expr) => bars(beautify(inAppNotation(expr)));
-
-// Where the expression's domain ends: the zeros of every logarithm's and
-// square root's argument (an even root's, generally). Each is a boundary of
-// the sign chart; whether a side is in the domain is then tested, not
-// assumed.
-export function domainEdges(Algebrite, fExpr, variable, labels) {
-  const args = [];
-  try {
-    math.parse(fExpr).traverse((node) => {
-      if (node.isFunctionNode && ['log', 'ln', 'log10', 'log2', 'sqrt'].includes(node.fn?.name) && node.args[0]) args.push(node.args[0].toString());
-      if (node.isOperatorNode && node.op === '^' && node.args[1]) {
-        try {
-          const p = node.args[1].evaluate();
-          if (typeof p === 'number' && !Number.isInteger(p) && Number.isInteger(1 / p) && (1 / p) % 2 === 0) args.push(node.args[0].toString());
-        } catch { /* a symbolic exponent is not a root */ }
-      }
-    });
-  } catch {
-    return [];
-  }
-  const edges = [];
-  for (const a of args) {
-    if (!new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(a)) continue;
-    for (const e of realRoots(Algebrite, a, variable, labels)) if (!edges.some((q) => Math.abs(q - e) < 1e-9)) edges.push(e);
-  }
-  return edges;
-}
 
 // e^x − 2 = 0, ln(x) − 1 = 0: the algebra solver solves the equation
 // exactly (x = ln(2), x = e); each exact solution that equals a zero found
@@ -77,9 +53,10 @@ export async function labelTranscendentalZeros(numerator, variable, zeros, label
       if (!m) continue;
       let value;
       try { value = Number(math.evaluate(parseMathExpression(m[1]))); } catch { continue; }
-      // The zeros are rounded to six decimals (clean()).
       const z = missing.find((q) => Math.abs(q - value) < 1e-6);
-      if (z !== undefined && !/^-?\d+(?:\.\d+)?$/.test(m[1].trim())) labels.set(labelKey(z), m[1].trim());
+      // A real zero is never labelled by a form with i in it (x² = 6 + e
+      // came back as i·(−6 − e)^(1/2)).
+      if (z !== undefined && !/^-?\d+(?:\.\d+)?$/.test(m[1].trim()) && !/(?<![a-z])i(?![a-z])/.test(m[1])) labels.set(labelKey(z), radicalForm(m[1].trim()));
     }
   } catch {
     // no exact form: the decimal stands
@@ -97,11 +74,10 @@ export function realRoots(Algebrite, poly, variable, labels = new Map()) {
       const candidates = isAlgebriteFailure(raw) ? [] : String(raw).replace(/^\[|\]$/g, '').split(/,(?![^(]*\))/)
         .map((t) => t.trim())
         .filter((t) => t && !/(?<![a-z])i(?![a-z])|\(-1\)\^/.test(t) && t.length <= 40);
-      const degree = P.coefficients.length - 1;
       const nonzero = P.coefficients.map((c, i) => ({ c, i })).filter(({ c }) => c.n !== 0n);
       found.forEach((r, idx) => {
-        // Matched on the unrounded root (clean() rounds to six decimals),
-        // filed under the rounded one the rest of the solve uses.
+        // Matched on the root as found, filed under the value the rest of
+        // the solve uses (a whole number snapped by clean()).
         const v = values[idx];
         const exactValue = r.value;
         if (r.exact) {
@@ -113,36 +89,33 @@ export function realRoots(Algebrite, poly, variable, labels = new Map()) {
           try { return Math.abs(Number(math.evaluate(t)) - exactValue) < 1e-7; } catch { return false; }
         });
         if (match) { labels.set(labelKey(v), prettyRoot(beautify(match))); return; }
-        // a·xⁿ + b = 0: x = ⁿ√(−b/a), sign carried for odd n.
-        if (nonzero.length === 2 && nonzero.some(({ i }) => i === 0)) {
-          const n = degree;
+        // a·xⁿ + b = 0: x = ⁿ√(−b/a), sign carried for odd n; a·xⁿ⁺ᵐ + b·xᵐ
+        // the same, once xᵐ is factored out (x⁵ − 4x at ±√2).
+        if (nonzero.length === 2 && v !== 0) {
+          const n = nonzero[1].i - nonzero[0].i;
           const c = Math.abs(exactValue) ** n;
-          const cText = Number.isInteger(Math.round(c)) && Math.abs(c - Math.round(c)) < 1e-9 ? String(Math.round(c)) : null;
-          if (cText) labels.set(labelKey(v), `${v < 0 ? '-' : ''}${n === 2 ? '√' : n === 3 ? '∛' : ''}${n > 3 ? `${cText}^(1/${n})` : cText}`);
+          const whole = Math.round(c);
+          if (Math.abs(c - whole) < 1e-9 * Math.max(1, whole)) labels.set(labelKey(v), `${v < 0 ? '-' : ''}${nthRoot(whole, n)}`);
         }
       });
       return values;
     }
   }
-  const raw = safeRun(Algebrite, `roots(${poly})`);
-  if (isAlgebriteFailure(raw)) return numericRoots(poly, variable);
+  // Not a polynomial: the caller proves its zeros (zeros.js); a scan
+  // here missed roots (1.66.0).
+  return null;
+}
 
-  const parts = String(raw).replace(/^\[|\]$/g, '').split(/,(?![^(]*\))/);
-  const out = [];
-  for (const part of parts) {
-    const p = part.trim();
-    if (!p) continue;
-    try {
-      // A real root written in complex form keeps its real value.
-      const value = math.evaluate(p);
-      const v = typeof value === 'number' ? value
-        : value && Number.isFinite(value.re) && Math.abs(value.im) < 1e-9 ? value.re : NaN;
-      if (Number.isFinite(v)) out.push(clean(v));
-    } catch {
-      // ignore unparseable root
-    }
+// The n-th root of a whole number c, reduced: ⁴√4 is √2 (4 = 2²), ⁶√8 is √2.
+function nthRoot(c, n) {
+  for (let d = n; d >= 1; d -= 1) {
+    if (n % d) continue;
+    const r = Math.round(c ** (1 / d));
+    if (r ** d !== c) continue;
+    const m = n / d;
+    return m === 1 ? String(r) : m === 2 ? `√${r}` : m === 3 ? `∛${r}` : `${r}^(1/${m})`;
   }
-  return out;
+  return `${c}^(1/${n})`;
 }
 
 // Algebrite's radical form, as a reader writes it: 2^(1/2) → √2.
@@ -156,45 +129,22 @@ function prettyRoot(t) {
   // √3/√2 → √6/2: no radical in a denominator.
   const r = String(t).replace(/\s+/g, '').match(/^(-?)(\d+)\^\(1\/2\)\/\(?(\d+)\^\(1\/2\)\)?$/);
   if (r) return `${r[1]}√${Number(r[2]) * Number(r[3])}/${r[3]}`;
-  return String(t)
+  // √3·√666667 → √2000001: one radical.
+  const merged = String(t).replace(/(\d+)\^\(1\/2\)\s*[*·]?\s*(\d+)\^\(1\/2\)/g, (m, a, b) => `${BigInt(a) * BigInt(b)}^(1/2)`);
+  return radicalForm(merged
     .replace(/\(([^()]*)\)\^\(1\/2\)/g, '√($1)')
     .replace(/(\d+)\^\(1\/2\)/g, '√$1')
     .replace(/\(([^()]*)\)\^\(1\/3\)/g, '∛($1)')
     .replace(/(\d+)\^\(1\/3\)/g, '∛$1')
-    .replace(/\*(?=[√∛])/g, '·');
+    .replace(/\*(?=[√∛])/g, '·'));
 }
 
-// Fallback: scan for sign changes when Algebrite can't factor the polynomial.
-function numericRoots(expr, variable) {
-  const roots = [];
-  let prev = null;
-  for (let x = -50; x <= 50; x += 0.25) {
-    let y;
-    try {
-      y = math.evaluate(expr, { [variable]: x });
-    } catch {
-      prev = null;
-      continue;
-    }
-    if (typeof y !== 'number' || !Number.isFinite(y)) { prev = null; continue; }
-    if (prev !== null && Math.sign(prev) !== Math.sign(y) && prev !== 0) {
-      roots.push(clean(bisect(expr, variable, x - 0.25, x)));
-    }
-    prev = y;
-  }
-  return roots;
-}
-
-function bisect(expr, variable, a, b) {
-  let lo = a;
-  let hi = b;
-  const f = (x) => Number(math.evaluate(expr, { [variable]: x }));
-  for (let i = 0; i < 60; i += 1) {
-    const mid = (lo + hi) / 2;
-    if (Math.sign(f(lo)) === Math.sign(f(mid))) lo = mid;
-    else hi = mid;
-  }
-  return (lo + hi) / 2;
+// A radical as a textbook writes it: √3·√666667 → √2000001, and
+// 1/1000·√2000001 → √2000001/1000.
+export function radicalForm(text) {
+  return String(text)
+    .replace(/√(\d+)\s*[·*]?\s*√(\d+)/g, (m, a, b) => `√${BigInt(a) * BigInt(b)}`)
+    .replace(/^(-?)1\/(\d+)\s*[·*]\s*([√∛]\d+)$/, '$1$3/$2');
 }
 
 // --- interval algebra --------------------------------------------------------
@@ -218,8 +168,11 @@ export function safeRun(Algebrite, code) {
   }
 }
 
+// A whole number when the root is one to within rounding error; otherwise
+// the root as found. It was rounded to six decimals, which moved the edge
+// −√2 of √(x² − 2) − 0.001 < 0 out of the stretch where the solutions lie
+// (1.66.0).
 function clean(n) {
   const r = Math.round(n);
-  if (Math.abs(n - r) < 1e-7) return r;
-  return Math.round(n * 1e6) / 1e6;
+  return Math.abs(n - r) < 1e-9 ? r : n;
 }

@@ -42,7 +42,8 @@ test('the shapes a period can take: a wrap, a touch, nothing, everything, a shor
 
 test('an endpoint that is not a multiple of π is a decimal, marked ≈', async () => {
   const r = await solve('sin(x) > 0.3');
-  assert.equal(r.answer, '0.3047 + 2πn < x < 2.8369 + 2πn, for every integer n (endpoints ≈)');
+  // 1.66.0 (Round 34): the endpoints are named, the decimals said once.
+  assert.equal(r.answer, 'α + 2πn < x < β + 2πn, for every integer n, where α ≈ 0.3047 and β ≈ 2.8369 are zeros of sin(x) - 0.3 in [0, 2π)');
 });
 
 test('a periodic inequality with breaks, or inside a compound, is refused, not truncated', async () => {

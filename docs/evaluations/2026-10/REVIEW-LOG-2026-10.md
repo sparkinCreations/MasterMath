@@ -233,6 +233,29 @@ case now runs in `tests/octoberTestList.test.js`.
 | Teaching 8/10: the substitution step in systems skips the algebra; the function analysis never shows f′(x) | Confirmed: "Substitute that into equation 2 and simplify" showed nothing, and "x = (5 − 1·y) / 1"; "Local maximum at (−1, 2) (from f′(x) = 0)" with no f′; also (1, 0.3679) for (1, 1/e), and "No local extrema found in the analyzed window" for 1/(x − 2) where f′ is never 0 | 1.56.0 (isolate, substitute, clear, expand, collect, divide, back-substitute, check with the numbers; f′ shown and solved, exact values, "never 0" with the reason) |
 | Found while building: x/2 + y/3 = 1; x − y = 1 answered x = 1333333/833333 (the sampled coefficient 1/3 rounded to six places) | — | 1.56.0 (coefficients read back as fractions) |
 
+## Round 35 (third outside review of the inequality and system content, before 1.66.0 shipped)
+
+A third review of `INEQUALITIES-AND-SYSTEMS.md` ("conditional approval: one consistency correction"). It confirms Round 34's six fixes. Reproduced.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| The working still writes the rounded endpoints as boundaries: x − ln(x) > 2 collects "0 < x < 0.1586 or x > 3.1462" and (0, 0.1586) ∪ (3.1462, ∞), while the answer names them | Agreed: the sign-chart rows, the collected intervals, the interval notation, the periodic sign test and the worked insight all used the decimals | 1.66.0 (each numerically located zero is named where it is found, x = α ≈ 0.1586, and goes by its name in every solution set after: (0, α) ∪ (β, ∞); a test fails on a four-place decimal in any of those lines) |
+| Optional: "x − ln(x) = 2 has no exact answer" is too broad; its roots are −W(−e⁻²) on the Lambert W function's two branches | Agreed (W₀ gives 0.1586, W₋₁ gives 3.1462) | 1.66.0 ("no elementary closed form", with the Lambert W form named; the wave-against-a-line lists say "none in elementary functions" too) |
+
+## Round 34 (outside review of the inequality and system content, before 1.66.0 shipped)
+
+A review of `INEQUALITIES-AND-SYSTEMS.md` ("approve with revisions": three must-fix statements, one recommendation, two polish items; its first part arrived cut off, the rest from its priority table). Reproduced, and the same class swept.
+
+| Claim | Verdict | Release |
+|---|---|---|
+| "For ≤ and ≥ a zero of the numerator is a solution" is too broad | Agreed: where the denominator is 0 too, (x² − 1)/(x − 1) ≥ 0 at x = 1, it is not (the answer was right; the statement was not) | 1.66.0 (qualified, with that example) |
+| The half-angle proof statement is incomplete | Agreed, and in the step as well as the tip: for cos(x) ≤ −1 the step said x = π came "from all of its real roots", but t = tan(x/2) never reaches x = π, which is checked on its own | 1.66.0 (step and tip say so) |
+| The sine solution-count rule fails at c = ±1 | Agreed: sin(x) ≥ 1 was told of "a second zero, π − arcsin(c)"; at c = ±1 the two are one point. It was also shown for cosine inequalities | 1.66.0 (for −1 < c < 1, with c = ±1 said; arccos for cosine, a general line otherwise) |
+| Rounded endpoints read as exact boundaries | Agreed | 1.66.0 (a numerically located endpoint is named: 0 < x < α or x > β, where α ≈ 0.1586 and β ≈ 3.1462 are zeros of x − ln(x) − 2; periodic ones too, "in [0, 2π)") |
+| The square-root example's third insight is about ln(x) < 1 | Agreed | 1.66.0 (a square root's domain gets "a square root is never negative: √u ≤ 0 holds only where u = 0") |
+| The quartic system's "a line meets a parabola or a circle at 0, 1 or 2 points" | Agreed | 1.66.0 (above degree 2 it names the degree: "degree 4, so the curves meet at most 4 times") |
+| Swept: other statements that do not say where they hold | One: "if a pivot is 0, swap in an equation that has that variable" said nothing of when none has it | 1.66.0 (that variable is free, and there is no single solution). Also: a sum moved across now has its signs flipped, ln(x) − x + 2, not ln(x) − (x − 2), and cos(x) ≤ 0 no longer has a "move everything to one side" step |
+
 ## Round 33 (review of the convexity root count, before 1.65.0 shipped)
 
 A review of the root count added after Round 32 ("educational content approved, one clarification"). Reproduced.

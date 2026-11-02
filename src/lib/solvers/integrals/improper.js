@@ -14,6 +14,7 @@ import {
 } from '../solverUtils.js';
 import { unsupported, diverges } from '../../solutionEnvelope.js';
 import { antiderivativeViaTerms } from './terms.js';
+import { growthLimitAtInfinity } from '../limits/growth.js';
 import {
   evalAntiderivNumeric,
   isInfiniteBound,
@@ -31,10 +32,25 @@ import {
   exactValueToRaw,
 } from './evaluate.js';
 
-// lim F(t) as t → ±∞, by sampling. Returns { value } (finite limit),
-// { diverges: '∞' | '-∞' } or { undefined: true } (oscillates / unreadable).
+// lim F(t) as t → ±∞. Returns { value } (finite limit), { diverges: '∞' |
+// '-∞' } or { undefined: true } (oscillates / unreadable). Proved from the
+// growth rates of F's terms where they are all c·t^p·e^(kt)·ln(t)^m
+// (`proved`); by sampling otherwise. Sampling alone called −2/√t "not
+// settling" and ∫_1^∞ x^(−3/2) dx divergent (1.66.0); it is 2.
 function limitAtInfinity(F, variable, sign) {
   const samples = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8].map((m) => evalAntiderivNumeric(F, variable, sign * m));
+  // In the notation growthForm reads: √u as sqrt(u), |u| as (u) (it is
+  // positive far out on the right; at −∞ a logarithm is refused anyway).
+  const readable = lnify(F)
+    .replace(/(?<![a-z])ln\(/g, 'log(')
+    .replace(/\|([^|]+)\|/g, '($1)')
+    .replace(/√\(/g, 'sqrt(')
+    .replace(/√([a-z0-9]+)/gi, 'sqrt($1)');
+  const proved = growthLimitAtInfinity(readable, variable, sign);
+  if (proved !== null && !Number.isNaN(proved)) {
+    if (Number.isFinite(proved)) return { value: proved, samples, proved: true };
+    return { diverges: proved > 0 ? '∞' : '-∞', samples, proved: true };
+  }
   const finite = samples.filter(Number.isFinite);
   if (finite.length === 0) return { unreadable: true, samples };
   if (finite.length < 3) {
@@ -178,7 +194,10 @@ export async function solveImproperInfinite(parsed, notation) {
     const arrow = sign > 0 ? 't → ∞' : 's → -∞';
     const shown = (res.samples || []).slice(0, 4).map((x) => (Number.isFinite(x) ? formatNumber(x) : '±∞')).join(', ');
     const at = sign > 0 ? '10², 10³, 10⁴, 10⁵' : '-10², -10³, -10⁴, -10⁵';
-    if (res.value !== undefined) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)} (samples at ${at}: ${shown}).`);
+    const why = 'the fastest-growing term of F decides it: an exponential outgrows any power, a power any logarithm, and a negative power falls to 0';
+    if (res.value !== undefined && res.proved) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)}: ${why}.`);
+    else if (res.diverges && res.proved) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${res.diverges}`)}: ${why}. The limit is not a finite number.`);
+    else if (res.value !== undefined) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)} (samples at ${at}: ${shown}).`);
     else if (res.diverges) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${res.diverges}`)}${res.slow ? ' — slowly, but steadily' : ''} (samples: ${shown}): the limit is not a finite number.`);
     else steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'})`)} does not settle (samples: ${shown}).`);
   };
@@ -272,15 +291,27 @@ export async function solveImproperInfinite(parsed, notation) {
   const lo = lowerInf ? -200 : finiteBoundVal(lowerRaw);
   const hi = upperInf ? 200 : finiteBoundVal(upperRaw);
   const check = numericIntegral(integrand, v, lo, hi, 4000);
-  const agrees = typeof check === 'number' && Number.isFinite(check) && Math.abs(check - value) < Math.max(0.05, Math.abs(value) * 0.05);
-  if (typeof check === 'number' && Number.isFinite(check) && !agrees) {
-    // A slowly-decaying tail can make the finite check fall short; only refuse when
-    // the mismatch is gross.
-    if (Math.abs(check - value) > Math.max(0.5, Math.abs(value) * 0.5)) {
-      return refuseDefinite('The limit value and a numeric check disagree, so no value is reported.', notation);
+  // With every infinite end's limit proved, the quadrature checks the
+  // antiderivative on the stretch it covers, F(200) − F(1); the tail beyond
+  // is what the proved limit accounts for. ∫_1^∞ x^(−1.1) dx = 10, while the
+  // stretch to 200 holds only ≈ 4.11 of it (1.66.0).
+  const allProved = [upperInf ? upperPart : null, lowerInf ? lowerPart : null].filter(Boolean).every((p) => p.proved);
+  if (allProved && typeof check === 'number' && Number.isFinite(check)) {
+    const stretch = (upperInf ? evalAntiderivNumeric(F, v, hi) : upperPart.value) - (lowerInf ? evalAntiderivNumeric(F, v, lo) : lowerPart.value);
+    if (!(Math.abs(check - stretch) < 1e-4 * (1 + Math.abs(stretch)))) return refuseDefinite('The antiderivative and a numeric check disagree, so no value is reported.', notation);
+    const ends = `${lowerInf ? formatNumber(lo) : lowerLabel} to ${upperInf ? formatNumber(hi) : upperLabel}`;
+    steps.push(`Check: integrating numerically from ${mark(ends)} gives ${mark(`≈ ${formatNumber(check)}`)}, as ${mark(`F(${upperInf ? formatNumber(hi) : upperLabel}) − F(${lowerInf ? formatNumber(lo) : lowerLabel})`)} does; the rest is the tail, which the limit accounts for.`);
+  } else {
+    const agrees = typeof check === 'number' && Number.isFinite(check) && Math.abs(check - value) < Math.max(0.05, Math.abs(value) * 0.05);
+    if (typeof check === 'number' && Number.isFinite(check) && !agrees) {
+      // A slowly-decaying tail can make the finite check fall short; only refuse when
+      // the mismatch is gross.
+      if (Math.abs(check - value) > Math.max(0.5, Math.abs(value) * 0.5)) {
+        return refuseDefinite('The limit value and a numeric check disagree, so no value is reported.', notation);
+      }
     }
+    steps.push(`Check: integrating numerically over a long finite stretch gives ${mark(`≈ ${typeof check === 'number' ? formatNumber(check) : '—'}`)}, consistent with the limit.`);
   }
-  steps.push(`Check: integrating numerically over a long finite stretch gives ${mark(`≈ ${typeof check === 'number' ? formatNumber(check) : '—'}`)}, consistent with the limit.`);
 
   return {
     steps,

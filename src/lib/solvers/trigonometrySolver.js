@@ -18,10 +18,9 @@ import {
   gcd,
 } from './solverUtils.js';
 import { getSettings, COMMON_DEGREE_VALUES } from '../settings.js';
-import { createMath } from '../mathInstance.js';
-import { readPolynomial } from './polynomialRoots.js';
 import { valueGuidance, identityGuidance, equationGuidance } from './trigonometry/guidance.js';
-import { countWaveLineRoots } from './trigonometry/rootCount.js';
+import { countWaveLineRoots, waveLineBound } from './trigonometry/rootCount.js';
+import { proveTrigIdentity, lostDomain } from './trigonometry/circle.js';
 import { parseError, unsupported, solved, undefinedValue } from '../solutionEnvelope.js';
 
 
@@ -448,42 +447,6 @@ export async function solveTrigonometry(expression, settingsOverride) {
   }
 }
 
-// A·f(u) + d on one side (f = sin or cos) and a line m·x + b on the other:
-// since |f| ≤ 1, a solution needs |m·x + b − d| ≤ |A|, an interval of x.
-function waveLineBound(equation, variable) {
-  const sides = String(equation).replace(/\s+/g, '').split('=');
-  if (sides.length !== 2) return null;
-  const wave = /^(-?(?:\d+(?:\.\d+)?|\d+\/\d+)?\*?|-)?(sin|cos)\(([^()]+)\)([+-](?:\d+(?:\.\d+)?|\d+\/\d+))?$/;
-  for (const [w, l] of [[sides[0], sides[1]], [sides[1], sides[0]]]) {
-    const m = w.match(wave);
-    if (!m) continue;
-    const line = readPolynomial(l, variable);
-    if (!line || line.tooHigh || line.degree !== 1) continue;
-    const A = m[1] === undefined || m[1] === '' ? 1 : m[1] === '-' ? -1 : Number(math.evaluate(m[1].replace(/\*$/, '')));
-    const d = m[4] ? Number(math.evaluate(m[4])) : 0;
-    const [b, slope] = line.coefficients.map(Number);
-    if (!Number.isFinite(A) || A === 0 || slope === 0) continue;
-    const R = Math.abs(A);
-    const ends = [(d - R - b) / slope, (d + R - b) / slope].sort((x, y) => x - y);
-    const fmt = (x) => (Number.isInteger(x) ? String(x) : formatNumber(x));
-    const fn = m[2];
-    const lineShown = beautify(l);
-    // The argument k·x + c, for the root count.
-    const at = (x) => { try { return Number(math.evaluate(m[3], { [variable]: x })); } catch { return NaN; } };
-    const [c0, c1, c2] = [at(0), at(1), at(2)];
-    const linearArg = [c0, c1, c2].every(Number.isFinite) && Math.abs(c2 - 2 * c1 + c0) < 1e-12;
-    return {
-      fn,
-      lo: ends[0],
-      hi: ends[1],
-      wave: { A, fn, d, k: c1 - c0, c: c0, m: slope, b, waveText: beautify(w), lineText: lineShown, arg: beautify(m[3]), linearArg },
-      boundText: `Every solution is in ${mark(`${fmt(ends[0])} ≤ ${variable} ≤ ${fmt(ends[1])}`)}: ${mark(`|${fn}(${beautify(m[3])})| ≤ 1`)}, so ${mark(lineShown)} must lie between ${mark(fmt(d - R))} and ${mark(fmt(d + R))}.`,
-      step: `Every solution is in ${mark(`${fmt(ends[0])} ≤ ${variable} ≤ ${fmt(ends[1])}`)}: ${mark(`|${fn}(${beautify(m[3])})| ≤ 1`)}, so ${mark(lineShown)} must lie between ${mark(fmt(d - R))} and ${mark(fmt(d + R))}. The search covers that interval, but a scan can still miss a root that only touches the axis or two roots closer than its step, so this bounds the solutions without proving the list complete.`,
-    };
-  }
-  return null;
-}
-
 // Symbolic trig input (contains a variable): simplify with Algebrite and only
 // claim the result after a numeric equivalence check at sample points. This is
 // what turns sin(x)^2 + cos(x)^2 into 1 instead of "Unable to evaluate".
@@ -604,128 +567,6 @@ async function simplifyTrigExpression(expression, variable) {
       tips,
     });
   }
-}
-
-// sin(mθ), cos(mθ) (|m| ≤ 4) and sin/cos(θ + kπ/2) in S = sin θ, C = cos θ.
-function trigInSC(expression, variable) {
-  const S = 'S';
-  const C = 'C';
-  const multiple = { 1: [S, C] };
-  for (let m = 2; m <= 4; m += 1) {
-    const [sp, cp] = multiple[m - 1];
-    multiple[m] = [`((${sp})*${C} + (${cp})*${S})`, `((${cp})*${C} - (${sp})*${S})`];
-  }
-  const sinCos = (arg) => {
-    const at = (x) => { try { return Number(arg.evaluate({ [variable]: x })); } catch { return NaN; } };
-    const m = at(1) - at(0);
-    const shift = at(0);
-    if (!(Number.isInteger(m) && m !== 0 && Math.abs(m) <= 4 && Math.abs(at(2) - at(0) - 2 * m) < 1e-12)) return null;
-    const q = shift / (Math.PI / 2);
-    if (Math.abs(q - Math.round(q)) > 1e-12) return null;
-    let [sn, cs] = multiple[Math.abs(m)];
-    if (m < 0) sn = `(-(${sn}))`;
-    // sin(u + kπ/2), cos(u + kπ/2): a quarter turn rotates (sin, cos).
-    for (let k = ((Math.round(q) % 4) + 4) % 4; k > 0; k -= 1) [sn, cs] = [cs, `(-(${sn}))`];
-    return [sn, cs];
-  };
-  let tree;
-  try { tree = math.parse(rewriteReciprocalTrig(String(expression))); } catch { return null; }
-  let ok = true;
-  const out = tree.transform((n) => {
-    if (n.type === 'FunctionNode' && ['sin', 'cos', 'tan'].includes(n.fn?.name) && n.args.length === 1) {
-      const sc = sinCos(n.args[0]);
-      if (!sc) { ok = false; return n; }
-      const text = n.fn.name === 'sin' ? sc[0] : n.fn.name === 'cos' ? sc[1] : `((${sc[0]})/(${sc[1]}))`;
-      return math.parse(text);
-    }
-    return n;
-  });
-  if (!ok || out.filter((n) => n.type === 'SymbolNode' && n.name === variable).length) return null;
-  return out.toString();
-}
-
-// Is a = b as functions of θ, wherever both are defined? In S and C both are
-// rational, and on the circle S = 2t/(1 + t²), C = (1 − t²)/(1 + t²), so a − b
-// is a rational function R(t) whose numerator has degree at most d, read off
-// the parse tree. If R is exactly 0 (fractions, not floats) at d + 1 rational
-// t, its numerator is the zero polynomial: the identity holds (1.65.0; it
-// was "confirmed numerically at several values").
-const exactMath = createMath({ number: 'Fraction' });
-function degreeInT(node) {
-  let n = node;
-  while (n.type === 'ParenthesisNode') n = n.content;
-  if (n.type === 'ConstantNode') return [0, 0];
-  if (n.type === 'SymbolNode') return n.name === 'S' || n.name === 'C' ? [2, 2] : null;
-  if (n.type === 'OperatorNode') {
-    if (n.fn === 'unaryMinus' || n.fn === 'unaryPlus') return degreeInT(n.args[0]);
-    const [a, b] = n.args.map(degreeInT);
-    if (!a || (n.args.length > 1 && !b)) return null;
-    if (n.op === '+' || n.op === '-') return [Math.max(a[0] + b[1], b[0] + a[1]), a[1] + b[1]];
-    if (n.op === '*') return [a[0] + b[0], a[1] + b[1]];
-    if (n.op === '/') return [a[0] + b[1], a[1] + b[0]];
-    if (n.op === '^') {
-      const k = Number(n.args[1].toString());
-      if (!Number.isInteger(k)) return null;
-      return k >= 0 ? [k * a[0], k * a[1]] : [-k * a[1], -k * a[0]];
-    }
-  }
-  return null;
-}
-function proveTrigIdentity(Algebrite, a, b, variable) {
-  const A = trigInSC(a, variable);
-  const B = trigInSC(b, variable);
-  if (!A || !B) return false;
-  try {
-    const diff = `(${A}) - (${B})`;
-    const bound = degreeInT(math.parse(diff));
-    if (!bound || bound[0] > 200) return false;
-    const code = exactMath.parse(diff).compile();
-    let zeros = 0;
-    for (let i = 1; i < 4 * bound[0] + 40 && zeros <= bound[0]; i += 1) {
-      const t = exactMath.fraction(i, 7);
-      const one = exactMath.fraction(1);
-      const den = one.add(t.mul(t));
-      const scope = { S: t.mul(2).div(den), C: one.sub(t.mul(t)).div(den) };
-      let value;
-      try { value = code.evaluate(scope); } catch { continue; } // a pole of a or b
-      if (exactMath.typeOf(value) !== 'Fraction') return false;
-      if (!value.equals(0)) return false;
-      zeros += 1;
-    }
-    if (zeros <= bound[0]) return false;
-    // t = tan(x/2) misses x = π + 2πn, the point (S, C) = (0, −1): there the
-    // two sides are compared directly, when both are defined (1.65.0 review).
-    try {
-      const at = code.evaluate({ S: exactMath.fraction(0), C: exactMath.fraction(-1) });
-      if (exactMath.typeOf(at) === 'Fraction' && !at.equals(0)) return false;
-    } catch { /* one side is undefined at x = π: nothing to compare there */ }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Where the original is undefined but the simplified form is not, read off
-// exactly: on the circle, cos(x) = 0 is (S, C) = (±1, 0) and sin(x) = 0 is
-// (0, ±1), so evaluating both in exact fractions there decides it.
-// tan(x)·cos(x) = sin(x) only where cos(x) ≠ 0; tan(x) + cot(x) = 2/sin(2x)
-// loses nothing (1.65.0).
-function lostDomain(original, simplified, variable) {
-  const A = trigInSC(original, variable);
-  const B = trigInSC(simplified, variable);
-  if (!A || !B) return null;
-  const defined = (text, S, C) => {
-    try {
-      const v = exactMath.evaluate(text, { S: exactMath.fraction(S), C: exactMath.fraction(C) });
-      return exactMath.typeOf(v) === 'Fraction';
-    } catch {
-      return false;
-    }
-  };
-  const loses = (points) => points.some(([S, C]) => !defined(A, S, C) && defined(B, S, C));
-  if (loses([[1, 0], [-1, 0]])) return `cos(${variable}) = 0`;
-  if (loses([[0, 1], [0, -1]])) return `sin(${variable}) = 0`;
-  return null;
 }
 
 function normalizeForCompare(s) {
