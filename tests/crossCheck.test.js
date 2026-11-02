@@ -273,10 +273,11 @@ test('tan and cot against a line: a root on every branch, the nearest ones found
 });
 
 test('a flat root is located to the digits shown, and = only for the root itself', async () => {
-  // tan(x) = sin(x) has a triple root at 2π: bisection stopped at |f| < 10^(−6),
-  // x ≈ 6.2813, and the rounded 6.2832 then passed for exact.
-  const result = await solveProblem('tan(x) = sin(x)', 'trigonometry');
-  assert.match(result.answer, /x ≈ -6\.2832 .* x = 0 .* x ≈ 6\.2832/);
+  // A triple root at π: bisection stopped at |f| < 10^(−6), x ≈ 3.1406 (1.67.1),
+  // and the rounded value could then pass for exact. (tan(x) = sin(x), the
+  // case that found it, is solved exactly since 1.68.0.)
+  const result = await solveProblem('(x - pi)^3 + sin(x - pi)^3 = 0', 'trigonometry');
+  assert.equal(result.answer, 'x ≈ 3.1416');
 });
 
 test('an inequality with tan, cot, sec or csc of x is never answered as if they were continuous', async () => {

@@ -91,13 +91,15 @@ function mergeFamilies(families) {
   return families;
 }
 
-// "base + period·n" as text, with the trivial cases tidied.
-function familyText(variable, base, period) {
-  const pt = fmtRad(period);
+// "base + period·n" as text, with the trivial cases tidied. The angle unit
+// is the current solve's unless given (trigonometry/factorEquation.js).
+export function familyText(variable, base, period, degrees = DEGREES) {
+  const pt = angleText(period, degrees);
   // 2πn, πn, 4πn; a fraction of π in brackets: (2π/3)n.
-  const per = near(period, TWO_PI) ? PERIOD_FULL() : near(period, Math.PI) ? PERIOD_HALF() : /^\d*π$/.test(pt) ? pt : `(${pt})`;
-  const b = fmtRad(base);
-  if (b === '0') return `${variable} = ${per}n`;
+  // 90°n needs no brackets; 0° + 180°n is 180°n.
+  const per = near(period, TWO_PI) ? (degrees ? '360°' : '2π') : near(period, Math.PI) ? (degrees ? '180°' : 'π') : /^\d*π$|^\d+(?:\.\d+)?°$/.test(pt) ? pt : `(${pt})`;
+  const b = angleText(base, degrees);
+  if (b === '0' || b === '0°') return `${variable} = ${per}n`;
   return `${variable} = ${b} + ${per}n`;
 }
 
@@ -133,7 +135,11 @@ function principalAngle(fn, c) {
 // Format an angle (held in radians) for display: in degrees mode as N°; in
 // radians mode as an exact multiple of π when it is one, else a decimal.
 function fmtRad(rad) {
-  if (DEGREES) {
+  return angleText(rad, DEGREES);
+}
+
+export function angleText(rad, degrees = DEGREES) {
+  if (degrees) {
     const deg = rad * 180 / Math.PI;
     // Snap the special angles so π/6 reads 30°, not 29.9999°.
     const snapped = Math.abs(deg - Math.round(deg)) < 1e-6 ? Math.round(deg) : deg;

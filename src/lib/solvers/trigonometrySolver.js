@@ -88,8 +88,9 @@ export async function solveTrigonometry(expression, settingsOverride) {
     // used to be shown as the final answer.
     const variable = extractVariable(expression);
     if (isEquation(expression)) {
-      const { solveTrigEquation } = await import('./trigEquationSolver.js');
-      const exact = solveTrigEquation(expression, variable, settingsOverride);
+      // The reductions first, then sin/cos factoring (tan(x) = sin(x)).
+      const { solveTrigEquationExact } = await import('./trigonometry/factorEquation.js');
+      const exact = await solveTrigEquationExact(expression, variable, settingsOverride);
       if (exact.status !== 'unsupported') return exact;
       // No exact reduction (sin x·cos 2x = 1/3 is transcendental; sin(x²) = 0
       // has a non-linear argument): fall back to the algebra solver's

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.0] - 2026-11-02
+
+### Added
+
+- **Trig equations that mix functions of one angle are solved exactly**, by
+  the textbook route: every function written in sine and cosine
+  (tan(x) = sin(x)/cos(x), and the angles where a denominator is 0
+  excluded), the fractions cleared, everything moved to one side and
+  factored, sin² written as 1 − cos² where that lets it factor. Each
+  factor is then solved on its own: a polynomial in sin or in cos, one of a
+  single degree divided by cosᵈ into a polynomial in tan (cos = 0 checked
+  first), or anything else by isolating sin and squaring, each root checked
+  unsquared. The families are joined as a textbook writes them.
+  tan(x) = sin(x) is now x = πn (it was five numeric roots); also
+  2sin(x)cos(x) = sin(x), csc(x) − sin(x) = cos(x), sec²(x) = 2tan(x),
+  tan(x) + cot(x) = 2, sin(x)·cos(x)·tan(x) = 1/4, tan(2x) = sin(2x) and
+  others, under Trigonometry and under Algebra. A method of its own in the
+  tips: never divide by sin(x), factor it out.
+
+### Fixed
+
+- **tan(x)·cos(x) = 1 listed x ≈ π/2 and its repeats**, where tan is
+  undefined; it has no solution (sin(x) = 1 only where cos(x) = 0).
+- In degrees, a family through 0 read "x = 0° + 180°n"; it is x = 180°n.
+
 ## [1.67.2] - 2026-11-02
 
 ### Fixed

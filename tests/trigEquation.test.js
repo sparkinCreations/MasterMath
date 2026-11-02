@@ -194,3 +194,60 @@ test('reciprocal functions and sin·cos products reduce exactly; the rest fall t
   assert.match(numeric.steps[0], /solved numerically/);
   assert.match(numeric.answer, /x ≈ -0\.9904/); // located numerically: ≈ (1.53.2)
 });
+
+// ── Written in sine and cosine, cleared and factored (1.67.3): tan(x) = sin(x)
+// was five numeric roots, two of them wrong in the third decimal.
+test('mixed functions of one angle: written in sin and cos, factored, solved exactly', async () => {
+  const cases = [
+    ['tan(x) = sin(x)', 'x = πn (n ∈ ℤ);  on [0, 2π): 0, π'],
+    ['2*sin(x)*cos(x) = sin(x)', 'x = πn  or  x = π/3 + 2πn  or  x = 5π/3 + 2πn (n ∈ ℤ);  on [0, 2π): 0, π/3, π, 5π/3'],
+    ['csc(x) - sin(x) = cos(x)', 'x = π/4 + πn  or  x = π/2 + πn (n ∈ ℤ);  on [0, 2π): π/4, π/2, 5π/4, 3π/2'],
+    ['sec(x)^2 = 2*tan(x)', 'x = π/4 + πn (n ∈ ℤ);  on [0, 2π): π/4, 5π/4'],
+    ['tan(2x) = sin(2x)', 'x = (π/2)n (n ∈ ℤ);  on [0, 2π): 0, π/2, π, 3π/2'],
+    ['sin(x)*cos(x)*tan(x) = 1/4', 'x = π/6 + πn  or  x = 5π/6 + πn (n ∈ ℤ);  on [0, 2π): π/6, 5π/6, 7π/6, 11π/6'],
+  ];
+  for (const [problem, answer] of cases) {
+    const r = await solveProblem(problem, 'trigonometry');
+    assert.equal(r.answer, answer, problem);
+  }
+  const steps = (await solveProblem('tan(x) = sin(x)', 'trigonometry')).steps.map((t) => t.replace(/⟦|⟧/g, '')).join('\n');
+  assert.match(steps, /tan\(x\) = sin\(x\)\/cos\(x\)/);
+  assert.match(steps, /Factor: sin\(x\)·\(1 - cos\(x\)\) = 0/);
+  // Under Algebra too, not the numeric scan.
+  assert.equal((await solveProblem('tan(x) = sin(x)', 'algebra')).answer, 'x = πn (n ∈ ℤ);  on [0, 2π): 0, π');
+});
+
+test('an angle where tan, sec, cot or csc is undefined is removed, never listed', async () => {
+  // sin(x) = 1 only at π/2 + 2πn, where tan is undefined: 1.67.2 listed them.
+  const none = await solveProblem('tan(x)*cos(x) = 1', 'trigonometry');
+  assert.equal(none.answer, 'No real solution');
+  assert.ok(none.steps.some((t) => /Remove the excluded angles/.test(t)));
+  // cos·tan = cos is tan(x) = 1 where cos(x) ≠ 0: cos(x) = 0 is not a solution.
+  assert.equal((await solveProblem('cos(x)*tan(x) = cos(x)', 'trigonometry')).answer, 'x = π/4 + πn (n ∈ ℤ);  on [0, 2π): π/4, 5π/4');
+});
+
+test('a factor that only squaring solves: its roots kept, the false sign never added', async () => {
+  // Algebrite's float() printed six digits and the true roots failed
+  // sin² + cos² = 1: this was "No real solution". Squaring also admits the
+  // other sign of sin at each root, x ≈ 5.7951 (2π − 0.4881), where
+  // sin(x) + tan(x) = −1: sin is taken from the unsquared factor, so it is
+  // never listed.
+  const r = await solveProblem('sin(x) + tan(x) = 1', 'trigonometry');
+  assert.equal(r.answer, 'x ≈ 0.4881 + 2πn  or  x ≈ 4.2242 + 2πn (n ∈ ℤ);  on [0, 2π): x ≈ 0.4881, 4.2242');
+  // sec(x) + tan(x) = 1: squaring gives cos(x) = 0 or 1; cos = 0 is excluded
+  // (sec and tan undefined), so only x = 2πn.
+  assert.equal((await solveProblem('sec(x) + tan(x) = 1', 'trigonometry')).answer, 'x = 2πn (n ∈ ℤ);  on [0, 2π): 0');
+});
+
+test('a factor the root finder cannot finish is refused, never read as having no roots', async () => {
+  // Squaring gives degree 120, beyond the exact root finder: no exact family
+  // is claimed, and the numeric path says its list is partial.
+  const r = await solveProblem('tan(x) = sin(x)^60 + 2', 'trigonometry');
+  assert.doesNotMatch(r.answer, /\(n ∈ ℤ\)/);
+  assert.match(r.answer, /^Infinitely many solutions, repeating every 2π; the 5 nearest 0 are/);
+});
+
+test('degrees: a family through 0 is written 180°n, not 0° + 180°n', () => {
+  const r = solveTrigMarked('sin(x) = 0', 'x', { angleUnit: 'degrees' });
+  assert.match(r.answer, /^x = 180°n \(n ∈ ℤ\)/);
+});

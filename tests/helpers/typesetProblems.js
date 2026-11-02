@@ -117,6 +117,8 @@ export const CONVERTED = [
   // 1.67.2: a square against a wave, convex though f″ touches 0; a sign that changes infinitely often.
   ['algebra', 'x^2 > 2*sin(x) + 1'], ['algebra', 'e^x > cos(x)'], ['trigonometry', 'e^x - cos(x) = 0'], ['trigonometry', 'x*sin(x) = 1'],
   ['trigonometry', 'tan(x) = x'], ['trigonometry', 'tan(x) = 2x + 1'], ['trigonometry', 'tan(x) = x^2'], ['trigonometry', 'sec(x) = x'], ['algebra', 'tan(x) > x'], ['trigonometry', 'csc(x) = x + 2'], ['trigonometry', 'tan(x) = sin(x)'],
+  // 1.67.3: written in sine and cosine, factored, excluded angles removed.
+  ['trigonometry', '2*sin(x)*cos(x) = sin(x)'], ['trigonometry', 'csc(x) - sin(x) = cos(x)'], ['trigonometry', 'sin(x) + tan(x) = 1'], ['trigonometry', 'tan(x)*cos(x) = 1'], ['trigonometry', 'tan(2x) = sin(2x)'], ['trigonometry', 'sin(x)^2 = 3*cos(x)^2'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

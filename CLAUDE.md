@@ -182,7 +182,10 @@ where the numeric scan missed roots; c·tan(kx + d) or cot plus terms
 defined everywhere has a root on every branch between poles, each located
 there (`trigonometry/tanBranches.js`); exports `detectTrigAsymptote`; tips in
 `trigonometry/guidance.js`; identities proved in `trigonometry/circle.js`),
-`trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
+`trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest;
+callers use `solveTrigEquationExact` in `trigonometry/factorEquation.js`,
+which then writes a mix of functions of one angle in sin and cos, clears,
+factors and solves each factor exactly, excluded angles removed),
 `functionsSolver` (exact extrema/intercepts/asymptotes: a numeric value is
 shown exact only when `recognizeExact` proves it by substitution, else ≈;
 polynomial intercepts from the exact root finder; sine and cosine waves as

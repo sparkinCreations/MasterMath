@@ -498,8 +498,8 @@ export async function solveProblem(problem, topic) {
     // angles — instead of the algebra solver's numeric root scan. Only the
     // supported family is taken; anything else falls through to algebra.
     if (topic === 'algebra' && isSingleTrigEquation(problem)) {
-      const { solveTrigEquation } = await import('./solvers/trigEquationSolver.js');
-      const trig = solveTrigEquation(extractFunctionFromProblem(problem));
+      const { solveTrigEquationExact } = await import('./solvers/trigonometry/factorEquation.js');
+      const trig = await solveTrigEquationExact(extractFunctionFromProblem(problem));
       if (trig.status !== STATUS.UNSUPPORTED) {
         return finalizeResult(trig, problem);
       }

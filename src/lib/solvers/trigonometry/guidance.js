@@ -173,6 +173,8 @@ export function identityGuidance(display, result, lost, identityUsed) {
 // --- Equations ----------------------------------------------------------------
 
 function equationMethod(text) {
+  // Written in sine and cosine and factored (factorEquation.js, 1.67.3).
+  if (/so one of the factors is 0|Write each function in terms of sine and cosine|^Move everything to one side: /m.test(text)) return 'factored';
   if (/never outside \[−1, 1\]|always lies between −1 and 1/.test(text)) return 'no solution';
   if (/is negative, so there is no real value of|lies in its range, so the equation has no real solution/.test(text)) return 'no solution: quadratic';
   if (/Combine them into one sine/.test(text)) return 'a sin + b cos';
@@ -289,6 +291,20 @@ const EQUATION_LISTS = {
     ],
     mistakes: [`Taking a root such as ${mark('u = 2')} and looking for an angle with ${mark('sin = 2')}.`],
   },
+  factored: {
+    tips: [
+      `Never divide both sides by ${mark('sin(x)')} or ${mark('cos(x)')}: move everything to one side and factor it out, or every solution where it is ${mark('0')} is lost.`,
+      `Writing ${mark('tan(x)')} as ${mark('sin(x)/cos(x)')} (or ${mark('sec')}, ${mark('csc')}, ${mark('cot')} as fractions) assumes the denominator is not ${mark('0')}: an angle where it is ${mark('0')} is not a solution of the original equation, so it is removed.`,
+      `Families from different factors can overlap: ${mark('x = 2πn')} is already part of ${mark('x = πn')}, so each angle is listed once.`,
+      `Dividing by ${mark('cos^d(x)')} is safe only after checking ${mark('cos(x) = 0')} separately; that is how a factor of one degree in ${mark('sin')} and ${mark('cos')} becomes an equation in ${mark('tan(x)')}.`,
+      'Check each family in the original equation: an excluded angle or a root brought in by squaring shows up at once.',
+    ],
+    mistakes: [
+      `Dividing by ${mark('sin(x)')} to simplify ${mark('tan(x) = sin(x)')}, and losing ${mark('sin(x) = 0')}: every ${mark('x = πn')}.`,
+      `Keeping an angle where ${mark('cos(x) = 0')} when the equation has ${mark('tan')} or ${mark('sec')}: neither is defined there.`,
+      'Listing the families of each factor without noticing that one contains another.',
+    ],
+  },
   numeric: {
     tips: [
       'Equations that mix trig terms with different arguments or with x itself usually have no closed form: numeric solutions are the honest answer, shown with ≈.',
@@ -333,6 +349,12 @@ function equationHere(method, text, answer) {
     case 'product': {
       const r = text.match(/So (sin\(2[a-z]\) = [^.\s]+)\./);
       return r ? `Here: the product is ${mark('½·sin(2x)')}, so ${mark(r[1])}.` : null;
+    }
+    case 'factored': {
+      const factor = text.match(/^Factor: (.+?) = 0, so one of the factors is 0\.$/m);
+      const general = families.replace(/  or  /g, ' or ');
+      if (!/=/.test(general)) return `Here: each factor's angles fall where the equation is undefined, or there are none, so there is no real solution.`;
+      return factor ? `Here: ${mark(`${factor[1]} = 0`)}, so each factor is solved on its own and the families are joined: ${mark(general)}.` : `Here: ${mark(general)}.`;
     }
     case 'equal functions': {
       const b = text.match(/up to full turns: (.+?)\.\s*$/m);
