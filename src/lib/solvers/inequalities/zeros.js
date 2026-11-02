@@ -12,8 +12,10 @@
 // proves there is none. The zeros of f′ come from the exact
 // root finder (f′ a polynomial, or one once an exponential factor, which is
 // never 0, is divided out), or from the same argument one derivative down
-// (six at most: x⁵ against eˣ needs every one); when none of these applies
-// the proof fails and the caller refuses.
+// (six at most: x⁵ against eˣ needs every one), or from f″ keeping one sign
+// where it is not 0, which leaves f′ strictly monotone with at most one zero
+// (x² − 2sin(x) − 1: f″ = 2 + 2sin(x) touches 0 but never goes below);
+// when none of these applies the proof fails and the caller refuses.
 //
 // A·sin(kx + c) + d − (mx + b) has a periodic derivative, so infinitely
 // many turning points: it is counted by convexity instead
@@ -23,7 +25,7 @@
 // missed x − ln(x) > 2 on 0 < x < 0.1586 (the root next to the domain's
 // edge) and e^(x/20) > x past x ≈ 89.995 (outside the window).
 
-import { math, structuralPeriod, neverZeroSide, linearCoefficients } from '../solverUtils.js';
+import { math, structuralPeriod, neverZeroSide, linearCoefficients, splitTerms, definedEverywhere } from '../solverUtils.js';
 import { growthLimitAtInfinity, growthLimitAtZeroRight } from '../limits/growth.js';
 import { readPolynomial } from '../polynomialRoots.js';
 import { countWaveLineRoots, waveLineBound } from '../trigonometry/rootCount.js';
@@ -377,8 +379,13 @@ function waveZeros(lhs, rhs, v) {
 // must be a polynomial (its zeros exact); otherwise null.
 function breakPoints(Algebrite, expr, v, labels) {
   const parts = [];
+  let lattice = false;
   try {
     math.parse(String(expr)).traverse((node) => {
+      // tan, cot, sec and csc of x break at infinitely many points, which
+      // no list holds: tan(x) > x was answered x < −π/2, as if tan were
+      // continuous across its poles.
+      if (node.isFunctionNode && ['tan', 'cot', 'sec', 'csc'].includes(node.fn?.name) && node.args[0] && hasVariable(node.args[0].toString(), v)) lattice = true;
       if (node.isFunctionNode && ['log', 'ln', 'log10', 'log2', 'sqrt'].includes(node.fn?.name) && node.args[0]) parts.push(node.args[0].toString());
       if (node.isOperatorNode && node.op === '/' && node.args[1]) parts.push(node.args[1].toString());
       if (node.isOperatorNode && node.op === '^' && node.args[1]) {
@@ -391,6 +398,7 @@ function breakPoints(Algebrite, expr, v, labels) {
   } catch {
     return null;
   }
+  if (lattice) return null;
   const points = [];
   for (const part of parts) {
     if (!hasVariable(part, v)) continue;
@@ -510,6 +518,48 @@ function fractionOf(x) {
 }
 
 
+// A point of (a, b) where g is defined and not 0.
+function nonzeroIn(g, a, b) {
+  const lo = Number.isFinite(a) ? a : Number.isFinite(b) ? b - 10 : -5;
+  const hi = Number.isFinite(b) ? b : lo + 10;
+  for (const t of [0.5, 0.3183, 0.7071, 0.1234, 0.9]) {
+    const y = g(lo + (hi - lo) * t);
+    if (Number.isFinite(y) && Math.abs(y) > NEAR_ZERO) return true;
+  }
+  return false;
+}
+
+// Proof that f changes sign infinitely often, for a refusal that says why:
+// f = g + P with P periodic (period T) and g settling to a limit L at one
+// end, read off growth rates. Two points of one period where P + L has
+// opposite signs, by a margin m, repeat every T; once |g − L| < m, which
+// the limit guarantees past some point, f has those signs there too, so it
+// crosses 0 in every period from then on. e^x − cos(x) as x → −∞: e^x → 0,
+// and −cos(x) is −1 at 0 and 1 at π. { dir, settling, periodic, period,
+// limit }, or null when no such proof is found.
+export function infiniteSignChanges(expr, v) {
+  const terms = splitTerms(String(expr)).map((t) => t.signed);
+  const periodic = terms.filter((t) => structuralPeriod(t, v) > 0);
+  const settling = terms.filter((t) => !periodic.includes(t));
+  if (!periodic.length || !settling.length) return null;
+  const P = periodic.join('+').replace(/\+-/g, '-');
+  const g = settling.join('+').replace(/\+-/g, '-');
+  // A constant g leaves f periodic, which is another argument (the callers'),
+  // and a pole in P would let the sign change without a zero (1/sin(x)).
+  if (!hasVariable(g, v) || !definedEverywhere(P, v)) return null;
+  const period = structuralPeriod(P, v);
+  if (!(period > 0)) return null;
+  const p = evaluator(P, v);
+  for (const dir of [-1, 1]) {
+    const L = growthLimitAtInfinity(g, v, dir);
+    if (L === null || !Number.isFinite(L)) continue;
+    const values = Array.from({ length: 64 }, (_, i) => p((period * i) / 64) + L).filter(Number.isFinite);
+    if (values.length < 64) continue;
+    if (Math.max(...values) > 1e-6 && Math.min(...values) < -1e-6) return { dir, settling: g, periodic: P, period, limit: L };
+  }
+  return null;
+}
+
 // The zeros of f′ on the open interval (a, b), complete, or null.
 async function turningPoints(Algebrite, expr, v, a, b, depth) {
   const d = safeRun(Algebrite, `simplify(d(${expr}, ${v}))`);
@@ -519,6 +569,14 @@ async function turningPoints(Algebrite, expr, v, a, b, depth) {
   const inside = (xs) => xs.filter((x) => x > a + 1e-12 && x < b - 1e-12);
   if (neverZeroSide(inAppNotation(numerator), '0', v)) return [];
   if (excludesZero(boundsOn(numerator, v, a, b))) return [];
+  // f′ ≥ 0 (or ≤ 0) that touches 0 only at single points still makes f
+  // strictly monotone: 2x − 2cos(x) has f′ = 2 + 2sin(x), 0 at −π/2 + 2πn
+  // and positive between, so it rises through its one zero. An elementary
+  // f′ is analytic, so unless it is 0 everywhere its zeros are isolated, and
+  // one nonzero value shows it is not (x² against a·sin(x) + b, the
+  // cross-check's refusals). abs is not analytic: left to the rule above.
+  const B = boundsOn(d, v, a, b);
+  if (B && (B.lo >= 0 || B.hi <= 0) && !/(?<![a-z])abs\(/.test(String(d)) && nonzeroIn(evaluator(d, v), a, b)) return [];
   if (readPolynomial(numerator, v)) return inside(realRoots(Algebrite, numerator, v));
   // x·e^x + e^x: divide out the exponential (never 0) and what is left is
   // a polynomial.

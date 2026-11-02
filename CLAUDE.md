@@ -178,7 +178,9 @@ out; a boundary point decided by the value there; refuses two variables),
 identities proved in sin and cos by t = tan(x/2) in exact fractions, with
 the domain a simplification loses; A·sin/cos(kx + c) + d = mx + b counted
 exactly by convexity and every root located (`trigonometry/rootCount.js`),
-where the numeric scan missed roots; exports `detectTrigAsymptote`; tips in
+where the numeric scan missed roots; c·tan(kx + d) or cot plus terms
+defined everywhere has a root on every branch between poles, each located
+there (`trigonometry/tanBranches.js`); exports `detectTrigAsymptote`; tips in
 `trigonometry/guidance.js`; identities proved in `trigonometry/circle.js`),
 `trigEquationSolver` (A·f(kx)+B=C and reducible forms; refuses the rest),
 `functionsSolver` (exact extrema/intercepts/asymptotes: a numeric value is

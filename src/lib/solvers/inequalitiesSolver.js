@@ -22,10 +22,12 @@ import {
   definedEverywhere,
   formatNumber,
   mark,
+  piForm,
 } from './solverUtils.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import {
   safeRun,
+  inAppNotation,
   shown,
   bars,
   labelTranscendentalZeros,
@@ -33,7 +35,7 @@ import {
   labelKey,
   exactDecimals,
 } from './inequalities/roots.js';
-import { provedZeros, domainEdges, denominatorZeros, exactValueAt } from './inequalities/zeros.js';
+import { provedZeros, domainEdges, denominatorZeros, exactValueAt, infiniteSignChanges } from './inequalities/zeros.js';
 import {
   intersectPieces,
   ALL_REALS,
@@ -53,6 +55,7 @@ import { refuse, buildGraph, buildTrivial, buildSteps, movedText } from './inequ
 import { inequalityGuidance } from './inequalities/guidance.js';
 import { solveLinear } from './inequalities/linear.js';
 import { solvePeriodic } from './inequalities/periodic.js';
+import { readTanBranches } from './trigonometry/tanBranches.js';
 
 const OPERATORS = ['<=', '>=', '<', '>'];
 
@@ -290,6 +293,28 @@ async function solveSingle(rawText) {
     const reduced = await provedZeros(Algebrite, denominator, variable, { labels });
     const edgesFound = await domainEdges(Algebrite, fExpr, variable, labels);
     if (!zeros || !cancelled || !reduced || !edgesFound) {
+      // tan(x) > x: a zero between every two poles, and a sign change at
+      // every pole too, so no list of endpoints exists.
+      const branches = !zeros && readTanBranches(fExpr, variable);
+      if (branches && ['tan', 'cot'].includes(branches.fn)) {
+        const fn = `${branches.fn}(${beautify(branches.arg)})`;
+        return refuse(
+          `${mark(movedText(lhs, rhs, simplified))} is zero at least once between each pair of consecutive poles of ${mark(fn)}, where ${mark(fn)} runs through every real value, so its sign changes infinitely often and the solution set is infinitely many intervals. Inequalities of that kind are not supported.`,
+          `The equation ${mark(`${beautify(lhs)} = ${beautify(rhs)}`)} is solved: it lists the solutions nearest ${mark('0')}.`,
+          'unsupported',
+        );
+      }
+      // e^x > cos(x): no list of zeros exists to prove complete. Say so.
+      const endless = !zeros && [simplified, numerator].map((e) => infiniteSignChanges(inAppNotation(e), variable)).find(Boolean);
+      if (endless) {
+        const end = endless.dir < 0 ? '−∞' : '∞';
+        const every = piForm(endless.period) ?? formatNumber(endless.period);
+        return refuse(
+          `${mark(movedText(lhs, rhs, simplified))} changes sign infinitely often: as ${mark(`${variable} → ${end}`)}, ${mark(beautify(endless.settling))} approaches ${mark(formatNumber(endless.limit))} while ${mark(beautify(endless.periodic))} repeats every ${mark(every)}, so the solution set is infinitely many intervals whose ends have no pattern to state. Inequalities of that kind are not supported.`,
+          `A periodic inequality such as ${mark('cos(x) > 1/2')} is solved for every period, and one where a term outgrows the wave, such as ${mark('x^2 > 2sin(x) + 1')}, exactly.`,
+          'unsupported',
+        );
+      }
       return refuse(
         `The points where ${movedText(lhs, rhs, simplified)} is zero or undefined could only be located numerically here, not proved to be all of them, so no solution set is stated.`,
         `Polynomial, rational, exponential and logarithmic inequalities are solved exactly, e.g. ${mark('x^3 - 2 > 0')}, ${mark('(x-1)/(x+2) ≤ 0')}, ${mark('e^x > 2')}.`,

@@ -13,7 +13,11 @@ import {
   trigUndefinedPoints,
   mark,
   realOddRoots,
+  piForm,
+  structuralPeriod,
 } from '../solverUtils.js';
+import { infiniteSignChanges } from '../inequalities/zeros.js';
+import { tanBranchRoots } from '../trigonometry/tanBranches.js';
 
 // Brute-force numeric root finding, used only when symbolic methods fail.
 //
@@ -230,7 +234,16 @@ export function solveNumerically(equation, variable) {
   // real solution found", marked Solved (October 26). Only a side that is
   // provably never 0 — a nonzero constant times exponentials, or over
   // anything (e^x = 0, 1/(x − 2)² = 0) — makes "no real solution" a fact.
-  if (verified.length === 0) {
+  // e^x = cos(x) has a root in every period as x → −∞: proved, it is said
+  // so in the answer, not left as five roots that read like all of them.
+  const endless = expression.includes('=') ? null : infiniteSignChanges(expression, variable);
+  // f(x + T) = f(x): every root found repeats every period.
+  const period = endless || expression.includes('=') ? null : structuralPeriod(expression, variable);
+  // tan(x) = x: a root between every two poles, located branch by branch;
+  // the scan stepped over the ones next to the poles.
+  const branch = endless || period > 0 || expression.includes('=') ? null : tanBranchRoots(expression, variable);
+
+  if (verified.length === 0 && !branch) {
     const never = neverZeroSide(left, right, variable);
     if (never) {
       return {
@@ -251,16 +264,26 @@ export function solveNumerically(equation, variable) {
 
   // Show at most five roots, preferring the ones nearest zero (a periodic
   // equation can have dozens in range; x = 0, ±π beats x = -100, -99.5, …).
-  const solutions = verified
-    .sort((a, b) => Math.abs(a) - Math.abs(b))
-    .slice(0, 5)
-    .sort((a, b) => a - b);
+  const solutions = branch
+    ? branch.roots
+    : verified
+      .sort((a, b) => Math.abs(a) - Math.abs(b))
+      .slice(0, 5)
+      .sort((a, b) => a - b);
 
   const steps = [
     `Rewrite as ${beautify(expression)} = 0`,
-    'Search for values where the expression crosses zero, then verify each candidate by substituting it back.',
+    ...(branch ? branch.steps : ['Search for values where the expression crosses zero, then verify each candidate by substituting it back.']),
   ];
-  if (verified.length > solutions.length) {
+  if (branch) {
+    // Said in the branch's own steps.
+  } else if (period > 0) {
+    const T = piForm(period) ?? formatNumber(period);
+    steps.push(`Every term repeats every ${mark(T)}, so the equation is unchanged when ${mark(variable)} is replaced by ${mark(`${variable} + ${T}`)}: each solution comes back once a period, and there are infinitely many. Showing the ${solutions.length} closest to zero.`);
+  } else if (endless) {
+    const every = piForm(endless.period) ?? formatNumber(endless.period);
+    steps.push(`As ${mark(`${variable} → ${endless.dir < 0 ? '−∞' : '∞'}`)}, ${mark(beautify(endless.settling))} approaches ${mark(formatNumber(endless.limit))} while ${mark(beautify(endless.periodic))} repeats every ${mark(every)} and crosses ${mark(formatNumber(-endless.limit))}, so the expression changes sign in every period from some point on: there are infinitely many solutions. Showing the ${solutions.length} closest to zero.`);
+  } else if (verified.length > solutions.length) {
     steps.push(`The equation has more solutions in range; showing the ${solutions.length} closest to zero.`);
   }
   // A root located numerically is written with ≈, and with = only when the
@@ -277,7 +300,27 @@ export function solveNumerically(equation, variable) {
       return false;
     }
   };
-  const answer = solutions.map((s) => `${variable} ${exactAt(formatNumber(s)) ? '=' : '≈'} ${formatNumber(s)}`).join('  or  ');
+  // The number shown must also be the root located, not merely a point where
+  // f is tiny: at the triple root 2π of tan(x) = sin(x), f(6.2832) ≈ 10^(−17).
+  const isShown = (s) => Math.abs(Number(formatNumber(s)) - s) <= 1e-12 * (1 + Math.abs(s));
+  const items = solutions.map((s) => `${variable} ${isShown(s) && exactAt(formatNumber(s)) ? '=' : '≈'} ${formatNumber(s)}`);
+  const listed = items.join('  or  ');
+  // A list cut to five says so in the answer itself, which is what is read
+  // (and exported) on its own.
+  const between = branch && { one: 'exactly one', counted: 'one or three', some: 'at least one', convex: 'two or none' }[branch.kind];
+  const answer = branch
+    ? `Infinitely many solutions, ${between} between each pair of consecutive poles of ${mark(branch.fnText)}; ${branch.kind === 'some' ? 'among them' : `the ${solutions.length} nearest ${mark('0')} are`} ${items.map((t) => mark(t)).join('  or  ')}`
+    : period > 0
+    ? `Infinitely many solutions, repeating every ${piForm(period) ?? formatNumber(period)}; the ${solutions.length} nearest 0 are ${listed}`
+    : endless
+    ? `Infinitely many solutions; the ${solutions.length} nearest 0 are ${listed}`
+    : verified.length > solutions.length
+      ? `${listed} (the ${solutions.length} solutions nearest 0; there are more)`
+      // sec(x) = x: the scan steps over roots next to poles, and nothing
+      // proves the list complete.
+      : trigUndefinedPoints(expression, variable).length
+        ? `${listed} (found by a numeric search, which can miss solutions next to the poles; there may be more)`
+        : listed;
   steps.push(`Solution: ${answer}`);
 
   return { steps, answer, solutions };
@@ -327,10 +370,14 @@ function detectConstantDifference(evalReal) {
   return (min + max) / 2;
 }
 
+// Bisection on the sign alone, to the width floating point allows. It used
+// to stop once |f| < 10^(−6), which at a flat root is far from the root:
+// tan(x) = sin(x) has a triple root at 2π, where |f| ≈ (x − 2π)³/2, and was
+// answered x ≈ 6.2813 (1.67.2).
 function refineRoot(expression, variable, a, b) {
   let left = a;
   let right = b;
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 200 && right - left > 1e-15 * (1 + Math.abs(left)); i++) {
     const mid = (left + right) / 2;
     let value;
     let leftValue;
@@ -344,7 +391,7 @@ function refineRoot(expression, variable, a, b) {
     // bisecting on NaN comparisons would converge to a meaningless endpoint.
     if (typeof value !== 'number' || typeof leftValue !== 'number') return null;
     if (!Number.isFinite(value) || !Number.isFinite(leftValue)) return null;
-    if (Math.abs(value) < 1e-6) return mid;
+    if (value === 0) return mid;
     if (Math.sign(leftValue) === Math.sign(value)) left = mid;
     else right = mid;
   }

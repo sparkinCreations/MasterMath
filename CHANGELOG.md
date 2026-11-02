@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.67.2] - 2026-11-02
+
+### Fixed
+
+- **A square against a wave was refused**: x² > 2sin(x) + 1 said its zeros
+  "could only be located numerically". Its second derivative, 2 + 2sin(x),
+  touches 0 but never goes below, so the first derivative still rises
+  through one zero and the two zeros are proved (x < α or x > β, α ≈ −0.423,
+  β ≈ 1.7252). The proof required f″ never to be 0; a sign that only
+  touches 0 at single points is enough. The cross-check gains this family.
+- **A refusal that says why**: e^x > cos(x), e^(−x) > sin(x) and
+  1/x > sin(x) change sign infinitely often (e^x → 0 as x → −∞ while
+  cos(x) keeps swinging), so no list of endpoints exists. They were refused
+  as zeros that "could only be located numerically"; the refusal now says
+  the sign changes infinitely often, and why.
+- **A root list cut short said so only in a step**: e^x − cos(x) = 0
+  answered five roots, "x ≈ −10.9956 or … or x = 0", which read like all of
+  them; it has one in every period as x → −∞. The answer now says
+  "Infinitely many solutions; the 5 nearest 0 are …", with the reason as a
+  step. A periodic equation solved numerically (sin(x) + tan(x) = 1) says
+  "Infinitely many solutions, repeating every 2π; the 5 nearest 0 are …",
+  and a numeric search that found more than it shows says "(the 5
+  solutions nearest 0; there are more)" in the answer (x·sin(x) = 1).
+- **Inequalities with tan, cot, sec or csc of x were answered as if those
+  were continuous**: tan(x) > x was "x < −π/2", tan(x) + x > 0, cot(x) > x
+  and csc(x) < x were "No solution", sec(x) > x was "x < π/2", and
+  tan(2x) > x, tan(x)/x > 1 and ln(x) + tan(x) > 0 gave intervals too. The
+  zero proof read the expression as unbroken across the poles. It now
+  treats those functions as breaking at infinitely many points and refuses;
+  tan or cot against terms defined everywhere says why (a zero between
+  every two poles, so the sign changes infinitely often).
+- **tan(x) = x listed three roots of infinitely many**, and tan and cot
+  equations generally skipped the roots next to the poles (tan(x) = −x
+  jumped from 2.0288 to 11.0855). Between two poles tan runs through every
+  value, so there is a root on every branch: exactly one when the rest is a
+  line that the tan term outgrows (tan(x) = x, cot(x) = x), one or three
+  otherwise for a line, decided at the two turning points
+  (tan(x) = 2x + 1), at least one for anything else defined everywhere
+  (tan(x) = x²). Each is located by bisection between the poles, and the
+  answer says "Infinitely many solutions, exactly one between each pair of
+  consecutive poles of tan(x); the 5 nearest 0 are …". An exact root such
+  as tan(x) = x at 0 is taken only on a stretch proved to hold one root, so
+  a neighbouring root is never moved onto it (tan(x) = x + 10⁻⁷ keeps
+  x ≈ 0.0067).
+- **sec(x) = x listed −33.017 before the roots nearer 0** (4.9172, 7.7242,
+  −7.9796 were missing). Between two poles sec keeps one sign, and against
+  a line the difference is convex (or concave) with one turning point, so
+  each branch holds two roots or none, decided there; far out, every other
+  branch holds two. The answer gives the five nearest 0. sec or csc
+  against anything else, where no proof applies, says the numeric list
+  "may" be incomplete (sec(x) = x²).
+- **A flat root was located only roughly, then shown as exact**: tan(x) =
+  sin(x) gave x ≈ 6.2813 for the triple root 2π = 6.2832, because
+  bisection stopped once |f| < 10⁻⁶; it now bisects on the sign to full
+  precision. And "=" needs the number shown to be the root located, not
+  only a point where the equation balances to 10⁻¹²: 6.2832 balanced
+  there (f ≈ 10⁻¹⁷) and was shown "x = 6.2832".
+
 ## [1.67.1] - 2026-11-02
 
 ### Added

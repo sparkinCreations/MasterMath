@@ -141,6 +141,8 @@ export async function solveTrigonometry(expression, settingsOverride) {
         }        numeric.steps = [
           bound?.complete
             ? 'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: every root is counted exactly, then located by bisection.'
+            : (numeric.steps || []).some((t) => /^Between consecutive poles of/.test(stripMathMarkers(t)))
+            ? 'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots are located between the poles, one stretch at a time, by bisection.'
             : 'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.',
           ...(bound ? [bound.step] : []),
           ...(numeric.steps || []),

@@ -28,6 +28,9 @@ const FAMILIES = {
   'a root against a line': (r) => [`sqrt(${int(r, 1, 9)} - x^2)`, `${int(r, -2, 2)}*x + ${int(r, -2, 2)}`],
   'close roots': (r) => { const a = int(r, -3, 3); return [`(x - ${a})*(x - ${a + [0.01, 0.001][int(r, 0, 1)]})`, '0']; },
   'a double root': (r) => [`(x - (${int(r, -4, 4)}))^2*(x - (${int(r, -4, 4)}))`, '0'],
+  // f″ = 2 ∓ a·sin(x) (or cos) is ≥ 0 for |a| ≤ 2 and touches 0: still
+  // strictly convex, so at most two zeros (refused before 1.67.2).
+  'a square against a wave': (r) => ['x^2', `${nonzero(r, -2, 2)}*${['sin', 'cos'][int(r, 0, 1)]}(x) + ${int(r, -1, 2)}`],
 };
 const PER_FAMILY = 6;
 
@@ -215,6 +218,75 @@ test('known answers: systems return exactly the points they were built from', as
     const result = await solveProblem(problem, 'algebra');
     assert.equal(result.answer, `x = ${sol[0]},  y = ${sol[1]},  z = ${sol[2]}`, problem);
   }
+});
+
+test('a sign that changes infinitely often is refused with the reason, not as unproved zeros', async () => {
+  for (const [problem, end] of [['e^x > cos(x)', '−∞'], ['e^(-x) > sin(x)', '∞'], ['1/x > sin(x)', '−∞']]) {
+    const result = await solveProblem(problem, 'algebra');
+    assert.equal(result.status, 'unsupported', problem);
+    assert.match(result.answer, new RegExp(`changes sign infinitely often: as x → ${end}`), problem);
+  }
+  // A wave that settles inside the band of a term that grows has finitely
+  // many zeros: solved, not refused.
+  const solved = await solveProblem('x^2 > 2*sin(x) + 1', 'algebra');
+  assert.equal(solved.status, 'solved');
+  const [a, b] = endpointsOf(solved.answer);
+  for (const x of [a, b]) assert.ok(Math.abs(x * x - 2 * Math.sin(x) - 1) < 1e-3, `${x} is a zero`);
+});
+
+test('a numeric root list cut short says so in the answer, not only in a step', async () => {
+  const endless = await solveProblem('e^x - cos(x) = 0', 'trigonometry');
+  assert.match(endless.answer, /^Infinitely many solutions; the 5 nearest 0 are /);
+  assert.ok(endless.steps.some((t) => /changes sign in every period/.test(t)));
+  const more = await solveProblem('x*sin(x) = 1', 'trigonometry');
+  assert.match(more.answer, /\(the 5 solutions nearest 0; there are more\)$/);
+});
+
+test('tan and cot against a line: a root on every branch, the nearest ones found', async () => {
+  const numbers = (a) => [...String(a).matchAll(/x [≈=] (-?[\d.]+)/g)].map((m) => Number(m[1]));
+  const cases = [
+    ['tan(x) = x', /^Infinitely many solutions, exactly one between/, [-7.7253, -4.4934, 0, 4.4934, 7.7253]],
+    ['tan(x) = -x', /^Infinitely many solutions, exactly one between/, [-4.9132, -2.0288, 0, 2.0288, 4.9132]],
+    ['cot(x) = x', /^Infinitely many solutions, exactly one between/, [-3.4256, -0.8603, 0.8603, 3.4256]],
+    ['tan(x) = 2x + 1', /^Infinitely many solutions, one or three between/, [-4.5908, 1.2998, 4.6149]],
+  ];
+  for (const [problem, shape, expected] of cases) {
+    const result = await solveProblem(problem, 'trigonometry');
+    assert.match(result.answer, shape, problem);
+    const got = numbers(result.answer);
+    for (const x of expected) assert.ok(got.some((y) => Math.abs(y - x) < 1e-4), `${problem}: ${x} missing from ${result.answer}`);
+  }
+  // sec and csc against a line: two or none per branch, by convexity; the
+  // scan listed −33.017 and skipped 4.9172, 7.7242 and −7.9796.
+  for (const [problem, expected] of [['sec(x) = x', [-7.9796, -4.4877, -2.0739, 4.9172, 7.7242]], ['csc(x) = x + 2', [0.425, 2.9377]]]) {
+    const result = await solveProblem(problem, 'trigonometry');
+    assert.match(result.answer, /^Infinitely many solutions, two or none between/, problem);
+    const got = numbers(result.answer);
+    for (const x of expected) assert.ok(got.some((y) => Math.abs(y - x) < 1e-4), `${problem}: ${x} missing from ${result.answer}`);
+  }
+  // No proof (sec against a parabola): the list says it may be incomplete.
+  const sec = await solveProblem('sec(x) = x^2', 'trigonometry');
+  assert.match(sec.answer, /there may be more\)$/);
+  // A root 0.0067 from an exact zero of a neighbour is not moved onto it.
+  const near = await solveProblem('tan(x) = x + 0.0000001', 'trigonometry');
+  assert.match(near.answer, /x ≈ 0\.0067/);
+});
+
+test('a flat root is located to the digits shown, and = only for the root itself', async () => {
+  // tan(x) = sin(x) has a triple root at 2π: bisection stopped at |f| < 10^(−6),
+  // x ≈ 6.2813, and the rounded 6.2832 then passed for exact.
+  const result = await solveProblem('tan(x) = sin(x)', 'trigonometry');
+  assert.match(result.answer, /x ≈ -6\.2832 .* x = 0 .* x ≈ 6\.2832/);
+});
+
+test('an inequality with tan, cot, sec or csc of x is never answered as if they were continuous', async () => {
+  // Each was answered in 1.67.1: x < −π/2, "No solution", x < π/2, …
+  for (const problem of ['tan(x) > x', 'tan(x) + x > 0', 'tan(2x) > x', 'cot(x) > x', 'sec(x) > x', 'csc(x) < x', 'tan(x)/x > 1', 'ln(x) + tan(x) > 0']) {
+    const result = await solveProblem(problem, 'algebra');
+    assert.equal(result.status, 'unsupported', `${problem} → ${result.answer}`);
+  }
+  const tan = await solveProblem('tan(x) > x', 'algebra');
+  assert.match(tan.answer, /zero at least once between each pair of consecutive poles of tan\(x\)/);
 });
 
 test('finalizeResult is idempotent: a finished result passes through it unchanged', async () => {

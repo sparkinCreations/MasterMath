@@ -114,6 +114,9 @@ export const CONVERTED = [
   ['other', 'gcd(12, 18)'], ['other', 'gcd(7, 9)'], ['other', 'lcm(4, 6)'], ['other', '-7 mod 5'], ['other', '23 * 47'], ['other', '25 + 17'],
   ['other', '8/2(2+2)'], ['other', '2^3^2'], ['other', '3.5!'], ['other', '(-5)!'], ['other', 'log(-1)'], ['other', '0.333...'], ['other', '(-8)^(2/3)'],
   ['other', '2/3 * 9/4'], ['other', '(1/2) / (3/4)'], ['auto', 'is 97 prime'], ['auto', 'is 2 prime'], ['auto', 'prime factorization of 13'],
+  // 1.67.2: a square against a wave, convex though f″ touches 0; a sign that changes infinitely often.
+  ['algebra', 'x^2 > 2*sin(x) + 1'], ['algebra', 'e^x > cos(x)'], ['trigonometry', 'e^x - cos(x) = 0'], ['trigonometry', 'x*sin(x) = 1'],
+  ['trigonometry', 'tan(x) = x'], ['trigonometry', 'tan(x) = 2x + 1'], ['trigonometry', 'tan(x) = x^2'], ['trigonometry', 'sec(x) = x'], ['algebra', 'tan(x) > x'], ['trigonometry', 'csc(x) = x + 2'], ['trigonometry', 'tan(x) = sin(x)'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a
