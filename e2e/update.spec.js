@@ -15,9 +15,13 @@ const original = readFileSync(SW, 'utf8');
 const cacheName = original.match(/const CACHE_NAME = '([^']*)'/)[1];
 
 const release = (newName) => writeFileSync(SW, original.replace(cacheName, newName));
+// A question sent to a worker at the moment it is replaced is never answered,
+// so the probe gives up after a second and the poll asks again (CI, 2026-10-31:
+// the switch happened, the probe hung on the outgoing worker for 20 s).
 const workerVersion = (page) => page.evaluate(() => new Promise((resolve) => {
   const channel = new MessageChannel();
   channel.port1.onmessage = (e) => resolve(e.data.version);
+  setTimeout(() => resolve(null), 1000);
   navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
 }));
 
