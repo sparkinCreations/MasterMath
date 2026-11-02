@@ -570,6 +570,45 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).toBeInViewport();
   });
 
+  // A long answer used to bleed through the right border of its own card on a
+  // phone (1.68.2): the column holding the heading and the answer is a flex
+  // item, so min-width: auto held it at the formula's min-content width and
+  // the overflow escaped outwards, no ancestor clipping it. The antiderivative
+  // of 1/(x^4 + 1) — logs over sqrt(2) and both arctans — is about the widest
+  // the solver produces, and it has to sit inside the card, unscrolled, with
+  // the page still not scrolling sideways.
+  test('on a phone the longest answer sits inside its card', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone', 'phone layout only');
+    // 375px, not the iPhone 13's 390: the narrow end of the phones in use is
+    // where the formula runs out of room, and 390 alone passed this even with
+    // the fault in place.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await openSolver(page);
+    await page.getByLabel('Enter your problem').fill('integral of 1/(x^4+1) dx');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const solution = page.locator('[aria-label="Solution"]');
+    await expect(solution).toContainText('Final Answer:');
+    await expect(solution).toContainText('arctan');
+    const fit = await page.evaluate(() => {
+      const heading = [...document.querySelectorAll('h3')].find((h) => /Final Answer/.test(h.textContent));
+      const card = heading.closest('.rounded-xl');
+      const box = card.querySelector('.overflow-x-auto');
+      const root = document.documentElement;
+      return {
+        bleed: Math.round(box.getBoundingClientRect().right - card.getBoundingClientRect().right),
+        needsScrolling: box.scrollWidth - box.clientWidth,
+        reachable: box.getAttribute('tabindex'),
+        page: root.scrollWidth - root.clientWidth,
+      };
+    });
+    // Inside the card's padding, wrapped rather than scrolled, and with no tab
+    // stop spent on a box that does not scroll.
+    expect(fit.bleed).toBeLessThanOrEqual(0);
+    expect(fit.needsScrolling).toBe(0);
+    expect(fit.reachable).toBeNull();
+    expect(fit.page).toBeLessThanOrEqual(0);
+  });
+
   // The solver runs in a worker with a time budget (1.40.0). A degree-50
   // Wilkinson polynomial (fifty real roots, coefficients of 60 digits) takes
   // the exact root finder about two seconds here and longer on a slow CI

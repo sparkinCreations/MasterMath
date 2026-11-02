@@ -7,6 +7,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.2] - 2026-11-02
+
+Four coverage gaps and one layout fault found by walking the deployed 1.68.1,
+plus the regression suite an outside review asked for. No wrong answers in any
+of them: three were refusals or unproved estimates where the solver had the
+answer, one was advice describing a different problem, and one was a card a
+long answer escaped from.
+
+### Fixed
+
+- **A request phrase needed "find" in front, inconsistently.** "the zeros of
+  x^2 - 5x + 6" came back **"Couldn't read input"** while "find the zeros of
+  x^2 - 5x + 6" solved; the same split hit "the critical points of", "the
+  asymptotes of", "the vertex of", "the domain of" and "the range of", while
+  "the period of", "the amplitude of", "the maximum of … on [0, 2]" and "the
+  prime factorization of" had always read without a verb. Which phrasings
+  worked depended on which pattern the input landed in: the zeros, slope and
+  analysis patterns anchored on a mandatory verb, and the bare form then fell
+  through to the unknown-word check — so a student was told their *words* were
+  unreadable when the maths was fine. The verb is optional in all of them now.
+  The same defect in the expression extractor is fixed too ("the solutions of
+  x^2 = 4", "the value of x^2 + 1 at x = 3"). A phrase still never rewrites an
+  equation into "= 0", and a bare equation is untouched.
+- **A logarithm beside an exponential was estimated, not proved.** `growth.js`
+  reads the form c·x^p·e^(kx)·ln(x)^m off the parse tree, but the dispatcher
+  had a branch only for a power against an exponential (m = 0) and for a
+  logarithm against a power (k = 0). Every limit holding both — ln(x)/e^x as
+  much as (x^3·ln(x)^2)/e^x, e^x/ln(x), x^2·e^(−x)·ln(x) — matched neither
+  branch, and the no-contest rule refuses a disagreement, so the answer came
+  from sampling far out and was reported unproved. They are now settled by the
+  ordering the file already states — an exponential outgrows every power of x,
+  and every power of x outgrows every power of ln x, so e^(kx) outgrows
+  x^p·ln(x)^m however large p and m are — with the numeric check still
+  required before it is reported. The two-factor contests keep their worked
+  L'Hôpital rounds, and now fall back to the ordering argument instead of
+  giving up when Algebrite cannot finish them.
+  Each factor is written on the side its own exponent puts it, so the step
+  restates the expression that was entered: an earlier cut of this branch read
+  |p| and |m| and lumped every non-exponential factor on one side, which wrote
+  e^x·ln(x)/x^3 as e^x/(x^3·ln(x)) — a different expression that happens to
+  share the limit, so neither the answer nor the numeric check caught it. A
+  factor sitting on the exponential's own side is now said to reinforce it
+  rather than to be something it must outgrow. x → −∞ never reaches this
+  branch (it is settled before, where ln x is undefined left of 0), and a
+  logarithm of a transformed argument — ln(x − 5), ln(2x) — is not read as this
+  form at all and still falls back to sampling.
+- **A quintic was given advice about a different problem.** x^5 - x - 1 = 0
+  was told "when the unknown sits both inside and outside a function
+  (x·e^x = 1), no algebraic step isolates it", though nothing sits inside a
+  function: its steps were right (Rational Root Theorem, then numerically) and
+  only the insight was borrowed from the transcendental case. A polynomial that
+  reaches the numeric path now gets its own reason — no general formula in
+  radicals above degree 4 (Abel–Ruffini), nothing left to factor once the
+  Rational Root Theorem is exhausted, the degree counting the roots and the
+  non-real ones coming in conjugate pairs. x·e^x = 1 and sin(x) + x = 1 keep
+  the transcendental advice, Lambert W included.
+
+- **A long answer broke out of its card on a phone.** The antiderivative of
+  1/(x⁴ + 1) — logs over √2 and both arctans — rendered past the right border
+  of the green Final Answer card at 375px, its trailing signs sitting outside
+  the rounded edge. The column holding the heading and the answer is a flex
+  item, so `min-width: auto` held it at the formula's min-content width (238px
+  inside a 274px card) and the overflow bled outwards through every ancestor,
+  none of which clips; the steps above it escaped only because their prose
+  gives the paragraph somewhere to break. There is no such column now: the
+  status icon has moved up beside the heading, which leaves the answer an
+  ordinary block wrapping to the card's own content box — 36px wider than the
+  column it used to sit in — and it is `text-lg` below `sm:`, where 20px costs
+  more in wrapping than it buys in emphasis. Together that is enough for the
+  integral to sit inside the card with no scrolling at all (13px to spare at
+  375px). Anything longer scrolls sideways in its own box instead of
+  bleeding, as the comparison table does, and that box is a tab stop only while
+  it really scrolls, so an ordinary answer adds none. "Result:" and "What went
+  wrong:" are the same card and are fixed with it; the page itself still never
+  scrolls sideways. The smoke suite now pins that integral inside its card at
+  375px — the narrow end of the phones in use, and the width the fault needed:
+  the iPhone 13's 390px passed with it still in place.
+
+- **Two steps of the polynomial path left their maths as plain text.** The
+  step that reports no rational root remaining, and the note that a root
+  marked ≈ is not exactly the number shown, were never exercised by the
+  typesetting gate — no problem in its list reached them — so "x^5 - x - 1"
+  and "x = 1.1673" rendered as prose instead of being typeset. Both are marked
+  now, and a quintic is in the gate's list so they stay that way. The
+  scientific-notation parts of the note stay prose deliberately: KaTeX reads
+  "10⁻¹²" as 10^(-1) followed by ², so typesetting them would be worse than
+  not.
+
+### Added
+
+- **Tests for negative angles in a trig equation** (`tests/negativeAngles.test.js`),
+  the coverage an outside review of 1.68.1 recommended after reporting "no
+  exact reduction" for cos(-2x) = 0. The report did not reproduce: the even and
+  odd identities are already applied in every shape tried — all six functions,
+  bare negation, a phase shift, a negative leading coefficient, under
+  Trigonometry and under Algebra, in radians and in degrees. cos(-2x) = 0 gives
+  x = π/4 + (π/2)n (45° + 90°n in degrees), and sin(-2x) = 1 correctly gives the
+  family of sin(2x) = -1, not of sin(2x) = 1. The class is now pinned, with the
+  domain restrictions of tan, cot, sec and csc checked.
+
 ## [1.68.1] - 2026-11-02
 
 ### Fixed

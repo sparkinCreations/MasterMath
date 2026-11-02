@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useId } from "react";
+import React, { useState, useEffect, useRef, useId } from "react";
 import { readSolutionMode, writeSolutionMode } from "@/lib/solverPrefs";
 import { SHOWN_AT_FIRST, sourceOf } from "@/lib/guidance";
 import { learnMoreFor } from "@/lib/learnMore";
@@ -132,6 +132,36 @@ function ExternalAnchor({ href, children }) {
       <ExternalLink className="inline w-3.5 h-3.5 ml-1 -mt-0.5" aria-hidden="true" />
       <span className="sr-only"> (opens in a new tab)</span>
     </a>
+  );
+}
+
+// A long answer — an antiderivative over √2, a general solution in n — can be
+// wider than a phone's screen, and KaTeX will not break inside \ln|…| or a
+// radical, so such a run stays one unbreakable atom. The answer scrolls
+// sideways in its own box (as the comparison table does) rather than bleeding
+// past the card's border, which is what it did at 375px (1.68.2). It becomes a
+// tab stop only while it really scrolls, so the usual short answer adds none.
+function ScrollingMath({ className = "", label, children }) {
+  const ref = useRef(null);
+  const [scrolls, setScrolls] = useState(false);
+  // Measured after every render, with no dependency list on purpose: a new
+  // answer changes what is inside the box without changing the box, so a
+  // ResizeObserver alone would keep the previous verdict.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => setScrolls(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  });
+  const reachable = scrolls ? { tabIndex: 0, role: "region", "aria-label": `${label}, scrolls sideways` } : {};
+  return (
+    <div ref={ref} className={`overflow-x-auto ${className}`} {...reachable}>
+      {children}
+    </div>
   );
 }
 
@@ -447,23 +477,30 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
 
           {solution.answer && allRevealed && (
             <div className={`p-5 rounded-xl ${theme.card}`}>
-              <div className="flex items-start gap-3">
-                <StatusIcon className={`w-6 h-6 ${theme.cardIcon} shrink-0 mt-1`} />
-                <div>
-                  <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-2">{theme.heading}</h3>
-                  <p className={`${theme.cardText} text-xl font-semibold`}><MathText text={solution.answer} /></p>
-                  {solution.warnings && solution.warnings.length > 0 && (
-                    <ul className="mt-3 space-y-1">
-                      {solution.warnings.map((warning, idx) => (
-                        <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-1.5">
-                          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                          <span>{warning}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+              {/* The icon sits with the heading, not beside the whole card: the
+                  answer then has the card's full width to wrap in, which on a
+                  phone is the difference between a formula that fits and one
+                  that has to be scrolled (1.68.2). */}
+              <h3 className="flex items-center gap-3 font-bold text-lg text-gray-800 dark:text-white mb-2">
+                <StatusIcon className={`w-6 h-6 ${theme.cardIcon} shrink-0`} aria-hidden="true" />
+                {theme.heading}
+              </h3>
+              <ScrollingMath className="py-0.5" label={theme.heading.replace(/:$/, "")}>
+                {/* text-lg on a phone, where 20px costs more in wrapping than
+                    it buys in emphasis — the green card and the weight already
+                    set the answer apart from the 16px steps. */}
+                <p className={`${theme.cardText} text-lg sm:text-xl font-semibold`}><MathText text={solution.answer} /></p>
+              </ScrollingMath>
+              {solution.warnings && solution.warnings.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                  {solution.warnings.map((warning, idx) => (
+                    <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <span>{warning}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 
