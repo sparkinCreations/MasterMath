@@ -174,8 +174,20 @@ export function tryGrowthRates(Algebrite, func, variable, target) {
   const g = growthForm(func, v) || (target === Infinity ? polynomialOverExponential(Algebrite, func, v) : null);
   if (!g || !fraction(g.c) || !Number.isFinite(g.p)) return null;
   if (target === Infinity) {
-    if (g.k !== 0 && g.p !== 0 && g.m === 0 && Math.sign(g.k) !== Math.sign(g.p)) return exponentialContest(Algebrite, func, v, target, g);
+    // The L'Hôpital walkthroughs first, where the contest is between just two
+    // kinds of factor; each falls back to the ordering argument below.
+    if (g.k !== 0 && g.p !== 0 && g.m === 0 && Math.sign(g.k) !== Math.sign(g.p)) {
+      const worked = exponentialContest(Algebrite, func, v, target, g);
+      if (worked) return worked;
+    }
     if (g.k === 0 && g.p !== 0 && g.m !== 0 && Math.sign(g.p) !== Math.sign(g.m) && Number.isInteger(g.m)) return logContest(func, v, target, g);
+    // An exponential against a power AND a logarithm at once, in either
+    // direction: the exponential settles it alone.
+    if (g.k !== 0 && Number.isInteger(g.m)
+        && [g.p, g.m].some((e) => e !== 0 && Math.sign(e) !== Math.sign(g.k))) {
+      const ordered = exponentialOutgrowsAll(func, v, target, g);
+      if (ordered) return ordered;
+    }
     return noContest(func, v, target, g);
   }
   if (target === 0 && g.k === 0 && g.p > 0 && Number.isInteger(g.m) && g.m > 0) return zeroTimesInfinity(func, v, g);
@@ -260,6 +272,64 @@ function exponentialContest(Algebrite, func, v, target, g) {
     ? `Now the top no longer grows while ${mark(expBody)} ${mark('→ ∞')}, so the quotient ${mark('→ 0')}. The limit is ${mark('0')}: an exponential outgrows every power of ${mark(v)}.`
     : `Now the bottom no longer grows while ${mark(expBody)} ${mark('→ ∞')}, so the quotient ${mark(`→ ${answer}`)}. The limit is ${mark(answer)}: an exponential outgrows every power of ${mark(v)}.`);
   return finish(func, v, target, steps, answer);
+}
+
+// e^(kx) against powers of x and of ln x together: (x^3·ln(x)^2)/e^x,
+// ln(x)/e^x, e^x/ln(x), x^2·e^(−x)·ln(x). exponentialContest works the
+// L'Hôpital rounds for a power alone and logContest for a logarithm against a
+// power alone; a logarithm in the same expression as an exponential matched
+// neither, and noContest refuses a disagreement, so every such limit was left
+// to sampling — right answer, "verified: false" (1.68.2).
+//
+// No rounds are worked here because none are needed: the ordering is the whole
+// argument. An exponential outgrows every power of x, and every power of x
+// outgrows every power of ln x, so e^(kx) outgrows x^p·ln(x)^m however large p
+// and m are. The numeric check far out still has to agree before it is
+// reported.
+function exponentialOutgrowsAll(func, v, target, g) {
+  if (!fraction(g.c)) return null;
+  const expText = g.base ? `${g.base}^${v}` : expo(Math.abs(g.k), v);
+  if (!expText) return null;
+  // Each factor goes on the side its OWN exponent puts it, so the written form
+  // is the expression that was entered. Reading |p| and |m| and lumping every
+  // non-exponential factor on one side moved a factor across the bar whenever p
+  // and m disagreed: e^x·ln(x)/x^3 was written e^x/(x^3·ln(x)), a different
+  // expression that happens to have the same limit (an outside review of
+  // 1.68.2 asked exactly this).
+  const num = [];
+  const den = [];
+  const against = [];
+  const alongside = [];
+  const place = (e, text) => {
+    if (e === 0) return true;
+    if (!text) return false;
+    (e > 0 ? num : den).push(text);
+    (Math.sign(e) !== Math.sign(g.k) ? against : alongside).push(text);
+    return true;
+  };
+  if (!place(g.p, g.p !== 0 ? power(Math.abs(g.p), v) : null)) return null;
+  if (!place(g.m, g.m !== 0 ? logPower(Math.abs(g.m), v) : null)) return null;
+  (g.k > 0 ? num : den).push(expText);
+  if (!against.length) return null;
+  const rewritten = shown(g.c, num, den);
+  if (!rewritten) return null;
+  const expShrinks = g.k < 0;
+  const answer = expShrinks ? 0 : g.c * (g.leadSign ?? 1) > 0 ? '∞' : '-∞';
+  const list = (xs) => xs.map((x) => mark(x)).join(' and ');
+  const steps = [...opening(func, v, target, g, rewritten)];
+  steps.push(`An exponential outgrows every power of ${mark(v)}, and every power of ${mark(v)} outgrows every power of ${mark(`ln(${v})`)} — so ${mark(expText)} outgrows ${list(against)}${against.length > 1 ? ' together' : ''}, however large the power${against.length > 1 ? 's are' : ' is'}.`);
+  if (alongside.length) {
+    steps.push(`${list(alongside)} sits on the same side as ${mark(expText)}, so it only pushes the quotient further the same way.`);
+  }
+  steps.push(expShrinks
+    ? `The bottom wins, so ${mark(rewritten)} ${mark('→ 0')}: the limit is ${mark('0')}.`
+    : `The top wins, so ${mark(rewritten)} ${mark(`→ ${answer}`)}: the limit is ${mark(answer)}.`);
+  return {
+    steps,
+    answer: String(answer),
+    verified: verifyGrowth(func, v, target, answer),
+    verificationMethod: 'growth rates (an exponential outgrows every power and every logarithm) + numeric check',
+  };
 }
 
 // x^p against ln(x)^m as x → ∞: each round of L'Hôpital's rule lowers the

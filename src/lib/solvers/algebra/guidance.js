@@ -40,6 +40,19 @@ export const SIMPLIFY_MISTAKES = [
 // actually used — the same three lines about combining like terms used to
 // close an absolute-value, a radical, and a logarithmic equation alike
 // (September 2026 review, 1.38.1).
+// Is this expression a polynomial in its one variable? Digits, that variable,
+// the arithmetic operators and parentheses only — no function call (sqrt(x)),
+// no second symbol (x·e^x), and no variable in an exponent (2^x).
+function isPolynomialIn(expression) {
+  const expr = stripMathMarkers(String(expression ?? ''));
+  if (!expr.trim()) return false;
+  const letters = new Set((expr.match(/[a-z]/gi) || []).map((c) => c.toLowerCase()));
+  if (letters.size !== 1 || letters.has('e')) return false;
+  if (/\^\s*\(?\s*[a-z]/i.test(expr)) return false;
+  // The "=" of an equation is allowed: both sides have to be polynomial.
+  return /^[\d\s+\-*/^()=.a-z]+$/i.test(expr);
+}
+
 function methodGuidance(steps, expression) {
   const text = stripMathMarkers(steps.join('\n'));
   const variableInDenominator = /\/\s*\(?[0-9.]*[a-z]/i.test(expression);
@@ -134,6 +147,28 @@ function methodGuidance(steps, expression) {
     };
   }
   if (/crosses zero, then verify|located numerically|numeric search/.test(text)) {
+    // A polynomial reaches this path for a different reason than x·e^x = 1:
+    // not because the unknown is trapped inside a function, but because no
+    // formula in radicals exists above degree 4 and the Rational Root Theorem
+    // turned up nothing to factor out. x^5 - x - 1 = 0 was told about "the
+    // unknown inside and outside a function", which is not what it is
+    // (October 2026 review).
+    if (isPolynomialIn(expression)) {
+      return {
+        method: 'numeric',
+        tips: [
+          `A polynomial has no general formula in radicals above degree 4 (Abel–Ruffini), so once the Rational Root Theorem turns up no rational root there is nothing left to factor by hand: the roots are located numerically instead.`,
+          `${mark('≈')} means the root is known to the decimals shown, not exactly; substitute it back and the two sides agree to those decimals.`,
+          `The degree says how many roots to expect, counted with multiplicity, and with real coefficients the non-real ones come in conjugate pairs: ${mark('a + bi')} and ${mark('a − bi')}.`,
+          'Sketch the curve: every crossing of the x-axis is a real root, and the picture says how many of them to expect.',
+        ],
+        common_mistakes: [
+          'Treating a located root as exact — its next digits are not zeros.',
+          'Reading the real roots off the graph and stopping there: a degree-5 polynomial still has 5 roots, and the rest are complex.',
+          `Expecting a quadratic-formula analogue for ${mark('x^5')}: there is none, and no amount of rearranging produces one.`,
+        ],
+      };
+    }
     return {
       method: 'numeric',
       tips: [

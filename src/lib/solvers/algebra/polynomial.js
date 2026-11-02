@@ -243,7 +243,7 @@ function solveByRationalRoots(Algebrite, target, v, read, leadingSteps) {
     steps.push(`The remaining factor is linear: ${remText} = 0, so ${v} = ${rootText}.`);
     shown.push({ display: rootText, numeric: Number(root.valueOf()), sign: '=' });
   } else if (remDegree >= 3) {
-    steps.push(`No rational root remains: every candidate fails for ${remText}. Its roots cannot be written in a closed form here, so they are found numerically.`);
+    steps.push(`No rational root remains: every candidate fails for ${mark(remText)}. Its roots cannot be written in a closed form here, so they are found numerically.`);
     const numeric = rootsViaPolynomialRoot(Algebrite, `(${remText}) - (0)`, v);
     if (!numeric || numeric.envelope) return null;
     // Its own "degree-n polynomial … Sturm …" steps, minus the solution line.
@@ -346,7 +346,7 @@ export function rootsViaPolynomialRoot(Algebrite, polynomial, variable, extraSte
     const shownValue = Math.abs(v) >= 1e-3 && Math.abs(v) < 1e6
       ? (at.d === 1n ? String(at.s * at.n) : formatNumber(v))
       : v.toExponential(2).replace(/e([+-]?\d+)/, (_, e) => `×10${sup(Number(e))}`);
-    return [`Roots marked ≈ were located numerically and are not exactly the number shown: substituting ${variable} = ${shown.display} gives ${shownValue}, not 0. The number shown is rounded to ${getSettings().decimalPlaces} decimals; MasterMath located the root itself to within 10⁻¹².`];
+    return [`Roots marked ≈ were located numerically and are not exactly the number shown: substituting ${mark(`${variable} = ${shown.display}`)} gives ${shownValue}, not 0. The number shown is rounded to ${getSettings().decimalPlaces} decimals; MasterMath located the root itself to within 10⁻¹².`];
   })();
   const steps = [
     ...(/\)\s*-\s*\(0\)$/.test(polynomial) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),

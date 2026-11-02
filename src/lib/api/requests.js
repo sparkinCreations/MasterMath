@@ -26,6 +26,12 @@ function readInterval(text) {
 export function readRequestPhrases(text) {
   let t = String(text).trim();
   const verb = '(?:please\\s+)?(?:find|calculate|compute|evaluate|determine|what\\s+(?:is|are))';
+  // The verb is optional in a request phrase: a student types "the zeros of
+  // x^2 - 5x + 6" as readily as "find the zeros of …". Where a pattern below
+  // demanded it, the bare form fell through to the unknown-word check and came
+  // back "Couldn't read input" — a complaint about the words, when the maths
+  // was fine and the same phrase with "find" in front solved (1.68.2).
+  const lead = `(?:${verb}\\s+)?(?:the\\s+)?`;
   // "solve the quadratic equation x^2 - 5x + 6 = 0", "simplify the expression …"
   t = t.replace(/^(simplify|factor(?:ise|ize)?|expand|solve)\s+(?:completely\s+)?(?:the\s+)?(?:(?:quadratic|linear|cubic|polynomial|rational|following|given)\s+)?(?:expression|equation|polynomial|inequality|system(?:\s+of\s+equations)?)?\s*:?\s*(?=\S)/i, (m, v) => `${v.toLowerCase()} `);
   // A trailing "solve for x" ("2x + 3y = 6, solve for x", "solve 2x + 3y = 6
@@ -59,15 +65,14 @@ export function readRequestPhrases(text) {
   const graphing = t.match(new RegExp(`^(?:${verb}\\s+)?(graph|plot|sketch|draw|analy[sz]e)\\s+(?:the\\s+graph\\s+of\\s+|the\\s+(?:function|curve)\\s+|of\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?([^=<>]+)$`, 'i'));
   if (graphing) return { problem: graphing[2].trim(), topic: 'functions', reason: `the input asks to ${graphVerb(graphing[1])} it` };
   // "find the zeros of x^2 - 5x + 6": the equation f = 0.
-  const zeros = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(?:zeros|zeroes|roots|solutions|x-intercepts)\\s+of\\s+(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?([^=<>]+)$`, 'i'));
+  const zeros = t.match(new RegExp(`^${lead}(?:zeros|zeroes|roots|solutions|x-intercepts)\\s+of\\s+(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?([^=<>]+)$`, 'i'));
   if (zeros) return { problem: `${zeros[1].trim()} = 0` };
   // "what is the slope of the tangent line to x^2 at x = 3": the derivative there.
-  const slope = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?slope\\s+of\\s+(?:the\\s+)?(?:tangent(?:\\s+line)?|curve)\\s+(?:to|of)\\s+(?:the\\s+curve\\s+)?(?:y\\s*=\\s*)?(.+?\\s+at\\s+[a-z]\\s*=\\s*.+)$`, 'i'));
+  const slope = t.match(new RegExp(`^${lead}slope\\s+of\\s+(?:the\\s+)?(?:tangent(?:\\s+line)?|curve)\\s+(?:to|of)\\s+(?:the\\s+curve\\s+)?(?:y\\s*=\\s*)?(.+?\\s+at\\s+[a-z]\\s*=\\s*.+)$`, 'i'));
   if (slope) return { problem: `derivative of ${slope[1].trim()}` };
   // "find the critical points of x^3 - 3x": the function's analysis. Not
   // when an interval is given (the analysis is over the whole domain).
   const fnOf = '(?:the\\s+(?:function|graph|curve)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?';
-  const lead = `(?:${verb}\\s+)?(?:the\\s+)?`;
   // "the average value of x^2 on [0, 3]", "the maximum of x^3 - 3x on
   // [0, 2]" (the closed interval method), "is 97 prime", "the prime
   // factorization of 360", "round 3.14159 to 2 decimal places" (1.56.0):
@@ -94,7 +99,7 @@ export function readRequestPhrases(text) {
     const spec = readRoundingSpec(rounding[3]);
     if (spec) return { problem: rounding[1] || rounding[2], request: { kind: 'round', value: (rounding[1] || rounding[2]).trim(), spec }, topic: 'other', reason: 'the input asks to round a number' };
   }
-  const analysis = t.match(new RegExp(`^${verb}\\s+(?:the\\s+)?(critical\\s+points|inflection\\s+points|points\\s+of\\s+inflection|extrema|local\\s+(?:maximum|minimum|extrema)|turning\\s+points|vertex|domain(?:\\s+and\\s+range)?|range|asymptotes|intercepts)\\s+of\\s+(?:the\\s+(?:function|parabola|curve|graph)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?(.+)$`, 'i'));
+  const analysis = t.match(new RegExp(`^${lead}(critical\\s+points|inflection\\s+points|points\\s+of\\s+inflection|extrema|local\\s+(?:maximum|minimum|extrema)|turning\\s+points|vertex|domain(?:\\s+and\\s+range)?|range|asymptotes|intercepts)\\s+of\\s+(?:the\\s+(?:function|parabola|curve|graph)\\s+)?(?:y\\s*=\\s*|f\\s*\\(\\s*x\\s*\\)\\s*=\\s*)?(.+)$`, 'i'));
   if (analysis && !/\bon\b|\[|\binterval\b/i.test(analysis[2])) {
     return { problem: analysis[2].trim(), topic: 'functions', reason: `the input asks for the ${analysis[1].toLowerCase().replace(/\s+/g, ' ')} of a function` };
   }

@@ -1834,3 +1834,124 @@ test('two numbers with only a space between them are queried under every topic',
   }
   assert.equal((await solveProblem('2 + 3', 'algebra')).answer, '5');
 });
+
+// ---------------------------------------------------------------------------
+// Request phrases without a leading verb (fixed Nov 2026, v1.68.2)
+// "the zeros of x^2 - 5x + 6" came back "Couldn't read input" while "find the
+// zeros of …" solved: the zeros, slope and analysis patterns anchored on a
+// mandatory verb, so the bare form fell through to the unknown-word check and
+// was reported as a problem with the words. "the period of …" and "the maximum
+// of … on [0,2]" already allowed it, so which phrasings worked depended on
+// which pattern the input happened to land in.
+// ---------------------------------------------------------------------------
+
+test('regression: a request phrase reads with or without "find"', async () => {
+  for (const [bare, verbed] of [
+    ['the zeros of x^2 - 5x + 6', 'find the zeros of x^2 - 5x + 6'],
+    ['the roots of x^2 - 4', 'what are the roots of x^2 - 4'],
+    ['the critical points of x^3 - 3x', 'find the critical points of x^3 - 3x'],
+    ['the asymptotes of 1/(x-3)', 'find the asymptotes of 1/(x-3)'],
+    ['the vertex of x^2 - 4*x + 3', 'find the vertex of x^2 - 4*x + 3'],
+    ['the domain of 1/(x-3)', 'find the domain of 1/(x-3)'],
+    ['the range of 1/(x-3)', 'find the range of 1/(x-3)'],
+    // The same inconsistency lived in the expression extractor, not just the
+    // request phrases: "the solutions of …" takes an equation, where "the
+    // zeros of …" takes an expression and appends "= 0".
+    ['the solutions of x^2 = 4', 'find the solutions of x^2 = 4'],
+    ['the value of x^2 + 1 at x = 3', 'find the value of x^2 + 1 at x = 3'],
+  ]) {
+    const a = await solveProblem(bare, 'auto');
+    const b = await solveProblem(verbed, 'auto');
+    assert.notEqual(a.status, 'parse_error', `"${bare}" must not be refused as unreadable`);
+    assert.equal(a.status, b.status, `"${bare}" and "${verbed}" should agree`);
+    assert.equal(a.answer, b.answer, `"${bare}" and "${verbed}" should give the same answer`);
+  }
+
+  // The zeros phrase still only claims an expression, never an equation: it
+  // must not turn "x^2 = 4" into "x^2 = 4 = 0".
+  const equation = await solveProblem('the solutions of x^2 = 4', 'auto');
+  assert.equal(equation.status, 'solved');
+  assert.match(equation.answer, /x = -2\s+or\s+x = 2|x = 2\s+or\s+x = -2/);
+
+  // And a bare equation is untouched by any of it.
+  assert.match((await solveProblem('2*x + 5 = 11', 'algebra')).answer, /x = 3/);
+});
+
+// ---------------------------------------------------------------------------
+// An exponential against a power and a logarithm at once (fixed Nov 2026, v1.68.2)
+// growth.js reads the form c·x^p·e^(kx)·ln(x)^m off the parse tree, but the
+// dispatcher had a branch only for a power against an exponential (m = 0) and
+// for a logarithm against a power (k = 0). Anything with a logarithm AND an
+// exponential — ln(x)/e^x as much as (x^3·ln(x)^2)/e^x — matched neither, and
+// noContest refuses a disagreement, so the answer came from sampling and was
+// reported unverified.
+// ---------------------------------------------------------------------------
+
+test('regression: a logarithm beside an exponential is proved, not sampled', async () => {
+  for (const [problem, answer] of [
+    ['lim x->infinity (x^3*ln(x)^2)/e^x', '0'],
+    ['lim x->infinity ln(x)^2/e^x', '0'],
+    ['lim x->infinity ln(x)/e^x', '0'],
+    ['lim x->infinity x*ln(x)/e^x', '0'],
+    ['lim x->infinity x^2*e^(-x)*ln(x)', '0'],
+    ['lim x->infinity e^x/ln(x)', '∞'],
+    ['lim x->infinity e^x/(x^3*ln(x)^2)', '∞'],
+  ]) {
+    const r = await solveLimit(problem);
+    assert.match(r.answer, new RegExp(`=\\s*${answer === '∞' ? '∞' : answer}$`), problem);
+    assert.equal(r.verified, true, `${problem} must be proved, not estimated`);
+    assert.match(r.verificationMethod, /outgrows every power and every logarithm/, problem);
+    const steps = r.steps.join(' ');
+    assert.doesNotMatch(steps, /estimated by sampling/i, problem);
+  }
+
+  // The step must restate the expression that was ENTERED. Reading |p| and |m|
+  // and putting every non-exponential factor on one side moved a factor across
+  // the bar whenever the power and the logarithm disagreed in sign:
+  // e^x·ln(x)/x^3 was written e^x/(x^3·ln(x)) — a different expression, with
+  // the same limit, so neither the answer nor the numeric check caught it.
+  for (const [problem, shownForm, moved] of [
+    ['lim x->infinity e^x*ln(x)/x^3', '(ln(x)·e^x)/x^3', 'e^x/(x^3·ln(x))'],
+    ['lim x->infinity x^3/(e^x*ln(x))', 'x^3/(ln(x)·e^x)', '(x^3·ln(x))/e^x'],
+    ['lim x->infinity ln(x)/(x^3*e^x)', 'ln(x)/(x^3·e^x)', '(x^3·ln(x))/e^x'],
+  ]) {
+    const steps = (await solveLimitPlain(problem)).steps.join('\n');
+    assert.ok(steps.includes(shownForm), `${problem}: should restate ${shownForm}, got:\n${steps}`);
+    assert.ok(!steps.includes(moved), `${problem}: must not claim ${moved}, a different expression`);
+    // A factor on the exponential's own side is said to reinforce it, not to be
+    // something the exponential has to outgrow.
+    assert.match(steps, /sits on the same side as/, problem);
+  }
+
+  // The two-factor contests keep their L'Hôpital walkthroughs.
+  for (const problem of ['lim x->infinity x^3/e^x', 'lim x->infinity ln(x)^2/x']) {
+    const r = await solveLimit(problem);
+    assert.equal(r.verified, true, problem);
+    assert.match(r.verificationMethod, /L'Hôpital/, problem);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The first insight on a numerically-located polynomial root (fixed Nov 2026, v1.68.2)
+// x^5 - x - 1 = 0 was given the transcendental-equation insight — "when the
+// unknown sits both inside and outside a function (x·e^x = 1)" — though
+// nothing sits inside a function. Its steps were right (Rational Root Theorem,
+// then numerically); only the advice described a different problem.
+// ---------------------------------------------------------------------------
+
+test('regression: a quintic is told why it has no formula, not about x·e^x', async () => {
+  for (const problem of ['x^5 - x - 1 = 0', 'x^7 + x + 3 = 0']) {
+    const r = await solvePlain(problem, 'algebra');
+    assert.match(r.tips[0], /Abel–Ruffini|no general formula in radicals/, problem);
+    assert.doesNotMatch(r.tips.join(' '), /inside and outside a function/, problem);
+  }
+
+  // A genuinely transcendental equation keeps that advice.
+  const transcendental = await solvePlain('x*e^x = 1', 'algebra');
+  assert.match(transcendental.tips[0], /inside and outside a function/);
+  assert.match(transcendental.tips.join(' '), /Lambert W/);
+
+  // And the methods that are not numeric at all are untouched.
+  assert.match((await solvePlain('2^x = 10', 'algebra')).tips[0], /logarithm/i);
+  assert.match((await solvePlain('x^2 - 4 = 0', 'algebra')).tips[0], /square roots/i);
+});

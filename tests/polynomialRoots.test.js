@@ -8,6 +8,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readPolynomial, allRoots, MAX_POLYNOMIAL_DEGREE } from '../src/lib/solvers/polynomialRoots.js';
 import { solveProblem } from '../src/lib/api.js';
+// Wording assertions read the steps with the ⟦…⟧ math markers taken out.
+import { solvePlain } from './helpers/solvePlain.js';
 
 const WILKINSON_PLUS_X = `x*${Array.from({ length: 20 }, (_, k) => `(x-${k + 1})`).join('*')} + x`;
 
@@ -44,7 +46,7 @@ test('the degree-21 equation from the review lists all 21 roots, not just x = 0'
 // tested in exact arithmetic; otherwise ≈, with a step saying what the
 // displayed number actually gives.
 test('= only for roots that are exactly the number shown; ≈ otherwise, with the substitution spelled out', async () => {
-  const r = await solveProblem(`${WILKINSON_PLUS_X} = 0`, 'algebra');
+  const r = await solvePlain(`${WILKINSON_PLUS_X} = 0`, 'algebra');
   assert.match(r.answer, /^x = 0  or  x ≈ 1  or  x ≈ 2  or /);
   assert.doesNotMatch(r.answer, /x = 20\b/);
   assert.match(r.answer, /x ≈ 20$/);
@@ -57,7 +59,7 @@ test('= only for roots that are exactly the number shown; ≈ otherwise, with th
   assert.match((await solveProblem('(3x-1)*(x^12+1) = 0', 'algebra')).answer, /^x = 1\/3;/);
   assert.match((await solveProblem('(x-2)^3*(x^14+1) = 0', 'algebra')).answer, /^x = 2 \(multiplicity 3\);/);
   // A rounded decimal is ≈, and the note substitutes the decimal shown.
-  const quintic = await solveProblem('x^41 - x = 1', 'algebra');
+  const quintic = await solvePlain('x^41 - x = 1', 'algebra');
   assert.match(quintic.answer, /^x ≈ 1\.0173;/);
   assert.match(quintic.steps.join('\n'), /substituting x = 1\.0173 gives -?\d[^;]*, not 0/);
 });

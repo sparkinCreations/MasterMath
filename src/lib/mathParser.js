@@ -480,7 +480,10 @@ export function extractFunctionFromProblem(problemText) {
     /(?:what is|what's|find|solve for)\s+[a-z]\s+(?:if|when|given|such that|where)\s+(.+)/i,
     // Solve/find patterns (with "the ... of" constructs handled above, these are for general use)
     /(?:solve for [a-z] in|solve for [a-z]:?)\s+(.+)/i,
-    /(?:solve|find the (?:value|solution|root|zero)s? (?:of|for))\s+(.+)/i,
+    // "find" is optional here for the same reason it is in the request
+    // phrases: "the solutions of x^2 = 4" was refused as unreadable words
+    // while "find the solutions of x^2 = 4" solved (1.68.2).
+    /(?:solve|(?:find\s+)?the (?:value|solution|root|zero)s? (?:of|for))\s+(.+)/i,
 
     // Simplify/expand/factor patterns
     /(?:simplify|reduce|combine like terms in|combine)\s+(.+)/i,

@@ -9,6 +9,10 @@ export const CONVERTED = [
   ['integrals', '∫_0^1 x^2 dx'], ['integrals', '∫_1^∞ 1/x^2 dx'], ['integrals', 'sin(x)^2'], ['integrals', '1/(1+4x^2)'], ['integrals', 'abs(x)'],
   ['limits', 'lim x->0 (sin(x)/x)'], ['limits', 'lim x->1 (x^2-1)/(x-1)'], ['limits', 'lim x->0 (sqrt(x+1)-1)/x'], ['limits', 'lim x->infinity (3x^2+1)/(2x^2-5)'],
   ['limits', 'lim x->inf (1 + 1/x)^(2x + 3)'], ['limits', 'lim x->0 (1-cos(x))/x^2'], ['limits', 'lim x->0+ 1/x'], ['limits', 'lim x->0 x*sin(1/x)'],
+  // 1.68.2: an exponential against a power and a logarithm at once, and a
+  // polynomial whose roots are located numerically (its own insights).
+  ['limits', 'lim x->infinity (x^3*ln(x)^2)/e^x'], ['limits', 'lim x->infinity e^x/ln(x)'], ['limits', 'lim x->infinity ln(x)/e^x'],
+  ['algebra', 'x^5 - x - 1 = 0'],
   ['functions', 'x^2 - 4*x + 3'], ['functions', '1/(x-2)'], ['functions', 'x^3 - x'], ['functions', 'ln(x)'], ['functions', 'sqrt(x-2)'],
   ['algebra', 'x^2 - 5x + 6 = 0'], ['algebra', 'x^2 + x + 1 = 0'], ['algebra', 'x^3 - 6x^2 + 11x - 6 = 0'], ['algebra', 'sqrt(x+2) = x'],
   ['algebra', '2^x = 8'], ['algebra', 'log(x) + log(x - 3) = 1'], ['algebra', 'ln(2x) = 3'],
