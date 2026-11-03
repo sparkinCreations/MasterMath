@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.6] - 2026-11-03
+
+### Fixed
+
+- **Six limits at infinity were answered wrongly from samples** (outside
+  review, November 2026): √(x + 1) − √x, √x/(x + 1) and sin(1/√x) as
+  "0.0001", 1/ln(x) and 1/ln(ln(x)) as "does not exist"; all are 0. They
+  are now proved from the expression (`limits/laws.js`), at +∞ and, by
+  t = −x, at −∞ (√(−x)/(1 − x) was "0.0001" too):
+  - **leading powers**: a quotient of sums of powers and roots is decided by
+    dividing by the larger power (√x/(x + 1) behaves like 1/√x);
+  - **the conjugate of two roots**: √A − √B = (A − B)/(√A + √B) when the
+    leading terms cancel;
+  - **the limit laws**, inside out: a bounded value over something that
+    grows → 0, ln, √ and eˣ of something that grows grow, a continuous
+    function passes the limit through (sin(1/√x) → sin(0) = 0), arctan
+    levels off at ±π/2, and f^g with both parts varying as e^(g·ln f), so
+    x^(1/x) (∞⁰) → 1 by its exponent ln(x)/x and (2 + 1/x)^x → ∞.
+- **Samples that have not settled no longer mean "does not exist".** The
+  limit is refused, saying why, unless a method proves it (sin(x) at ∞ is
+  still "does not exist", by two sequences).
+- **Sampling at ∞ takes a second set of points between the first.** Sampled
+  only at powers of 10, tan(x) was answered −∞ and (−1)^x as 1; when the
+  two sets disagree, or the function is undefined between them, the limit
+  is refused.
+- **An estimate is said to be one on the answer line**: "≈ 0 (an estimate
+  from samples, not a proof)", never "= 0.0001". Settling is judged
+  relative to the value, not within a fixed 0.001.
+
 ## [1.68.5] - 2026-11-03
 
 ### Fixed

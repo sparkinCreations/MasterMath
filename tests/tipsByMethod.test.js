@@ -14,6 +14,7 @@ const METHODS = {
     ['Taylor series', 'lim x->0 (e^x - 1 - x)/x^2'], ['standard limit', 'lim x->0 sin(3x)/x'],
     ['logarithms', 'lim x->inf (1 + 1/x)^x'], ['at infinity', 'lim x->inf (3x^2+1)/(2x^2-5)'],
     ['does not exist', 'lim x->0 1/x'], ['oscillation', 'lim x->0 sin(1/x)'],
+    ['conjugate of two roots', 'lim x->inf (sqrt(x+1) - sqrt(x))'], ['limit laws', 'lim x->inf 1/ln(x)'],
   ],
   functions: [
     ['quadratic', 'x^2 - 4x + 3'], ['rational', '1/(x-2)'], ['periodic', 'sin(2x)'], ['logarithm', 'ln(x)'],

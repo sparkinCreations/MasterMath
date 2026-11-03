@@ -9,6 +9,9 @@ import { mark, stripMathMarkers, beautify, absBars } from '../solverUtils.js';
 function methodOf(result, side, infinite) {
   const vm = String(result.verificationMethod || '');
   const text = stripMathMarkers((result.steps || []).join('\n'));
+  if (/^conjugate of two roots/.test(vm)) return 'conjugate of two roots';
+  if (/^leading powers/.test(vm)) return 'leading terms';
+  if (/^limit laws/.test(vm)) return 'limit laws';
   if (/^logarithms \(0⁰\)/.test(vm)) return '0^0';
   if (/^logarithms/.test(vm)) return '1^∞';
   if (/two sequences/.test(vm)) return 'oscillation';
@@ -150,6 +153,32 @@ const LISTS = {
       `Saying ${mark('∞ − ∞ = 0')}: two quantities that both grow can differ by any amount.`,
       `Writing ${mark('√(x² + bx) ≈ x')} and concluding the limit is ${mark('0')}: the ${mark('bx')} inside shifts the difference by ${mark('b/2')}.`,
       `Forgetting that ${mark('√(x²) = −x')} for negative ${mark('x')}, which flips the sign of the answer at ${mark('−∞')}.`,
+    ],
+  },
+  'conjugate of two roots': {
+    tips: [
+      `Two roots that grow at the same rate, ${mark('√A − √B')}, are an ${mark('∞ − ∞')}: multiply and divide by ${mark('√A + √B')}, and the top becomes ${mark('A − B')}, with no roots left in it.`,
+      `As ${mark('x → ∞')}, ${mark('√(x + 1) − √x = 1/(√(x + 1) + √x)')}: the top is ${mark('1')} and the bottom grows without bound, so the difference ${mark('→ 0')}.`,
+      `The difference is not always ${mark('0')}: ${mark('√(x^2 + x) − √(x^2 − x) = 2x/(√(x^2 + x) + √(x^2 − x))')}, which ${mark('→ 1')}, because the top grows as fast as the bottom.`,
+      'After the conjugate, compare the leading powers of the top and the bottom, as for any quotient at infinity.',
+    ],
+    mistakes: [
+      `Saying ${mark('∞ − ∞ = 0')}: the two roots can differ by any amount, and only the conjugate shows which.`,
+      `Concluding from a calculator that the limit is a small number like ${mark('0.0001')}: the difference keeps shrinking, and only a proof says where it stops.`,
+      `Multiplying only the top by the conjugate, which changes the value.`,
+    ],
+  },
+  'limit laws': {
+    tips: [
+      `Work from the inside out: if the inside has a limit ${mark('L')} and the outside function is continuous at ${mark('L')}, the limit passes through, and ${mark('sin(u) → sin(L)')}.`,
+      `A bounded top over a bottom that grows without bound goes to ${mark('0')}: ${mark('1/ln(x) → 0')} as ${mark('x → ∞')}, because ${mark('ln(x) → ∞')}.`,
+      `${mark('ln(x)')} grows without bound, however slowly: it passes every number eventually (${mark('ln(x) > 100')} once ${mark('x > e^100')}).`,
+      `The laws need the parts to have limits: a sum, product or quotient of limits is the limit of the sum, product or quotient, except for the forms ${mark('∞ − ∞')}, ${mark('0·∞')} and ${mark('∞/∞')}.`,
+    ],
+    mistakes: [
+      `Reading a slowly shrinking value as a limit that is not ${mark('0')}: ${mark('1/ln(x)')} is still about ${mark('0.05')} at ${mark('x = 10^8')}, yet it ${mark('→ 0')}.`,
+      'Calling a limit "does not exist" because sampled values have not settled: some limits are approached very slowly.',
+      `Passing a limit through a function at a point where it is not continuous, such as ${mark('ln')} at ${mark('0')}.`,
     ],
   },
   'root at infinity': {
@@ -439,6 +468,8 @@ const after = (text, re) => {
 
 // The first insight applied to this limit, from the solver's own steps.
 function worked(method, result, ctx) {
+  // The limit-laws rung writes its own (limits/laws.js).
+  if (result.here) return result.here;
   const text = stripMathMarkers((result.steps || []).join('\n'));
   const f = absBars(beautify(ctx.func));
   const v = ctx.variable;

@@ -193,7 +193,11 @@ patterns in n; slant asymptotes; ranges and domains only when proved), `limitsSo
 (named techniques incl. 1^∞ by logarithms, the conjugate at ±∞, growth rates
 read off c·x^p·e^(kx)·ln(x)^m (`limits/growth.js`), each verified; a
 function defined on one side only is limited from that side, said so; 0⁰
-is never a value; numeric estimate last), `derivativesSolver`
+is never a value; at ±∞, leading powers, the conjugate of two roots and the
+limit laws proved from the parse tree (`limits/laws.js`); numeric estimate
+last, said to be an estimate on the answer line, and refused when two
+ladders of samples disagree or have not settled — never "does not exist"
+from samples), `derivativesSolver`
 (rule classification and worked rule steps, orders 1–4, evalAt),
 `implicitDerivativeSolver` (dy/dx of F(x, y) = 0 term by term, checked by
 following the curve; "at (a, b)"),
