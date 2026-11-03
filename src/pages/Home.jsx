@@ -76,7 +76,7 @@ export default function Home() {
           <div className="text-center lg:text-left">
             <div className="mb-4 md:mb-6 flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:gap-6">
               <img
-                src="/logo-192.png"
+                src="/logo-224.webp"
                 alt="MasterMath Logo"
                 className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 shrink-0"
               />
@@ -147,8 +147,9 @@ export default function Home() {
           {/* The solver at work (1.56.4; new photo 1.59.12): the laptop
               shows the real Solver page differentiating x² + 3x. Two WebP
               sizes, 33 kB and 87 kB. It is
-              part of the hero on large screens now, so it loads eagerly;
-              in dark mode the bright scene is dimmed a little so it does
+              part of the hero on large screens now, so it loads eagerly,
+              at high priority: it is the page's largest paint (1.68.4), and
+              without the hint it waited behind the scripts; in dark mode the bright scene is dimmed a little so it does
               not glow. */}
           <figure className="relative px-2 lg:px-0">
             <img
@@ -157,6 +158,7 @@ export default function Home() {
               sizes="(min-width: 1024px) 560px, 100vw"
               width="1600"
               height="900"
+              fetchPriority="high"
               decoding="async"
               alt="MasterMath open on a laptop, differentiating f(x) = x² + 3x: the graph shows the parabola with its derivative 2x + 3 as a dashed line, beside the first steps, while a student copies the working into a notebook"
               className="w-full h-auto rounded-xl md:rounded-2xl border-2 border-indigo-200 dark:border-gray-600 shadow-2xl dark:brightness-[.85]"

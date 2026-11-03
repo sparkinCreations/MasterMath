@@ -325,7 +325,8 @@ the worker load.
   script in `index.html` — theme before first paint + the stale-shell
   watchdog — allowed by hash; edit that script and
   `tests/securityHeaders.test.js` tells you the new hash), nosniff, frame
-  denial, referrer and permissions policies. `vite preview` serves the same
+  denial, referrer and permissions policies, COOP `same-origin`, and HSTS
+  with `includeSubDomains` (never `preload`). `vite preview` serves the same
   file, so the smoke test fails on any CSP violation. A new outside origin
   needs a `connect-src`/`img-src` entry.
 - The only outbound request is the Feedback form (Web3Forms), only on submit.
@@ -346,8 +347,11 @@ thread: a page that imports `api.js` (even for one helper) pulls mathjs in
 with it. `tests/buildPreload.test.js` walks the static import graph of the
 Solver, Progress and Settings chunks. (Resource timing cannot tell: a module
 worker's imports show up in the page's list too.) Images
-shown in the UI use `logo-192.png` (23 kB); `favicon.png` is the 500 px
-original for the manifest only, the tab uses `favicon-32.png`. The route
+shown in the UI use `logo-224.webp` (7.8 kB); the manifest has `icon-192.png`,
+`icon-512.png` and a padded `icon-maskable-512.png`, made from `favicon.png`
+(the 500 px original, referenced by nothing); the tab uses `favicon-32.png`.
+Theme colour is indigo `#4F46E5`. The home photo is the largest paint and
+carries `fetchPriority="high"`. The route
 placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
 
 ## Tests and verification

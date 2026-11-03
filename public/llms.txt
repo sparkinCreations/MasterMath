@@ -1,0 +1,20 @@
+# MasterMath
+
+> A free, step-by-step maths solver that runs entirely in the browser. It works problems out with local maths libraries (mathjs and Algebrite), not an AI model: every answer is computed and checked, and a problem outside what it can solve is refused rather than guessed. Nothing typed is sent anywhere; history stays on the device.
+
+MasterMath is by sparkinCreations™. It covers arithmetic, algebra, systems of equations, inequalities, trigonometry, functions, limits, derivatives (including implicit differentiation) and integrals. Each solution shows the working a textbook would, with a graph where one helps, ranked tips, and common mistakes. Answers stay exact (fractions, radicals, π) with a decimal alongside.
+
+## Pages
+
+- [Home](https://mastermath.app/): what the app does
+- [Solver](https://mastermath.app/solver): type a problem and get the worked solution
+- [User Manual](https://mastermath.app/usermanual): what each topic accepts and how to type it
+- [FAQ](https://mastermath.app/faq): common questions
+- [Compare](https://mastermath.app/compare): how MasterMath differs from other solvers
+- [Privacy Policy](https://mastermath.app/privacypolicy): no accounts, no tracking; the only outbound request is the Feedback form, on submit
+
+## Optional
+
+- [Terms of Service](https://mastermath.app/termsofservice)
+- [Feedback](https://mastermath.app/feedback)
+- [Source code](https://github.com/sparkinCreations/MasterMath)

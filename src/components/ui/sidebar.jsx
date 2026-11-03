@@ -38,6 +38,9 @@ const Sidebar = React.forwardRef(({ className, ...props }, ref) => {
   // On small screens the open menu is an overlay drawer with a backdrop —
   // pushing a 256px column into a 390px viewport squeezed the page to a
   // 130px sliver (one word per line) beside it.
+  //
+  // A <nav>, not an <aside>: the sidebar is the site navigation, and ARIA
+  // does not allow role="navigation" on an <aside> (axe best-practice rule).
   return (
     <>
       {isOpen && (
@@ -47,7 +50,7 @@ const Sidebar = React.forwardRef(({ className, ...props }, ref) => {
           onClick={() => setIsOpen(false)}
         />
       )}
-      <aside
+      <nav
         ref={ref}
         id={SIDEBAR_ID}
         className={cn(

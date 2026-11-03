@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.4] - 2026-11-03
+
+From a Lighthouse run against the live site. Most of its performance
+findings (render-blocking scripts, unused JavaScript and CSS, cache
+lifetimes, an uncompressed document) came from a desktop ad blocker's
+injected scripts, not the app; these are the ones that were the app's.
+
+### Fixed
+
+- **The install icon was a mislabelled 119 kB file.** The manifest listed
+  `favicon.png`, a 500 px PNG, as both its 192 px and its 512 px icon, and
+  marked it maskable, so Android would crop the logo to its middle. Chrome
+  downloaded it on page load, the largest file of the app's on the page. The
+  manifest now has real `icon-192.png` (26 kB) and `icon-512.png`, and a
+  separate `icon-maskable-512.png` with the logo inside the safe zone.
+- **The browser bar was still the old purple.** `theme-color` in
+  `index.html` and the manifest, and the "Reload MasterMath" button of the
+  startup watchdog, used `#9333EA`; they are the brand indigo `#4F46E5` now.
+- **The sidebar was an `<aside>` with `role="navigation"`**, a role ARIA
+  does not allow there (axe best practice; the smoke test runs only the WCAG
+  rules). It is a `<nav>` now, named "Main navigation".
+
+### Changed
+
+- **The home page's laptop photo loads at high priority**
+  (`fetchpriority="high"`): it is the page's largest paint, and waited behind
+  the scripts before.
+- **The logo is a 224 px WebP (7.8 kB)** in place of `logo-192.png` (23 kB):
+  twice its largest display size, so it is sharp on a high-density screen.
+- **Two more response headers.** `Cross-Origin-Opener-Policy: same-origin`
+  (the app opens no popups that need a handle back), and HSTS now covers
+  subdomains (`max-age=31536000; includeSubDomains`, no `preload`).
+
+### Added
+
+- **`llms.txt`**: a short description of the app and its pages for crawlers
+  that read one, saying what it is — a local solver, not an AI model.
+
 ## [1.68.3] - 2026-11-03
 
 ### Fixed

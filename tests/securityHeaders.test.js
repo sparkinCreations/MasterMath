@@ -45,6 +45,10 @@ test('the companion hardening headers are present', () => {
   assert.equal(headers['X-Content-Type-Options'], 'nosniff');
   assert.equal(headers['X-Frame-Options'], 'DENY');
   assert.ok(headers['Referrer-Policy']);
+  assert.equal(headers['Cross-Origin-Opener-Policy'], 'same-origin');
+  // includeSubDomains, never preload: preload is a submission to the
+  // browsers' HSTS list and cannot be taken back quickly.
+  assert.equal(headers['Strict-Transport-Security'], 'max-age=31536000; includeSubDomains');
 });
 
 test('hashed assets are cached for a year, and nothing else is', () => {

@@ -7,12 +7,19 @@
 # hash here is updated — otherwise the watchdog would be silently blocked.
 # style-src 'unsafe-inline': KaTeX, Recharts and Framer Motion set inline
 # style attributes. connect-src: the Feedback form posts to Web3Forms.
+# Cross-Origin-Opener-Policy: the app opens no popups that need a handle back
+# (outside links open with noopener), so no other page shares its window
+# group. Strict-Transport-Security replaces Netlify's default (one year) and
+# adds includeSubDomains; there is no `preload` — that is a submission to the
+# browsers' list, and is hard to undo.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-ExFrn82lHRUvtymtISaDTY4Bh2zGk4kTLfIyeUTioxU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.web3forms.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-9RT2Ck7ybMqX9AUM2r+Ie/+2TFJ0nV9JQEJ272QYvlE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.web3forms.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
 
 # Hashed build output: a file's name changes whenever its content does, so a
 # browser may keep it for a year without asking again. Never widen this to

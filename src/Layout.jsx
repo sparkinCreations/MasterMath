@@ -68,7 +68,7 @@ function AppSidebar() {
   const closeSidebar = () => setIsOpen(false);
 
   return (
-    <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs" role="navigation" aria-label="Main navigation">
+    <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs" aria-label="Main navigation">
       <SidebarHeader className="border-b border-indigo-100 dark:border-gray-700 p-6">
         {/* The logo images in these home links are decorative (alt=""): the link
             text names the destination, and a named image made screen readers
@@ -76,7 +76,7 @@ function AppSidebar() {
             screen-reader walk). */}
         <Link to="/" onClick={closeSidebar} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <img
-            src="/logo-192.png"
+            src="/logo-224.webp"
             alt=""
             aria-hidden="true"
             className="w-12 h-12 rounded-2xl shadow-lg"
@@ -155,7 +155,7 @@ export default function Layout({ children, update }) {
                 <SidebarTrigger className="text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
                 <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">
                   <img
-                    src="/logo-192.png"
+                    src="/logo-224.webp"
                     alt=""
                     aria-hidden="true"
                     className="w-8 h-8 rounded-lg shadow-md"
@@ -168,7 +168,7 @@ export default function Layout({ children, update }) {
                 </Link>
                 <Link to="/" className="flex md:hidden items-center gap-2 hover:opacity-80 transition-opacity">
                   <img
-                    src="/logo-192.png"
+                    src="/logo-224.webp"
                     alt=""
                     aria-hidden="true"
                     className="w-6 h-6 rounded-lg shadow-md"
