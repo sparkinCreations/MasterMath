@@ -93,7 +93,7 @@ test('lim x/1.5^x: samples are shown at their true size, with the underflow expl
   // x/e^x, x/2^x and x·e^x at −∞ are worked by growth rates since 1.63.0;
   // a base that is not a whole number is still sampled.
   const r = await solvePlain('lim x->infinity x/1.5^x', 'limits');
-  assert.match(r.answer, /= 0$/);
+  assert.match(r.answer, /≈ 0 \(an estimate from samples, not a proof\)$/);
   const samples = r.steps.find((s) => /^Samples:/.test(s));
   assert.match(samples, /^Samples: 2\.46e-16, 8\.10e-174, 0/);
   assert.match(samples, /cannot be represented in double precision/);

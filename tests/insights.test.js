@@ -540,8 +540,10 @@ test('limits review: no limit is concluded from samples where a proof is at hand
   const two = await plainLim('lim x->infinity x/2^x');
   assert.match(two.steps.join('\n'), /1\/\(ln\(2\)·2\^x\)/);
   assert.equal((await plainLim('lim x->infinity 3^x/x^2')).answer, 'lim (x→∞) 3^x/x^2 = ∞');
-  // What is still sampled says it is an estimate.
-  assert.match((await plainLim('lim x->infinity x^(1/x)')).steps.at(-1), /an estimate, not a proof/);
+  // What is still sampled says it is an estimate. (x^(1/x), the example here
+  // until 1.68.6, is proved now: ∞⁰, by its exponent ln(x)/x.)
+  assert.match((await plainLim('lim x->infinity x/1.5^x')).steps.at(-1), /an estimate, not a proof/);
+  assert.equal((await plainLim('lim x->infinity x^(1/x)')).answer, 'lim (x→∞) x^(1/x) = 1');
 });
 
 test('limits review: the wording fixes', async () => {

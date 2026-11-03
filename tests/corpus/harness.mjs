@@ -524,7 +524,8 @@ async function grade(category, problem, expected, meta = {}) {
   }
 
   if (cat === 'limits') {
-    const core = ans.replace(/^.*?=\s*/, '');
+    // An estimate reads "≈ 0.5 (an estimate from samples, not a proof)" (1.68.6).
+    const core = ans.replace(/^.*?(?:=|≈)\s*/, '').replace(/\s*\(an estimate from samples, not a proof\)\s*$/, '');
     if (saysDNE(expected)) return { verdict: saysDNE(core) ? 'CORRECT' : 'WRONG', got: ans };
     if (isRefusal(core)) return { verdict: 'REFUSED', got: ans };
     const inf = (t) => (/^[-−]\s*∞$/.test(t.trim()) ? -1 : /^\+?∞$/.test(t.trim()) ? 1 : 0);

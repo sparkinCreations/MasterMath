@@ -34,6 +34,7 @@ import {
 } from './limits/numeric.js';
 import { tryGrowthRates, tryZeroToZero, tryNoContestAtZero } from './limits/growth.js';
 import { tryTwoSequences } from './limits/sequences.js';
+import { tryLimitLaws } from './limits/laws.js';
 import {
   tryNamedTechnique,
   tryAlgebriteSimplify,
@@ -250,13 +251,31 @@ export async function solveLimit(expression) {
         ? await evaluateOneSided(func, variable, target, side)
         : await evaluateFiniteLimit(func, variable, target);
 
+    // Samples that never settled decide nothing: this was "does not exist"
+    // for 1/ln(x) as x → ∞, which → 0 (1.68.6).
+    if (result.undetermined) {
+      return unsupported({
+        input: expression,
+        reason: 'No method here proves this limit, and the sampled values have not settled: they may approach a number very slowly, or not at all.',
+        answer: 'This limit could not be determined',
+        steps: [`Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`, ...result.steps],
+        tips: ['Look for a method that proves the limit: compare growth rates, rationalise with the conjugate, or use L\'Hôpital\'s rule on a quotient.'],
+      });
+    }
+
     // Defined on one side only (ln(x) at 0): the answer is written as the
     // one-sided limit it is, and the last step says courses differ on the
     // plain one (1.63.0 review).
     const edge = side === 0 && result.domainEdge ? (result.domainEdge > 0 ? '⁺' : '⁻') : '';
     const answerTarget = displayTarget + edge;
     const shownFunc = absBars(beautify(func));
-    const valueText = result.answer === 'Does not exist' ? ' does not exist' : ` = ${result.answer}`;
+    // A value read off samples is said to be one: "≈ 0.5 (an estimate…)",
+    // never "= 0.0001" as if proved (1.68.6).
+    const valueText = result.answer === 'Does not exist'
+      ? ' does not exist'
+      : result.estimate
+        ? `${/∞/.test(result.answer) ? ' = ' : ' ≈ '}${String(result.answer).replace(/\s*\(≈[^)]*\)$/, '')} (an estimate from samples, not a proof)`
+        : ` = ${result.answer}`;
     const steps = [
       `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${shownFunc}`)}`,
       ...result.steps,
@@ -439,6 +458,13 @@ async function evaluateInfiniteLimit(func, variable, target) {
   try {
     const sequences = tryTwoSequences(func, variable, target);
     if (sequences && sequences.verified) return sequences;
+  } catch { /* fall through */ }
+  // Leading powers, the conjugate of two roots and the limit laws, proved
+  // from the expression: √x/(x + 1), √(x + 1) − √x and 1/ln(x) were sampled
+  // and answered "0.0001" or "does not exist" (1.68.6).
+  try {
+    const laws = tryLimitLaws(Algebrite, func, variable, target);
+    if (laws && laws.verified) return laws;
   } catch { /* fall through */ }
   return estimateInfiniteLimit(func, variable, target);
 }

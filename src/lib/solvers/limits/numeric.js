@@ -128,7 +128,7 @@ export function estimateFiniteLimitNumeric(func, variable, target) {
   if (bothConverge && Math.abs(left.value - right.value) < 1e-4) {
     const value = formatLimitConstant((left.value + right.value) / 2);
     steps.push(`Both sides approach ${mark(value)}, so the limit is ${mark(value)}, as estimated from these samples (an estimate, not a proof).`);
-    return { steps, answer: value };
+    return { steps, answer: value, estimate: true };
   }
 
   steps.push('The one-sided limits disagree, so the limit does not exist.');
@@ -258,7 +258,7 @@ export function evaluateOneSidedLimit(func, variable, target, side) {
       return { steps, answer: formatNumber(direct), verified: true, verificationMethod: 'direct substitution' };
     }
     steps.push(`The values settle toward ${mark(formatLimitConstant(last))}: the one-sided limit, as estimated from these samples (an estimate, not a proof).`);
-    return { steps, answer: formatLimitConstant(last) };
+    return { steps, answer: formatLimitConstant(last), estimate: true };
   }
 
   // Slow, steady divergence (e.g. ln(x) as x → 0⁺): each step keeps the same
@@ -271,8 +271,8 @@ export function evaluateOneSidedLimit(func, variable, target, side) {
     return { steps, answer };
   }
 
-  steps.push('The values do not settle on that side, so the one-sided limit does not exist.');
-  return { steps, answer: 'Does not exist' };
+  steps.push('The values have not settled on that side, and samples alone cannot tell a limit approached very slowly from no limit at all, so this one is not decided here.');
+  return { steps, answer: null, undetermined: true };
 }
 
 // A numeric limit that is a familiar constant is named: e, e², π, π/2.
@@ -308,7 +308,6 @@ function formatLimitConstant(v) {
 export function estimateInfiniteLimit(func, variable, target) {
   const sign = target === Infinity ? 1 : -1;
   const samples = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8].map((m) => evalAt(func, variable, sign * m));
-  const finite = samples.filter((v) => Number.isFinite(v));
 
   const steps = [`Evaluate the function at increasingly large ${sign > 0 ? 'positive' : 'negative'} values of ${variable}.`];
   // Not defined out there at all (ln(x) as x → −∞): there is nothing to
@@ -335,52 +334,76 @@ export function estimateInfiniteLimit(func, variable, target) {
     || (samples[0] === 0 && Number.isFinite(nearer) && nearer !== 0 && Math.abs(nearer) < 1e-30);
   steps.push(`Samples: ${mark(shown.join(', '))}${underflowed ? ' (a value smaller than about 1e-308 cannot be represented in double precision and is computed as exactly 0)' : ''}`);
 
-  if (finite.length < 2) {
-    // Growing without bound — base the sign on the last value we could evaluate.
-    const reference = finite.length ? finite[finite.length - 1] : samples[samples.length - 1];
-    const answer = reference > 0 ? '∞' : '-∞';
-    steps.push(`The values grow without bound, so the limit is ${mark(answer)}.`);
-    return { steps, answer };
+  // A second ladder between the first, √2·10^k: sampled only at powers of
+  // 10, tan(x) looked like it ran to −∞ and (−1)^x like it settled on 1 (it
+  // is not even defined between the integers). Both ladders must tell the
+  // same story, or samples cannot decide the limit (1.68.6).
+  const between = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8].map((m) => evalAt(func, variable, sign * m * Math.SQRT2));
+  if (between.slice(-3).some(Number.isNaN)) {
+    steps.push(`Between these sample points the function is not defined (at ${mark(`${variable} = ${sign < 0 ? '−' : ''}√2·10^8`)}, for one), so samples cannot decide this limit.`);
+    return { steps, answer: null, undetermined: true };
+  }
+  const read = readLadder(samples);
+  const other = readLadder(between);
+  if (!sameReading(read, other)) {
+    steps.push('A second set of samples, taken between these, tells a different story, so samples cannot decide this limit.');
+    return { steps, answer: null, undetermined: true };
   }
 
-  const last = finite[finite.length - 1];
-  const prev = finite[finite.length - 2];
-  // Converging: the successive differences shrink and the last is small
-  // relative to the value. (1 + 2/x)^x still moves in the third decimal at
-  // x = 10⁴ (7.3876 → 7.3890) yet is plainly settling on e².
-  const diffs = finite.slice(1).map((v, i) => Math.abs(v - finite[i]));
-  const shrinking = diffs.length >= 3 && diffs.slice(-3).every((d, i, arr) => i === 0 || d <= arr[i - 1] * 1.01);
-  if (Math.abs(last - prev) < 1e-3 || (shrinking && Math.abs(last - prev) < 1e-4 * (1 + Math.abs(last)))) {
-    const value = formatLimitConstant(last);
-    steps.push(`The values settle toward ${mark(value)}: the limit, as estimated from these samples (an estimate, not a proof).`);
-    return { steps, answer: value };
+  if (read.kind === 'value') {
+    const value = formatLimitConstant(read.value);
+    steps.push(`The values settle toward ${mark(value)}, and so do samples taken between them: the limit, as estimated from these samples (an estimate, not a proof).`);
+    return { steps, answer: value, estimate: true };
   }
-
-  // Growing in size but changing sign (x·sin(x)) is no limit at all: it was
-  // answered ∞ from the last sample's sign (1.63.0).
-  const tail = finite.slice(-4);
-  if (Math.abs(last) > Math.abs(prev) * 5 && tail.some((v) => Math.sign(v) !== Math.sign(last))) {
+  if (read.kind === 'swing') {
     steps.push('The values swing between positive and negative and keep growing in size, so they approach no number and no single infinity: the limit does not exist.');
     return { steps, answer: 'Does not exist' };
   }
-  if (Math.abs(last) > Math.abs(prev) * 5) {
-    const answer = last > 0 ? '∞' : '-∞';
-    steps.push(`The values keep growing, so the limit is ${mark(answer)}.`);
-    return { steps, answer };
+  if (read.kind === 'inf') {
+    const answer = read.sign > 0 ? '∞' : '-∞';
+    steps.push(read.slow
+      ? `The values keep moving the same way by steady amounts without settling — a slow divergence to ${mark(answer)}, as estimated from these samples.`
+      : `The values grow without bound, so the limit is ${mark(answer)}, as estimated from these samples.`);
+    return { steps, answer, estimate: true };
   }
+  // Not settled is not "does not exist": 1/ln(x) is still 0.05 at x = 10^8
+  // and was answered that way, though it → 0 (1.68.6).
+  steps.push('The values have not settled, and samples alone cannot tell a limit approached very slowly from no limit at all, so this one is not decided here.');
+  return { steps, answer: null, undetermined: true };
+}
 
-  // Slow, steady growth (ln(x): +2.3 for every factor of 10) never settles
-  // either; it was reported as "does not exist" (1.63.0).
+// What one ladder of samples at ±∞ shows: { kind: 'value', value },
+// { kind: 'inf', sign, slow? }, { kind: 'swing' } or { kind: 'unsettled' }.
+function readLadder(samples) {
+  const finite = samples.filter((v) => Number.isFinite(v));
+  if (finite.length < 2) {
+    const reference = finite.length ? finite[finite.length - 1] : samples[samples.length - 1];
+    return Number.isNaN(reference) ? { kind: 'unsettled' } : { kind: 'inf', sign: reference > 0 ? 1 : -1 };
+  }
+  const last = finite[finite.length - 1];
+  const prev = finite[finite.length - 2];
+  const d = Math.abs(last - prev);
+  // Settled relative to the value, not within a fixed 0.001: √x/(x + 1) is
+  // 3.2e-4 then 1e-4 at x = 10^7 and 10^8, still shrinking, and was read as a
+  // limit of 0.0001. (1 + 2/x)^x moves by 2e-7 of its value: settled.
+  const diffs = finite.slice(1).map((v, i) => Math.abs(v - finite[i]));
+  const shrinking = diffs.length >= 3 && diffs.slice(-3).every((x, i, arr) => i === 0 || x <= arr[i - 1] * 1.01);
+  if (d === 0 || d <= 1e-6 * Math.abs(last) || (shrinking && d < 1e-4 * Math.abs(last))) return { kind: 'value', value: last };
+  const tail = finite.slice(-4);
+  if (Math.abs(last) > Math.abs(prev) * 5) {
+    return tail.some((v) => Math.sign(v) !== Math.sign(last)) ? { kind: 'swing' } : { kind: 'inf', sign: last > 0 ? 1 : -1 };
+  }
   if (diffs.length >= 3) {
     const signed = finite.slice(1).map((v, i) => v - finite[i]);
-    const steady = signed.every((d) => d !== 0 && Math.sign(d) === Math.sign(signed[0]));
-    if (steady && Math.abs(signed[signed.length - 1]) >= 0.5 * Math.abs(signed[0])) {
-      const answer = signed[0] > 0 ? '∞' : '-∞';
-      steps.push(`The values keep moving the same way by steady amounts without settling — a slow divergence to ${mark(answer)}.`);
-      return { steps, answer };
-    }
+    const steady = signed.every((x) => x !== 0 && Math.sign(x) === Math.sign(signed[0]));
+    if (steady && Math.abs(signed[signed.length - 1]) >= 0.5 * Math.abs(signed[0])) return { kind: 'inf', sign: signed[0] > 0 ? 1 : -1, slow: true };
   }
+  return { kind: 'unsettled' };
+}
 
-  steps.push('The values do not settle, so the limit does not exist.');
-  return { steps, answer: 'Does not exist' };
+function sameReading(a, b) {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === 'inf') return a.sign === b.sign;
+  if (a.kind === 'value') return Math.abs(a.value - b.value) <= 1e-4 * Math.max(1, Math.abs(a.value));
+  return true;
 }
