@@ -329,6 +329,9 @@ the worker load.
   with `includeSubDomains` (never `preload`). `vite preview` serves the same
   file, so the smoke test fails on any CSP violation. A new outside origin
   needs a `connect-src`/`img-src` entry.
+- `public/_redirects`: `/.well-known/*` answers 404 before the SPA
+  fallback (`/* /index.html 200`); the app publishes no agent manifests, and
+  a 200 HTML shell there reads as a broken one (`tests/redirects.test.js`).
 - The only outbound request is the Feedback form (Web3Forms), only on submit.
   Privacy wording anywhere must name that exception. "Learn more" and source
   links are plain links (new tab, `rel="noopener noreferrer"`) to the sites in

@@ -1,1 +1,9 @@
+# /.well-known/ is where agents and registries look for manifests the app
+# does not publish (ard.json, ai-catalog.json, …). Answer 404, with the app's
+# Not Found page for a person, before the SPA fallback below would answer
+# 200 with the HTML shell, which a client then fails to read as JSON
+# (Lighthouse "ai-catalog.json schema is invalid", 1.68.5). Rules are read
+# top to bottom; the first match wins.
+/.well-known/*    /index.html   404
+
 /*    /index.html   200

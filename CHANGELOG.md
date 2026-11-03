@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.5] - 2026-11-03
+
+### Fixed
+
+- **`/.well-known/` answered with the app's HTML.** The SPA fallback served
+  the HTML shell with status 200 for every unknown path, so
+  `/.well-known/ai-catalog.json` and `/.well-known/ard.json` looked like a
+  manifest that was not JSON, and Lighthouse's Agentic Browsing audit failed
+  ("`ai-catalog.json` schema is invalid"). MasterMath publishes no agent
+  resources, so `/.well-known/*` now answers 404 (with the app's Not Found
+  page for a person), which the audit treats as not applicable.
+  `tests/redirects.test.js` keeps the rule ahead of the fallback.
+
 ## [1.68.4] - 2026-11-03
 
 From a Lighthouse run against the live site. Most of its performance
