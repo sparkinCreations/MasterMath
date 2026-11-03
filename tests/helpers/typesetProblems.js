@@ -123,6 +123,8 @@ export const CONVERTED = [
   ['trigonometry', 'tan(x) = x'], ['trigonometry', 'tan(x) = 2x + 1'], ['trigonometry', 'tan(x) = x^2'], ['trigonometry', 'sec(x) = x'], ['algebra', 'tan(x) > x'], ['trigonometry', 'csc(x) = x + 2'], ['trigonometry', 'tan(x) = sin(x)'],
   // 1.67.3: written in sine and cosine, factored, excluded angles removed.
   ['trigonometry', '2*sin(x)*cos(x) = sin(x)'], ['trigonometry', 'csc(x) - sin(x) = cos(x)'], ['trigonometry', 'sin(x) + tan(x) = 1'], ['trigonometry', 'tan(x)*cos(x) = 1'], ['trigonometry', 'tan(2x) = sin(2x)'], ['trigonometry', 'sin(x)^2 = 3*cos(x)^2'],
+  // 1.68.3: d/dx in front of an equation; its refusals.
+  ['auto', 'd/dx (x^2 + y^2 = 25)'], ['auto', 'd/dx (x^2 + 3x = 5)'], ['auto', 'd/dx (2 = 2)'], ['auto', 'd/dx (x^2 + y^2) = 25'], ['auto', 'd/dx (x^2 + y^2 = r^2)'], ['auto', 'd/dx (y = 3)'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

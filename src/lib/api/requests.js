@@ -236,7 +236,34 @@ export function primedFunctionRequest(problem) {
 // (October 2026 review); "dy/dx" in the request was refused as a
 // differential equation. Returns null when the input is not such a request;
 // { explicit, variable, point } for y = f(x) and f(x) = …, which are
-// ordinary derivatives; else { lhs, rhs, independent, dependent, point }.
+// ordinary derivatives; { oneVariable }, { manyVariables } or
+// { derivativeEquation } for d/dx in front of what is not a curve in two
+// variables (refused by the caller); else { lhs, rhs, independent,
+// dependent, point }.
+// The text inside one pair of brackets that encloses all of it, else the text.
+function unwrapBrackets(text) {
+  const s = text.trim();
+  const close = { '(': ')', '[': ']', '{': '}' }[s[0]];
+  if (!close || s[s.length - 1] !== close) return s;
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    if ('([{'.includes(s[i])) depth++;
+    else if (')]}'.includes(s[i]) && --depth === 0 && i < s.length - 1) return s;
+  }
+  return depth === 0 ? s.slice(1, -1).trim() : s;
+}
+
+// The index of the bracket that closes the one opening the text, or -1.
+function closingBracket(text) {
+  if (!'([{'.includes(text[0])) return -1;
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    if ('([{'.includes(text[i])) depth++;
+    else if (')]}'.includes(text[i]) && --depth === 0) return i;
+  }
+  return -1;
+}
+
 const IMPLICIT_FUNCTIONS = /(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp|pi|e)(?![a-z])/gi;
 export function implicitDerivativeRequest(problem, topic) {
   let t = String(problem).trim();
@@ -268,12 +295,35 @@ export function implicitDerivativeRequest(problem, topic) {
     /^(?:to\s+find|for|of|if|given|when|where|from|on|the\s+curve)\s+/i,
     /^[:,]\s*/,
   ];
+  let operator = false; // d/dx written as an operator in front of the equation
   for (let changed = true; changed;) {
     changed = false;
     const leibniz = t.match(/^d([a-z])\s*\/\s*d([a-z])\s*/i);
     if (leibniz) {
       wanted = [leibniz[1].toLowerCase(), leibniz[2].toLowerCase()];
       t = t.slice(leibniz[0].length);
+      asked = true;
+      changed = true;
+      continue;
+    }
+    // "d/dx (x^2 + y^2 = 25)", "d/dx x^2 + y^2 = 25": the operator applied to
+    // an equation. Read without this, it went to the ordinary derivative
+    // solver and was answered f'(x) = 0, marked solved (November 2026 review).
+    const op = t.match(/^d\s*\/\s*d([a-z])(?![a-z])\s*/i);
+    if (op && /(?<![<>!=])=(?!=)/.test(t)) {
+      // A bracket that closes before the "=" holds only the left side:
+      // d/dx (x^2 + y^2) = 25 sets a derivative equal to 25 (a differential
+      // equation), and d/dx (x^2) = 2x states one; neither is a curve.
+      const rest = t.slice(op[0].length);
+      const close = closingBracket(rest);
+      const eqAt = /(?<![<>!=])=(?!=)/;
+      if (close > 0 && !eqAt.test(rest.slice(1, close)) && eqAt.test(rest.slice(close + 1))) {
+        const after = rest.slice(close + 1).trim();
+        return { derivativeEquation: true, variable: op[1].toLowerCase(), inner: rest.slice(1, close).trim(), rhs: /^=/.test(after) ? after.slice(1).trim() : null };
+      }
+      withRespectTo = op[1].toLowerCase();
+      operator = true;
+      t = t.slice(op[0].length);
       asked = true;
       changed = true;
       continue;
@@ -297,6 +347,9 @@ export function implicitDerivativeRequest(problem, topic) {
   }
   if (!asked && topic !== 'derivatives') return null;
 
+  // Brackets around the whole equation: "(x^2 + y^2 = 25)", "[xy = 1]".
+  for (let wrapped = unwrapBrackets(t); wrapped !== t; wrapped = unwrapBrackets(t)) t = wrapped;
+
   // One equation, both sides present, nothing left of a derivative in it
   // (dy/dx + y = x is a differential equation, and stays refused).
   const sides = t.split(/(?<![<>!=])=(?!=)/);
@@ -318,10 +371,32 @@ export function implicitDerivativeRequest(problem, topic) {
     if (lower.length > 1 && !/^[xy]+$/.test(lower) && !(wanted && [...lower].every((c) => wanted.includes(c)))) return null;
     for (const c of lower) letters.add(c);
   }
+  // d/dx in front of an equation in one variable: "d/dx (x^2 + 3x = 5)".
+  // The equation holds at a few values of x, not along a curve, so it has
+  // no derivative; refused rather than differentiated as an expression.
+  if (operator && letters.size <= 1) {
+    const [only] = [...letters];
+    // y = 3 behind d/dx: y as a function of x that is constant, so an
+    // ordinary derivative (0). Any other equation in one letter holds at
+    // particular values only, and is refused, naming that letter.
+    if (only && only !== withRespectTo) {
+      for (const [alone, other] of [[lhs, rhs], [rhs, lhs]]) {
+        if (alone.toLowerCase() === only && !new RegExp(`(?<![a-z])${only}(?![a-z])`, 'i').test(other.replace(IMPLICIT_FUNCTIONS, ' '))) {
+          return { explicit: other, variable: withRespectTo, point: point?.named?.[withRespectTo] ?? point?.first ?? null };
+        }
+      }
+    }
+    return { oneVariable: true, variable: withRespectTo, letter: only ?? null, lhs, rhs };
+  }
+  // x^2 + y^2 = r^2 behind d/dx: three letters, and which are constants is
+  // not said. It fell through to the derivative solver and came back
+  // f'(x) = 0, marked solved; refused in words instead.
+  if (operator && letters.size > 2) return { manyVariables: true, variable: withRespectTo, letters: [...letters].sort(), lhs, rhs };
   if (letters.size !== 2) return null;
   let dependent;
   let independent;
   if (wanted && letters.has(wanted[0]) && letters.has(wanted[1])) [dependent, independent] = wanted;
+  else if (operator && letters.has(withRespectTo)) [dependent, independent] = [[...letters].find((c) => c !== withRespectTo), withRespectTo];
   else if (letters.has('x') && letters.has('y')) [dependent, independent] = ['y', 'x'];
   else return null;
   if (withRespectTo && withRespectTo !== independent) return null;

@@ -45,6 +45,14 @@ export function loadAlgebrite() {
 // 2", the two complex roots gone; x^2 = 2 → ±1.4142 instead of ±√2).
 // Algebrite.run() resets the frame on its own; the wrapper calls it after any
 // throw, then rethrows so the caller's own handling still runs.
+//
+// A single "=" is an assignment to Algebrite, and it lasts: "x = 5" made x
+// equal to 5 for every later call, so after d/dx (x = 5) the derivative of
+// x^3 was 0, and after d/dx (y = x^2) the derivative of x + y was 2x + 1,
+// until the page was reloaded (1.68.3). No solver means to assign, so any
+// call carrying one is refused before Algebrite sees it ("==", "<=", ">="
+// and "!=" are comparisons and pass).
+const ASSIGNMENT = /(?<![=<>!])=(?!=)/;
 function wrapAlgebrite(A) {
   const recover = () => {
     try { A.run('1'); } catch { /* the reset itself may report the frame error once */ }
@@ -55,6 +63,8 @@ function wrapAlgebrite(A) {
       const value = target[prop];
       if (typeof value !== 'function') return value;
       return (...args) => {
+        const assigns = args.find((a) => typeof a === 'string' && ASSIGNMENT.test(a));
+        if (assigns !== undefined) throw new Error(`Algebrite assignment refused: ${assigns}`);
         try {
           return value.apply(target, args);
         } catch (error) {

@@ -1955,3 +1955,86 @@ test('regression: a quintic is told why it has no formula, not about x·e^x', as
   assert.match((await solvePlain('2^x = 10', 'algebra')).tips[0], /logarithm/i);
   assert.match((await solvePlain('x^2 - 4 = 0', 'algebra')).tips[0], /square roots/i);
 });
+
+// ---------------------------------------------------------------------------
+// d/dx written in front of an equation (November 2026 review)
+// "d/dx (x^2 + y^2 = 25)" and "d/dx x^2 + y^2 = 25" were answered f'(x) = 0,
+// marked solved: the operator form was not read as a request for dy/dx, and
+// the equation went to the ordinary derivative solver, where one step read
+// "d/dx(y^2 = 25) = 0". "d/dx (x^2 + 3x = 5)" was answered f'(x) = 0 too.
+// ---------------------------------------------------------------------------
+test('regression: d/dx in front of an equation in x and y is implicit differentiation', async () => {
+  for (const [problem, topic, answer] of [
+    ['d/dx (x^2 + y^2 = 25)', 'auto', 'dy/dx = -x/y'],
+    ['d/dx x^2 + y^2 = 25', 'auto', 'dy/dx = -x/y'],
+    ['d/dx (x^2 + y^2 = 25)', 'derivatives', 'dy/dx = -x/y'],
+    ['d/dx [x^3 + y^3 = 6xy]', 'auto', 'dy/dx = (2y - x^2)/(-2x + y^2)'],
+    ['d/dy (x^2 + y^2 = 25)', 'auto', 'dx/dy = -y/x'],
+  ]) {
+    const r = await solveProblem(problem, topic);
+    assert.equal(r.status, 'solved', problem);
+    assert.equal(r.answer, answer, problem);
+  }
+  const atPoint = await solveProblem('d/dx (x^2 + y^2 = 25) at (3, 4)', 'auto');
+  assert.match(atPoint.answer, /^dy\/dx at \(3, 4\) = -3\/4/);
+  // y = f(x) behind the operator is still an ordinary derivative.
+  assert.equal((await solveProblem('d/dx (y = x^2)', 'auto')).answer, "f'(x) = 2x");
+});
+
+test('regression: d/dx in front of an equation in one variable is refused, not answered 0', async () => {
+  for (const [problem, answer] of [
+    ['d/dx (x^2 + 3x = 5)', 'An equation in x alone has no derivative'],
+    ['d/dt (t^2 = 4)', 'An equation in t alone has no derivative'],
+    ['d/dx (2 = 2)', 'An equation with no variable in it has no derivative'],
+    ['d/dx (a^2 = 2)', 'An equation in a alone has no derivative'],
+  ]) {
+    const r = await solveProblem(problem, 'auto');
+    assert.equal(r.status, 'unsupported', problem);
+    assert.equal(r.answer, answer, problem);
+    assert.doesNotMatch(JSON.stringify(r), /f'\(x\) = 0/, problem);
+  }
+  // y = 3 is y as a constant function of x: an ordinary derivative, 0 (it
+  // was refused as "an equation in x alone", though it has no x).
+  assert.equal((await solveProblem('d/dx (y = 3)', 'auto')).answer, "f'(x) = 0");
+  // Without the operator the same equation is still solved, and d/dx of an
+  // expression is still differentiated.
+  assert.equal((await solveProblem('x^2 + 3x = 5', 'auto')).status, 'solved');
+  assert.equal((await solveProblem('d/dx(x^3)', 'auto')).answer, "f'(x) = 3x^2");
+  assert.equal((await solveProblem('dy/dx = 2x', 'auto')).status, 'unsupported');
+});
+
+test('regression: d/dx applied to one side only, or to three letters, is refused in words', async () => {
+  // The bracket closes before the "=": a derivative set equal to something
+  // (a differential equation), not the curve x^2 + y^2 = 25, which the first
+  // cut of this fix answered dy/dx = -x/y.
+  for (const problem of ['d/dx (x^2 + y^2) = 25', 'd/dx (x^2) = 2x', 'd/dx (x^2) + 3 = 5']) {
+    const r = await solveProblem(problem, 'auto');
+    assert.equal(r.status, 'unsupported', problem);
+    assert.equal(r.answer, 'An equation with a derivative in it is a differential equation, which is not supported', problem);
+  }
+  // Three letters, and which are constants is not said: was f'(x) = 0, solved.
+  const three = await solveProblem('d/dx (x^2 + y^2 = r^2)', 'auto');
+  assert.equal(three.status, 'unsupported');
+  assert.equal(three.answer, 'Implicit differentiation here takes an equation in two variables');
+});
+
+// ---------------------------------------------------------------------------
+// Algebrite reads a single "=" as an assignment that lasts (November 2026):
+// after d/dx (x = 5) reached it, x was 5 for every later call in the session,
+// and d/dx(x^3) answered f'(x) = 0, marked solved, until the page reloaded.
+// ---------------------------------------------------------------------------
+test('regression: Algebrite is never handed an assignment, so no solve can poison the next', async () => {
+  const { loadAlgebrite } = await import('../src/lib/solvers/solverUtils.js');
+  const A = await loadAlgebrite();
+  assert.throws(() => A.run('x = 5'), /Algebrite assignment refused/);
+  assert.throws(() => A.run('y=x^2'), /Algebrite assignment refused/);
+  assert.equal(A.run('d(x^3,x)'), '3*x^2');
+  // Comparisons are not assignments.
+  assert.doesNotThrow(() => A.run('testeq(x,x)'));
+  assert.doesNotThrow(() => A.run('x == x'));
+  for (const first of ['d/dx (x = 5)', 'd/dx (y = x^2)', 'd/dx (a = 2)', 'd/dx y = x^2']) {
+    await solveProblem(first, 'auto');
+    assert.equal((await solveProblem('d/dx(x^3)', 'auto')).answer, "f'(x) = 3x^2", `after ${first}`);
+    assert.equal((await solveProblem('d/dx (x + y)', 'auto')).answer, "f'(x) = 1", `after ${first}`);
+  }
+});

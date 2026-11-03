@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.3] - 2026-11-03
+
+### Fixed
+
+- **One solve could make every later one wrong.** Algebrite reads a single
+  "=" as an assignment, and it lasts: after `d/dx (x = 5)` reached it, x was
+  5 for every later call, so d/dx(x³) answered f′(x) = 0, marked solved,
+  until the page was reloaded; after `d/dx (y = x^2)`, d/dx(x + y) answered
+  2x + 1. The Algebrite wrapper now refuses any call carrying an assignment
+  before Algebrite sees it ("==", "<=", ">=" and "!=" pass), so no input
+  can redefine a variable for the next.
+- **d/dx in front of an equation was answered 0.** "d/dx (x^2 + y^2 = 25)"
+  and "d/dx x^2 + y^2 = 25" came back **f'(x) = 0**, marked solved, with a
+  step reading "d/dx(y^2 = 25) = 0". Implicit differentiation was reached by
+  "find dy/dx if …" or an equation under Derivatives, but the operator form
+  `d/dx` was not read as that request, and the brackets around the equation
+  split it into unbalanced halves; the input fell through to the ordinary
+  derivative solver. Both are read now: the answer is dy/dx = -x/y, `d/dy`
+  gives dx/dy, "at (3, 4)" evaluates, and brackets of any kind around the
+  equation are removed first. `d/dx` in front of an equation in one variable
+  — "d/dx (x^2 + 3x = 5)", also answered f'(x) = 0 — is refused in words: the
+  equation holds at a few values of x and has no derivative, with tips to
+  solve it under Algebra or to differentiate one side.
+  `d/dx (y = 3)` is y as a constant function of x: f′(x) = 0. A bracket that
+  closes before the "=" holds one side only, so `d/dx (x^2 + y^2) = 25` and
+  `d/dx (x^2) = 2x` put a derivative into an equation and are refused as
+  differential equations, not read as the curve; `d/dx (x^2 + y^2 = r^2)`,
+  with three letters and no word on which are constants, is refused in words
+  (it was f′(x) = 0, solved).
+
 ## [1.68.2] - 2026-11-02
 
 Four coverage gaps and one layout fault found by walking the deployed 1.68.1,

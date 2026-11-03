@@ -264,6 +264,47 @@ export async function solveProblem(problem, topic) {
     // dy/dx of an equation in x and y, before the differential-equation
     // check below: "find dy/dx if x^2 + y^2 = 25" names dy/dx but is not one.
     const implicit = implicitDerivativeRequest(problem, topic);
+    if (implicit?.oneVariable) {
+      const v = implicit.variable;
+      const eq = `${beautify(implicit.lhs)} = ${beautify(implicit.rhs)}`;
+      const of = implicit.letter ? `in ${implicit.letter} alone` : 'with no variable in it';
+      const ofMarked = implicit.letter ? `in ${mark(implicit.letter)} alone` : of;
+      return finalizeResult(unsupported({
+        input: problem,
+        reason: `${mark(`d/d${v}`)} applies to an expression, not to an equation ${ofMarked}: ${mark(eq)} ${implicit.letter ? `holds only at particular values of ${mark(implicit.letter)}` : 'is a fixed statement'}, so it has no derivative.`,
+        answer: `An equation ${of} has no derivative`,
+        tips: [
+          ...(implicit.letter ? [`To find the values of ${mark(implicit.letter)} that make it true, remove ${mark(`d/d${v}`)} and solve it under Algebra: ${mark(eq)}.`] : []),
+          `To differentiate one side, enter that expression on its own: ${mark(`d/d${v}(${beautify(implicit.lhs)})`)}.`,
+        ],
+      }), problem);
+    }
+    if (implicit?.manyVariables) {
+      const v = implicit.variable;
+      const eq = `${beautify(implicit.lhs)} = ${beautify(implicit.rhs)}`;
+      return finalizeResult(unsupported({
+        input: problem,
+        reason: `${mark(eq)} has ${implicit.letters.length} letters (${implicit.letters.map((l) => mark(l)).join(', ')}), and which of them are constants is not said; implicit differentiation here takes an equation in two variables.`,
+        answer: 'Implicit differentiation here takes an equation in two variables',
+        tips: [
+          `Write the constants as numbers: for a circle, ${mark('x^2 + y^2 = 25')} gives ${mark('dy/dx = −x/y')}.`,
+          `Or ask for one derivative of an expression: ${mark(`d/d${v}(${beautify(implicit.lhs)})`)} treats the other letters as constants.`,
+        ],
+      }), problem);
+    }
+    if (implicit?.derivativeEquation) {
+      const v = implicit.variable;
+      const inner = beautify(implicit.inner);
+      return finalizeResult(unsupported({
+        input: problem,
+        reason: `The bracket after ${mark(`d/d${v}`)} closes before the "=", so the derivative of ${mark(inner)} is one side of an equation: an equation with a derivative in it is a differential equation (or a statement to check), not a curve to differentiate.`,
+        answer: 'An equation with a derivative in it is a differential equation, which is not supported',
+        tips: [
+          `To differentiate, enter the expression on its own: ${mark(`d/d${v}(${inner})`)}.`,
+          ...(implicit.rhs ? [`To differentiate a curve implicitly, put the whole equation inside the bracket: ${mark(`d/d${v}(${inner} = ${beautify(implicit.rhs)})`)}.`] : []),
+        ],
+      }), problem);
+    }
     if (implicit) {
       if (implicit.explicit) {
         const { solveDerivative } = await import('./solvers/derivativesSolver.js');
