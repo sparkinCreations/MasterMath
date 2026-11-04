@@ -19,6 +19,7 @@
 //   is one.
 import { math, beautify, formatNumber, mark, linearCoefficients, loadAlgebrite, isAlgebriteFailure, sampleFunction } from './solverUtils.js';
 import { unsupported as refusal } from '../solutionEnvelope.js';
+import { readPolynomial } from './polynomialRoots.js';
 
 // A refusal says why in its one step, with the maths marked (the envelope's
 // default first step quotes the input as plain text).
@@ -546,6 +547,24 @@ export async function inverseOf(expr, variable, solveAlgebra) {
     }
     solvedFor = null;
   }
+  // A cubic or higher with the variable in more than one term: only a
+  // Cardano-style formula solves it, and solving it symbolically took 21 s
+  // before this same refusal (1.68.7), so it is said at once.
+  const cubicReason = `Solving ${mark(`${y} = ${shown}`)} for ${mark(variable)} needs the general cubic formula, which gives no readable inverse. MasterMath inverts functions in which ${mark(variable)} appears once, such as ${mark('2x + 3')} or ${mark('e^(x - 1)')}, and ${mark('(ax + b)/(cx + d)')}.`;
+  if (!solvedFor) {
+    const poly = readPolynomial(String(expr), variable);
+    if (poly && !poly.tooHigh && poly.degree >= 3 && poly.coefficients.slice(1).filter((c) => !c.equals(0)).length >= 2) {
+      // Even degree: both ends head the same way, so most values are taken
+      // twice (x^4 − x ran 41 s and then "could not be solved").
+      if (poly.degree % 2 === 0) {
+        return refuse(`${mark(shown)} is not one-to-one: a polynomial of even degree heads the same way at both ends, so it takes most values twice. It has an inverse only on a restricted domain.`, 'No inverse: the function is not one-to-one');
+      }
+      if (poly.degree >= 5) {
+        return refuse(`Solving ${mark(`${y} = ${shown}`)} for ${mark(variable)} means solving a polynomial equation of degree ${poly.degree}, which has no general formula in radicals, so there is no readable inverse. MasterMath inverts functions in which ${mark(variable)} appears once, such as ${mark('2x + 3')} or ${mark('e^(x - 1)')}, and ${mark('(ax + b)/(cx + d)')}.`);
+      }
+      return refuse(cubicReason);
+    }
+  }
   if (!solvedFor) {
     // A polynomial in which the variable appears more than once: the
     // algebra solver's rearrangement, refused when it branches.
@@ -556,7 +575,7 @@ export async function inverseOf(expr, variable, solveAlgebra) {
       return refuse(`${mark(shown)} is not one-to-one: solving ${mark(`${y} = ${shown}`)} gives ${mark(`${variable} = ${m[1]}`)}, more than one ${mark(variable)} for a ${mark(y)}. It has an inverse only on a restricted domain.`, 'No inverse: the function is not one-to-one');
     }
     if (/\^\(\d+\/\d+\)|∛\(.*[+-]/.test(m[1])) {
-      return refuse(`Solving ${mark(`${y} = ${shown}`)} for ${mark(variable)} needs the general cubic formula, which gives no readable inverse. MasterMath inverts functions in which ${mark(variable)} appears once, such as ${mark('2x + 3')} or ${mark('e^(x - 1)')}, and ${mark('(ax + b)/(cx + d)')}.`);
+      return refuse(cubicReason);
     }
     solvedFor = m[1].replace(/√\(/g, 'sqrt(').replace(/∛\(/g, 'cbrt(').replace(/·/g, '*');
     steps.push(`Rearrange: ${mark(`${variable} = ${show(solvedFor)}`)}.`);

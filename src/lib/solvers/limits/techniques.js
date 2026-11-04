@@ -663,8 +663,13 @@ function seriesShown(Algebrite, expr, variable, target) {
     const top = a === '1' ? body(k) : `${a}${body(k)}`;
     return b ? `${top}/${b}` : top;
   };
-  const shown = terms.slice(0, 3).map(({ c, k }, i) => `${i === 0 ? (c < 0 ? '-' : '') : c < 0 ? ' - ' : ' + '}${text(c, k)}`).join('');
-  return terms.length > 3 ? `${shown} + …` : shown;
+  // A term whose coefficient is not a small fraction ends the display with
+  // "+ …": -x^3/6 + x^5/120 + …, not "- 0.0002x^7" (1.68.7).
+  let count = Math.min(3, terms.length);
+  const firstInexact = terms.findIndex(({ c }) => rationalText(Math.abs(c)) === null);
+  if (firstInexact > 0) count = Math.min(count, firstInexact);
+  const shown = terms.slice(0, count).map(({ c, k }, i) => `${i === 0 ? (c < 0 ? '-' : '') : c < 0 ? ' - ' : ' + '}${text(c, k)}`).join('');
+  return terms.length > count ? `${shown} + …` : shown;
 }
 
 export function trySeriesLimit(Algebrite, func, variable, target) {
@@ -685,17 +690,19 @@ export function trySeriesLimit(Algebrite, func, variable, target) {
     // still 0/0), a second simplify pass usually clears it. Either way,
     // algebriteNumber returns null on an unresolved form, so a stubborn case
     // degrades safely to the next rung rather than producing a wrong answer.
-    // The ratio's limit is the ratio of the lowest terms that do not vanish;
-    // simplify on the quotient of two degree-7 polynomials took 32 s for
-    // sin(3x)/sin(2x) (outside review, November 2026; 1.68.7). The general
-    // simplify stays as the fallback.
-    const lead = leadingRatio(Algebrite, numExp, denExp, variable, target);
-    let value = lead ? lead.value : algebriteNumber(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target);
+    let value = algebriteNumber(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target);
     if (value === null) {
       value = algebriteNumber(Algebrite, `simplify(simplify((${numExp})/(${denExp})))`, variable, target);
     }
     if (value === null) return null;
-    const shown = formatLimitAnswer(value, lead ? lead.exact : algebriteExactAt(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target));
+    // The exact value from the lowest terms that do not vanish, when it agrees
+    // with the value just found: simplify on the substituted quotient took
+    // 32 s for sin(3x)/sin(2x) (outside review, November 2026; 1.68.7).
+    const lead = leadingRatio(Algebrite, numExp, denExp, variable, target);
+    const exact = lead && Math.abs(lead.value - value) <= 1e-9 * Math.max(1, Math.abs(value))
+      ? lead.exact
+      : algebriteExactAt(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target);
+    const shown = formatLimitAnswer(value, exact);
 
     return {
       steps: [
@@ -723,6 +730,39 @@ export function trySeriesLimit(Algebrite, func, variable, target) {
     ],
     answer: shown,
     verified: verifyLimitNumerically(func, variable, target, value),
+  };
+}
+
+// The series method by the lowest terms alone, tried after L'Hôpital's rule:
+// where simplify could not divide the two series and L'Hôpital's rounds did
+// not resolve, (e^x − 1 − x − x^2/2)/x^3, (sin(x) − x + x^3/6)/x^5 and
+// (cos(x) − 1 + x^2/2)/x^4 at 0 fell to sampling and were answered "does
+// not exist" (1.68.7). At 0 only, where the series are shown in powers of x.
+export function trySeriesLeadingTerms(Algebrite, func, variable, target) {
+  if (target !== 0) return null;
+  const parts = splitQuotient(func);
+  if (!parts) return null;
+  const numExp = taylorExpand(Algebrite, parts.num, variable, target);
+  const denExp = taylorExpand(Algebrite, parts.den, variable, target);
+  if (!numExp || !denExp) return null;
+  const lead = leadingRatio(Algebrite, numExp, denExp, variable, target);
+  if (!lead) return null;
+  // The answer is exact (Algebrite's Taylor coefficients); this only guards
+  // against a mistake. Not sampled very near 0, where these forms lose every
+  // digit to cancellation: at ±0.1 … ±0.01 the values must close in on it.
+  const L = lead.value;
+  const gaps = [0.1, 0.05, 0.02, 0.01].map((h) => Math.max(...[h, -h].map((x) => Math.abs(evalAt(func, variable, x) - L))));
+  if (!gaps.every(Number.isFinite) || !(gaps[3] < gaps[0] || gaps[3] < 1e-12) || gaps[3] >= 0.05 * Math.max(1, Math.abs(L))) return null;
+  const shown = formatLimitAnswer(lead.value, lead.exact);
+  return {
+    steps: [
+      `Direct substitution gives ${mark('0/0')}, so expand the numerator and denominator as Taylor series about ${mark(`${variable} = ${formatNumber(target)}`)}.`,
+      `Numerator ${mark(`≈ ${seriesShown(Algebrite, numExp, variable, target)}`)}; denominator ${mark(`≈ ${seriesShown(Algebrite, denExp, variable, target)}`)}.`,
+      `Divide the series and cancel the common factor; the limit is ${mark(shown)}.`,
+    ],
+    answer: shown,
+    verified: true,
+    verificationMethod: 'Taylor series',
   };
 }
 

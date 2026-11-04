@@ -52,16 +52,29 @@ test('the domain of f′ comes from the exact root finder: x³ − 1 is 0 only a
   assert.ok(r.steps.some((s) => /Domain of f'\(x\): x ≠ 1 — /.test(s)));
 });
 
-test('speed: a series limit reads the leading terms, and a natural log reads ln', async () => {
-  // simplify on a quotient of two degree-7 polynomials took 32 s.
+test('speed: a series limit\'s exact value is read off its leading terms', async () => {
+  // simplify on the substituted quotient of two degree-7 polynomials took 32 s.
+  const { r, ms } = await timed('lim x->0 sin(3x)/sin(2x)', 'limits');
+  assert.equal(r.answer, 'lim (x→0) sin(3x)/sin(2x) = 3/2');
+  assert.ok(ms < LIMIT_MS, `${ms} ms`);
+  // The method each limit is worked by is unchanged: L'Hôpital's rule where
+  // it was (the series display at x = a is not in powers of x − a).
+  assert.match((await timed('lim x->1 ln(x)/(x^2-1)', 'limits')).r.tips[1], /^Here: after one round the bottom is 2x/);
+});
+
+test('Taylor limits lost to rounding were "does not exist"; they are worked by series', async () => {
   for (const [p, answer] of [
-    ['lim x->0 sin(3x)/sin(2x)', 'lim (x→0) sin(3x)/sin(2x) = 3/2'],
-    ['lim x->0 (2^x - 1)/x', 'lim (x→0) (2^x - 1)/x = ln(2)'], // an estimate in 1.68.6
+    ['lim x->0 (e^x - 1 - x - x^2/2)/x^3', '1/6'],
+    ['lim x->0 (sin(x) - x + x^3/6)/x^5', '1/120'],
+    ['lim x->0 (cos(x) - 1 + x^2/2)/x^4', '1/24'],
   ]) {
-    const { r, ms } = await timed(p, 'limits');
-    assert.equal(r.answer, answer, p);
-    assert.ok(ms < LIMIT_MS, `${p}: ${ms} ms`);
+    const { r } = await timed(p, 'limits');
+    assert.match(r.answer, new RegExp(`= ${answer.replace('/', '\\/')}$`), p);
+    assert.ok(r.steps.some((s) => /Taylor series/.test(s)), p);
   }
+  // Swinging samples near a point decide nothing; sin(1/x) is still proved.
+  assert.equal((await timed('lim x->0 sin(1/x^2)', 'limits')).r.status, 'unsupported');
+  assert.match((await timed('lim x->0 sin(1/x)', 'limits')).r.answer, /does not exist$/);
 });
 
 test('speed: no u-substitution with the whole integrand as u, and Gauss before exact complex roots', async () => {
@@ -80,4 +93,15 @@ test('speed: an inverse that needs the cubic formula is refused at once', async 
   assert.equal(r.status, 'unsupported');
   assert.ok(ms < LIMIT_MS, `${ms} ms`);
   assert.equal((await timed('inverse of x^3 + 1', 'auto')).r.answer, 'f⁻¹(x) = ∛(x - 1)');
+  // The reason fits the degree: x^4 − x ran 41 s and then "could not be solved".
+  assert.match(r.steps.join('\n'), /needs the general cubic formula/);
+  const quartic = await timed('inverse of x^4 - x', 'auto');
+  assert.equal(quartic.r.answer, 'No inverse: the function is not one-to-one');
+  assert.ok(quartic.ms < LIMIT_MS, `x^4 - x: ${quartic.ms} ms`);
+  assert.match((await timed('inverse of x^5 + x', 'auto')).r.steps.join('\n'), /degree 5, which has no general formula in radicals/);
+});
+
+test('a series is shown to its last exact coefficient, then "+ …"', async () => {
+  const { r } = await timed('lim x->0 (sin(x) - x + x^3/6)/x^5', 'limits');
+  assert.ok(r.steps.includes('Numerator ≈ x^5/120 + …; denominator ≈ x^5.'), r.steps.join('\n'));
 });
