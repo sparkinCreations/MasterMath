@@ -17,7 +17,7 @@
 // The steps show the substitution the way it is taught: choose u, compute
 // du, rewrite, integrate in u, substitute back.
 
-import { math, beautify, lnify, splitTopLevel, runAlgebrite, mark } from './solverUtils.js';
+import { math, beautify, lnify, splitTopLevel, stripOuterParens, runAlgebrite, mark } from './solverUtils.js';
 
 // Does d/dx F numerically equal f at several points? Central differences at
 // h = 1e-5; points where either side is undefined are skipped, and at least
@@ -95,6 +95,11 @@ function candidateInner(term, variable) {
     if (den.startsWith('(') && readGroup(den, 0) === den.slice(1, -1)) den = den.slice(1, -1).trim();
     if (hasVar(den) && den !== variable) found.add(den);
   }
+  // Never the whole integrand: ∫f dx with u = f needs f/f′ to be a function
+  // of f, which the direct rules have already covered, and simplify spent
+  // 16 s finding that √(1 + x^4)/(√(1 + x^4))′ is not one (1.68.7).
+  const whole = stripOuterParens(term.trim()).replace(/\s+/g, '');
+  for (const c of found) if (c.replace(/\s+/g, '') === whole) found.delete(c);
   // Longer (more nested) candidates first; a shorter one is often a factor of it.
   return [...found].sort((a, b) => b.length - a.length);
 }

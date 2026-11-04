@@ -12,6 +12,7 @@ import {
   stripOuterParens,
   mark,
   absBars,
+  lnify,
 } from '../solverUtils.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
 import { EXPLODED_MAGNITUDE } from '../trigonometrySolver.js';
@@ -605,6 +606,41 @@ function taylorExpand(Algebrite, expr, variable, target) {
   }
 }
 
+// The lowest-order terms of two Taylor polynomials about a, and the limit
+// of their ratio when both start at the same power: { value, exact }, the
+// ratio of the leading coefficients (exact from Algebrite's rationals); 0 when
+// the numerator starts at a higher power. Null otherwise (a lower power on
+// top, or nothing nonzero up to the truncation), and the caller simplifies.
+function leadingRatio(Algebrite, numExp, denExp, variable, target) {
+  try {
+    const centred = (e) => (target === 0 ? e : String(Algebrite.run(`expand(subst((${variable})+(${target}), ${variable}, ${e}))`)).trim());
+    const lowest = (e) => {
+      const poly = centred(e);
+      if (isAlgebriteFailure(poly)) return null;
+      for (let k = 0; k <= 8; k += 1) {
+        const raw = String(Algebrite.run(`coeff(${poly}, ${variable}, ${k})`)).trim();
+        if (isAlgebriteFailure(raw) || new RegExp(`\\b${variable}\\b`).test(raw)) return null;
+        const c = Number(math.evaluate(raw));
+        if (!Number.isFinite(c)) return null;
+        if (c !== 0) return { k, raw };
+      }
+      return null;
+    };
+    const top = lowest(numExp);
+    const bottom = lowest(denExp);
+    if (!top || !bottom || top.k < bottom.k) return null;
+    if (top.k > bottom.k) return { value: 0, exact: '0' };
+    const raw = String(Algebrite.run(`(${top.raw})/(${bottom.raw})`)).trim();
+    if (isAlgebriteFailure(raw)) return null;
+    // Algebrite's log is the natural log; a bare log here means base 10.
+    const exact = lnify(raw);
+    const value = Number(math.evaluate(exact));
+    return Number.isFinite(value) ? { value, exact } : null;
+  } catch {
+    return null;
+  }
+}
+
 // A Taylor polynomial about 0 as a textbook writes it: lowest powers first,
 // three terms, then "+ …" (x + x^2/2 + x^3/6 + …, not 1/40320*x^8 + … + x).
 function seriesShown(Algebrite, expr, variable, target) {
@@ -649,12 +685,17 @@ export function trySeriesLimit(Algebrite, func, variable, target) {
     // still 0/0), a second simplify pass usually clears it. Either way,
     // algebriteNumber returns null on an unresolved form, so a stubborn case
     // degrades safely to the next rung rather than producing a wrong answer.
-    let value = algebriteNumber(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target);
+    // The ratio's limit is the ratio of the lowest terms that do not vanish;
+    // simplify on the quotient of two degree-7 polynomials took 32 s for
+    // sin(3x)/sin(2x) (outside review, November 2026; 1.68.7). The general
+    // simplify stays as the fallback.
+    const lead = leadingRatio(Algebrite, numExp, denExp, variable, target);
+    let value = lead ? lead.value : algebriteNumber(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target);
     if (value === null) {
       value = algebriteNumber(Algebrite, `simplify(simplify((${numExp})/(${denExp})))`, variable, target);
     }
     if (value === null) return null;
-    const shown = formatLimitAnswer(value, algebriteExactAt(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target));
+    const shown = formatLimitAnswer(value, lead ? lead.exact : algebriteExactAt(Algebrite, `simplify((${numExp})/(${denExp}))`, variable, target));
 
     return {
       steps: [

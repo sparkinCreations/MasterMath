@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.7] - 2026-11-04
+
+### Fixed
+
+- **Textbook problems that ran past the 10 s budget** (outside review,
+  November 2026), so a student got "beyond this solver" for a standard
+  exercise. Each is now under a second:
+  - **d/dx (x² + 1)¹⁰** (21 s), **(3x² + 1)⁴** (6 s), **(x³ + 2x)⁷** (18 s):
+    the chain rule's answer is written by the rule, c·n·P′·P^(n − 1), not by
+    Algebrite's factor(), which took 15 s and still missed (x² + 1)⁹. The
+    answer and its step read **20x(x² + 1)⁹** and **24x(3x² + 1)³**, not the
+    expanded polynomial. simplify is no longer tried on a polynomial of high
+    degree, where it has nothing to cancel.
+  - **(x² + 1)/(x³ − 1)** (46 s) and **x + (x² + 1)/(x³ − 1)** (148 s): the
+    quotient rule's answer for a ratio of polynomials is written directly,
+    (N′D − ND′)/D², the top expanded, when the top shares no factor with D
+    (checked by the exact integer gcd). x/(x³ − 1) now reads
+    (−2x³ − 1)/(x³ − 1)², where simplify had left (−2x⁶ + x³ + 1)/(x³ − 1)³.
+    A sum is differentiated term by term.
+  - **lim x→0 sin(3x)/sin(2x)** (35 s): a series limit is the ratio of the
+    lowest terms that do not vanish, read off the two Taylor polynomials,
+    not a simplify of their quotient. (2^x − 1)/x → **ln(2)** is now exact.
+  - **∫₀¹ √(1 + x⁴) dx** (16 s): u-substitution no longer tries the whole
+    integrand as u.
+  - **x¹⁰⁰ = 1** (18 s): a complex root is tested exactly only when Gauss's
+    lemma allows it (its minimal polynomial's leading coefficient divides
+    the polynomial's).
+  - **inverse of x³ + x** (21 s, then refused): a cubic with more than one
+    term in the unknown is refused at once; a pure power (x³ + 1) still
+    inverts.
+- **The domain of f′ said "x ≠ −1" for (x² + 1)/(x³ − 1).** Algebrite's
+  roots() gave −1 as a root of (x³ − 1)²; the poles of f′ now come from the
+  exact root finder.
+
 ## [1.68.6] - 2026-11-03
 
 ### Fixed

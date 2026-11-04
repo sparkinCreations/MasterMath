@@ -13,6 +13,7 @@ import {
   stripOuterParens,
   mark,
 } from '../solverUtils.js';
+import { quotientRuleForm } from './quotient.js';
 
 // Algebrite writes the natural log as log(...); students read ln(...). Applied
 // to RESULTS only — the input is echoed as typed.
@@ -36,6 +37,16 @@ export const lnify = (s) => beautify(s)
  * with Algebrite and show the intermediate result, then combine. Because
  * differentiation is linear, term-by-term differentiation is exact.
  */
+// Algebrite's simplify is worth trying on a quotient-rule result (a sum of
+// fractions it can combine) and on short expressions, never on a long one or
+// a polynomial of high degree, where it has nothing to cancel and grinds: 10 s
+// on the derivative of (x^3 + 2x)^7 (1.68.7).
+export function worthSimplifying(expr) {
+  if (expr.length > 160) return false;
+  const degree = Math.max(0, ...[...expr.matchAll(/\^\(?(\d+)/g)].map((m) => Number(m[1])));
+  return expr.includes('/') || degree <= 5;
+}
+
 export function generateDerivativeSteps(expression, derivative, variable, Algebrite) {
   const steps = [];
   const ddx = `d/d${variable}`;
@@ -53,8 +64,17 @@ export function generateDerivativeSteps(expression, derivative, variable, Algebr
     const { label, hint } = classifyDerivativeRule(signed, variable);
     let termDerivative = null;
     try {
-      termDerivative = Algebrite.derivative(rewriteReciprocalTrig(signed), variable).toString();
-      if (termDerivative.length <= 160) {
+      const quotient = quotientRuleForm(Algebrite, signed, variable);
+      termDerivative = quotient ?? Algebrite.derivative(rewriteReciprocalTrig(signed), variable).toString();
+      // One term: this line is the answer, so it quotes the answer's form when
+      // that is the same function (20x(x^2 + 1)^9, not the expanded degree-19
+      // polynomial), and nothing is simplified a second time (1.68.7).
+      let isAnswer = false;
+      if (terms.length === 1 && derivative && derivative !== termDerivative) {
+        try { isAnswer = derivative.length <= termDerivative.length && expressionsNumericallyEqual(derivative, termDerivative, variable); } catch { isAnswer = false; }
+      }
+      if (isAnswer) termDerivative = derivative;
+      else if (!quotient && worthSimplifying(termDerivative)) {
         const simpler = Algebrite.simplify(termDerivative).toString();
         if (simpler && !isAlgebriteFailure(simpler) && simpler.length < termDerivative.length) termDerivative = simpler;
       }
