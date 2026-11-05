@@ -13,6 +13,7 @@ import { matchingParen } from '../../mathParser.js';
 import { parseError } from '../../solutionEnvelope.js';
 import { featureWindow, interestingXs } from '../../graphSampling.js';
 import { lnify } from './rules.js';
+import { readPolynomial, allRoots } from '../polynomialRoots.js';
 
 export function generateDerivativeGraph(original, derivative, variable, extras = {}) {
   try {
@@ -255,9 +256,15 @@ export function derivativeDomain(original, derivative, variable, Algebrite) {
   try {
     const den = String(Algebrite.run(`denominator(${derivative})`)).trim();
     if (den && hasVar.test(den) && !/[a-wyz]{2,}/i.test(den.replace(new RegExp(v, 'g'), ''))) {
-      const rootsRaw = String(Algebrite.roots(den, v)).trim();
-      if (rootsRaw && !/stop|error|nil/i.test(rootsRaw)) {
-        const poles = rootsRaw.replace(/^\[|\]$/g, '').split(',').map((t) => toNumber(t.trim())).filter(Number.isFinite);
+      // The exact root finder, not Algebrite's roots(): for (x^3 − 1)^2 that
+      // returned −1 as a root, and f′ was said to be undefined at x = −1
+      // (1.68.7). Algebrite only for a denominator that is not a polynomial.
+      const poly = readPolynomial(den, v);
+      const rootsRaw = poly && !poly.tooHigh ? null : String(Algebrite.roots(den, v)).trim();
+      if (poly && !poly.tooHigh ? poly.degree >= 1 : rootsRaw && !/stop|error|nil/i.test(rootsRaw)) {
+        const poles = poly && !poly.tooHigh
+          ? allRoots(poly).real.map((r) => r.value)
+          : rootsRaw.replace(/^\[|\]$/g, '').split(',').map((t) => toNumber(t.trim())).filter(Number.isFinite);
         for (const p of [...new Set(poles.map((x) => Math.round(x * 1e9) / 1e9))]) {
           const excluded = restrictions.some(({ r, dir }) => (dir > 0 ? p <= r + 1e-12 : p >= r - 1e-12));
           if (!excluded) push(`${v} ≠ ${formatNumber(p)}`, `the denominator of ${mark("f'")} is 0 at ${mark(`${v} = ${formatNumber(p)}`)}`);

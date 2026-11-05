@@ -89,10 +89,14 @@ export function estimateFiniteLimitNumeric(func, variable, target) {
   // wide range no matter how close we get — the limit fails to exist *because
   // the function oscillates*, which is a different reason than two one-sided
   // values disagreeing. Say so specifically (sin(1/x) is the classic case).
+  // Swinging samples decide nothing: rounding in a difference of nearly
+  // equal numbers swings too, and (e^x − 1 − x − x^2/2)/x^3 at 0, which is
+  // 1/6, was answered "does not exist" (1.68.7). A true oscillation such as
+  // sin(1/x) is proved by two sequences before sampling is reached.
   if (sideOscillates(func, variable, target, 1) || sideOscillates(func, variable, target, -1)) {
-    steps.push(`Sampling ever closer to ${mark(`${variable} = ${formatNumber(target)}`)}, the values keep swinging between roughly the same high and low values instead of settling toward any number.`);
-    steps.push('The function oscillates infinitely often near this point, so the limit does not exist.');
-    return { steps, answer: 'Does not exist' };
+    steps.push(`Sampling ever closer to ${mark(`${variable} = ${formatNumber(target)}`)}, the values keep swinging instead of settling toward any number.`);
+    steps.push('That can be a true oscillation, or rounding error in a difference of nearly equal numbers, and samples cannot tell which, so this limit is not decided here.');
+    return { steps, answer: null, undetermined: true };
   }
 
   const left = sampleSide(func, variable, target, -1);

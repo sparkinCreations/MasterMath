@@ -20,10 +20,12 @@ import {
   expressionsNumericallyEqual,
   realOddRoots,
   mark,
+  splitTerms,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
-import { trigRatioForm, generateDerivativeSteps, lnify } from './derivatives/rules.js';
+import { trigRatioForm, generateDerivativeSteps, lnify, worthSimplifying } from './derivatives/rules.js';
+import { quotientRuleForm } from './derivatives/quotient.js';
 import { derivativeGuidance } from './derivatives/guidance.js';
 import {
   solveAbsLinear,
@@ -101,7 +103,7 @@ async function solveDerivativeInner(expression, options = {}) {
     // of (x+1)^50 does not return in any useful time.
     const shorten = (expr) => {
       try {
-        if (expr.length > 160) return expr;
+        if (!worthSimplifying(expr)) return expr;
         const simplified = Algebrite.simplify(expr).toString();
         return simplified && !isAlgebriteFailure(simplified) && !isUnevaluatedOperator(simplified) && simplified.length < expr.length ? simplified : expr;
       } catch {
@@ -112,7 +114,7 @@ async function solveDerivativeInner(expression, options = {}) {
     // shows the rule applied to this problem.
     const differentiate = (piece) => {
       try {
-        const out = shorten(Algebrite.derivative(rewriteReciprocalTrig(piece), variable).toString());
+        const out = quotientRuleForm(Algebrite, piece, variable) ?? shorten(Algebrite.derivative(rewriteReciprocalTrig(piece), variable).toString());
         return out && !isAlgebriteFailure(out) && !isUnevaluatedOperator(out) ? lnify(out) : null;
       } catch {
         return null;
@@ -121,15 +123,39 @@ async function solveDerivativeInner(expression, options = {}) {
     // Authoritative, fully-simplified derivative. cos/sin and sin/cos of the
     // same argument are written as cot and tan (ln(sin x) → cot x), after a
     // numeric check that nothing changed.
-    let derivative = trigRatioForm(clearDenominatorFractions(Algebrite, shorten(Algebrite.derivative(forAlgebrite, variable).toString())), variable);
+    // A sum with a quotient of polynomials in it, term by term: simplify on
+    // the whole derivative of x + (x^2 + 1)/(x^3 − 1) ran for 148 s (1.68.7).
+    const termwise = (() => {
+      const terms = splitTerms(forAlgebrite);
+      if (terms.length < 2) return null;
+      const quotients = terms.map(({ signed }) => quotientRuleForm(Algebrite, signed, variable));
+      if (!quotients.some(Boolean)) return null;
+      const pieces = terms.map(({ signed }, i) => quotients[i] ?? shorten(Algebrite.derivative(rewriteReciprocalTrig(signed), variable).toString()));
+      if (pieces.some((p) => !p || isAlgebriteFailure(p) || isUnevaluatedOperator(p))) return null;
+      const sum = pieces.filter((p) => p !== '0').join('+').replace(/\+-/g, '-') || '0';
+      return expressionsNumericallyEqual(sum, Algebrite.derivative(forAlgebrite, variable).toString(), variable) ? sum : null;
+    })();
+    let derivative = trigRatioForm(clearDenominatorFractions(Algebrite, quotientRuleForm(Algebrite, forAlgebrite, variable) ?? termwise ?? shorten(Algebrite.derivative(forAlgebrite, variable).toString())), variable);
     // A power of a polynomial keeps the chain rule's form: (2x + 1)^5 gave
     // 160x^4 + 320x^3 + … where a textbook writes 10(2x + 1)^4 (outside
     // review, 1.61.0). Only for that shape and a modest result, and only when
     // the factored form is shorter and numerically the same.
-    if (/^\s*(?:[\d.]+\s*\*?\s*)?\([^()]+\)\s*\^\s*\(?\d+\)?\s*$/.test(expression) && derivative.length <= 160) {
+    // Written by the chain rule itself, c·n·P′·P^(n − 1), not by factor():
+    // Algebrite's factor() took 15 s on the derivative of (x^2 + 1)^10 and
+    // still missed (x^2 + 1)^9, so 20x(x^18 + 9x^16 + …) was shown (outside
+    // review, November 2026; 1.68.7).
+    const power = expression.match(/^\s*(?:([\d.]+)\s*\*?\s*)?\(([^()]+)\)\s*\^\s*\(?(\d+)\)?\s*$/);
+    if (power && Number(power[3]) >= 2) {
       try {
-        const factored = Algebrite.factor(derivative, variable).toString();
-        if (factored && !isAlgebriteFailure(factored) && !isUnevaluatedOperator(factored) && factored.length < derivative.length && expressionsNumericallyEqual(factored, derivative, variable)) derivative = factored;
+        const [, c = '1', inner, nText] = power;
+        const n = Number(nText);
+        const k = Algebrite.simplify(`(${c})*${n}*(${Algebrite.derivative(inner, variable)})`).toString();
+        if (k && !isAlgebriteFailure(k) && !isUnevaluatedOperator(k) && k !== '0') {
+          // A sum in front is bracketed: (12x - 6)(x^2 - x), not 12x - 6·(…).
+          const front = /^-?[^+-]*$/.test(k.replace(/\([^()]*\)/g, '')) ? k : `(${k})`;
+          const chain = `${front}*(${inner})${n - 1 === 1 ? '' : `^${n - 1}`}`;
+          if (expressionsNumericallyEqual(chain, derivative, variable)) derivative = chain;
+        }
       } catch { /* keep the expanded form */ }
     }
     // Higher orders: differentiate the previous result again, showing each.

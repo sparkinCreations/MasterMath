@@ -294,6 +294,19 @@ function valueAtGaussian(p, a, b) {
   return [re, im];
 }
 
+// Gauss's lemma, before the exact test: if a + bi (a = m₁/d₁, b = m₂/d₂, b ≠
+// 0) is a root of the integer polynomial p, its minimal polynomial
+// x² − 2ax + (a² + b²), cleared to a primitive integer quadratic, divides p,
+// so that quadratic's leading coefficient divides p's. Almost every nearby
+// rational fails this, and the exact test at a denominator near 10⁶ cost
+// 18 s over the 98 complex roots of x^100 = 1 (1.68.7).
+function gaussianMayBeRoot(p, a, b) {
+  const q = [a.m * a.m * b.d * b.d + b.m * b.m * a.d * a.d, -2n * a.m * a.d * b.d * b.d, a.d * a.d * b.d * b.d];
+  const g = q.reduce((acc, c) => bgcd(acc, c), 0n);
+  const leadQ = abs(q[2] / g);
+  return leadQ !== 0n && abs(lead(p)) % leadQ === 0n;
+}
+
 // The simplest rational within 1e-9 (relative) of a double, by continued
 // fractions, with denominator at most 10⁶ — the candidate for "is this root
 // exactly 20, or exactly 1/3?" Null when no such rational is that close.
@@ -388,6 +401,21 @@ export function readPolynomial(expression, variable) {
   }
 }
 
+// The degree of the greatest common factor of two polynomials given as text
+// (0 when they share none), by the exact integer gcd; null when either is not
+// a polynomial with rational coefficients. Algebrite's gcd took 4 s on
+// x^4 + 3x^2 + 2x and x^3 − 1 (1.68.7).
+export function sharedFactorDegree(aText, bText, variable) {
+  const a = readPolynomial(aText, variable);
+  const b = readPolynomial(bText, variable);
+  if (!a || !b || a.tooHigh || b.tooHigh) return null;
+  const ints = ({ coefficients }) => {
+    const lcmD = coefficients.reduce((acc, c) => acc / bgcd(acc, c.d) * c.d, 1n);
+    return coefficients.map((c) => c.s * c.n * (lcmD / c.d));
+  };
+  return degreeOf(gcd(ints(a), ints(b)));
+}
+
 /**
  * All roots of a polynomial read by readPolynomial.
  * Returns {
@@ -446,7 +474,7 @@ export function allRoots(poly) {
         const a = nearbyRational(w.re);
         const b = nearbyRational(w.im);
         let exactRoot = null;
-        if (a && b) {
+        if (a && b && gaussianMayBeRoot(ints, a, b)) {
           const [vr, vi] = valueAtGaussian(ints, exact.fraction(a.m, a.d), exact.fraction(b.m, b.d));
           if (vr.equals(0) && vi.equals(0)) exactRoot = { re: a, im: b };
         }

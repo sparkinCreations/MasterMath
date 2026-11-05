@@ -198,7 +198,11 @@ limit laws proved from the parse tree (`limits/laws.js`); numeric estimate
 last, said to be an estimate on the answer line, and refused when two
 ladders of samples disagree or have not settled — never "does not exist"
 from samples), `derivativesSolver`
-(rule classification and worked rule steps, orders 1–4, evalAt),
+(rule classification and worked rule steps, orders 1–4, evalAt; a power
+of a polynomial in the chain rule's own form c·n·P′·P^(n − 1), a ratio of
+polynomials as (N′D − ND′)/D² (`derivatives/quotient.js`), never Algebrite's
+factor() or simplify there, which ground for 15–150 s; the poles of f′ from
+the exact root finder),
 `implicitDerivativeSolver` (dy/dx of F(x, y) = 0 term by term, checked by
 following the curve; "at (a, b)"),
 `integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` /

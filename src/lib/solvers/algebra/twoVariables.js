@@ -16,6 +16,14 @@ export async function solveForVariable(equation, target) {
   try {
     const Algebrite = await loadAlgebrite();
     const [l, r] = equation.split('=');
+    // A cubic or higher with more than one term in the unknown has only a
+    // Cardano-style answer, which is never shown: roots() spent 19 s on
+    // y = x^3 + x before the inverse was refused (1.68.7). A pure power
+    // (y = x^3, so x = ∛y) is quick and still solved.
+    const expanded = String(Algebrite.run(`expand((${l.trim()}) - (${r.trim()}))`)).trim();
+    const degree = Number(String(Algebrite.run(`deg(${expanded}, ${target})`)).trim());
+    const withTarget = splitTerms(expanded).filter(({ signed }) => new RegExp(`(?<![a-z])${target}(?![a-z])`).test(signed)).length;
+    if (degree >= 3 && withTarget >= 2) return null;
     const raw = String(Algebrite.roots(`(${l.trim()}) - (${r.trim()})`, target)).trim();
     if (!raw || /stop|error|nil|roots/i.test(raw)) return null;
     let parts = parseRootsList(raw).map((rt) => rt.display).filter(Boolean);

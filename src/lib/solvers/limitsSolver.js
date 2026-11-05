@@ -40,6 +40,7 @@ import {
   tryAlgebriteSimplify,
   trySeriesLimit,
   tryLHopital,
+  trySeriesLeadingTerms,
   trySqueezeAtInfinity,
   tryOneToInfinity,
   tryLeadingTerms,
@@ -396,6 +397,10 @@ async function evaluateFiniteLimit(func, variable, target) {
     // Rung 4: L'Hôpital, capped so a stubborn indeterminate form cannot loop.
     const lhopital = tryLHopital(Algebrite, func, variable, target);
     if (lhopital && lhopital.verified) return lhopital;
+
+    // Rung 4′: the series again, by the lowest terms alone (1.68.7).
+    const leading = trySeriesLeadingTerms(Algebrite, func, variable, target);
+    if (leading && leading.verified) return leading;
   }
 
   // Rung 4b: x^p·ln(x)^m at 0, defined only on the right: 0·∞ settled by
