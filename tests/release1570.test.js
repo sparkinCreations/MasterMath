@@ -134,8 +134,9 @@ test('one-line table steps name and derive their method', async () => {
   // Worked in θ since 1.58.0 (tests/release1580.test.js has the steps).
   assert.match(plain(radical), /substitute x = 3tan θ/);
   assert.doesNotMatch(plain(radical), /u-substitution/);
-  assert.match(plain(await solve('cos(x)^4')), /Trigonometric identity: even powers/);
-  assert.match(plain(await solve('sin(x)^2*cos(x)^2')), /Trigonometric identity/);
+  // Worked step by step since 1.69.1 (tests/release1691.test.js has the steps).
+  assert.match(plain(await solve('cos(x)^4')), /The power is even, so there is no odd factor to save for du/);
+  assert.match(plain(await solve('sin(x)^2*cos(x)^2')), /lower them with the half-angle identities/);
   assert.doesNotMatch(plain(await solve('sin(x)^2*cos(x)^2')), /Integration by parts/);
   const divided = await solve('x^3/(x-1)');
   assert.equal(divided.answer, '∫(x^3/(x - 1)) dx = 1/3*x^3 + 1/2*x^2 + x + ln|x - 1| + C');

@@ -22,7 +22,7 @@ import {
   integrateByTriangleSubstitution,
 } from '../trigSubstitutionSolver.js';
 import { integrateTrigPower } from '../trigPowerSolver.js';
-import { integrateLinearPower } from './linearPower.js';
+import { integrateLinearPower, integratePolynomialTimesLinearPower } from './linearPower.js';
 import { integrateBySurdPartialFractions } from '../surdPartialFractions.js';
 import { positiveArgumentNote, safeRunLocal, polishLogArguments, simplifyRun } from './display.js';
 import {
@@ -46,6 +46,11 @@ import {
  * { antideriv, steps, method, term } or null when the term can't be integrated.
  */
 export async function integrateTerm(term, variable, Algebrite) {
+  // x·√(x + 1), x²/√(1 − x): a polynomial times a root of a linear inside,
+  // by u = ax + b in its own form (1.69.1). First: the by-parts and direct
+  // paths answered it with the cube expanded under the root, or not at all.
+  const polyRoot = integratePolynomialTimesLinearPower(term, variable);
+  if (polyRoot) return { antideriv: polyRoot.antiderivative, steps: polyRoot.steps, method: 'substitution', term, keepForm: true };
   if (needsByParts(term, variable)) {
     // A product can be a substitution in disguise — x·e^(x²) is g′·h(g), not
     // a by-parts problem (by parts drags in erf(ix) and only recovers by

@@ -263,7 +263,9 @@ Example: `sin(x)^2`
 
 ### Trig identity (even powers)
 
-Example: `sin(x)^2*cos(x)^2`
+> **Since 1.69.1** every input this list served (sin²x·cos²x, cos⁴x, sin⁴x·cos²x, up to a total power of 12) is worked step by step under **Trig powers (both even)** below, with its own list. This list is kept as the fallback for a trig product the lowering does not cover.
+
+Example (before 1.69.1): `sin(x)^2*cos(x)^2`
 
 **Key Insights** (6)
 
@@ -601,6 +603,55 @@ Example: `sin(x)^3`
 1. Splitting off the factor from the EVEN power: the leftover must be convertible with sin²θ + cos²θ = 1, which needs an even power left behind.
 2. Forgetting the constant of integration (+C).
 3. Dropping the minus sign from du = −sin θ dθ when u = cos θ.
+
+> **Added in 1.69.1** (after the November 6 roadmap check): two methods that
+> had been one-line answers or refusals are worked step by step, each with its
+> own list, written to the same rules (method first, the student's own
+> problem second, +C and the check last). Generated from the solver as above.
+
+### Trig powers (both even, 1.69.1)
+
+Example: `sin(x)^2*cos(x)^2`
+
+**Key Insights** (7)
+
+1. Even powers of sin and cos leave no factor to save for du: lower them with sin²θ = (1 − cos 2θ)/2 and cos²θ = (1 + cos 2θ)/2, repeating until only first powers of cosines remain.
+2. Here: the integrand lowers to 1/8 − 1/8·cos(4x), so ∫(sin(x)^2*cos(x)^2) dx = 1/8*x - 1/32*sin(4x) + C.
+3. Each lowering doubles the angle, so the antiderivative divides by the new inner constant: ∫cos(4x) dx = sin(4x)/4.
+
+   *— Show more —*
+4. A shortcut for equal powers: sin θ·cos θ = sin(2θ)/2, so sin²θ·cos²θ = sin²(2θ)/4, one lowering from the end.
+5. With an odd power instead, keep one factor for du: odd cos → u = sin θ, odd sin → u = cos θ.
+6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+
+**Common Mistakes** (3)
+
+1. Saving one factor for du when both powers are even: what is left is an odd power, which sin²θ + cos²θ = 1 cannot turn into a single function.
+2. Forgetting the inner constant: ∫cos(2x) dx = sin(2x)/2, not sin(2x).
+3. Forgetting the constant of integration (+C).
+
+### A root of a linear inside (1.69.1)
+
+Example: `x*sqrt(x+1)`
+
+**Key Insights** (7)
+
+1. A polynomial times a root of a linear inside, x·√(x + 1): let u be the inside and write the rest in u as well (x = u − 1); multiplied out, every term is a power of u.
+2. Here: u = x + 1, x = u − 1 and the integral becomes ∫(u^(3/2) − u^(1/2)) du, so ∫(x*sqrt(x + 1)) dx = 2/5*(x + 1)^(5/2) - 2/3*(x + 1)^(3/2) + C.
+3. Write roots as powers first, √u = u^(1/2) and 1/√u = u^(−1/2); then ∫u^n du = u^(n+1)/(n + 1) works for fractional n too.
+
+   *— Show more —*
+4. The answer can stay in powers of the inside, 2/5·(x + 1)^(5/2) − 2/3·(x + 1)^(3/2): there is no need to multiply it out.
+5. In a definite integral, change the bounds to values of u as well; then there is no need to substitute back.
+6. Always add the constant of integration (+C) for an indefinite integral: any two antiderivatives of the same function differ by a constant.
+7. Check any antiderivative by differentiating it: the derivative must give back the integrand exactly.
+
+**Common Mistakes** (3)
+
+1. Substituting u = x + 1 but leaving the x outside the root as it was: it has to be written in u too, x = u − 1.
+2. Multiplying by the new power instead of dividing: ∫u^(1/2) du = (2/3)·u^(3/2), not (3/2)·u^(3/2).
+3. Forgetting the constant of integration (+C).
 
 ### Reduction formula (sec^n)
 

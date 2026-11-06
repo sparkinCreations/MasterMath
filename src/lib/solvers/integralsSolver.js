@@ -80,6 +80,18 @@ function workedIntegral(method, text, answer) {
     const dx = pick(/so (d[a-z] = [^,;]+?)(?:,| and\b|;|\.)/);
     if (sub) parts.push(mark(sub.replace(/\s+$/, '')));
     if (dx) parts.push(mark(dx));
+  } else if (method === 'root of a linear inside') {
+    // "Here: u = x + 1, x = u − 1 and ∫(u^(3/2) − u^(1/2)) du, so …" (1.69.1)
+    const u = pick(/let u = (.+?)\. Then /);
+    const x = pick(/written in u too: ([a-z] = .+?)\.(?:\s|$)/);
+    const inU = pick(/a single power of u: (∫.+? du)\.(?:\s|$)/);
+    if (u) parts.push(mark(`u = ${u}`));
+    if (x) parts.push(mark(x));
+    if (inU) parts.push(`and the integral becomes ${mark(inU)}`);
+  } else if (method === 'trig power, even') {
+    // "Here: the integrand lowers to 1/8 − 1/8·cos(4x), so …" (1.69.1)
+    const lowered = pick(/Collect: [^=\n]+= (.+?)\.(?:\s|$)/) || pick(/Multiply out, in powers of [^:]+: [^=\n]+= (.+?)\.(?:\s|$)/);
+    if (lowered) parts.push(`the integrand lowers to ${mark(lowered)}`);
   } else if (method === 'form substitution') {
     const u = pick(/substitute (u = [^,]+?)(?:,| so)/);
     if (u) parts.push(mark(u));
@@ -305,6 +317,8 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       byPartsLog: byParts.some((r) => new RegExp(`^[-+]?(?:[\\d./]+\\*?)?(?:ln|log)\\(${variable}\\)$`).test(r.term.replace(/\s+/g, ''))),
       byPartsRepeated: byParts.some((r) => new RegExp(`${variable}\\^\\(?[2-9]`).test(r.term)),
       divideFirst: /divide first/.test(stepText),
+      rootOfLinear: /The root's inside .* is linear/.test(stepText),
+      trigEven: /(?:Both powers are|The power is) even, so there is no odd factor/.test(stepText),
       singleQuadratic,
       tableExponential: new RegExp(`(?:\\d|\\))\\s*\\^\\s*\\(?[^)]*\\b${variable}\\b`).test(table) && !/\be\s*\^/.test(table),
       tableHyperbolic: /\b(?:sinh|cosh|tanh)\b/.test(table),

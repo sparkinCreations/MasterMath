@@ -17,7 +17,12 @@
 // square). The whole antiderivative is differentiated back before it is
 // returned; the caller checks it again numerically (`numericCheck`).
 //
-// Out of scope here (null): a repeated irrational factor, an improper
+// A repeated real root (1/(x² − 2)² = 1/((x − √2)²(x + √2)²), 1.69.1) takes
+// one term per power, A₁/(x − r) + A₂/(x − r)² + …, its constants found by
+// matching at sample points (a small linear system) instead of residues;
+// the higher powers integrate to powers, −A/((p − 1)(x − r)^(p − 1)).
+//
+// Out of scope here (null): a repeated irreducible quadratic, an improper
 // fraction (the caller divides first), a denominator the root finder cannot
 // settle, and a denominator that factors over the rationals (worked
 // elsewhere, with Algebrite's exact decomposition).
@@ -154,6 +159,66 @@ const times = (n, body) => `${n.negative ? '−' : ''}${n.isOne ? '' : `${n.mag}
 const linearFactor = (v, rec) => `${v} ${rec.negative ? '+' : '−'} ${rec.mag}`;
 const quadFactor = (v, bRec, cRec) => `${v}²${bRec.isZero ? '' : ` ${joined(bRec)}${v}`} ${joined(cRec)}`;
 
+const SUP = { 2: '²', 3: '³', 4: '⁴' };
+// n/(den) with the number's own denominator folded in: 1/(8(x − √2)²),
+// −√2/(16(x − √2)), not −√2/16/(x − √2).
+function over(n, den) {
+  if (n.kind === 'decimal') return `${n.text}/${den}`;
+  const top = n.kind === 'rational' ? String(Math.abs(n.p)) : (n.twoTerms ? `(${n.inner})` : n.inner);
+  return `${n.negative ? '−' : ''}${top}/${n.r === 1 ? den : `(${n.r}${den})`}`;
+}
+
+// The constants over (x − r)^p, p = 1 … m, for a root r of multiplicity m:
+// the Taylor coefficients of (x − r)^m·N/D at r. Q = D/(x − r)^m by
+// synthetic division; N and Q shifted to powers of t = x − r; then the
+// series N/Q to order m − 1. Aₚ is the coefficient of t^(m − p).
+function repeatedRootConstants(nCoeffs, dCoeffs, r, m) {
+  let q = dCoeffs.slice();
+  for (let k = 0; k < m; k += 1) {
+    const out = new Array(q.length - 1).fill(0);
+    let carry = 0;
+    for (let i = q.length - 1; i >= 1; i -= 1) { carry = q[i] + carry * r; out[i - 1] = carry; }
+    q = out;
+  }
+  const shift = (c, k) => c.reduce((acc, ci, i) => (i < k ? acc : acc + ci * choose(i, k) * r ** (i - k)), 0);
+  const Ns = Array.from({ length: m }, (_, k) => shift(nCoeffs, k));
+  const Qs = Array.from({ length: m }, (_, k) => shift(q, k));
+  if (Math.abs(Qs[0]) < 1e-14) return null;
+  const S = [];
+  for (let k = 0; k < m; k += 1) {
+    let acc = Ns[k];
+    for (let j = 1; j <= k; j += 1) acc -= Qs[j] * S[k - j];
+    S.push(acc / Qs[0]);
+  }
+  return Array.from({ length: m }, (_, p) => S[m - 1 - p]);
+}
+const choose = (n, k) => { let x = 1; for (let j = 1; j <= k; j += 1) x = (x * (n - j + 1)) / j; return x; };
+
+// A constant of a decomposition over Q(√d), d from the roots themselves:
+// (p + q√d)/r with r up to 4096, smallest r first, to 1e-11. Accurate
+// constants (exact root values, the Taylor coefficients above) make the
+// first match the true one; failing that, the general recogniser.
+function recogniseIn(value, ds) {
+  const tight = (a, b) => Math.abs(a - b) <= 1e-11 * (1 + Math.abs(a));
+  for (let r = 1; r <= 4096; r += 1) {
+    const p = Math.round(value * r);
+    if (tight(p / r, value)) return recogniseNumber(p / r);
+    for (const d of ds) {
+      const sd = Math.sqrt(d);
+      for (let qq = 1; qq <= 64; qq += 1) {
+        for (const sq of [qq, -qq]) {
+          const pp = Math.round(value * r - sq * sd);
+          if (tight((pp + sq * sd) / r, value)) {
+            const g = gcd(gcd(Math.abs(pp), Math.abs(sq)), r) || 1;
+            return surd(pp / g, sq / g, d, r / g);
+          }
+        }
+      }
+    }
+  }
+  return recogniseNumber(value);
+}
+
 export function integrateBySurdPartialFractions(term, v) {
   const parts = splitTopLevel(String(term).trim(), '/');
   if (parts.length !== 2) return null;
@@ -165,13 +230,19 @@ export function integrateBySurdPartialFractions(term, v) {
   if (D.degree < 3 || N.degree >= D.degree) return null;
   const roots = allRoots(D);
   if (!roots || roots.complex === null) return null;
-  if (roots.real.some((r) => r.multiplicity > 1) || roots.complex.some((z) => z.multiplicity > 1)) return null;
+  if (roots.complex.some((z) => z.multiplicity > 1)) return null;
+  const repeated = roots.real.some((r) => r.multiplicity > 1);
   const nCoeffs = N.coefficients.map((c) => Number(c.valueOf()));
   const dCoeffs = D.coefficients.map((c) => Number(c.valueOf()));
   const lead = dCoeffs[dCoeffs.length - 1];
-  const linear = roots.real.map((r) => ({ r: r.value, rec: recogniseNumber(r.value) }));
+  // A repeated root is worked from its exact value (√2 to the last bit), so
+  // its Taylor constants come out accurate enough to recognise.
+  const linear = roots.real.map((r) => {
+    const rec = recogniseNumber(r.value);
+    return { r: repeated && rec.exact ? rec.value : r.value, rec, mult: r.multiplicity || 1 };
+  });
   const pairs = roots.complex.filter((z) => z.im > 0).map((z) => ({ b: -2 * z.re, c: z.re * z.re + z.im * z.im }));
-  if (linear.length + 2 * pairs.length !== D.degree) return null;
+  if (linear.reduce((acc, l) => acc + l.mult, 0) + 2 * pairs.length !== D.degree) return null;
   const quads = pairs.map(({ b, c }) => ({ b, c, bRec: recogniseNumber(Math.abs(b) < 1e-12 ? 0 : b), cRec: recogniseNumber(c) }));
   const allRational = linear.every((l) => l.rec.kind === 'rational') && quads.every((q) => q.bRec.kind === 'rational' && q.cRec.kind === 'rational');
   if (allRational) return null;
@@ -182,7 +253,15 @@ export function integrateBySurdPartialFractions(term, v) {
   const dPrime = dCoeffs.map((c, i) => c * i).slice(1);
   const scale = Math.max(...nCoeffs.map(Math.abs), 1e-300);
   const tidy = (value) => (Math.abs(value) < 1e-10 * scale ? 0 : value);
-  const coefA = linear.map((l) => recogniseNumber(tidy(polyValue(nCoeffs, l.r) / polyValue(dPrime, l.r))));
+  // coefA[i][p − 1]: the constant over (x − rᵢ)^p.
+  const ds = [...new Set(linear.map((l) => l.rec).filter((n) => n.kind === 'surd').map((n) => n.d))];
+  const recognise = repeated ? (x) => recogniseIn(x, ds) : recogniseNumber;
+  const constants = repeated ? linear.map((l) => repeatedRootConstants(nCoeffs, dCoeffs, l.r, l.mult)) : null;
+  if (constants && constants.some((row) => !row)) return null;
+  const coefA = repeated
+    ? constants.map((row) => row.map((a) => recognise(tidy(a))))
+    : linear.map((l) => [recogniseNumber(tidy(polyValue(nCoeffs, l.r) / polyValue(dPrime, l.r)))]);
+  // Each complex pair is simple: its constants are residues, N(z)/D′(z).
   const coefBC = pairs.map(({ b, c }) => {
     const re = -b / 2;
     const im = Math.sqrt(Math.max(c - re * re, 0));
@@ -192,14 +271,14 @@ export function integrateBySurdPartialFractions(term, v) {
     const res = { re: (nz.re * dz.re + nz.im * dz.im) / den, im: (nz.im * dz.re - nz.re * dz.im) / den };
     const B = 2 * res.re;
     const C = -2 * (res.re * re + res.im * im); // −2·Re(c·z̄)
-    return [recogniseNumber(tidy(B)), recogniseNumber(tidy(C))];
+    return [recognise(tidy(B)), recognise(tidy(C))];
   });
   // The decomposition must reproduce the integrand (guards a misrecognised constant).
   for (const x of [0.41, 1.37, 2.23, -1.71]) {
     const d = polyValue(dCoeffs, x);
     if (Math.abs(d) < 1e-9) continue;
     const lhs = polyValue(nCoeffs, x) / d;
-    const rhs = linear.reduce((acc, l, i) => acc + coefA[i].value / (x - l.r), 0)
+    const rhs = linear.reduce((acc, l, i) => acc + coefA[i].reduce((sum, a, p) => sum + a.value / (x - l.r) ** (p + 1), 0), 0)
       + quads.reduce((acc, q, j) => acc + (coefBC[j][0].value * x + coefBC[j][1].value) / (x * x + q.b * x + q.c), 0);
     if (!Number.isFinite(rhs) || Math.abs(lhs - rhs) > 1e-8 * (1 + Math.abs(lhs))) return null;
   }
@@ -211,15 +290,29 @@ export function integrateBySurdPartialFractions(term, v) {
   const note = (n) => { if (!n.exact) approximate = true; return n; };
   const ansatz = [];
   linear.forEach((l, i) => {
-    const a = note(coefA[i]);
     note(l.rec);
     const arg = linearFactor(v, l.rec);
-    ansatz.push(`${a.kind === 'rational' && Math.abs(a.p) === 1 && a.r > 1 ? `${a.negative ? '−' : ''}1/(${a.r}(${arg}))` : `${a.text}/(${arg})`}`);
-    if (a.isZero) return;
     const argRaw = `${v} ${l.rec.negative ? '+' : '-'} ${l.rec.magRaw}`;
-    pieceRaw.push(`${a.isOne ? (a.negative ? '-' : '') : `(${a.raw})*`}log(${argRaw})`);
-    pieceText.push(times(a, `ln|${arg}|`));
-    pieceSteps.push(mark(`∫ ${ansatz[ansatz.length - 1]} d${v} = ${times(a, `ln|${arg}|`)}`));
+    coefA[i].forEach((coef, k) => {
+      const a = note(coef);
+      const p = k + 1;
+      if (p === 1) {
+        ansatz.push(repeated ? over(a, `(${arg})`) : `${a.kind === 'rational' && Math.abs(a.p) === 1 && a.r > 1 ? `${a.negative ? '−' : ''}1/(${a.r}(${arg}))` : `${a.text}/(${arg})`}`);
+        if (a.isZero) return;
+        pieceRaw.push(`${a.isOne ? (a.negative ? '-' : '') : `(${a.raw})*`}log(${argRaw})`);
+        pieceText.push(times(a, `ln|${arg}|`));
+        pieceSteps.push(mark(`∫ ${ansatz[ansatz.length - 1]} d${v} = ${times(a, `ln|${arg}|`)}`));
+        return;
+      }
+      // A/(x − r)^p integrates to −A/((p − 1)(x − r)^(p − 1)).
+      ansatz.push(over(a, `(${arg})${SUP[p] || `^${p}`}`));
+      if (a.isZero) return;
+      const g = note(recognise(-a.value / (p - 1)));
+      const lower = p - 1 === 1 ? `(${arg})` : `(${arg})${SUP[p - 1] || `^${p - 1}`}`;
+      pieceRaw.push(`(${g.raw})/(${argRaw})^${p - 1}`);
+      pieceText.push(over(g, lower));
+      pieceSteps.push(mark(`∫ ${ansatz[ansatz.length - 1]} d${v} = ${over(g, lower)}`));
+    });
   });
   quads.forEach((q, j) => {
     const [B, C] = coefBC[j].map(note);
@@ -265,7 +358,18 @@ export function integrateBySurdPartialFractions(term, v) {
   ];
   const surds = [...new Set([...linear.map((l) => l.rec), ...quads.flatMap((q) => [q.bRec, q.cRec])].filter((n) => n.kind === 'surd').map((n) => `√${n.d}`))];
   const shown = pieceText.join(' + ').replace(/\+ −/g, '− ');
-  const steps = [
+  const powerOf = (l) => (l.mult === 1 ? '' : SUP[l.mult] || `^${l.mult}`);
+  const factorTextsR = repeated ? [
+    ...(lead === 1 ? [] : [String(lead)]),
+    ...linear.map((l) => `(${linearFactor(v, l.rec)})${powerOf(l)}`),
+    ...quads.map((q) => `(${quadFactor(v, q.bRec, q.cRec)})`),
+  ] : null;
+  const steps = repeated ? [
+    `${mark(`∫(${beautify(term)}) d${v}`)} — over the rationals the denominator does not split into linear factors, but over the reals it does: its roots give ${mark(`${beautify(denText)} = ${factorTextsR.join('')}`)}${surds.length ? ` (the coefficients involve ${surds.map(mark).join(', ')})` : ''}${approximate ? ' (a root with no closed form in square roots is kept to full precision and shown rounded)' : ''}.`,
+    `Partial fractions, one term for each power of a repeated factor${quads.length ? ' and a linear numerator over each irreducible quadratic' : ''}: ${mark(`${beautify(term)} = ${ansatz.join(' + ').replace(/\+ −/g, '− ')}`)}. The constants come from clearing denominators and matching both sides.`,
+    ...pieceSteps.map((t) => `  ${t}`),
+    `Add the pieces: ${mark(shown)}.${approximate ? ' The decimals are rounded (the answer is marked ≈); the antiderivative is checked by differentiation at full precision.' : ''}`,
+  ] : [
     `${mark(`∫(${beautify(term)}) d${v}`)} — the denominator has no factorisation over the rationals${linear.some((l) => l.rec.kind === 'rational') ? ' beyond its rational root' : ''}, but over the reals it does: its roots give ${mark(`${beautify(denText)} = ${factorTexts.join('')}`)}${surds.length ? ` (the coefficients involve ${surds.map(mark).join(', ')})` : ''}${approximate ? ' (a root with no closed form in square roots is kept to full precision and shown rounded)' : ''}.`,
     `Partial fractions, one term per factor (a linear numerator over each irreducible quadratic): ${mark(`${beautify(term)} = ${ansatz.join(' + ')}`)}. The constants come from clearing denominators and matching both sides.`,
     ...pieceSteps.map((t) => `  ${t}`),

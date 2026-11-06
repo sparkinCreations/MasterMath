@@ -128,7 +128,10 @@ function finishInU({ Algebrite, v, c, k }, polyInU, gRaw, factorSign, term, step
 
 function sinCosProduct(ctx, m, n, term) {
   const { c, k, theta, argRaw, v } = ctx;
-  if (m + n < 2 || (m % 2 === 0 && n % 2 === 0)) return null; // sin θ, cos θ alone are direct; both even go to half-angles
+  if (m + n < 2) return null; // sin θ, cos θ alone are direct
+  // Both even: lowered by the half-angle identities (1.69.1). A lone sin² or
+  // cos² keeps its own walkthrough (halfAngleSteps, the caller's path).
+  if (m % 2 === 0 && n % 2 === 0) return m + n <= 2 ? null : sinCosEven(ctx, m, n, term);
   const original = `${coefText(c)}${m ? powText('sin', theta, m) : ''}${m && n ? '·' : ''}${n ? powText('cos', theta, n) : ''}`;
   const steps = [];
   if (n % 2 === 1) {
@@ -143,6 +146,78 @@ function sinCosProduct(ctx, m, n, term) {
   else steps.push(`The power of ${mark('sin')} is odd: keep one factor of ${mark(`sin(${theta})`)} for ${mark('du')} and turn the rest into cosines with ${mark(`sin²(${theta}) = 1 − cos²(${theta})`)}: ${mark(`${original} = ${coefText(c)}(1 − cos²(${theta}))${i > 1 ? `^${i}` : ''}·${n ? `${powText('cos', theta, n)}·` : ''}sin(${theta})`)}.`);
   steps.push(`Let ${mark(`u = cos(${theta})`)}, so ${mark(`du = −${k === 1 ? '' : `${formatNumber(k)}·`}sin(${theta}) d${v}`)} and ${mark(`sin(${theta}) d${v} = −du${k === 1 ? '' : `/${formatNumber(k)}`}`)}: ${mark(`∫${original} d${v} = ${times(factorOf(-c, k), `∫${i ? `(1 − u²)${i > 1 ? `^${i}` : ''}` : ''}${n ? `u${n > 1 ? `^${n}` : ''}` : ''}${!i && !n ? '1' : ''} du`)}`)}.`);
   return finishInU(ctx, `(1-u^2)^${i}*u^${n}`, `cos(${argRaw})`, -1, term, steps, `cos(${theta})`);
+}
+
+// sin^m θ·cos^n θ with both powers even (sin²x·cos²x, sin⁴x, sin⁴x·cos²x):
+// no factor can be saved for du, so the powers are lowered. With w = cos 2θ,
+// sin²θ = (1 − w)/2 and cos²θ = (1 + w)/2 make the integrand a polynomial in
+// w; each power of cos 2θ is lowered again, cos^p(2θ) = 2^(−p)·Σ C(p, i)·
+// cos((p − 2i)·2θ), until only first powers of cosines remain, which
+// integrate one by one. Algebrite answered sin²x·cos²x in one line and
+// refused sin⁴x·cos²x. Up to m + n = 12; every coefficient is a dyadic
+// fraction times c, exact in floating point.
+const choose = (p, i) => { let r = 1; for (let j = 1; j <= i; j += 1) r = (r * (p - j + 1)) / j; return r; };
+function sinCosEven(ctx, m, n, term) {
+  const { c, k, theta, v } = ctx;
+  if (m + n > 12) return null;
+  const a = m / 2;
+  const b = n / 2;
+  // Denominators run to 2^(m+n+…): 1/1024 in sin⁴x·cos⁴x, past asFraction's 1000.
+  const fr = (x) => {
+    for (let q = 1; q <= 1 << 16; q += 1) {
+      const p = Math.round(x * q);
+      if (Math.abs(p / q - x) < 1e-13 * Math.max(1, Math.abs(x))) return q === 1 ? String(p) : `${p}/${q}`;
+    }
+    return formatNumber(x);
+  };
+  const ang = (mult) => `${formatNumber(mult * k)}${v}`; // cos(mult·θ) written in the variable
+  const twoTheta = ang(2);
+  // c/2^(a+b)·(1 − w)^a·(1 + w)^b as coefficients in w, lowest first.
+  let poly = [c / 2 ** (a + b)];
+  const times1 = (pl, sgn) => pl.map((x, i) => x + sgn * (pl[i - 1] || 0)).concat(sgn * pl[pl.length - 1]);
+  for (let i = 0; i < a; i += 1) poly = times1(poly, -1);
+  for (let i = 0; i < b; i += 1) poly = times1(poly, 1);
+  // Lowered: coefficient of cos(f·2θ) for f = 0, 1, …
+  const fourier = new Array(a + b + 1).fill(0);
+  poly.forEach((e, p) => {
+    if (!e) return;
+    for (let i = 0; i <= p; i += 1) fourier[Math.abs(p - 2 * i)] += (e * choose(p, i)) / 2 ** p;
+  });
+  const sum = (items) => items.filter(([x]) => Math.abs(x) > 1e-15).map(([x, body], i) => {
+    const sign = x < 0 ? (i === 0 ? '−' : ' − ') : (i === 0 ? '' : ' + ');
+    const mag = fr(Math.abs(x));
+    return `${sign}${body === '1' ? mag : `${mag === '1' ? '' : `${mag}·`}${body}`}`;
+  }).join('');
+  const cosPow = (p, arg) => (p === 1 ? `cos(${arg})` : p === 2 ? `cos²(${arg})` : p === 3 ? `cos³(${arg})` : `cos(${arg})^${p}`);
+  const original = `${coefText(c)}${m ? powText('sin', theta, m) : ''}${m && n ? '·' : ''}${n ? powText('cos', theta, n) : ''}`;
+  const factor = `${a ? `(1 − cos(${twoTheta}))${a > 1 ? `^${a}` : ''}` : ''}${b ? `(1 + cos(${twoTheta}))${b > 1 ? `^${b}` : ''}` : ''}`;
+  const lead = fr(c / 2 ** (a + b));
+  const inW = sum(poly.map((e, p) => [e, p === 0 ? '1' : cosPow(p, twoTheta)]));
+  const lowered = sum(fourier.map((e, f) => [e, f === 0 ? '1' : `cos(${ang(2 * f)})`]));
+  // ∫: the constant gives c₀·x, cos(2f·kx) gives sin(2f·kx)/(2fk).
+  const pieces = fourier.map((e, f) => (f === 0 ? [e, v] : [e / (2 * f * k), `sin(${ang(2 * f)})`]));
+  const raw = pieces.filter(([x]) => Math.abs(x) > 1e-15).map(([x, body], i) => {
+    const sign = x < 0 ? (i === 0 ? '-' : ' - ') : (i === 0 ? '' : ' + ');
+    const f = fr(Math.abs(x));
+    return `${sign}${f === '1' ? '' : `${f}*`}${body.replace(/^sin\(([\d.]+)/, 'sin($1*')}`;
+  }).join('');
+  if (!raw || !derivativeMatchesNumerically(raw, term, v)) return null;
+  const highPowers = poly.map((e, p) => (e && p >= 2 ? p : 0)).filter(Boolean);
+  // cos^p(w) = 2^(−p)·Σ C(p, i)·cos((p − 2i)w): the pairs i, p − i double,
+  // the middle term (p even) stays; lowest frequency first.
+  const reduce = (p) => `${cosPow(p, twoTheta)} = ${sum(Array.from({ length: Math.floor(p / 2) + 1 }, (_, i) => {
+    const f = p - 2 * i;
+    return [(f === 0 ? 1 : 2) * choose(p, i) / 2 ** p, f === 0 ? '1' : `cos(${ang(2 * f)})`];
+  }).reverse())}`;
+  const steps = [
+    `${m && n ? 'Both powers are even' : 'The power is even'}, so there is no odd factor to save for ${mark('du')}: lower ${m && n ? 'them' : 'it'} with the half-angle ${m && n ? 'identities' : 'identity'} ${[m ? mark(`sin²(${theta}) = (1 − cos(${twoTheta}))/2`) : '', n ? mark(`cos²(${theta}) = (1 + cos(${twoTheta}))/2`) : ''].filter(Boolean).join(' and ')}: ${mark(`${original} = ${lead === '1' ? '' : `${lead}·`}${factor}`)}.`,
+    `Multiply out, in powers of ${mark(`cos(${twoTheta})`)}: ${mark(`${original} = ${inW}`)}.`,
+  ];
+  if (highPowers.length) {
+    steps.push(`Lower each power of ${mark(`cos(${twoTheta})`)} the same way${highPowers.some((p) => p % 2) ? ' (an odd power by the triple-angle form)' : ''}: ${highPowers.map((p) => mark(reduce(p))).join(', ')}. Collect: ${mark(`${original} = ${lowered}`)}.`);
+  }
+  steps.push(`Integrate term by term (${mark(`∫cos(n${v}) d${v} = sin(n${v})/n`)}): ${mark(`∫${original} d${v} = ${beautify(raw)}`)}.`);
+  return { antiderivative: raw, steps, method: 'trig power' };
 }
 
 function secantEven(ctx, fn, n, term) {
