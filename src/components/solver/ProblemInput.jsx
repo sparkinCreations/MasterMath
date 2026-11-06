@@ -3,12 +3,14 @@ import NotationGuide from "@/components/solver/NotationGuide";
 import { revealElement } from "@/lib/reveal";
 import MathText from "@/components/MathText";
 import SymbolStrip from "@/components/solver/SymbolStrip";
+import MathKeypad from "@/components/solver/MathKeypad";
 import { insertSymbol, groupForTopic, readSymbolStripOpen, writeSymbolStripOpen } from "@/lib/symbolInsert";
+import { applyKey, readKeypadOpen, writeKeypadOpen, touchFirstDevice } from "@/lib/keypad";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calculator, Lightbulb, AlertCircle, Keyboard, ChevronUp, ChevronDown, X } from "lucide-react";
+import { Calculator, Lightbulb, AlertCircle, Keyboard, ChevronUp, ChevronDown, X, Grid3x3 } from "lucide-react";
 import { validateMathInput, validateTopic, sanitizeInput } from "@/lib/validation";
 import { readPlainEnglish } from "@/lib/plainEnglish";
 import { getSettings, autoDegreeAngle } from "@/lib/settings";
@@ -68,6 +70,24 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       return !open;
     });
   };
+  // The keypad (1.69.0): open on a phone or tablet until closed, closed
+  // with a mouse until opened; either way it stays as it was left. While it
+  // is open the phone's own keyboard stays closed (inputmode="none").
+  const [keypadOpen, setKeypadOpen] = useState(() => readKeypadOpen(globalThis.localStorage, touchFirstDevice()));
+  const toggleKeypad = () => {
+    const el = textareaRef.current;
+    const focused = el && globalThis.document?.activeElement === el;
+    setKeypadOpen((open) => {
+      writeKeypadOpen(globalThis.localStorage, !open);
+      return !open;
+    });
+    // A phone applies a new inputmode only when the box is focused again:
+    // closing the keypad brings its own keyboard back, opening it puts it away.
+    if (focused) {
+      el.blur();
+      setTimeout(() => el.focus({ preventScroll: true }), 0);
+    }
+  };
   // The topic picks the strip's group; a group chosen by hand holds until
   // the topic changes.
   const [symbolGroup, setSymbolGroup] = useState(() => groupForTopic(topic));
@@ -88,6 +108,22 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
     el.focus({ preventScroll: true });
     el.setSelectionRange(sel.start, sel.end);
   }, [problem]);
+  const handleKey = (key) => {
+    const el = textareaRef.current;
+    const start = el ? el.selectionStart : problem.length;
+    const end = el ? el.selectionEnd : problem.length;
+    const next = applyKey(problem, start, end, key);
+    pendingSelection.current = { start: next.selectionStart, end: next.selectionEnd };
+    // An arrow changes only the caret: set it now, as no render follows.
+    if (next.value === problem) {
+      pendingSelection.current = null;
+      el?.focus({ preventScroll: true });
+      el?.setSelectionRange(next.selectionStart, next.selectionEnd);
+      return;
+    }
+    setProblem(next.value);
+    setValidationError(null);
+  };
   const handleInsert = (symbol) => {
     const el = textareaRef.current;
     const start = el ? el.selectionStart : problem.length;
@@ -204,21 +240,38 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="problem" className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+        {/* The two buttons drop below the label where they do not fit beside
+            it: on a phone the label wrapped to three lines and the Symbols
+            chevron ran off the edge. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <Label htmlFor="problem" className="text-lg font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
             Enter your problem
           </Label>
-          <button
-            type="button"
-            onClick={toggleSymbols}
-            aria-expanded={symbolsOpen}
-            aria-controls="symbol-strip"
-            className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
-          >
-            <Keyboard className="w-4 h-4" aria-hidden="true" />
-            Symbols
-            {symbolsOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
-          </button>
+          {/* The keypad and the symbols, each opened and closed on its own. */}
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              type="button"
+              onClick={toggleKeypad}
+              aria-expanded={keypadOpen}
+              aria-controls="math-keypad"
+              className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+            >
+              <Grid3x3 className="w-4 h-4" aria-hidden="true" />
+              Keypad
+              {keypadOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
+            </button>
+            <button
+              type="button"
+              onClick={toggleSymbols}
+              aria-expanded={symbolsOpen}
+              aria-controls="symbol-strip"
+              className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+            >
+              <Keyboard className="w-4 h-4" aria-hidden="true" />
+              Symbols
+              {symbolsOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
+            </button>
+          </div>
         </div>
         {symbolsOpen && <SymbolStrip id="symbol-strip" group={symbolGroup} onGroupChange={setSymbolGroup} onInsert={handleInsert} />}
         <Textarea
@@ -232,6 +285,8 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             validationError ? 'border-red-300 focus:border-red-400' : 'border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500'
           } rounded-xl p-4 resize-none`}
           maxLength={1000}
+          // The keypad types instead: the phone's own keyboard stays closed.
+          inputMode={keypadOpen ? 'none' : undefined}
           aria-invalid={validationError ? true : undefined}
           aria-describedby={validationError ? 'problem-error' : undefined}
         />
@@ -257,6 +312,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             </p>
           );
         })()}
+        {keypadOpen && <MathKeypad id="math-keypad" onKey={handleKey} />}
         <div className="flex justify-between items-center gap-3 min-h-11">
           <div className="flex items-center gap-2">
             <p className="text-xs text-gray-500 dark:text-gray-400">

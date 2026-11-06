@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.69.0] - 2026-11-06
+
+### Added
+
+- **An on-screen keypad** under the problem box: the digits, x and y,
+  + − × ÷ =, brackets, powers, a decimal point, backspace and arrow keys
+  that move the caret. While it is open the problem box takes
+  `inputmode="none"`, so a phone's own keyboard stays closed and the box,
+  its preview and the Solve button stay in view; a student no longer
+  switches the phone keyboard between letters, numbers and symbols to type
+  "3x^2 - 5x + 2 = 0". It starts open where the main pointer is a finger
+  (a phone or tablet: `(pointer: coarse)`, not the screen width) and closed
+  with a mouse, and stays as it was left (localStorage `keypad`). Keys type
+  at the caret with the Symbols strip's rules; backspace takes a padded
+  " + " in one press. Every key is a 48 px target with a spoken name
+  ("Divide", not "division sign"). `lib/keypad.js` (unit-tested) and
+  `components/solver/MathKeypad.jsx`; the User Manual describes it.
+
 ## [1.68.9] - 2026-11-06
 
 ### Fixed
