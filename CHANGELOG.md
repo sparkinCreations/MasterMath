@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.9] - 2026-11-06
+
+### Fixed
+
+- **A system's graph marked one solution of two** (live check of 1.68.8):
+  x·y = 6 with x + y = 5 marked (2, 3) but not (3, 2), and the description
+  said "1 key feature". Every system with two solutions did the same. The
+  graph now marks every solution (`intersections`; a history entry with the
+  single `intersection` still draws), labelled inside the plot, and the
+  description and "Key features" list each one.
+- **The curve x·y = 6 was not drawn**, so both solutions sat on the line
+  alone: a coefficient of y that depends on x (y = 6/x) was taken for "not
+  a function of x". It is drawn, with a gap where that coefficient is 0
+  (from the exact root finder).
+- **A system's two graphs could get two y-axes**, so the line no longer
+  passed through the points where it meets the other curve. They share one.
+
 ## [1.68.8] - 2026-11-06
 
 ### Fixed

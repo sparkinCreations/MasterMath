@@ -11,6 +11,8 @@
 // found no extrema, we say nothing about extrema — we do not infer features
 // from the sampled points, because a fabricated feature is worse than none.
 
+import { intersectionPoints } from './graphSampling.js';
+
 const fmt = (n) => {
   if (!Number.isFinite(n)) return String(n);
   if (Number.isInteger(n)) return String(n);
@@ -129,8 +131,16 @@ export function describeGraphFeatures(functionData) {
   }
 
   // Systems
-  if (ann.intersection && Number.isFinite(ann.intersection.x) && Number.isFinite(ann.intersection.y)) {
-    features.push(`The two lines intersect at ${point(ann.intersection.x, ann.intersection.y)}.`);
+  // Every solution point: the curves of x·y = 6 and x + y = 5 meet twice,
+  // and the description gave one, "1 key feature" (1.68.9).
+  const meets = intersectionPoints(ann);
+  if (meets.length === 1 && !Array.isArray(ann.intersections)) {
+    features.push(`The two lines intersect at ${point(meets[0].x, meets[0].y)}.`);
+  } else if (meets.length === 1) {
+    features.push(`The graphs meet at ${point(meets[0].x, meets[0].y)}.`);
+  } else {
+    // One feature per marked point, so the count matches the dots.
+    meets.forEach((m, i) => features.push(`Intersection ${i + 1} of ${meets.length}: the graphs meet at ${point(m.x, m.y)}.`));
   }
 
   // Inequalities

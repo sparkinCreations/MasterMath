@@ -7,7 +7,7 @@ import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { graphPalette } from "@/lib/graphPalette";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
-import { sampleCurve, implicitCurve, featureWindow, annotationFeatureXs, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, niceTicks, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
+import { sampleCurve, implicitCurve, featureWindow, annotationFeatureXs, intersectionPoints, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, niceTicks, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
 
 // A ReferenceDot label placed where it fits inside the plot (placePointLabel).
 // Recharts renders this with the dot's box as `viewBox`; the props are named
@@ -673,18 +673,20 @@ export default function GraphViewer({ functionData }) {
                 />
               )}
 
-              {/* System-of-equations intersection: the solution point */}
-              {ann.intersection && inX(ann.intersection.x) && inY(ann.intersection.y) && (
+              {/* A system's solution points, every one, labelled inside the
+                  plot (Recharts' position "top" is clipped). */}
+              {intersectionPoints(ann).filter((p) => inX(p.x) && inY(p.y)).map((p, i) => (
                 <ReferenceDot
-                  x={ann.intersection.x}
-                  y={ann.intersection.y}
+                  key={`intersection-${i}`}
+                  x={p.x}
+                  y={p.y}
                   r={6}
                   fill={extremumColor}
                   stroke={markerStroke}
                   strokeWidth={2}
-                  label={{ value: ann.intersection.label, position: 'top', fill: extremumColor, fontSize: 12, fontWeight: 'bold' }}
+                  label={<PointLabel text={p.label} color={extremumColor} haloColor={tooltipBg} />}
                 />
-              )}
+              ))}
 
               {/* Holes (removable discontinuities) — hollow: the point is
                   exactly where the function is NOT defined. Drawn after the

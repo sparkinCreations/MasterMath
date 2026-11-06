@@ -372,19 +372,32 @@ async function solveNonlinear2x2(equations, first, second) {
 }
 
 // Graph each equation that can be written as v2 = f(v1) (a line or a
-// parabola opening up/down); a circle cannot, and is skipped. Marks the first
-// intersection with the existing annotation; the rest are in the description.
+// parabola opening up/down); a circle cannot, and is skipped. Marks every
+// intersection (only the first was, 1.68.9).
 function buildCurveGraph(Algebrite, eqs, v1, v2, points) {
   try {
     const curves = [];
+    const breaksOf = [];
     for (const e of eqs) {
       const expr = `(${e.lhs})-(${e.rhs})`;
       if (algebrite(Algebrite, `deg(${expr}, ${v2})`) !== '1') continue;
       const c1 = algebrite(Algebrite, `simplify(coeff(${expr}, ${v2}, 1))`);
       const c0 = algebrite(Algebrite, `simplify(subst(0, ${v2}, ${expr}))`);
-      if (!isConstant(c1) || c0 === null) continue;
+      if (c1 === null || c0 === null) continue;
+      // A coefficient of y that depends on x (x·y = 6, so y = 6/x) is still
+      // a function of x, with a gap where the coefficient is 0: that curve
+      // was left out, and both solutions sat on the other line (1.68.9).
+      let breaks = [];
+      if (!isConstant(c1)) {
+        const poly = readPolynomial(c1, v1);
+        if (!poly || poly.tooHigh || poly.degree < 1) continue;
+        breaks = allRoots(poly).real.map((r) => r.value);
+      }
       const f = algebrite(Algebrite, `simplify(-(${c0})/(${c1}))`);
-      if (f) curves.push(f.replace(new RegExp(`\\b${v1}\\b`, 'g'), 'x'));
+      if (f) {
+        curves.push(f.replace(new RegExp(`\\b${v1}\\b`, 'g'), 'x'));
+        breaksOf.push(breaks);
+      }
     }
     if (curves.length === 0) return null;
     const cx = points.length ? points.reduce((s, p) => s + p.x, 0) / points.length : 0;
@@ -395,6 +408,12 @@ function buildCurveGraph(Algebrite, eqs, v1, v2, points) {
     if (primary.length === 0) return null;
     const graph = {
       points: primary,
+      // Redrawn by the viewer for the window on screen, with a gap at a pole.
+      expression: curves[0],
+      // Both curves on one y-axis: on two, the line no longer passed through
+      // the points where it meets the other curve (1.68.9).
+      sharedAxis: true,
+      ...(breaksOf[0].length ? { breaks: breaksOf[0] } : {}),
       title: `Curves for the system in ${v1} and ${v2}`,
       description: points.length
         ? `The curves meet at ${points.map((p) => `(${round(p.x)}, ${round(p.y)})`).join(' and ')}.${curves.length < eqs.length ? ' (An equation that is not a function of x is not drawn.)' : ''}`
@@ -404,11 +423,13 @@ function buildCurveGraph(Algebrite, eqs, v1, v2, points) {
       const secondary = sampleFunction(curves[1], 'x', { min, max, step: (max - min) / 240 });
       if (secondary.length > 0) {
         graph.secondaryPoints = secondary;
+        graph.secondaryExpression = curves[1];
+        if (breaksOf[1].length) graph.secondaryBreaks = breaksOf[1];
         graph.secondaryLabel = `equation 2 (${v2} vs ${v1})`;
       }
     }
     if (points.length) {
-      graph.annotations = { intersection: { x: points[0].x, y: points[0].y, label: `(${round(points[0].x)}, ${round(points[0].y)})` } };
+      graph.annotations = { intersections: points.map((p) => ({ x: p.x, y: p.y, label: `(${round(p.x)}, ${round(p.y)})` })) };
       graph.initialWindow = { xMin: cx - span / 2, xMax: cx + span / 2 };
     }
     return graph;
@@ -860,6 +881,7 @@ function buildGraph(rows, v1, v2, intersection, description) {
     const graph = {
       points,
       title: `Lines for the system in ${v1} and ${v2}`,
+      sharedAxis: true,
       description,
     };
 
