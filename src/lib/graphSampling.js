@@ -123,6 +123,15 @@ export function featureWindow(xs, { minWidth = 4, minPad = 1.5, maxPad = 3, padR
 
 // Every x the annotations mark: extrema, intercepts, holes, asymptotes, a
 // solution, an intersection, a limit point, a shaded region's ends.
+// A system's solution points: `intersections` (every one, 1.68.9), or the
+// single `intersection` a linear system and older history entries carry.
+// The system x·y = 6, x + y = 5 marked (2, 3) and not (3, 2).
+export function intersectionPoints(ann) {
+  if (!ann) return [];
+  const list = Array.isArray(ann.intersections) ? ann.intersections : ann.intersection ? [ann.intersection] : [];
+  return list.filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+}
+
 export function annotationFeatureXs(functionData) {
   if (!functionData) return [];
   const ann = functionData.annotations || {};
@@ -134,7 +143,7 @@ export function annotationFeatureXs(functionData) {
   for (const h of ann.holes || []) push(h?.x);
   for (const a of ann.verticalAsymptotes || []) push(a);
   for (const o of ann.openPoints || []) push(o?.x);
-  if (ann.intersection) push(ann.intersection.x);
+  for (const p of intersectionPoints(ann)) push(p.x);
   if (ann.limitPoint) push(ann.limitPoint.x);
   if (ann.guideline) push(ann.guideline.x);
   if (ann.shaded) { push(ann.shaded.from); push(ann.shaded.to); }
@@ -240,7 +249,7 @@ export function annotationFeatureYs(functionData, series = 'primary') {
     if (ann.yIntercept) push(ann.yIntercept.y);
     if ((ann.intercepts || []).length) push(0);
     for (const h of ann.holes || []) push(h?.y);
-    if (ann.intersection) push(ann.intersection.y);
+    for (const p of intersectionPoints(ann)) push(p.y);
     if (ann.limitPoint) push(ann.limitPoint.y);
   }
   for (const o of ann.openPoints || []) {
