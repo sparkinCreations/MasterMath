@@ -215,6 +215,20 @@ export default function UserManual() {
           </div>
 
           <div>
+            <h3 id="practice" className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2 scroll-mt-24">Practice: Try a Similar One</h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              Under the final answer, <strong>Try a similar one</strong> opens up to five problems of the same kind: the same method, new numbers.
+              Work one on paper, type your answer and press <strong>Check</strong>. Answers are checked by their value, so any correct form counts:
+              “2, 3” or “x = 3 or x = 2” for an equation; “6x*cos(3x^2)” or “cos(3x^2)*6x” for a derivative; any + C for an integral; “1/3” or “0.33” for a number
+              (a decimal needs at least two places). A wrong answer says what is wrong without giving the answer away.
+              <strong> Hint</strong> shows the working one step at a time, <strong>Show solution</strong> all of it, and <strong>Look at the example</strong> the problem you started from.
+              <strong> Another one</strong> moves through the set and starts again after the last. Every practice problem is solved and checked by MasterMath before you see it,
+              and everyone who solves the same problem gets the same set. Practice is offered for arithmetic, equations in one unknown, derivatives, integrals and limits;
+              in MasterMath log(…) means base 10, so write ln(…) for the natural logarithm.
+            </p>
+          </div>
+
+          <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Key Insights</h3>
             <p className="text-gray-700 dark:text-gray-300">
               Learn important concepts and tips that will help you with similar problems in the future.

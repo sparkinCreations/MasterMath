@@ -138,6 +138,22 @@ for (const scheme of ['light', 'dark']) {
       await expect(page.getByRole('group', { name: 'Graph view controls' })).toBeVisible();
       await audit(page, `solver with solution and graph (${scheme})`);
 
+      // Practice mode (1.70.0): the pop-up with a problem, a wrong answer's
+      // message and a hint.
+      await page.locator('#problem').fill('x^2-5x+6=0');
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await page.getByRole('button', { name: 'Try a similar one' }).click();
+      const practice = page.getByRole('dialog', { name: 'Practice' });
+      await expect(practice.getByLabel('Your answer')).toBeVisible({ timeout: 20000 });
+      await practice.getByLabel('Your answer').fill('5');
+      await practice.getByRole('button', { name: 'Check' }).click();
+      await expect(practice.getByText(/does not satisfy the equation/)).toBeVisible();
+      await practice.getByRole('button', { name: 'Hint' }).click();
+      await practice.getByRole('button', { name: 'Look at the example' }).click();
+      await audit(page, `practice open, with a wrong answer, a hint and the example (${scheme})`);
+      await page.keyboard.press('Escape');
+      await expect(practice).toHaveCount(0);
+
       // A routed solve: the "Solved as Derivatives" notice and its button.
       await page.locator('#problem').fill('derivative of x^3');
       await page.getByRole('button', { name: 'Solve Problem' }).click();
@@ -288,6 +304,13 @@ test('nothing on the Solver or Settings is announced twice', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Insert a square root' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Backspace' })).toBeVisible();
   expect(await doubleReads(page), 'solver with symbols, examples, solution and graph').toEqual([]);
+  await page.locator('#problem').fill('x^2-5x+6=0');
+  await page.getByRole('button', { name: 'Solve Problem' }).click();
+  await page.getByRole('button', { name: 'Try a similar one' }).click();
+  await expect(page.getByRole('dialog', { name: 'Practice' }).getByLabel('Your answer')).toBeVisible({ timeout: 20000 });
+  if (!(await page.getByRole('group', { name: 'Answer keypad' }).isVisible())) await page.getByRole('dialog', { name: 'Practice' }).getByRole('button', { name: 'Keypad' }).click();
+  expect(await doubleReads(page), 'practice open, with its keypad').toEqual([]);
+  await page.keyboard.press('Escape');
   await page.goto('/settings');
   await expect(page.getByRole('button', { name: 'Degrees' })).toBeVisible();
   expect(await doubleReads(page), 'settings').toEqual([]);
