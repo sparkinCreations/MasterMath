@@ -15,7 +15,7 @@
 // Only x → +∞, and only an exact answer (0, ±∞ or a small rational); anything
 // else declines, and the older rungs, then sampling, decide.
 
-import { math, beautify, mark, absBars, isAlgebriteFailure } from '../solverUtils.js';
+import { math, beautify, mark, absBars, isAlgebriteFailure, formatNumber } from '../solverUtils.js';
 import { evalAt } from './numeric.js';
 import { tryGrowthRates } from './growth.js';
 
@@ -382,7 +382,8 @@ export function tryLimitLaws(Algebrite, func, variable, target) {
     method = lead && lead.c !== 0 ? 'leading powers' : 'limit laws';
   }
   if (!found) return null;
-  const answer = found.L.inf ? (found.L.inf > 0 ? '∞' : '-∞') : found.L.text ?? rational(found.L.value);
+  // A symbolic value carries its decimal: π/2 (≈ 1.5708) (1.68.8).
+  const answer = found.L.inf ? (found.L.inf > 0 ? '∞' : '-∞') : found.L.text ? `${found.L.text} (≈ ${formatNumber(found.L.value)})` : rational(found.L.value);
   if (answer === null || !consistent(func, v, found.L)) return null;
   // The insight applied to this limit, shown second (limits/guidance.js).
   const f = show(tree);

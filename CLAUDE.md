@@ -217,7 +217,9 @@ irreducible quadratics by the reduction formula; incl. c/(x⁴ + a⁴) over √2
 `surdPartialFractions` for any denominator that factors only over the
 reals: factors from the root finder, coefficients recognised as rationals
 or quadratic surds, else full-precision decimals shown rounded with ≈) /
-form substitutions u = eˣ and x = u² / definite / improper; a definite
+form substitutions u = eˣ and x = u² / a power of a linear inside,
+c·(ax + b)^r, by u = ax + b in its own form (`integrals/linearPower.js`) /
+definite / improper; a definite
 integral with no antiderivative found is estimated numerically and said to
 be: two step sizes must agree, an infinite range must settle), `requestSolver` (one thing asked in words, read by
 `readRequestPhrases` in `api/requests.js` and dispatched by `solveRequest`: the

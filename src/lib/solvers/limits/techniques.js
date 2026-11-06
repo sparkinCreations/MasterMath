@@ -61,7 +61,8 @@ function algebriteExactAt(Algebrite, expr, variable, at) {
 // numeric value otherwise. The numeric value is still what gets verified.
 function formatLimitAnswer(numeric, exactRaw) {
   if (exactRaw) {
-    const pretty = beautify(exactRaw).replace(/\bpi\b/g, 'π').replace(/\s+/g, ' ').trim();
+    // 1/(ln(10)) reads 1/ln(10): a single function needs no brackets.
+    const pretty = beautify(exactRaw).replace(/\bpi\b/g, 'π').replace(/\s+/g, ' ').replace(/\/\(((?:ln|log|sin|cos|tan|√)\([^()]*\))\)/g, '/$1').trim();
     const isPlainInt = /^-?\d+$/.test(pretty);
     const isDecimal = /^-?\d+\.\d+$/.test(pretty);
     // Use exact only when it carries structure a decimal can't: a fraction,
@@ -72,7 +73,9 @@ function formatLimitAnswer(numeric, exactRaw) {
       try {
         const check = Number(math.evaluate(pretty.replace(/π/g, 'pi')));
         if (Number.isFinite(check) && Math.abs(check - numeric) < 1e-6 * (1 + Math.abs(numeric))) {
-          return pretty;
+          // A symbolic value carries its decimal (CLAUDE.md, exact first):
+          // 1/ln(10) (≈ 0.4343); a fraction such as 3/2 stands alone.
+          return /[a-zπ√]/i.test(pretty) ? `${pretty} (≈ ${formatNumber(numeric)})` : pretty;
         }
       } catch {
         // fall through to the numeric form
@@ -643,32 +646,60 @@ function leadingRatio(Algebrite, numExp, denExp, variable, target) {
 
 // A Taylor polynomial about 0 as a textbook writes it: lowest powers first,
 // three terms, then "+ …" (x + x^2/2 + x^3/6 + …, not 1/40320*x^8 + … + x).
+// The point a series is centred on, as text, when it is a whole number or a
+// small fraction (x - 1, x + 1/2); null otherwise, and the series is shown as
+// Algebrite wrote it.
+function centreText(target) {
+  if (target === 0) return '0';
+  const f = rationalText(Math.abs(target));
+  return f === null ? null : `${target < 0 ? '-' : ''}${f}`;
+}
+
+// A Taylor polynomial as a textbook writes it: lowest powers first, in
+// powers of (x − a) about a ≠ 0, three terms, then "+ …" (x + x^2/2 + x^3/6
+// + …, not 1/40320*x^8 + … + x). An exact coefficient that is not a fraction
+// stays exact: (x - 1)/ln(10), not 0.4343(x - 1) (1.68.8).
 function seriesShown(Algebrite, expr, variable, target) {
-  if (target !== 0) return beautify(expr);
+  const centre = centreText(target);
+  if (centre === null) return beautify(expr);
+  const poly = target === 0 ? expr : String(Algebrite.run(`expand(subst((${variable})+(${centre}), ${variable}, ${expr}))`)).trim();
+  if (isAlgebriteFailure(poly)) return beautify(expr);
   const terms = [];
   for (let k = 0; k <= 8; k += 1) {
-    const raw = String(Algebrite.run(`coeff(${expr}, ${variable}, ${k})`)).trim();
+    const raw = String(Algebrite.run(`coeff(${poly}, ${variable}, ${k})`)).trim();
     if (isAlgebriteFailure(raw)) return beautify(expr);
     const c = Number(math.evaluate(raw));
     if (!Number.isFinite(c)) return beautify(expr);
-    if (c !== 0) terms.push({ c, k });
+    if (c !== 0) terms.push({ c, k, raw });
   }
   if (!terms.length) return '0';
-  const body = (k) => (k === 0 ? '' : k === 1 ? variable : `${variable}^${k}`);
-  const text = (c, k) => {
+  const base = target === 0 ? variable : `(${variable} ${target < 0 ? '+' : '-'} ${centre.replace(/^-/, '')})`;
+  const body = (k) => (k === 0 ? '' : k === 1 ? base : `${base}^${k}`);
+  // A coefficient Algebrite gives exactly, such as 1/log(10), shown with ln.
+  const symbolic = (raw) => {
+    const t = lnify(String(raw).replace(/^-/, '')).replace(/\s+/g, '').replace(/\/\((ln\([^()]*\))\)/g, '/$1');
+    return /[a-z]/i.test(t) && t.length <= 16 ? t : null;
+  };
+  const text = ({ c, k, raw }) => {
     const f = rationalText(Math.abs(c));
-    if (f === null) return `${formatNumber(Math.abs(c))}${body(k)}`;
+    if (f === null) {
+      const t = symbolic(raw);
+      if (t === null) return `${formatNumber(Math.abs(c))}${body(k)}`;
+      if (k === 0) return t;
+      const over = t.match(/^(\d*)\/(.+)$/);
+      return over ? `${over[1] === '1' || over[1] === '' ? '' : over[1]}${body(k)}/${over[2]}` : `${t}·${body(k)}`;
+    }
     const [a, b] = f.split('/');
     if (k === 0) return f;
     const top = a === '1' ? body(k) : `${a}${body(k)}`;
     return b ? `${top}/${b}` : top;
   };
-  // A term whose coefficient is not a small fraction ends the display with
-  // "+ …": -x^3/6 + x^5/120 + …, not "- 0.0002x^7" (1.68.7).
+  // A term whose coefficient is neither a small fraction nor short and exact
+  // ends the display with "+ …": -x^3/6 + x^5/120 + …, not "- 0.0002x^7".
   let count = Math.min(3, terms.length);
-  const firstInexact = terms.findIndex(({ c }) => rationalText(Math.abs(c)) === null);
+  const firstInexact = terms.findIndex(({ c, raw }) => rationalText(Math.abs(c)) === null && symbolic(raw) === null);
   if (firstInexact > 0) count = Math.min(count, firstInexact);
-  const shown = terms.slice(0, count).map(({ c, k }, i) => `${i === 0 ? (c < 0 ? '-' : '') : c < 0 ? ' - ' : ' + '}${text(c, k)}`).join('');
+  const shown = terms.slice(0, count).map((t, i) => `${i === 0 ? (t.c < 0 ? '-' : '') : t.c < 0 ? ' - ' : ' + '}${text(t)}`).join('');
   return terms.length > count ? `${shown} + …` : shown;
 }
 
@@ -739,7 +770,9 @@ export function trySeriesLimit(Algebrite, func, variable, target) {
 // (cos(x) − 1 + x^2/2)/x^4 at 0 fell to sampling and were answered "does
 // not exist" (1.68.7). At 0 only, where the series are shown in powers of x.
 export function trySeriesLeadingTerms(Algebrite, func, variable, target) {
-  if (target !== 0) return null;
+  // At 0, or at a point the series can be written about: log(x)/(x − 1) at 1
+  // was only estimated (1.68.8).
+  if (!Number.isFinite(target) || centreText(target) === null) return null;
   const parts = splitQuotient(func);
   if (!parts) return null;
   const numExp = taylorExpand(Algebrite, parts.num, variable, target);
@@ -751,7 +784,7 @@ export function trySeriesLeadingTerms(Algebrite, func, variable, target) {
   // against a mistake. Not sampled very near 0, where these forms lose every
   // digit to cancellation: at ±0.1 … ±0.01 the values must close in on it.
   const L = lead.value;
-  const gaps = [0.1, 0.05, 0.02, 0.01].map((h) => Math.max(...[h, -h].map((x) => Math.abs(evalAt(func, variable, x) - L))));
+  const gaps = [0.1, 0.05, 0.02, 0.01].map((h) => Math.max(...[h, -h].map((x) => Math.abs(evalAt(func, variable, target + x) - L))));
   if (!gaps.every(Number.isFinite) || !(gaps[3] < gaps[0] || gaps[3] < 1e-12) || gaps[3] >= 0.05 * Math.max(1, Math.abs(L))) return null;
   const shown = formatLimitAnswer(lead.value, lead.exact);
   return {

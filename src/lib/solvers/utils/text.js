@@ -439,3 +439,15 @@ export function exactForm(text) {
   const lead = out.match(/^-(\d+(?:\/\d+)?) \+ ([^+\-]+)$/);
   return lead ? `${lead[2]} - ${lead[1]}` : out;
 }
+
+// xy, 2xy, e^(xy): variables written side by side, read as a product. Only
+// runs made of the given letters are split; sin, pi, exp, … are never
+// touched. With `distinct`, a run that repeats a letter ("xx") is left for
+// the caller's hint (1.68.8: Algebra refused "xy = 6" while implicit
+// differentiation read it).
+export function splitVariableProducts(text, vars, { distinct = false } = {}) {
+  const set = new Set(vars);
+  return String(text).replace(/(?<![a-z])[a-z]{2,4}(?![a-z(])/gi, (run) => (
+    [...run].every((c) => set.has(c)) && (!distinct || new Set(run).size === run.length) ? [...run].join('*') : run
+  ));
+}

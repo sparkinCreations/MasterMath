@@ -87,12 +87,54 @@ export const wordProblemRefusal = (problem) => unsupported({
 // spaces were taken out ("thecriticalpointsofx"): say so in plain terms
 // rather than calling that a function name (October 2026 review).
 const gluedWords = (word) => word.length >= 12 || /^(?:the|is|of)[a-z]{3,}/i.test(word);
-export const unknownWordHint = (word) => (/\($/.test(word) ? unknownFunctionHint(word.slice(0, -1)) : gluedWords(word)
+export const unknownWordHint = (word, problem) => (/\($/.test(word) ? unknownFunctionHint(word.slice(0, -1)) : gluedWords(word)
   ? 'The words in this problem could not be read as maths. Type the expression or equation itself, such as "x^3 - 3x" or "2x + 5 = 11", and choose a topic for what to do with it.'
-  : `"${word}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`);
+  : `"${wordAsTyped(problem, word)}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`);
+
+// The word as the student typed it: the expression reader drops spaces, so
+// "mean of 1, 2, 3, 4" reached the check as "meanof" and was quoted that way
+// (outside review, November 2026; 1.68.8). The first typed word, not a maths
+// word, that the glued run starts with.
+export function wordAsTyped(problem, word) {
+  if (!problem) return word;
+  const typed = String(problem).match(/[a-z]{2,}/gi) || [];
+  if (typed.includes(word)) return word;
+  const lower = String(word).toLowerCase();
+  return typed.find((t) => !KNOWN_WORDS.has(t.toLowerCase()) && lower.startsWith(t.toLowerCase())) || word;
+}
+
+// Subjects MasterMath does not cover, named when a problem asks for one:
+// statistics on a list of numbers, and geometry formulas. "mean of 1, 2, 3,
+// 4" and "area of a circle with radius 2" were refused as unknown words
+// (1.68.8). The average value of a function is a request it does answer, and
+// is read before this.
+const SUBJECTS = [
+  {
+    re: /\b(?:mean|median|mode|average|standard\s+deviation|variance)\b(?![\s\S]*\bvalue\b)[\s\S]*-?\d+(?:\.\d+)?\s*,\s*-?\d/i,
+    name: 'Statistics',
+    what: 'the mean, median, mode or standard deviation of a list of numbers',
+    tip: 'For a mean, type the sum over the count: "(1 + 2 + 3 + 4)/4".',
+  },
+  {
+    re: /\b(?:area|perimeter|circumference|volume|surface\s+area)\s+of\s+(?:a|an|the)\s+(?:circle|square|rectangle|triangle|cube|sphere|cylinder|cone|prism|trapezoid|trapezium|parallelogram|rhombus|polygon|box|hexagon|pentagon)\b/i,
+    name: 'Geometry formulas',
+    what: 'areas, perimeters and volumes of shapes',
+    tip: 'Type the formula with the numbers in it: the area of a circle of radius 2 is "pi*2^2".',
+  },
+];
+export function unsupportedSubject(problem) {
+  const subject = SUBJECTS.find(({ re }) => re.test(String(problem)));
+  if (!subject) return null;
+  return unsupported({
+    input: problem,
+    reason: `${subject.name} (${subject.what}) is not part of MasterMath: it solves algebra through calculus, step by step.`,
+    answer: `${subject.name} are not supported`.replace('Statistics are', 'Statistics is'),
+    tips: [subject.tip],
+  });
+}
 
 export const unknownWordError = (problem, word) => parseError({
   input: problem,
-  hint: unknownWordHint(word),
+  hint: unknownWordHint(word, problem),
   tips: ['Type the mathematics itself — an expression or an equation, such as "2x + 5 = 11" or "x^2 - 4".'],
 });

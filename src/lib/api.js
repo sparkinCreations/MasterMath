@@ -9,7 +9,7 @@
 
 import { extractFunctionFromProblem, parseMathExpression, extractVariable } from './mathParser.js';
 import { STATUS, parseError, solved, unsupported } from './solutionEnvelope.js';
-import { bareFunctionName, bareFunctionRefusal, beautify } from './solvers/solverUtils.js';
+import { bareFunctionName, bareFunctionRefusal, beautify, splitVariableProducts } from './solvers/solverUtils.js';
 import { mark } from './mathMarkers.js';
 import { readPlainEnglish } from './plainEnglish.js';
 import { syntaxProblem } from './syntaxCheck.js';
@@ -35,6 +35,7 @@ import {
   wordProblemRefusal,
   unknownWordInProblem,
   unknownWordError,
+  unsupportedSubject,
 } from './api/words.js';
 import {
   readRequestPhrases,
@@ -109,7 +110,7 @@ async function solveRequest(request, problem) {
   }
   const expression = parseMathExpression(extractFunctionFromProblem(request.expression));
   const word = unknownWord(expression);
-  if (word) return finalizeResult(parseError({ input: request.expression, hint: unknownWordHint(word) }), problem);
+  if (word) return finalizeResult(parseError({ input: request.expression, hint: unknownWordHint(word, request.expression) }), problem);
   const variable = request.variable || extractVariable(expression);
   let result;
   if (request.kind === 'period') result = solvers.periodOf(expression, variable);
@@ -166,6 +167,11 @@ export async function solveProblem(problem, topic) {
     // "x squared", "e to the x", "is greater than", "x**3" → notation,
     // before routing reads it (plainEnglish.js).
     problem = readPlainEnglish(problem);
+    // "xy = 6; x + y = 5", "2xy + x = 3": variables side by side are a
+    // product, as implicit differentiation already read them; Algebra
+    // refused "xy" as an unknown word (outside review, November 2026;
+    // 1.68.8). Only runs of different letters among x, y, z.
+    problem = splitVariableProducts(problem, ['x', 'y', 'z'], { distinct: true });
     // The request phrases students type around the maths: "the", "the
     // expression", "the quadratic equation", "the zeros of". Each word was
     // glued to the maths and refused as one unknown word, or worse:
@@ -207,6 +213,8 @@ export async function solveProblem(problem, topic) {
       return result;
     }
 
+    const subject = unsupportedSubject(problem);
+    if (subject) return finalizeResult(subject, problem);
     if (looksLikeWordProblem(problem)) return finalizeResult(wordProblemRefusal(problem), problem);
 
     // Auto-detect: solve under the topic the input asks for, and say which.
@@ -538,6 +546,18 @@ export async function solveProblem(problem, topic) {
     // exact treatment as under Trigonometry — general solution and special
     // angles — instead of the algebra solver's numeric root scan. Only the
     // supported family is taken; anything else falls through to algebra.
+    // "y = x^3 + 2" under Algebra is already solved for y: it is a function,
+    // as Auto-detect reads it. Answered "x^3 + 2 is already in simplest form"
+    // (outside review, November 2026; 1.68.8).
+    if (topic === 'algebra') {
+      const definition = problem.match(/^\s*(?:[fgh]\s*\(\s*([a-z])\s*\)|y)\s*=(?!=)(.*)$/i);
+      if (definition && /[a-z]/i.test(definition[2]) && !/(?<![a-z])y(?![a-z])/i.test(definition[2])) {
+        const result = await solveProblem(problem, 'functions');
+        if (result && result.status !== 'parse_error') {
+          return noteRouting(result, topic, 'functions', definition[1] ? `the input defines the function f(${definition[1]})` : 'the input is already solved for y, so it defines y as a function of x');
+        }
+      }
+    }
     if (topic === 'algebra' && isSingleTrigEquation(problem)) {
       const { solveTrigEquationExact } = await import('./solvers/trigonometry/factorEquation.js');
       const trig = await solveTrigEquationExact(extractFunctionFromProblem(problem));
@@ -597,7 +617,7 @@ export async function solveProblem(problem, topic) {
               input: problem,
               hint: twoLetters
                 ? `"${word}" — two variables side by side. For a product, write ${word[0]}*${word[word.length - 1]}.`
-                : unknownWordHint(word),
+                : unknownWordHint(word, problem),
               tips: ['Type the mathematics itself — an expression or an equation, such as "2x + 5 = 11" or "x^2 - 4".'],
             }), problem);
           }

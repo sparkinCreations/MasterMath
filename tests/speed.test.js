@@ -72,8 +72,9 @@ test('Taylor limits lost to rounding were "does not exist"; they are worked by s
     assert.match(r.answer, new RegExp(`= ${answer.replace('/', '\\/')}$`), p);
     assert.ok(r.steps.some((s) => /Taylor series/.test(s)), p);
   }
-  // Swinging samples near a point decide nothing; sin(1/x) is still proved.
-  assert.equal((await timed('lim x->0 sin(1/x^2)', 'limits')).r.status, 'unsupported');
+  // Swinging samples near a point decide nothing; sin(1/x) is still proved,
+  // and sin(1/x^2) is too since 1.68.8. sin(ln|x|) is not.
+  assert.equal((await timed('lim x->0 sin(ln(abs(x)))', 'limits')).r.status, 'unsupported');
   assert.match((await timed('lim x->0 sin(1/x)', 'limits')).r.answer, /does not exist$/);
 });
 
