@@ -205,18 +205,23 @@ factor() or simplify there, which ground for 15–150 s; the poles of f′ from
 the exact root finder),
 `implicitDerivativeSolver` (dy/dx of F(x, y) = 0 term by term, checked by
 following the curve; "at (a, b)"),
-`integralsSolver` (direct / `substitutionSolver` / `byPartsSolver` /
+`integralsSolver` (direct / `substitutionSolver` / a polynomial times a
+root of a linear inside, P(x)·(ax + b)^r, by u = ax + b with x written in u
+(`integratePolynomialTimesLinearPower`) / `byPartsSolver` /
 `trigSubstitutionSolver` (√(a² − b²x²); x^m·(x² ± a²)^(k/2) and
 x^m·(a² − x²)^(k/2) by x = a·tan θ / a·sec θ / a·sin θ, worked in θ and
 turned back with the triangle) / `trigPowerSolver` (sin^m·cos^n
-with an odd power, sec^n and csc^n by u = tan or the reduction formula,
+with an odd power, both even lowered by the half-angle identities to first
+powers of cosines (m + n ≤ 12), sec^n and csc^n by u = tan or the reduction formula,
 tan^m·sec^n, tan^m) / partial fractions (the denominator factored over the
 rationals by the exact root finder, never Algebrite's `factor()`, which
 grinds for seconds on x⁴ + 1; coefficients solved exactly; repeated
 irreducible quadratics by the reduction formula; incl. c/(x⁴ + a⁴) over √2, and
 `surdPartialFractions` for any denominator that factors only over the
 reals: factors from the root finder, coefficients recognised as rationals
-or quadratic surds, else full-precision decimals shown rounded with ≈) /
+or quadratic surds, else full-precision decimals shown rounded with ≈; a
+repeated real root takes one term per power, its constants the Taylor
+coefficients at the root) /
 form substitutions u = eˣ and x = u² / a power of a linear inside,
 c·(ax + b)^r, by u = ax + b in its own form (`integrals/linearPower.js`) /
 definite / improper; a definite

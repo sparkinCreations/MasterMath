@@ -69,7 +69,7 @@ const EXTRA = [
   ['algebra', '1/(x-1) = 0'], ['algebra', 'x*e^x = 1'], ['algebra', 'factor x^2 - 9'], ['algebra', 'sqrt(72)'], ['algebra', 'expand (x+1)^2'], ['algebra', '(x^2-1)/(x-1)'],
   // Every integration method's whole list (1.60.0: more insights behind "Show more").
   ['integrals', '2^x'], ['integrals', 'sinh(x)'], ['integrals', 'tan(x)^2'], ['integrals', 'sec(x)^3'], ['integrals', 'ln(x)'],
-  ['integrals', 'e^x*sin(x)'], ['integrals', 'x^2*sin(x)'], ['integrals', 'sin(x)^3'], ['integrals', 'sin(x)^2*cos(x)^2'], ['integrals', '(x^3+1)/(x-1)'],
+  ['integrals', 'e^x*sin(x)'], ['integrals', 'x^2*sin(x)'], ['integrals', 'sin(x)^3'], ['integrals', 'sin(x)^2*cos(x)^2'], ['integrals', 'x*sqrt(x+1)'], ['integrals', '(x^3+1)/(x-1)'],
   ['integrals', '(2x+3)/(x^2+1)'], ['integrals', '1/(1+e^x)'], ['integrals', 'e^(-x^2)'], ['integrals', '1/sqrt(x^2+4)'], ['integrals', 'tan(x)'],
   ['integrals', '1/(1+x^2)'], ['integrals', '∫_0^∞ e^(-x) dx'], ['integrals', '∫_0^1 sqrt(1+x^4) dx'], ['integrals', '∫_0^1 1/sqrt(x) dx'],
   ['integrals', '1/(x^3 - 2)'], ['integrals', 'sqrt(x^2-9)/x'], ['integrals', '1/(x^2*sqrt(x^2+9))'], ['integrals', 'x*e^x'], ['integrals', '∫_0^1 ln(x) dx'],

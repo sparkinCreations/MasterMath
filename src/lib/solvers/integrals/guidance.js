@@ -53,12 +53,12 @@ export function indefiniteMethod(f) {
   if (f.usesErf) return 'erf';
   if (f.anyFormSub) return 'form substitution';
   if (f.anyReduction) return f.reductionOfTan ? 'tan reduction' : 'reduction';
-  if (f.anyTrigPower) return 'trig power';
+  if (f.anyTrigPower) return f.trigEven ? 'trig power, even' : 'trig power';
   if (f.anyByParts) return f.byPartsCyclic ? 'by parts, cyclic' : f.byPartsLog ? 'by parts, ln' : f.byPartsRepeated ? 'by parts, repeated' : 'by parts';
   if (f.anyTrigSub) return 'trig substitution';
   if (f.anyInverseTrig) return 'inverse trig';
   if (f.anyPartial) return f.divideFirst ? 'partial fractions, divide first' : f.singleQuadratic ? 'irreducible quadratic' : 'partial fractions';
-  if (f.anySubstitution) return 'substitution';
+  if (f.anySubstitution) return f.rootOfLinear ? 'root of a linear inside' : 'substitution';
   if (f.anyAbs) return 'absolute value';
   const l = f.directLabels;
   if (l.has('Power rule') || l.size === 0) return 'power';
@@ -161,6 +161,23 @@ export function indefiniteGuidance(method, v) {
           `Dropping the minus sign from ${mark('du = −sin θ dθ')} when ${mark('u = cos θ')}.`,
         ],
       };
+    // Both powers even (1.69.1; docs/future-work/insights-review/INTEGRALS.md).
+    case 'trig power, even':
+      return {
+        tips: [
+          `Even powers of ${mark('sin')} and ${mark('cos')} leave no factor to save for ${mark('du')}: lower them with ${mark('sin²θ = (1 − cos 2θ)/2')} and ${mark('cos²θ = (1 + cos 2θ)/2')}, repeating until only first powers of cosines remain.`,
+          `Each lowering doubles the angle, so the antiderivative divides by the new inner constant: ${mark(`∫cos(4${v}) d${v} = sin(4${v})/4`)}.`,
+          `A shortcut for equal powers: ${mark('sin θ·cos θ = sin(2θ)/2')}, so ${mark('sin²θ·cos²θ = sin²(2θ)/4')}, one lowering from the end.`,
+          `With an odd power instead, keep one factor for ${mark('du')}: odd ${mark('cos')} → ${mark('u = sin θ')}, odd ${mark('sin')} → ${mark('u = cos θ')}.`,
+          plusC(),
+          checkByDifferentiating(),
+        ],
+        mistakes: [
+          `Saving one factor for ${mark('du')} when both powers are even: what is left is an odd power, which ${mark('sin²θ + cos²θ = 1')} cannot turn into a single function.`,
+          `Forgetting the inner constant: ${mark(`∫cos(2${v}) d${v} = sin(2${v})/2`)}, not ${mark(`sin(2${v})`)}.`,
+          forgotC(),
+        ],
+      };
     case 'by parts':
     case 'by parts, cyclic':
     case 'by parts, ln':
@@ -260,6 +277,24 @@ export function indefiniteGuidance(method, v) {
           forgotC(),
           `Leaving the answer in ${mark('u')}: substitute ${mark('u = g(x)')} back at the end.`,
           'Keeping the old bounds after changing variables in a definite integral.',
+        ],
+      };
+    // A polynomial times a root of a linear inside (1.69.1;
+    // docs/future-work/insights-review/INTEGRALS.md).
+    case 'root of a linear inside':
+      return {
+        tips: [
+          `A polynomial times a root of a linear inside, ${mark(`${v}·√(${v} + 1)`)}: let ${mark('u')} be the inside and write the rest in ${mark('u')} as well (${mark(`${v} = u − 1`)}); multiplied out, every term is a power of ${mark('u')}.`,
+          `Write roots as powers first, ${mark('√u = u^(1/2)')} and ${mark('1/√u = u^(−1/2)')}; then ${mark('∫u^n du = u^(n+1)/(n + 1)')} works for fractional ${mark('n')} too.`,
+          `The answer can stay in powers of the inside, ${mark(`2/5·(${v} + 1)^(5/2) − 2/3·(${v} + 1)^(3/2)`)}: there is no need to multiply it out.`,
+          `In a definite integral, change the bounds to values of ${mark('u')} as well; then there is no need to substitute back.`,
+          plusC(),
+          checkByDifferentiating(),
+        ],
+        mistakes: [
+          `Substituting ${mark(`u = ${v} + 1`)} but leaving the ${mark(v)} outside the root as it was: it has to be written in ${mark('u')} too, ${mark(`${v} = u − 1`)}.`,
+          `Multiplying by the new power instead of dividing: ${mark('∫u^(1/2) du = (2/3)·u^(3/2)')}, not ${mark('(3/2)·u^(3/2)')}.`,
+          forgotC(),
         ],
       };
     case 'absolute value':

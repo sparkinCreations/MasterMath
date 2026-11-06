@@ -174,7 +174,10 @@ export function classifyIntegralRule(term, variable) {
   // √(x² ± a²), √(a² − x²) in the integrand: a trigonometric substitution
   // (Algebrite answers 1/(x²√(x² + 9)) in one line; the step used to call
   // it "u-substitution", with no u in sight — October 2026 review).
-  const radical = inner.replace(/\s+/g, '').match(new RegExp(`(?:sqrt\\(|\\()(?:(?:\\d+\\*?)?${v}\\^2([+-])(\\d+)|(\\d+)([+-])(?:\\d+\\*?)?${v}\\^2)\\)(?:\\^\\(1/2\\))?`));
+  const radicalMatch = inner.replace(/\s+/g, '').match(new RegExp(`(?:sqrt\\(|\\()(?:(?:\\d+\\*?)?${v}\\^2([+-])(\\d+)|(\\d+)([+-])(?:\\d+\\*?)?${v}\\^2)\\)(?:\\^\\(-?\\d+/2\\))?`));
+  // A radical only: sqrt(…) or a half-integer power. (x² − 2)² has no root
+  // in it, and was labelled "the radical √(x² − a²)" (1.69.1).
+  const radical = radicalMatch && (radicalMatch[0].startsWith('sqrt(') || /\^\(-?\d+\/2\)$/.test(radicalMatch[0])) ? radicalMatch : null;
   if (radical) {
     const [, sign1, a2a, a2b, sign2] = radical;
     const a2 = Number(a2a ?? a2b);

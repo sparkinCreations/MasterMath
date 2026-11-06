@@ -1,8 +1,8 @@
 # MasterMath — Future Work Roadmap (October 2026)
 
-**Version referenced:** 1.56.0 (written against 1.48.0, kept current since)
+**Version referenced:** 1.69.1 (written against 1.48.0, kept current since)
 **By:** sparkinCreations™
-**Last Updated:** October 26, 2026
+**Last Updated:** November 6, 2026
 **Supersedes:** [`ROADMAP.md`](ROADMAP.md) (September 2026; 11/13 shipped, the two P4 items carry over below)
 **Source:** [`../evaluations/2026-10/REVIEW-LOG-2026-10.md`](../evaluations/2026-10/REVIEW-LOG-2026-10.md) — six outside review rounds against v1.41–v1.48, every claim reproduced before it was accepted
 
@@ -22,6 +22,7 @@
 10. [Decided Against, and Why](#decided-against-and-why)
 11. [Known Engine Limitations](#known-engine-limitations)
 12. [Shipped October 22–26 (1.53.0–1.56.0)](#shipped-october-2226-15301560)
+13. [Shipped October 27 – November 6 (1.57.0–1.69.1)](#shipped-october-27--november-6-15701691)
 
 ---
 
@@ -59,11 +60,14 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P3~~ | ~~Implicit curve plot~~ | **Shipped in 1.56.0**: the curve traced to scale, with the tangent at the point | — |
 | ~~P3~~ | ~~General partial fractions within the budget~~ | **Shipped in 1.53.1**: under a second, improper fractions divided first | — |
 | ~~P3~~ | ~~Break up the large solver files~~ | **Shipped in 1.59.1–1.59.11**: every file over about 1,000 lines is a folder of method files behind its entry file, each move checked against 2,241 golden solves. Plan: [`PLAN-FILE-SPLIT.md`](PLAN-FILE-SPLIT.md) | — |
-| P3 | More insights ("Show more"), sources, "Learn more" links | More guidance without random rotation; same lists for every student. **1.60.0**: the feature, every topic's links, and the integrals content; the other topics one per release. Plan: [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) | Large (content) |
-| P4 | Sequences & series; practice mode | Carried over from September | — |
+| ~~P3~~ | ~~More insights ("Show more"), sources, "Learn more" links~~ | **Shipped in 1.60.0–1.67.0**: the feature and every topic's links (1.60.0), then one topic per release: integrals (1.60.0), derivatives, algebra, limits, functions, trigonometry, inequalities and systems, arithmetic (1.67.0), each with a review document in [`insights-review/`](insights-review/). Plan: [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) | — |
+| ~~P3~~ | ~~Integrals answered in one line or refused~~ | **Shipped in 1.69.1** (found in the November 6 check of this list): a polynomial times a root of a linear inside (x·√(x + 1), x·∛(x + 2)), even powers of sin and cos lowered step by step (sin²x·cos²x, sin⁴x·cos²x), and partial fractions for a repeated factor that splits only over the reals (1/(x² − 2)²) | — |
+| P4 | Practice mode: "Try a similar problem" | Carried over from September; the October 25 reviewer's main "what it is not for" | Medium |
+| P4 | Sequences & series | Carried over from September | Large |
+| P4 | Graph a two-variable inequality's region | `x + y > 2` is refused honestly (1.49.0); drawing the shaded half-plane is new work | Medium |
 
-**Recommended order (October 29):** the file split (done, 1.59.1–1.59.11),
-then the insights work, then practice mode, then sequences & series.
+**Recommended order (November 6):** practice mode, then sequences &
+series. Everything above it has shipped.
 
 ---
 
@@ -88,10 +92,10 @@ then the insights work, then practice mode, then sequences & series.
 > (KaTeX failures 0). `tests/typesetting.test.js` now covers 107 problems
 > across every solver.
 >
-> **Found on the way (open):** `∫ (x+1)/((x−1)²(x²+1)) dx` takes about
-> 115 s in Node (the same on 1.50.0), so in the app the 10 s budget stops
-> it and the answer is "could not finish". The general partial-fraction
-> path needs profiling; it is not in the typesetting test for that reason.
+> **Found on the way (fixed in 1.53.1):** `∫ (x+1)/((x−1)²(x²+1)) dx` took
+> about 115 s in Node (the same on 1.50.0), so in the app the 10 s budget
+> stopped it. The general decomposition now runs before Algebrite's
+> `integral()`; measured at 0.8 s on 1.69.0.
 
 **Finding (reviews 3, 5 and 6).** Steps such as *"The integrand has the
 form √(a² − x²) with a = 1: substitute x = sin θ …"* or *"write the
@@ -344,16 +348,21 @@ Honest refusals, each with a message that says so:
 - **Integrals the engine cannot do** — `unsupported`, with the
   non-elementary note where one applies (erf, Si, Fresnel). A definite
   version is estimated numerically since 1.57.0 (two step sizes must
-  agree; an infinite range must settle). Still one-line answers rather
-  than worked: a product of even powers of sin and cos (sin²x·cos²x,
-  labelled "Trigonometric identity" but not reduced step by step),
-  √(ax + b) under a product (x·√(x + 1) is answered by Algebrite's own
-  substitution). A denominator that factors only over the reals is worked
+  agree; an infinite range must settle). A denominator that factors only over the reals is worked
   since 1.57.0 (1/(x⁵ + 1) with √5; 1/(x³ − 2) with the cube root kept to
   full precision and the answer marked ≈), and a repeated irreducible
   quadratic with rational coefficients is worked by the reduction formula
-  since 1.57.1 (1/(x² + 1)³, (2x + 3)/(x² + x + 1)²); a repeated
-  irrational factor ((x² − 2)²) is still a one-line answer or a refusal.
+  since 1.57.1 (1/(x² + 1)³, (2x + 3)/(x² + x + 1)²). Since 1.69.1 a
+  product of even powers of sin and cos is lowered step by step, a
+  polynomial times a root of a linear inside is worked by u = the inside,
+  and a repeated factor that splits over the reals ((x² − 2)²) takes one
+  partial fraction per power. Still open: a product of trig functions of
+  different angles (sin(x)·cos(2x), sin(2x)·cos(x)), which needs the
+  product-to-sum identities and is refused; a repeated irreducible
+  quadratic with irrational coefficients; and the definite version of a
+  surd partial fraction, whose value is right but shown in Algebrite's
+  form (∫₀¹ 1/(x² − 2)² dx = 1/4 + (√2/8)·ln(1 + √2), shown as a nested
+  log).
 - **Polynomials above degree 100** — refused.
 - **Sequences, series and Taylor expansions** — not a topic yet (roadmap
   P4); the October 25 reviewer counted it as scope, since the User Manual
@@ -389,3 +398,20 @@ Honest refusals, each with a message that says so:
 | 1.55.2 | Exact big whole numbers (BigInt); ≈ m × 10^k for what a float cannot show (2^-60 was 0); complex arithmetic worked; the domain step marked per condition; exports titled by the solved topic; multi-digit exponents typeset |
 | 1.55.3 | Results too small or too large for a float kept as exact fractions (2^-60 = 1/1152921504606846976); complex answers typeset; spacing before "(≈ …)" |
 | 1.56.0 | Average value on an interval; absolute maximum and minimum on a closed interval; primes and prime factorization; rounding; implicit curves graphed with the tangent at the point |
+
+## Shipped October 27 – November 6 (1.57.0–1.69.1)
+
+| Release | What |
+|---|---|
+| 1.57.0–1.58.0 | Trig powers and reduction formulas worked (sin²x·cos³x, sec³x, tan^m); surd partial fractions (1/(x⁵ + 1)); definite integrals with no antiderivative estimated and said to be; no antiderivative shown unchecked |
+| 1.59.0 | My Progress search, filters and delete one entry |
+| 1.59.1–1.59.11 | Every solver file over about 1,000 lines split into method files, checked against 2,241 golden solves ([`PLAN-FILE-SPLIT.md`](PLAN-FILE-SPLIT.md)) |
+| 1.60.0–1.67.0 | "Show more", sources and "Learn more" links; ranked insights and mistakes for all eight topics, the second one working the student's own problem |
+| 1.67.1–1.68.2 | A seeded randomized cross-check; zeros of inequalities proved; mixed trig equations solved exactly; request phrases without "find" |
+| 1.68.3–1.68.5 | One solve can no longer poison the next (Algebrite state); install icons and theme colour; `/.well-known/` answers 404 |
+| 1.68.6 | Limits at infinity proved by the limit laws; samples that have not settled are no longer "does not exist"; estimates labelled |
+| 1.68.7 | Textbook problems that ran past the 10 s budget now under 2 s (quotient rule, chain-rule form, the exact root finder) |
+| 1.68.8 | xy read as a product; bounds after "integrate"; refusals that name statistics and geometry; log and sin limits; c·(ax + b)^r in its own form; "y = …" under Algebra as a function |
+| 1.68.9 | A system's graph marks every solution and draws both curves on one axis |
+| 1.69.0 | An on-screen keypad under the problem box, open by default on phones and tablets |
+| 1.69.1 | x·√(x + 1) by u = the inside; even powers of sin and cos lowered step by step; 1/(x² − 2)² by partial fractions over the reals; the false "trig substitution" label on a squared quadratic |

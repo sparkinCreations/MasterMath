@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.69.1] - 2026-11-06
+
+### Fixed
+
+- **A polynomial times a root of a linear inside was answered in a form no
+  textbook uses, or refused** (found checking the roadmap): ∫x·√(x + 1) dx
+  was 2/5·(x − 2/3)·√(x³ + 3x² + 3x + 1), the cube expanded under the root,
+  with one step labelled "u-substitution"; x·(2x + 1)^(3/2) and x·∛(x + 2)
+  were refused. Now worked by u = the inside, with the rest written in u too
+  (x = u − 1), multiplied out into powers of u and integrated by the power
+  rule: 2/5·(x + 1)^(5/2) − 2/3·(x + 1)^(3/2). Exact fractions throughout,
+  any polynomial up to degree 6, roots and reciprocal roots
+  (`integratePolynomialTimesLinearPower` in `integrals/linearPower.js`).
+- **Even powers of sin and cos were one unexplained line, or refused**:
+  sin²x·cos²x and cos⁴x were answered in one jump labelled "Trigonometric
+  identity"; sin⁴x·cos²x, sin⁶x·cos⁴x and sin¹⁰x were refused. Now lowered
+  step by step: the half-angle identities, multiplied out in powers of
+  cos 2x, each power lowered again until only first powers of cosines
+  remain, then integrated term by term (up to a total power of 12;
+  `sinCosEven` in `trigPowerSolver.js`). The answer is the sum of those
+  terms, 1/8·x − 1/32·sin(4x), not Algebrite's 1/8·(x − 1/4·sin(4x)).
+- **1/(x² − 2)² was labelled a trigonometric substitution "for the radical
+  √(x² − a²)"**, which it does not have, and answered in a nested-log form;
+  1/(x² − 2)³ was refused. A repeated factor that splits only over the
+  reals now takes one partial fraction per power, each constant from the
+  Taylor coefficients at its root and recognised exactly in the root's own
+  surd: √2/16·ln|x + √2| − 1/(8(x + √2)) − √2/16·ln|x − √2| − 1/(8(x − √2)).
+  The radical label needs a square root or a half-integer power.
+- Each new method has its own ranked insights and mistakes, the second one
+  working the student's problem ("Here: u = x + 1, x = u − 1 and the
+  integral becomes ∫(u^(3/2) − u^(1/2)) du …"), added to
+  `docs/future-work/insights-review/INTEGRALS.md`.
+
+### Changed
+
+- `docs/future-work/ROADMAP-2026-10.md` brought up to date: the insights
+  work (1.60.0–1.67.0) marked shipped, the 115 s partial fraction marked
+  fixed (0.8 s now), the open list down to practice mode, sequences &
+  series and two-variable inequality regions, and a table of what shipped
+  from 1.57.0 to 1.69.1.
+
 ## [1.69.0] - 2026-11-06
 
 ### Added
