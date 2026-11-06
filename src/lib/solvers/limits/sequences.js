@@ -35,26 +35,39 @@ export function tryTwoSequences(func, variable, target) {
   if (!g) return null;
   const constant = g.p === 0 && g.k === 0 && g.m === 0;
   const c = g.c * sign;
-  // The argument: k·x at ∞, k/x at 0 (k > 0).
-  const at = (x) => { try { return Number(arg.evaluate({ [v]: x })); } catch { return NaN; } };
-  let k;
-  if (target === Infinity) {
-    k = at(1);
-    if (!(k > 0) || at(0) !== 0 || Math.abs(at(2) - 2 * k) > 1e-12) return null;
-    if (!constant && !(grows(g) && g.c > 0)) return null;
-  } else {
-    k = at(1);
-    if (!(k > 0) || Math.abs(at(2) - k / 2) > 1e-12 || !constant) return null;
-  }
+  // The argument: k·x^p with k > 0, p > 0 at ∞ and p < 0 at 0 (k·x, k/x,
+  // and since 1.68.8 x^2, √x, 1/x^2: sin(x^2) and sin(√x) at ∞ and
+  // sin(1/x^2) at 0 were left to samples). Then x_n = (u_n/k)^(1/p).
+  const form = growthForm(arg.toString(), v);
+  if (!form || form.k !== 0 || form.m !== 0 || !(form.c > 0) || form.p === 0) return null;
+  const k = form.c;
+  const p = form.p;
+  if (target === Infinity ? p < 0 : p > 0) return null;
+  if (target === Infinity && !constant && !(grows(g) && g.c > 0)) return null;
+  if (target === 0 && !constant) return null;
   const kText = Number.isInteger(k) ? String(k) : null;
-  if (!kText) return null;
+  const q = 1 / Math.abs(p);
+  const qText = Number.isInteger(q) ? String(q) : Number.isInteger(1 / q) ? `1/${1 / q}` : null;
+  if (!kText || !qText) return null;
   const [u1, u2] = fn === 'sin' ? ['π/2 + 2πn', '3π/2 + 2πn'] : ['2πn', 'π + 2πn'];
-  const over = (u) => {
+  // u/k at ∞, k/u at 0, before the root or power.
+  const base = (u) => {
+    if (target === 0) return k === 1 ? `1/(${u})` : `${kText}/(${u})`;
     if (k === 1) return u;
     if (u === '2πn') return k === 2 ? 'πn' : `2πn/${kText}`;
     return `(${u})/${kText}`;
   };
-  const point = (u) => (target === Infinity ? over(u) : (k === 1 ? `1/(${u})` : `${kText}/(${u})`));
+  const rootOf = (b) => {
+    if (q === 1) return b;
+    const inner = /^[\w/π]+$/.test(b) && !b.includes('/') ? b : `(${b})`;
+    if (qText === '1/2') return `√${/^\(/.test(inner) ? inner : `(${inner})`}`;
+    if (qText === '1/3') return `∛${/^\(/.test(inner) ? inner : `(${inner})`}`;
+    return Number.isInteger(q) ? `${inner}^${qText}` : `${inner}^(${qText})`;
+  };
+  // 1/√(u) reads better than √(1/(u)) at 0.
+  const point = (u) => (target === 0 && q !== 1 && k === 1 && (qText === '1/2' || qText === '1/3')
+    ? `1/${qText === '1/2' ? '√' : '∛'}(${u})`
+    : rootOf(base(u)));
   const tidy = (t) => beautify(String(t).replace(/\s+/g, ''));
   const at_ = (text, name) => text.replace(new RegExp(`(?<![a-z])${v}(?![a-z])`, 'g'), name);
   const trigText = `${fn}(${tidy(arg.toString())})`;
@@ -79,8 +92,8 @@ export function tryTwoSequences(func, variable, target) {
   ];
   // Check: the function along each sequence, for two values of n.
   const xs = (u, n) => {
-    const base = (fn === 'sin' ? (u === 1 ? Math.PI / 2 : 1.5 * Math.PI) : (u === 1 ? 0 : Math.PI)) + 2 * Math.PI * n;
-    return target === Infinity ? base / k : k / base;
+    const angle = (fn === 'sin' ? (u === 1 ? Math.PI / 2 : 1.5 * Math.PI) : (u === 1 ? 0 : Math.PI)) + 2 * Math.PI * n;
+    return (angle / k) ** (1 / p);
   };
   const check = (u, s) => [10, 1000].map((n) => evalAt(func, v, xs(u, n))).every((y, i, ys) => (constant
     ? Math.abs(y - c * s) < 1e-6

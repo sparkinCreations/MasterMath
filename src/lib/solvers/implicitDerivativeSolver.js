@@ -20,7 +20,7 @@
 // curve, and F_y = 0 there means a vertical tangent (or, with F_x = 0 too,
 // a singular point) — dy/dx is undefined, and the answer says why.
 
-import { math, beautify, splitTerms, loadAlgebrite, runAlgebrite, formatNumber, rewriteReciprocalTrig, mark } from './solverUtils.js';
+import { math, beautify, splitTerms, loadAlgebrite, runAlgebrite, formatNumber, rewriteReciprocalTrig, mark, splitVariableProducts } from './solverUtils.js';
 import { parseMathExpression } from '../mathParser.js';
 import { implicitWindow } from '../graphSampling.js';
 import { solved, unsupported, undefinedValue } from '../solutionEnvelope.js';
@@ -99,13 +99,8 @@ function implicitGraph({ F, ind, dep, shownEquation, point = null, slope = null,
   return graph;
 }
 
-// xy, 2xy, e^(xy): two variables written side by side, read as a product.
-// Only runs made of the curve's own two letters are split; sin, pi, … are
-// never touched.
-export function splitVariableProducts(text, vars) {
-  const set = new Set(vars);
-  return String(text).replace(/(?<![a-z])[a-z]{2,4}(?![a-z(])/gi, (run) => ([...run].every((c) => set.has(c)) ? [...run].join('*') : run));
-}
+// xy, 2xy, e^(xy) as products: shared with the router (utils/text.js).
+export { splitVariableProducts };
 
 // Coefficient times dy/dx, as written on paper: dy/dx, −dy/dx, 2y·dy/dx,
 // (x + 2y)·dy/dx.

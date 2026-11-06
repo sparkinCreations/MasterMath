@@ -37,6 +37,7 @@ export {
   exactForm,
   exactDecimals,
   exactDecimalSigns,
+  splitVariableProducts,
 } from './utils/text.js';
 export {
   linearCoefficients,

@@ -533,7 +533,18 @@ function worked(method, result, ctx) {
     case 'series': {
       const num = after(text, /Numerator ≈ ([^;]+);/);
       const den = after(text, /denominator ≈ ([^\n]+)/);
-      const first = (s) => s && s.split(/ [+-] /)[0];
+      // The first term, split at a sign outside brackets: "(x - 1)/ln(10)"
+      // is one term (it read "(x" at a ≠ 0, 1.68.8).
+      const first = (s) => {
+        if (!s) return s;
+        let depth = 0;
+        for (let i = 0; i < s.length; i += 1) {
+          if (s[i] === '(') depth += 1;
+          else if (s[i] === ')') depth -= 1;
+          else if (depth === 0 && i > 0 && / [+-] /.test(s.slice(i - 1, i + 2))) return s.slice(0, i - 1);
+        }
+        return s;
+      };
       return num && den ? `Here: the numerator starts ${mark(first(num))} and the denominator ${mark(first(den))}; after cancelling, the limit is ${mark(answer)}.` : null;
     }
     case "L'Hôpital": {

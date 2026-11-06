@@ -52,7 +52,12 @@ import {
  */
 export function parseDefiniteIntegral(raw) {
   const s = String(raw || '').trim().replace(/−/g, '-');
-  const looksDefinite = /∫\s*_|_\s*\{?\s*[-\d]|\bfrom\b[\s\S]*\bto\b|\bdefinite\b/i.test(s);
+  // A constant bound: a number, π, e or ∞, with a sign or a fraction.
+  const BOUND = String.raw`-?(?:\d+(?:\.\d+)?|pi|π|e|inf(?:inity)?|∞)(?:\/\d+|\*?(?:pi|π))?`;
+  // "integrate 0 to 1 x^2 dx", "integral 0 to 1 of x^2": the verb, then the
+  // bounds with no "from" (outside review, November 2026; 1.68.8).
+  const verbBounds = s.match(new RegExp(String.raw`^\s*(?:integrate|(?:the\s+)?(?:definite\s+)?integral|∫)\s+(?:of\s+)?(?:from\s+)?(${BOUND})\s+to\s+(${BOUND})\s+(?:of\s+)?(.+)$`, 'i'));
+  const looksDefinite = verbBounds || /∫\s*_|_\s*\{?\s*[-\d]|\bfrom\b[\s\S]*\bto\b|\bdefinite\b/i.test(s);
   if (!looksDefinite) return null;
 
   let lowerRaw;
@@ -64,6 +69,10 @@ export function parseDefiniteIntegral(raw) {
   let m = s.match(/∫?\s*_\s*\{?\s*([^{}^]+?)\s*\}?\s*\^\s*\{?\s*([^{}\s]+?)\s*\}?\s+(.+)/i);
   if (m) {
     [, lowerRaw, upperRaw, body] = m;
+  } else if (verbBounds) {
+    // Before "<integrand> from a to b": in "integrate from 0 to 1 x^2 dx" that
+    // read the verb as the integrand and "1 x^2 dx" as the upper bound.
+    [, lowerRaw, upperRaw, body] = verbBounds;
   } else {
     // Form B — "<integrand> from a to b"
     m = s.match(/(.+?)\s+from\s+(\S+)\s+to\s+(.+)/i);

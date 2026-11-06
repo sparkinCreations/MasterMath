@@ -22,6 +22,7 @@ import {
   integrateByTriangleSubstitution,
 } from '../trigSubstitutionSolver.js';
 import { integrateTrigPower } from '../trigPowerSolver.js';
+import { integrateLinearPower } from './linearPower.js';
 import { integrateBySurdPartialFractions } from '../surdPartialFractions.js';
 import { positiveArgumentNote, safeRunLocal, polishLogArguments, simplifyRun } from './display.js';
 import {
@@ -97,6 +98,12 @@ export async function integrateTerm(term, variable, Algebrite) {
   if (triangle) {
     return { antideriv: triangle.antiderivative, steps: triangle.steps, method: 'trig substitution', term };
   }
+
+  // c·(ax + b)^r, any power but −1, 0 and 1: by u = ax + b, in its own
+  // form (1.68.8). Before partial fractions, which wrote 1/(3x + 2)^2 as
+  // −1/(9(x + 2/3)).
+  const linearPower = integrateLinearPower(term, variable);
+  if (linearPower) return { antideriv: linearPower.antiderivative, steps: linearPower.steps, method: 'substitution', term, keepForm: true };
 
   // A rational function over a factorable quadratic-or-higher denominator:
   // show the partial-fraction working. Algebrite integrates 1/(x² − 1)

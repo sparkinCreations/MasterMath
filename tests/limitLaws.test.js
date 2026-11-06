@@ -42,7 +42,7 @@ test('limits review: the limit laws are worked from the inside out', async () =>
   ]);
   assert.equal(r.tips[1], 'Here, from the inside out: ln(x) → ∞, then ln(ln(x)) → ∞, then 1/ln(ln(x)) → 0.');
   assert.match((await lim('lim x->inf sin(1/sqrt(x))')).steps.join('\n'), /sin is continuous at 0, so the limit passes inside: sin\(1\/sqrt\(x\)\) → sin\(0\) = 0\./);
-  assert.match((await lim('lim x->inf atan(x)')).answer, /= π\/2$/);
+  assert.match((await lim('lim x->inf atan(x)')).answer, /= π\/2 \(≈ 1\.5708\)$/);
 });
 
 test('limits review, swept: powers whose base and exponent both vary', async () => {
@@ -66,7 +66,9 @@ test('limits review, swept: sampled only at powers of 10, tan(x) and (−1)^x we
 
 test('limits review: samples that have not settled decide nothing', async () => {
   // Not "does not exist" (that was 1/ln(x)): refused, saying why.
-  const r = await lim('lim x->inf sin(x^2)');
+  // sin(x^2), the example until 1.68.8, is proved now by two sequences;
+  // sin(x·ln(x)) is not.
+  const r = await lim('lim x->inf sin(x*ln(x))');
   assert.equal(r.status, 'unsupported');
   assert.match(r.steps.join('\n'), /samples alone cannot tell a limit approached very slowly from no limit at all/);
   // What a proof already settles is unchanged.

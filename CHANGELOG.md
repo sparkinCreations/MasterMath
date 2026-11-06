@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.68.8] - 2026-11-06
+
+### Fixed
+
+- **Input that was not read** (outside review, November 2026):
+  - **xy** under Algebra: "xy = 6; x + y = 5" and "2xy + x = 3" were refused
+    as an unknown word, while implicit differentiation read xy as x·y. Runs
+    of different letters among x, y and z are now a product everywhere
+    ("xx" keeps its hint).
+  - **"integrate 0 to 1 x^2 dx"**, **"integral 0 to 1 of x^2"** and
+    **"integrate from 0 to 1 x^2 dx"**: the bounds after the verb were not
+    read; the last took the verb for the integrand.
+- **Refusals quoted words glued together**: "meanof", "areaofa". The word
+  is quoted as typed, and statistics on a list of numbers and geometry
+  formulas are named as not supported, with what to type instead.
+- **Limits left to estimates or refusals, now proved:**
+  - **log(x)/(x − 1) at 1** = 1/ln(10) (≈ 0.4343), by series about 1. The
+    series fallback after L'Hôpital's rule works at any whole-number or
+    fraction point, and a series about a ≠ 0 is shown in powers of (x − a),
+    exact coefficients such as 1/ln(10) kept exact. A symbolic limit
+    carries its decimal: ln(2) (≈ 0.6931), π/2 (≈ 1.5708).
+  - **sin(x²) and sin(√x) at ∞, sin(1/x²) at 0** do not exist, by two
+    sequences: any argument k·x^p, not only k·x and k/x.
+- **∫√(2x + 1) dx** was 1/3·√(8x³ + 12x² + 6x + 1): a power of a linear
+  inside, c·(ax + b)^r, is now integrated by u = ax + b in its own form,
+  (2x + 1)^(3/2)/3, with the substitution worked. (2x + 1)⁵ gives
+  (2x + 1)⁶/12, not seven expanded terms, and 1/(3x + 2)² gives
+  −1/(3(3x + 2)), not −1/(9(x + 2/3)).
+- **"y = x³ + 2" under Algebra** answered "x³ + 2 is already in simplest
+  form". It is solved as a function, as Auto-detect does, with the
+  "Solved as Functions" notice.
+
 ## [1.68.7] - 2026-11-04
 
 ### Fixed

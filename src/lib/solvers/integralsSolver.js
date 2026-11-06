@@ -202,7 +202,9 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
       // A by-parts result with a logarithm is already expanded (x·ln(x) − x);
       // simplify factored it back into x·(−1 + ln(x)).
       const byPartsLog = perTerm.some((r) => r.method === 'byparts' && /(?<![a-z])log\(/.test(r.antideriv));
-      integral = perTerm.some((r) => ['partial fractions', 'trig substitution', 'trig power', 'reduction', 'form substitution'].includes(r.method)) || polynomial || byPartsLog
+      // A power of a linear inside is in its own form, (2x + 1)^6/12;
+      // simplify expanded it into seven terms (1.68.8).
+      integral = perTerm.some((r) => ['partial fractions', 'trig substitution', 'trig power', 'reduction', 'form substitution'].includes(r.method) || r.keepForm) || polynomial || byPartsLog
         ? perTerm.map((r) => r.antideriv.trim()).join(' + ').replace(/\+\s*-\s*/g, '- ')
         : (simplifyRun(Algebrite, perTerm.map((r) => `(${r.antideriv})`).join(' + ')) || perTerm.map((r) => r.antideriv).join(' + '));
       // Like terms from separate pieces are combined: ∫(2 + 3) dx was
