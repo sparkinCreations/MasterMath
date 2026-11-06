@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.70.0] - 2026-11-06
+
+### Added
+
+- **Practice mode: "Try a similar one"** (roadmap P4, carried since
+  September; plan in `docs/future-work/PLAN-PRACTICE-MODE.md`). Under a
+  solved problem's final answer, a button opens a pop-up (full-screen on a
+  phone) with up to five problems of the same kind: the same method, new
+  numbers. The student types an answer and presses Check; **Hint** shows the
+  working one step at a time, **Show solution** all of it, **Look at the
+  example** the problem they started from, and **Another one** moves
+  through the set and starts again after the last, saying so. Answers
+  checked correct are counted.
+  - **Made and checked by the engine, not AI.** A practice problem is the
+    solved one with new numbers (each number remapped consistently, squares
+    kept with their roots, exponents and 0 kept; a polynomial equation
+    rebuilt from new rational roots so a factorable quadratic stays
+    factorable; an exponent or a coefficient when there is nothing else to
+    change), solved by the same engine, and kept only if it has the same
+    first Key Insight (the method), an answer with nothing the original's
+    lacks (no new fraction, root, π, function or sign), about the same
+    working, and an answer the checker can read. Every candidate is seeded
+    by the problem, so every student gets the same set.
+  - **Answers are checked by value, never by text**: an equation's
+    solutions as a set in any order and notation ("2, 3", "x = 3 or x = 2",
+    "(1 + √5)/2", 0.618); a derivative equal to the engine's at sample
+    points; an antiderivative up to a constant (any + C, or none); a number
+    exact or as a decimal to at least two places. A wrong answer says what
+    is wrong without giving the answer away: "x = 4 does not satisfy the
+    equation: there the left side is 2 and the right side is 0", "That one
+    is right, but there is one more solution", the derivative of the typed
+    antiderivative against the integrand at a point. A typed log is base 10
+    in MasterMath, and a student who meant ln is told so.
+  - Offered for arithmetic, equations in one unknown, derivatives,
+    integrals and limits. Factor, simplify and expand are not (the input
+    itself equals the answer), nor functions, trigonometry, inequalities
+    and systems yet.
+  - The checker and generator run in the solver worker
+    (`src/lib/practice/`), one request per candidate under the usual time
+    budget; the page imports no maths library. The pop-up has its own
+    keypad, a focus trap, Escape, and sits above toasts.
+
+### Changed
+
+- `docs/future-work/ROADMAP-2026-10.md`: practice mode's first release
+  marked, the rest of it (more topics, "practised" on My Progress) kept open.
+
 ## [1.69.1] - 2026-11-06
 
 ### Fixed
