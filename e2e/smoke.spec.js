@@ -384,6 +384,52 @@ test.describe('MasterMath smoke', () => {
     await expect(page.locator('#symbol-strip')).toHaveCount(0);
   });
 
+  test('the keypad types at the caret, keeps the phone keyboard closed, and remembers its state', async ({ page, isMobile }) => {
+    await openSolver(page);
+    const keypad = page.getByRole('group', { name: 'Keypad' });
+    const box = page.locator('#problem');
+    // Open on a phone (the main pointer is a finger), closed with a mouse.
+    if (isMobile) {
+      await expect(keypad).toBeVisible();
+    } else {
+      await expect(keypad).toHaveCount(0);
+      await expect(box).not.toHaveAttribute('inputmode', 'none');
+      await page.getByRole('button', { name: 'Keypad' }).click();
+      await expect(keypad).toBeVisible();
+    }
+    await expect(page.getByRole('button', { name: 'Keypad' })).toHaveAttribute('aria-expanded', 'true');
+    await expect(box).toHaveAttribute('inputmode', 'none');
+    const press = async (name) => keypad.getByRole('button', { name, exact: true }).click();
+    for (const name of ['3', 'x', 'To the power', '2', 'Minus', '5', 'x', 'Plus', '2', 'Equals', '0']) await press(name);
+    await expect(box).toHaveValue('3x^2 - 5x + 2 = 0');
+    // Backspace takes " = " whole; the arrows move the caret, and typing
+    // lands there.
+    await press('Backspace');
+    await press('Backspace');
+    await expect(box).toHaveValue('3x^2 - 5x + 2');
+    await press('Move left');
+    await press('Move left');
+    await press('Move left');
+    await press('Move left');
+    await press('Backspace');
+    await expect(box).toHaveValue('3x^2 - 5 + 2');
+    await press('x');
+    for (let i = 0; i < 4; i += 1) await press('Move right');
+    await press('Equals');
+    await press('0');
+    await expect(box).toHaveValue('3x^2 - 5x + 2 = 0');
+    await expect(page.locator('.katex').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
+    // Closed, the phone keyboard is back, and it stays closed after a reload.
+    await page.getByRole('button', { name: 'Keypad' }).click();
+    await expect(keypad).toHaveCount(0);
+    await expect(box).not.toHaveAttribute('inputmode', 'none');
+    await page.reload();
+    await expect(page.getByText('Try an example:')).toBeVisible();
+    await expect(keypad).toHaveCount(0);
+  });
+
   test('dark mode toggles, survives a reload, and the solver still renders in it', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Switch to dark mode/ }).click();

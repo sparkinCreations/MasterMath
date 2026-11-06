@@ -125,8 +125,10 @@ for (const scheme of ['light', 'dark']) {
       await audit(page, `solver with validation error (${scheme})`);
 
       await page.getByRole('button', { name: 'Symbols' }).click();
+      // The keypad too: open on a phone already, opened here on a desktop.
+      if (!(await page.getByRole('group', { name: 'Keypad' }).isVisible())) await page.getByRole('button', { name: 'Keypad' }).click();
       await page.locator('#problem').fill('x^2 - 4*x + 3');
-      await audit(page, `solver with the symbol strip open and a preview (${scheme})`);
+      await audit(page, `solver with the symbol strip and keypad open and a preview (${scheme})`);
       await page.getByRole('button', { name: 'Notation guide' }).click();
       await expect(page.getByRole('dialog', { name: 'Notation guide' })).toBeVisible();
       await audit(page, `solver with the notation guide open (${scheme})`);
@@ -273,6 +275,7 @@ test('nothing on the Solver or Settings is announced twice', async ({ page }) =>
   const more = page.getByRole('button', { name: /Show all \d+ examples/ });
   if (await more.isVisible()) await more.click();
   await page.getByRole('button', { name: 'Symbols' }).click();
+  if (!(await page.getByRole('group', { name: 'Keypad' }).isVisible())) await page.getByRole('button', { name: 'Keypad' }).click();
   await page.getByRole('combobox').first().click();
   await expect(page.getByRole('option', { name: 'Functions' })).toBeVisible();
   expect(await doubleReads(page), 'topic list open').toEqual([]);
@@ -283,6 +286,7 @@ test('nothing on the Solver or Settings is announced twice', async ({ page }) =>
   // The icon buttons keep a name (their tooltip) and are found by it.
   await expect(page.getByRole('button', { name: 'Zoom in' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Insert a square root' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Backspace' })).toBeVisible();
   expect(await doubleReads(page), 'solver with symbols, examples, solution and graph').toEqual([]);
   await page.goto('/settings');
   await expect(page.getByRole('button', { name: 'Degrees' })).toBeVisible();
