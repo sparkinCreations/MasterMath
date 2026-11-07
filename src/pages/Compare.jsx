@@ -56,7 +56,7 @@ const ROWS = [
   {
     feature: "Learning extras",
     cells: [
-      "Tips and common mistakes with each solution; no practice problems, videos or tutors",
+      "Tips and common mistakes with each solution; practice problems with answers checked, every topic; no videos or tutors",
       "Multiple solution methods, video learning; animated tutorials and textbook solutions with Plus",
       "Practice problems, quizzes, worksheets",
       "Not stated",
@@ -104,7 +104,7 @@ const LIMITS = [
   "No geometry, statistics, sequences and series, matrices, differential equations, polar or parametric curves, or multivariable calculus such as double integrals.",
   "No physics, chemistry or unit conversion.",
   "English only, and no app in the App Store or Google Play.",
-  "No practice problems, videos or human help.",
+  "Practice is similar problems with checked answers, not quizzes; no videos or human help.",
   "A small project by one independent developer, not an established product used by millions.",
 ];
 

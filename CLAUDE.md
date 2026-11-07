@@ -24,7 +24,7 @@ the logo; green = answer, amber = tips.
 src/
   App.jsx, Layout.jsx          providers, routes, sidebar/header/footer
   pages/                       Home, Solver, Progress, Settings, FAQ, UserManual, PrivacyPolicy, TermsOfService, Feedback, NotFound (the `*` route)
-  components/solver/           ProblemInput (+ SymbolStrip: one-tap symbols from lib/symbolInsert.js, MathKeypad: digits and operators from lib/keypad.js, open on touch-first devices, inputmode="none" while open; a live KaTeX preview, and the NotationGuide dialog), SolutionDisplay, GraphViewer, GraphEmptyState
+  components/solver/           ProblemInput (+ SymbolStrip: one-tap symbols from lib/symbolInsert.js, MathKeypad: digits and operators from lib/keypad.js, open on touch-first devices, inputmode="none" while open; a live KaTeX preview, and the NotationGuide dialog), SolutionDisplay (+ PracticeDialog: "Try a similar one"), GraphViewer, GraphEmptyState
   components/ui/               shadcn/ui primitives (Button, Card, Select, Sidebar, Toast, ConfirmDialog, …)
   components/MathText.jsx      KaTeX rendering of solver text (lib/mathRender.js, shared with the PDF; lib/latex.js `mode`: 'auto' = ⟦…⟧-marked math exactly, else clause heuristics (steps, answers); 'marked' = marked runs only (tips, mistakes); 'input' = a typed problem)
   contexts/DarkModeContext.jsx theme 'system' | 'light' | 'dark' (lib/theme.js); resolved `isDarkMode` toggles the `dark` class; index.html's boot script applies it before first paint
@@ -33,7 +33,9 @@ src/
     api.js                     solveProblem (intent routing); api/ holds topic detection, words, request phrases and the finalizeResult gate (worker side: imports mathjs)
     problemHistory.js          the history store's IndexedDB wrappers — what pages import; never import api.js from a page
     budgetedSolver.js          the page's entry point: worker, 10 s budget, Cancel, in-thread fallback
-    solver.worker.js           runs solveProblem off the main thread
+    solver.worker.js           runs solveProblem off the main thread, and the practice tasks (a `task` field)
+    practice/                  practice mode, worker side: check.js (answer kinds, the engine's answer read, a typed answer checked by value), generate.js (seeded variations kept only with the same method and as clean an answer), tasks.js
+    practiceClient.js          practice mode, page side: the set of up to five (one worker request per candidate), answer checks
     plainEnglish.js            spoken maths → notation ("x squared", "sine of x", "is greater than", x**3, "two plus one"); first step of solveProblem, and the input preview; no imports
     mathParser.js              notation → mathjs/Algebrite syntax; expression extraction
     validation.js              input length/topic checks
@@ -112,7 +114,18 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    worked solution is stepped through: a parse error, a refusal and an
    overflow are shown all at once, under "Notes";
    `GraphViewer` re-samples `graph.expression` for the window on screen.
-6. Solved / undefined / indeterminate / diverges results are saved to
+6. Practice mode (`docs/future-work/PLAN-PRACTICE-MODE.md`): the worker
+   marks a result `practicable` when `practice/check.js` can read its answer
+   (a number, the solutions of one equation or a trig equation's on [0, 2π),
+   an inequality's solution set, a system's pairs, a function's x-intercepts,
+   a derivative, an antiderivative); the page then offers **Try a similar one**, a pop-up of
+   up to five problems that rotate. Candidate i is a pure function of the
+   problem (seeded), so every student gets the same set; it is kept only
+   when it solves with the same first Key Insight (the method; its marked
+   formulas set aside), an answer
+   with no feature the original's lacks, and a readable correct answer.
+   Answers are checked by value in the worker, never by text.
+7. Solved / undefined / indeterminate / diverges results are saved to
    IndexedDB (`MathMasterDB` — legacy name, keep it) under `routedTopic`,
    one entry per problem and topic: a repeat solve updates that entry
    (`solveCount`), and older repeats are merged on read (`collapseRepeats`

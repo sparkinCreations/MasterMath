@@ -4,9 +4,10 @@ import { SHOWN_AT_FIRST, sourceOf } from "@/lib/guidance";
 import { learnMoreFor } from "@/lib/learnMore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap, PencilLine } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import MathText from "@/components/MathText";
+import PracticeDialog from "@/components/solver/PracticeDialog";
 import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
 import { exportSolutionAsMarkdown, exportSolutionAsJSON, exportSolutionAsPDF } from "@/lib/exportUtils";
 import { useToast } from "@/components/ui/toast";
@@ -249,6 +250,8 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
     setStepThroughState(next);
   };
   const [revealed, setRevealed] = useState(0);
+  // Practice mode (1.70.0): the pop-up of similar problems.
+  const [practising, setPractising] = useState(false);
   // Only a worked solution is walked through. Input that could not be read,
   // or that the solver refuses, is shown all at once: "Step 1 of 2" and a
   // "Reveal next step" button over an error made the error a puzzle.
@@ -279,6 +282,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   // Restart the walkthrough whenever a new problem is solved.
   useEffect(() => {
     setRevealed(1);
+    setPractising(false);
   }, [solution]);
 
   const allRevealed = !stepThrough || revealed >= steps.length;
@@ -501,7 +505,25 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                   ))}
                 </ul>
               )}
+              {/* Practice: a solved problem whose answer the checker can
+                  read (the worker sets `practicable`). */}
+              {solution.practicable && (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setPractising(true)}
+                    aria-haspopup="dialog"
+                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold text-white bg-linear-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800"
+                  >
+                    <PencilLine className="w-4 h-4" aria-hidden="true" />
+                    Try a similar one
+                  </button>
+                </div>
+              )}
             </div>
+          )}
+          {practising && (
+            <PracticeDialog problem={problem} topic={topic} solution={solution} onClose={() => setPractising(false)} />
           )}
 
           {solution.tips && solution.tips.length > 0 && allRevealed && (

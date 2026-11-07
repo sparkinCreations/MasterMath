@@ -57,12 +57,16 @@ export function createBudgetedSolver({ makeWorker, fallback, budgetMs = SOLVE_BU
     return worker;
   };
 
-  const solve = (problem, topic, { signal } = {}) => new Promise((resolve, reject) => {
+  // `task` and `payload` ask the worker for something other than a solve
+  // (practice mode: a candidate problem, an answer check); the budget, Cancel
+  // and the fallback apply the same way. A task's result carries no warning.
+  const solve = (problem, topic, { signal, task, payload } = {}) => new Promise((resolve, reject) => {
     const w = warm();
+    const runFallback = () => Promise.resolve(fallback(problem, topic, task ? { task, payload } : undefined)).then((r) => (task ? r : withFallbackWarning(r)));
     if (!w) {
       // No worker (an environment without them, or one that failed to
       // load): solve in-thread so the user still gets an answer.
-      Promise.resolve(fallback(problem, topic)).then((r) => resolve(withFallbackWarning(r)), reject);
+      runFallback().then(resolve, reject);
       return;
     }
     const id = nextId++;
@@ -90,7 +94,7 @@ export function createBudgetedSolver({ makeWorker, fallback, budgetMs = SOLVE_BU
       // error — those arrive as messages). Report it, then answer in-thread.
       dropWorker();
       onWorkerFailure(event?.error || event?.message || event);
-      Promise.resolve(fallback(problem, topic)).then((r) => finish(resolve, withFallbackWarning(r)), (e) => finish(reject, e));
+      runFallback().then((r) => finish(resolve, r), (e) => finish(reject, e));
     };
     const onAbort = () => {
       dropWorker();
@@ -105,7 +109,7 @@ export function createBudgetedSolver({ makeWorker, fallback, budgetMs = SOLVE_BU
       dropWorker();
       finish(resolve, budgetExceeded(problem, budgetMs));
     }, budgetMs);
-    w.postMessage({ id, problem, topic, settings });
+    w.postMessage(task ? { id, problem, topic, settings, task, payload } : { id, problem, topic, settings });
   });
 
   return { solve, warm, dropWorker };
@@ -119,7 +123,12 @@ const pageSolver = createBudgetedSolver({
     if (typeof Worker === 'undefined') throw new Error('Web Workers are not available');
     return new Worker(new URL('./solver.worker.js', import.meta.url), { type: 'module' });
   },
-  fallback: async (problem, topic) => (await import('./api.js')).solveProblem(problem, topic),
+  fallback: async (problem, topic, extra) => {
+    if (extra?.task) return (await import('./practice/tasks.js')).runPracticeTask(extra.task, { ...extra.payload, problem, topic });
+    const result = await (await import('./api.js')).solveProblem(problem, topic);
+    if (result && typeof result === 'object' && (await import('./practice/tasks.js')).practicable(result, topic, problem)) result.practicable = true;
+    return result;
+  },
   onWorkerFailure: (error) => {
     // The smoke test fails on this line: a worker that cannot start means
     // every solve silently runs on the main thread, which is the bug this

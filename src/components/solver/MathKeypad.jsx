@@ -10,7 +10,7 @@ import { KEYPAD_ROWS } from "@/lib/keypad";
 // A digit or a letter is named by its text; any other key by its
 // aria-label, with its glyph hidden, so "÷" is read "Divide" once and not
 // "division sign".
-export default function MathKeypad({ id, onKey }) {
+export default function MathKeypad({ id, onKey, label = "Keypad" }) {
   const base = "inline-flex items-center justify-center h-12 rounded-lg text-lg font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors select-none touch-manipulation";
   const style = (k) => {
     if (k.action) return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600";
@@ -21,7 +21,7 @@ export default function MathKeypad({ id, onKey }) {
     <div
       id={id}
       role="group"
-      aria-label="Keypad"
+      aria-label={label}
       className="grid grid-cols-6 gap-1.5 p-2 rounded-xl border-2 border-indigo-100 dark:border-gray-700 bg-indigo-50/60 dark:bg-gray-900/40"
     >
       {KEYPAD_ROWS.flat().map((k) => {

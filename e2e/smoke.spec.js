@@ -430,6 +430,71 @@ test.describe('MasterMath smoke', () => {
     await expect(keypad).toHaveCount(0);
   });
 
+  test('practice: a similar problem, checked by maths, with hints, another one and the example', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('solutionMode', 'all'));
+    await openSolver(page);
+    await page.locator('#problem').fill('x^2-5x+6=0');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const tryIt = page.getByRole('button', { name: 'Try a similar one' });
+    await tryIt.click();
+    const dialog = page.getByRole('dialog', { name: 'Practice' });
+    // The set is the same for every student: the first is x² − 11x + 28 = 0.
+    await expect(dialog.locator('.katex-mathml annotation').first()).toHaveText('x^{2} - 11x + 28 = 0', { timeout: 20000 });
+    const answer = dialog.getByLabel('Your answer');
+    await expect(answer).toBeFocused();
+    await answer.fill('4');
+    await dialog.getByRole('button', { name: 'Check' }).click();
+    await expect(dialog.getByText('That one is right, but there is one more solution.')).toBeVisible();
+    await answer.fill('5, 7');
+    await answer.press('Enter');
+    await expect(dialog.getByText('x = 5 does not satisfy the equation: there the left side is -2 and the right side is 0.')).toBeVisible();
+    await answer.fill('x = 7 or x = 4');
+    await answer.press('Enter');
+    await expect(dialog.getByText('Correct ✓')).toBeVisible();
+    await expect(dialog.getByText('1 correct')).toBeVisible();
+    // One step at a time, then everything.
+    await dialog.getByRole('button', { name: 'Hint' }).click();
+    await expect(dialog.getByRole('heading', { name: /^Step 1 of \d+$/ })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Show solution' }).click();
+    await expect(dialog.getByRole('heading', { name: 'Solution' })).toBeVisible();
+    // The worked example it came from.
+    await dialog.getByRole('button', { name: 'Look at the example' }).click();
+    const example = dialog.locator('[id$="-example"]');
+    await expect(example).toBeVisible();
+    expect(await example.locator('ol > li').count()).toBeGreaterThan(2);
+    // The next problem, a new answer box.
+    await expect(dialog.getByRole('button', { name: 'Another one' })).toBeVisible({ timeout: 20000 });
+    await dialog.getByRole('button', { name: 'Another one' }).click();
+    await expect(dialog.getByText(/^Problem 2 of/)).toBeVisible();
+    await expect(answer).toHaveValue('');
+    // A derivative: any equal form is right.
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(tryIt).toBeFocused();
+    await page.locator('#problem').fill('d/dx x^3');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await page.getByRole('button', { name: 'Try a similar one' }).click();
+    await expect(dialog.locator('.katex-mathml annotation').first()).toHaveText('\\frac{d}{dx} x^{4}', { timeout: 20000 });
+    await answer.fill('x^3*4');
+    await answer.press('Enter');
+    await expect(dialog.getByText('Correct ✓')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Close practice' }).click();
+    await expect(dialog).toHaveCount(0);
+    // An inequality: a solution set, in either notation, with what it asks for.
+    await page.locator('#problem').fill('x^2 - 4 > 0');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await page.getByRole('button', { name: 'Try a similar one' }).click();
+    await expect(dialog.locator('.katex-mathml annotation').first()).toHaveText('x^{2} - 16 > 0', { timeout: 20000 });
+    await expect(dialog.getByText('Give the solution set.')).toBeVisible();
+    await answer.fill('x > 4');
+    await answer.press('Enter');
+    await expect(dialog.getByText('x = -5 satisfies the inequality, but your answer leaves it out.')).toBeVisible();
+    await answer.fill('(-inf, -4) U (4, inf)');
+    await answer.press('Enter');
+    await expect(dialog.getByText('Correct ✓')).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
+
   test('dark mode toggles, survives a reload, and the solver still renders in it', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Switch to dark mode/ }).click();
