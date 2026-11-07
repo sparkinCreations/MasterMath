@@ -21,7 +21,7 @@ import { solveProblem } from '../api.js';
 import { stripMathMarkers } from '../solvers/solverUtils.js';
 import { readPolynomial } from '../solvers/polynomialRoots.js';
 import { createMath } from '../mathInstance.js';
-import { matchingParen } from '../mathParser.js';
+import { matchingParen, parseMathExpression } from '../mathParser.js';
 import { readCorrect } from './check.js';
 
 export const POOL_SIZE = 5;
@@ -218,16 +218,23 @@ function polynomialText(coeffs, v) {
   return terms.join('');
 }
 
+// The forms it rebuilds: P = 0 (an equation), P < 0 and the like (an
+// inequality: the roots are its endpoints), and P alone (a function: the
+// roots are its x-intercepts).
 export function rootRebuild(text, rng, correct) {
-  if (!correct || correct.kind !== 'solutions') return null;
-  const sides = text.split('=');
-  if (sides.length !== 2 || sides[1].trim() !== '0') return null;
+  if (!correct || !['solutions', 'intervals'].includes(correct.kind) || correct.period) return null;
+  const rel = text.match(/^(.*?)\s*(=|<=|>=|<|>|≤|≥)\s*0\s*$/);
+  if (rel ? (correct.kind === 'solutions') !== (rel[2] === '=') : !correct.zeros) return null;
+  const lhs = rel ? rel[1] : text;
   const v = correct.variable;
-  const P = readPolynomial(sides[0].replace(new RegExp(`(\\d)\\s*${v}`, 'g'), `$1*${v}`), v);
-  if (!P || P.tooHigh || P.degree < 2 || P.degree > 4) return null;
-  if (correct.values.length !== P.degree) return null;
+  const P = readPolynomial(lhs.replace(new RegExp(`(\\d)\\s*${v}`, 'g'), `$1*${v}`), v);
+  if (!P || P.tooHigh || P.degree < 1 || P.degree > 4) return null;
+  const rootValues = correct.kind === 'intervals'
+    ? [...new Set(correct.intervals.flatMap((i) => [i.lo, i.hi]).filter(Number.isFinite))]
+    : correct.values;
+  if (rootValues.length !== P.degree) return null;
   const roots = [];
-  for (const value of correct.values) {
+  for (const value of rootValues) {
     let found = null;
     for (let q = 1; q <= 12 && !found; q += 1) {
       const p = Math.round(value * q);
@@ -262,7 +269,101 @@ export function rootRebuild(text, rng, correct) {
   // Keep the original's leading coefficient when it was a whole number.
   if (lead.d === 1n && lcm === 1n) ints = poly.map((c) => BigInt(c.s) * BigInt(c.n));
   else ints = ints.map((c) => c / common);
-  const out = `${polynomialText(ints, v)} = 0`;
+  const out = rel ? `${polynomialText(ints, v)} ${rel[2]} 0` : polynomialText(ints, v);
+  return out.replace(/\s+/g, '') === text.replace(/\s+/g, '') ? null : out;
+}
+
+// ---------------------------------------------------------------------------
+// Trigonometry: special angles and special values, so an exact answer stays
+// exact (sin(π/4) → sin(π/3); 2sin(x) = 1 → 2sin(x) = √3).
+
+// Special values as [sign, numerator, root, denominator]: √3/2 is [1, 1, 3, 2].
+const SIN_COS_VALUES = [[1, 0, 1, 1], [1, 1, 1, 2], [1, 1, 2, 2], [1, 1, 3, 2], [1, 1, 1, 1], [-1, 1, 1, 2], [-1, 1, 2, 2], [-1, 1, 3, 2], [-1, 1, 1, 1]];
+const TAN_VALUES = [[1, 0, 1, 1], [1, 1, 1, 1], [1, 1, 3, 1], [1, 1, 3, 3], [-1, 1, 1, 1], [-1, 1, 3, 1]];
+// c times a special value, as text: 2·√3/2 → "sqrt(3)", 2·1/2 → "1".
+function specialText([sign, num, root, den], c = 1) {
+  if (num === 0) return '0';
+  let n = num * c;
+  let d = den;
+  const g = (a, b) => (b ? g(b, a % b) : a);
+  const k = g(n, d);
+  n /= k; d /= k;
+  const body = `${n === 1 && root > 1 ? '' : n}${root > 1 ? `sqrt(${root})` : ''}${d > 1 ? `/${d}` : ''}`;
+  return `${sign < 0 ? '-' : ''}${body}`;
+}
+const DEGREES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+
+export function trigSpecials(text, rng, correct) {
+  if (!/(?<![a-z])(?:sin|cos|tan|sec|csc|cot)\s*\(/.test(text)) return null;
+  let out = text;
+  // π/k with k ∈ {2, 3, 4, 6}: sin(π/4) → sin(2π/3).
+  // An angle stays in its quadrant: the first quadrant is a value to
+  // remember, the others a reference angle (another method, another tip).
+  const quadrant = (deg) => (deg <= 90 ? 0 : 1);
+  const g = (a, b) => (b ? g(b, a % b) : a);
+  out = out.replace(/(\d*)\s*\*?\s*(pi|π)\s*\/\s*(\d+)/g, (m, num, pi, den) => {
+    const was = ((Number(num) || 1) / Number(den)) * 180;
+    const choices = [];
+    for (const k of [2, 3, 4, 6]) for (let n = 1; n < 2 * k; n += 1) if (g(n, k) === 1 && quadrant((n / k) * 180) === quadrant(was) && Math.abs((n / k) * 180 - was) > 1e-9) choices.push([n, k]);
+    if (!choices.length) return m;
+    const [n, k] = choices[pick(rng, 0, choices.length - 1)];
+    return `${n === 1 ? '' : n}${pi}${k === 1 ? '' : `/${k}`}`;
+  });
+  // Degrees: 60° → another special angle in the same quadrant.
+  out = out.replace(/(\d+)\s*°/g, (m, d) => {
+    const choices = DEGREES.filter((x) => x !== Number(d) && quadrant(x) === quadrant(Number(d)));
+    return choices.length ? `${choices[pick(rng, 0, choices.length - 1)]}°` : m;
+  });
+  // An equation's right side: another special value of the same function.
+  if (correct?.period) {
+    // c·f(…) = value: the new value is c times a special one (2sin(x) = 1 →
+    // 2sin(x) = √3), so sin(x) is still a special value.
+    const eq = out.match(/^\s*(?:(\d+)\s*\*?\s*)?((sin|cos|tan)\s*\([^()]*\))\s*=\s*([^=]+)$/);
+    if (eq && !/[a-z]/i.test(eq[4].replace(/\b(?:sqrt|pi)\b/g, ''))) {
+      const list = eq[3] === 'tan' ? TAN_VALUES : SIN_COS_VALUES;
+      const choice = specialText(list[pick(rng, 0, list.length - 1)], Number(eq[1] || 1));
+      out = `${eq[1] || ''}${eq[2]} = ${choice}`;
+    }
+  }
+  return out === text ? null : out;
+}
+
+// ---------------------------------------------------------------------------
+// A system: new whole-number solutions, new coefficients, and the right
+// sides worked out from them, so the answer stays as clean as the original.
+
+export function systemRebuild(text, rng, correct) {
+  if (!correct || correct.kind !== 'system' || correct.solutions.length === 0) return null;
+  const eqs = text.split(';').map((e) => e.split('='));
+  if (eqs.some((e) => e.length !== 2)) return null;
+  // Every right side a plain number, every solution value a whole number.
+  if (eqs.some(([, r]) => !/^\s*-?\d+(?:\/\d+)?\s*$/.test(r))) return null;
+  // The new solution: each value remapped, a fraction replaced by a whole
+  // number (x = 18/5, y = −2/5 → x = 3, y = −1), the signs kept.
+  const first = correct.solutions[0];
+  const whole = first.filter((x) => Number.isInteger(x) && x !== 0).map(Math.abs);
+  const map = remapValues(whole, rng);
+  if (!map) return null;
+  const used = new Set(map.values());
+  const scope = {};
+  correct.vars.forEach((v, k) => {
+    const x = first[k];
+    if (x === 0) { scope[v] = 0; return; }
+    let w = Number.isInteger(x) ? map.get(Math.abs(x)) : null;
+    for (let t = 0; t < 20 && (w === null || (!Number.isInteger(x) && used.has(w))); t += 1) w = pick(rng, 1, 6);
+    used.add(w);
+    scope[v] = Math.sign(x) * w;
+  });
+  const lhsText = eqs.map(([l]) => l.trim()).join(' ; ');
+  const newLhs = (literalRemap(lhsText, rng) || lhsText).split(' ; ');
+  const rows = [];
+  for (const l of newLhs) {
+    let value;
+    try { value = ex().evaluate(parseMathExpression(l), Object.fromEntries(Object.entries(scope).map(([k, x]) => [k, ex().fraction(x)]))); } catch { return null; }
+    const f = ex().fraction(value);
+    rows.push(`${l} = ${f.toFraction()}`);
+  }
+  const out = rows.join('; ');
   return out.replace(/\s+/g, '') === text.replace(/\s+/g, '') ? null : out;
 }
 
@@ -294,15 +395,17 @@ export function answerFeatures(answer, kind) {
 }
 const biggest = (answer) => Math.max(0, ...[...plain(answer).replace(/\((?:≈|=)[^()]*\)/g, '').matchAll(/\d+/g)].map((m) => Number(m[0])));
 
-export function fingerprint(result, topic) {
-  const correct = readCorrect(result, topic);
+export function fingerprint(result, topic, problem) {
+  const correct = readCorrect(result, topic, problem);
   if (!correct) return null;
   return {
     topic: result.routedTopic || topic,
     kind: correct.kind,
-    lead: plain(result.tips?.[0]),
+    // The method's words, its formulas set aside: "Remember both quadrants
+    // where sin takes the value ⟦1/2⟧" is the same method for ⟦√3/2⟧.
+    lead: String(result.tips?.[0] ?? '').replace(/⟦[^⟧]*⟧/g, '⟦⟧'),
     features: answerFeatures(result.answer, correct.kind),
-    count: correct.kind === 'solutions' ? correct.values.length : 1,
+    count: correct.kind === 'solutions' ? correct.values.length : correct.kind === 'intervals' ? correct.intervals.length : correct.kind === 'system' ? correct.solutions.length : 1,
     steps: (result.steps || []).length,
     biggest: biggest(result.answer),
     correct,
@@ -310,13 +413,15 @@ export function fingerprint(result, topic) {
 }
 
 // Why a solved candidate is not kept (null when it is).
-export function mismatch(fp, result, topic) {
+export function mismatch(fp, result, topic, problem) {
   if (!result || result.status !== 'solved') return 'not solved';
-  const other = fingerprint(result, topic);
+  const other = fingerprint(result, topic, problem);
   if (!other) return 'answer not checkable';
   if (other.topic !== fp.topic || other.kind !== fp.kind) return 'another kind of problem';
   if (other.lead !== fp.lead) return 'another method';
-  for (const f of other.features) if (!fp.features.has(f)) return `a ${f} in the answer`;
+  // A trig value is a root or a fraction by nature (tan(π/6) = √3/3).
+  const inherent = fp.topic === 'trigonometry' ? new Set(['root', 'fraction']) : new Set();
+  for (const f of other.features) if (!fp.features.has(f) && !inherent.has(f)) return `a ${f} in the answer`;
   if (other.count !== fp.count) return 'another number of solutions';
   if (Math.abs(other.steps - fp.steps) > Math.max(2, Math.round(fp.steps * 0.3))) return 'different working';
   if (other.biggest > Math.max(50, 10 * fp.biggest)) return 'numbers too large';
@@ -334,8 +439,13 @@ export function candidateText(problem, topic, index, correct) {
   const rng = seeded(hash(`${problem}|${topic}|${index}`));
   const ways = [
     () => rootRebuild(problem, rng, correct),
-    () => literalRemap(problem, rng),
-    () => literalRemap(problem, rng, { exponents: true }),
+    () => systemRebuild(problem, rng, correct),
+    () => trigSpecials(problem, rng, correct),
+    // A trig angle changes only to another special angle (trigSpecials).
+    () => (topic === 'trigonometry' && /pi|π|°/.test(problem) ? null : literalRemap(problem, rng)),
+    // A new exponent keeps the power rule's method; elsewhere (x² − 5x + 6 ≤
+    // 0 → x³ − 11x + 4 ≤ 0) it is a harder problem, and was 45 s to solve.
+    () => (['derivatives', 'integrals', 'limits', 'other'].includes(topic) ? literalRemap(problem, rng, { exponents: true }) : null),
     () => (['derivatives', 'integrals'].includes(topic) ? withCoefficient(problem, rng) : null),
     () => withInsideCoefficient(problem, rng),
   ];
@@ -350,7 +460,7 @@ export async function practiceCandidate({ problem, topic, index }) {
   const key = `${topic}|${problem}`;
   if (!originals.has(key)) {
     const original = await solveProblem(problem, topic);
-    originals.set(key, fingerprint(original, topic));
+    originals.set(key, fingerprint(original, topic, problem));
     if (originals.size > 20) originals.delete(originals.keys().next().value);
   }
   const fp = originals.get(key);
@@ -358,7 +468,7 @@ export async function practiceCandidate({ problem, topic, index }) {
   const text = candidateText(problem, fp.topic, index, fp.correct);
   if (!text || text.replace(/\s+/g, '') === problem.replace(/\s+/g, '')) return { practicable: true, item: null, reason: 'no new numbers' };
   const result = await solveProblem(text, fp.topic);
-  const why = mismatch(fp, result, fp.topic);
+  const why = mismatch(fp, result, fp.topic, text);
   if (why) return { practicable: true, item: null, reason: why, problem: text };
-  return { practicable: true, item: { problem: text, topic: fp.topic, result, correct: readCorrect(result, fp.topic) } };
+  return { practicable: true, item: { problem: text, topic: fp.topic, result, correct: readCorrect(result, fp.topic, text) } };
 }

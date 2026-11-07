@@ -14,9 +14,9 @@ export async function runPracticeTask(task, payload) {
 // Whether a solved result can be practised: its answer is one the checker
 // reads (a number, the solutions of one equation, a derivative or an
 // antiderivative). The page shows "Try a similar one" only then.
-export function practicable(result, topic) {
+export function practicable(result, topic, problem) {
   try {
-    return Boolean(readCorrect(result, topic));
+    return Boolean(readCorrect(result, topic, problem));
   } catch {
     return false;
   }

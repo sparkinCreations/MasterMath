@@ -126,7 +126,7 @@ const pageSolver = createBudgetedSolver({
   fallback: async (problem, topic, extra) => {
     if (extra?.task) return (await import('./practice/tasks.js')).runPracticeTask(extra.task, { ...extra.payload, problem, topic });
     const result = await (await import('./api.js')).solveProblem(problem, topic);
-    if (result && typeof result === 'object' && (await import('./practice/tasks.js')).practicable(result, topic)) result.practicable = true;
+    if (result && typeof result === 'object' && (await import('./practice/tasks.js')).practicable(result, topic, problem)) result.practicable = true;
     return result;
   },
   onWorkerFailure: (error) => {

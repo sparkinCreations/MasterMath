@@ -41,10 +41,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     is right, but there is one more solution", the derivative of the typed
     antiderivative against the integrand at a point. A typed log is base 10
     in MasterMath, and a student who meant ln is told so.
-  - Offered for arithmetic, equations in one unknown, derivatives,
-    integrals and limits. Factor, simplify and expand are not (the input
-    itself equals the answer), nor functions, trigonometry, inequalities
-    and systems yet.
+  - **Every topic**: arithmetic; equations in one unknown; trig values
+    (sin(π/4) = √2/2) and trig equations (the solutions in [0, 2π), or
+    [0°, 360°) in degrees; degrees typed for radians are pointed out);
+    inequalities (the solution set as inequalities or interval notation,
+    "all real numbers", "none"; a wrong set is told a point it gets wrong,
+    and an endpoint included or left out by mistake is named); systems
+    ("x = 3, y = 2" or "(3, 2)", every solution of a non-linear one; a
+    wrong pair is told which equation it breaks); functions (every
+    x-intercept, or "none"); derivatives, integrals and limits. Trig
+    practice uses special angles in the same quadrant and special values
+    (2sin(x) = 1 → 2sin(x) = √3); a system is rebuilt from new
+    whole-number solutions; an inequality and a polynomial's zeros from new
+    rational roots. Factor, simplify and expand are not offered (the input
+    itself equals the answer), nor an identity or a periodic function's
+    zeros.
   - The checker and generator run in the solver worker
     (`src/lib/practice/`), one request per candidate under the usual time
     budget; the page imports no maths library. The pop-up has its own

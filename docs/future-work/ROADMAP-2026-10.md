@@ -62,12 +62,12 @@ purpose, so the next reviewer does not re-raise them.
 | ~~P3~~ | ~~Break up the large solver files~~ | **Shipped in 1.59.1–1.59.11**: every file over about 1,000 lines is a folder of method files behind its entry file, each move checked against 2,241 golden solves. Plan: [`PLAN-FILE-SPLIT.md`](PLAN-FILE-SPLIT.md) | — |
 | ~~P3~~ | ~~More insights ("Show more"), sources, "Learn more" links~~ | **Shipped in 1.60.0–1.67.0**: the feature and every topic's links (1.60.0), then one topic per release: integrals (1.60.0), derivatives, algebra, limits, functions, trigonometry, inequalities and systems, arithmetic (1.67.0), each with a review document in [`insights-review/`](insights-review/). Plan: [`PLAN-INSIGHTS-AND-RESOURCES.md`](PLAN-INSIGHTS-AND-RESOURCES.md) | — |
 | ~~P3~~ | ~~Integrals answered in one line or refused~~ | **Shipped in 1.69.1** (found in the November 6 check of this list): a polynomial times a root of a linear inside (x·√(x + 1), x·∛(x + 2)), even powers of sin and cos lowered step by step (sin²x·cos²x, sin⁴x·cos²x), and partial fractions for a repeated factor that splits only over the reals (1/(x² − 2)²) | — |
-| ~~P4~~ | ~~Practice mode: "Try a similar problem"~~ | **First release in 1.70.0**: a pop-up of up to five checked problems, rotating, for arithmetic, equations, derivatives, integrals and limits. Plan: [`PLAN-PRACTICE-MODE.md`](PLAN-PRACTICE-MODE.md). Still to come: functions, trigonometry, inequalities and systems; "practised" on My Progress | — |
+| ~~P4~~ | ~~Practice mode: "Try a similar problem"~~ | **Shipped in 1.70.0**: a pop-up of up to five checked problems, rotating, for every topic. Plan: [`PLAN-PRACTICE-MODE.md`](PLAN-PRACTICE-MODE.md). Still to come: "practised" on My Progress | — |
 | P4 | Sequences & series | Carried over from September | Large |
 | P4 | Graph a two-variable inequality's region | `x + y > 2` is refused honestly (1.49.0); drawing the shaded half-plane is new work | Medium |
 
-**Recommended order (November 6):** practice mode for the remaining
-topics, then sequences & series.
+**Recommended order (November 7):** sequences & series, then
+"practised" on My Progress.
 
 ---
 

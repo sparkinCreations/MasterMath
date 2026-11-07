@@ -8,7 +8,7 @@ import { practicable } from '../src/lib/practice/tasks.js';
 
 // Practice mode (1.70.0; docs/future-work/PLAN-PRACTICE-MODE.md).
 
-const correctFor = async (problem, topic = 'auto') => readCorrect(await solveProblem(problem, topic), topic);
+const correctFor = async (problem, topic = 'auto') => readCorrect(await solveProblem(problem, topic), topic, problem);
 const verdicts = (correct, problem, answers) => answers.map((a) => checkAnswer(correct, a, { problem }).verdict);
 
 // The set, as the page builds it: candidates in order, new ones kept.
@@ -27,12 +27,16 @@ test('which answers practice can check, and which it cannot', async () => {
     ['3/4+5/6', 'auto', 'number'], ['x^2-5x+6=0', 'auto', 'solutions'], ['2x^2-3x-2=0', 'algebra', 'solutions'],
     ['d/dx sin(3x^2)', 'auto', 'derivative'], ['x^3 at x = 2', 'derivatives', 'number'], ['∫ x^2 dx', 'auto', 'antiderivative'],
     ['∫_0^1 x^2 dx', 'auto', 'number'], ['lim x->2 (x^2-4)/(x-2)', 'auto', 'number'],
+    // Every topic since the widening: values, sets, systems, zeros.
+    ['sin(pi/4)', 'trigonometry', 'number'], ['sin(x) = 1/2', 'trigonometry', 'solutions'], ['x^2 - 4 > 0', 'auto', 'intervals'],
+    ['x^2 + 1 > 0', 'algebra', 'intervals'], ['2x + 3y = 6; x - y = 4', 'auto', 'system'], ['xy = 6; x + y = 5', 'algebra', 'system'],
+    ['x^2 - 4x + 3', 'functions', 'solutions'], ['x^2 + 1', 'functions', 'solutions'],
   ]) {
-    assert.equal(practiceKind(await solveProblem(p, t), t)?.kind, kind, p);
+    assert.equal(practiceKind(await solveProblem(p, t), t, p)?.kind, kind, p);
   }
-  // Not checkable from the problem alone, or not one value: no button.
-  for (const [p, t] of [['factor x^2-9', 'auto'], ['simplify 3(x-2)+4', 'auto'], ['x^2 - 4 > 0', 'auto'], ['2x + 3y = 6; x - y = 4', 'auto'], ['x^2 - 4x + 3', 'functions'], ['sin(x) = 1/2', 'trigonometry'], ['lim x->0 1/x', 'auto'], ['hello', 'auto']]) {
-    assert.equal(practicable(await solveProblem(p, t), t), false, p);
+  // Not checkable from the problem alone, or not one answer: no button.
+  for (const [p, t] of [['factor x^2-9', 'auto'], ['simplify 3(x-2)+4', 'auto'], ['sin(x)^2 + cos(x)^2', 'trigonometry'], ['sin(2x)', 'functions'], ['sin(x) = 2', 'trigonometry'], ['lim x->0 1/x', 'auto'], ['hello', 'auto']]) {
+    assert.equal(practicable(await solveProblem(p, t), t, p), false, p);
   }
 });
 
@@ -65,6 +69,41 @@ test('an answer is checked by its value, in any form a student types', async () 
   assert.deepEqual(verdicts(exact, '2^x=10', ['ln(10)/ln(2)', '3.32', 'log2(10)', '3']), ['correct', 'correct', 'correct', 'wrong']);
 });
 
+test('trig values and equations, inequalities, systems and x-intercepts are checked by value', async () => {
+  const value = await correctFor('sin(pi/4)', 'trigonometry');
+  assert.deepEqual(verdicts(value, '', ['√2/2', '1/√2', 'sqrt(2)/2', '0.71', '0.7']), ['correct', 'correct', 'correct', 'correct', 'close']);
+
+  const trig = await correctFor('sin(x) = 1/2', 'trigonometry');
+  assert.equal(trig.prompt, 'Give every solution in [0, 2π).');
+  assert.deepEqual(verdicts(trig, 'sin(x) = 1/2', ['π/6, 5π/6', 'pi/6, 5pi/6', '0.52, 2.62', 'π/6', 'π/3, 5π/6']), ['correct', 'correct', 'correct', 'partial', 'wrong']);
+  assert.equal(checkAnswer(trig, '30, 150').message, 'Those are the right angles in degrees; give them in radians (π/6, not 30).');
+  assert.equal(checkAnswer(trig, 'π/3, 5π/6').message, 'x = π/3 does not satisfy the equation: there the left side is 0.866 and the right side is 0.5.');
+
+  const set = await correctFor('x^2 - 4 > 0', 'algebra');
+  assert.deepEqual(verdicts(set, '', ['x < -2 or x > 2', '(-∞, -2) ∪ (2, ∞)', '(-inf,-2) U (2,inf)', 'x <= -2 or x >= 2', 'x > 2']), ['correct', 'correct', 'correct', 'close', 'wrong']);
+  assert.equal(checkAnswer(set, 'x > 2').message, 'x = -3 satisfies the inequality, but your answer leaves it out.');
+  assert.equal(checkAnswer(set, 'x <= -2 or x >= 2').message, 'x = -2 is in your answer, but it does not satisfy the inequality. Check whether each endpoint is included.');
+  const closed = await correctFor('abs(x-1) <= 3', 'algebra');
+  assert.deepEqual(verdicts(closed, '', ['-2 ≤ x ≤ 4', '[-2, 4]', '(-2, 4)', '[-2, 5]']), ['correct', 'correct', 'close', 'wrong']);
+  assert.deepEqual(verdicts(await correctFor('x^2 + 1 > 0', 'algebra'), '', ['all real numbers', '(-∞, ∞)', 'x > 0']), ['correct', 'correct', 'wrong']);
+  const empty = await correctFor('x^2 < 0', 'algebra');
+  assert.deepEqual(verdicts(empty, '', ['none', 'no solution', 'x < 0']), ['correct', 'correct', 'wrong']);
+  assert.equal(checkAnswer(empty, 'x < 0').message, 'x = -1 is in your answer, but it does not satisfy the inequality.');
+
+  const linear = await correctFor('2x + 3y = 6; x - y = 4', 'algebra');
+  assert.deepEqual(verdicts(linear, '', ['x = 18/5, y = -2/5', '(18/5, -2/5)', '(3.6, -0.4)', 'y = -0.4, x = 3.6', '(4, 0)']), ['correct', 'correct', 'correct', 'correct', 'wrong']);
+  assert.equal(checkAnswer(linear, '(4, 0)').message, '(4, 0) does not satisfy the first equation: there the left side is 8 and the right side is 6.');
+  const two = await correctFor('xy = 6; x + y = 5', 'algebra');
+  assert.deepEqual(verdicts(two, '', ['(2, 3) or (3, 2)', '(3,2),(2,3)', 'x = 2, y = 3 or x = 3, y = 2', '(2, 3)', '(1, 6)']), ['correct', 'correct', 'correct', 'partial', 'wrong']);
+
+  const zeros = await correctFor('x^2 - 4*x + 3', 'functions');
+  assert.equal(zeros.prompt, 'Give every x-intercept (zero). Type none if there is none.');
+  assert.deepEqual(verdicts(zeros, '', ['1, 3', 'x = 1 or x = 3', '1', '2', 'none']), ['correct', 'correct', 'partial', 'wrong', 'wrong']);
+  assert.equal(checkAnswer(zeros, '2').message, 'x = 2 is not an x-intercept: f(2) = -1, not 0.');
+  assert.equal(checkAnswer(zeros, '1').message, 'That one is right, but there is one more x-intercept.');
+  assert.deepEqual(verdicts(await correctFor('x^2 + 1', 'functions'), '', ['none', 'no x-intercepts', '1']), ['correct', 'correct', 'wrong']);
+});
+
 test('variations keep exponents and 0, keep squares with their roots, and are the same every time', () => {
   const rng = () => 0.42;
   assert.equal(literalRemap('x^2 + 3x = 0', rng)?.includes('x^2'), true);
@@ -85,8 +124,8 @@ test('variations keep exponents and 0, keep squares with their roots, and are th
 
 test('every practice problem is the same kind, solved, and accepted with its own answer', async () => {
   const sets = {
-    'x^2-5x+6=0': ['x^2 - 11x + 28 = 0', 'x^2 - 10x + 24 = 0', 'x^2 - 11x + 30 = 0', 'x^2 - 14x + 45 = 0', 'x^2 - 12x + 35 = 0'],
-    'd/dx x^3': ['d/dx x^4', 'd/dx x^2', 'd/dx x^6', 'd/dx 3x^3', 'd/dx x^7'],
+    'x^2-5x+6=0': ['x^2 - 11x + 28 = 0', 'x^2-10x+9=0', 'x^2 - 10x + 24 = 0', 'x^2 - 14x + 45 = 0', 'x^2 - 12x + 35 = 0'],
+    'd/dx x^3': ['d/dx x^4', 'd/dx x^2', 'd/dx x^6', 'd/dx x^7', 'd/dx 7x^3'],
     'lim x->0 sin(3x)/x': ['lim x->0 sin(9x)/x', 'lim x->0 sin(4x)/x', 'lim x->0 sin(7x)/x', 'lim x->0 sin(2x)/x', 'lim x->0 sin(6x)/x'],
   };
   for (const [problem, expected] of Object.entries(sets)) {
@@ -113,16 +152,29 @@ test('every practice problem is the same kind, solved, and accepted with its own
 // none: its only number is the 0 it approaches (a number inside the sine
 // since 1.70.0).
 test('every example that offers practice has problems to practise', async () => {
-  const examples = [['other', '(5 + 3) * 4 - 2^3'], ['algebra', '2*x + 5 = 11'], ['derivatives', 'x^2 + 3*x'], ['integrals', '2*x + 1'], ['limits', 'lim x->0 (sin(x)/x)'], ['integrals', '∫_0^1 x^2 dx']];
-  for (const [topic, problem] of examples) {
-    assert.ok(practicable(await solveProblem(problem, topic), topic), problem);
+  const examples = [
+    ['other', '(5 + 3) * 4 - 2^3', 5], ['algebra', '2*x + 5 = 11', 4], ['trigonometry', 'sin(pi/4)', 3], ['algebra', 'x^2 - 4 > 0', 5],
+    ['functions', 'x^2 - 4*x + 3', 5], ['algebra', '2x + 3y = 6; x - y = 4', 5], ['trigonometry', 'sin(x) = 1/2', 4],
+    ['derivatives', 'x^2 + 3*x', 5], ['integrals', '2*x + 1', 5], ['limits', 'lim x->0 (sin(x)/x)', 5], ['integrals', '∫_0^1 x^2 dx', 5],
+  ];
+  for (const [topic, problem, size] of examples) {
+    assert.ok(practicable(await solveProblem(problem, topic), topic, problem), problem);
     const set = await practiceSet(problem, topic);
-    assert.equal(set.length, POOL_SIZE, problem);
+    assert.equal(set.length, size, problem);
+    // Each one's own answer, typed back, is right.
+    for (const item of set) {
+      const c = item.correct;
+      const typed = c.kind === 'solutions' ? (c.values.length ? c.values.join(', ') : 'none')
+        : c.kind === 'number' ? String(c.value)
+          : c.kind === 'intervals' ? c.intervals.map((i) => `${i.loClosed ? '[' : '('}${Number.isFinite(i.lo) ? i.lo : '-∞'}, ${Number.isFinite(i.hi) ? i.hi : '∞'}${i.hiClosed ? ']' : ')'}`).join(' ∪ ') || 'none'
+            : c.kind === 'system' ? c.solutions.map((row) => `(${row.join(', ')})`).join(' or ') : c.shown;
+      assert.equal(checkAnswer(c, typed, { problem: item.problem }).verdict, 'correct', `${item.problem}: ${typed}`);
+    }
   }
   assert.deepEqual((await practiceSet('lim x->0 (sin(x)/x)', 'limits')).slice(0, 2).map((s) => s.problem), ['lim x->0 (sin(7x)/x)', 'lim x->0 (sin(5x)/x)']);
 });
 
 test('no set for a problem practice cannot check', async () => {
   assert.equal(await practiceSet('factor x^2-9'), null);
-  assert.equal((await practiceCandidate({ problem: 'x^2 - 4 > 0', topic: 'auto', index: 0 })).practicable, false);
+  assert.equal((await practiceCandidate({ problem: 'sin(2x)', topic: 'functions', index: 0 })).practicable, false);
 });

@@ -214,7 +214,11 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
               <p className="text-xs font-medium uppercase tracking-wide text-indigo-700 dark:text-indigo-300 mb-1">
                 Your problem{state.verdict?.verdict === "correct" && <span className="ml-2 normal-case text-green-700 dark:text-green-400">✓ done</span>}
               </p>
-              <p className="text-lg text-gray-900 dark:text-gray-100 overflow-x-auto"><MathText text={item.problem} mode="input" /></p>
+              <p className="text-lg text-gray-900 dark:text-gray-100 overflow-x-auto">
+                {item.correct?.zeros && <span className="text-base text-gray-700 dark:text-gray-300">f(x) = </span>}
+                <MathText text={item.problem} mode="input" />
+              </p>
+              {item.correct?.prompt && <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{item.correct.prompt}</p>}
             </div>
 
             <div>
@@ -244,7 +248,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
                   value={state.typed}
                   onChange={(e) => update({ typed: e.target.value, verdict: null })}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); check(); } }}
-                  placeholder={item.correct?.kind === "solutions" ? "e.g. 2, 3" : item.correct?.kind === "antiderivative" ? "e.g. x^3/3 + C" : item.correct?.kind === "derivative" ? "e.g. 3x^2" : "e.g. 3/4"}
+                  placeholder={item.correct?.placeholder || (item.correct?.kind === "solutions" ? "e.g. 2, 3" : item.correct?.kind === "antiderivative" ? "e.g. x^3/3 + C" : item.correct?.kind === "derivative" ? "e.g. 3x^2" : "e.g. 3/4")}
                   className={`flex-1 min-w-0 min-h-11 px-3 rounded-lg border-2 border-indigo-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${focusRing}`}
                 />
                 <button

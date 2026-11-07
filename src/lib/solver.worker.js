@@ -26,7 +26,7 @@ self.onmessage = async ({ data }) => {
     }
     const result = await solveProblem(problem, topic);
     // Whether "Try a similar one" is offered (practice mode, 1.70.0).
-    if (result && typeof result === 'object' && practicable(result, topic)) result.practicable = true;
+    if (result && typeof result === 'object' && practicable(result, topic, problem)) result.practicable = true;
     self.postMessage({ id, result });
   } catch (error) {
     self.postMessage({ id, error: String(error?.message || error) });

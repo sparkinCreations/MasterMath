@@ -223,8 +223,10 @@ export default function UserManual() {
               (a decimal needs at least two places). A wrong answer says what is wrong without giving the answer away.
               <strong> Hint</strong> shows the working one step at a time, <strong>Show solution</strong> all of it, and <strong>Look at the example</strong> the problem you started from.
               <strong> Another one</strong> moves through the set and starts again after the last. Every practice problem is solved and checked by MasterMath before you see it,
-              and everyone who solves the same problem gets the same set. Practice is offered for arithmetic, equations in one unknown, derivatives, integrals and limits;
-              in MasterMath log(…) means base 10, so write ln(…) for the natural logarithm.
+              and everyone who solves the same problem gets the same set. Practice is offered for every topic: for a trig equation give the solutions in one turn,
+              [0, 2π); for an inequality the solution set, as “x &lt; -2 or x &gt; 2” or “(-∞, -2) ∪ (2, ∞)”; for a system every solution, as “x = 3, y = 2” or “(3, 2)”;
+              for a function its x-intercepts (or “none”). Factor, simplify and expand are not practised (the problem itself would count as the answer).
+              In MasterMath log(…) means base 10, so write ln(…) for the natural logarithm.
             </p>
           </div>
 

@@ -116,11 +116,13 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    `GraphViewer` re-samples `graph.expression` for the window on screen.
 6. Practice mode (`docs/future-work/PLAN-PRACTICE-MODE.md`): the worker
    marks a result `practicable` when `practice/check.js` can read its answer
-   (a number, the solutions of one equation in one unknown, a derivative, an
-   antiderivative); the page then offers **Try a similar one**, a pop-up of
+   (a number, the solutions of one equation or a trig equation's on [0, 2π),
+   an inequality's solution set, a system's pairs, a function's x-intercepts,
+   a derivative, an antiderivative); the page then offers **Try a similar one**, a pop-up of
    up to five problems that rotate. Candidate i is a pure function of the
    problem (seeded), so every student gets the same set; it is kept only
-   when it solves with the same first Key Insight (the method), an answer
+   when it solves with the same first Key Insight (the method; its marked
+   formulas set aside), an answer
    with no feature the original's lacks, and a readable correct answer.
    Answers are checked by value in the worker, never by text.
 7. Solved / undefined / indeterminate / diverges results are saved to

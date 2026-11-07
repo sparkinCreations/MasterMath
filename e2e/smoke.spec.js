@@ -480,6 +480,19 @@ test.describe('MasterMath smoke', () => {
     await expect(dialog.getByText('Correct ✓')).toBeVisible();
     await dialog.getByRole('button', { name: 'Close practice' }).click();
     await expect(dialog).toHaveCount(0);
+    // An inequality: a solution set, in either notation, with what it asks for.
+    await page.locator('#problem').fill('x^2 - 4 > 0');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    await page.getByRole('button', { name: 'Try a similar one' }).click();
+    await expect(dialog.locator('.katex-mathml annotation').first()).toHaveText('x^{2} - 16 > 0', { timeout: 20000 });
+    await expect(dialog.getByText('Give the solution set.')).toBeVisible();
+    await answer.fill('x > 4');
+    await answer.press('Enter');
+    await expect(dialog.getByText('x = -5 satisfies the inequality, but your answer leaves it out.')).toBeVisible();
+    await answer.fill('(-inf, -4) U (4, inf)');
+    await answer.press('Enter');
+    await expect(dialog.getByText('Correct ✓')).toBeVisible();
+    await page.keyboard.press('Escape');
   });
 
   test('dark mode toggles, survives a reload, and the solver still renders in it', async ({ page }) => {

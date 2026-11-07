@@ -90,11 +90,22 @@ The student's text goes through the app's own reader (`parseMathExpression`:
 | Derivative | f′(x), any order | equal to the engine's at sample points | the two values at one point |
 | Antiderivative | an indefinite integral | differs from the engine's by a constant (any +C, or none) | the derivative of theirs against the integrand at one point |
 
-Not in the first release, because a "correct" answer cannot be told from
-the problem itself: **factor, simplify and expand** (the input itself is
-equal to the answer), and the topics whose answers are not one value or one
-expression: **functions, trig equations, inequalities, systems** (interval
-notation, general solutions in n, ordered pairs). These come later.
+Widened before release (asked for on November 7) to every topic:
+
+| Kind | Problems | Correct when | "Not quite" says |
+|---|---|---|---|
+| Number | a trig value, sin(π/4) | as above | as above |
+| Solutions on a period | a trig equation | the set of solutions in [0, 2π) (or [0°, 360°)) | the sides at a wrong value; degrees typed for radians |
+| Solution set | an inequality | the same set, as inequalities or intervals, "all real numbers", "none" | a point the answer gets wrong; an endpoint |
+| Pairs | a system, linear or not | every solution, as "x = 3, y = 2" or "(3, 2)" | the equation a wrong pair breaks |
+| Zeros | a function | every x-intercept, or "none" | f at a wrong value |
+
+Trig problems change to special angles in the same quadrant and special
+values (the first insight names the value, so the method is compared with
+formulas set aside); a system is rebuilt from new whole-number solutions;
+an inequality and a polynomial's zeros from new rational roots. Still not
+offered: **factor, simplify and expand** (the input itself is equal to the
+answer), an identity, and a periodic function's zeros.
 
 ## Where the code goes
 
