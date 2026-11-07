@@ -85,9 +85,9 @@ test('variations keep exponents and 0, keep squares with their roots, and are th
 
 test('every practice problem is the same kind, solved, and accepted with its own answer', async () => {
   const sets = {
-    'x^2-5x+6=0': ['x^2 - 11x + 28 = 0', 'x^2 - 15x + 56 = 0', 'x^2 - 10x + 24 = 0', 'x^2-8x+7=0', 'x^2 - 10x + 16 = 0'],
+    'x^2-5x+6=0': ['x^2 - 11x + 28 = 0', 'x^2 - 10x + 24 = 0', 'x^2 - 11x + 30 = 0', 'x^2 - 14x + 45 = 0', 'x^2 - 12x + 35 = 0'],
     'd/dx x^3': ['d/dx x^4', 'd/dx x^2', 'd/dx x^6', 'd/dx 3x^3', 'd/dx x^7'],
-    'lim x->0 sin(3x)/x': ['lim x->0 sin(9x)/x', 'lim x->0 sin(4x)/x', 'lim x->0 sin(7x)/x', 'lim x->0 sin(8x)/x', 'lim x->0 sin(6x)/x'],
+    'lim x->0 sin(3x)/x': ['lim x->0 sin(9x)/x', 'lim x->0 sin(4x)/x', 'lim x->0 sin(7x)/x', 'lim x->0 sin(2x)/x', 'lim x->0 sin(6x)/x'],
   };
   for (const [problem, expected] of Object.entries(sets)) {
     const set = await practiceSet(problem);
@@ -106,6 +106,20 @@ test('every practice problem is the same kind, solved, and accepted with its own
       assert.equal(checkAnswer(c, typed, { problem: item.problem }).verdict, 'correct', `${item.problem}: ${typed}`);
     }
   }
+});
+
+// The example buttons under the problem box: each that offers practice has
+// a set to practise. lim x → 0 sin(x)/x offered the button and then had
+// none: its only number is the 0 it approaches (a number inside the sine
+// since 1.70.0).
+test('every example that offers practice has problems to practise', async () => {
+  const examples = [['other', '(5 + 3) * 4 - 2^3'], ['algebra', '2*x + 5 = 11'], ['derivatives', 'x^2 + 3*x'], ['integrals', '2*x + 1'], ['limits', 'lim x->0 (sin(x)/x)'], ['integrals', '∫_0^1 x^2 dx']];
+  for (const [topic, problem] of examples) {
+    assert.ok(practicable(await solveProblem(problem, topic), topic), problem);
+    const set = await practiceSet(problem, topic);
+    assert.equal(set.length, POOL_SIZE, problem);
+  }
+  assert.deepEqual((await practiceSet('lim x->0 (sin(x)/x)', 'limits')).slice(0, 2).map((s) => s.problem), ['lim x->0 (sin(7x)/x)', 'lim x->0 (sin(5x)/x)']);
 });
 
 test('no set for a problem practice cannot check', async () => {

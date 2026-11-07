@@ -24,8 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     solved one with new numbers (each number remapped consistently, squares
     kept with their roots, exponents and 0 kept; a polynomial equation
     rebuilt from new rational roots so a factorable quadratic stays
-    factorable; an exponent or a coefficient when there is nothing else to
-    change), solved by the same engine, and kept only if it has the same
+    factorable; an exponent, a coefficient, or a number inside a function
+    (sin(x)/x → sin(3x)/x) when there is nothing else to change), solved by
+    the same engine, and kept only if it has the same
     first Key Insight (the method), an answer with nothing the original's
     lacks (no new fraction, root, π, function or sign), about the same
     working, and an answer the checker can read. Every candidate is seeded

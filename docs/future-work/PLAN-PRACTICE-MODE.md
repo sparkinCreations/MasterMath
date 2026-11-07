@@ -69,6 +69,11 @@ solving the result with the same engine; it is shown only if it passes:
     the point and every root remapped together, numerator and denominator
     rebuilt, so the hole stays a hole.
 
+- **A coefficient or an exponent**, when a problem has no number to change:
+  `d/dx x^3` → `d/dx x^4`, `∫ x·e^x dx` → `∫ 3x·e^x dx`, and a number inside a
+  function of the bare variable, `lim x→0 sin(x)/x` → `sin(3x)/x` (its only
+  number is the 0 it approaches).
+
 Candidates are tried one at a time in the solver worker, each under the
 usual 10-second budget, until five pass or 40 have been tried. The first
 one opens the pop-up; the rest are made while the student works on it.

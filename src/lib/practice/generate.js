@@ -170,6 +170,22 @@ export function literalRemap(text, rng, { exponents = false } = {}) {
   return out === text ? null : out;
 }
 
+// A number inside a function of the bare variable: sin(x)/x → sin(3x)/x,
+// e^x → e^(2x), the same number everywhere (sin(x)·cos(x) → sin(2x)·cos(2x)).
+// For a problem whose only number is structural (lim x → 0 sin(x)/x had no
+// practice problems at all).
+export function withInsideCoefficient(text, rng) {
+  // The variable: the one after d/d or "lim", else x when it appears.
+  const named = text.match(/\bd\/d([a-z])\b|\blim\s*_?\s*\(?\s*([a-z])\s*(?:->|→)/);
+  const v = named ? named[1] || named[2] : /(?<![a-z])x(?![a-z])/.test(text) ? 'x' : null;
+  if (!v) return null;
+  const k = pick(rng, 2, 7);
+  const fn = new RegExp(`\\b(sin|cos|tan|sec|csc|cot|sinh|cosh|tanh|ln|exp|sqrt)\\(\\s*${v}\\s*\\)`, 'g');
+  const exp = new RegExp(`\\be\\^(?:\\(\\s*${v}\\s*\\)|${v}(?![\\w(^]))`, 'g');
+  const out = text.replace(fn, `$1(${k}${v})`).replace(exp, `e^(${k}${v})`);
+  return out === text ? null : out;
+}
+
 // A coefficient in front of the function: d/dx x³ → d/dx 4x³, ∫ x·eˣ dx →
 // ∫ 3x·eˣ dx. For a derivative or an integral with no number to change.
 export function withCoefficient(text, rng) {
@@ -321,6 +337,7 @@ export function candidateText(problem, topic, index, correct) {
     () => literalRemap(problem, rng),
     () => literalRemap(problem, rng, { exponents: true }),
     () => (['derivatives', 'integrals'].includes(topic) ? withCoefficient(problem, rng) : null),
+    () => withInsideCoefficient(problem, rng),
   ];
   for (let k = 0; k < ways.length; k += 1) {
     const text = ways[(index + k) % ways.length]();
