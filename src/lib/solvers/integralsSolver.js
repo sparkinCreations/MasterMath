@@ -34,6 +34,7 @@ import {
   conditionsReason,
   mixedLogArguments,
   keepLogArguments,
+  otherBranchScopes,
   math,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
@@ -336,7 +337,21 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     const ownDisplay = perTerm.length > 0 && perTerm.length === terms.length && perTerm.every((r) => r.shown);
     // ln(a·x) stays whole (review of 1.73.0): −x + ln(a)·x + x·ln(x) held only
     // for a > 0; x·ln(a·x) − x holds wherever a·x > 0.
-    if (mixedLogArguments(expression, variable).length) integral = keepLogArguments(integral, expression, variable, Algebrite);
+    if (mixedLogArguments(expression, variable).length) {
+      // Verified on the other branch (a < 0, x < 0): the rebuilt F
+      // differentiated numerically against the integrand there.
+      const branch = otherBranchScopes(expression, variable);
+      const verify = (cand) => branch.every((scope) => {
+        try {
+          const h = 1e-6;
+          const F = (t) => math.evaluate(cand, { ...scope, [variable]: t });
+          const got = (F(scope[variable] + h) - F(scope[variable] - h)) / (2 * h);
+          const want = math.evaluate(expression, scope);
+          return typeof want === 'number' && Number.isFinite(got) && Math.abs(got - want) <= 1e-5 * Math.max(1, Math.abs(want));
+        } catch { return false; }
+      });
+      integral = keepLogArguments(integral, expression, variable, Algebrite, verify);
+    }
     let shownIntegral = usesErf ? prettyErf(integral) : ownDisplay ? perTerm.map((r) => r.shown).join(' + ').replace(/\+ −/g, '− ') : dropBarsOnPositiveArguments(lnify(integral), integral, variable);
     if (ownDisplay && steps.length) {
       const approx = perTerm.some((r) => r.approximate);

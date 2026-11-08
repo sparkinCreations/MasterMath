@@ -116,8 +116,10 @@ export function conditionsReason(reqs) {
 // ln(a·x): a logarithm whose argument holds the variable and a constant.
 // Its domain is a·x > 0 — x > 0 when a > 0, x < 0 when a < 0 — and writing it
 // ln(a) + ln(x) keeps only the first half (review of 1.73.0). Algebrite always
-// splits such a logarithm, so the pieces are put back (keepLogArguments) and
-// the argument's own condition stated.
+// splits such a logarithm, so the pieces are put back (keepLogArguments):
+// rebuilt from the original logarithm, compared with the split form where
+// that form holds (every letter positive), and verified by the solver on the
+// other branch; the argument's own condition is stated.
 export function mixedLogArguments(expr, x) {
   const node = parse(expr);
   if (!node) return [];
@@ -134,7 +136,23 @@ export function mixedLogArguments(expr, x) {
   return out;
 }
 
-export function keepLogArguments(result, original, x, Algebrite) {
+// Points on the other branch of a·x > 0: x < 0 with the constants negative
+// too, kept only where every such logarithm's argument is positive. Empty
+// when there is no such branch to check.
+export function otherBranchScopes(original, x) {
+  const args = mixedLogArguments(original, x);
+  if (!args.length) return [];
+  const names = [...new Set(args.flatMap((arg) => letters(math.parse(arg), x)))];
+  return [[-1.3, -0.8], [-2.1, -1.7], [-0.6, -2.4]]
+    .map(([xv, cv]) => Object.fromEntries([[x, xv], ...names.map((n, j) => [n, cv * (1 + 0.13 * j)])]))
+    .filter((scope) => args.every((arg) => { try { const v = math.evaluate(arg, scope); return typeof v === 'number' && v > 0; } catch { return false; } }));
+}
+
+// `verify(candidate)` is the solver's own check of the rebuilt form on the
+// other branch (a < 0, x < 0), where Algebrite's split form says nothing:
+// a derivative against a numerical derivative of f, an antiderivative
+// differentiated back. Without it passing, the split form stays.
+export function keepLogArguments(result, original, x, Algebrite, verify = null) {
   let out = String(result);
   const run = (cmd) => { try { const r = String(Algebrite.run(cmd)).trim(); return /stop|error|nil/i.test(r) ? null : r; } catch { return null; } };
   for (const arg of mixedLogArguments(original, x)) {
@@ -171,7 +189,7 @@ export function keepLogArguments(result, original, x, Algebrite) {
         return typeof p === 'number' && typeof q === 'number' && Math.abs(p - q) <= 1e-9 * Math.max(1, Math.abs(q));
       } catch { return false; }
     });
-    if (same) out = candidate;
+    if (same && (!verify || verify(candidate))) out = candidate;
   }
   return out;
 }

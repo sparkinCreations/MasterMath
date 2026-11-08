@@ -34,9 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - A logarithm of the variable and a constant keeps its whole domain
     (review of this release): d/dx x²·ln(a·x) is x + 2x·ln(a·x), for
     a·x > 0, true for a < 0 and x < 0 as well. Algebrite splits ln(a·x)
-    into ln(a) + ln(x), which holds only for a > 0 and x > 0; the pieces
-    are put back (`keepLogArguments`, checked equal to Algebrite's form)
-    and the argument's own condition stated. ∫ln(a·x) dx is x·ln(a·x) − x,
+    into ln(a) + ln(x), which holds only for a > 0 and x > 0; the
+    logarithm is rebuilt from the original (`keepLogArguments`), compared
+    with the split form where that form holds, and verified by
+    differentiation on the other branch (a < 0, x < 0) before it is shown,
+    and the argument's own condition is stated. ∫ln(a·x) dx is x·ln(a·x) − x,
     for a·x > 0. At a point the condition takes the point: d/dx x²·ln(a·x)
     at x = −2 is 2(−1 − 2ln(−2a)), for a < 0 (it gave a complex number,
     with −2iπ in it, "for a > 0", live since 1.72.3).

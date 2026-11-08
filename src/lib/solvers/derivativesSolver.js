@@ -27,6 +27,7 @@ import {
   keepLogArguments,
   atPointKeepingLogs,
   conditionAtPoint,
+  otherBranchScopes,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -236,7 +237,19 @@ async function solveDerivativeInner(expression, options = {}) {
     // for a > 0 and x > 0, where x²·ln(a·x) is defined for a·x > 0 (review
     // of 1.73.0). The pieces are put back, in the answer and in the steps.
     if (mixedLogArguments(forAlgebrite, variable).length) {
-      const keep = (d) => keepLogArguments(d, forAlgebrite, variable, Algebrite);
+      // Verified where Algebrite's split form says nothing (a < 0, x < 0):
+      // the rebuilt f′ against a numerical derivative of f there.
+      const branch = otherBranchScopes(forAlgebrite, variable);
+      const verify = (cand) => order === 1 && branch.every((scope) => {
+        try {
+          const h = 1e-6;
+          const f = (t) => math.evaluate(forAlgebrite, { ...scope, [variable]: t });
+          const want = (f(scope[variable] + h) - f(scope[variable] - h)) / (2 * h);
+          const got = math.evaluate(cand, scope);
+          return typeof got === 'number' && Number.isFinite(want) && Math.abs(got - want) <= 1e-5 * Math.max(1, Math.abs(want));
+        } catch { return false; }
+      });
+      const keep = (d) => keepLogArguments(d, forAlgebrite, variable, Algebrite, verify);
       for (let k = 0; k < orderChain.length; k += 1) {
         const kept = keep(orderChain[k]);
         if (kept !== orderChain[k]) {
