@@ -905,9 +905,12 @@ test.describe('MasterMath smoke', () => {
     const ticks = () => page.locator('[data-export-graph] .recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value').evaluateAll((els) => els.map((e) => e.textContent).join(' '));
     await expect.poll(ticks).toBe('-10 -5 0 5 10');
     const box = await graph.boundingBox();
+    // The plot's own box, off its grid (as GraphViewer's zoom measures it).
+    const plot = () => graph.locator('.recharts-cartesian-grid').evaluate((g) => { const r = g.getBoundingClientRect(); return { x: r.left, y: r.top, width: r.width, height: r.height }; });
     // Two fingers moving apart about the middle: the window narrows about 0.
-    const cx = box.x + 60 + (box.width - 70) / 2;
-    const cy = box.y + box.height / 2;
+    const p0 = await plot();
+    const cx = p0.x + p0.width / 2;
+    const cy = p0.y + p0.height / 2;
     await graph.evaluate((el, { cx, cy }) => {
       const ev = (type, id, x) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: cy, bubbles: true, isPrimary: id === 1, button: 0 }));
       ev('pointerdown', 1, cx - 20); ev('pointerdown', 2, cx + 20);
@@ -926,8 +929,8 @@ test.describe('MasterMath smoke', () => {
       await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
       expect(await ticks()).toBe('-10 -5 0 5 10');
       // Ctrl + wheel zooms about the pointer: a quarter across, x = -5 stays.
-      const b = await graph.boundingBox();
-      await page.mouse.move(b.x + 60 + (b.width - 70) * 0.25, b.y + b.height / 2);
+      const p1 = await plot();
+      await page.mouse.move(p1.x + p1.width * 0.25, p1.y + p1.height / 2);
       const scrolled = await page.evaluate(() => window.scrollY);
       await page.keyboard.down('Control');
       await page.mouse.wheel(0, -350);
@@ -946,6 +949,18 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('button', { name: 'Close expanded graph' })).toBeFocused();
     await expect.poll(async () => (await dialog.getByRole('img', { name: /^Graph of/ }).boundingBox()).height).toBeGreaterThan(inlineHeight);
     await expect(page.locator('[data-export-graph]')).toHaveCount(1);
+    // The axis name "x" is inside the drawing and clear of the screen's
+    // bottom: it hung 4px past the chart, where Safari's toolbar cut it off
+    // in the expanded view on an iPhone (1.72.1).
+    const xLabel = await dialog.evaluate((d) => {
+      const svg = d.querySelector('[data-export-graph] svg.recharts-surface');
+      const label = [...svg.querySelectorAll('.recharts-label')].find((t) => t.textContent.trim() === 'x');
+      const sb = svg.getBoundingClientRect();
+      const lb = label.getBoundingClientRect();
+      return { inside: lb.bottom <= sb.bottom && lb.right <= sb.right, clear: window.innerHeight - lb.bottom };
+    });
+    expect(xLabel.inside).toBe(true);
+    expect(xLabel.clear).toBeGreaterThanOrEqual(12);
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await expect(expand).toBeFocused();

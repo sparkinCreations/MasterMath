@@ -89,6 +89,7 @@ function startWindow(functionData) {
 }
 const HEIGHTS = [240, 320, 400, 480, 560];
 const DEFAULT_HEIGHT_IDX = 1; // 320px
+const CHART_MARGIN = { top: 5, right: 12, bottom: 12, left: 5 };
 // The narrowest x-window zoom reaches (the zoom-in button's old limit).
 const MIN_SPAN = 1;
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
@@ -219,8 +220,8 @@ export default function GraphViewer({ functionData }) {
     const x0 = functionData.initialWindow;
     const y0 = functionData.implicitYWindow;
     if (!x0 || !y0) return;
-    const plotW = Math.max(50, chartWidth - 70);
-    const plotH = Math.max(50, chartHeight - 45);
+    const plotW = Math.max(50, chartWidth - 77);
+    const plotH = Math.max(50, chartHeight - 52);
     const span = Math.max(x0.xMax - x0.xMin, (y0.yMax - y0.yMin) * (plotW / plotH));
     const centre = (x0.xMin + x0.xMax) / 2;
     setRange({ xMin: centre - span / 2, xMax: centre + span / 2 });
@@ -228,8 +229,8 @@ export default function GraphViewer({ functionData }) {
   const implicitAutoY = useMemo(() => {
     const y0 = functionData?.implicitYWindow;
     if (!implicit || !y0) return null;
-    const plotW = Math.max(50, (chartWidth || 600) - 70);
-    const plotH = Math.max(50, chartHeight - 45);
+    const plotW = Math.max(50, (chartWidth || 600) - 77);
+    const plotH = Math.max(50, chartHeight - 52);
     const centre = (y0.yMin + y0.yMax) / 2;
     const half = ((range.xMax - range.xMin) * (plotH / plotW)) / 2;
     return { yMin: centre - half, yMax: centre + half };
@@ -380,8 +381,8 @@ export default function GraphViewer({ functionData }) {
     const dy = e.clientY - d.y;
     if (!d.moved && Math.hypot(dx, dy) < 4) return;
     if (!d.moved) { d.moved = true; setDragging(true); }
-    const rect = e.currentTarget.getBoundingClientRect();
-    const plotW = Math.max(50, rect.width - 60 - (useRightAxis ? 60 : 0) - 10);
+    const box = plotBox();
+    const plotW = box ? box.width : 300;
     const span = d.range.xMax - d.range.xMin;
     let xMin = d.range.xMin - (dx / plotW) * span;
     let xMax = d.range.xMax - (dx / plotW) * span;
@@ -389,7 +390,7 @@ export default function GraphViewer({ functionData }) {
     if (xMax > xExtent.max) { xMax = xExtent.max; xMin = xMax - span; }
     setRange({ xMin, xMax });
     if (d.pointerType === 'mouse' && d.yWin) {
-      const plotH = Math.max(50, rect.height - 40);
+      const plotH = box ? box.height : 200;
       const ySpan = d.yWin.yMax - d.yWin.yMin;
       const yShift = (dy / plotH) * ySpan;
       setYDomain({ yMin: d.yWin.yMin + yShift, yMax: d.yWin.yMax + yShift });
@@ -408,12 +409,17 @@ export default function GraphViewer({ functionData }) {
   // began, not step by step); fx, fy are the point's place across and down
   // the plot, 0 to 1. A y-window set by hand is scaled about the point too;
   // an automatic one keeps fitting the curve.
+  // The plot's own box, measured off its grid; the axes' widths estimated
+  // only if the grid is not drawn yet.
   const plotBox = () => {
+    const grid = chartRef.current?.querySelector('.recharts-cartesian-grid');
+    const g = grid?.getBoundingClientRect();
+    if (g && g.width > 0 && g.height > 0) return { left: g.left, top: g.top, width: g.width, height: g.height };
     const rect = chartRef.current?.getBoundingClientRect();
     if (!rect) return null;
-    const left = 60;
-    const right = (useRightAxis ? 60 : 0) + 10;
-    return { left: rect.left + left, top: rect.top + 5, width: Math.max(50, rect.width - left - right), height: Math.max(50, rect.height - 40) };
+    const left = 65;
+    const right = (useRightAxis ? 60 : 0) + CHART_MARGIN.right;
+    return { left: rect.left + left, top: rect.top + CHART_MARGIN.top, width: Math.max(50, rect.width - left - right), height: Math.max(50, rect.height - 30 - CHART_MARGIN.top - CHART_MARGIN.bottom) };
   };
   const pointAt = (clientX, clientY) => {
     const box = plotBox();
@@ -598,7 +604,11 @@ export default function GraphViewer({ functionData }) {
             </div>
           )}
           <ResponsiveContainer width="100%" height={chartHeight}>
-            <LineChart data={mergedPoints}>
+            {/* Room below and to the right for the axis name "x": with
+                Recharts' 5px margin it hung 4px past the drawing, which the
+                expanded view put at the very bottom of a phone's screen,
+                where Safari's toolbar cut it off (1.72.1). */}
+            <LineChart data={mergedPoints} margin={CHART_MARGIN}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis
                 dataKey="x"
@@ -965,7 +975,7 @@ export default function GraphViewer({ functionData }) {
       </CardContent>
     </Card>
     {expanded && (
-      <div className="fixed inset-0 z-50 flex items-stretch justify-center sm:p-4" onKeyDown={onDialogKeyDown}>
+      <div className="fixed inset-x-0 top-0 h-dvh z-50 flex items-stretch justify-center sm:p-4" onKeyDown={onDialogKeyDown}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-xs animate-in fade-in" onClick={() => setExpanded(false)} aria-hidden="true" />
         <div
           ref={dialogRef}
@@ -983,7 +993,9 @@ export default function GraphViewer({ functionData }) {
               </Button>
             </div>
           </div>
-          <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-6 pt-3 pb-3">
+          {/* Clear of a phone's home bar and rounded corners (safe-area
+              insets, where the browser reports them). */}
+          <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-6 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div ref={plotAreaRef} className="flex-1 min-h-0">{chart}</div>
         {/* Legend for dual curves */}
         {(hasSecondary || implicit) && (

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.72.1] - 2026-11-08
+
+### Fixed
+- The axis name "x" was cut off at the bottom of the expanded graph on an
+  iPhone held upright. It hung 4px below the chart's drawing (Recharts' 5px
+  margin), which the expanded view put at the very bottom of the screen,
+  under Safari's toolbar. The chart has room for it now, the expanded view
+  is sized to the visible screen (dvh) and kept clear of the home bar, and
+  zooming about a point measures the plot itself rather than estimating it.
+
 ## [1.72.0] - 2026-11-08
 
 ### Changed
