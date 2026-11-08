@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.71.1] - 2026-11-08
 
+### Changed
+- The home page's worked example shows its key insight as the Solver does
+  since 1.70.4: an outlined box with a lightbulb, no filled background.
+
 ### Fixed
 - "e^(a*x) = b" was refused as "one equation cannot fix 3 unknowns". An
   exponential with constants is solved by taking logarithms: x = ln(b)/a,
