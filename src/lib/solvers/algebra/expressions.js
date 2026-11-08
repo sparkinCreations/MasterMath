@@ -22,19 +22,21 @@ import { parseRootsList, IMAGINARY } from './rootsFormat.js';
 import { exactRadicalForm } from './radicals.js';
 
 // "expand (x+1)^2" → x^2 + 2x + 1. Algebrite's expand, verified numerically.
-// Terms in textbook order (1.70.6): highest power of the variable first,
-// then of each other letter in turn, keeping the engine's order otherwise. Algebrite
-// wrote (a + b)^2 as 2a*b + a^2 + b^2; a textbook writes a^2 + 2ab + b^2.
-function textbookOrder(expanded, variable, Algebrite) {
+// Terms in descending lexicographic order (1.70.6), the textbook style:
+// highest power of x first when the expression has an x, then of each other
+// letter alphabetically (with no x, every letter alphabetically), keeping
+// the engine's order for ties. Algebrite wrote (a + b)^2 as
+// 2a*b + a^2 + b^2; this gives a^2 + 2ab + b^2, and (b + a)^2 the same.
+function textbookOrder(expanded, Algebrite) {
   const terms = splitTerms(expanded);
   if (terms.length < 2) return expanded;
   const degree = (t, v) => {
     try { const d = Number(String(Algebrite.run(`deg(${t}, ${v})`)).trim()); return Number.isFinite(d) ? d : 0; } catch { return 0; }
   };
-  // The variable first, then the other letters alphabetically: each term's
-  // powers in that order, compared highest first (a^2, 2ab, 2ac, b^2, 2bc, c^2).
-  const others = [...new Set(expanded.match(/(?<![a-z])[a-z](?![a-z])/gi) || [])].filter((c) => !['e', 'i', variable].includes(c)).sort();
-  const order = [variable, ...others];
+  // Each term's powers in that letter order, compared highest first
+  // (a^2, 2ab, 2ac, b^2, 2bc, c^2).
+  const letters = [...new Set(expanded.match(/(?<![a-z])[a-z](?![a-z])/gi) || [])].filter((c) => !['e', 'i'].includes(c)).sort();
+  const order = letters.includes('x') ? ['x', ...letters.filter((c) => c !== 'x')] : letters;
   const ranked = terms.map((t, i) => ({ t, i, powers: order.map((v) => degree(t.term, v)) }));
   ranked.sort((p, q) => {
     for (let k = 0; k < order.length; k += 1) if (q.powers[k] !== p.powers[k]) return q.powers[k] - p.powers[k];
@@ -49,7 +51,7 @@ export async function expandExpression(expression) {
     const Algebrite = await loadAlgebrite();
     const raw = String(Algebrite.run(`expand(${expression})`)).trim();
     if (!raw || /stop|error|nil/i.test(raw)) return null;
-    const expanded = textbookOrder(raw, extractVariable(expression), Algebrite);
+    const expanded = textbookOrder(raw, Algebrite);
     // Every letter is checked, not only x: with a constant in it the
     // one-letter check could not evaluate, and the input came back unexpanded.
     if (!expressionsEqualInAllLetters(expression, expanded)) return null;
