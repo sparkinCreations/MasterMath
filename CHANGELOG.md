@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.70.2] - 2026-11-08
+
+### Changed
+
+- **The home page shows the real solver, recorded, instead of an AI
+  illustration.** A 10-second loop types x² − 4x + 3 under Functions,
+  solves it, draws the parabola with its zeros at 1 and 3 and its minimum
+  at 2, and scrolls to the first steps, in the visitor's light or dark
+  theme. Each visitor loads one file: 1600 px wide on a laptop (WebM about
+  175–190 kB, MP4 for Safari about 205–235 kB), 800 px on a phone (about
+  80–110 kB); the solved frame shows first (about 50 kB, preloaded at high
+  priority), and is all a visitor who asked for reduced motion sees. A
+  pause button stops it (WCAG 2.2.2). The caption now reads "A real
+  recording of the solver."; the AI images (home-desk-800/1600.webp) are
+  gone. `scripts/record-hero.mjs` re-records it from the live site.
+
 ## [1.70.1] - 2026-11-08
 
 ### Changed

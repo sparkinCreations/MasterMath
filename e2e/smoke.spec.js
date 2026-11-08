@@ -495,6 +495,31 @@ test.describe('MasterMath smoke', () => {
     await page.keyboard.press('Escape');
   });
 
+  test('the home page plays a real recording of the solver, which pauses, and is a still under reduced motion', async ({ page, browser }) => {
+    await page.goto('/');
+    const video = page.locator('figure video');
+    await expect(video).toHaveAttribute('poster', '/hero/solve-light-poster.webp');
+    await expect(page.locator('figcaption')).toHaveText('A real recording of the solver.');
+    // It plays (muted, looping), and the button pauses and resumes it.
+    await expect.poll(() => video.evaluate((v) => v.muted && v.loop && !v.paused && v.currentTime > 0), { timeout: 10000 }).toBe(true);
+    const src = await video.evaluate((v) => v.currentSrc);
+    expect(src).toMatch(/\/hero\/solve-light-(1600|800)\.(webm|mp4)$/);
+    await page.getByRole('button', { name: 'Pause the demonstration' }).click();
+    await expect.poll(() => video.evaluate((v) => v.paused)).toBe(true);
+    await page.getByRole('button', { name: 'Play the demonstration' }).click();
+    await expect.poll(() => video.evaluate((v) => v.paused)).toBe(false);
+    // Reduced motion: the solved frame alone, no video downloaded.
+    const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+    const still = await ctx.newPage();
+    const videoRequests = [];
+    still.on('request', (r) => { if (/\.(webm|mp4)$/.test(r.url())) videoRequests.push(r.url()); });
+    await still.goto(page.url());
+    await expect(still.locator('figure img[src="/hero/solve-light-poster.webp"]')).toBeVisible();
+    await expect(still.locator('figure video')).toHaveCount(0);
+    expect(videoRequests).toEqual([]);
+    await ctx.close();
+  });
+
   test('dark mode toggles, survives a reload, and the solver still renders in it', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Switch to dark mode/ }).click();

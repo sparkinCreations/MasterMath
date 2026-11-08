@@ -381,8 +381,12 @@ worker's imports show up in the page's list too.) Images
 shown in the UI use `logo-224.webp` (7.8 kB); the manifest has `icon-192.png`,
 `icon-512.png` and a padded `icon-maskable-512.png`, made from `favicon.png`
 (the 500 px original, referenced by nothing); the tab uses `favicon-32.png`.
-Theme colour is indigo `#4F46E5`. The home photo is the largest paint and
-carries `fetchPriority="high"`. The route
+Theme colour is indigo `#4F46E5`. The home hero is a real recording of the
+Solver (`HeroVideo`, files in `public/hero/` made by
+`scripts/record-hero.mjs`; re-record when the Solver's look changes): one
+video per visitor (theme, 1600 or 800 wide, WebM then MP4), its poster
+preloaded at high priority as the largest paint, the poster alone under
+reduced motion, and a pause button. The route
 placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
 
 ## Tests and verification
