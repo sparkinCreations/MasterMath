@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.70.6] - 2026-11-08
+
+### Fixed
+- Problems with a constant in them (found while checking whether "nx" can be
+  read as n*x, and stress-tested on 146 problems with every answer checked
+  by value):
+  - "d/dx a*x^2" answered f'(a) = x^2, the derivative in a; "d/dx sin(n*x)"
+    likewise. d/dx (or d/dt, …) now names the variable, and otherwise x is
+    the variable whenever the problem has one, every other letter a
+    constant: 2a*x and n*cos(n*x).
+  - "a*x + b = 0" was solved for a; it is x = -b/a.
+  - "d/dx a*x^2 at x = 1" said "f'(1) is undefined"; it is 2a.
+  - "factor a^2 - b^2" said "no simpler factors over the integers"; it is
+    (a + b)(a - b). Factor and expand with a constant (x^2 - a^2,
+    (x + a)^2, a^2*b - a*b^2) came back unchanged; they are worked now,
+    checked in every letter.
+  - "2xy + y = 3" gave y = 3/((2x + 1)(1/(2x + 1) + 2x/(2x + 1))); it is
+    y = 3/(2x + 1).
+  - "sin(y) = x" is answered as x = sin(y), without a numeric scan's steps.
+- All 2,486 recorded solves were compared before and after: the only other
+  change is that sin(x) = cos(y) is refused as one equation in two
+  unknowns instead of "no exact reduction".
+
 ## [1.70.5] - 2026-11-08
 
 ### Fixed

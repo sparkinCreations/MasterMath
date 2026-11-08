@@ -11,6 +11,7 @@ import {
   hasVariable,
   sampleFunction,
   expressionsNumericallyEqual,
+  expressionsEqualInAllLetters,
   splitTerms,
   splitTopLevel,
   mark,
@@ -26,7 +27,9 @@ export async function expandExpression(expression) {
     const Algebrite = await loadAlgebrite();
     const expanded = String(Algebrite.run(`expand(${expression})`)).trim();
     if (!expanded || /stop|error|nil/i.test(expanded)) return null;
-    if (!expressionsNumericallyEqual(expression, expanded, extractVariable(expression))) return null;
+    // Every letter is checked, not only x: with a constant in it the
+    // one-letter check could not evaluate, and the input came back unexpanded.
+    if (!expressionsEqualInAllLetters(expression, expanded)) return null;
     return {
       steps: [
         `Expand: ${beautify(expression)}`,
@@ -47,9 +50,23 @@ export async function factorExpression(expression) {
   try {
     const Algebrite = await loadAlgebrite();
     const variable = extractVariable(expression);
-    const factored = String(Algebrite.run(`factor(${expression})`)).trim();
+    let factored = String(Algebrite.run(`factor(${expression})`)).trim();
     if (!factored || /nil|error|stop/i.test(factored)) return null;
-    if (!expressionsNumericallyEqual(expression, factored, variable)) return null;
+    if (!expressionsEqualInAllLetters(expression, factored)) return null;
+    // factor() works in x: a^2 - b^2 came back whole and was called "no
+    // simpler factors" (1.70.6). Without x, try each letter in turn, the
+    // variable first, and keep the first that factors.
+    const same = (f) => f.replace(/[\s*]/g, '') === String(expression).replace(/[\s*]/g, '');
+    // A result that is not a product is only reordered (-a*b^2 + a^2*b).
+    const isProduct = (f) => /\)\s*\*?\s*\(|\*\s*\(|^-?[\w.]+\s*\(|\)\s*\^/.test(f);
+    if (same(factored) || !isProduct(factored)) {
+      const letters = [...new Set([variable, ...(String(expression).replace(/(?<![a-z])(?:sin|cos|tan|sqrt|abs|log|ln|exp|pi|e)(?![a-z])/gi, '').match(/(?<![a-z])[a-z](?![a-z])/gi) || [])])];
+      for (const v of letters) {
+        let f = '';
+        try { f = String(Algebrite.run(`factor(${expression}, ${v})`)).trim(); } catch { f = ''; }
+        if (f && !/nil|error|stop/i.test(f) && !same(f) && expressionsEqualInAllLetters(expression, f)) { factored = f; break; }
+      }
+    }
 
     const changed = factored.replace(/[\s*]/g, '') !== String(expression).replace(/[\s*]/g, '');
 

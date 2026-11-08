@@ -178,6 +178,31 @@ export function expressionsNumericallyEqual(exprA, exprB, variable = 'x') {
   return seen >= 3 && agree === seen;
 }
 
+// The same check for an expression in several letters, (x + a)² against
+// x² + 2ax + a² (1.70.6): every letter gets its own value at each sample
+// point, offset so that no two letters share one. With one letter it is
+// the check above.
+export function expressionsEqualInAllLetters(exprA, exprB) {
+  const names = /(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sqrt|cbrt|abs|log|ln|exp|pi|e|i)(?![a-z])/gi;
+  const letters = [...new Set(`${exprA} ${exprB}`.replace(names, '').match(/(?<![a-z])[a-z](?![a-z])/gi) || [])];
+  if (letters.length <= 1) return expressionsNumericallyEqual(exprA, exprB, letters[0] || 'x');
+  let seen = 0;
+  let agree = 0;
+  EQUIVALENCE_SAMPLE_POINTS.forEach((x, k) => {
+    const scope = Object.fromEntries(letters.map((c, j) => [c, x + 0.37 * j + 0.11 * k * j]));
+    let a;
+    let b;
+    try {
+      a = Number(math.evaluate(String(exprA), scope));
+      b = Number(math.evaluate(String(exprB), scope));
+    } catch { return; }
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return;
+    seen += 1;
+    if (Math.abs(a - b) <= 1e-6 * (1 + Math.abs(a))) agree += 1;
+  });
+  return seen >= 3 && agree === seen;
+}
+
 // How many sample points both expressions are real at, and agree at: lets a
 // caller tell "they differ" from "too few real points to say".
 export function numericAgreement(exprA, exprB, variable = 'x') {

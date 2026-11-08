@@ -14,6 +14,7 @@ export {
   findUndefinedRegions,
   formatRestriction,
   expressionsNumericallyEqual,
+  expressionsEqualInAllLetters,
   numericAgreement,
   sampleFunction,
 } from './utils/numeric.js';
