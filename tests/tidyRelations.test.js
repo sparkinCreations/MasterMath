@@ -19,23 +19,59 @@ test('a fraction inside a fraction is cleared', async () => {
   }
 });
 
-test('an exponential with constants is solved by logarithms, written ln', async () => {
+test('an exponential with constants is solved by logarithms, written ln, with its conditions', async () => {
   // Was "Infinitely many solutions — one equation cannot fix 3 unknowns".
   for (const [p, answer] of [
-    ['e^(a*x) = b', 'x = ln(b)/a'],
-    ['e^(ax) = b', 'x = ln(b)/a'],
-    ['3e^(kx) = c', 'x = ln(c/3)/k'],
-    ['b = e^(x/a)', 'x = a*ln(b)'],
-    ['a*e^x + b = c', 'x = ln((c - b)/a)'],
+    ['e^(a*x) = b', 'x = ln(b)/a, for a ≠ 0 and b > 0'],
+    ['e^(ax) = b', 'x = ln(b)/a, for a ≠ 0 and b > 0'],
+    ['3e^(kx) = c', 'x = ln(c/3)/k, for k ≠ 0 and c > 0'],
+    ['b = e^(x/a)', 'x = a*ln(b), for a ≠ 0 and b > 0'],
+    ['a*e^x + b = c', 'x = ln((c - b)/a), for a ≠ 0 and (c - b)/a > 0'],
   ]) {
     const r = await solvePlain(p, 'auto');
     assert.equal(r.status, 'solved', p);
     assert.equal(r.answer, answer, p);
     assert.ok(r.steps.some((s) => /natural logarithm of both sides/.test(s)), p);
-    assert.ok(r.tips.some((t) => /positive argument/.test(t)), p);
+    assert.ok(r.tips.some((t) => /no real solution/.test(t)), p);
   }
   const shifted = await solvePlain('e^(2x + a) = b', 'auto');
-  assert.ok(expressionsEqualInAllLetters(shifted.answer.replace(/^x = /, '').replace(/ln/g, 'log'), '(log(b) - a)/2'), shifted.answer);
+  assert.match(shifted.answer, /, for b > 0$/);
+  assert.ok(expressionsEqualInAllLetters(shifted.answer.replace(/^x = /, '').replace(/, for .*$/, '').replace(/ln/g, 'log'), '(log(b) - a)/2'), shifted.answer);
+});
+
+test('the case where a constant is 0 is said, and decided when it can be', async () => {
+  const e = await solvePlain('e^(a*x) = b', 'auto');
+  assert.ok(e.steps.some((s) => s === 'If a = 0, the equation is 1 = b, with no x in it: every x is a solution when 1 = b holds, and none is otherwise.'), e.steps.join('\n'));
+  const k = await solvePlain('k*x = 5', 'auto');
+  assert.ok(k.steps.some((s) => s === 'If k = 0, the equation is 0 = 5, with no x in it, and it is false: there is no solution.'), k.steps.join('\n'));
+});
+
+test('other conditions: a divisor in the equation, a square root in the answer', async () => {
+  assert.equal((await solvePlain('x/a = b', 'auto')).answer, 'x = a*b, for a ≠ 0');
+  assert.equal((await solvePlain('x^2 - a = 0', 'auto')).answer, 'x = ±√a, for a ≥ 0');
+  assert.equal((await solvePlain('a*(x - b) = c', 'auto')).answer, 'x = b + c/a, for a ≠ 0');
+});
+
+test('exponentials in numbers keep their own solver', async () => {
+  for (const [p, answer] of [
+    ['e^(0*x) = 1', 'All real numbers (identity — true for every x)'],
+    ['e^(0*x) = 2', 'No solution (the two sides are never equal)'],
+    ['e^x = -1', 'No real solution (e^x is always positive)'],
+    ['e^(2*x) = 8', 'x = ln(8)/2 (≈ 1.0397)'],
+    ['3e^(-2*x) = 12', 'x = -ln(4)/2 (≈ -0.6931)'],
+    ['2e^x + 1 = 5', 'x = ln(2) (≈ 0.6931)'],
+    ['-2e^x + 1 = -3', 'x = ln(2) (≈ 0.6931)'],
+  ]) {
+    assert.equal((await solvePlain(p, 'auto')).answer, answer, p);
+  }
+});
+
+test('more than one exponential does not take the logarithm path', async () => {
+  for (const p of ['e^x + e^(2x) = a', 'e^(a*x) + e^x = b', 'e^x*e^(a*x) = b', 'x*e^(a*x) = b']) {
+    const r = await solvePlain(p, 'auto');
+    assert.equal(r.status, 'unsupported', p);
+    assert.ok(!r.steps.some((s) => /natural logarithm/.test(s)), p);
+  }
 });
 
 test('e^x as a textbook writes it, not exp(x)', async () => {

@@ -13,8 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "e^(a*x) = b" was refused as "one equation cannot fix 3 unknowns". An
   exponential with constants is solved by taking logarithms: x = ln(b)/a,
   "3e^(kx) = c" is x = ln(c/3)/k, "a*e^x + b = c" is x = ln((c - b)/a),
-  each root checked back in the equation, with a tip that the logarithm
-  needs a positive argument. Written ln: a bare log is base 10 here.
+  each root checked back in the equation. Written ln: a bare log is base
+  10 here.
+- An answer in constants states when it holds: "x = ln(b)/a, for a ≠ 0 and
+  b > 0", "x = -b/a, for a ≠ 0", "x = ±√a, for a ≥ 0", read off the answer
+  and the equation (a divisor is not 0, a logarithm's argument is
+  positive, a square root's is not negative). A step says what the
+  equation is when the constant is 0: e^(0·x) = b is 1 = b, true for every
+  x when b = 1 and for none otherwise; k·x = 5 at k = 0 has no solution.
 - An equation in x with constants (a*x + b = 0, e^(a*x) = b) says "the
   letters a and b are constants" instead of calling them unknowns; x with
   y is still one equation in two unknowns.
