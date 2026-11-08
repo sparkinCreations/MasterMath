@@ -582,10 +582,10 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               items={solution.common_mistakes}
               heading="Common Mistakes to Avoid:"
               Icon={AlertCircle}
-              iconClass="text-red-500"
+              iconClass="text-rose-500 dark:text-rose-400"
               ItemIcon={XCircle}
-              itemIconClass="text-red-600 dark:text-red-400"
-              itemClass="border-red-300 dark:border-red-700"
+              itemIconClass="text-rose-500 dark:text-rose-400"
+              itemClass="border-gray-300 dark:border-gray-600"
               noun="mistake"
             />
           )}
