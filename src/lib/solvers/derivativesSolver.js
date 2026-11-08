@@ -242,7 +242,13 @@ async function solveDerivativeInner(expression, options = {}) {
       }
       let exact = '';
       try {
-        exact = Algebrite.run(`simplify(subst(${String(valueText).replace(/π/g, 'pi').replace(/√/g, 'sqrt')}, ${variable}, ${rewriteReciprocalTrig(derivative)}))`).toString();
+        // A decimal point goes in as its exact fraction (1.3 → 13/10): in
+        // floating point Algebrite left e^(a·x)·sin(b·x) at 1.3 unsimplified,
+        // and the answer read "f′(1.3) is undefined" (1.72.3).
+        const pointText = /^-?\d+\.\d+$/.test(String(valueText).trim())
+          ? (() => { const [w, f] = String(valueText).trim().replace('-', '').split('.'); const sign = String(valueText).trim().startsWith('-') ? '-' : ''; return `(${sign}${w}${f}/${10 ** f.length})`; })()
+          : String(valueText).replace(/π/g, 'pi').replace(/√/g, 'sqrt');
+        exact = Algebrite.run(`simplify(subst(${pointText}, ${variable}, ${rewriteReciprocalTrig(derivative)}))`).toString();
         if (isAlgebriteFailure(exact) || isUnevaluatedOperator(exact) || /Stop|nil/.test(exact)) exact = '';
         // Algebrite writes e^n as exp(n); students read 1/e, e^2.
         exact = exact.replace(/exp\(-1\)/g, '1/e').replace(/exp\(1\)/g, 'e').replace(/exp\(-(\d+)\)/g, '1/e^$1').replace(/exp\((\d+)\)/g, 'e^$1');
@@ -270,7 +276,12 @@ async function solveDerivativeInner(expression, options = {}) {
       // of the substitution is the answer, left in the constants.
       const constants = (String(derivative).replace(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sqrt|abs|log|ln|exp|pi|e|sgn)(?![a-z])/gi, '')
         .match(/(?<![a-z])[a-z](?![a-z])/gi) || []).filter((c) => c.toLowerCase() !== variable);
-      const symbolic = constants.length > 0 && exact && !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(exact) ? exact : null;
+      // With constants and no exact value, the derivative with the point put
+      // in is still the answer; "undefined" is not (it needs a number).
+      const substituted = () => beautify(String(derivative).replace(new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'g'), `(${valueText})`));
+      let symbolic = constants.length > 0
+        ? (exact && !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(exact) ? exact : substituted())
+        : null;
       let numeric;
       try { numeric = math.evaluate(real(rewriteReciprocalTrig(derivative)), { [variable]: value }); } catch { numeric = NaN; }
       // At a corner of |u| the engine's sgn(0) = 0 would read as "slope 0";
@@ -291,7 +302,17 @@ async function solveDerivativeInner(expression, options = {}) {
       }
       // A vertical asymptote of f′ (tan at π/2) evaluates to a huge float,
       // not ∞ — treat anything beyond 1e12 as undefined there.
+      // A point typed as a decimal reads back in decimals: 507/100·a is 5.07a,
+      // 13/10·a is 1.3a; a fraction that does not end (10/13) stays one.
+      const asTyped = (t) => (/^-?\d+\.\d+$/.test(String(valueText).trim())
+        ? String(t).replace(/(?<![\d.])(\d+)\/(\d+)(?![\d.])/g, (m0, p, q) => {
+          const v = Number(p) / Number(q);
+          const d = String(Number(v.toFixed(4)));
+          return Math.abs(Number(d) - v) < 1e-12 ? d : m0;
+        }).replace(/(\d)\*([a-z(])/gi, '$1$2')
+        : t);
       if (symbolic) {
+        symbolic = asTyped(symbolic);
         steps.push(`Evaluate at ${mark(`${variable} = ${valueText}`)}: ${mark(`f${primes}(${valueText}) = ${lnify(symbolic)}`)}`);
         if (order === 1) steps.push(`That is the slope of the tangent line to f at ${mark(`${variable} = ${valueText}`)}, in terms of ${constants.length === 1 ? 'the constant' : 'the constants'} ${[...new Set(constants)].map((c) => mark(c)).join(' and ')}.`);
         answer = `f${primes}(${valueText}) = ${lnify(symbolic)}`;

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.72.3] - 2026-11-08
+
+### Fixed
+- "d/dx e^(a*x)*sin(b*x) at x = 1.3" answered "f'(1.3) is undefined"; it is
+  e^(1.3a)·(a·sin(1.3b) + b·cos(1.3b)). Found by a systematic stress test
+  with constants (every topic, answers checked by value at constants of
+  both signs and zero). A decimal point is now substituted as its exact
+  fraction, and with constants and no exact value the derivative with the
+  point put in is the answer: "undefined" needs a number. A point typed as
+  a decimal reads back in decimals (5.07a, not 507/100·a), and a value
+  that does not end stays a fraction: d/dx ln(a*x) at 1.3 is 10/13 ≈ 0.7692
+  (was 0.769231... ≈ 0.7692).
+
 ## [1.72.2] - 2026-11-08
 
 ### Changed
