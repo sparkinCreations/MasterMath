@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.70.1] - 2026-11-08
+
+### Changed
+
+- **The home page says its photo is an AI illustration.** A caption under
+  it reads "Illustration created with AI, based on a screenshot of
+  MasterMath." (the screen was made from a real screenshot, with parts
+  redrawn), and the image's alt text ends the same way, so a screen reader
+  says it too. MasterMath's point is that it
+  is not AI; the one thing on the site that is now says so.
+
 ## [1.70.0] - 2026-11-06
 
 ### Added

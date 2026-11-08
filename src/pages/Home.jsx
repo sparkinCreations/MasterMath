@@ -150,7 +150,10 @@ export default function Home() {
               part of the hero on large screens now, so it loads eagerly,
               at high priority: it is the page's largest paint (1.68.4), and
               without the hint it waited behind the scripts; in dark mode the bright scene is dimmed a little so it does
-              not glow. */}
+              not glow. The scene is an AI illustration and says so (1.70.1):
+              a site whose point is "not AI" discloses the one thing on it
+              that is. The screen was made from a screenshot of the app, with
+              parts redrawn, so it is "based on" one, not "a real" one. */}
           <figure className="relative px-2 lg:px-0">
             <img
               src="/home-desk-1600.webp"
@@ -160,9 +163,12 @@ export default function Home() {
               height="900"
               fetchPriority="high"
               decoding="async"
-              alt="MasterMath open on a laptop, differentiating f(x) = x² + 3x: the graph shows the parabola with its derivative 2x + 3 as a dashed line, beside the first steps, while a student copies the working into a notebook"
+              alt="MasterMath open on a laptop, differentiating f(x) = x² + 3x: the graph shows the parabola with its derivative 2x + 3 as a dashed line, beside the first steps, while a student copies the working into a notebook. An illustration created with AI, based on a screenshot of MasterMath."
               className="w-full h-auto rounded-xl md:rounded-2xl border-2 border-indigo-200 dark:border-gray-600 shadow-2xl dark:brightness-[.85]"
             />
+            <figcaption className="mt-2 text-xs text-center lg:text-right text-gray-600 dark:text-gray-400">
+              Illustration created with AI, based on a screenshot of MasterMath.
+            </figcaption>
           </figure>
         </div>
       </div>
