@@ -173,7 +173,7 @@ export default function Home() {
               Unicode rather than KaTeX: the landing page deliberately loads
               no solver library, and a test enforces that. */}
           <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-blue-50 dark:bg-gray-700 px-6 py-5 md:px-10 md:py-6">
-            <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-indigo-500 dark:text-indigo-300 mb-1">Solve · Algebra</p>
+            <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 mb-1">Solve · Algebra</p>
             <p className="text-2xl md:text-3xl font-bold text-indigo-700 dark:text-indigo-200 font-mono tracking-tight" aria-label="x squared minus 5 x plus 6 equals 0">
               {prettyMath(WORKED_EXAMPLE.problem)}
             </p>

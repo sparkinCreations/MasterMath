@@ -139,7 +139,9 @@ export default function Layout({ children, update }) {
         }
       `}</style>
       
-      <div className="min-h-screen flex flex-col w-full bg-linear-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* The page background, the one gradient left (1.70.4). Its solid
+          colour is the fallback, and the colour text is measured against. */}
+      <div className="min-h-screen flex flex-col w-full bg-blue-50 dark:bg-gray-900 bg-linear-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="flex flex-1">
           <AppSidebar />
 

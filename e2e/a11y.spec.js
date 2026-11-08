@@ -222,6 +222,10 @@ test.describe('typeset maths for screen readers', () => {
     // A tip's formula is typeset too (Key Insights).
     await page.locator('#problem').fill('x^2 - 5x + 6 = 0');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
+    // The quadratic's own working, so the first solve's insights (also
+    // typeset) cannot stand in for it, and the second solve is saved before
+    // the history is read.
+    await expect(solution).toContainText('Factor pairs of');
     const insights = solution.locator('h3:has-text("Key Insights") + div');
     await expect(insights.locator('math').first()).toBeAttached();
     // History: a list, each problem typeset.

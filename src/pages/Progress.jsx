@@ -194,7 +194,7 @@ export default function Progress() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-700 dark:hover:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-600"
+                      className="border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-700 dark:hover:text-indigo-200 hover:border-indigo-300 dark:hover:border-indigo-600"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export
@@ -219,7 +219,7 @@ export default function Progress() {
                 <Button
                   onClick={handleClearHistory}
                   variant="outline"
-                  className="border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-700"
+                  className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-800 dark:hover:text-red-200 hover:border-red-300 dark:hover:border-red-700"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Clear History
@@ -313,7 +313,7 @@ export default function Progress() {
                             </span>
                           )}
                         </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
                           {new Date(p.createdAt).toLocaleDateString()}
                         </span>
                       </div>

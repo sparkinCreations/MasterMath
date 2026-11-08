@@ -360,7 +360,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                  className="border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 hover:border-green-300"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export
