@@ -495,7 +495,7 @@ test.describe('MasterMath smoke', () => {
     await page.keyboard.press('Escape');
   });
 
-  test('the home page plays a real recording of the solver, which pauses, and is a still under reduced motion', async ({ page, browser }) => {
+  test('the home page plays a real recording of the solver, which pauses, and is a still under reduced motion', async ({ page, browser, isMobile }) => {
     await page.goto('/');
     const video = page.locator('figure video');
     await expect(video).toHaveAttribute('poster', '/hero/solve-light-poster.webp');
@@ -504,9 +504,29 @@ test.describe('MasterMath smoke', () => {
     await expect.poll(() => video.evaluate((v) => v.muted && v.loop && !v.paused && v.currentTime > 0), { timeout: 10000 }).toBe(true);
     const src = await video.evaluate((v) => v.currentSrc);
     expect(src).toMatch(/\/hero\/solve-light-(1600|800)\.(webm|mp4)$/);
-    await page.getByRole('button', { name: 'Pause the demonstration' }).click();
+    // A tap or click on the video pauses it (a large play icon stays) and
+    // plays it again.
+    const bigPlay = page.locator('figure span[aria-hidden="true"] > span').first();
+    await expect(bigPlay).toHaveCSS('opacity', '0'); // none while it plays, nor before
+    await video.click();
     await expect.poll(() => video.evaluate((v) => v.paused)).toBe(true);
-    await page.getByRole('button', { name: 'Play the demonstration' }).click();
+    await expect(bigPlay).toHaveCSS('opacity', '1');
+    await expect(page.getByRole('button', { name: 'Play the demonstration' })).toHaveCount(1);
+    await video.click();
+    await expect.poll(() => video.evaluate((v) => v.paused)).toBe(false);
+    // The button: faded out until hovered or focused, still there for a
+    // screen reader and the keyboard.
+    const button = page.getByRole('button', { name: 'Pause the demonstration' });
+    if (!isMobile) {
+      await page.mouse.move(0, 0);
+      await expect(button).toHaveCSS('opacity', '0');
+      await video.hover();
+      await expect(button).toHaveCSS('opacity', '1');
+    }
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(() => video.evaluate((v) => v.paused)).toBe(true);
+    await page.getByRole('button', { name: 'Play the demonstration' }).press('Enter');
     await expect.poll(() => video.evaluate((v) => v.paused)).toBe(false);
     // Reduced motion: the solved frame alone, no video downloaded.
     const ctx = await browser.newContext({ reducedMotion: 'reduce' });

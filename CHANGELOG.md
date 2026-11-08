@@ -18,8 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   theme. Each visitor loads one file: 1600 px wide on a laptop (WebM about
   175–190 kB, MP4 for Safari about 205–235 kB), 800 px on a phone (about
   80–110 kB); the solved frame shows first (about 50 kB, preloaded at high
-  priority), and is all a visitor who asked for reduced motion sees. A
-  pause button stops it (WCAG 2.2.2). The caption now reads "A real
+  priority), and is all a visitor who asked for reduced motion sees. A tap
+  or click on the video pauses and plays it (WCAG 2.2.2), with a large play
+  icon while paused; a pause button shows on hover and on keyboard focus. The caption now reads "A real
   recording of the solver."; the AI images (home-desk-800/1600.webp) are
   gone. `scripts/record-hero.mjs` re-records it from the live site.
 - **A new tagline: "Step-by-step math, solved locally"**, in place of "Master math with
