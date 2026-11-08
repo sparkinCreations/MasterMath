@@ -59,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or black buttons; Settings' selected options are black (white in dark
   mode). The Solver's graph and solution cards, the home page's worked
   example, the confirm dialog and the hero video's frame match.
+- The home page's video sits in a window frame: a white bezel (dark grey in
+  dark mode) with a grey border and a shadow.
 - The home page's video is re-recorded in the new look (light and dark,
   1600 and 800 wide, about 70 to 220 kB each); the recording script moves
   the pointer off the page after Solve, so no example is left highlighted

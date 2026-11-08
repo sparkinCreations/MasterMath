@@ -65,10 +65,17 @@ export default function HeroVideo({ description, className = "" }) {
     v.play?.().catch(() => { setPlaying(false); setStopped(true); });
   }, [theme, reduced]);
 
-  const frame = `w-full h-auto aspect-video rounded-lg border border-gray-200 dark:border-gray-700 shadow-md ${className}`;
+  // A window frame round the recording (1.70.4): a white bezel with a grey
+  // border and a shadow, so it stands off the light-blue page.
+  const bezel = `p-1.5 sm:p-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-md ${className}`;
+  const frame = "block w-full h-auto aspect-video rounded-lg border border-gray-200 dark:border-gray-700";
 
   if (reduced) {
-    return <img src={poster} width="1600" height="900" alt={description} decoding="async" className={frame} />;
+    return (
+      <div className={bezel}>
+        <img src={poster} width="1600" height="900" alt={description} decoding="async" className={frame} />
+      </div>
+    );
   }
 
   const toggle = () => {
@@ -89,6 +96,7 @@ export default function HeroVideo({ description, className = "" }) {
   const big = "inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-900/65 text-white shadow-lg";
 
   return (
+    <div className={bezel}>
     <div className="relative group">
       <video
         key={theme}
@@ -127,6 +135,7 @@ export default function HeroVideo({ description, className = "" }) {
       >
         {playing ? <Pause className="w-5 h-5" aria-hidden="true" /> : <Play className="w-5 h-5" aria-hidden="true" />}
       </button>
+    </div>
     </div>
   );
 }
