@@ -32,6 +32,8 @@ import {
   exactDecimals,
   constantRequirements,
   conditionsReason,
+  mixedLogArguments,
+  keepLogArguments,
   math,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
@@ -332,6 +334,9 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     // radicals and ≈ coefficients that lnify would not tidy) is shown as it
     // wrote itself, when every term has one.
     const ownDisplay = perTerm.length > 0 && perTerm.length === terms.length && perTerm.every((r) => r.shown);
+    // ln(a·x) stays whole (review of 1.73.0): −x + ln(a)·x + x·ln(x) held only
+    // for a > 0; x·ln(a·x) − x holds wherever a·x > 0.
+    if (mixedLogArguments(expression, variable).length) integral = keepLogArguments(integral, expression, variable, Algebrite);
     let shownIntegral = usesErf ? prettyErf(integral) : ownDisplay ? perTerm.map((r) => r.shown).join(' + ').replace(/\+ −/g, '− ') : dropBarsOnPositiveArguments(lnify(integral), integral, variable);
     if (ownDisplay && steps.length) {
       const approx = perTerm.some((r) => r.approximate);

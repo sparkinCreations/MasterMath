@@ -48,7 +48,7 @@ export {
   trigUndefinedPoints,
   neverZeroSide,
 } from './utils/structure.js';
-export { constantLetters, constantRequirements, entireInX, conditionsReason } from './utils/conditions.js';
+export { constantLetters, constantRequirements, entireInX, conditionsReason, mixedLogArguments, keepLogArguments, atPointKeepingLogs, conditionAtPoint } from './utils/conditions.js';
 
 // ⟦…⟧ around the math in a step: `Let ${mark(`u = ${inner}`)} (the inside).`
 // The renderer typesets exactly what is marked (see mathMarkers.js).

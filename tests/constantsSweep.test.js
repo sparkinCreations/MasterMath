@@ -15,7 +15,7 @@ test('a derivative with constants at a decimal point is its value, never "undefi
     assert.equal(r.answer, answer, p);
   }
   // A decimal point is substituted exactly: 1/1.3 is 10/13.
-  assert.equal((await solvePlain('d/dx ln(a*x) at x = 1.3', 'auto')).answer, "f'(1.3) = 10/13 ≈ 0.7692");
+  assert.equal((await solvePlain('d/dx ln(a*x) at x = 1.3', 'auto')).answer, "f'(1.3) = 10/13 ≈ 0.7692, for a > 0");
 });
 
 // 1.73.0: what the sweep found besides the wrong answer.
@@ -36,7 +36,7 @@ test('integrals with a constant say when they hold, and work the excluded case',
 test('a derivative with a constant base or logarithm says so', async () => {
   assert.equal((await solvePlain('d/dx a^x', 'auto')).answer, "f'(x) = a^x*ln(a), for a > 0");
   assert.equal((await solvePlain('d/dx x/a', 'auto')).answer, "f'(x) = 1/a, for a ≠ 0");
-  assert.equal((await solvePlain('d/dx x^2*ln(a*x)', 'auto')).answer, "f'(x) = x + 2ln(a)*x + 2x*ln(x), for x > 0 and a > 0");
+
   assert.equal((await solvePlain('d/dx 2^x', 'auto')).answer, "f'(x) = 2^x*ln(2)");
 });
 
@@ -76,5 +76,30 @@ test('a definite integral with constants is worked, or refused saying why', asyn
     const r = await solvePlain(p, 'auto');
     assert.equal(r.status, 'unsupported', p);
     assert.match(r.answer, /worked only when the integrand is defined everywhere/, p);
+  }
+});
+
+// Review of 1.73.0: ln(a·x) is defined wherever a·x > 0, for a < 0 and x < 0
+// too. Algebrite splits it into ln(a) + ln(x), which holds only for a > 0 and
+// x > 0, and the answer said "for x > 0 and a > 0"; at x = −2 it gave a
+// complex number. The logarithm is kept whole and its own condition stated.
+test('ln(a*x) keeps its whole domain, a·x > 0: both signs checked by value', async () => {
+  const r = await solvePlain('d/dx x^2*ln(a*x)', 'auto');
+  assert.equal(r.answer, "f'(x) = x + 2x*ln(a*x), for ax > 0");
+  const fp = (a, x) => x + 2 * x * Math.log(a * x);
+  for (const [a, x] of [[1.5, 2], [-1, -2], [-0.7, -3.1]]) {
+    const h = 1e-6;
+    const f = (t) => t * t * Math.log(a * t);
+    const numeric = (f(x + h) - f(x - h)) / (2 * h);
+    assert.ok(Math.abs(fp(a, x) - numeric) < 1e-5, `a = ${a}, x = ${x}`);
+  }
+  // At a negative point: real, and only for a < 0 (was 2(−1 − 2ln(2) − 2ln(a) − 2iπ), for a > 0).
+  assert.equal((await solvePlain('d/dx x^2*ln(a*x) at x = -2', 'auto')).answer, "f'(-2) = 2(-1 - 2ln(-2a)), for a < 0");
+  for (const [p, answer] of [
+    ['d/dx x*ln(k*x)', "f'(x) = 1 + ln(k*x), for kx > 0"],
+    ['d/dx ln(a*x)', "f'(x) = 1/x, for ax > 0"],
+    ['integral of ln(a*x) dx', '∫(ln(a*x)) dx = -x + x*ln(a*x) + C, for ax > 0'],
+  ]) {
+    assert.equal((await solvePlain(p, 'auto')).answer, answer, p);
   }
 });
