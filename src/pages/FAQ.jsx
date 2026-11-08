@@ -199,7 +199,7 @@ export default function FAQ() {
         <div className="flex flex-col sm:flex-row gap-3">
           <a
             href="/usermanual"
-            className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-semibold rounded-lg transition-colors"
           >
             Read User Manual
           </a>

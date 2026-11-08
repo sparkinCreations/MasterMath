@@ -265,7 +265,7 @@ export default function Progress() {
                     aria-pressed={topic === t.topic}
                     className={`min-h-11 px-3 rounded-full border text-sm font-medium transition-colors ${
                       topic === t.topic
-                        ? "bg-indigo-600 border-indigo-600 text-white"
+                        ? "bg-gray-900 border-gray-900 text-white dark:bg-white dark:border-white dark:text-gray-900"
                         : "bg-white dark:bg-gray-800 border-indigo-200 dark:border-gray-600 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700"
                     }`}
                   >

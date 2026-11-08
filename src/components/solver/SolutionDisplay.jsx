@@ -486,7 +486,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                   <div className="flex items-center gap-4">
                     <Button
                       onClick={() => setRevealed((r) => Math.min(r + 1, steps.length))}
-                      className="px-6 py-3 rounded-lg bg-indigo-600 text-white shadow-xs hover:bg-indigo-700"
+                      className="px-6 py-3 rounded-lg bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 shadow-xs"
                     >
                       Reveal next step
                       <ArrowRight className="w-4 h-4 ml-2" />
@@ -541,7 +541,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     type="button"
                     onClick={() => setPractising(true)}
                     aria-haspopup="dialog"
-                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800"
+                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800"
                   >
                     <PencilLine className="w-4 h-4" aria-hidden="true" />
                     Try a similar one

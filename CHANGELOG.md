@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Like" side by side on large screens; the cards have thin borders.
 - The step numbers, on the home page and in the Solver, are plain numbers
   ("1.") instead of filled circles.
+- The purple (indigo) buttons are black: Try a similar one, Next step, the
+  Feedback form's Send, the FAQ and 404 links, and the selected symbol tab
+  and history filter. In dark mode they are white with black text, so they
+  stand out on the dark cards. Orange stays for the main action (Solve).
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").

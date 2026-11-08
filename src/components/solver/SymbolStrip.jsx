@@ -24,7 +24,7 @@ export default function SymbolStrip({ id, group, onGroupChange, onInsert }) {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onGroupChange(g.key)}
             className={`${buttonBase} text-sm px-1 min-w-0 ${group === g.key
-              ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
               : 'bg-transparent text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-700'}`}
           >
             {g.label}
