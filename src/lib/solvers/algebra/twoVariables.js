@@ -37,6 +37,16 @@ export async function solveForVariable(equation, target) {
         return neg && !/stop|error|nil/i.test(neg) ? `(${neg})^(1/2)` : m;
       } catch { return m; }
     }));
+    // roots() can leave a root unsimplified: 2xy + y = 3 came out as
+    // y = 3/((2x + 1)(1/(2x + 1) + 2x/(2x + 1))). The simplified form is
+    // kept when it is much shorter, at most 60% of the length (1.70.6), so
+    // a form other code reads, such as ±√y, is left alone.
+    parts = parts.map((d) => {
+      try {
+        const simpler = String(Algebrite.run(`simplify(${d})`)).trim();
+        return simpler && !/stop|error|nil/i.test(simpler) && simpler.length <= 0.6 * d.length ? simpler : d;
+      } catch { return d; }
+    });
     const real = realRelation(parts, equation, target, Algebrite) || evenPowerRelation(equation, target, Algebrite);
     if (!real) return null;
     return { relation: real.roots.map((d) => `${target} = ${d}`).join('  or  '), droppedComplex: real.droppedComplex };

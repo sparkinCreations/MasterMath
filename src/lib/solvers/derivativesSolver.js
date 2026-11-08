@@ -265,6 +265,12 @@ async function solveDerivativeInner(expression, options = {}) {
         tips.unshift(`${mark(`f${primes}(a)`)} can exist only where ${mark('f')} itself is defined: check that the point is in the domain of ${mark('f')} before evaluating the derivative's formula there.`);
         return { steps, answer: `f${primes}(${valueText}) does not exist: ${variable} = ${valueText} is outside the domain of f`, tips, common_mistakes, graph: generateDerivativeGraph(expression, derivative, variable) };
       }
+      // A derivative with a constant in it (a·x² at x = 1 → 2a) has no
+      // numeric value: it was "f′(1) is undefined" (1.70.6). The exact value
+      // of the substitution is the answer, left in the constants.
+      const constants = (String(derivative).replace(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sqrt|abs|log|ln|exp|pi|e|sgn)(?![a-z])/gi, '')
+        .match(/(?<![a-z])[a-z](?![a-z])/gi) || []).filter((c) => c.toLowerCase() !== variable);
+      const symbolic = constants.length > 0 && exact && !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(exact) ? exact : null;
       let numeric;
       try { numeric = math.evaluate(real(rewriteReciprocalTrig(derivative)), { [variable]: value }); } catch { numeric = NaN; }
       // At a corner of |u| the engine's sgn(0) = 0 would read as "slope 0";
@@ -285,7 +291,11 @@ async function solveDerivativeInner(expression, options = {}) {
       }
       // A vertical asymptote of f′ (tan at π/2) evaluates to a huge float,
       // not ∞ — treat anything beyond 1e12 as undefined there.
-      if (typeof numeric !== 'number' || !Number.isFinite(numeric) || Math.abs(numeric) > 1e12) {
+      if (symbolic) {
+        steps.push(`Evaluate at ${mark(`${variable} = ${valueText}`)}: ${mark(`f${primes}(${valueText}) = ${lnify(symbolic)}`)}`);
+        if (order === 1) steps.push(`That is the slope of the tangent line to f at ${mark(`${variable} = ${valueText}`)}, in terms of ${constants.length === 1 ? 'the constant' : 'the constants'} ${[...new Set(constants)].map((c) => mark(c)).join(' and ')}.`);
+        answer = `f${primes}(${valueText}) = ${lnify(symbolic)}`;
+      } else if (typeof numeric !== 'number' || !Number.isFinite(numeric) || Math.abs(numeric) > 1e12) {
         steps.push(`Evaluate at ${mark(`${variable} = ${valueText}`)}: ${mark(`f${primes}(${valueText})`)} is undefined there${Number.isFinite(numeric) ? ' (the derivative has a vertical asymptote at that point)' : ''}.`);
         answer = `f${primes}(${valueText}) is undefined`;
       } else {
