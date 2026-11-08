@@ -260,7 +260,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <div className="max-w-4xl mx-auto text-center px-2">
-        <div className="bg-gray-900 dark:bg-gray-800 dark:border dark:border-gray-700 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-xl">
+        <div className="bg-gray-900 dark:bg-gray-700 dark:border dark:border-gray-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-xl">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">
             Try it on your own problem
           </h2>
