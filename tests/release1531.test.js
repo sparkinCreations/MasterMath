@@ -13,7 +13,7 @@ test('one equation in two unknowns is solved over the reals, in textbook form', 
     ['x^2 + y^2 = 25', 'x = ±√(25 - y^2)'], // was x = -(-y^2+25)^(1/2)  or  x = (-y^2+25)^(1/2)
     ['x^3 + y^3 = 1', 'x = ∛(1 - y^3)'], // the two complex roots are dropped
     ['x^2 = y', 'x = ±√y'], ['x^2 + y^2 + z^2 = 1', 'x = ±√(1 - y^2 - z^2)'],
-    ['3x^2 + y = 7', 'x = ±√((7 - y)/3)'], ['x^2 + x*y = 1', 'x = -1/2*y ± 1/2*√(4 + y^2)'],
+    ['3x^2 + y = 7', 'x = ±√((7 - y)/3)'], ['x^2 + x*y = 1', 'x = (-y ± √(y^2 + 4))/2'],
     ['x^4 + y^2 = 16', 'x = ±(16 - y^2)^(1/4)'], ['x^5 + y = 3', 'x = (3 - y)^(1/5)'],
     ['2x + 3y = 6', 'x = -3/2*y + 3'], ['x*y = 1', 'x = 1/y'],
   ]) {
