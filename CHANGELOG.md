@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.72.2] - 2026-11-08
+
+### Changed
+- The home page's hero video is re-recorded from the Solver as it is now
+  (the chart's room for its axis name, the graph's expand button, today's
+  colours), in both themes and both sizes, with new posters.
+- CLAUDE.md describes today's rules for the next session: the palette and
+  button colours, letters side by side as a product, conditions on answers
+  in constants, graph zoom by gesture and the expanded view.
+
 ## [1.72.1] - 2026-11-08
 
 ### Fixed

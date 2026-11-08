@@ -16,7 +16,12 @@ Netlify from `main`.
 Branding: **MasterMath** (never MathMaster) by sparkinCreations™; tagline
 "Step-by-step math, solved locally" (since 1.70.2; was "Master math with confidence"); positioning is "step-by-step local solver", never
 "tutor" or AI-chatbot framing. Palette: indigo (book) and orange (operators) from
-the logo; green = answer, amber = tips.
+the logo; green = answer, amber = tips. Since 1.70.4 the UI is plain: no
+gradients, a solid blue-50 page, thin grey borders; headings, the name and
+action buttons are blue-800 (blue-300 in dark mode, dark text); Solve is the
+one orange button; a selected tab or option is gray-900 (white in dark
+mode), so "picked" never looks like "press". The home page's worked example
+copies the Solver's look by hand: change both.
 
 ## Layout
 
@@ -104,7 +109,16 @@ Path alias `@/` → `src/`. Tailwind 4 is CSS-first in `src/index.css` (no
    knows is a parse error on every path, never a constant: the single-
    expression paths check the extracted expression (`unknownWord`), the
    limit, integral, inequality and system paths the whole problem minus
-   instruction words (`unknownWordInProblem`).
+   instruction words (`unknownWordInProblem`; an instruction word raised to
+   a power, "as^2", is not one). Every path checks, the derivative "at x =
+   a" paths included: unchecked, "kx" was a constant and d/dx sin(kx) at 0
+   was 0. Letters side by side are a product (1.71.0): `solveProblem` is a
+   wrapper that retries a parse error on a 2–3-letter word as its product
+   (`rewriteAsProduct` in `api/words.js`: two letters unless a differential
+   "dx" or an English word standing alone, "at" in "x^2 at x = 2", where
+   "at^2" is a·t; three only with two of x, y, z) and adds the warning
+   'Read "kx" as k·x'. Names keep their meaning (pi, ln, dx); doubled
+   letters ("xx") keep their own message.
 4. The solver returns `{ steps[], answer, tips[], common_mistakes[], graph? }`
    wrapped in an envelope status. `finalizeResult` enforces the status and
    refuses anything that is not presentable text (objects, code-shaped
@@ -143,6 +157,16 @@ Each file documents its own methods at the top. Shared invariants:
 - **Refuse honestly.** Out-of-family input returns `unsupported`, never a
   guess. Never decide a mathematical property (linearity, completeness of a
   root list) from fixed sample points — construct a proof or refuse.
+- **State when an answer in constants holds** (1.71.1). x with letter
+  constants (a*x + b = 0, e^(a*x) = b) is solved for x with the constants
+  held fixed, and the steps call them constants, not unknowns; x with y is
+  one equation in two unknowns. The answer carries its conditions, read off
+  the answer and the equation (`constantConditions` in `algebraSolver.js`):
+  a divisor ≠ 0 (also the coefficient divided by: a*x = 0 is x = 0 for
+  a ≠ 0), a logarithm's argument > 0, a square root's ≥ 0: "x = ln(b)/a,
+  for a ≠ 0 and b > 0". A step says what the equation is when a constant is
+  0, decided when it can be. Limits and function analysis with a parameter
+  are refused, with a case to try, until they are supported.
 - **Exact first.** Fractions and radicals stay exact (18/5, √2, π/6); a
   decimal is shown alongside, "=" when it is the whole value (1/2 (= 0.5)),
   "≈" when rounded (1/3 (≈ 0.3333)): write "(≈ …)" and `finalizeResult`
@@ -320,7 +344,16 @@ whichever is chosen is then passed through `tameWindow` (shrunk about its
 centre while the curve explodes at an edge; curves with poles are exempt).
 Axis ticks come from `niceTicks` (round steps; y-axes widen to round ends).
 Drag pans (horizontal on touch, both axes with a mouse; `touch-action: pan-y`
-so the page still scrolls); the tooltip names series as `f'(x)`, never by
+so the page still scrolls). Zoom (1.72.0): two-finger pinch, Ctrl/⌘ + wheel
+and Safari's trackpad `gesture*` events, each about the point under the
+fingers or pointer (`zoomWindow` in `graphSampling.js`; the plot measured
+off `.recharts-cartesian-grid`); a plain wheel scrolls the page and shows
+"Hold Ctrl and scroll to zoom" — never take the wheel. The buttons stay for
+the keyboard. Expand opens the same chart in a full-screen dialog (h-dvh,
+safe-area padding; focus, Escape and Tab as in the other dialogs; one
+`data-export-graph` at a time). `CHART_MARGIN` leaves room for the axis
+name "x": at Recharts' 5px it hung past the SVG and was cut off on an
+iPhone. The tooltip names series as `f'(x)`, never by
 the whole expression. Vertical-line and marker
 labels are drawn inside the plot by `LineLabels`/`PointLabel` — never
 Recharts' `position: 'top'`, which is clipped. Every graph gets a text
