@@ -4,7 +4,7 @@ import { SHOWN_AT_FIRST, sourceOf } from "@/lib/guidance";
 import { learnMoreFor } from "@/lib/learnMore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap, PencilLine } from "lucide-react";
+import { CheckCircle2, AlertCircle, XCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap, PencilLine } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import MathText from "@/components/MathText";
 import { answerParts, labelledPart } from "@/lib/answerParts";
@@ -194,9 +194,9 @@ function AnswerLines({ answer, className }) {
 }
 
 // Key Insights or Common Mistakes (1.70.4: each item in an outlined box,
-// amber or red, with no tinted background): the first three, then the rest one tap
+// amber or red, with no tinted background and its icon at the upper left): the first three, then the rest one tap
 // away (guidance.js). The same list, in the same order, for everyone.
-function GuidanceList({ solution, items, heading, Icon, iconClass, itemClass, noun }) {
+function GuidanceList({ solution, items, heading, Icon, iconClass, ItemIcon, itemIconClass, itemClass, noun }) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   const extra = items.length - SHOWN_AT_FIRST;
@@ -211,13 +211,18 @@ function GuidanceList({ solution, items, heading, Icon, iconClass, itemClass, no
         {shown.map((item, idx) => {
           const source = sourceOf(solution, item);
           return (
-            <div key={idx} className={`p-3 rounded-lg border ${itemClass}`}>
-              <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={item} /></p>
-              {source && (
-                <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
-                  Source: <ExternalAnchor href={source.url}>{source.title}</ExternalAnchor>
-                </p>
-              )}
+            <div key={idx} className={`flex items-start gap-2.5 p-3 rounded-lg border ${itemClass}`}>
+              {/* The kind of item at its upper left: a lightbulb on an
+                  insight, a cross on a mistake. Decorative: the heading says it. */}
+              <ItemIcon className={`w-4 h-4 mt-1 shrink-0 ${itemIconClass}`} aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={item} /></p>
+                {source && (
+                  <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
+                    Source: <ExternalAnchor href={source.url}>{source.title}</ExternalAnchor>
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}
@@ -563,7 +568,9 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Key Insights:"
               Icon={Lightbulb}
               iconClass="text-amber-500"
-              itemClass="border-amber-300 dark:border-amber-700/70"
+              ItemIcon={Lightbulb}
+              itemIconClass="text-amber-600 dark:text-amber-400"
+              itemClass="border-amber-400 dark:border-amber-700/70"
               noun="insight"
             />
           )}
@@ -576,7 +583,9 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Common Mistakes to Avoid:"
               Icon={AlertCircle}
               iconClass="text-red-500"
-              itemClass="border-red-300 dark:border-red-800/70"
+              ItemIcon={XCircle}
+              itemIconClass="text-red-600 dark:text-red-400"
+              itemClass="border-red-300 dark:border-red-700"
               noun="mistake"
             />
           )}
