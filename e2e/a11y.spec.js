@@ -116,6 +116,22 @@ for (const scheme of ['light', 'dark']) {
       await audit(page, `solver, insights expanded (${scheme})`);
     });
 
+    // A tall answer (a root over a fraction) stood 4px taller than its box,
+    // which then scrolled up and down with no tab stop: axe's
+    // scrollable-region-focusable on mastermath.app until 1.71.1. An answer
+    // with its conditions ("for a ≠ 0 and b > 0") is audited too.
+    test('tall answers and answers with conditions', async ({ page }) => {
+      await page.goto('/solver');
+      const solve = page.getByRole('button', { name: 'Solve Problem' });
+      for (const p of ['x^2 + b*x + c = 0', 'x^2 + 3x - 1 = 0', 'e^(a*x) = b']) {
+        await page.locator('#problem').fill(p);
+        await solve.click();
+        await expect(page.locator('[data-answer-card]')).toBeVisible();
+        await expect(solve).toBeEnabled();
+        await audit(page, `answer to ${p} (${scheme})`);
+      }
+    });
+
     test('the solver with a validation error, and with a solution and graph', async ({ page }) => {
       await page.goto('/solver');
       { await page.getByText('Try an example:').waitFor(); const b = page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }); if (!(await b.isVisible())) await page.getByRole('button', { name: /Show all \d+ examples/ }).click(); await b.click(); }

@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (was 2/(x + 1/3)), "6xy = 3y + 2" is y = 2/(6x - 3) (was
   1/(3(x - 1/2))).
 - "e^x = y" is y = e^x, not y = exp(x).
+- Accessibility: a tall final answer (a square root over a fraction, as in
+  the quadratic formula) stood 4px taller than its box, which then
+  scrolled up and down with no way to reach it from the keyboard (axe:
+  scrollable-region-focusable, live on 1.71.0). The box has room for it,
+  and becomes a tab stop whenever it scrolls either way.
 - An equation linear in x with a letter coefficient is x = −B/A read off
   its coefficients: "a*x = b*x + c" is x = c/(a - b), for a ≠ b (was
   c/((a - b)(a/(a - b) - b/(a - b)))); "a*x = 0" is x = 0, for a ≠ 0.
