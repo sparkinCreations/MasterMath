@@ -100,7 +100,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
       // One equation in two unknowns (sin(y) = x) comes back as a relation,
       // solved for one letter in terms of the other: it was never scanned,
       // so it is returned without the numeric-scan preface (1.70.6).
-      if (numeric && (numeric.steps || []).some((t) => /^This is one equation in \d+ unknowns/.test(stripMathMarkers(t)))) return numeric;
+      if (numeric && (numeric.steps || []).some((t) => /^(?:This is one equation in \d+ unknowns|The letters? .+ (?:is a constant|are constants):)/.test(stripMathMarkers(t)))) return numeric;
       if (numeric && numeric.answer && !['unsupported', 'parse_error'].includes(numeric.status || '')) {
         if (/identity/i.test(numeric.answer)) {
           // An identity is recognised before any root scan; saying it was

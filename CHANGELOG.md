@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.71.1] - 2026-11-08
+
+### Fixed
+- "e^(a*x) = b" was refused as "one equation cannot fix 3 unknowns". An
+  exponential with constants is solved by taking logarithms: x = ln(b)/a,
+  "3e^(kx) = c" is x = ln(c/3)/k, "a*e^x + b = c" is x = ln((c - b)/a),
+  each root checked back in the equation, with a tip that the logarithm
+  needs a positive argument. Written ln: a bare log is base 10 here.
+- An equation in x with constants (a*x + b = 0, e^(a*x) = b) says "the
+  letters a and b are constants" instead of calling them unknowns; x with
+  y is still one equation in two unknowns.
+- A fraction inside a fraction is cleared: "3xy + y = 6" is y = 6/(3x + 1)
+  (was 2/(x + 1/3)), "6xy = 3y + 2" is y = 2/(6x - 3) (was
+  1/(3(x - 1/2))).
+- "e^x = y" is y = e^x, not y = exp(x).
+
 ## [1.71.0] - 2026-11-08
 
 ### Added

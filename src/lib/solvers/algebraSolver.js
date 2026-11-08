@@ -25,6 +25,7 @@ import {
   mark,
   realOddRoots,
   absBars,
+  stripOuterParens,
 } from './solverUtils.js';
 import { equationGuidance } from './algebra/guidance.js';
 import { solveWithAlgebriteRoots, rootsViaPolynomialRoot } from './algebra/polynomial.js';
@@ -202,24 +203,48 @@ async function solveEquation(expression, options = {}) {
     }
     const others = [...letters].filter((v) => v !== requested).sort();
     const rel = solved?.relation;
+    const vars = (list) => (list.length > 1 ? `${list.slice(0, -1).map((v) => mark(v)).join(', ')} and ${mark(list[list.length - 1])}` : list.map((v) => mark(v)).join(''));
+    // x with the constants a and b (a*x + b = 0, e^(a*x) = b) is solved for x
+    // with a and b held fixed: they are not unknowns (1.71.1; the steps said
+    // "one equation in 3 unknowns"). x with y is a relation between two.
+    const withConstants = /^[xyz]$/.test(requested) && !others.some((v) => /^[xyz]$/.test(v));
+    const constantsLine = `${others.length === 1 ? `The letter ${mark(others[0])} is a constant` : `The letters ${vars(others)} are constants`}: treat ${others.length === 1 ? 'it as a fixed number' : 'them as fixed numbers'} and solve for ${mark(requested)} in terms of ${others.length === 1 ? 'it' : 'them'}.`;
     if (rel) {
-      const vars = (list) => list.map((v) => mark(v)).join(' and ');
       return {
         steps: [
-          `This is one equation in ${letters.size} unknowns (${[...letters].sort().map((v) => mark(v)).join(', ')}) — it has infinitely many solutions, one for every value of ${vars(others)}. So we solve for ${mark(requested)} in terms of ${vars(others)}.`,
-          `Rewrite as an equation set to zero: ${mark(`${beautify(`(${lhsRaw.trim()}) - (${rhsRaw.trim()})`)} = 0`)}`,
+          withConstants
+            ? constantsLine
+            : `This is one equation in ${letters.size} unknowns (${[...letters].sort().map((v) => mark(v)).join(', ')}) — it has infinitely many solutions, one for every value of ${vars(others)}. So we solve for ${mark(requested)} in terms of ${vars(others)}.`,
+          ...(solved.logStep
+            ? [`Isolate the exponential and take the natural logarithm of both sides: ${mark(solved.logStep)}`]
+            : [`Rewrite as an equation set to zero: ${mark(rhsRaw.trim() === '0' ? `${beautify(lhsRaw.trim())} = 0` : `${beautify(`(${lhsRaw.trim()}) - (${rhsRaw.trim()})`)} = 0`)}`]),
           ...(solved.droppedComplex ? [`Over the real numbers, keep the real roots (the others involve ${mark('i')}, the imaginary unit).`] : []),
-          `Isolate ${mark(requested)}: ${mark(rel)}`,
+          ...(solved.logStep === rel ? [] : [`Isolate ${mark(requested)}: ${mark(rel)}`]),
           `Check: substituting each root back into ${mark(beautify(expression))} balances both sides wherever the root is a real number ✓`,
         ],
         answer: rel,
-        tips: [
-          `To pin down a single value you need a second equation — enter both as a system, e.g. "${expression.trim()}; ${requested} - ${others[0]} = 1".`,
-          'An equation in two unknowns is a curve (here a line if it is linear); solving for one variable gives the rule for that curve.',
-        ],
-        common_mistakes: ['Expecting a single number from an equation with more unknowns than equations.'],
+        tips: withConstants
+          ? [
+            `${others.length === 1 ? `${mark(others[0])} stands` : `${vars(others)} stand`} for fixed numbers: put numbers in their place and the same steps give a single value of ${mark(requested)}.`,
+            ...(solved.logStep ? [`The logarithm needs a positive argument: the answer holds where ${mark(stripOuterParens(solved.logStep.split(' = ')[1].replace(/^ln/, '')))} is positive.`] : []),
+          ]
+          : [
+            `To pin down a single value you need a second equation — enter both as a system, e.g. "${expression.trim()}; ${requested} - ${others[0]} = 1".`,
+            'An equation in two unknowns is a curve (here a line if it is linear); solving for one variable gives the rule for that curve.',
+          ],
+        common_mistakes: withConstants
+          ? ['Treating the constants as unknowns to solve for: only the variable is solved for, the constants stay in the answer.']
+          : ['Expecting a single number from an equation with more unknowns than equations.'],
         graph: null,
       };
+    }
+    if (withConstants) {
+      return unsupported({
+        input: expression,
+        reason: `${constantsLine} This equation could not be rearranged for ${mark(requested)} with ${others.length === 1 ? 'the constant left as a letter' : 'the constants left as letters'}.`,
+        answer: `Solving for ${requested} with ${others.length === 1 ? `the constant ${others[0]}` : `the constants ${others.join(', ')}`} left as ${others.length === 1 ? 'a letter' : 'letters'} is not supported for this equation`,
+        tips: [`Give ${vars(others)} ${others.length === 1 ? 'a number' : 'numbers'} to solve one case.`],
+      });
     }
     return unsupported({
       input: expression,
