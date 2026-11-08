@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.72.0] - 2026-11-08
 
+### Changed
+- Action buttons are dark blue, the blue of the headings and the
+  MasterMath name, instead of black: Reveal next step, Try a similar one,
+  the Feedback form's Submit, the FAQ's and the 404 page's links (light
+  blue with dark text in dark mode). Solve stays orange; a selected tab or
+  option keeps its black, so "picked" still looks different from "press".
+
 ### Added
 - Graph zoom by gesture: pinch with two fingers on a phone or tablet, or
   hold Ctrl (⌘ on a Mac) and scroll; a trackpad pinch works too (Chrome,
