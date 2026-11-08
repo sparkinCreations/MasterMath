@@ -167,7 +167,7 @@ export async function solveProblem(problem, topic) {
   const read = [];
   for (let k = 0; k < 3 && result?.status === 'parse_error'; k += 1) {
     const word = String(result.answer || '').match(PRODUCT_WORD)?.[1];
-    const product = word && lettersAsProduct(word);
+    const product = word && lettersAsProduct(word, text);
     if (!product) break;
     const rewritten = text.replace(new RegExp(`(?<![a-z])${word}(?![a-z])`, 'gi'), product);
     if (rewritten === text) break;

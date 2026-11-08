@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Letters side by side are multiplied, as a textbook writes them: "nx" is
   n·x, "ax^2 + bx + c = 0" takes the quadratic formula, "d/dx sin(kx)" is
   k*cos(k*x), "factor a^2 + 2ab + b^2" is (a + b)^2. Two letters are read
-  this way unless they are an English word ("it", "go") or a differential
-  ("dx"); three only with two of x, y, z ("axy"), so "box" stays an
-  unknown word. The answer says how the letters were read ("Read "nx" as
-  n·x"). Stress-tested by retyping every product in the value-checked
-  problem set side by side.
+  this way unless they are a differential ("dx") or an English word
+  standing alone ("x^2 at x = 2"; "at^2" and "sin(at)" are a·t); three
+  only with two of x, y, z ("axy"), so "box" stays an unknown word. The
+  answer says how the letters were read ("Read "nx" as n·x").
+  Stress-tested: every product in the value-checked problem set retyped
+  side by side, and every two-letter pair (aa to zz) in four kinds of
+  problem, each answer the same as with * typed.
 
 ### Fixed
 - "d/dx sin(kx) at x = 0" answered f'(0) = 0, and "d/dx kx^2 at x = 1"
@@ -25,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "kx" was a constant. Both are checked now (k and 2k).
 - The "If you meant a product" hint is no longer offered for an English
   word or "dx".
+- A function with a parameter ("y = m*x + b", "a*x^2 + b*x + c",
+  "sin(k*x)") was answered "domain: no real numbers; no x-intercepts". It
+  is refused now, with a case to try (m = 3), until parameters are
+  supported.
 
 ## [1.70.6] - 2026-11-08
 

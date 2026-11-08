@@ -91,15 +91,26 @@ const gluedWords = (word) => word.length >= 12 || /^(?:the|is|of)[a-z]{3,}/i.tes
 // typed without its *: say how to write it (r/mathematics, November 2026:
 // "lim x->0 sin(nx)/x" was refused without the fix in sight; 1.70.5).
 // Letters side by side read as a product (1.71.0): two letters ("nx", "ab",
-// "kx") unless they are an English word or a differential ("dx"); three
-// only with two of x, y, z ("axy", "xyz"), so "box" and "tax" stay words.
-// solveProblem retries a parse error on such a word as the product; null
-// when the word is not one.
+// "kx") unless they are a differential ("dx") or an English word standing
+// as a word ("x^2 at x = 2"; "at^2", "sin(at)" and "be^(-x)" touch the
+// maths and are a·t, b·e); three only with two of x, y, z ("axy", "xyz"),
+// so "box" and "tax" stay words. solveProblem retries a parse error on such
+// a word as the product; null when the word is not one.
 const ENGLISH_PAIRS = new Set(['am', 'an', 'as', 'at', 'be', 'by', 'do', 'go', 'he', 'hi', 'if', 'in', 'is', 'it', 'me', 'my', 'no', 'of', 'oh', 'ok', 'on', 'or', 'so', 'to', 'up', 'us', 'we']);
-const notAProduct = (w) => !/^[a-z]{2,3}$/.test(w) || ENGLISH_PAIRS.has(w) || /^d[a-z]$/.test(w);
-export function lettersAsProduct(word) {
+const notAProduct = (w) => !/^[a-z]{2,3}$/.test(w) || /^d[a-z]$/.test(w);
+// Every place the word is typed touches a digit, bracket or operator.
+const touchesMaths = (w, problem) => {
+  const places = [...String(problem).matchAll(new RegExp(`(?<![a-z])${w}(?![a-z])`, 'gi'))];
+  return places.length > 0 && places.every((m) => {
+    const before = m.input[m.index - 1] ?? '';
+    const after = m.input[m.index + w.length] ?? '';
+    return /[0-9()*/^+\-]/.test(before) || /[0-9()*/^+\-]/.test(after);
+  });
+};
+export function lettersAsProduct(word, problem = '') {
   const w = String(word).toLowerCase();
   if (notAProduct(w)) return null;
+  if (ENGLISH_PAIRS.has(w) && !touchesMaths(w, problem)) return null;
   if (w.length === 3 && (w.match(/[xyz]/g) || []).length < 2) return null;
   return w.split('').join('*');
 }
@@ -107,7 +118,7 @@ export function lettersAsProduct(word) {
 // a product, never for an English word ("box", "it") or "dx".
 const productHint = (word) => {
   const w = String(word).toLowerCase();
-  return notAProduct(w) || /[eiou]/.test(w) ? '' : ` If you meant a product, write ${w.split('').join('*')}.`;
+  return notAProduct(w) || ENGLISH_PAIRS.has(w) || /[eiou]/.test(w) ? '' : ` If you meant a product, write ${w.split('').join('*')}.`;
 };
 export const unknownWordHint = (word, problem) => (/\($/.test(word) ? unknownFunctionHint(word.slice(0, -1)) : gluedWords(word)
   ? 'The words in this problem could not be read as maths. Type the expression or equation itself, such as "x^3 - 3x" or "2x + 5 = 11", and choose a topic for what to do with it.'

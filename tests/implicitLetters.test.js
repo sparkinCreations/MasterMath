@@ -16,6 +16,13 @@ test('which words are read as a product', () => {
   for (const w of ['box', 'tax', 'abc', 'it', 'is', 'go', 'dx', 'dy', 'hello']) {
     assert.equal(lettersAsProduct(w), null, w);
   }
+  // An English pair is a product where it touches the maths, a word where
+  // it stands alone.
+  assert.equal(lettersAsProduct('at', 'd/dt at^2'), 'a*t');
+  assert.equal(lettersAsProduct('at', 'sin(at)'), 'a*t');
+  assert.equal(lettersAsProduct('be', 'be^(-x)'), 'b*e');
+  assert.equal(lettersAsProduct('at', 'x^2 at x = 2'), null);
+  assert.equal(lettersAsProduct('at', 'at^2 at t = 1'), null);
 });
 
 test('letters side by side are solved as a product, and said so', async () => {
@@ -31,6 +38,27 @@ test('letters side by side are solved as a product, and said so', async () => {
     assert.equal(r.status, 'solved', p);
     assert.equal(r.answer, answer, p);
     assert.ok(read(r, word, product), `${p}: ${r.warnings}`);
+  }
+});
+
+test('a pair that is also a word is a product where it touches the maths', async () => {
+  for (const [p, answer] of [
+    ['d/dt at^2', "f'(t) = 2a*t"],
+    ['d/dt sin(at)', "f'(t) = a*cos(a*t)"],
+  ]) {
+    const r = await solvePlain(p, 'auto');
+    assert.equal(r.answer, answer, p);
+    assert.ok(read(r, 'at', 'a·t'), p);
+  }
+});
+
+test('a function with a parameter is refused, not given an empty domain', async () => {
+  // "y = m*x + b" was "domain: no real numbers; no x-intercepts".
+  for (const [p, letter] of [['y = mx + b', 'm'], ['y = m*x + b', 'm'], ['a*x^2 + b*x + c', 'a'], ['sin(k*x)', 'k']]) {
+    const r = await solvePlain(p, 'functions');
+    assert.equal(r.status, 'unsupported', p);
+    assert.equal(r.answer, `Analysing a function with a parameter (${letter}) is not supported yet`, p);
+    assert.ok(r.tips[0].includes(`Give ${letter} a number`), p);
   }
 });
 
