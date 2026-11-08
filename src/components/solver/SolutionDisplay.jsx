@@ -4,7 +4,7 @@ import { SHOWN_AT_FIRST, sourceOf } from "@/lib/guidance";
 import { learnMoreFor } from "@/lib/learnMore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, CircleSlash, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap, PencilLine } from "lucide-react";
+import { CheckCircle2, AlertCircle, PencilOff, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap, PencilLine } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import MathText from "@/components/MathText";
 import { answerParts, labelledPart } from "@/lib/answerParts";
@@ -213,7 +213,7 @@ function GuidanceList({ solution, items, heading, Icon, iconClass, ItemIcon, ite
           return (
             <div key={idx} className={`flex items-start gap-2.5 p-3 rounded-lg border ${itemClass}`}>
               {/* The kind of item at its upper left: a lightbulb on an
-                  insight, a circle with a slash on a mistake. Decorative: the heading says it. */}
+                  insight, a struck-through pencil on a mistake. Decorative: the heading says it. */}
               <ItemIcon className={`w-4 h-4 mt-1 shrink-0 ${itemIconClass}`} aria-hidden="true" />
               <div className="min-w-0">
                 <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={item} /></p>
@@ -583,7 +583,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Common Mistakes to Avoid:"
               Icon={AlertCircle}
               iconClass="text-rose-500 dark:text-rose-400"
-              ItemIcon={CircleSlash}
+              ItemIcon={PencilOff}
               itemIconClass="text-rose-500 dark:text-rose-400"
               itemClass="border-gray-300 dark:border-gray-600"
               noun="mistake"

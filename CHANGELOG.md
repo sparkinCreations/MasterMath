@@ -39,9 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page and the step numbers in the Solver are blue, not indigo.
 - Key Insights and Common Mistakes keep a box per item without the tinted
   background, each with its icon at the upper left: insights outlined in
-  amber with a lightbulb, mistakes outlined in grey with a soft rose circle
-  with a slash (a red outline and icon read as a page error). The final answer keeps
-  its green background.
+  amber with a lightbulb, mistakes outlined in grey with a soft rose
+  struck-through pencil (a red outline and icon read as a page error). The
+  final answer keeps its green background.
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").
