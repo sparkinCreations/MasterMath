@@ -946,6 +946,18 @@ test.describe('MasterMath smoke', () => {
     await expect(page.getByRole('button', { name: 'Close expanded graph' })).toBeFocused();
     await expect.poll(async () => (await dialog.getByRole('img', { name: /^Graph of/ }).boundingBox()).height).toBeGreaterThan(inlineHeight);
     await expect(page.locator('[data-export-graph]')).toHaveCount(1);
+    // The axis name "x" is inside the drawing and clear of the screen's
+    // bottom: it hung 4px past the chart, where Safari's toolbar cut it off
+    // in the expanded view on an iPhone (1.72.1).
+    const xLabel = await dialog.evaluate((d) => {
+      const svg = d.querySelector('[data-export-graph] svg.recharts-surface');
+      const label = [...svg.querySelectorAll('.recharts-label')].find((t) => t.textContent.trim() === 'x');
+      const sb = svg.getBoundingClientRect();
+      const lb = label.getBoundingClientRect();
+      return { inside: lb.bottom <= sb.bottom && lb.right <= sb.right, clear: window.innerHeight - lb.bottom };
+    });
+    expect(xLabel.inside).toBe(true);
+    expect(xLabel.clear).toBeGreaterThanOrEqual(12);
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await expect(expand).toBeFocused();
