@@ -305,7 +305,7 @@ Technical Information:
               <Button
                 type="submit"
                 disabled={!feedbackType || !description || isSubmitting}
-                className="flex-1 bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-blue-800 text-white hover:bg-blue-900 dark:bg-blue-300 dark:text-gray-900 dark:hover:bg-blue-200 font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {isSubmitting ? "Processing..." : "Send Feedback"}

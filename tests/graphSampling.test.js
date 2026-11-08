@@ -182,3 +182,32 @@ test('layoutLineLabels: a label that would overlap moves to the second tier, a t
   const apart = layoutLineLabels([items[0], { px: plot.x + plot.width * 0.9, text: 'b = 1' }], { plot });
   assert.deepEqual(apart.map((l) => l.tier), [0, 0]);
 });
+
+// Zoom about a point (1.72.0): pinch, Ctrl/⌘ + wheel and trackpad zoom.
+test('zoomWindow keeps the point under the cursor fixed', async () => {
+  const { zoomWindow } = await import('../src/lib/graphSampling.js');
+  const base = { range: { xMin: -10, xMax: 10 }, yWin: null };
+  // A quarter of the way across is x = -5; halving the span keeps it there.
+  const z = zoomWindow(base, 0.5, { fx: 0.25 });
+  assert.deepEqual(z.range, { xMin: -7.5, xMax: 2.5 });
+  assert.equal(z.yWin, null);
+  // At the centre it is the zoom-in button's halving.
+  assert.deepEqual(zoomWindow(base, 0.5, { fx: 0.5 }).range, { xMin: -5, xMax: 5 });
+  // Zooming out about the left edge keeps the left edge.
+  assert.deepEqual(zoomWindow(base, 2, { fx: 0 }).range, { xMin: -10, xMax: 30 });
+});
+
+test('zoomWindow scales a hand-set y-window about the point, and respects its limits', async () => {
+  const { zoomWindow } = await import('../src/lib/graphSampling.js');
+  const z = zoomWindow({ range: { xMin: 0, xMax: 4 }, yWin: { yMin: 0, yMax: 8 } }, 0.5, { fx: 0.5, fy: 0.25 });
+  // fy = 0.25 down from the top is y = 6; it stays at a quarter down.
+  assert.deepEqual(z.yWin, { yMin: 3, yMax: 7 });
+  assert.equal(6, z.yWin.yMax - 0.25 * (z.yWin.yMax - z.yWin.yMin));
+  // Never narrower than minSpan, never wider than the extent, never outside it.
+  const tiny = zoomWindow({ range: { xMin: 0, xMax: 2 }, yWin: null }, 0.01, { fx: 0.5 }, { minSpan: 1 });
+  assert.equal(tiny.range.xMax - tiny.range.xMin, 1);
+  const wide = zoomWindow({ range: { xMin: -5, xMax: 5 }, yWin: null }, 100, { fx: 0.9 }, { extent: { min: -20, max: 20 } });
+  assert.deepEqual(wide.range, { xMin: -20, xMax: 20 });
+  const edge = zoomWindow({ range: { xMin: 10, xMax: 20 }, yWin: null }, 1.5, { fx: 1 }, { extent: { min: -20, max: 20 } });
+  assert.deepEqual(edge.range, { xMin: 5, xMax: 20 });
+});

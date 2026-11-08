@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.72.0] - 2026-11-08
+
+### Changed
+- Action buttons are dark blue, the blue of the headings and the
+  MasterMath name, instead of black: Reveal next step, Try a similar one,
+  the Feedback form's Submit, the FAQ's and the 404 page's links (light
+  blue with dark text in dark mode). Solve stays orange; a selected tab or
+  option keeps its black, so "picked" still looks different from "press".
+
+### Added
+- Graph zoom by gesture: pinch with two fingers on a phone or tablet, or
+  hold Ctrl (⌘ on a Mac) and scroll; a trackpad pinch works too (Chrome,
+  Edge and Safari). Each zooms about the point under the fingers or the
+  pointer, so what you are looking at stays put. A plain scroll still
+  scrolls the page, and shows "Hold Ctrl and scroll to zoom" for a moment:
+  a graph that took the wheel would trap anyone scrolling past it. The zoom
+  buttons stay, for the keyboard.
+- Expand: a button on the graph opens it to fill the screen, with the same
+  view and every control, as tall as the screen allows. Escape or Close
+  brings it back, and focus returns to the button.
+
 ## [1.71.1] - 2026-11-08
 
 ### Changed
