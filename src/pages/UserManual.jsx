@@ -22,7 +22,7 @@ export default function UserManual() {
           User Manual
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
-          Learn how to use MasterMath by sparkinCreations™ effectively
+          How to enter a problem, read the solution, and use the rest of the app.
         </p>
       </div>
 
@@ -36,12 +36,10 @@ export default function UserManual() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            MasterMath is a step-by-step math solver that runs entirely in your browser, powered by
-            open-source math libraries, not AI. Whether you're working on derivatives, integrals, limits,
-            algebra (including systems and inequalities), trigonometry, function analysis, or arithmetic,
-            MasterMath walks through each expression or equation with the method a textbook would use,
-            helpful tips, and warnings about common mistakes. The app works fully offline after your
-            first visit: a service worker caches everything so you can study anywhere.
+            MasterMath is a step-by-step math solver that runs in your browser, built on open-source math
+            libraries, not AI. It works each problem with the method a textbook would use, from arithmetic
+            to Calculus II, and adds tips and common mistakes for that method. After your first visit it
+            works offline.
           </p>
         </CardContent>
       </Card>
@@ -78,21 +76,21 @@ export default function UserManual() {
               Type your math problem in the text area. Here are some formatting tips:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-              <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">*</code> for multiplication: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">2*x</code> instead of 2x (though MasterMath handles both)</li>
-              <li>The <strong>Keypad</strong> button above the problem box opens a keypad with the digits, x and y, + − × ÷ =, brackets, powers, backspace and arrow keys to move along the line. While it is open your phone's own keyboard stays closed, so the problem box stays in view. It starts open on a phone or tablet and closed on a computer, and stays as you leave it.</li>
-              <li>The <strong>Symbols</strong> button above the problem box opens a strip of one-tap symbols in four groups: Basic (+ − × ÷ = and powers, roots, fractions, π), Algebra (≤ ≥ |x| and a ; for systems), Calculus (∫, d/dx, lim, ∞, eˣ, ln) and Functions (sin … arctan, ln, log). It stays open or closed as you leave it. The topic picks the starting group; every group stays available. Clear, under the box, empties it and keeps the topic. A preview under the box shows how your text was read, with powers raised and roots drawn.</li>
-              <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">^</code> for exponents: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">x^2</code> for x² (unicode superscripts like x² also work)</li>
+              <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">*</code> for multiplication: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">2*x</code> (2x works too)</li>
+              <li>The <strong>Keypad</strong> button opens on-screen keys: digits, x and y, operators, brackets, powers and arrows. While it is open your phone's keyboard stays closed. It starts open on phones and tablets.</li>
+              <li>The <strong>Symbols</strong> button opens one-tap symbols in four groups: Basic, Algebra, Calculus and Functions. Under the box, a preview shows how your problem was read, and Clear empties it.</li>
+              <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">^</code> for exponents: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">x^2</code> for x² (x² works too)</li>
               <li>Use parentheses for clarity: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">(x + 2)*(x - 3)</code></li>
-              <li>For limits, use format: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">lim x-&gt;0 (sin(x)/x)</code></li>
-              <li>You can type in natural language: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">find the derivative of x^2 + 3x</code></li>
-              <li>Use <strong>↑/↓ arrow keys</strong> in the input area to recall previous problems from your current session</li>
+              <li>For limits: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">lim x-&gt;0 (sin(x)/x)</code></li>
+              <li>Or type it in words: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">find the derivative of x^2 + 3x</code></li>
+              <li>Use <strong>↑/↓ arrow keys</strong> in the problem box to recall what you typed this session</li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Step 3: Click "Solve Problem"</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              MasterMath will analyze your problem and provide a complete solution with step-by-step explanations!
+              You get the steps, the answer, a graph where one applies, and tips for the method.
             </p>
           </div>
         </CardContent>
@@ -108,11 +106,11 @@ export default function UserManual() {
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <p className="text-gray-700 dark:text-gray-300">
-            The topic you pick is a hint, not a rule: an equation in one unknown typed under Derivatives is solved as algebra (an equation in x and y is differentiated implicitly),
+            The topic is a hint, not a rule: an equation typed under Derivatives is solved as algebra (one in x and y is differentiated implicitly),
             and <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">d/dx</code>,{' '}
             <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">∫</code> or{' '}
             <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">lim</code> in the
-            problem routes it to the right solver from any topic. A notice above the steps says so when that happens, with a button to switch the topic. Under Auto-detect the notice says what was detected instead.
+            problem sends it to the right solver from any topic. A notice above the steps says so, with a button to switch the topic.
           </p>
           <dl className="space-y-3 text-gray-700 dark:text-gray-300">
             {[
@@ -137,59 +135,6 @@ export default function UserManual() {
         </CardContent>
       </Card>
 
-      {/* Example Problems */}
-      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
-          <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Lightbulb className="w-6 h-6 text-green-600 dark:text-green-400" />
-            Example Problems
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="space-y-3">
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">Derivatives Example:</p>
-              <p className="text-gray-700 dark:text-gray-300">
-                Topic: Derivatives<br />
-                Problem: <code className="bg-white dark:bg-gray-600 dark:text-gray-200 px-2 py-1 rounded">x^2 + 3*x</code>
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="font-semibold text-indigo-700 dark:text-indigo-300 mb-1">Integrals Example:</p>
-              <p className="text-gray-700 dark:text-gray-300">
-                Topic: Integrals<br />
-                Problem: <code className="bg-white dark:bg-gray-600 dark:text-gray-200 px-2 py-1 rounded">2*x + 1</code>
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="font-semibold text-amber-700 dark:text-amber-400 mb-1">Limits Example:</p>
-              <p className="text-gray-700 dark:text-gray-300">
-                Topic: Limits<br />
-                Problem: <code className="bg-white dark:bg-gray-600 dark:text-gray-200 px-2 py-1 rounded">lim x-&gt;0 (sin(x)/x)</code>
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Algebra Example:</p>
-              <p className="text-gray-700 dark:text-gray-300">
-                Topic: Algebra<br />
-                Problem: <code className="bg-white dark:bg-gray-600 dark:text-gray-200 px-2 py-1 rounded">2*x + 5 = 11</code>
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="font-semibold text-pink-700 dark:text-pink-300 mb-1">Trigonometry Example:</p>
-              <p className="text-gray-700 dark:text-gray-300">
-                Topic: Trigonometry<br />
-                Problem: <code className="bg-white dark:bg-gray-600 dark:text-gray-200 px-2 py-1 rounded">sin(pi/4)</code>
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Understanding Solutions */}
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
@@ -202,58 +147,55 @@ export default function UserManual() {
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Step-by-Step Solution</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              Each solution breaks down the problem into clear, numbered steps showing exactly how to solve it.
-              Follow along to understand the mathematical process.
-             New visitors see one step at a time (Step through), with a Next step button; Show all shows the whole working at once, and the choice is remembered.</p>
+              The working is shown as numbered steps. New visitors see one step at a time (Step through, with a
+              Next step button); Show all shows everything at once, and your choice is remembered.
+            </p>
           </div>
 
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Final Answer</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              The final answer is highlighted in green for easy reference.
+              The answer is in the green box. An answer with several parts shows one part per line.
             </p>
           </div>
 
           <div>
             <h3 id="practice" className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2 scroll-mt-24">Practice: Try a Similar One</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              Under the final answer, <strong>Try a similar one</strong> opens up to five problems of the same kind: the same method, new numbers.
-              Work one on paper, type your answer and press <strong>Check</strong>. Answers are checked by their value, so any correct form counts:
-              “2, 3” or “x = 3 or x = 2” for an equation; “6x*cos(3x^2)” or “cos(3x^2)*6x” for a derivative; any + C for an integral; “1/3” or “0.33” for a number
-              (a decimal needs at least two places). A wrong answer says what is wrong without giving the answer away.
-              <strong> Hint</strong> shows the working one step at a time, <strong>Show solution</strong> all of it, and <strong>Look at the example</strong> the problem you started from.
-              <strong> Another one</strong> moves through the set and starts again after the last. Every practice problem is solved and checked by MasterMath before you see it,
-              and everyone who solves the same problem gets the same set. Practice is offered for every topic: for a trig equation give the solutions in one turn,
-              [0, 2π); for an inequality the solution set, as “x &lt; -2 or x &gt; 2” or “(-∞, -2) ∪ (2, ∞)”; for a system every solution, as “x = 3, y = 2” or “(3, 2)”;
-              for a function its x-intercepts (or “none”). Factor, simplify and expand are not practised (the problem itself would count as the answer).
-              In MasterMath log(…) means base 10, so write ln(…) for the natural logarithm.
+              Under the answer, <strong>Try a similar one</strong> opens up to five problems solved by the same method with
+              new numbers. Type your answer and press <strong>Check</strong>. Answers are checked by value, so any correct form
+              counts (“2, 3” or “x = 3 or x = 2”; any + C for an integral; a decimal needs at least two places), and a wrong
+              answer says what is wrong without giving it away. <strong>Hint</strong> shows the working one step at a time,
+              <strong> Show solution</strong> all of it, and <strong>Another one</strong> moves to the next problem. For a trig
+              equation, give the solutions in [0, 2π); for an inequality, the solution set; for a system, every solution; for a
+              function, its x-intercepts (or “none”). Factor, simplify and expand are not practised.
             </p>
           </div>
 
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Key Insights</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              Learn important concepts and tips that will help you with similar problems in the future.
+              Tips for the method used, most important first; Show more reveals the rest.
             </p>
           </div>
 
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Common Mistakes to Avoid</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              Discover the most frequent errors students make and learn how to avoid them.
+              The errors students most often make with that method.
             </p>
           </div>
 
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Graph Visualization</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-2">
-              When applicable, MasterMath displays an interactive graph to help you visualize the function or solution.
+              Problems with a variable get an interactive graph.
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
               <li><strong>Zoom:</strong> Use the + and - buttons to zoom in and out; the curve is redrawn for every window, so it stays smooth</li>
               <li><strong>Pan:</strong> Drag the graph with a mouse or finger, or use the arrow buttons</li>
               <li><strong>Fit key features:</strong> The target button frames the marked roots, turning points and asymptotes</li>
-              <li><strong>Reset:</strong> Click the reset button to return to the starting view</li>
+              <li><strong>Reset:</strong> Return to the starting view</li>
               <li><strong>Dual curves:</strong> For derivatives and integrals, the graph shows the original function and the result together; when their sizes differ a lot the dashed curve gets its own right-hand axis, which you can toggle</li>
               <li><strong>Hover or tap:</strong> See the coordinates at any point</li>
               <li><strong>Key features:</strong> Open the panel under the graph for the same features in words</li>
@@ -269,14 +211,6 @@ export default function UserManual() {
             </p>
           </div>
 
-          <div>
-            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Trigonometry Degree Detection</h3>
-            <p className="text-gray-700 dark:text-gray-300">
-              MasterMath auto-detects common degree values (30, 45, 60, 90, etc.) when you use
-              trigonometric functions. For example, <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">sin(45)</code> is
-              automatically treated as sin(45°) and results are shown in both degrees and radians.
-            </p>
-          </div>
         </CardContent>
       </Card>
 
@@ -327,12 +261,12 @@ export default function UserManual() {
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <p className="text-gray-700 dark:text-gray-300">
-            Save your solutions for later study! Click the "Export" button on any solution to download it in your preferred format:
+            The Export button on a solution downloads it as:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
-            <li><strong>PDF:</strong> Perfect for printing or submitting assignments - includes all steps, tips, and mistakes</li>
-            <li><strong>Markdown:</strong> Great for importing into note-taking apps like Obsidian or Notion</li>
-            <li><strong>JSON:</strong> Technical format for backup or integration with other tools</li>
+            <li><strong>PDF:</strong> for printing, with the steps, tips, mistakes and graph</li>
+            <li><strong>Markdown:</strong> for notes apps such as Obsidian or Notion</li>
+            <li><strong>JSON:</strong> for backups or other tools</li>
           </ul>
         </CardContent>
       </Card>
@@ -347,14 +281,14 @@ export default function UserManual() {
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <p className="text-gray-700 dark:text-gray-300">
-            Navigate to "My Progress" from the sidebar to:
+            My Progress, in the sidebar, lets you:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 ml-4">
             <li>See every problem you've worked through, newest first: one entry per problem, with how many times you have solved it</li>
             <li>Search your problems and answers, or filter by topic (each topic shows how many problems it holds)</li>
             <li>See how many problems you've worked through in total and this week</li>
             <li>Reopen any past solution in the Solver</li>
-            <li>Delete a single problem, or clear your whole history (useful for starting fresh each semester)</li>
+            <li>Delete a single problem, or clear your whole history</li>
             <li>Export your entire history as PDF, CSV, JSON, or Markdown</li>
           </ul>
         </CardContent>
@@ -371,28 +305,16 @@ export default function UserManual() {
         <CardContent className="p-6">
           <ul className="space-y-3 text-gray-700 dark:text-gray-300">
             <li className="flex items-start gap-2">
-              <span className="text-indigo-600 dark:text-indigo-400 font-bold mt-1">✓</span>
-              <span><strong>Try it yourself first:</strong> Attempt the problem before checking the solution to maximize learning</span>
+              <span className="text-blue-700 dark:text-blue-300 font-bold mt-1" aria-hidden="true">✓</span>
+              <span><strong>Try it yourself first:</strong> Work the problem before you look at the steps.</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-indigo-600 dark:text-indigo-400 font-bold mt-1">✓</span>
-              <span><strong>Use the examples:</strong> Click any example problem to see how to format your input correctly</span>
+              <span className="text-blue-700 dark:text-blue-300 font-bold mt-1" aria-hidden="true">✓</span>
+              <span><strong>Use the examples:</strong> Pick one to see how a problem is typed.</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-indigo-600 dark:text-indigo-400 font-bold mt-1">✓</span>
-              <span><strong>Read the insights:</strong> The Key Insights section teaches concepts that apply to many problems</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-600 dark:text-indigo-400 font-bold mt-1">✓</span>
-              <span><strong>Learn from mistakes:</strong> Review the Common Mistakes section before tests and exams</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-600 dark:text-indigo-400 font-bold mt-1">✓</span>
-              <span><strong>Export for study:</strong> Create PDF study guides by exporting solutions for exam preparation</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-600 dark:text-indigo-400 font-bold mt-1">✓</span>
-              <span><strong>Track progress:</strong> Use the Progress page to see how much you're improving over time</span>
+              <span className="text-blue-700 dark:text-blue-300 font-bold mt-1" aria-hidden="true">✓</span>
+              <span><strong>Read the common mistakes before a test:</strong> They are the slips that cost marks.</span>
             </li>
           </ul>
         </CardContent>

@@ -65,6 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   1600 and 800 wide, about 70 to 220 kB each); the recording script moves
   the pointer off the page after Solve, so no example is left highlighted
   in the last frame, which is the poster.
+- Shorter wording on How It Compares, the FAQ and the User Manual: sentences
+  that described the page rather than the app are gone, list items are
+  merged, the FAQ answers are cut to their facts (and the log answer now
+  names the note beside the answer), and the User Manual drops its
+  Example Problems card (the topic list already has examples) and the
+  degree-detection section (Settings covers it).
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").

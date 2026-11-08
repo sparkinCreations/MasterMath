@@ -101,11 +101,9 @@ const ROWS = [
 const LIMITS = [
   "No camera, photo, handwriting or speech input: problems are typed.",
   "No word problems: “3 apples cost $6…” is refused, not solved.",
-  "No geometry, statistics, sequences and series, matrices, differential equations, polar or parametric curves, or multivariable calculus such as double integrals.",
-  "No physics, chemistry or unit conversion.",
+  "No geometry, statistics, sequences and series, matrices, differential equations, polar or parametric curves, multivariable calculus (such as double integrals), physics, chemistry or unit conversion.",
   "English only, and no app in the App Store or Google Play.",
   "Practice is similar problems with checked answers, not quizzes; no videos or human help.",
-  "A small project by one independent developer, not an established product used by millions.",
 ];
 
 const SOURCES = [
@@ -144,8 +142,7 @@ export default function Compare() {
           Checked on {CHECKED_ON}. Prices and features change, so follow the sources below for the current ones.
         </p>
         <p className="text-gray-700 dark:text-gray-300 max-w-3xl">
-          This page is here to help you pick the right tool, not to sell this one. MasterMath covers fewer
-          topics than any of the others, so its limits come first.
+          MasterMath covers fewer topics than the others.
         </p>
       </div>
 
@@ -241,9 +238,9 @@ export default function Compare() {
         </CardHeader>
         <CardContent className="p-6 space-y-3 text-gray-700 dark:text-gray-300">
           <p>
-            The MasterMath column describes this app as it is today, including what it refuses; its code is{" "}
-            <a href="https://github.com/sparkinCreations/MasterMath" target="_blank" rel="noopener noreferrer" className="text-indigo-700 dark:text-indigo-300 underline">open on GitHub</a>{" "}
-            for anyone to check. Every other cell comes from the vendor's own website or App Store listing on {CHECKED_ON}:
+            The MasterMath column describes this app today; its code is{" "}
+            <a href="https://github.com/sparkinCreations/MasterMath" target="_blank" rel="noopener noreferrer" className="text-indigo-700 dark:text-indigo-300 underline">open on GitHub</a>.{" "}
+            Every other cell comes from the vendor's own website or App Store listing on {CHECKED_ON}:
           </p>
           <ul className="list-disc list-inside space-y-2 ml-4">
             {SOURCES.map((s) => (
@@ -253,7 +250,7 @@ export default function Compare() {
             ))}
           </ul>
           <p>
-            Spotted something wrong or out of date, including something unfair to another app? Tell us on the{" "}
+            Something wrong or out of date? Tell us on the{" "}
             <Link to={createPageUrl("Feedback")} className="text-indigo-700 dark:text-indigo-300 underline">Feedback page</Link>{" "}
             and we will correct it.
           </p>
