@@ -87,9 +87,13 @@ export const wordProblemRefusal = (problem) => unsupported({
 // spaces were taken out ("thecriticalpointsofx"): say so in plain terms
 // rather than calling that a function name (October 2026 review).
 const gluedWords = (word) => word.length >= 12 || /^(?:the|is|of)[a-z]{3,}/i.test(word);
+// Two or three letters side by side ("nx", "xy") are most often a product
+// typed without its *: say how to write it (r/mathematics, November 2026:
+// "lim x->0 sin(nx)/x" was refused without the fix in sight; 1.70.5).
+const productHint = (word) => (/^[a-z]{2,3}$/i.test(word) ? ` If you meant a product, write ${word.split('').join('*')}.` : '');
 export const unknownWordHint = (word, problem) => (/\($/.test(word) ? unknownFunctionHint(word.slice(0, -1)) : gluedWords(word)
   ? 'The words in this problem could not be read as maths. Type the expression or equation itself, such as "x^3 - 3x" or "2x + 5 = 11", and choose a topic for what to do with it.'
-  : `"${wordAsTyped(problem, word)}" is not a known function, constant or variable. Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`);
+  : `"${wordAsTyped(problem, word)}" is not a known function, constant or variable.${productHint(wordAsTyped(problem, word))} Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`);
 
 // The word as the student typed it: the expression reader drops spaces, so
 // "mean of 1, 2, 3, 4" reached the check as "meanof" and was quoted that way

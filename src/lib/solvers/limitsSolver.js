@@ -238,11 +238,15 @@ export async function solveLimit(expression) {
           graph: null,
         };
       }
+      // Say what the limit has and what to do (r/mathematics, November 2026:
+      // "lim x->0 sin(n*x)/x" was "beyond what this solver can compute",
+      // and the tip named x where it meant the parameter; 1.70.5).
+      const withValue = func.replace(new RegExp(`(?<![a-z])${otherSymbol}(?![a-z])`, 'g'), '3');
       return unsupported({
         input: expression,
-        reason: `The expression contains another symbol (${otherSymbol}) as well as ${variable}, and it did not simplify to something ${variable} = ${displayTarget} can be substituted into. Limits with a symbolic parameter are only supported when they simplify algebraically.`,
-        answer: 'This limit is beyond what this solver can compute',
-        tips: [`Give the parameter a value (e.g. replace ${mark('x')} with ${mark('3')}) to evaluate the limit numerically.`],
+        reason: `The expression has a parameter, ${mark(otherSymbol)}, as well as the variable ${mark(variable)}. A limit with a parameter is worked only when it simplifies so that ${mark(`${variable} = ${displayTarget}`)} can be substituted, and this one does not.`,
+        answer: `Limits with a parameter (${otherSymbol}) are not supported yet`,
+        tips: [`Give ${mark(otherSymbol)} a number to find the limit for that case: ${mark(`${otherSymbol} = 3`)} gives ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(withValue))}`)}.`],
       });
     }
 
