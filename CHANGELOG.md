@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Like" side by side on large screens; the cards have thin borders.
 - The step numbers, on the home page and in the Solver, are plain numbers
   ("1.") instead of filled circles.
+- A final answer in several parts shows one part per line: a semicolon
+  outside brackets ends a part ("domain: …; range: …"), a Functions answer's
+  function is the first line, and a label is capitalised ("Domain: …").
+  Display only: exports and history keep the answer as one line
+  (`src/lib/answerParts.js`).
 - Text on the new solid backgrounds meets 4.5:1: the worked example's
   label, the Export button, and the history card's Export, Clear and dates
   are a shade darker. The page background has a solid colour under its

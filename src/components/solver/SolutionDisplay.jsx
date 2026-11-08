@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap, PencilLine } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import MathText from "@/components/MathText";
+import { answerParts, labelledPart } from "@/lib/answerParts";
 import PracticeDialog from "@/components/solver/PracticeDialog";
 import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
 import { exportSolutionAsMarkdown, exportSolutionAsJSON, exportSolutionAsPDF } from "@/lib/exportUtils";
@@ -162,6 +163,32 @@ function ScrollingMath({ className = "", label, children }) {
   return (
     <div ref={ref} className={`overflow-x-auto ${className}`} {...reachable}>
       {children}
+    </div>
+  );
+}
+
+// The final answer, a part per line when it has several (answerParts.js):
+// "domain: …; range: …" is a list, one fact per line; a single part is the
+// one line it always was.
+function AnswerLines({ answer, className }) {
+  const { heading, parts } = answerParts(answer);
+  if (!heading && parts.length === 1) {
+    return <p className={className}><MathText text={answer} /></p>;
+  }
+  return (
+    <div className={className}>
+      {heading && <p><MathText text={heading} /></p>}
+      <ul className={heading ? "mt-1 space-y-0.5 text-base sm:text-lg font-medium" : "space-y-0.5"}>
+        {parts.map((part, i) => {
+          const { label, value } = labelledPart(part);
+          return (
+            <li key={i}>
+              {label && <>{label}: </>}
+              <MathText text={value} />
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -494,7 +521,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                 {/* text-lg on a phone, where 20px costs more in wrapping than
                     it buys in emphasis — the green card and the weight already
                     set the answer apart from the 16px steps. */}
-                <p className={`${theme.cardText} text-lg sm:text-xl font-semibold`}><MathText text={solution.answer} /></p>
+                <AnswerLines className={`${theme.cardText} text-lg sm:text-xl font-semibold`} answer={solution.answer} />
               </ScrollingMath>
               {solution.warnings && solution.warnings.length > 0 && (
                 <ul className="mt-3 space-y-1">
