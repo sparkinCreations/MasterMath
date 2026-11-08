@@ -193,8 +193,8 @@ function AnswerLines({ answer, className }) {
   );
 }
 
-// Key Insights or Common Mistakes (1.70.4: plain text with a thin
-// coloured line on the left, no tinted box per item): the first three, then the rest one tap
+// Key Insights or Common Mistakes (1.70.4: each item in an outlined box,
+// amber or red, with no tinted background): the first three, then the rest one tap
 // away (guidance.js). The same list, in the same order, for everyone.
 function GuidanceList({ solution, items, heading, Icon, iconClass, itemClass, noun }) {
   const [open, setOpen] = useState(false);
@@ -211,7 +211,7 @@ function GuidanceList({ solution, items, heading, Icon, iconClass, itemClass, no
         {shown.map((item, idx) => {
           const source = sourceOf(solution, item);
           return (
-            <div key={idx} className={`py-1.5 pl-4 border-l-2 ${itemClass}`}>
+            <div key={idx} className={`p-3 rounded-lg border ${itemClass}`}>
               <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={item} /></p>
               {source && (
                 <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
@@ -563,7 +563,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Key Insights:"
               Icon={Lightbulb}
               iconClass="text-amber-500"
-              itemClass="border-amber-400 dark:border-amber-500"
+              itemClass="border-amber-300 dark:border-amber-700/70"
               noun="insight"
             />
           )}
@@ -576,7 +576,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Common Mistakes to Avoid:"
               Icon={AlertCircle}
               iconClass="text-red-500"
-              itemClass="border-red-400 dark:border-red-500"
+              itemClass="border-red-300 dark:border-red-800/70"
               noun="mistake"
             />
           )}
