@@ -10,23 +10,23 @@ export default function FAQ() {
   const faqs = [
     {
       question: "Is MasterMath really free?",
-      answer: "Yes! MasterMath is completely free with no hidden costs or subscriptions. All current features are available to everyone at no charge. If we ever introduce premium features in the future, existing features will remain free and any changes will be clearly communicated."
+      answer: "Yes. Every feature is free, with no subscription and no ads. If paid features are ever added, the existing ones stay free."
     },
     {
       question: "Do I need to create an account?",
-      answer: "No account needed! You can start using MasterMath immediately. Your problem history is stored locally in your browser using IndexedDB, so your data stays private and on your device."
+      answer: "No. Your problem history is stored in your browser (IndexedDB), on your device."
     },
     {
       question: "Does MasterMath work offline?",
-      answer: "Yes! MasterMath includes a service worker that caches the entire app for offline use. After your first visit, you can solve problems without an internet connection. All math calculations happen locally in your browser using JavaScript libraries, and your data is stored in IndexedDB, so everything is always accessible — even without Wi-Fi."
+      answer: "Yes. After your first visit the app is cached, and solving and your history work without an internet connection."
     },
     {
       question: "Is my data private and secure?",
-      answer: "Yes. Solving and your problem history stay on your device in IndexedDB — we never see your math work. The only time anything is sent is if you choose to submit Feedback & Support (via Web3Forms); that is optional and documented in the Privacy Policy."
+      answer: "Yes. Solving and your history stay on your device; we never see your work. The only thing ever sent is a message you choose to submit on the Feedback & Support page (via Web3Forms), as the Privacy Policy explains."
     },
     {
       question: "Is MasterMath AI?",
-      answer: "No. MasterMath does not use a language model or any cloud AI to solve problems. All calculations run in your browser with open-source math libraries (Algebrite and MathJS). That is why it works offline, why answers are deterministic, and why unsupported input is refused instead of invented."
+      answer: "No. MasterMath uses no language model or cloud AI. It solves with open-source math libraries (Algebrite and MathJS) in your browser, so answers are the same every time, it works offline, and input it can't handle is refused rather than guessed."
     },
     {
       question: "What types of math problems can I solve?",
@@ -34,7 +34,7 @@ export default function FAQ() {
     },
     {
       question: "Can it solve word problems?",
-      answer: "No. Word problems are not supported: MasterMath works on the maths itself, typed as notation. Write the equation or expression the problem describes — a train that travels 120 miles in 2 hours has speed \"120/2\"; \"a number plus 7 is 12\" is \"x + 7 = 12\" — and it will solve that step by step."
+      answer: "No. Type the maths the problem describes: a train that travels 120 miles in 2 hours has speed \"120/2\"; \"a number plus 7 is 12\" is \"x + 7 = 12\"."
     },
     {
       question: "Can I ask a question in words?",
@@ -54,47 +54,47 @@ export default function FAQ() {
     },
     {
       question: "How do I enter a definite integral?",
-      answer: "Either \"∫_0^1 x^2 dx\" (\"int_0^1 x^2 dx\" on a keyboard without ∫) or in words: \"integral of x^2 from 0 to 1\". The steps apply the Fundamental Theorem of Calculus and the value is cross-checked numerically. Improper integrals — an infinite bound such as \"∫_0^∞ e^(-x^2) dx\", or an integrand that blows up at an endpoint — are taken as limits, and a divergent one is reported as divergent with its sign. If no method finds the antiderivative, the definite integral is still estimated numerically (two step sizes must agree) and the answer is marked \"(numerical)\" rather than exact."
+      answer: "Either \"∫_0^1 x^2 dx\" (\"int_0^1 x^2 dx\" on a keyboard without ∫) or in words: \"integral of x^2 from 0 to 1\". The steps apply the Fundamental Theorem of Calculus and the value is cross-checked numerically. Improper integrals (an infinite bound such as \"∫_0^∞ e^(-x^2) dx\", or an integrand that blows up at an endpoint) are taken as limits, and a divergent one is reported as divergent with its sign. If no method finds the antiderivative, the definite integral is still estimated numerically (two step sizes must agree) and the answer is marked \"(numerical)\" rather than exact."
     },
     {
       question: "Does log mean base 10 or the natural log?",
-      answer: "A bare log(…) is the common logarithm, base 10, as on a calculator; write ln(…) for the natural logarithm, or log(x, b) / log_b(x) for another base. When a solution relied on that reading, a tip says so."
+      answer: "A bare log(…) is base 10, as on a calculator; write ln(…) for the natural logarithm, or log(x, b) / log_b(x) for another base. A note beside the answer says when log was read as base 10."
     },
     {
       question: "What do the Settings do?",
-      answer: "Theme: System follows your device's light or dark setting and switches when it does; Light and Dark are fixed. Angle unit (Auto, Degrees or Radians) decides how plain-number angles are read and how angle results are shown, including the general solution of a trig equation; calculus always works in radians. Decimal places sets how many decimals numeric results show — exact fractions, radicals and π are kept regardless. All are saved in your browser."
+      answer: "Theme: System follows your device's light or dark setting and switches when it does; Light and Dark are fixed. Angle unit (Auto, Degrees or Radians) decides how plain-number angles are read and how angle results are shown, including the general solution of a trig equation; calculus always works in radians. Decimal places sets how many decimals numeric results show; exact fractions, radicals and π are kept regardless. All are saved in your browser."
     },
     {
       question: "Why did my solve stop after 10 seconds?",
-      answer: "Solving runs in the background with a 10-second limit, so the page never freezes and you never get a late or partial answer. The usual cause is a very high-degree polynomial with many real roots. Factor out a common factor first, or simplify the equation, and try again. The Cancel button stops a solve sooner."
+      answer: "Solving has a 10-second limit, so the page never freezes and you never get a partial answer. The usual cause is a very high-degree polynomial: factor out a common factor or simplify, then try again. Cancel stops a solve sooner."
     },
     {
       question: "How accurate are the solutions?",
-      answer: "We use industry-standard math libraries (Algebrite and MathJS) for calculations — not AI. However, you should always verify solutions independently. MasterMath is a learning tool, not a replacement for understanding the concepts."
+      answer: "Every answer is checked before it is shown: solutions are substituted back, antiderivatives are differentiated back, and definite integrals and limits are checked numerically. It is still worth checking important work yourself."
     },
     {
       question: "Can I export my solutions?",
-      answer: "Yes! You can export individual solutions or your entire problem history in multiple formats: PDF, CSV, JSON, and Markdown. Perfect for homework submissions, study notes, or keeping records."
+      answer: "Yes. Export a solution as PDF, Markdown or JSON, or your whole history as PDF, CSV, JSON or Markdown."
     },
     {
       question: "Why isn't my graph showing?",
-      answer: "Graphs are generated automatically for function-related problems. Make sure your expression is valid and contains a variable (usually x). Some complex functions may not graph if they contain undefined points or are outside the visible range."
+      answer: "Graphs are drawn for problems with a variable (usually x). Check that the expression is valid; a function that is undefined across the window may not draw."
     },
     {
       question: "How do I input mathematical expressions?",
-      answer: "Use standard notation: * for multiplication (2*x), ^ for exponents (x^2), / for division. You can also use function names like sin, cos, tan, sqrt, ln, log. Spaces are allowed for readability. You can also type in natural language like \"find the derivative of x^2 + 3x\" and MasterMath will extract the math expression automatically."
+      answer: "Use * for multiplication (2*x), ^ for powers (x^2), / for division, and names like sin, cos, tan, sqrt, ln and log. Spaces are fine. You can also type words, like \"find the derivative of x^2 + 3x\"."
     },
     {
       question: "Can I recall previous problems I've entered?",
-      answer: "Yes! Use the up arrow (↑) and down arrow (↓) keys in the problem input area to navigate through your recent inputs from the current session. This makes it easy to re-solve or modify problems you've already tried."
+      answer: "Yes. Press the up and down arrow keys in the problem box to step through what you typed this session."
     },
     {
       question: "Can I zoom and pan on graphs?",
-      answer: "Yes. Drag the graph with a mouse or finger to pan, use the zoom buttons, and press the target button to frame the marked roots, turning points and asymptotes. The curve is redrawn for every window, so it stays smooth however far you zoom in; a reset button returns to the starting view."
+      answer: "Yes. Drag to pan, use the zoom buttons, and press the target button to frame the marked points. The curve is redrawn for every window, and the reset button returns to the start."
     },
     {
       question: "Why do I see two curves on my graph?",
-      answer: "For derivatives and integrals, MasterMath shows both the original function (blue/indigo curve) and the result (green dashed curve) on the same graph. When the two differ a lot in size, the dashed curve gets its own right-hand axis so neither is squashed; a button toggles that."
+      answer: "For derivatives and integrals, the graph shows the original function (solid) and the result (green, dashed). When their sizes differ a lot, the dashed curve gets its own right-hand axis; a button toggles that."
     },
     {
       question: "Does MasterMath handle degree inputs for trigonometry?",
@@ -102,39 +102,39 @@ export default function FAQ() {
     },
     {
       question: "Can I use MasterMath for homework or exams?",
-      answer: "MasterMath is designed as a learning companion. While you can use it to check your work and understand concepts, we recommend using it ethically. Always follow your school's academic integrity policies. The tool is meant to help you learn, not to bypass learning."
+      answer: "Use it to check your work and learn the method, and follow your school's rules on academic integrity."
     },
     {
       question: "What browsers are supported?",
-      answer: "MasterMath works on all modern browsers (Chrome, Firefox, Safari, Edge) on desktop and mobile devices. We recommend keeping your browser updated for the best experience."
+      answer: "Current versions of Chrome, Firefox, Safari and Edge, on desktop and mobile."
     },
     {
       question: "How do I clear my problem history?",
-      answer: "Go to the 'My Progress' page and click the 'Clear History' button. You'll be asked to confirm before all data is permanently deleted. To remove just one problem, use the trash button on its entry. You can also export your history before clearing if you want to keep a backup."
+      answer: "On My Progress, press Clear History and confirm. To remove one problem, use the trash button on its entry. Export first if you want a copy."
     },
     {
       question: "Can I contribute to MasterMath?",
-      answer: "Yes! MasterMath is open source on GitHub. You can report issues, suggest features, or contribute code. We welcome contributions from the community to make math learning better for everyone."
+      answer: "Yes. MasterMath is open source on GitHub: report issues, suggest features or send code."
     },
     {
       question: "I found a bug or incorrect solution. What should I do?",
-      answer: "Please report it! Use the Feedback & Support page to let us know about bugs or incorrect solutions. Include the problem, expected result, and what you got. This helps us improve the app for everyone."
+      answer: "Tell us on the Feedback & Support page, with the problem, the answer you expected and the one you got."
     },
     {
       question: "Does MasterMath support LaTeX?",
-      answer: "Currently, we don't support LaTeX input, but it's on our roadmap! For now, use standard notation with operators like *, ^, /, and function names."
+      answer: "Not yet. Use standard notation with *, ^, / and function names."
     },
     {
       question: "Can I use MasterMath on my phone?",
-      answer: "Yes! MasterMath is fully responsive and works great on mobile devices. You can even add it to your home screen as a Progressive Web App (PWA) for quick access."
+      answer: "Yes. It works on phones, and you can add it to your home screen as an app."
     },
     {
       question: "How often is MasterMath updated?",
-      answer: "We regularly update MasterMath with new features, bug fixes, and improvements. Check our GitHub repository or CHANGELOG.md for the latest updates and version history."
+      answer: "Often. Every release is listed in CHANGELOG.md on GitHub."
     },
     {
       question: "Who created MasterMath?",
-      answer: "MasterMath was created by sparkinCreations™ to make math learning accessible, free, and privacy-focused. It's built with modern web technologies and powered by open-source math libraries — not AI."
+      answer: "sparkinCreations™, as a free, private step-by-step solver built on open-source math libraries."
     }
   ];
 
@@ -146,8 +146,8 @@ export default function FAQ() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <HelpCircle className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
-          <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <HelpCircle className="w-10 h-10 text-blue-800 dark:text-blue-300" />
+          <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300">
             Frequently Asked Questions
           </h1>
         </div>
@@ -160,7 +160,7 @@ export default function FAQ() {
         {faqs.map((faq, index) => (
           <Card
             key={index}
-            className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden transition-all duration-200 hover:shadow-md"
+            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden transition-shadow duration-200 hover:shadow-md"
           >
             <button
               onClick={() => toggleFAQ(index)}
@@ -189,7 +189,7 @@ export default function FAQ() {
         ))}
       </div>
 
-      <div className="mt-12 p-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border-2 border-indigo-200 dark:border-gray-600">
+      <div className="mt-12 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
           Still have questions?
         </h2>
@@ -199,13 +199,13 @@ export default function FAQ() {
         <div className="flex flex-col sm:flex-row gap-3">
           <a
             href="/usermanual"
-            className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-semibold rounded-lg transition-colors"
           >
             Read User Manual
           </a>
           <a
             href="/feedback"
-            className="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-200 font-semibold rounded-lg border-2 border-indigo-600 dark:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-600 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Contact Support
           </a>

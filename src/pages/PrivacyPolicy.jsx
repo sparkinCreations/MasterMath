@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300 mb-2">
           Privacy Policy
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -18,8 +18,8 @@ export default function PrivacyPolicy() {
       </div>
 
       {/* Introduction */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Your Privacy Matters
@@ -30,15 +30,15 @@ export default function PrivacyPolicy() {
             At MasterMath by sparkinCreations™, we are committed to protecting your privacy.
             This Privacy Policy explains how we handle your information when you use our educational
             math application. We believe in transparency and want you to understand exactly how your
-            data is managed. MasterMath runs entirely in your browser — all math solving is done
+            data is managed. MasterMath runs entirely in your browser: all math solving is done
             locally using JavaScript libraries, not AI or external APIs.
           </p>
         </CardContent>
       </Card>
 
       {/* Data Collection */}
-      <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Database className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             What Information We Collect
@@ -85,7 +85,7 @@ export default function PrivacyPolicy() {
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
               MasterMath uses a service worker to cache application files (HTML, CSS, JavaScript, images)
-              in your browser so the app works offline. This cached data contains only the app itself —
+              in your browser so the app works offline. This cached data contains only the app itself;
               no personal information is included in the cache.
             </p>
           </div>
@@ -98,16 +98,16 @@ export default function PrivacyPolicy() {
               <li>We do NOT collect any personally identifiable information (name, email, phone number)</li>
               <li>We do NOT track your IP address or location. Like any website, the host that serves the app sees the address of each request to load it; the app itself never records or sends it (see Hosting below)</li>
               <li>We do NOT use cookies for tracking or advertising</li>
-              <li>We do NOT share any data with third parties — the one exception is the Feedback page, which sends only what you type into it, only when you choose to submit it (see Web3Forms below)</li>
-              <li>We do NOT send your problems, solutions, history or settings to any external server — they never leave your device</li>
+              <li>We do NOT share any data with third parties. The one exception is the Feedback page, which sends only what you type into it, only when you choose to submit it (see Web3Forms below)</li>
+              <li>We do NOT send your problems, solutions, history or settings to any external server; they never leave your device</li>
             </ul>
           </div>
         </CardContent>
       </Card>
 
       {/* How We Use Data */}
-      <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Eye className="w-6 h-6 text-green-600 dark:text-green-400" />
             How We Use Your Information
@@ -128,8 +128,8 @@ export default function PrivacyPolicy() {
       </Card>
 
       {/* Data Storage & Security */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Lock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Data Storage and Security
@@ -177,8 +177,8 @@ export default function PrivacyPolicy() {
       </Card>
 
       {/* User Control */}
-      <Card className="mb-6 border-2 border-rose-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-rose-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400" />
             Your Control Over Your Data
@@ -213,8 +213,8 @@ export default function PrivacyPolicy() {
       </Card>
 
       {/* Third-Party Services */}
-      <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <FileText className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             Third-Party Services
@@ -255,8 +255,8 @@ export default function PrivacyPolicy() {
       </Card>
 
       {/* Children's Privacy */}
-      <Card className="mb-6 border-2 border-teal-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-teal-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Shield className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             Children's Privacy
@@ -273,8 +273,8 @@ export default function PrivacyPolicy() {
       </Card>
 
       {/* Changes to Policy */}
-      <Card className="mb-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-gray-50 to-slate-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <FileText className="w-6 h-6 text-gray-600 dark:text-gray-400" />
             Changes to This Privacy Policy
@@ -291,8 +291,8 @@ export default function PrivacyPolicy() {
       </Card>
 
       {/* Contact */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Contact Us
@@ -318,7 +318,7 @@ export default function PrivacyPolicy() {
       </Card>
 
       {/* Summary */}
-      <div className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 border-2 border-indigo-200 dark:border-gray-700 rounded-xl p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
         <h3 className="font-bold text-xl text-gray-800 dark:text-gray-200 mb-3">Privacy Summary</h3>
         <ul className="space-y-2 text-gray-700 dark:text-gray-300">
           <li className="flex items-start gap-2">
@@ -341,7 +341,7 @@ export default function PrivacyPolicy() {
       </div>
 
       {/* Footer */}
-      <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-6 text-gray-600 dark:text-gray-400">
         <p>MasterMath by sparkinCreations™</p>
         <p className="text-sm mt-1">Your privacy is our priority</p>
       </div>

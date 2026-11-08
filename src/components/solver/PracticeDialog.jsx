@@ -170,7 +170,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative bg-white dark:bg-gray-800 sm:rounded-2xl shadow-2xl sm:border-2 border-indigo-200 dark:border-gray-700 p-4 sm:p-6 w-full sm:max-w-2xl sm:mx-4 h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+        className="relative bg-white dark:bg-gray-800 sm:rounded-xl shadow-xl sm:border border-gray-200 dark:border-gray-700 p-4 sm:p-6 w-full sm:max-w-2xl sm:mx-4 h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
       >
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
@@ -210,7 +210,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
         {item && (
           <div className="space-y-4">
             {notice && <p className="text-sm text-indigo-700 dark:text-indigo-300" role="status">{notice}</p>}
-            <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-gray-900/40 border border-indigo-100 dark:border-gray-700">
+            <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
               <p className="text-xs font-medium uppercase tracking-wide text-indigo-700 dark:text-indigo-300 mb-1">
                 Your problem{state.verdict?.verdict === "correct" && <span className="ml-2 normal-case text-green-700 dark:text-green-400">✓ done</span>}
               </p>
@@ -249,13 +249,13 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
                   onChange={(e) => update({ typed: e.target.value, verdict: null })}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); check(); } }}
                   placeholder={item.correct?.placeholder || (item.correct?.kind === "solutions" ? "e.g. 2, 3" : item.correct?.kind === "antiderivative" ? "e.g. x^3/3 + C" : item.correct?.kind === "derivative" ? "e.g. 3x^2" : "e.g. 3/4")}
-                  className={`flex-1 min-w-0 min-h-11 px-3 rounded-lg border-2 border-indigo-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${focusRing}`}
+                  className={`flex-1 min-w-0 min-h-11 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${focusRing}`}
                 />
                 <button
                   type="button"
                   onClick={check}
                   disabled={checking}
-                  className={`inline-flex items-center justify-center min-h-11 px-5 rounded-lg font-semibold text-white bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-60 ${focusRing}`}
+                  className={`inline-flex items-center justify-center min-h-11 px-5 rounded-lg text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-60 ${focusRing}`}
                 >
                   Check
                 </button>
@@ -289,7 +289,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
             </div>
 
             {(state.hints > 0 || state.solution) && (
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">{state.solution ? "Solution" : `Step ${state.hints} of ${steps.length}`}</h3>
                 <ol className="space-y-2 list-decimal pl-5 text-gray-800 dark:text-gray-100">
                   {steps.slice(0, state.solution ? steps.length : state.hints).map((step, i) => (

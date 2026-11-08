@@ -56,6 +56,9 @@ async function record(theme) {
   await page.locator('#problem').pressSequentially('x^2 - 4*x + 3', { delay: 120 });
   await page.waitForTimeout(700);
   await page.getByRole('button', { name: 'Solve Problem' }).click();
+  // Off the page, so no button or example is left in its hover state as the
+  // page scrolls under the pointer (the poster is the last frame).
+  await page.mouse.move(1439, 1);
   await page.locator('[aria-label="Solution"]').getByText('Final Answer').first().waitFor({ timeout: 20000 });
   await page.waitForTimeout(1800);
   // Down to the problem box's top: the box, the graph and the first steps.

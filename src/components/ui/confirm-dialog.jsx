@@ -92,7 +92,7 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={messageId}
-        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-indigo-200 dark:border-gray-700 p-6 max-w-md w-full mx-4 animate-in zoom-in-95"
+        className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 max-w-md w-full mx-4 animate-in zoom-in-95"
       >
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/50 rounded-full flex items-center justify-center shrink-0">
@@ -115,7 +115,7 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
           </Button>
           <Button
             onClick={onConfirm}
-            className="flex-1 bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+            className="flex-1 bg-red-600 hover:bg-red-700"
           >
             Confirm
           </Button>

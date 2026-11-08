@@ -47,7 +47,7 @@ const ROWS = [
   },
   {
     feature: "Step-by-step solutions for free",
-    cells: ["Yes", "Yes (free Basic plan)", "Advertised; free limits not stated", "No, answers only", "No — the free Basic plan “does not include step-by-step solutions”"],
+    cells: ["Yes", "Yes (free Basic plan)", "Advertised; free limits not stated", "No, answers only", "No: the free Basic plan “does not include step-by-step solutions”"],
   },
   {
     feature: "Paid plan (US$)",
@@ -81,7 +81,7 @@ const ROWS = [
   },
   {
     feature: "Where your problems go",
-    cells: ["Nowhere — solved in your browser", "Not stated", "Online service", "Online service", "Online service"],
+    cells: ["Nowhere: solved in your browser", "Not stated", "Online service", "Online service", "Online service"],
   },
   {
     feature: "Ads",
@@ -101,11 +101,9 @@ const ROWS = [
 const LIMITS = [
   "No camera, photo, handwriting or speech input: problems are typed.",
   "No word problems: “3 apples cost $6…” is refused, not solved.",
-  "No geometry, statistics, sequences and series, matrices, differential equations, polar or parametric curves, or multivariable calculus such as double integrals.",
-  "No physics, chemistry or unit conversion.",
+  "No geometry, statistics, sequences and series, matrices, differential equations, polar or parametric curves, multivariable calculus (such as double integrals), physics, chemistry or unit conversion.",
   "English only, and no app in the App Store or Google Play.",
   "Practice is similar problems with checked answers, not quizzes; no videos or human help.",
-  "A small project by one independent developer, not an established product used by millions.",
 ];
 
 const SOURCES = [
@@ -141,16 +139,15 @@ export default function Compare() {
           How MasterMath Compares
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg mb-3">
-          Checked on {CHECKED_ON}. Prices and features change — follow the sources below for the current ones.
+          Checked on {CHECKED_ON}. Prices and features change, so follow the sources below for the current ones.
         </p>
         <p className="text-gray-700 dark:text-gray-300 max-w-3xl">
-          This page is here to help you pick the right tool, not to sell this one. MasterMath covers fewer
-          topics than any of the others, so its limits come first.
+          MasterMath covers fewer topics than the others.
         </p>
       </div>
 
-      <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             What MasterMath does not do
@@ -163,8 +160,8 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Scale className="w-6 h-6 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
             Side by side
@@ -207,8 +204,8 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Compass className="w-6 h-6 text-green-600 dark:text-green-400" aria-hidden="true" />
             Which one to use
@@ -232,8 +229,8 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Search className="w-6 h-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
             How we checked
@@ -241,9 +238,9 @@ export default function Compare() {
         </CardHeader>
         <CardContent className="p-6 space-y-3 text-gray-700 dark:text-gray-300">
           <p>
-            The MasterMath column describes this app as it is today, including what it refuses; its code is{" "}
-            <a href="https://github.com/sparkinCreations/MasterMath" target="_blank" rel="noopener noreferrer" className="text-indigo-700 dark:text-indigo-300 underline">open on GitHub</a>{" "}
-            for anyone to check. Every other cell comes from the vendor's own website or App Store listing on {CHECKED_ON}:
+            The MasterMath column describes this app today; its code is{" "}
+            <a href="https://github.com/sparkinCreations/MasterMath" target="_blank" rel="noopener noreferrer" className="text-indigo-700 dark:text-indigo-300 underline">open on GitHub</a>.{" "}
+            Every other cell comes from the vendor's own website or App Store listing on {CHECKED_ON}:
           </p>
           <ul className="list-disc list-inside space-y-2 ml-4">
             {SOURCES.map((s) => (
@@ -253,7 +250,7 @@ export default function Compare() {
             ))}
           </ul>
           <p>
-            Spotted something wrong or out of date — including something unfair to another app? Tell us on the{" "}
+            Something wrong or out of date? Tell us on the{" "}
             <Link to={createPageUrl("Feedback")} className="text-indigo-700 dark:text-indigo-300 underline">Feedback page</Link>{" "}
             and we will correct it.
           </p>
@@ -261,7 +258,7 @@ export default function Compare() {
       </Card>
 
       <div className="flex justify-center mb-4">
-        <Button asChild size="lg" className="h-12 px-6 text-base font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg">
+        <Button asChild size="lg" className="h-12 px-6 text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-lg">
           <Link to={createPageUrl("Solver")}>
             <Calculator className="w-5 h-5 mr-2" aria-hidden="true" />
             Try the Solver

@@ -2,6 +2,8 @@
 // the PDF export (pdfTypeset.js) prints on white, so a graph copied from the
 // page in dark mode is recoloured to the light palette by lightGraphSvg.
 
+// The curve is one solid colour (1.70.4): its two gradient stops are kept as
+// roles and set equal.
 const LIGHT = {
   grid: '#c7d2fe',
   axis: '#4f46e5',
@@ -12,12 +14,12 @@ const LIGHT = {
   extremum: '#4f46e5',
   asymptote: '#ef4444',
   markerStroke: '#ffffff',
-  gradientFrom: '#3b82f6',
+  gradientFrom: '#4f46e5',
   gradientTo: '#4f46e5',
 };
 
-// Lighter stops on the dark card: blue-600/indigo-600 measured 2.3:1 there;
-// blue-400/indigo-400 are about 5:1.
+// A lighter curve on the dark card: indigo-600 measured 2.3:1 there;
+// indigo-400 is about 5:1.
 const DARK = {
   grid: '#374151',
   axis: '#9ca3af',
@@ -28,7 +30,7 @@ const DARK = {
   extremum: '#818cf8',
   asymptote: '#f87171',
   markerStroke: '#1f2937',
-  gradientFrom: '#60a5fa',
+  gradientFrom: '#818cf8',
   gradientTo: '#818cf8',
 };
 

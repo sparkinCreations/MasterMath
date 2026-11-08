@@ -53,10 +53,10 @@ function OptionButton({ active, onClick, children, title }) {
       onClick={onClick}
       title={title}
       aria-pressed={active}
-      className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
+      className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
         active
-          ? "border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
-          : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+          ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900 font-semibold"
+          : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
       }`}
     >
       {children}
@@ -124,17 +124,17 @@ export default function Settings() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300 mb-2">
           Settings
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Customize how MasterMath looks and solves — everything is saved on this device.
+          Customize how MasterMath looks and solves. Everything is saved on this device.
         </p>
       </div>
 
       {/* Appearance */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Palette className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Appearance
@@ -162,8 +162,8 @@ export default function Settings() {
       </Card>
 
       {/* Solver preferences */}
-      <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <SlidersHorizontal className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             Solver Preferences
@@ -173,7 +173,7 @@ export default function Settings() {
           <div>
             <p className="font-medium text-gray-800 dark:text-gray-200 mb-1">Angle unit</p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              How angles are read and reported in Trigonometry — sin(30), arcsin(0.5), sin(x) = 1/2. Explicit notation (pi, °) always wins; calculus always works in radians.
+              How angles are read and reported in Trigonometry: sin(30), arcsin(0.5), sin(x) = 1/2. Explicit notation (pi, °) always wins; calculus always works in radians.
             </p>
             <div className="flex flex-wrap gap-3">
               {ANGLE_UNIT_OPTIONS.map((opt) => (
@@ -219,8 +219,8 @@ export default function Settings() {
       </Card>
 
       {/* Data & privacy */}
-      <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <HardDrive className="w-6 h-6 text-green-600 dark:text-green-400" />
             Data & Privacy
@@ -228,7 +228,7 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-4">
-            Your problem history lives entirely in this browser — no accounts, no cloud, no tracking.
+            Your problem history lives entirely in this browser: no accounts, no cloud, no tracking.
           </p>
           <div className="flex flex-wrap gap-3">
             <DropdownMenu>
@@ -262,8 +262,8 @@ export default function Settings() {
       </Card>
 
       {/* About */}
-      <Card className="mb-6 border-2 border-teal-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-teal-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Info className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             About
@@ -274,10 +274,10 @@ export default function Settings() {
             MasterMath v{pkg.version}
           </p>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            By sparkinCreations™ — step-by-step math, solved locally.
+            By sparkinCreations™. Step-by-step math, solved locally.
           </p>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 mb-4">
-            <li>• Works fully offline — solutions are computed on your device</li>
+            <li>• Works fully offline: solutions are computed on your device</li>
             <li>• Powered by open-source math libraries, not AI</li>
             <li>• No accounts, no cloud, no tracking</li>
           </ul>

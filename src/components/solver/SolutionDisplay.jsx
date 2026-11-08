@@ -4,9 +4,10 @@ import { SHOWN_AT_FIRST, sourceOf } from "@/lib/guidance";
 import { learnMoreFor } from "@/lib/learnMore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap, PencilLine } from "lucide-react";
+import { CheckCircle2, AlertCircle, PencilOff, AlertTriangle, BookOpen, Lightbulb, Download, ChevronDown, ArrowRight, ArrowLeftRight, Eye, Footprints, ExternalLink, GraduationCap, PencilLine } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import MathText from "@/components/MathText";
+import { answerParts, labelledPart } from "@/lib/answerParts";
 import PracticeDialog from "@/components/solver/PracticeDialog";
 import { STATUS, statusLabel } from "@/lib/solutionEnvelope";
 import { exportSolutionAsMarkdown, exportSolutionAsJSON, exportSolutionAsPDF } from "@/lib/exportUtils";
@@ -37,7 +38,7 @@ const AMBER_THEME = {
   Icon: AlertTriangle,
   headerIcon: "text-amber-600 dark:text-amber-400",
   badge: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700",
-  card: "bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/30 border-2 border-amber-300 dark:border-amber-700",
+  card: "bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700",
   cardIcon: "text-amber-600 dark:text-amber-400",
   cardText: "text-gray-800 dark:text-amber-50",
   heading: "Result:",
@@ -48,7 +49,7 @@ const STATUS_THEMES = {
     Icon: CheckCircle2,
     headerIcon: "text-green-600 dark:text-green-400",
     badge: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-200 dark:border-green-700",
-    card: "bg-linear-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700",
+    card: "bg-green-100 dark:bg-emerald-950/40 border border-green-300 dark:border-emerald-700",
     cardIcon: "text-green-600 dark:text-green-400",
     cardText: "text-gray-800 dark:text-emerald-50",
     heading: "Final Answer:",
@@ -57,7 +58,7 @@ const STATUS_THEMES = {
     Icon: AlertCircle,
     headerIcon: "text-red-600 dark:text-red-400",
     badge: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-200 dark:border-red-700",
-    card: "bg-linear-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/30 border-2 border-red-300 dark:border-red-800",
+    card: "bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800",
     cardIcon: "text-red-600 dark:text-red-400",
     cardText: "text-gray-800 dark:text-red-50",
     heading: "What went wrong:",
@@ -91,7 +92,7 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
   // that a topic can still be chosen, with no switch to offer.
   if (routing.from === 'auto') {
     return (
-      <div className="flex items-start gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+      <div className="flex items-start gap-3 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
         <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-gray-800 dark:text-gray-100">
           <strong>Detected as {to}.</strong>{reason ? ` ${reason.charAt(0).toUpperCase()}${reason.slice(1)}.` : ''}{' '}
@@ -101,7 +102,7 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
     );
   }
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
       <div className="flex items-start gap-3 flex-1 min-w-0">
         <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-gray-800 dark:text-gray-100">
@@ -166,9 +167,36 @@ function ScrollingMath({ className = "", label, children }) {
   );
 }
 
-// Key Insights or Common Mistakes: the first three, then the rest one tap
+// The final answer, a part per line when it has several (answerParts.js):
+// "domain: …; range: …" is a list, one fact per line; a single part is the
+// one line it always was.
+function AnswerLines({ answer, className }) {
+  const { heading, parts } = answerParts(answer);
+  if (!heading && parts.length === 1) {
+    return <p className={className}><MathText text={answer} /></p>;
+  }
+  return (
+    <div className={className}>
+      {heading && <p><MathText text={heading} /></p>}
+      <ul className={heading ? "mt-1 space-y-0.5 text-base sm:text-lg font-medium" : "space-y-0.5"}>
+        {parts.map((part, i) => {
+          const { label, value } = labelledPart(part);
+          return (
+            <li key={i}>
+              {label && <>{label}: </>}
+              <MathText text={value} />
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+// Key Insights or Common Mistakes (1.70.4: each item in an outlined box,
+// amber or red, with no tinted background and its icon at the upper left): the first three, then the rest one tap
 // away (guidance.js). The same list, in the same order, for everyone.
-function GuidanceList({ solution, items, heading, Icon, iconClass, itemClass, noun }) {
+function GuidanceList({ solution, items, heading, Icon, iconClass, ItemIcon, itemIconClass, itemClass, noun }) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   const extra = items.length - SHOWN_AT_FIRST;
@@ -183,13 +211,18 @@ function GuidanceList({ solution, items, heading, Icon, iconClass, itemClass, no
         {shown.map((item, idx) => {
           const source = sourceOf(solution, item);
           return (
-            <div key={idx} className={`p-3 rounded-lg border ${itemClass}`}>
-              <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={item} /></p>
-              {source && (
-                <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
-                  Source: <ExternalAnchor href={source.url}>{source.title}</ExternalAnchor>
-                </p>
-              )}
+            <div key={idx} className={`flex items-start gap-2.5 p-3 rounded-lg border ${itemClass}`}>
+              {/* The kind of item at its upper left: a lightbulb on an
+                  insight, a struck-through pencil on a mistake. Decorative: the heading says it. */}
+              <ItemIcon className={`w-4 h-4 mt-1 shrink-0 ${itemIconClass}`} aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={item} /></p>
+                {source && (
+                  <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
+                    Source: <ExternalAnchor href={source.url}>{source.title}</ExternalAnchor>
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}
@@ -316,8 +349,8 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   };
   if (!solution) {
     return (
-      <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
             <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
             Solution & Feedback
@@ -325,7 +358,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-linear-to-br from-green-100 to-emerald-100 dark:from-gray-700 dark:to-gray-700 rounded-full flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-green-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
               <BookOpen className="w-8 h-8 text-green-500 dark:text-green-400" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 text-lg">
@@ -343,8 +376,8 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
 
   return (
     <motion.div {...cardMotion}>
-      <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
               <StatusIcon className={`w-6 h-6 ${theme.headerIcon}`} />
@@ -360,7 +393,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                  className="border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 hover:border-green-300"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -442,8 +475,9 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     className="py-4 first:pt-1"
                   >
                     <div className="flex gap-3">
-                      <div className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
-                        <span className="sr-only">Step </span>{idx + 1}
+                      {/* The step number as plain text, no badge (1.70.4). */}
+                      <div className="shrink-0 w-6 font-bold leading-relaxed text-blue-700 dark:text-blue-300 tabular-nums">
+                        <span className="sr-only">Step </span>{idx + 1}<span aria-hidden="true">.</span>
                       </div>
                       <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
                     </div>
@@ -458,7 +492,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                   <div className="flex items-center gap-4">
                     <Button
                       onClick={() => setRevealed((r) => Math.min(r + 1, steps.length))}
-                      className="px-6 py-3 rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-xs hover:from-blue-600 hover:to-indigo-700"
+                      className="px-6 py-3 rounded-lg bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 shadow-xs"
                     >
                       Reveal next step
                       <ArrowRight className="w-4 h-4 ml-2" />
@@ -480,7 +514,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
           )}
 
           {solution.answer && allRevealed && (
-            <div className={`p-5 rounded-xl ${theme.card}`}>
+            <div data-answer-card className={`p-5 rounded-lg ${theme.card}`}>
               {/* The icon sits with the heading, not beside the whole card: the
                   answer then has the card's full width to wrap in, which on a
                   phone is the difference between a formula that fits and one
@@ -493,7 +527,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                 {/* text-lg on a phone, where 20px costs more in wrapping than
                     it buys in emphasis — the green card and the weight already
                     set the answer apart from the 16px steps. */}
-                <p className={`${theme.cardText} text-lg sm:text-xl font-semibold`}><MathText text={solution.answer} /></p>
+                <AnswerLines className={`${theme.cardText} text-lg sm:text-xl font-semibold`} answer={solution.answer} />
               </ScrollingMath>
               {solution.warnings && solution.warnings.length > 0 && (
                 <ul className="mt-3 space-y-1">
@@ -513,7 +547,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     type="button"
                     onClick={() => setPractising(true)}
                     aria-haspopup="dialog"
-                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold text-white bg-linear-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800"
+                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800"
                   >
                     <PencilLine className="w-4 h-4" aria-hidden="true" />
                     Try a similar one
@@ -534,7 +568,9 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Key Insights:"
               Icon={Lightbulb}
               iconClass="text-amber-500"
-              itemClass="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border-amber-200 dark:border-amber-700/60"
+              ItemIcon={Lightbulb}
+              itemIconClass="text-amber-600 dark:text-amber-400"
+              itemClass="border-amber-400 dark:border-amber-700/70"
               noun="insight"
             />
           )}
@@ -546,8 +582,10 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               items={solution.common_mistakes}
               heading="Common Mistakes to Avoid:"
               Icon={AlertCircle}
-              iconClass="text-red-500"
-              itemClass="bg-linear-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border-red-200 dark:border-red-800/60"
+              iconClass="text-rose-500 dark:text-rose-400"
+              ItemIcon={PencilOff}
+              itemIconClass="text-rose-500 dark:text-rose-400"
+              itemClass="border-gray-300 dark:border-gray-600"
               noun="mistake"
             />
           )}

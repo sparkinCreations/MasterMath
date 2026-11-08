@@ -183,7 +183,7 @@ export default function Solver() {
       if (result.status === STATUS.SOLVED) {
         toast.success("Problem solved!", undefined, SOLVE_TOAST);
       } else if (result.status === STATUS.PARSE_ERROR) {
-        toast.error("Couldn't read that input — see the notes below", undefined, SOLVE_TOAST);
+        toast.error("Couldn't read that input. See the notes below.", undefined, SOLVE_TOAST);
       } else {
         toast.warning(statusLabel(result.status), undefined, SOLVE_TOAST);
       }
@@ -228,11 +228,11 @@ export default function Solver() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
-          Let's Master Some Math!
+        <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300 mb-2">
+          Solver
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">
-          Enter a supported math problem (the topic is detected, or choose one) — from arithmetic and algebra through precalculus and calculus — and you'll get a step-by-step solution
+          Type a problem from arithmetic to Calculus II. The topic is detected, or you can choose one, and every step is shown.
         </p>
       </div>
 
@@ -242,7 +242,7 @@ export default function Solver() {
           same order: input, graph, solution. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-indigo-200 dark:border-gray-700 shadow-lg">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
             <ProblemInput
               problem={problem}
               setProblem={setProblem}
@@ -270,7 +270,7 @@ export default function Solver() {
           </div>
 
           {nudge && solution && (
-            <div role="note" className="flex flex-wrap items-center gap-3 p-4 rounded-xl border-2 border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100">
+            <div role="note" className="flex flex-wrap items-center gap-3 p-4 rounded-lg border border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100">
               <Lightbulb className="w-5 h-5 text-amber-500 shrink-0" aria-hidden="true" />
               <p className="text-sm flex-1 min-w-48">{nudge.message}</p>
               <div className="flex flex-wrap gap-2">

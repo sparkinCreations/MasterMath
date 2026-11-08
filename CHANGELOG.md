@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.70.4] - 2026-11-08
+
+### Changed
+- No gradients. The page background is a solid light blue (blue-50; dark
+  grey in dark mode) instead of a blue-to-indigo-to-green wash (the small
+  print set on it is a shade darker, 4.5:1), and every
+  other gradient is one solid colour: buttons, card headers, headings, step numbers, the answer card,
+  the closing band on the home page, the graph's curve. Colours, layout and
+  wording are unchanged. Solid orange buttons are orange-700, so white text
+  on them is 5.2:1 (the old orange-400 to orange-600 gradient fell below
+  4.5:1 at its light end); a gradient heading in dark mode is indigo-400.
+- Orange buttons are orange-600, brighter, with their text bold at 20 px:
+  white on orange-600 is 3.6:1, which WCAG allows for large text only.
+- Home: "Everything You Need to Master Math" and "What a Solution Looks
+  Like" side by side on large screens; the cards have thin borders.
+- The step numbers, on the home page and in the Solver, are plain numbers
+  ("1.") instead of filled circles.
+- The purple (indigo) buttons are black: Try a similar one, Next step, the
+  Feedback form's Send, the FAQ and 404 links, and the selected symbol tab
+  and history filter. In dark mode they are white with black text, so they
+  stand out on the dark cards. Orange stays for the main action (Solve).
+- The home page's closing band ("Ready to Master Math?") is gone, and so
+  are the "Master Math" slogans: "Everything You Need to Master Math" is
+  "What MasterMath Does", and the Solver's "Let's Master Some Math!" is
+  "Solver", with a shorter line under it.
+- The six feature cards on the home page are plain white with a thin grey
+  border; each keeps its own colour in its icon (blue, orange, green,
+  amber, teal, rose) instead of a tinted header.
+- No em dashes in the site's own wording (home, Solver, FAQ, User Manual,
+  Settings, Privacy Policy, How It Compares, the notation guide): commas,
+  colons, full stops or brackets instead. The worked example on the home
+  page and the step numbers in the Solver are blue, not indigo.
+- Key Insights and Common Mistakes keep a box per item without the tinted
+  background, each with its icon at the upper left: insights outlined in
+  amber with a lightbulb, mistakes outlined in grey with a soft rose
+  struck-through pencil (a red outline and icon read as a page error). The
+  final answer keeps its green background.
+- The Solver's borders are 1 px and grey: the problem, graph and solution
+  cards, the problem box and topic picker, the keypad and symbol strip, the
+  answer card and the practice and notation dialogs, with a light shadow in
+  place of the heavy one. Focus on the problem box is blue.
+- Toasts ("Problem solved!" and the rest) are a plain white card (dark
+  grey in dark mode) with a thin grey border; the colour is in the icon
+  only.
+- Every other page in the same style: User Manual, How It Compares, FAQ,
+  Settings, My Progress, Feedback, Privacy Policy, Terms of Service and the
+  not-found page have white cards with a thin grey border and a light
+  shadow, untinted card headers with a hairline under the title (colour in
+  the icon only), neutral inline code and example boxes, and grey outline
+  or black buttons; Settings' selected options are black (white in dark
+  mode). The Solver's graph and solution cards, the home page's worked
+  example, the confirm dialog and the hero video's frame match.
+- The home page's video sits in a window frame: a white bezel (dark grey in
+  dark mode) with a grey border and a shadow.
+- The home page's video is re-recorded in the new look (light and dark,
+  1600 and 800 wide, about 70 to 220 kB each); the recording script moves
+  the pointer off the page after Solve, so no example is left highlighted
+  in the last frame, which is the poster.
+- Shorter wording on How It Compares, the FAQ and the User Manual: sentences
+  that described the page rather than the app are gone, list items are
+  merged, the FAQ answers are cut to their facts (and the log answer now
+  names the note beside the answer), and the User Manual drops its
+  Example Problems card (the topic list already has examples) and the
+  degree-detection section (Settings covers it).
+- A final answer in several parts shows one part per line: a semicolon
+  outside brackets ends a part ("domain: …; range: …"), a Functions answer's
+  function is the first line, and a label is capitalised ("Domain: …").
+  Display only: exports and history keep the answer as one line
+  (`src/lib/answerParts.js`).
+- Text on the new solid backgrounds meets 4.5:1: the worked example's
+  label, the Export button, and the history card's Export, Clear and dates
+  are a shade darker.
+
+### Fixed
+- Two flaky smoke tests read My Progress before the second solve was saved;
+  it now waits until the Solve button is enabled again, which follows the
+  save.
+
 ## [1.70.3] - 2026-11-08
 
 ### Changed

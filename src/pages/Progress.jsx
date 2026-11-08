@@ -148,7 +148,7 @@ export default function Progress() {
         {/* Said as it is (1.59.0): a record of the problems worked through
             here, not a measure of learning ("Your Learning Journey — see how
             far you've come!" claimed what the page cannot know). */}
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300 mb-2">
           Your Problem History
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">
@@ -157,23 +157,23 @@ export default function Progress() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:gap-6 mb-8">
-        <Card className="bg-linear-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/40 dark:to-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-700/60">
+        <Card className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-700/60">
           <CardHeader>
-            <CardTitle className="text-indigo-700 dark:text-indigo-300 text-base md:text-lg">Problems Worked Through</CardTitle>
+            <CardTitle className="text-blue-800 dark:text-blue-300 text-base md:text-lg">Problems Worked Through</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl md:text-5xl font-bold text-indigo-600 dark:text-indigo-200" aria-busy={loading}>{loading ? '—' : stats.total}</p>
+            <p className="text-4xl md:text-5xl font-bold text-blue-700 dark:text-blue-200" aria-busy={loading}>{loading ? '—' : stats.total}</p>
             {/* The exports print the same count in the same words
                 (historyTotalsText); entries that are not solves are said
                 to be there, so the list below never outnumbers the card
                 without a reason. */}
             {!loading && stats.notSolved > 0 && (
-              <p className="mt-1 text-sm text-indigo-700 dark:text-indigo-300">of {problems.length} in history</p>
+              <p className="mt-1 text-sm text-blue-800 dark:text-blue-300">of {problems.length} in history</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-linear-to-br from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-950/40 border-2 border-green-200 dark:border-green-700/60">
+        <Card className="bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-700/60">
           <CardHeader>
             <CardTitle className="text-green-700 dark:text-green-300 text-base md:text-lg">This Week</CardTitle>
           </CardHeader>
@@ -184,8 +184,8 @@ export default function Progress() {
 
       </div>
 
-      <Card className="border-2 border-indigo-200 dark:border-gray-700 dark:bg-gray-800 shadow-lg">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 border-b border-indigo-200 dark:border-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <div className="flex flex-wrap justify-between items-center gap-2">
             <CardTitle className="text-xl dark:text-gray-100">Problem History</CardTitle>
             {problems.length > 0 && (
@@ -194,7 +194,7 @@ export default function Progress() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-700 dark:hover:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-600"
+                      className="border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export
@@ -219,7 +219,7 @@ export default function Progress() {
                 <Button
                   onClick={handleClearHistory}
                   variant="outline"
-                  className="border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-700"
+                  className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-800 dark:hover:text-red-200 hover:border-red-300 dark:hover:border-red-700"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Clear History
@@ -253,7 +253,7 @@ export default function Progress() {
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search your history"
                   aria-label="Search your problems and answers"
-                  className="w-full min-h-11 pl-9 pr-3 rounded-lg border-2 border-indigo-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
+                  className="w-full min-h-11 pl-9 pr-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
                 />
               </div>
               <div role="group" aria-label="Filter by topic" className="flex flex-wrap gap-2">
@@ -265,7 +265,7 @@ export default function Progress() {
                     aria-pressed={topic === t.topic}
                     className={`min-h-11 px-3 rounded-full border text-sm font-medium transition-colors ${
                       topic === t.topic
-                        ? "bg-indigo-600 border-indigo-600 text-white"
+                        ? "bg-gray-900 border-gray-900 text-white dark:bg-white dark:border-white dark:text-gray-900"
                         : "bg-white dark:bg-gray-800 border-indigo-200 dark:border-gray-600 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700"
                     }`}
                   >
@@ -293,7 +293,7 @@ export default function Progress() {
                   {shown.map((p) => (
                     <li
                       key={problemKey(p)}
-                      className="p-4 rounded-lg border-2 border-indigo-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700/60 dark:to-gray-700/60 hover:shadow-md transition-shadow"
+                      className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm transition-shadow"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <span className="flex flex-wrap items-center gap-2">
@@ -313,7 +313,7 @@ export default function Progress() {
                             </span>
                           )}
                         </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
                           {new Date(p.createdAt).toLocaleDateString()}
                         </span>
                       </div>

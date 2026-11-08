@@ -137,7 +137,7 @@ Technical Information:
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300 mb-2">
           Feedback & Support
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -145,8 +145,8 @@ Technical Information:
         </p>
       </div>
 
-      <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <MessageSquare className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Send Feedback
@@ -291,7 +291,7 @@ Technical Information:
             </div>
 
             {/* Privacy Notice */}
-            <div className="bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-4">
+            <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
               <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Privacy Notice</h3>
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 Your feedback will be securely sent to sparkinCreations.
@@ -305,7 +305,7 @@ Technical Information:
               <Button
                 type="submit"
                 disabled={!feedbackType || !description || isSubmitting}
-                className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {isSubmitting ? "Processing..." : "Send Feedback"}
@@ -317,9 +317,9 @@ Technical Information:
 
       {/* Additional Information */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
-            <CardTitle className="text-green-800 dark:text-green-100">Quick Tips</CardTitle>
+        <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+            <CardTitle className="dark:text-gray-100">Quick Tips</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
@@ -331,9 +331,9 @@ Technical Information:
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
-            <CardTitle className="text-blue-800 dark:text-blue-100">Contact Information</CardTitle>
+        <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+            <CardTitle className="dark:text-gray-100">Contact Information</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">

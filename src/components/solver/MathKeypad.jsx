@@ -22,7 +22,7 @@ export default function MathKeypad({ id, onKey, label = "Keypad" }) {
       id={id}
       role="group"
       aria-label={label}
-      className="grid grid-cols-6 gap-1.5 p-2 rounded-xl border-2 border-indigo-100 dark:border-gray-700 bg-indigo-50/60 dark:bg-gray-900/40"
+      className="grid grid-cols-6 gap-1.5 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40"
     >
       {KEYPAD_ROWS.flat().map((k) => {
         const named = k.label && k.label !== k.glyph;

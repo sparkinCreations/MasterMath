@@ -85,7 +85,7 @@ function AppSidebar() {
               is the document title. Rendered as <p> so screen-reader users
               get one h1 per page and a clean outline. */}
           <div>
-            <p className="font-bold text-xl bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <p className="font-bold text-xl text-blue-800 dark:text-blue-300">
               MasterMath
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Step-by-step math, solved locally</p>
@@ -101,9 +101,9 @@ function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className={`hover:bg-linear-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 rounded-xl mb-2 ${
+                    className={`hover:bg-blue-50 dark:hover:bg-gray-700 transition-all duration-200 rounded-xl mb-2 ${
                       location.pathname === item.url
-                        ? 'bg-linear-to-r from-blue-100 to-indigo-100 dark:from-gray-600 dark:to-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                        ? 'bg-blue-100 dark:bg-gray-600 text-indigo-700 dark:text-indigo-300 shadow-xs'
                         : ''
                     }`}
                   >
@@ -139,7 +139,9 @@ export default function Layout({ children, update }) {
         }
       `}</style>
       
-      <div className="min-h-screen flex flex-col w-full bg-linear-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* The page background: a solid light blue (dark grey in dark mode),
+          no gradient (1.70.4). */}
+      <div className="min-h-screen flex flex-col w-full bg-blue-50 dark:bg-gray-900">
         <div className="flex flex-1">
           <AppSidebar />
 
@@ -162,7 +164,7 @@ export default function Layout({ children, update }) {
                   />
                   {/* Not a heading: the header brand is a home link, and
                       each page supplies its own h1. */}
-                  <p className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  <p className="text-xl font-bold text-blue-800 dark:text-blue-300">
                     MasterMath <span className="text-sm font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Step-by-step math, solved locally</span>
                   </p>
                 </Link>
@@ -173,7 +175,7 @@ export default function Layout({ children, update }) {
                     aria-hidden="true"
                     className="w-6 h-6 rounded-lg shadow-md"
                   />
-                  <p className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
+                  <p className="text-xl font-bold text-blue-800 dark:text-blue-300 leading-tight">
                     MasterMath
                     <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">by sparkinCreations™</span>
                   </p>

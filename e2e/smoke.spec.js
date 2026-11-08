@@ -13,7 +13,7 @@ const EXAMPLES = [
   { label: 'Derivatives: x^2 + 3*x', answer: /2x \+ 3/, graph: true },
   { label: 'Integrals: ∫_0^1 x^2 dx', answer: /0.3333/, graph: true }, // KaTeX stacks 1/3; the decimal is plain text
   { label: 'Limits: lim x->0 (sin(x)/x)', answer: /= 1/, graph: true },
-  { label: 'Functions: x^2 - 4*x + 3', answer: /domain: all real numbers; range: y ≥ -1/, graph: true }, // the function itself is typeset (x^{2} in the MathML), the summary is plain text
+  { label: 'Functions: x^2 - 4*x + 3', answer: /Domain: all real numbersRange: y ≥ -1/, graph: true }, // one fact per line (1.70.4): the lines' text runs together here; the function itself is typeset (x^{2} in the MathML)
   { label: 'Algebra: 2*x + 5 = 11', answer: /x = 3/, graph: true },
   { label: 'Trigonometry: sin(x) = 1/2', answer: /π\/6/, graph: true },
   { label: 'Arithmetic: (5 + 3) * 4 - 2^3', answer: /24/, graph: false },
@@ -149,6 +149,9 @@ test.describe('MasterMath smoke', () => {
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
       await expect(page.getByText('Problem solved!')).toBeVisible();
+      // The first solve's toast can still be up when the second is checked;
+      // the button is enabled again only after the history entry is written.
+      await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeEnabled();
     }
     await expect(page.getByText('Problem solved!')).toHaveCount(1);
     await page.goto('/progress');
@@ -667,7 +670,7 @@ test.describe('MasterMath smoke', () => {
   test('every page is reachable from the sidebar and an unknown URL gets a not-found page', async ({ page }) => {
     await page.goto('/');
     for (const [path, heading] of [
-      ['/solver', /Master Some Math/],
+      ['/solver', /Type a problem from arithmetic to Calculus II/],
       ['/progress', /Problem History/],
       ['/usermanual', /User Manual|Manual/],
       ['/faq', /Frequently Asked|FAQ/],
@@ -747,7 +750,8 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).toContainText('arctan');
     const fit = await page.evaluate(() => {
       const heading = [...document.querySelectorAll('h3')].find((h) => /Final Answer/.test(h.textContent));
-      const card = heading.closest('.rounded-xl');
+      // The card by its own hook, not a styling class (1.70.4 changed its corners).
+      const card = heading.closest('[data-answer-card]');
       const box = card.querySelector('.overflow-x-auto');
       const root = document.documentElement;
       return {
