@@ -298,7 +298,7 @@ export default function Home() {
       {/* Footer */}
       <div className="text-center py-8 md:py-12 text-gray-500 dark:text-gray-400 px-2">
         <p className="text-base md:text-lg">MasterMath by sparkinCreations™</p>
-        <p className="text-xs md:text-sm mt-1">Master math with confidence — step-by-step, solved locally</p>
+        <p className="text-xs md:text-sm mt-1">Step-by-step math, solved locally</p>
         <a
           href="https://github.com/sparkinCreations/MasterMath"
           target="_blank"

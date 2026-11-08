@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pause button stops it (WCAG 2.2.2). The caption now reads "A real
   recording of the solver."; the AI images (home-desk-800/1600.webp) are
   gone. `scripts/record-hero.mjs` re-records it from the live site.
+- **A new tagline: "Step-by-step math, solved locally"**, in place of "Master math with
+  confidence": it says what MasterMath is and what sets it apart. In the
+  header, the sidebar, the Home, User Manual and Terms footers, Settings
+  and the README.
 
 ## [1.70.1] - 2026-11-08
 

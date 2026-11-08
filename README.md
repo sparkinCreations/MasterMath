@@ -198,4 +198,4 @@ MasterMath is developed by [sparkinCreations™](https://sparkincreations.com), 
 
 **Made with ❤️ by sparkinCreations™ • Powered by ⚛️ React**
 
-*Master math with confidence!*
+*Step-by-step math, solved locally.*

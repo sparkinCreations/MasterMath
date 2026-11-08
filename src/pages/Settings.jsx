@@ -274,7 +274,7 @@ export default function Settings() {
             MasterMath v{pkg.version}
           </p>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            By sparkinCreations™ — master math with confidence.
+            By sparkinCreations™ — step-by-step math, solved locally.
           </p>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 mb-4">
             <li>• Works fully offline — solutions are computed on your device</li>

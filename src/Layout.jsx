@@ -88,7 +88,7 @@ function AppSidebar() {
             <p className="font-bold text-xl bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               MasterMath
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Master math with confidence</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Step-by-step math, solved locally</p>
           </div>
         </Link>
       </SidebarHeader>
@@ -163,7 +163,7 @@ export default function Layout({ children, update }) {
                   {/* Not a heading: the header brand is a home link, and
                       each page supplies its own h1. */}
                   <p className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    MasterMath <span className="text-sm font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Master math with confidence</span>
+                    MasterMath <span className="text-sm font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Step-by-step math, solved locally</span>
                   </p>
                 </Link>
                 <Link to="/" className="flex md:hidden items-center gap-2 hover:opacity-80 transition-opacity">

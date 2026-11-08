@@ -14,7 +14,7 @@ stays in the browser (IndexedDB, localStorage). Deployed at mastermath.app by
 Netlify from `main`.
 
 Branding: **MasterMath** (never MathMaster) by sparkinCreations™; tagline
-"Master math with confidence"; positioning is "step-by-step local solver", never
+"Step-by-step math, solved locally" (since 1.70.2; was "Master math with confidence"); positioning is "step-by-step local solver", never
 "tutor" or AI-chatbot framing. Palette: indigo (book) and orange (operators) from
 the logo; green = answer, amber = tips.
 
