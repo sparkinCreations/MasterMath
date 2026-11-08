@@ -26,16 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Feedback form's Send, the FAQ and 404 links, and the selected symbol tab
   and history filter. In dark mode they are white with black text, so they
   stand out on the dark cards. Orange stays for the main action (Solve).
-- The home page's closing band is black (a lighter grey in dark mode), and the
-  "Master Math" slogans are gone: "Ready to Master Math?" is "Try it on
-  your own problem", "Everything You Need to Master Math" is "What
-  MasterMath Does", and the Solver's "Let's Master Some Math!" is "Solver",
-  with a shorter line under it.
-- The page headings (Solver, My Progress, Settings, …) and the MasterMath
-  name in the header and sidebar are blue (blue-800, blue-300 in dark
-  mode), like the home page's headings, instead of indigo; so is My
-  Progress's "Problems Worked Through" card, whose two cards have thin
-  borders.
+- The home page's closing band ("Ready to Master Math?") is gone, and so
+  are the "Master Math" slogans: "Everything You Need to Master Math" is
+  "What MasterMath Does", and the Solver's "Let's Master Some Math!" is
+  "Solver", with a shorter line under it.
+- The six feature cards on the home page are plain white with a thin grey
+  border; each keeps its own colour in its icon (blue, orange, green,
+  amber, teal, rose) instead of a tinted header.
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").

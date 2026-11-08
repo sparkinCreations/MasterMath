@@ -33,32 +33,32 @@ const FEATURES = [
   {
     icon: Calculator, title: 'Every Topic',
     text: 'Arithmetic, algebra, systems and inequalities, trigonometry, functions, limits, derivatives and integrals — definite and improper too.',
-    border: 'border-blue-200', header: 'bg-blue-50', color: 'text-blue-700 dark:text-blue-300',
+    color: 'text-blue-700 dark:text-blue-300',
   },
   {
     icon: Zap, title: 'Worked Steps, Checked',
     text: 'Named methods — the power rule, u-substitution, by parts — every line shown and the answer verified. Open-source maths libraries, not an AI chatbot: the same answer every time.',
-    border: 'border-indigo-200', header: 'bg-indigo-50', color: 'text-indigo-700 dark:text-indigo-300',
+    color: 'text-orange-600 dark:text-orange-400',
   },
   {
     icon: TrendingUp, title: 'Graphs',
     text: 'Functions, derivatives and integrals are drawn, with extrema, intercepts and asymptotes marked; drag and zoom to explore.',
-    border: 'border-green-200', header: 'bg-green-50', color: 'text-green-700 dark:text-green-300',
+    color: 'text-green-700 dark:text-green-300',
   },
   {
     icon: Lightbulb, title: 'Insights and Mistakes',
     text: 'Key insights and the common mistakes for the method just used — not one generic list.',
-    border: 'border-amber-200', header: 'bg-amber-50', color: 'text-amber-700 dark:text-amber-300',
+    color: 'text-amber-700 dark:text-amber-300',
   },
   {
     icon: BookOpen, title: 'Export and Progress',
     text: 'Any solution as PDF, Markdown or JSON, your whole history as CSV, and a progress page of everything solved.',
-    border: 'border-indigo-200', header: 'bg-indigo-50', color: 'text-indigo-700 dark:text-indigo-300',
+    color: 'text-teal-700 dark:text-teal-300',
   },
   {
     icon: Target, title: 'Private, Offline, Free',
     text: 'No account, no tracking, no cost; it works without Wi-Fi. Solving and history stay on your device — the only thing ever sent is a feedback message you choose to submit.',
-    border: 'border-rose-200', header: 'bg-rose-50', color: 'text-rose-700 dark:text-rose-300',
+    color: 'text-rose-700 dark:text-rose-300',
   },
 ];
 
@@ -175,15 +175,16 @@ export default function Home() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {FEATURES.map(({ icon: Icon, title, text, border, header, color }) => (
-            <Card key={title} className={`border ${border} dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-shadow`}>
-              <CardHeader className={`${header} dark:bg-gray-700 px-5 py-4`}>
-                <CardTitle as="h3" className={`flex items-center gap-2 text-lg ${color}`}>
-                  <Icon className="w-5 h-5" aria-hidden="true" />
+          {/* Plain white cards; each keeps its own colour in its icon. */}
+          {FEATURES.map(({ icon: Icon, title, text, color }) => (
+            <Card key={title} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
+              <CardHeader className="px-5 pt-4 pb-0">
+                <CardTitle as="h3" className="flex items-center gap-2 text-lg text-gray-900 dark:text-gray-100">
+                  <Icon className={`w-5 h-5 shrink-0 ${color}`} aria-hidden="true" />
                   {title}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="px-5 py-4">
+              <CardContent className="px-5 pt-2 pb-4">
                 <p className="text-sm text-gray-700 dark:text-gray-300">{text}</p>
               </CardContent>
             </Card>
@@ -237,8 +238,8 @@ export default function Home() {
               </Button>
             </div>
             {/* The star ask with its reason, placed where it lands hardest:
-                the reader has just seen what the solver does. The hero and
-                closing-band buttons are the same link without the line. */}
+                the reader has just seen what the solver does. The hero's
+                button is the same link without the line. */}
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
               <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 px-2">
                 MasterMath is free, with no account and no ads. If it helped, a star on GitHub is all I ask.
@@ -256,51 +257,6 @@ export default function Home() {
           </CardContent>
         </Card>
       </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="max-w-4xl mx-auto text-center px-2">
-        <div className="bg-gray-900 dark:bg-gray-700 dark:border dark:border-gray-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-xl">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">
-            Try it on your own problem
-          </h2>
-          <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-6 md:mb-8">
-            Free, with no account, and everything stays on your device
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
-            <Button
-              asChild
-              size="lg"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-white text-gray-900 hover:bg-gray-200 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              {/* The wrapper's `inline-block` is gone on purpose: the button base
-                  class supplies `inline-flex`, which is what centres the icons. */}
-              <Link to={createPageUrl("Solver")}>
-                <Calculator className="w-5 h-5 mr-2" />
-                Open the Solver
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Link>
-            </Button>
-            {/* A second star ask, for the reader who has seen the worked
-                example and the feature list: the hero's button is five
-                screens behind them by now. */}
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-transparent text-white border-2 border-white/70 hover:bg-white/10 hover:border-white hover:text-white dark:bg-transparent dark:text-white dark:border-white/70 dark:hover:bg-white/10 dark:hover:text-white shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <a
-                href="https://github.com/sparkinCreations/MasterMath"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <GithubMark className="w-5 h-5 mr-2" />
-                Star on GitHub
-              </a>
-            </Button>
-          </div>
-        </div>
       </div>
 
       {/* Footer */}
