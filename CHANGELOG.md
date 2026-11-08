@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.70.3] - 2026-11-08
+
+### Changed
+
+- **A bare log says beside the answer that it is base 10.** "Here log(…) is
+  the base-10 logarithm, as on a calculator. For the natural logarithm,
+  type ln(…)." shows under the answer whenever a typed log has no base:
+  lim x→1 log(x)/(x − 1) = 1/ln(10) looked wrong to anyone who reads log as
+  ln, and the explanation was only the third Key Insight. Not shown for ln,
+  log(x, b) or log_b(x).
+
 ## [1.70.2] - 2026-11-08
 
 ### Changed

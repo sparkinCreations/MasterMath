@@ -56,6 +56,9 @@ export function isPresentable(value) {
 // screen: an answer or step that is not presentable text is replaced with an
 // honest "unsupported" envelope, never rendered — and never marked solved.
 // Shown whenever a solved input relied on the base-10 reading of a bare `log`.
+// And beside the answer (1.70.3): a reader who takes log for the natural
+// logarithm sees lim x→1 log(x)/(x − 1) = 1/ln(10) and thinks it wrong.
+export const COMMON_LOG_NOTE = 'Here log(…) is the base-10 logarithm, as on a calculator. For the natural logarithm, type ln(…).';
 export const COMMON_LOG_TIP = '"log(…)" is read as the common logarithm, base 10, as on a calculator. Write "ln(…)" for the natural logarithm, or "log(x, b)" / "log_b(x)" for another base.';
 
 export function finalizeResult(result, input) {
@@ -162,6 +165,9 @@ export function finalizeResult(result, input) {
   if (result.status === STATUS.SOLVED && usesCommonLog(input || '') && !result.tips.includes(COMMON_LOG_TIP)) {
     const at = /^Here:/.test(stripMathMarkers(String(result.tips[1] || ''))) ? 2 : 0;
     result.tips = [...result.tips.slice(0, at), COMMON_LOG_TIP, ...result.tips.slice(at)];
+  }
+  if (result.status === STATUS.SOLVED && usesCommonLog(input || '') && !(result.warnings || []).includes(COMMON_LOG_NOTE)) {
+    result.warnings = [...(result.warnings || []), COMMON_LOG_NOTE];
   }
   // 8/2(2+2), 6/2x, 1/2pi: division followed by implicit multiplication is
   // read left to right (as every calculator and the parser do), but many
