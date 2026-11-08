@@ -31,6 +31,8 @@ import {
 import {
   unknownWord,
   unknownWordHint,
+  lettersAsProduct,
+  rewriteAsProduct,
   looksLikeWordProblem,
   wordProblemRefusal,
   unknownWordInProblem,
@@ -153,7 +155,35 @@ async function evaluateAtPoint({ rest, variable, valueText }) {
 
 const beautifyText = (s) => String(s).replace(/\*/g, '·').replace(/\^2\b/g, '²').replace(/\^3\b/g, '³');
 
+// Two or three letters side by side read as a product (1.71.0): "nx" is
+// n·x, as a textbook writes it. Only a word no engine knows is read this
+// way (known words, functions and instructions never reach here), only when
+// `rewriteAsProduct` says it can be one ("kx", "ab", "axy"; never "box",
+// "it" or "dx"), and the answer says how the word was read. If the product
+// does not solve either, the original refusal stands, with its hint.
+const PRODUCT_WORD = /^"([a-z]{2,3})" is not a known function, constant or variable\./i;
 export async function solveProblem(problem, topic) {
+  let result = await solveProblemOnce(problem, topic);
+  let text = problem;
+  const read = [];
+  for (let k = 0; k < 3 && result?.status === 'parse_error'; k += 1) {
+    const word = String(result.answer || '').match(PRODUCT_WORD)?.[1];
+    const product = word && lettersAsProduct(word, text);
+    const rewritten = product && rewriteAsProduct(word, text);
+    if (!rewritten || rewritten === text) break;
+    const next = await solveProblemOnce(rewritten, topic);
+    if (next?.status === 'parse_error' && !PRODUCT_WORD.test(String(next.answer || ''))) break;
+    read.push(`"${word}" as ${product.replace(/\*/g, '·')}`);
+    text = rewritten;
+    result = next;
+  }
+  if (read.length && result?.status !== 'parse_error') {
+    result.warnings = [...(result.warnings || []), `Read ${read.join(' and ')}: letters side by side are multiplied. If you meant something else, write it with * or a function name.`];
+  }
+  return result;
+}
+
+async function solveProblemOnce(problem, topic) {
   try {
     // Validate inputs
     if (!problem || typeof problem !== 'string') {
@@ -421,6 +451,8 @@ export async function solveProblem(problem, topic) {
       const src = point ? point.rest : stripped;
       const { solveDerivative } = await import('./solvers/derivativesSolver.js');
       const expression = extractFunctionFromProblem(/\bderivative\b|d\/d[a-z]/i.test(src) ? src : `derivative of ${src}`);
+      const word = unknownWord(expression);
+      if (word) return finalizeResult(parseError({ input: problem, hint: unknownWordHint(word, problem) }), problem);
       result = await solveDerivative(expression, { ...derivOpts, evalAt: point || undefined });
       return finalizeResult(topic === 'derivatives' ? result : noteRouting(result, topic, 'derivatives', 'the input asks for a derivative'), problem);
     }
@@ -433,6 +465,11 @@ export async function solveProblem(problem, topic) {
       if (calculusRaw === 'derivatives' || (!calculusRaw && topic === 'derivatives')) {
         const { solveDerivative } = await import('./solvers/derivativesSolver.js');
         const expression = extractFunctionFromProblem(evalAt.rest);
+        // "d/dx sin(kx) at x = 0": "kx" is a word no engine knows, refused
+        // as on every other path. Unchecked here, it was a symbol constant
+        // in x and the answer was f'(0) = 0 (1.71.0).
+        const word = unknownWord(expression);
+        if (word) return finalizeResult(parseError({ input: problem, hint: unknownWordHint(word, problem) }), problem);
         result = await solveDerivative(expression, { ...derivOpts, evalAt });
         return finalizeResult(topic === 'derivatives' ? result : noteRouting(result, topic, 'derivatives', 'the input uses derivative notation'), problem);
       }

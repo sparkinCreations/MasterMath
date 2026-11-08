@@ -13,7 +13,7 @@ const ROWS = [
   ['Powers', 'x^2, x^(1/2), or x², x**2, "x squared", "x to the power of 3"'],
   ['Roots', 'sqrt(x), or √(x+1), "square root of x"'],
   ['Fractions', '(x+1)/(x-1), 1/2'],
-  ['Multiplication', '2*x or 2x, (x+1)(x-1)'],
+  ['Multiplication', '2*x or 2x, ax for a*x (but pi is π: write p*i), (x+1)(x-1)'],
   ['Functions', 'sin(x), cos(2x), ln(x), log(x) is base 10, e^x, or "sine of x", "e to the x"'],
   ['Absolute value', '|x - 2|'],
   ['Equations', '2x + 5 = 11, and a system: 2x + 3y = 6; x - y = 4'],

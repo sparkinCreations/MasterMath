@@ -117,6 +117,23 @@ export async function solveFunctions(expression) {
       };
     }
 
+    // A parameter ("y = m*x + b", "a*x^2 + b*x + c"): the analysis samples
+    // the function, every sample of m*x + b was undefined, and the answer
+    // was "domain: no real numbers; no x-intercepts" (1.71.0, found when
+    // "y = mx + b" began to be read as m·x). Refused, with a case to try.
+    const parameter = (func.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sqrt|abs|log|ln|exp|pi|e)\b/gi, '').match(/(?<![a-z])[a-z](?![a-z])/gi) || []).find((c) => c.toLowerCase() !== variable.toLowerCase());
+    if (parameter) {
+      const withValue = func.replace(new RegExp(`(?<![a-z])${parameter}(?![a-z])`, 'g'), '3');
+      const reason = `The function has a parameter, ${mark(parameter)}, as well as the variable ${mark(variable)}. Its domain, intercepts and turning points depend on the value of ${mark(parameter)}, so they are found for a number, not a letter.`;
+      return unsupported({
+        input: expression,
+        steps: [`Analyze the function: ${mark(`f(${variable}) = ${beautify(func)}`)}`, reason],
+        reason,
+        answer: `Analysing a function with a parameter (${parameter}) is not supported yet`,
+        tips: [`Give ${mark(parameter)} a number to analyse that case: ${mark(`${parameter} = 3`)} gives ${mark(`f(${variable}) = ${beautify(withValue)}`)}.`],
+      });
+    }
+
     let Algebrite = null;
     try {
       Algebrite = await loadAlgebrite();

@@ -43,7 +43,10 @@ export function unknownWordInProblem(problem) {
   const words = String(problem).match(/[a-z]{2,}(?![a-z]|\s*\()/gi) || [];
   const unknown = words.find((w) => {
     const lower = w.toLowerCase();
-    return !KNOWN_WORDS.has(lower) && !INSTRUCTION_WORDS.has(lower) && !/^d[a-z]$/.test(lower);
+    return !KNOWN_WORDS.has(lower) && !/^d[a-z]$/.test(lower)
+      // "as^2", "at^2": a word raised to a power is never an instruction.
+      // Passed as one, "lim x->0 as^2" was "does not exist" (1.71.0).
+      && (!INSTRUCTION_WORDS.has(lower) || new RegExp(`(?<![a-z])${lower}\\s*\\^`, 'i').test(problem));
   });
   if (unknown) return unknown;
   const call = unknownFunction(problem);
@@ -90,7 +93,38 @@ const gluedWords = (word) => word.length >= 12 || /^(?:the|is|of)[a-z]{3,}/i.tes
 // Two or three letters side by side ("nx", "xy") are most often a product
 // typed without its *: say how to write it (r/mathematics, November 2026:
 // "lim x->0 sin(nx)/x" was refused without the fix in sight; 1.70.5).
-const productHint = (word) => (/^[a-z]{2,3}$/i.test(word) ? ` If you meant a product, write ${word.split('').join('*')}.` : '');
+// Letters side by side read as a product (1.71.0): two letters ("nx", "ab",
+// "kx") unless they are a differential ("dx") or an English word standing
+// as a word ("x^2 at x = 2"; "at^2", "sin(at)" and "be^(-x)" touch the
+// maths and are a·t, b·e); three only with two of x, y, z ("axy", "xyz"),
+// so "box" and "tax" stay words. solveProblem retries a parse error on such
+// a word as the product.
+const ENGLISH_PAIRS = new Set(['am', 'an', 'as', 'at', 'be', 'by', 'do', 'go', 'he', 'hi', 'if', 'in', 'is', 'it', 'me', 'my', 'no', 'of', 'oh', 'ok', 'on', 'or', 'so', 'to', 'up', 'us', 'we']);
+const notAProduct = (w) => !/^[a-z]{2,3}$/.test(w) || /^d[a-z]$/.test(w);
+const wordPlaces = (w, text) => [...String(text).matchAll(new RegExp(`(?<![a-z])${w}(?![a-z])`, 'gi'))];
+// The place touches a digit, bracket or operator on either side.
+const touchesMaths = (m, w) => /[0-9()*/^+\-]/.test(m.input[m.index - 1] ?? '') || /[0-9()*/^+\-]/.test(m.input[m.index + w.length] ?? '');
+// The problem with the word written as a product, or null when it is not
+// one. An English pair is rewritten only where it touches the maths: in
+// "lim as^2 as x -> 0" the first "as" is a·s, the second stays a word.
+export function rewriteAsProduct(word, text) {
+  const w = String(word).toLowerCase();
+  if (notAProduct(w)) return null;
+  if (w.length === 3 && (w.match(/[xyz]/g) || []).length < 2) return null;
+  const product = w.split('').join('*');
+  const places = wordPlaces(w, text).filter((m) => !ENGLISH_PAIRS.has(w) || touchesMaths(m, w));
+  if (places.length === 0) return null;
+  let out = String(text);
+  for (const m of places.reverse()) out = out.slice(0, m.index) + product + out.slice(m.index + w.length);
+  return out;
+}
+export const lettersAsProduct = (word, text = word) => (rewriteAsProduct(word, text) ? String(word).toLowerCase().split('').join('*') : null);
+// The hint for a word not read automatically ("abc"): only when it could be
+// a product, never for an English word ("box", "it") or "dx".
+const productHint = (word) => {
+  const w = String(word).toLowerCase();
+  return notAProduct(w) || ENGLISH_PAIRS.has(w) || /[eiou]/.test(w) ? '' : ` If you meant a product, write ${w.split('').join('*')}.`;
+};
 export const unknownWordHint = (word, problem) => (/\($/.test(word) ? unknownFunctionHint(word.slice(0, -1)) : gluedWords(word)
   ? 'The words in this problem could not be read as maths. Type the expression or equation itself, such as "x^3 - 3x" or "2x + 5 = 11", and choose a topic for what to do with it.'
   : `"${wordAsTyped(problem, word)}" is not a known function, constant or variable.${productHint(wordAsTyped(problem, word))} Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`);
