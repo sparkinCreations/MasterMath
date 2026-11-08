@@ -226,13 +226,13 @@ export default function Solver() {
   }, [inputHistory]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
-          Let's Master Some Math!
+    <div className="px-4 py-6 md:p-8 max-w-7xl mx-auto">
+      <div className="mb-6 md:mb-8">
+        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 mb-2">
+          Solve a problem
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 text-lg">
-          Enter a supported math problem (the topic is detected, or choose one) — from arithmetic and algebra through precalculus and calculus — and you'll get a step-by-step solution
+        <p className="text-gray-600 dark:text-gray-400 text-base md:text-lg max-w-3xl">
+          Anything from arithmetic and algebra to Calculus II. The topic is detected, or choose one, and every step is shown.
         </p>
       </div>
 
@@ -242,7 +242,7 @@ export default function Solver() {
           same order: input, graph, solution. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-indigo-200 dark:border-gray-700 shadow-lg">
+          <div className="bg-white dark:bg-gray-900 p-5 md:p-6 rounded-lg border border-gray-200 dark:border-gray-800">
             <ProblemInput
               problem={problem}
               setProblem={setProblem}
@@ -270,7 +270,7 @@ export default function Solver() {
           </div>
 
           {nudge && solution && (
-            <div role="note" className="flex flex-wrap items-center gap-3 p-4 rounded-xl border-2 border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100">
+            <div role="note" className="flex flex-wrap items-center gap-3 p-4 rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100">
               <Lightbulb className="w-5 h-5 text-amber-500 shrink-0" aria-hidden="true" />
               <p className="text-sm flex-1 min-w-48">{nudge.message}</p>
               <div className="flex flex-wrap gap-2">
@@ -279,7 +279,7 @@ export default function Solver() {
                     key={opt.topic}
                     type="button"
                     onClick={() => { setTopic(opt.topic); handleSolve(solvedInput.problem, opt.topic); }}
-                    className="min-h-11 px-3 rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-sm font-medium text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+                    className="min-h-11 px-3 rounded-md border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-900 text-sm font-medium text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 transition-colors"
                   >
                     {opt.label}
                   </button>

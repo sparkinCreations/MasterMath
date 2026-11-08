@@ -223,7 +223,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
         <Select id="topic" value={topic} onValueChange={setTopic}>
           <SelectTrigger
             aria-labelledby="topic-label topic"
-            className="h-12 text-lg border-2 border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500 rounded-xl"
+            className="h-12 text-lg border border-gray-300 dark:border-gray-700 focus:border-indigo-600 dark:focus:border-indigo-300 rounded-md"
           >
             <SelectValue placeholder="Select a topic">
               {selectedLabel}
@@ -254,7 +254,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
               onClick={toggleKeypad}
               aria-expanded={keypadOpen}
               aria-controls="math-keypad"
-              className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+              className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 transition-colors"
             >
               <Grid3x3 className="w-4 h-4" aria-hidden="true" />
               Keypad
@@ -265,7 +265,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
               onClick={toggleSymbols}
               aria-expanded={symbolsOpen}
               aria-controls="symbol-strip"
-              className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+              className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 transition-colors"
             >
               <Keyboard className="w-4 h-4" aria-hidden="true" />
               Symbols
@@ -281,9 +281,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           onChange={handleProblemChange}
           onKeyDown={handleKeyDown}
           placeholder={topic ? PLACEHOLDERS[topic] : "Select a topic first, then enter your problem..."}
-          className={`min-h-32 text-lg border-2 scroll-mt-24 md:scroll-mt-0 ${
-            validationError ? 'border-red-300 focus:border-red-400' : 'border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500'
-          } rounded-xl p-4 resize-none`}
+          className={`min-h-32 text-lg border scroll-mt-24 md:scroll-mt-0 ${ validationError ? 'border-red-300 focus:border-red-400' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-600 dark:focus:border-indigo-300' } rounded-md p-4 resize-none`}
           maxLength={1000}
           // The keypad types instead: the phone's own keyboard stays closed.
           inputMode={keypadOpen ? 'none' : undefined}
@@ -328,7 +326,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
             <button
               type="button"
               onClick={clearProblem}
-              className="inline-flex items-center gap-1 min-h-11 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700 hover:text-indigo-700 dark:hover:text-indigo-300 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors"
+              className="inline-flex items-center gap-1 min-h-11 px-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-indigo-700 dark:hover:text-indigo-300 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 transition-colors"
             >
               <X className="w-4 h-4" aria-hidden="true" />
               Clear
@@ -353,7 +351,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       <Button
         onClick={handleSolve}
         disabled={!problem.trim() || !topic || isLoading}
-        className="w-full h-14 text-lg font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+        className="w-full h-12 text-base font-semibold text-white bg-indigo-700 hover:bg-indigo-800 dark:bg-indigo-300 dark:text-gray-950 dark:hover:bg-indigo-200 transition-colors rounded-md"
       >
         {isLoading ? (
           <>
@@ -384,34 +382,34 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="w-full h-11 text-base font-semibold border-2 border-indigo-200 dark:border-gray-600 rounded-xl"
+          className="w-full h-11 text-base font-semibold border border-gray-200 dark:border-gray-800 rounded-lg"
         >
           Cancel
         </Button>
       )}
 
-      <div className="pt-4 border-t border-indigo-200">
+      <div className="pt-5 border-t border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-2 mb-3">
           <Lightbulb className="w-5 h-5 text-amber-500" />
           <span className="font-semibold text-gray-700 dark:text-gray-200">Try an example:</span>
         </div>
-        <div className="grid gap-2">
+        {/* A table of exercises: the topic in a narrow column, the problem
+            typeset beside it, rows ruled like a textbook's (1.71.0). */}
+        <div className="divide-y divide-gray-100 dark:divide-gray-800 border-y border-gray-100 dark:border-gray-800">
           {EXAMPLE_PROBLEMS.map((ex, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => loadExample(ex)}
-              // The card shows the example typeset; clicking puts the typed
+              // The row shows the example typeset; clicking puts the typed
               // form in the box. Its accessible name is that typed form, and
-              // the card's content is hidden from assistive tech, so the
+              // the row's content is hidden from assistive tech, so the
               // problem is announced once, not again as MathML.
               aria-label={`${TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}: ${ex.problem}`}
-              className={`text-left p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
+              className={`w-full text-left grid grid-cols-[6.5rem_1fr] items-baseline gap-3 px-2 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-300 transition-colors ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:grid' : ''}`}
             >
-              <span aria-hidden="true">
-                <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}
-                <span className="text-gray-700 dark:text-gray-300"><MathText mode="input" text={readPlainEnglish(ex.problem)} /></span>
-              </span>
+              <span aria-hidden="true" className="text-xs font-medium text-gray-500 dark:text-gray-400">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}</span>
+              <span aria-hidden="true" className="text-gray-900 dark:text-gray-100"><MathText mode="input" text={readPlainEnglish(ex.problem)} /></span>
             </button>
           ))}
         </div>
@@ -419,7 +417,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           type="button"
           onClick={() => setAllExamples((v) => !v)}
           aria-expanded={allExamples}
-          className="md:hidden mt-2 w-full min-h-11 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition-colors"
+          className="md:hidden mt-2 w-full min-h-11 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 transition-colors"
         >
           {allExamples ? 'Fewer examples' : `Show all ${EXAMPLE_PROBLEMS.length} examples`}
         </button>

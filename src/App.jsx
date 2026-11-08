@@ -32,7 +32,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 function RouteFallback() {
   return (
     <div className="flex justify-center pt-24 min-h-screen" role="status" aria-live="polite">
-      <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin" />
       <span className="sr-only">Loading page...</span>
     </div>
   );

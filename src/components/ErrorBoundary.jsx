@@ -28,11 +28,11 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-indigo-900 dark:to-blue-900">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-paper dark:bg-gray-950">
           <Card className="max-w-2xl w-full p-8">
             <div className="flex flex-col items-center text-center space-y-4">
               <AlertCircle className="h-16 w-16 text-red-500" />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-50">
                 Oops! Something went wrong
               </h1>
               <p className="text-gray-600 dark:text-gray-400">

@@ -16,8 +16,8 @@ import { buildPracticeSet, checkPracticeAnswer } from "@/lib/practiceClient";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
-const focusRing = "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800";
-const secondary = `inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium border border-indigo-200 dark:border-gray-600 text-indigo-700 dark:text-indigo-300 bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-gray-700 aria-disabled:opacity-50 aria-disabled:cursor-not-allowed transition-colors ${focusRing}`;
+const focusRing = "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900";
+const secondary = `inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 aria-disabled:opacity-50 aria-disabled:cursor-not-allowed transition-colors ${focusRing}`;
 
 // The steps without the "Solved as …" line a routed result starts with.
 const workedSteps = (result) => ((result?.routing ? result.steps.slice(1) : result?.steps) || []);
@@ -27,8 +27,8 @@ const VERDICT_STYLE = {
   close: { Icon: AlertTriangle, box: "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100", icon: "text-amber-600 dark:text-amber-400" },
   partial: { Icon: AlertTriangle, box: "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100", icon: "text-amber-600 dark:text-amber-400" },
   wrong: { Icon: AlertCircle, box: "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 text-red-900 dark:text-red-100", icon: "text-red-600 dark:text-red-400" },
-  unreadable: { Icon: AlertCircle, box: "bg-gray-50 dark:bg-gray-900/40 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100", icon: "text-gray-500 dark:text-gray-400" },
-  empty: { Icon: AlertCircle, box: "bg-gray-50 dark:bg-gray-900/40 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100", icon: "text-gray-500 dark:text-gray-400" },
+  unreadable: { Icon: AlertCircle, box: "bg-gray-50 dark:bg-gray-950/40 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100", icon: "text-gray-500 dark:text-gray-400" },
+  empty: { Icon: AlertCircle, box: "bg-gray-50 dark:bg-gray-950/40 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100", icon: "text-gray-500 dark:text-gray-400" },
 };
 
 export default function PracticeDialog({ problem, topic, solution, onClose }) {
@@ -170,7 +170,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative bg-white dark:bg-gray-800 sm:rounded-2xl shadow-2xl sm:border-2 border-indigo-200 dark:border-gray-700 p-4 sm:p-6 w-full sm:max-w-2xl sm:mx-4 h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+        className="relative bg-white dark:bg-gray-900 sm:rounded-lg shadow-xl sm:border border-gray-200 dark:border-gray-800 p-4 sm:p-6 w-full sm:max-w-2xl sm:mx-4 h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
       >
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
@@ -187,7 +187,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close practice"
-            className={`inline-flex items-center justify-center w-11 h-11 -mr-2 -mt-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700 ${focusRing}`}
+            className={`inline-flex items-center justify-center w-11 h-11 -mr-2 -mt-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 ${focusRing}`}
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -210,7 +210,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
         {item && (
           <div className="space-y-4">
             {notice && <p className="text-sm text-indigo-700 dark:text-indigo-300" role="status">{notice}</p>}
-            <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-gray-900/40 border border-indigo-100 dark:border-gray-700">
+            <div className="p-4 rounded-md bg-gray-50 dark:bg-gray-950/40 border border-gray-200 dark:border-gray-800">
               <p className="text-xs font-medium uppercase tracking-wide text-indigo-700 dark:text-indigo-300 mb-1">
                 Your problem{state.verdict?.verdict === "correct" && <span className="ml-2 normal-case text-green-700 dark:text-green-400">✓ done</span>}
               </p>
@@ -229,7 +229,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
                   onClick={toggleKeypad}
                   aria-expanded={keypadOpen}
                   aria-controls={`${id}-keypad`}
-                  className={`inline-flex items-center gap-1 min-h-11 px-2 rounded-lg text-xs font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 ${focusRing}`}
+                  className={`inline-flex items-center gap-1 min-h-11 px-2 rounded-lg text-xs font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-800 ${focusRing}`}
                 >
                   <Grid3x3 className="w-4 h-4" aria-hidden="true" />
                   Keypad
@@ -249,13 +249,13 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
                   onChange={(e) => update({ typed: e.target.value, verdict: null })}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); check(); } }}
                   placeholder={item.correct?.placeholder || (item.correct?.kind === "solutions" ? "e.g. 2, 3" : item.correct?.kind === "antiderivative" ? "e.g. x^3/3 + C" : item.correct?.kind === "derivative" ? "e.g. 3x^2" : "e.g. 3/4")}
-                  className={`flex-1 min-w-0 min-h-11 px-3 rounded-lg border-2 border-indigo-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${focusRing}`}
+                  className={`flex-1 min-w-0 min-h-11 px-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${focusRing}`}
                 />
                 <button
                   type="button"
                   onClick={check}
                   disabled={checking}
-                  className={`inline-flex items-center justify-center min-h-11 px-5 rounded-lg font-semibold text-white bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-60 ${focusRing}`}
+                  className={`inline-flex items-center justify-center min-h-11 px-5 rounded-lg font-semibold text-white bg-indigo-700 hover:bg-indigo-800 dark:bg-indigo-300 dark:text-gray-950 dark:hover:bg-indigo-200 disabled:opacity-60 ${focusRing}`}
                 >
                   Check
                 </button>
@@ -289,7 +289,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
             </div>
 
             {(state.hints > 0 || state.solution) && (
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-4">
                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">{state.solution ? "Solution" : `Step ${state.hints} of ${steps.length}`}</h3>
                 <ol className="space-y-2 list-decimal pl-5 text-gray-800 dark:text-gray-100">
                   {steps.slice(0, state.solution ? steps.length : state.hints).map((step, i) => (
@@ -302,13 +302,13 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
               </div>
             )}
 
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-3">
               <button
                 type="button"
                 onClick={() => setShowExample((v) => !v)}
                 aria-expanded={showExample}
                 aria-controls={`${id}-example`}
-                className={`inline-flex items-center gap-1 min-h-11 px-2 -ml-2 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 ${focusRing}`}
+                className={`inline-flex items-center gap-1 min-h-11 px-2 -ml-2 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-800 ${focusRing}`}
               >
                 Look at the example
                 {showExample ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}

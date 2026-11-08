@@ -155,7 +155,7 @@ export function DropdownMenuContent({ children, align = "start", "aria-label": a
       role="menu"
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
-      className={`absolute ${alignmentClass} mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50`}
+      className={`absolute ${alignmentClass} mt-2 w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 py-1 z-50`}
     >
       {children}
     </div>
@@ -178,7 +178,7 @@ export function DropdownMenuItem({ children, onClick }) {
       // menu counts as one tab stop.
       tabIndex={-1}
       onClick={handleClick}
-      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-hidden transition-colors"
+      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 focus:outline-hidden transition-colors"
     >
       {children}
     </button>

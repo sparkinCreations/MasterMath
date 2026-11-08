@@ -37,7 +37,7 @@ const AMBER_THEME = {
   Icon: AlertTriangle,
   headerIcon: "text-amber-600 dark:text-amber-400",
   badge: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700",
-  card: "bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/30 border-2 border-amber-300 dark:border-amber-700",
+  card: "border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/30",
   cardIcon: "text-amber-600 dark:text-amber-400",
   cardText: "text-gray-800 dark:text-amber-50",
   heading: "Result:",
@@ -48,7 +48,7 @@ const STATUS_THEMES = {
     Icon: CheckCircle2,
     headerIcon: "text-green-600 dark:text-green-400",
     badge: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-200 dark:border-green-700",
-    card: "bg-linear-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700",
+    card: "border-l-4 border-green-600 bg-green-50 dark:border-green-500 dark:bg-green-950/40",
     cardIcon: "text-green-600 dark:text-green-400",
     cardText: "text-gray-800 dark:text-emerald-50",
     heading: "Final Answer:",
@@ -57,7 +57,7 @@ const STATUS_THEMES = {
     Icon: AlertCircle,
     headerIcon: "text-red-600 dark:text-red-400",
     badge: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-200 dark:border-red-700",
-    card: "bg-linear-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/30 border-2 border-red-300 dark:border-red-800",
+    card: "border-l-4 border-red-600 bg-red-50 dark:border-red-500 dark:bg-red-950/30",
     cardIcon: "text-red-600 dark:text-red-400",
     cardText: "text-gray-800 dark:text-red-50",
     heading: "What went wrong:",
@@ -91,7 +91,7 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
   // that a topic can still be chosen, with no switch to offer.
   if (routing.from === 'auto') {
     return (
-      <div className="flex items-start gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+      <div className="flex items-start gap-3 p-4 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
         <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-gray-800 dark:text-gray-100">
           <strong>Detected as {to}.</strong>{reason ? ` ${reason.charAt(0).toUpperCase()}${reason.slice(1)}.` : ''}{' '}
@@ -101,7 +101,7 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
     );
   }
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
       <div className="flex items-start gap-3 flex-1 min-w-0">
         <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-gray-800 dark:text-gray-100">
@@ -114,7 +114,7 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
           type="button"
           variant="outline"
           onClick={() => onSwitchTopic(routing.to)}
-          className="shrink-0 min-h-11 border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-indigo-950 text-indigo-700 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+          className="shrink-0 min-h-11 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
           Switch topic to {to}
         </Button>
@@ -183,7 +183,7 @@ function GuidanceList({ solution, items, heading, Icon, iconClass, itemClass, no
         {shown.map((item, idx) => {
           const source = sourceOf(solution, item);
           return (
-            <div key={idx} className={`p-3 rounded-lg border ${itemClass}`}>
+            <div key={idx} className={`py-2 pl-4 border-l-2 ${itemClass}`}>
               <p className="text-gray-700 dark:text-gray-200"><MathText mode="marked" text={item} /></p>
               {source && (
                 <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
@@ -316,8 +316,8 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   };
   if (!solution) {
     return (
-      <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-800">
           <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
             <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
             Solution & Feedback
@@ -325,7 +325,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-linear-to-br from-green-100 to-emerald-100 dark:from-gray-700 dark:to-gray-700 rounded-full flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4">
               <BookOpen className="w-8 h-8 text-green-500 dark:text-green-400" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 text-lg">
@@ -343,8 +343,8 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
 
   return (
     <motion.div {...cardMotion}>
-      <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-800">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
               <StatusIcon className={`w-6 h-6 ${theme.headerIcon}`} />
@@ -360,7 +360,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                  className="border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -395,20 +395,16 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
-                  <BookOpen className="w-5 h-5 text-indigo-600" />
+                  <BookOpen className="w-5 h-5 text-indigo-700 dark:text-indigo-300" />
                   {notes ? 'Notes:' : 'Step-by-Step Solution:'}
                 </h3>
                 {walkable && steps.length > 1 && (
-                  <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5 bg-gray-50 dark:bg-gray-900/40">
+                  <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-800 p-0.5 bg-gray-50 dark:bg-gray-950/40">
                     <button
                       type="button"
                       onClick={() => setStepThrough(false)}
                       aria-pressed={!stepThroughChosen}
-                      className={`flex items-center gap-1.5 px-3 min-h-11 rounded-md text-sm font-medium transition-colors ${
-                        !stepThroughChosen
-                          ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
-                          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 min-h-11 rounded-md text-sm font-medium transition-colors ${ !stepThroughChosen ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-300" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200" }`}
                     >
                       <Eye className="w-4 h-4" />
                       Show all
@@ -420,11 +416,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                         setRevealed(1);
                       }}
                       aria-pressed={stepThroughChosen}
-                      className={`flex items-center gap-1.5 px-3 min-h-11 rounded-md text-sm font-medium transition-colors ${
-                        stepThroughChosen
-                          ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
-                          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 min-h-11 rounded-md text-sm font-medium transition-colors ${ stepThroughChosen ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-300" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200" }`}
                     >
                       <Footprints className="w-4 h-4" />
                       Step through
@@ -434,7 +426,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               </div>
               {/* An ordered list, so a screen reader announces "list, 6 items"
                   and can move step by step. */}
-              <ol className="divide-y divide-gray-200 dark:divide-gray-700">
+              <ol className="divide-y divide-gray-100 dark:divide-gray-800">
                 {(stepThrough ? steps.slice(0, revealed) : steps).map((step, idx) => (
                   <motion.li
                     key={idx}
@@ -442,7 +434,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     className="py-4 first:pt-1"
                   >
                     <div className="flex gap-3">
-                      <div className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                      <div className="shrink-0 w-7 font-display text-lg font-semibold leading-7 text-indigo-700 dark:text-indigo-300 tabular-nums">
                         <span className="sr-only">Step </span>{idx + 1}
                       </div>
                       <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
@@ -458,7 +450,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                   <div className="flex items-center gap-4">
                     <Button
                       onClick={() => setRevealed((r) => Math.min(r + 1, steps.length))}
-                      className="px-6 py-3 rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-xs hover:from-blue-600 hover:to-indigo-700"
+                      className="px-6 py-3 rounded-lg bg-indigo-700 hover:bg-indigo-800 dark:bg-indigo-300 dark:text-gray-950 dark:hover:bg-indigo-200 text-white"
                     >
                       Reveal next step
                       <ArrowRight className="w-4 h-4 ml-2" />
@@ -466,7 +458,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     <button
                       type="button"
                       onClick={() => setRevealed(steps.length)}
-                      className="min-h-11 px-3 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 underline underline-offset-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
+                      className="min-h-11 px-3 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-800 underline underline-offset-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
                     >
                       Reveal all
                     </button>
@@ -480,13 +472,13 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
           )}
 
           {solution.answer && allRevealed && (
-            <div className={`p-5 rounded-xl ${theme.card}`}>
+            <div className={`px-5 py-4 rounded-md ${theme.card}`}>
               {/* The icon sits with the heading, not beside the whole card: the
                   answer then has the card's full width to wrap in, which on a
                   phone is the difference between a formula that fits and one
                   that has to be scrolled (1.68.2). */}
-              <h3 className="flex items-center gap-3 font-bold text-lg text-gray-800 dark:text-white mb-2">
-                <StatusIcon className={`w-6 h-6 ${theme.cardIcon} shrink-0`} aria-hidden="true" />
+              <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.1em] text-gray-700 dark:text-gray-200 mb-2">
+                <StatusIcon className={`w-4 h-4 ${theme.cardIcon} shrink-0`} aria-hidden="true" />
                 {theme.heading}
               </h3>
               <ScrollingMath className="py-0.5" label={theme.heading.replace(/:$/, "")}>
@@ -513,7 +505,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     type="button"
                     onClick={() => setPractising(true)}
                     aria-haspopup="dialog"
-                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold text-white bg-linear-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800"
+                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold text-white bg-indigo-700 hover:bg-indigo-800 dark:bg-indigo-300 dark:text-gray-950 dark:hover:bg-indigo-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900"
                   >
                     <PencilLine className="w-4 h-4" aria-hidden="true" />
                     Try a similar one
@@ -534,7 +526,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Key Insights:"
               Icon={Lightbulb}
               iconClass="text-amber-500"
-              itemClass="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border-amber-200 dark:border-amber-700/60"
+              itemClass="border-amber-400 dark:border-amber-600"
               noun="insight"
             />
           )}
@@ -547,7 +539,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Common Mistakes to Avoid:"
               Icon={AlertCircle}
               iconClass="text-red-500"
-              itemClass="bg-linear-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border-red-200 dark:border-red-800/60"
+              itemClass="border-red-400 dark:border-red-700"
               noun="mistake"
             />
           )}

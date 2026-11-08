@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 // blue and indigo gradient buttons. The offset is what keeps the ring legible
 // against the button's own fill.
 const BUTTON_CLASS =
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 disabled:pointer-events-none disabled:opacity-50"
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 disabled:pointer-events-none disabled:opacity-50"
 
 // `asChild` renders the button's styling onto the single child element instead
 // of emitting a <button>. It exists for the link-styled-as-a-button case: a
@@ -23,9 +23,15 @@ const BUTTON_CLASS =
 // and — until 1.52.4, when `outline` got its own entry — the solver's
 // Cancel button and every other outline button. A caller's own text
 // classes still win (cn merges them last).
+//
+// The design system's two actions (1.71.0, docs/DESIGN.md): `primary` is
+// solid ink-indigo, one per view, for the thing the page is for (Solve);
+// `secondary` is a white sheet with a hairline border. No gradients.
 const VARIANT_CLASS = {
-  ghost: "text-gray-700 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700",
-  outline: "text-gray-800 hover:bg-indigo-50 dark:text-gray-100 dark:hover:bg-gray-700",
+  primary: "bg-indigo-700 text-white hover:bg-indigo-800 active:bg-indigo-900 dark:bg-indigo-300 dark:text-gray-950 dark:hover:bg-indigo-200",
+  secondary: "border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800",
+  ghost: "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800",
+  outline: "text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800",
 }
 
 const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {

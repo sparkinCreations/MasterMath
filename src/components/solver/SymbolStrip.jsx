@@ -8,11 +8,11 @@ import { GROUPS, symbolsInGroup } from "@/lib/symbolInsert";
 // textarea; `group`/`onGroupChange` are owned by the parent so the topic can
 // choose the starting group.
 export default function SymbolStrip({ id, group, onGroupChange, onInsert }) {
-  const buttonBase = "inline-flex items-center justify-center min-w-11 h-11 px-2 rounded-lg text-base font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors";
+  const buttonBase = "inline-flex items-center justify-center min-w-11 h-11 px-2 rounded-lg text-base font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 transition-colors";
   return (
     <div
       id={id}
-      className="space-y-2 p-2 rounded-xl border-2 border-indigo-100 dark:border-gray-700 bg-indigo-50/60 dark:bg-gray-900/40"
+      className="space-y-2 p-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/40"
     >
       {/* Four equal pills on one row, so the row never wraps on a phone. */}
       <div role="group" aria-label="Symbol group" className="grid grid-cols-4 gap-1.5">
@@ -23,9 +23,7 @@ export default function SymbolStrip({ id, group, onGroupChange, onInsert }) {
             aria-pressed={group === g.key}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onGroupChange(g.key)}
-            className={`${buttonBase} text-sm px-1 min-w-0 ${group === g.key
-              ? 'bg-indigo-600 text-white dark:bg-indigo-500'
-              : 'bg-transparent text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-700'}`}
+            className={`${buttonBase} text-sm px-1 min-w-0 ${group === g.key ? 'bg-indigo-700 text-white dark:bg-indigo-300 dark:text-gray-950' : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
           >
             {g.label}
           </button>
@@ -43,7 +41,7 @@ export default function SymbolStrip({ id, group, onGroupChange, onInsert }) {
             // the button and lose the selection the insertion is based on.
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onInsert(symbol)}
-            className={`${buttonBase} bg-white dark:bg-gray-800 border border-indigo-200 dark:border-gray-600 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-700`}
+            className={`${buttonBase} bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800`}
           >
             <span aria-hidden="true">{symbol.glyph}</span>
           </button>

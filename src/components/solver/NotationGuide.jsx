@@ -34,7 +34,7 @@ export default function NotationGuide({ className = "" }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className={`inline-flex items-center gap-1 min-h-11 px-2 rounded-lg text-xs font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 transition-colors ${className}`}
+        className={`inline-flex items-center gap-1 min-h-11 px-2 rounded-lg text-xs font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900 transition-colors ${className}`}
       >
         <HelpCircle className="w-4 h-4" aria-hidden="true" />
         Notation guide
@@ -86,7 +86,7 @@ function NotationDialog({ onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-indigo-200 dark:border-gray-700 p-5 sm:p-6 max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto animate-in zoom-in-95"
+        className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-800 p-5 sm:p-6 max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto animate-in zoom-in-95"
       >
         <div className="flex items-start justify-between gap-3 mb-3">
           <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-gray-100">Notation guide</h2>
@@ -95,7 +95,7 @@ function NotationDialog({ onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close the notation guide"
-            className="inline-flex items-center justify-center w-11 h-11 -mr-2 -mt-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
+            className="inline-flex items-center justify-center w-11 h-11 -mr-2 -mt-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -104,7 +104,7 @@ function NotationDialog({ onClose }) {
         <table className="w-full text-sm">
           <tbody>
             {ROWS.map(([what, how]) => (
-              <tr key={what} className="border-t border-gray-100 dark:border-gray-700 align-top">
+              <tr key={what} className="border-t border-gray-100 dark:border-gray-800 align-top">
                 <th scope="row" className="py-2 pr-3 text-left font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">{what}</th>
                 <td className="py-2 font-mono text-gray-800 dark:text-gray-100 break-words">{how}</td>
               </tr>

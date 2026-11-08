@@ -56,7 +56,7 @@ const Sidebar = React.forwardRef(({ className, ...props }, ref) => {
         className={cn(
           "shrink-0 transition-all duration-300",
           isOpen
-            ? "w-64 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:max-w-[85vw] max-md:overflow-y-auto max-md:shadow-2xl"
+            ? "w-64 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:max-w-[85vw] max-md:overflow-y-auto max-md:shadow-xl"
             : "w-0 overflow-hidden",
           className
         )}

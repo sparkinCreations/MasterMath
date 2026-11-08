@@ -2,10 +2,37 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+  The design system (1.71.0, docs/DESIGN.md): a worked solution on paper.
+  Ink on paper, one brand colour (the logo's indigo), headings in a serif
+  that sits beside KaTeX's maths, flat sheets with hairline rules, no
+  gradients and no glow.
+
+  "gray" is the neutral scale: Tailwind's default gray is tinted blue, which
+  next to indigo read as a stock app template. Every gray-* class in the app
+  draws these pure greys.
+*/
 @theme {
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  --font-display: "Source Serif 4", ui-serif, Georgia, Cambria, "Times New Roman", serif;
+
+  --color-gray-50: oklch(98.5% 0 0);
+  --color-gray-100: oklch(97% 0 0);
+  --color-gray-200: oklch(92.2% 0 0);
+  --color-gray-300: oklch(87% 0 0);
+  --color-gray-400: oklch(70.8% 0 0);
+  --color-gray-500: oklch(55.6% 0 0);
+  --color-gray-600: oklch(43.9% 0 0);
+  --color-gray-700: oklch(37.1% 0 0);
+  --color-gray-800: oklch(26.9% 0 0);
+  --color-gray-900: oklch(20.5% 0 0);
+  --color-gray-950: oklch(14.5% 0 0);
+
+  /* The page behind the sheets: a warm off-white in light mode. */
+  --color-paper: oklch(98.4% 0.004 85);
 }
 
 /*
@@ -81,6 +108,13 @@
   body {
     margin: 0;
     padding: 0;
+    color: var(--color-gray-900);
+    background: var(--color-paper);
+    -webkit-font-smoothing: antialiased;
+  }
+  .dark body {
+    color: var(--color-gray-100);
+    background: var(--color-gray-950);
   }
 }
 
@@ -103,19 +137,5 @@
 
   .animate-spin {
     animation-duration: 1.5s !important;
-  }
-}
-
-/* Accessibility: Windows High Contrast / forced-colors mode.
-   The gradient headings paint their colour into the text's own fill and set
-   the text transparent, which makes them vanish outright when the OS forces
-   its palette. Fall back to a plain system-coloured heading. */
-@media (forced-colors: active) {
-  .bg-clip-text {
-    background-image: none !important;
-    -webkit-background-clip: border-box !important;
-    background-clip: border-box !important;
-    -webkit-text-fill-color: currentColor !important;
-    color: CanvasText !important;
   }
 }

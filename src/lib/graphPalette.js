@@ -2,34 +2,37 @@
 // the PDF export (pdfTypeset.js) prints on white, so a graph copied from the
 // page in dark mode is recoloured to the light palette by lightGraphSvg.
 
+// A textbook figure (1.71.0, docs/DESIGN.md): a neutral grid and axes, the
+// curve in the brand's ink indigo, one solid colour (the gradient stops are
+// kept as roles and set equal).
 const LIGHT = {
-  grid: '#c7d2fe',
-  axis: '#4f46e5',
-  axisLine: '#cbd5e1',
+  grid: '#e5e5e5',
+  axis: '#737373',
+  axisLine: '#a3a3a3',
   tooltipBg: '#ffffff',
-  tooltipBorder: '#c7d2fe',
-  tooltipText: '#1f2937',
-  extremum: '#4f46e5',
-  asymptote: '#ef4444',
+  tooltipBorder: '#d4d4d4',
+  tooltipText: '#171717',
+  extremum: '#4338ca',
+  asymptote: '#dc2626',
   markerStroke: '#ffffff',
-  gradientFrom: '#3b82f6',
-  gradientTo: '#4f46e5',
+  gradientFrom: '#4338ca',
+  gradientTo: '#4338ca',
 };
 
-// Lighter stops on the dark card: blue-600/indigo-600 measured 2.3:1 there;
-// blue-400/indigo-400 are about 5:1.
+// Lighter ink on the dark sheet: indigo-300 is about 9:1 on gray-900. No
+// dark value is also a light one (the PDF recolouring maps by value).
 const DARK = {
-  grid: '#374151',
-  axis: '#9ca3af',
-  axisLine: '#4b5563',
-  tooltipBg: '#1f2937',
-  tooltipBorder: '#4b5563',
-  tooltipText: '#e5e7eb',
-  extremum: '#818cf8',
+  grid: '#2e2e2e',
+  axis: '#a8a8a8',
+  axisLine: '#525252',
+  tooltipBg: '#171717',
+  tooltipBorder: '#404040',
+  tooltipText: '#e5e5e5',
+  extremum: '#a5b4fc',
   asymptote: '#f87171',
-  markerStroke: '#1f2937',
-  gradientFrom: '#60a5fa',
-  gradientTo: '#818cf8',
+  markerStroke: '#171717',
+  gradientFrom: '#a5b4fc',
+  gradientTo: '#a5b4fc',
 };
 
 export const graphPalette = (isDarkMode) => (isDarkMode ? DARK : LIGHT);

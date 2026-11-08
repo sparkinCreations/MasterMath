@@ -68,8 +68,8 @@ function AppSidebar() {
   const closeSidebar = () => setIsOpen(false);
 
   return (
-    <Sidebar className="border-r border-indigo-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs" aria-label="Main navigation">
-      <SidebarHeader className="border-b border-indigo-100 dark:border-gray-700 p-6">
+    <Sidebar className="border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" aria-label="Main navigation">
+      <SidebarHeader className="border-b border-gray-200 dark:border-gray-800 p-6">
         {/* The logo images in these home links are decorative (alt=""): the link
             text names the destination, and a named image made screen readers
             say "MasterMath Logo MasterMath by sparkinCreations…" (October 2026
@@ -79,13 +79,13 @@ function AppSidebar() {
             src="/logo-224.webp"
             alt=""
             aria-hidden="true"
-            className="w-12 h-12 rounded-2xl shadow-lg"
+            className="w-11 h-11 rounded-lg"
           />
           {/* Brand text is a home link, not a heading — the page's own h1
               is the document title. Rendered as <p> so screen-reader users
               get one h1 per page and a clean outline. */}
           <div>
-            <p className="font-bold text-xl bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <p className="font-display font-semibold text-xl text-gray-900 dark:text-gray-50">
               MasterMath
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Step-by-step math, solved locally</p>
@@ -101,14 +101,14 @@ function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className={`hover:bg-linear-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 rounded-xl mb-2 ${
+                    className={`relative hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 rounded-md mb-1 ${
                       location.pathname === item.url
-                        ? 'bg-linear-to-r from-blue-100 to-indigo-100 dark:from-gray-600 dark:to-gray-700 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                        : ''
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-50 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-indigo-700 dark:before:bg-indigo-300'
+                        : 'text-gray-700 dark:text-gray-300'
                     }`}
                   >
-                    <Link to={item.url} onClick={closeSidebar} className="flex items-center gap-3 px-4 py-3 dark:text-gray-200">
-                      <item.icon className="w-5 h-5" />
+                    <Link to={item.url} onClick={closeSidebar} aria-current={location.pathname === item.url ? "page" : undefined} className="flex items-center gap-3 px-4 py-2.5">
+                      <item.icon className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400" aria-hidden="true" />
                       <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -127,19 +127,7 @@ export default function Layout({ children, update }) {
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <style>{`
-        :root {
-          --primary: 250 100% 65%;
-          --primary-foreground: 0 0% 100%;
-          --secondary: 280 90% 70%;
-          --accent: 160 80% 60%;
-          --success: 140 70% 55%;
-          --background: 220 20% 98%;
-          --card: 0 0% 100%;
-        }
-      `}</style>
-      
-      <div className="min-h-screen flex flex-col w-full bg-linear-to-br from-blue-50 via-indigo-50 to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen flex flex-col w-full bg-paper dark:bg-gray-950">
         <div className="flex flex-1">
           <AppSidebar />
 
@@ -150,20 +138,22 @@ export default function Layout({ children, update }) {
                 while a long solution scrolls; static on wider screens where
                 the sidebar is always in reach. z-20 keeps it under the open
                 sidebar's overlay (z-30). */}
-            <header className="sticky top-0 z-20 md:static bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs border-b border-indigo-100 dark:border-gray-700 px-6 py-4 shadow-xs" role="banner">
+            <header className="sticky top-0 z-20 md:static bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 py-3" role="banner">
               <div className="flex items-center justify-between">
-                <SidebarTrigger className="text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors duration-200" />
+                <SidebarTrigger className="text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded-md transition-colors duration-150" />
                 <Link to="/" className="hidden md:flex items-center justify-center gap-2 flex-1 hover:opacity-80 transition-opacity">
                   <img
                     src="/logo-224.webp"
                     alt=""
                     aria-hidden="true"
-                    className="w-8 h-8 rounded-lg shadow-md"
+                    className="w-8 h-8 rounded-md"
                   />
                   {/* Not a heading: the header brand is a home link, and
                       each page supplies its own h1. */}
-                  <p className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    MasterMath <span className="text-sm font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Step-by-step math, solved locally</span>
+                  <p className="flex items-baseline gap-2 text-gray-900 dark:text-gray-50">
+                    <span className="font-display text-xl font-semibold">MasterMath</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">by sparkinCreations™</span>
+                    <span className="hidden lg:inline text-sm text-gray-500 dark:text-gray-400"><span aria-hidden="true">·</span> Step-by-step math, solved locally</span>
                   </p>
                 </Link>
                 <Link to="/" className="flex md:hidden items-center gap-2 hover:opacity-80 transition-opacity">
@@ -171,16 +161,16 @@ export default function Layout({ children, update }) {
                     src="/logo-224.webp"
                     alt=""
                     aria-hidden="true"
-                    className="w-6 h-6 rounded-lg shadow-md"
+                    className="w-7 h-7 rounded-md"
                   />
-                  <p className="text-xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
+                  <p className="font-display text-lg font-semibold text-gray-900 dark:text-gray-50 leading-tight">
                     MasterMath
-                    <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">by sparkinCreations™</span>
+                    <span className="block font-sans text-xs font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">by sparkinCreations™</span>
                   </p>
                 </Link>
                 <button
                   onClick={toggleDarkMode}
-                  className="p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                  className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150"
                   aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
                   aria-pressed={isDarkMode}
                 >
@@ -199,7 +189,7 @@ export default function Layout({ children, update }) {
           </main>
         </div>
 
-        <footer className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs border-t border-indigo-100 dark:border-gray-700 px-6 py-4" role="contentinfo">
+        <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-4" role="contentinfo">
           {/* Two rows that wrap on their own, no "|" separators: with
               separators the row broke mid-list on narrow screens and left
               the bars orphaned on a line of their own. */}

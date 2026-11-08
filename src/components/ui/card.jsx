@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 const Card = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("rounded-lg border bg-card text-card-foreground shadow-xs", className)}
+    className={cn("rounded-lg border border-gray-200 bg-white text-gray-900 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100", className)}
     {...props}
   />
 ))
@@ -28,7 +28,7 @@ const CardTitle = React.forwardRef(({ className, as: Tag = "h2", ...props }, ref
     ref={ref}
     // A text colour of its own: a title that inherits gets browser-default
     // black on a dark card (the empty graph card's "Graph View" did).
-    className={cn("text-2xl font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-100", className)}
+    className={cn("font-display text-2xl font-semibold leading-tight text-gray-900 dark:text-gray-50", className)}
     {...props}
   />
 ))

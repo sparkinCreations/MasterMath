@@ -11,7 +11,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 const FEEDBACK_TYPES = [
   { value: "bug", label: "Bug Report", icon: Bug, color: "text-red-600 dark:text-red-400" },
   { value: "accuracy", label: "Accuracy Issue", icon: AlertTriangle, color: "text-yellow-600 dark:text-yellow-400" },
-  { value: "feature", label: "Feature Request", icon: Lightbulb, color: "text-blue-600 dark:text-blue-400" },
+  { value: "feature", label: "Feature Request", icon: Lightbulb, color: "text-indigo-700 dark:text-indigo-300" },
   { value: "general", label: "General Feedback", icon: MessageSquare, color: "text-green-600 dark:text-green-400" },
   { value: "praise", label: "Positive Feedback", icon: Star, color: "text-indigo-600 dark:text-indigo-400" }
 ];
@@ -137,7 +137,7 @@ Technical Information:
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 mb-2">
           Feedback & Support
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -145,10 +145,10 @@ Technical Information:
         </p>
       </div>
 
-      <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <MessageSquare className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <MessageSquare className="w-6 h-6 text-indigo-700 dark:text-indigo-300" />
             Send Feedback
           </CardTitle>
         </CardHeader>
@@ -283,7 +283,7 @@ Technical Information:
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Include your email if you'd like a response. We respect your privacy and won't share your email.
@@ -291,9 +291,9 @@ Technical Information:
             </div>
 
             {/* Privacy Notice */}
-            <div className="bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-4">
+            <div className="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Privacy Notice</h3>
-              <p className="text-sm text-blue-800 dark:text-blue-200">
+              <p className="text-sm text-gray-900 dark:text-gray-100">
                 Your feedback will be securely sent to sparkinCreations.
                 We store feedback locally on your device for your reference. We don't collect or share
                 personal information beyond what you choose to include in your feedback.
@@ -305,7 +305,7 @@ Technical Information:
               <Button
                 type="submit"
                 disabled={!feedbackType || !description || isSubmitting}
-                className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-indigo-700 hover:bg-indigo-800 dark:bg-indigo-300 dark:text-gray-950 dark:hover:bg-indigo-200 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {isSubmitting ? "Processing..." : "Send Feedback"}
@@ -317,8 +317,8 @@ Technical Information:
 
       {/* Additional Information */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+        <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <CardHeader className="">
             <CardTitle className="text-green-800 dark:text-green-100">Quick Tips</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
@@ -331,8 +331,8 @@ Technical Information:
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+        <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <CardHeader className="">
             <CardTitle className="text-blue-800 dark:text-blue-100">Contact Information</CardTitle>
           </CardHeader>
           <CardContent className="p-4">

@@ -147,7 +147,7 @@ export default function FAQ() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <HelpCircle className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
-          <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
             Frequently Asked Questions
           </h1>
         </div>
@@ -160,7 +160,7 @@ export default function FAQ() {
         {faqs.map((faq, index) => (
           <Card
             key={index}
-            className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden transition-all duration-200 hover:shadow-md"
+            className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden transition-all duration-200"
           >
             <button
               onClick={() => toggleFAQ(index)}
@@ -172,9 +172,9 @@ export default function FAQ() {
                   {faq.question}
                 </h2>
                 {openIndex === index ? (
-                  <ChevronUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+                  <ChevronUp className="w-5 h-5 text-indigo-700 dark:text-indigo-300 shrink-0 mt-1" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+                  <ChevronDown className="w-5 h-5 text-indigo-700 dark:text-indigo-300 shrink-0 mt-1" />
                 )}
               </div>
             </button>
@@ -189,7 +189,7 @@ export default function FAQ() {
         ))}
       </div>
 
-      <div className="mt-12 p-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border-2 border-indigo-200 dark:border-gray-600">
+      <div className="mt-12 p-6 rounded-lg border border-gray-200 dark:border-gray-800">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
           Still have questions?
         </h2>
@@ -205,7 +205,7 @@ export default function FAQ() {
           </a>
           <a
             href="/feedback"
-            className="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-200 font-semibold rounded-lg border-2 border-indigo-600 dark:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-600 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-200 font-semibold rounded-lg border-2 border-indigo-600 dark:border-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             Contact Support
           </a>

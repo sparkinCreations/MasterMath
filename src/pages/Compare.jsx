@@ -137,7 +137,7 @@ export default function Compare() {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300 mb-2">
+        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 mb-2">
           How MasterMath Compares
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg mb-3">
@@ -149,10 +149,10 @@ export default function Compare() {
         </p>
       </div>
 
-      <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <AlertTriangle className="w-6 h-6 text-indigo-700 dark:text-indigo-300" aria-hidden="true" />
             What MasterMath does not do
           </CardTitle>
         </CardHeader>
@@ -163,10 +163,10 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Scale className="w-6 h-6 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+            <Scale className="w-6 h-6 text-indigo-700 dark:text-indigo-300" aria-hidden="true" />
             Side by side
           </CardTitle>
         </CardHeader>
@@ -180,8 +180,8 @@ export default function Compare() {
             <table className="w-full min-w-[64rem] text-sm text-left border-collapse">
               <caption className="sr-only">MasterMath compared with Photomath, Symbolab, Mathway and Wolfram|Alpha, checked on {CHECKED_ON}</caption>
               <thead>
-                <tr className="border-b-2 border-indigo-200 dark:border-gray-600">
-                  <th scope="col" className="sticky left-0 z-10 bg-white dark:bg-gray-800 p-3 font-semibold text-gray-800 dark:text-gray-100 w-40">Feature</th>
+                <tr className="border-b-2 border-gray-200 dark:border-gray-700">
+                  <th scope="col" className="sticky left-0 z-10 bg-white dark:bg-gray-900 p-3 font-semibold text-gray-800 dark:text-gray-100 w-40">Feature</th>
                   {PRODUCTS.map((p) => (
                     <th key={p} scope="col" className="p-3 font-semibold text-gray-800 dark:text-gray-100">{p}</th>
                   ))}
@@ -189,8 +189,8 @@ export default function Compare() {
               </thead>
               <tbody>
                 {ROWS.map((row) => (
-                  <tr key={row.feature} className="border-b border-gray-200 dark:border-gray-700 align-top">
-                    <th scope="row" className="sticky left-0 z-10 bg-white dark:bg-gray-800 p-3 font-medium text-gray-800 dark:text-gray-100">{row.feature}</th>
+                  <tr key={row.feature} className="border-b border-gray-200 dark:border-gray-800 align-top">
+                    <th scope="row" className="sticky left-0 z-10 bg-white dark:bg-gray-900 p-3 font-medium text-gray-800 dark:text-gray-100">{row.feature}</th>
                     {row.cells.map((cell, i) => (
                       <td key={PRODUCTS[i]} className="p-3 text-gray-700 dark:text-gray-300">{cell}</td>
                     ))}
@@ -207,10 +207,10 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Compass className="w-6 h-6 text-green-600 dark:text-green-400" aria-hidden="true" />
+            <Compass className="w-6 h-6 text-indigo-700 dark:text-indigo-300" aria-hidden="true" />
             Which one to use
           </CardTitle>
         </CardHeader>
@@ -232,10 +232,10 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Search className="w-6 h-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+            <Search className="w-6 h-6 text-indigo-700 dark:text-indigo-300" aria-hidden="true" />
             How we checked
           </CardTitle>
         </CardHeader>
@@ -261,7 +261,7 @@ export default function Compare() {
       </Card>
 
       <div className="flex justify-center mb-4">
-        <Button asChild size="lg" className="h-12 px-6 text-base font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg">
+        <Button asChild size="lg" className="h-12 px-6 text-base font-semibold text-white bg-indigo-700 hover:bg-indigo-800 dark:bg-indigo-300 dark:text-gray-950 dark:hover:bg-indigo-200">
           <Link to={createPageUrl("Solver")}>
             <Calculator className="w-5 h-5 mr-2" aria-hidden="true" />
             Try the Solver

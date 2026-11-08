@@ -381,9 +381,7 @@ export default function GraphViewer({ functionData }) {
   const tooltipBg = palette.tooltipBg;
   const tooltipBorder = palette.tooltipBorder;
   const tooltipText = palette.tooltipText;
-  const descBg = isDarkMode ? '' : 'from-blue-50 to-indigo-50';
-  const descBorder = isDarkMode ? 'border-gray-600' : 'border-indigo-200';
-  const extremumColor = palette.extremum;
+      const extremumColor = palette.extremum;
   const interceptColor = '#10b981';
   const asymptoteColor = palette.asymptote;
   const markerStroke = palette.markerStroke;
@@ -417,8 +415,8 @@ export default function GraphViewer({ functionData }) {
   );
 
   return (
-    <Card className="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-gray-700 shadow-lg rounded-xl">
-      <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+    <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+      <CardHeader className="border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2 text-xl text-gray-900 dark:text-gray-100">
             <TrendingUp className="w-6 h-6 text-indigo-600" />
@@ -438,7 +436,7 @@ export default function GraphViewer({ functionData }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-8 w-8 ${useRightAxis ? 'bg-indigo-100 dark:bg-gray-600' : ''}`}
+                className={`h-8 w-8 ${useRightAxis ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
                 onClick={() => setSeparateAxes(!useRightAxis)}
                 title={useRightAxis ? 'Use one y-axis for both curves' : `Separate y-axis for ${functionData.secondaryLabel ? functionData.secondaryLabel.split('=')[0].trim() : 'the dashed curve'}`}
                 aria-pressed={useRightAxis}
@@ -730,7 +728,7 @@ export default function GraphViewer({ functionData }) {
         {(hasSecondary || implicit) && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm" aria-hidden="true">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-linear-to-r from-blue-500 to-indigo-600" />
+              <div className="w-6 h-0.5 bg-indigo-700 dark:bg-indigo-300" />
               <span className="text-gray-600 dark:text-gray-400">{implicit ? implicit.label : 'f(x)'}</span>
             </div>
             {hasSecondary && (
@@ -747,7 +745,7 @@ export default function GraphViewer({ functionData }) {
             crowd the panel; a native <details> keeps it keyboard-operable
             with no extra wiring. */}
         {features.length > 0 && (
-          <details className="mt-3 text-sm rounded-lg border border-indigo-200 dark:border-gray-600 bg-white/60 dark:bg-gray-700/40">
+          <details className="mt-3 text-sm rounded-md border border-gray-200 dark:border-gray-800">
             <summary className="cursor-pointer select-none px-3 py-2 font-medium text-indigo-700 dark:text-indigo-300 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400">
               Key features ({features.length})
             </summary>
@@ -759,7 +757,7 @@ export default function GraphViewer({ functionData }) {
           </details>
         )}
         {functionData.description && (
-          <p className={`mt-3 text-sm text-gray-600 dark:text-gray-400 bg-linear-to-r ${descBg} dark:bg-gray-700/50 p-3 rounded-lg border ${descBorder}`}>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md border border-gray-200 dark:border-gray-800">
             {functionData.description}
           </p>
         )}

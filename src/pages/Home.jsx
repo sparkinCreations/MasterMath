@@ -2,15 +2,15 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Calculator,
   TrendingUp,
   Lightbulb,
-  Zap,
+  ListChecks,
   BookOpen,
-  Target,
+  ShieldCheck,
   ArrowRight,
 } from "lucide-react";
 import GithubMark from "@/components/ui/github-mark";
@@ -28,287 +28,206 @@ function prettyMath(text) {
     .replace(/\*/g, '·');
 }
 
-// The six cards of the features section: one sentence each.
+// The features section: six short entries, one sentence each. Plain
+// entries on the page, no coloured cards (1.71.0, docs/DESIGN.md).
 const FEATURES = [
   {
-    icon: Calculator, title: 'Every Topic',
-    text: 'Arithmetic, algebra, systems and inequalities, trigonometry, functions, limits, derivatives and integrals — definite and improper too.',
-    border: 'border-blue-200', header: 'from-blue-50 to-cyan-50', color: 'text-blue-700 dark:text-blue-400',
+    icon: Calculator, title: 'Every topic',
+    text: 'Arithmetic, algebra, systems and inequalities, trigonometry, functions, limits, derivatives and integrals, definite and improper too.',
   },
   {
-    icon: Zap, title: 'Worked Steps, Checked',
-    text: 'Named methods — the power rule, u-substitution, by parts — every line shown and the answer verified. Open-source maths libraries, not an AI chatbot: the same answer every time.',
-    border: 'border-indigo-200', header: 'from-indigo-50 to-pink-50', color: 'text-indigo-700 dark:text-indigo-400',
+    icon: ListChecks, title: 'Worked steps, checked',
+    text: 'Named methods (the power rule, u-substitution, by parts), every line shown and the answer verified. Open-source maths libraries, not an AI chatbot: the same answer every time.',
   },
   {
     icon: TrendingUp, title: 'Graphs',
-    text: 'Functions, derivatives and integrals are drawn, with extrema, intercepts and asymptotes marked; drag and zoom to explore.',
-    border: 'border-green-200', header: 'from-green-50 to-emerald-50', color: 'text-green-700 dark:text-green-400',
+    text: 'Functions, derivatives and integrals are drawn, with extrema, intercepts and asymptotes marked. Drag and zoom to explore.',
   },
   {
-    icon: Lightbulb, title: 'Insights and Mistakes',
-    text: 'Key insights and the common mistakes for the method just used — not one generic list.',
-    border: 'border-amber-200', header: 'from-amber-50 to-yellow-50', color: 'text-amber-700 dark:text-amber-400',
+    icon: Lightbulb, title: 'Insights and mistakes',
+    text: 'Key insights and the common mistakes for the method just used, not one generic list.',
   },
   {
-    icon: BookOpen, title: 'Export and Progress',
+    icon: BookOpen, title: 'Export and progress',
     text: 'Any solution as PDF, Markdown or JSON, your whole history as CSV, and a progress page of everything solved.',
-    border: 'border-indigo-200', header: 'from-indigo-50 to-indigo-50', color: 'text-indigo-700 dark:text-indigo-400',
   },
   {
-    icon: Target, title: 'Private, Offline, Free',
-    text: 'No account, no tracking, no cost; it works without Wi-Fi. Solving and history stay on your device — the only thing ever sent is a feedback message you choose to submit.',
-    border: 'border-rose-200', header: 'from-rose-50 to-pink-50', color: 'text-rose-700 dark:text-rose-400',
+    icon: ShieldCheck, title: 'Private, offline, free',
+    text: 'No account, no tracking, no cost, and it works without Wi-Fi. Solving and history stay on your device; the only thing ever sent is a feedback message you choose to submit.',
   },
 ];
+
+const GITHUB = "https://github.com/sparkinCreations/MasterMath";
 
 export default function Home() {
   usePageTitle("Step-by-step math, solved locally - Free Math Solver");
 
+  // The page as a worked solution on paper (1.71.0, docs/DESIGN.md): the
+  // claim and the recording, a worked example set like a textbook's, what
+  // it does, and one closing line. Headings in the serif, one solid action
+  // per section, no gradients.
   return (
-    <div className="p-4 md:p-6">
-      {/* Hero Section — a split on large screens (1.57.3): the logo sits
-          beside the headline in one lockup, the copy and buttons are
-          left-aligned under it, and the laptop photo fills the right
-          column, so the product is on screen with the claim. Below lg
-          everything stacks and centres as before, photo last. */}
-      <div className="max-w-6xl mx-auto mb-8 md:mb-16">
-        <div className="grid gap-8 lg:gap-12 lg:grid-cols-2 items-center">
-          <div className="text-center lg:text-left">
-            <div className="mb-4 md:mb-6 flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:gap-6">
-              <img
-                src="/logo-224.webp"
-                alt="MasterMath Logo"
-                className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 shrink-0"
-              />
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-bold leading-tight text-balance text-blue-800 dark:text-blue-300 px-2 lg:px-0">
-                See the method, not just the answer.
-              </h1>
-            </div>
-            {/* One subline (1.57.3). The headline used to be "Welcome to
-                MasterMath" with the tagline, a description and an audience
-                line stacked under it: four messages before the button, and
-                the name and tagline already sit in the header above. */}
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-400 px-2 lg:px-0 max-w-3xl mx-auto lg:mx-0 mb-6 md:mb-8">
+    <div className="px-4 py-8 md:px-6 md:py-14">
+      {/* Hero: the claim beside the recording on large screens; stacked,
+          recording last, below lg. */}
+      <section className="max-w-6xl mx-auto mb-16 md:mb-24">
+        <div className="grid gap-10 lg:gap-14 lg:grid-cols-2 items-center">
+          <div>
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.25rem] xl:text-[3.6rem] font-semibold leading-[1.08] tracking-tight text-balance text-gray-900 dark:text-gray-50">
+              See{" "}
+              <span className="underline decoration-orange-500 dark:decoration-orange-400 decoration-[0.12em] underline-offset-[0.14em]">the method</span>
+              , not just the answer.
+            </h1>
+            <p className="mt-5 text-lg md:text-xl leading-relaxed text-gray-600 dark:text-gray-300 max-w-xl">
               Step-by-step algebra through Calculus II, solved in your browser.
             </p>
 
-            <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 md:gap-4 mb-4 md:mb-6 px-2 lg:px-0">
-              <Button
-                asChild
-                size="lg"
-                className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300"
-              >
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <Button asChild variant="primary" className="h-12 px-6 text-base">
                 <Link to={createPageUrl("Solver")}>
-                  <Calculator className="w-5 h-5 mr-2" />
-                  Start Solving
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  Start solving
+                  <ArrowRight className="w-4 h-4 ml-2" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold border-2 border-indigo-200 hover:bg-indigo-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
-              >
-                <Link to={createPageUrl("UserManual")}>
-                  <BookOpen className="w-5 h-5 mr-2" />
-                  Learn How It Works
-                </Link>
+              <Button asChild variant="secondary" className="h-12 px-6 text-base">
+                <Link to={createPageUrl("UserManual")}>How it works</Link>
               </Button>
             </div>
 
-            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-2 px-2 lg:px-0">
-              Solved locally · No account · Works offline
-            </p>
+            <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-600 dark:text-gray-400" aria-label="At a glance">
+              <li>Solved locally</li>
+              <li>No account</li>
+              <li>Works offline</li>
+              <li>Free on every problem</li>
+            </ul>
             {/* The comparison lives on its own dated, sourced page (1.58.0);
                 the home page only claims what MasterMath itself does. */}
-            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-6 md:mb-8 px-2 lg:px-0">
-              Full step-by-step solutions, free on every problem.{" "}
-              <Link to={createPageUrl("Compare")} className="inline-flex items-center gap-1 min-h-11 font-medium text-indigo-700 dark:text-indigo-300 underline">
+            <p className="mt-2 flex flex-wrap items-center gap-x-5 text-sm">
+              <Link to={createPageUrl("Compare")} className="inline-flex items-center gap-1 min-h-11 font-medium text-indigo-700 dark:text-indigo-300 underline underline-offset-4 decoration-indigo-300 dark:decoration-indigo-700 hover:decoration-current">
                 See how MasterMath compares
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </Link>
-            </p>
-
-            {/* GitHub Link */}
-            <div className="px-2 lg:px-0">
-              <a
-                href="https://github.com/sparkinCreations/MasterMath"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 text-base md:text-lg font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <GithubMark className="w-5 h-5" />
+              <a href={GITHUB} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 min-h-11 font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-50">
+                <GithubMark className="w-4 h-4" />
                 Star on GitHub
               </a>
-            </div>
+            </p>
           </div>
 
           {/* The solver at work: a real recording (1.70.2; HeroVideo, made
-              by scripts/record-hero.mjs), in place of an AI illustration of
-              a laptop (1.59.12–1.70.1). Its poster is the page's largest
+              by scripts/record-hero.mjs). Its poster is the page's largest
               paint and is preloaded at high priority. */}
-          <figure className="relative px-2 lg:px-0">
+          <figure>
             <HeroVideo description="A recording of MasterMath: x² − 4x + 3 is typed under Functions and solved. The graph shows the parabola crossing the x-axis at 1 and 3, with its minimum at 2, beside the first steps of the solution." />
-            <figcaption className="mt-2 text-xs text-center lg:text-right text-gray-600 dark:text-gray-400">
+            <figcaption className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               A real recording of the solver.
             </figcaption>
           </figure>
         </div>
-      </div>
+      </section>
 
-      {/* A worked example — the solver's own output for x² − 5x + 6 = 0,
-          so a visitor sees what "shows the steps" means before clicking. The
-          text is kept in step with the solver by tests/reviewTwo.test.js. */}
-      <div className="max-w-4xl mx-auto mb-8 md:mb-16 px-2">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-blue-800 dark:text-blue-300 mb-2">
-          What a Solution Looks Like
+      {/* A worked example: the solver's own output for x² − 5x + 6 = 0, set
+          like a textbook's worked example, so a visitor sees what "shows the
+          steps" means before clicking. The text is kept in step with the
+          solver by tests/reviewTwo.test.js. */}
+      <section className="max-w-3xl mx-auto mb-16 md:mb-24" aria-labelledby="worked-example">
+        <h2 id="worked-example" className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+          What a solution looks like
         </h2>
-        <p className="text-center text-gray-600 dark:text-gray-400 mb-6 md:mb-8">
-          An algebra problem, exactly as the solver works it
+        <p className="mt-2 mb-6 text-gray-600 dark:text-gray-400">
+          An algebra problem, exactly as the solver works it.
         </p>
-        <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden">
-          {/* The equation being solved, as the card's own header. Styled
+        <Card className="overflow-hidden">
+          {/* The equation being solved, as the sheet's own header. Styled
               Unicode rather than KaTeX: the landing page deliberately loads
               no solver library, and a test enforces that. */}
-          <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 px-6 py-5 md:px-10 md:py-6">
-            <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-indigo-500 dark:text-indigo-300 mb-1">Solve · Algebra</p>
-            <p className="text-2xl md:text-3xl font-bold text-indigo-700 dark:text-indigo-200 font-mono tracking-tight" aria-label="x squared minus 5 x plus 6 equals 0">
+          <div className="px-6 py-5 md:px-10 md:py-7 border-b border-gray-200 dark:border-gray-800">
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400 mb-2">Worked example · Algebra</p>
+            <p className="font-display text-3xl md:text-4xl font-semibold text-gray-900 dark:text-gray-50" aria-label="x squared minus 5 x plus 6 equals 0">
               {prettyMath(WORKED_EXAMPLE.problem)}
             </p>
-          </CardHeader>
+          </div>
           <CardContent className="p-6 md:p-10">
-            <ol className="divide-y divide-gray-200 dark:divide-gray-700 text-sm md:text-base text-gray-700 dark:text-gray-300">
+            <ol className="text-[15px] md:text-base text-gray-800 dark:text-gray-200">
               {WORKED_EXAMPLE.steps.map((step, i) => (
-                <li key={i} className="flex items-start gap-4 py-4 md:py-5 first:pt-0">
-                  <span className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white text-sm font-bold flex items-center justify-center shadow-sm" aria-hidden="true">{i + 1}</span>
-                  <span className="pt-1 leading-relaxed"><span className="sr-only">Step {i + 1}. </span>{prettyMath(step)}</span>
+                <li key={i} className="grid grid-cols-[2rem_1fr] gap-3 py-3.5 border-t border-gray-100 dark:border-gray-800 first:border-t-0 first:pt-0">
+                  <span className="font-display text-lg font-semibold leading-7 text-indigo-700 dark:text-indigo-300 tabular-nums" aria-hidden="true">{i + 1}</span>
+                  <span className="leading-7"><span className="sr-only">Step {i + 1}. </span>{prettyMath(step)}</span>
                 </li>
               ))}
             </ol>
-            <p className="mt-6 p-4 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 font-semibold text-base md:text-lg">
-              Final answer: {prettyMath(WORKED_EXAMPLE.answer)}
-            </p>
-            <p className="mt-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm md:text-base text-amber-900 dark:text-amber-100">
-              <span className="font-semibold">Key insight:</span> {prettyMath(WORKED_EXAMPLE.tip)}
-            </p>
-            <div className="mt-8 md:mt-10 mb-2 flex justify-center">
-              <Button asChild size="lg" className="h-12 md:h-14 px-6 md:px-8 text-base md:text-lg bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="mt-6 rounded-md border-l-4 border-green-600 bg-green-50 dark:border-green-500 dark:bg-green-950/40 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-green-800 dark:text-green-300">Answer</p>
+              <p className="mt-1 font-display text-xl font-semibold text-green-900 dark:text-green-100">{prettyMath(WORKED_EXAMPLE.answer)}</p>
+            </div>
+            <div className="mt-3 rounded-md border-l-4 border-amber-500 bg-amber-50/70 dark:bg-amber-950/30 px-4 py-3 text-sm md:text-[15px] text-gray-800 dark:text-gray-200">
+              <span className="font-semibold text-amber-900 dark:text-amber-200">Key insight.</span> {prettyMath(WORKED_EXAMPLE.tip)}
+            </div>
+            <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between pt-6 border-t border-gray-200 dark:border-gray-800">
+              <Button asChild variant="primary" className="h-11 px-5">
                 <Link to={createPageUrl("Solver")} state={{ problem: WORKED_EXAMPLE.problem, topic: WORKED_EXAMPLE.topic }}>
-                  <Calculator className="w-5 h-5 mr-2" />
                   Try this one in the solver
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2" aria-hidden="true" />
                 </Link>
               </Button>
-            </div>
-            {/* The star ask with its reason, placed where it lands hardest:
-                the reader has just seen what the solver does. The hero and
-                closing-band buttons are the same link without the line. */}
-            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 px-2">
-                MasterMath is free, with no account and no ads. If it helped, a star on GitHub is all I ask.
+              {/* The star ask with its reason, where it lands hardest: the
+                  reader has just seen what the solver does. */}
+              <p className="text-sm text-gray-600 dark:text-gray-400 sm:text-right sm:max-w-xs">
+                Free, with no account and no ads. If it helped,{" "}
+                <a href={GITHUB} target="_blank" rel="noopener noreferrer" className="font-medium text-indigo-700 dark:text-indigo-300 underline underline-offset-4 decoration-indigo-300 dark:decoration-indigo-700 hover:decoration-current">a star on GitHub</a>{" "}
+                is all I ask.
               </p>
-              <a
-                href="https://github.com/sparkinCreations/MasterMath"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm md:text-base font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                <GithubMark className="w-5 h-5" />
-                Star on GitHub
-              </a>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
-      {/* Features — one section (1.56.4). It used to be three: a six-card
-          grid, a "How It Works" list (the User Manual's job, one click away)
-          and a "Why Choose" block that said free, private and offline a
-          second time. Six cards, one sentence each, the privacy card naming
-          the one outbound request. */}
-      <div className="max-w-6xl mx-auto mb-8 md:mb-16 px-2">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-blue-800 dark:text-blue-300 mb-6 md:mb-12">
-          Everything You Need to Master Math
+      {/* What it does: six short entries (1.56.4: one section, the privacy
+          entry naming the one outbound request). */}
+      <section className="max-w-6xl mx-auto mb-16 md:mb-24" aria-labelledby="what-it-does">
+        <h2 id="what-it-does" className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 mb-8 md:mb-10">
+          What it does
         </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {FEATURES.map(({ icon: Icon, title, text, border, header, color }) => (
-            <Card key={title} className={`border-2 ${border} dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow`}>
-              <CardHeader className={`bg-linear-to-r ${header} dark:from-gray-700 dark:to-gray-700`}>
-                <CardTitle as="h3" className={`flex items-center gap-2 ${color}`}>
-                  <Icon className="w-6 h-6" aria-hidden="true" />
-                  {title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-gray-700 dark:text-gray-300">{text}</p>
-              </CardContent>
-            </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
+          {FEATURES.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="pt-5 border-t border-gray-200 dark:border-gray-800">
+              <h3 className="flex items-center gap-2.5 text-base font-semibold text-gray-900 dark:text-gray-50">
+                <Icon className="w-5 h-5 text-indigo-700 dark:text-indigo-300" aria-hidden="true" />
+                {title}
+              </h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">{text}</p>
+            </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* CTA Section */}
-      <div className="max-w-4xl mx-auto text-center px-2">
-        <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-2xl">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">
-            Ready to Master Math?
-          </h2>
-          <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-6 md:mb-8">
-            Start solving for free — no account, no tracking, all on your device
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
-            <Button
-              asChild
-              size="lg"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-white text-indigo-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              {/* The wrapper's `inline-block` is gone on purpose: the button base
-                  class supplies `inline-flex`, which is what centres the icons. */}
+      {/* Closing: one line and the one action. */}
+      <section className="max-w-6xl mx-auto">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-6 py-10 md:px-12 md:py-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+              Bring your own problem.
+            </h2>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Free, no account, and nothing leaves your device.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+            <Button asChild variant="primary" className="h-12 px-6 text-base">
               <Link to={createPageUrl("Solver")}>
-                <Calculator className="w-5 h-5 mr-2" />
-                Start Solving Now
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <Calculator className="w-4 h-4 mr-2" aria-hidden="true" />
+                Open the solver
               </Link>
             </Button>
-            {/* A second star ask, for the reader who has seen the worked
-                example and the feature list: the hero's button is five
-                screens behind them by now. */}
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-transparent text-white border-2 border-white/70 hover:bg-white/10 hover:border-white hover:text-white dark:bg-transparent dark:text-white dark:border-white/70 dark:hover:bg-white/10 dark:hover:text-white shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <a
-                href="https://github.com/sparkinCreations/MasterMath"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <GithubMark className="w-5 h-5 mr-2" />
+            <Button asChild variant="secondary" className="h-12 px-6 text-base">
+              <a href={GITHUB} target="_blank" rel="noopener noreferrer">
+                <GithubMark className="w-4 h-4 mr-2" />
                 Star on GitHub
               </a>
             </Button>
           </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center py-8 md:py-12 text-gray-500 dark:text-gray-400 px-2">
-        <p className="text-base md:text-lg">MasterMath by sparkinCreations™</p>
-        <p className="text-xs md:text-sm mt-1">Step-by-step math, solved locally</p>
-        <a
-          href="https://github.com/sparkinCreations/MasterMath"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 mt-4 text-sm md:text-base text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
-        >
-          <GithubMark className="w-5 h-5" />
-          View on GitHub
-        </a>
-      </div>
+      </section>
     </div>
   );
 }

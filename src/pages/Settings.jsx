@@ -53,11 +53,7 @@ function OptionButton({ active, onClick, children, title }) {
       onClick={onClick}
       title={title}
       aria-pressed={active}
-      className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
-        active
-          ? "border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
-          : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-      }`}
+      className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${ active ? "border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800" }`}
     >
       {children}
     </button>
@@ -124,7 +120,7 @@ export default function Settings() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 mb-2">
           Settings
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
@@ -133,10 +129,10 @@ export default function Settings() {
       </div>
 
       {/* Appearance */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Palette className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <Palette className="w-6 h-6 text-indigo-700 dark:text-indigo-300" />
             Appearance
           </CardTitle>
         </CardHeader>
@@ -162,10 +158,10 @@ export default function Settings() {
       </Card>
 
       {/* Solver preferences */}
-      <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <SlidersHorizontal className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <SlidersHorizontal className="w-6 h-6 text-indigo-700 dark:text-indigo-300" />
             Solver Preferences
           </CardTitle>
         </CardHeader>
@@ -212,17 +208,17 @@ export default function Settings() {
             </div>
           </div>
 
-          <p className="text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-800 pt-4">
             Changes apply to newly solved problems.
           </p>
         </CardContent>
       </Card>
 
       {/* Data & privacy */}
-      <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <HardDrive className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <HardDrive className="w-6 h-6 text-indigo-700 dark:text-indigo-300" />
             Data & Privacy
           </CardTitle>
         </CardHeader>
@@ -262,10 +258,10 @@ export default function Settings() {
       </Card>
 
       {/* About */}
-      <Card className="mb-6 border-2 border-teal-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-teal-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <CardHeader className="">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Info className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            <Info className="w-6 h-6 text-indigo-700 dark:text-indigo-300" />
             About
           </CardTitle>
         </CardHeader>

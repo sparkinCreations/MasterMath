@@ -150,7 +150,7 @@ function Toast({ message, type, duration, onClose }) {
       onMouseLeave={resume}
       onFocus={pause}
       onBlur={resume}
-      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border-2 shadow-lg backdrop-blur-xs animate-in slide-in-from-right ${styles[type]}`}
+      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg border-2 shadow-lg backdrop-blur-xs animate-in slide-in-from-right ${styles[type]}`}
     >
       <div className={iconStyles[type]} aria-hidden="true">
         {icons[type]}
