@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Settings, Privacy Policy, How It Compares, the notation guide): commas,
   colons, full stops or brackets instead. The worked example on the home
   page and the step numbers in the Solver are blue, not indigo.
+- Key Insights and Common Mistakes are plain text with a thin coloured line
+  on the left (amber, red) instead of a tinted box per item; the final
+  answer keeps its green background.
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").
