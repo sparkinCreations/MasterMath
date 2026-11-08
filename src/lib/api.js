@@ -32,6 +32,7 @@ import {
   unknownWord,
   unknownWordHint,
   lettersAsProduct,
+  rewriteAsProduct,
   looksLikeWordProblem,
   wordProblemRefusal,
   unknownWordInProblem,
@@ -157,7 +158,7 @@ const beautifyText = (s) => String(s).replace(/\*/g, '·').replace(/\^2\b/g, '²
 // Two or three letters side by side read as a product (1.71.0): "nx" is
 // n·x, as a textbook writes it. Only a word no engine knows is read this
 // way (known words, functions and instructions never reach here), only when
-// `lettersAsProduct` says it can be one ("kx", "ab", "axy"; never "box",
+// `rewriteAsProduct` says it can be one ("kx", "ab", "axy"; never "box",
 // "it" or "dx"), and the answer says how the word was read. If the product
 // does not solve either, the original refusal stands, with its hint.
 const PRODUCT_WORD = /^"([a-z]{2,3})" is not a known function, constant or variable\./i;
@@ -168,9 +169,8 @@ export async function solveProblem(problem, topic) {
   for (let k = 0; k < 3 && result?.status === 'parse_error'; k += 1) {
     const word = String(result.answer || '').match(PRODUCT_WORD)?.[1];
     const product = word && lettersAsProduct(word, text);
-    if (!product) break;
-    const rewritten = text.replace(new RegExp(`(?<![a-z])${word}(?![a-z])`, 'gi'), product);
-    if (rewritten === text) break;
+    const rewritten = product && rewriteAsProduct(word, text);
+    if (!rewritten || rewritten === text) break;
     const next = await solveProblemOnce(rewritten, topic);
     if (next?.status === 'parse_error' && !PRODUCT_WORD.test(String(next.answer || ''))) break;
     read.push(`"${word}" as ${product.replace(/\*/g, '·')}`);

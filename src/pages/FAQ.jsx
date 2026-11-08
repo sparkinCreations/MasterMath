@@ -82,7 +82,7 @@ export default function FAQ() {
     },
     {
       question: "How do I input mathematical expressions?",
-      answer: "Use * for multiplication (2*x), ^ for powers (x^2), / for division, and names like sin, cos, tan, sqrt, ln and log. Spaces are fine. You can also type words, like \"find the derivative of x^2 + 3x\"."
+      answer: "Use * for multiplication (2*x), ^ for powers (x^2), / for division, and names like sin, cos, tan, sqrt, ln and log. Letters side by side are multiplied (ax is a·x), except names such as pi, ln and dx: write p*i to multiply those. Spaces are fine. You can also type words, like \"find the derivative of x^2 + 3x\"."
     },
     {
       question: "Can I recall previous problems I've entered?",

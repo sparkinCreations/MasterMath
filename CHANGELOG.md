@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   this way unless they are a differential ("dx") or an English word
   standing alone ("x^2 at x = 2"; "at^2" and "sin(at)" are a·t); three
   only with two of x, y, z ("axy"), so "box" stays an unknown word. The
-  answer says how the letters were read ("Read "nx" as n·x").
+  answer says how the letters were read ("Read "nx" as n·x"). Names keep
+  their meaning (pi is π, ln the natural log, dx a differential): the
+  User Manual, FAQ and Notation Guide say so, and that p*i multiplies.
   Stress-tested: every product in the value-checked problem set retyped
   side by side, and every two-letter pair (aa to zz) in four kinds of
   problem, each answer the same as with * typed.
@@ -25,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "d/dx sin(kx) at x = 0" answered f'(0) = 0, and "d/dx kx^2 at x = 1"
   f'(1) = 0: a derivative at a point skipped the unknown-word check, so
   "kx" was a constant. Both are checked now (k and 2k).
+- "lim x->0 as^2" answered "does not exist": an instruction word raised
+  to a power ("as^2", "at^2") passed the limit and integral word check as
+  an instruction. It is a·s² now.
 - The "If you meant a product" hint is no longer offered for an English
   word or "dx".
 - A function with a parameter ("y = m*x + b", "a*x^2 + b*x + c",
