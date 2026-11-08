@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.70.4] - 2026-11-08
 
 ### Changed
-- No gradients but the page background. Every other gradient is one solid
-  colour: buttons, card headers, headings, step numbers, the answer card,
+- No gradients. The page background is a solid light blue (blue-50; dark
+  grey in dark mode) instead of a blue-to-indigo-to-green wash (the small
+  print set on it is a shade darker, 4.5:1), and every
+  other gradient is one solid colour: buttons, card headers, headings, step numbers, the answer card,
   the closing band on the home page, the graph's curve. Colours, layout and
   wording are unchanged. Solid orange buttons are orange-700, so white text
   on them is 5.2:1 (the old orange-400 to orange-600 gradient fell below
@@ -68,8 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`src/lib/answerParts.js`).
 - Text on the new solid backgrounds meets 4.5:1: the worked example's
   label, the Export button, and the history card's Export, Clear and dates
-  are a shade darker. The page background has a solid colour under its
-  gradient.
+  are a shade darker.
 
 ### Fixed
 - Two flaky smoke tests read My Progress before the second solve was saved;

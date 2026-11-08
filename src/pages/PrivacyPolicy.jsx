@@ -341,7 +341,7 @@ export default function PrivacyPolicy() {
       </div>
 
       {/* Footer */}
-      <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-6 text-gray-600 dark:text-gray-400">
         <p>MasterMath by sparkinCreations™</p>
         <p className="text-sm mt-1">Your privacy is our priority</p>
       </div>
