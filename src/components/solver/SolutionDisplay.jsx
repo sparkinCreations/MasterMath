@@ -514,7 +514,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
           )}
 
           {solution.answer && allRevealed && (
-            <div className={`p-5 rounded-lg ${theme.card}`}>
+            <div data-answer-card className={`p-5 rounded-lg ${theme.card}`}>
               {/* The icon sits with the heading, not beside the whole card: the
                   answer then has the card's full width to wrap in, which on a
                   phone is the difference between a formula that fits and one

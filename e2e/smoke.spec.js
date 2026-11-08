@@ -747,7 +747,8 @@ test.describe('MasterMath smoke', () => {
     await expect(solution).toContainText('arctan');
     const fit = await page.evaluate(() => {
       const heading = [...document.querySelectorAll('h3')].find((h) => /Final Answer/.test(h.textContent));
-      const card = heading.closest('.rounded-xl');
+      // The card by its own hook, not a styling class (1.70.4 changed its corners).
+      const card = heading.closest('[data-answer-card]');
       const box = card.querySelector('.overflow-x-auto');
       const root = document.documentElement;
       return {
