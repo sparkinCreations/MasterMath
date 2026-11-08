@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cards, the problem box and topic picker, the keypad and symbol strip, the
   answer card and the practice and notation dialogs, with a light shadow in
   place of the heavy one. Focus on the problem box is blue.
+- Toasts ("Problem solved!" and the rest) are a plain white card (dark
+  grey in dark mode) with a thin grey border; the colour is in the icon
+  only.
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").
