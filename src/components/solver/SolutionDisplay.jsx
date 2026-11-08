@@ -442,8 +442,9 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     className="py-4 first:pt-1"
                   >
                     <div className="flex gap-3">
-                      <div className="shrink-0 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
-                        <span className="sr-only">Step </span>{idx + 1}
+                      {/* The step number as plain text, no badge (1.70.4). */}
+                      <div className="shrink-0 w-6 font-bold leading-relaxed text-indigo-700 dark:text-indigo-300 tabular-nums">
+                        <span className="sr-only">Step </span>{idx + 1}<span aria-hidden="true">.</span>
                       </div>
                       <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
                     </div>

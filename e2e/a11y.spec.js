@@ -223,9 +223,11 @@ test.describe('typeset maths for screen readers', () => {
     await page.locator('#problem').fill('x^2 - 5x + 6 = 0');
     await page.getByRole('button', { name: 'Solve Problem' }).click();
     // The quadratic's own working, so the first solve's insights (also
-    // typeset) cannot stand in for it, and the second solve is saved before
-    // the history is read.
+    // typeset) cannot stand in for it. The solution shows before its history
+    // entry is written; the button is enabled again only after the write, so
+    // the history is read once both solves are saved (it was flaky).
     await expect(solution).toContainText('Factor pairs of');
+    await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeEnabled();
     const insights = solution.locator('h3:has-text("Key Insights") + div');
     await expect(insights.locator('math').first()).toBeAttached();
     // History: a list, each problem typeset.

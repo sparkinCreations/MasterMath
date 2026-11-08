@@ -261,7 +261,7 @@ export default function Compare() {
       </Card>
 
       <div className="flex justify-center mb-4">
-        <Button asChild size="lg" className="h-12 px-6 text-base font-semibold text-white bg-orange-700 hover:bg-orange-800 shadow-lg">
+        <Button asChild size="lg" className="h-12 px-6 text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-lg">
           <Link to={createPageUrl("Solver")}>
             <Calculator className="w-5 h-5 mr-2" aria-hidden="true" />
             Try the Solver

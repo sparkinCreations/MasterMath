@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wording are unchanged. Solid orange buttons are orange-700, so white text
   on them is 5.2:1 (the old orange-400 to orange-600 gradient fell below
   4.5:1 at its light end); a gradient heading in dark mode is indigo-400.
+- Orange buttons are orange-600, brighter, with their text bold at 20 px:
+  white on orange-600 is 3.6:1, which WCAG allows for large text only.
+- Home: "Everything You Need to Master Math" and "What a Solution Looks
+  Like" side by side on large screens; the cards have thin borders.
+- The step numbers, on the home page and in the Solver, are plain numbers
+  ("1.") instead of filled circles.
+- Text on the new solid backgrounds meets 4.5:1: the worked example's
+  label, the Export button, and the history card's Export, Clear and dates
+  are a shade darker. The page background has a solid colour under its
+  gradient.
+
+### Fixed
+- A flaky smoke test read My Progress before the second solve was saved;
+  it now waits until the Solve button is enabled again, which follows the
+  save.
 
 ## [1.70.3] - 2026-11-08
 

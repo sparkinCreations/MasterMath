@@ -353,7 +353,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       <Button
         onClick={handleSolve}
         disabled={!problem.trim() || !topic || isLoading}
-        className="w-full h-14 text-lg font-semibold text-white bg-orange-700 hover:bg-orange-800 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+        className="w-full h-14 text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
       >
         {isLoading ? (
           <>
