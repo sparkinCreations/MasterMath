@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.70.5] - 2026-11-08
+
+### Fixed
+- A limit with a parameter, as an r/mathematics commenter typed it:
+  - "lim x->0 sin(nx)/x" said "nx" is not a known function and stopped
+    there; two or three letters side by side now add "If you meant a
+    product, write n*x."
+  - "lim x->0 sin(n*x)/x" said only "This limit is beyond what this solver
+    can compute". It now says "Limits with a parameter (n) are not supported
+    yet", explains why (it does not simplify so that x = 0 can be
+    substituted), and its tip gives the parameter a number and shows the
+    limit to type: "n = 3 gives lim (x→0) sin(3x)/x". The tip used to say
+    to replace x, the variable, instead of the parameter.
+  - A parameter that simplifies away, as in lim h→0 ((x + h)² − x²)/h, is
+    still worked.
+
 ## [1.70.4] - 2026-11-08
 
 ### Changed

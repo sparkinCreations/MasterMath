@@ -22,6 +22,8 @@ export const CONVERTED = [
   // inside's power.
   ['limits', 'lim x->1 log(x)/(x-1)'], ['limits', 'lim x->inf sin(x^2)'], ['limits', 'lim x->0 sin(1/x^2)'],
   ['integrals', 'sqrt(2x+1)'], ['integrals', '1/(3x+2)^2'],
+  // 1.70.5: a limit with a parameter, refused with a worked suggestion.
+  ['limits', 'lim x->0 sin(n*x)/x'],
   ['functions', 'x^2 - 4*x + 3'], ['functions', '1/(x-2)'], ['functions', 'x^3 - x'], ['functions', 'ln(x)'], ['functions', 'sqrt(x-2)'],
   ['algebra', 'x^2 - 5x + 6 = 0'], ['algebra', 'x^2 + x + 1 = 0'], ['algebra', 'x^3 - 6x^2 + 11x - 6 = 0'], ['algebra', 'sqrt(x+2) = x'],
   ['algebra', '2^x = 8'], ['algebra', 'log(x) + log(x - 3) = 1'], ['algebra', 'ln(2x) = 3'],
