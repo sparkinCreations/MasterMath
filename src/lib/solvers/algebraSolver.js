@@ -166,19 +166,26 @@ export async function solveAlgebra(expression, options = {}) {
 // The conditions an answer in constants needs: each constant expression it
 // divides by is not 0, each logarithm's argument is positive. "c/3 > 0" is
 // "c > 0" (a positive divisor changes no sign).
-function constantConditions(rel, target, expression = '') {
+function constantConditions(rel, target, expression = '', divisor = null) {
   const answer = String(rel).replace(new RegExp(`^\\s*${target}\\s*=\\s*`), '');
   const hasTarget = (t) => new RegExp(`(?<![a-z])${target}(?![a-z])`).test(t);
   const nonzero = [];
   const positive = [];
   const nonnegative = [];
   // Divisors in the answer and in the equation itself (b = e^(x/a) needs
-  // a ≠ 0 though its answer, a·ln(b), divides by nothing).
+  // a ≠ 0 though its answer, a·ln(b), divides by nothing), and the
+  // coefficient a linear equation was divided by (a*x = 0 is x = 0 only for
+  // a ≠ 0). "a - b ≠ 0" reads "a ≠ b".
+  const addNonzero = (raw) => {
+    const d = stripOuterParens(String(raw).trim());
+    if (!/[a-z]/i.test(d) || hasTarget(d)) return;
+    const pair = d.match(/^([a-z])\s*-\s*([a-z])$/i);
+    const text = pair ? `${pair[1]} ≠ ${pair[2]}` : `${d} ≠ 0`;
+    if (!nonzero.includes(text)) nonzero.push(text);
+  };
+  if (divisor && !String(divisor).includes('/')) addNonzero(divisor);
   for (const text of [answer, String(expression)]) {
-    for (const m of text.matchAll(/\/\s*(\((?:[^()]|\([^()]*\))*\)|[a-z])/gi)) {
-      const d = stripOuterParens(m[1]);
-      if (/[a-z]/i.test(d) && !hasTarget(d) && !nonzero.includes(`${d} ≠ 0`)) nonzero.push(`${d} ≠ 0`);
-    }
+    for (const m of text.matchAll(/\/\s*(\((?:[^()]|\([^()]*\))*\)|[a-z])/gi)) addNonzero(m[1]);
   }
   // A square root in the answer: x = ±√a needs a ≥ 0.
   for (const m of answer.matchAll(/√(\((?:[^()]|\([^()]*\))*\)|[a-z0-9]+)/gi)) {
@@ -265,7 +272,7 @@ async function solveEquation(expression, options = {}) {
     // not 0, and a logarithm's argument is positive. x = ln(b)/a is the
     // answer for a ≠ 0 and b > 0; at a = 0, e^(0·x) = b is 1 = b, which no
     // value of x decides. Read off the answer itself.
-    const conditions = rel && withConstants ? constantConditions(rel, requested, expression) : null;
+    const conditions = rel && withConstants ? constantConditions(rel, requested, expression, solved.divisor) : null;
     const zeroCases = conditions ? conditions.nonzero.map((c) => zeroCase(expression, c, requested)).filter(Boolean) : [];
     const conditionText = conditions && conditions.all.length ? conditions.all.join(' and ') : '';
     if (rel) {

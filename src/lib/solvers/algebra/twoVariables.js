@@ -34,9 +34,29 @@ export async function solveForVariable(equation, target) {
     const degree = Number(String(Algebrite.run(`deg(${expanded}, ${target})`)).trim());
     const withTarget = splitTerms(expanded).filter(({ signed }) => new RegExp(`(?<![a-z])${target}(?![a-z])`).test(signed)).length;
     if (degree >= 3 && withTarget >= 2) return null;
-    const raw = String(Algebrite.roots(`(${l.trim()}) - (${r.trim()})`, target)).trim();
-    if (!raw || /stop|error|nil|roots/i.test(raw)) return null;
-    let parts = parseRootsList(raw).map((rt) => rt.display).filter(Boolean);
+    // Linear in the unknown with a letter in its coefficient, A·x + B = 0:
+    // x = −B/A read off the coefficients. roots() wrote a*x = b*x + c as
+    // c/((a − b)(a/(a − b) − b/(a − b))) (1.71.1). A number coefficient
+    // (2x + 3y = 6) keeps roots()' slope–intercept form.
+    let parts = null;
+    let divisor = null;
+    if (degree === 1) {
+      const A = String(Algebrite.run(`simplify(coeff(${expanded}, ${target}, 1))`)).trim();
+      const B = String(Algebrite.run(`simplify(coeff(${expanded}, ${target}, 0))`)).trim();
+      if (/[a-z]/i.test(A) && !/stop|error|nil/i.test(A + B) && !hasLetter(A + B, target)) {
+        const top = positiveFirst(String(Algebrite.run(`simplify(-(${B}))`)).trim());
+        const bottom = positiveFirst(A);
+        const wrap = (t) => (splitTerms(t).length > 1 || /^-/.test(t) || /\//.test(t) ? `(${t})` : t);
+        const single = splitTerms(top).length === 1;
+        const root = top === '0' ? '0' : single && top.startsWith('-') ? `-${wrap(top.slice(1))}/${wrap(bottom)}` : `${wrap(top)}/${wrap(bottom)}`;
+        if (expressionsEqualInAllLetters(`(${root})*(${A}) + (${B})`, '0')) { parts = [root]; divisor = bottom; }
+      }
+    }
+    if (!parts) {
+      const raw = String(Algebrite.roots(`(${l.trim()}) - (${r.trim()})`, target)).trim();
+      if (!raw || /stop|error|nil|roots/i.test(raw)) return null;
+      parts = parseRootsList(raw).map((rt) => rt.display).filter(Boolean);
+    }
     if (parts.length === 0) return null;
     // Algebrite writes x² + y² = 25 as x = ±i·(y² − 25)^(1/2). Over the reals
     // that is ±(25 − y²)^(1/2): rewrite i·(A)^(1/2) → (−A)^(1/2), simplifying
@@ -62,7 +82,7 @@ export async function solveForVariable(equation, target) {
     if (!real) return null;
     // exp(x) as a textbook writes it: e^x, e^(x + 1).
     const eForm = (d) => d.replace(/\bexp(\((?:[^()]|\([^()]*\))*\))/g, (m, arg) => (/^\([a-z0-9]+\)$/i.test(arg) ? `e^${arg.slice(1, -1)}` : `e^${arg}`));
-    return { relation: real.roots.map((d) => `${target} = ${eForm(d)}`).join('  or  '), droppedComplex: real.droppedComplex };
+    return { relation: real.roots.map((d) => `${target} = ${eForm(d)}`).join('  or  '), droppedComplex: real.droppedComplex, divisor };
   } catch {
     return null;
   }

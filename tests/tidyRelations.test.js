@@ -52,6 +52,23 @@ test('other conditions: a divisor in the equation, a square root in the answer',
   assert.equal((await solvePlain('a*(x - b) = c', 'auto')).answer, 'x = b + c/a, for a ≠ 0');
 });
 
+test('linear in x with a letter coefficient: x = −B/A, with A ≠ 0', async () => {
+  for (const [p, answer] of [
+    // Was c/((a - b)(a/(a - b) - b/(a - b))).
+    ['a*x = b*x + c', 'x = c/(a - b), for a ≠ b'],
+    ['a*x + b = c*x', 'x = -b/(a - c), for a ≠ c'],
+    ['a*x + b = c', 'x = (c - b)/a, for a ≠ 0'],
+    // x = 0 only when a ≠ 0: at a = 0 every x is a solution.
+    ['a*x = 0', 'x = 0, for a ≠ 0'],
+  ]) {
+    assert.equal((await solvePlain(p, 'auto')).answer, answer, p);
+  }
+  const zero = await solvePlain('a*x = 0', 'auto');
+  assert.ok(zero.steps.includes('If a = 0, the equation is 0 = 0, with no x in it: every x is a solution.'), zero.steps.join('\n'));
+  // A number coefficient keeps the slope–intercept form.
+  assert.equal((await solvePlain('2x + 3y = 6', 'auto')).answer, 'y = -2/3*x + 2');
+});
+
 test('exponentials in numbers keep their own solver', async () => {
   for (const [p, answer] of [
     ['e^(0*x) = 1', 'All real numbers (identity — true for every x)'],

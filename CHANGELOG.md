@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (was 2/(x + 1/3)), "6xy = 3y + 2" is y = 2/(6x - 3) (was
   1/(3(x - 1/2))).
 - "e^x = y" is y = e^x, not y = exp(x).
+- An equation linear in x with a letter coefficient is x = −B/A read off
+  its coefficients: "a*x = b*x + c" is x = c/(a - b), for a ≠ b (was
+  c/((a - b)(a/(a - b) - b/(a - b)))); "a*x = 0" is x = 0, for a ≠ 0.
 
 ## [1.71.0] - 2026-11-08
 
