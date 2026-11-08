@@ -33,7 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with a shorter line under it.
 - The page headings (Solver, My Progress, Settings, …) and the MasterMath
   name in the header and sidebar are blue (blue-800, blue-300 in dark
-  mode), like the home page's headings, instead of indigo.
+  mode), like the home page's headings, instead of indigo; so is My
+  Progress's "Problems Worked Through" card, whose two cards have thin
+  borders.
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").

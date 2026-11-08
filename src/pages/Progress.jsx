@@ -157,23 +157,23 @@ export default function Progress() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:gap-6 mb-8">
-        <Card className="bg-indigo-50 dark:bg-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-700/60">
+        <Card className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-700/60">
           <CardHeader>
-            <CardTitle className="text-indigo-700 dark:text-indigo-300 text-base md:text-lg">Problems Worked Through</CardTitle>
+            <CardTitle className="text-blue-800 dark:text-blue-300 text-base md:text-lg">Problems Worked Through</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl md:text-5xl font-bold text-indigo-600 dark:text-indigo-200" aria-busy={loading}>{loading ? '—' : stats.total}</p>
+            <p className="text-4xl md:text-5xl font-bold text-blue-700 dark:text-blue-200" aria-busy={loading}>{loading ? '—' : stats.total}</p>
             {/* The exports print the same count in the same words
                 (historyTotalsText); entries that are not solves are said
                 to be there, so the list below never outnumbers the card
                 without a reason. */}
             {!loading && stats.notSolved > 0 && (
-              <p className="mt-1 text-sm text-indigo-700 dark:text-indigo-300">of {problems.length} in history</p>
+              <p className="mt-1 text-sm text-blue-800 dark:text-blue-300">of {problems.length} in history</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-green-50 dark:bg-green-950/40 border-2 border-green-200 dark:border-green-700/60">
+        <Card className="bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-700/60">
           <CardHeader>
             <CardTitle className="text-green-700 dark:text-green-300 text-base md:text-lg">This Week</CardTitle>
           </CardHeader>
