@@ -38,7 +38,7 @@ const AMBER_THEME = {
   Icon: AlertTriangle,
   headerIcon: "text-amber-600 dark:text-amber-400",
   badge: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700",
-  card: "bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700",
+  card: "bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700",
   cardIcon: "text-amber-600 dark:text-amber-400",
   cardText: "text-gray-800 dark:text-amber-50",
   heading: "Result:",
@@ -49,7 +49,7 @@ const STATUS_THEMES = {
     Icon: CheckCircle2,
     headerIcon: "text-green-600 dark:text-green-400",
     badge: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-200 dark:border-green-700",
-    card: "bg-green-100 dark:bg-emerald-950/40 border-2 border-green-300 dark:border-emerald-700",
+    card: "bg-green-100 dark:bg-emerald-950/40 border border-green-300 dark:border-emerald-700",
     cardIcon: "text-green-600 dark:text-green-400",
     cardText: "text-gray-800 dark:text-emerald-50",
     heading: "Final Answer:",
@@ -58,7 +58,7 @@ const STATUS_THEMES = {
     Icon: AlertCircle,
     headerIcon: "text-red-600 dark:text-red-400",
     badge: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-200 dark:border-red-700",
-    card: "bg-red-50 dark:bg-red-950/40 border-2 border-red-300 dark:border-red-800",
+    card: "bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800",
     cardIcon: "text-red-600 dark:text-red-400",
     cardText: "text-gray-800 dark:text-red-50",
     heading: "What went wrong:",
@@ -92,7 +92,7 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
   // that a topic can still be chosen, with no switch to offer.
   if (routing.from === 'auto') {
     return (
-      <div className="flex items-start gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+      <div className="flex items-start gap-3 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
         <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-gray-800 dark:text-gray-100">
           <strong>Detected as {to}.</strong>{reason ? ` ${reason.charAt(0).toUpperCase()}${reason.slice(1)}.` : ''}{' '}
@@ -102,7 +102,7 @@ function RoutingNotice({ routing, currentTopic, onSwitchTopic }) {
     );
   }
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/40">
       <div className="flex items-start gap-3 flex-1 min-w-0">
         <ArrowLeftRight className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-gray-800 dark:text-gray-100">
@@ -349,7 +349,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   };
   if (!solution) {
     return (
-      <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
         <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-green-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
             <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -376,7 +376,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
 
   return (
     <motion.div {...cardMotion}>
-      <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
         <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-green-50 dark:bg-gray-700">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
@@ -514,7 +514,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
           )}
 
           {solution.answer && allRevealed && (
-            <div className={`p-5 rounded-xl ${theme.card}`}>
+            <div className={`p-5 rounded-lg ${theme.card}`}>
               {/* The icon sits with the heading, not beside the whole card: the
                   answer then has the card's full width to wrap in, which on a
                   phone is the difference between a formula that fits and one

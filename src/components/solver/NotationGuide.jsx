@@ -86,7 +86,7 @@ function NotationDialog({ onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-indigo-200 dark:border-gray-700 p-5 sm:p-6 max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto animate-in zoom-in-95"
+        className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-5 sm:p-6 max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto animate-in zoom-in-95"
       >
         <div className="flex items-start justify-between gap-3 mb-3">
           <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-gray-100">Notation guide</h2>

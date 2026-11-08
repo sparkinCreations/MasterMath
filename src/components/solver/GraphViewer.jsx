@@ -417,7 +417,7 @@ export default function GraphViewer({ functionData }) {
   );
 
   return (
-    <Card className="bg-white dark:bg-gray-800 border-2 border-indigo-200 dark:border-gray-700 shadow-lg rounded-xl">
+    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
       <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-blue-50 dark:bg-gray-700">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2 text-xl text-gray-900 dark:text-gray-100">

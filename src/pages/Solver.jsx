@@ -242,7 +242,7 @@ export default function Solver() {
           same order: input, graph, solution. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-indigo-200 dark:border-gray-700 shadow-lg">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
             <ProblemInput
               problem={problem}
               setProblem={setProblem}
@@ -270,7 +270,7 @@ export default function Solver() {
           </div>
 
           {nudge && solution && (
-            <div role="note" className="flex flex-wrap items-center gap-3 p-4 rounded-xl border-2 border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100">
+            <div role="note" className="flex flex-wrap items-center gap-3 p-4 rounded-lg border border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100">
               <Lightbulb className="w-5 h-5 text-amber-500 shrink-0" aria-hidden="true" />
               <p className="text-sm flex-1 min-w-48">{nudge.message}</p>
               <div className="flex flex-wrap gap-2">

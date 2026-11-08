@@ -223,7 +223,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
         <Select id="topic" value={topic} onValueChange={setTopic}>
           <SelectTrigger
             aria-labelledby="topic-label topic"
-            className="h-12 text-lg border-2 border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500 rounded-xl"
+            className="h-12 text-lg border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg"
           >
             <SelectValue placeholder="Select a topic">
               {selectedLabel}
@@ -281,9 +281,9 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           onChange={handleProblemChange}
           onKeyDown={handleKeyDown}
           placeholder={topic ? PLACEHOLDERS[topic] : "Select a topic first, then enter your problem..."}
-          className={`min-h-32 text-lg border-2 scroll-mt-24 md:scroll-mt-0 ${
-            validationError ? 'border-red-300 focus:border-red-400' : 'border-indigo-200 dark:border-gray-600 focus:border-indigo-400 dark:focus:border-indigo-500'
-          } rounded-xl p-4 resize-none`}
+          className={`min-h-32 text-lg border scroll-mt-24 md:scroll-mt-0 ${
+            validationError ? 'border-red-400 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400'
+          } rounded-lg p-4 resize-none`}
           maxLength={1000}
           // The keypad types instead: the phone's own keyboard stays closed.
           inputMode={keypadOpen ? 'none' : undefined}
@@ -353,7 +353,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       <Button
         onClick={handleSolve}
         disabled={!problem.trim() || !topic || isLoading}
-        className="w-full h-14 text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+        className="w-full h-14 text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-sm transition-colors rounded-lg"
       >
         {isLoading ? (
           <>
@@ -384,7 +384,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="w-full h-11 text-base font-semibold border-2 border-indigo-200 dark:border-gray-600 rounded-xl"
+          className="w-full h-11 text-base font-semibold border border-gray-300 dark:border-gray-600 rounded-lg"
         >
           Cancel
         </Button>
@@ -406,7 +406,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
               // the card's content is hidden from assistive tech, so the
               // problem is announced once, not again as MathML.
               aria-label={`${TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}: ${ex.problem}`}
-              className={`text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-gray-700/60 dark:hover:bg-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
+              className={`text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-gray-700/60 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
             >
               <span aria-hidden="true">
                 <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}

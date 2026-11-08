@@ -12,7 +12,7 @@ export default function SymbolStrip({ id, group, onGroupChange, onInsert }) {
   return (
     <div
       id={id}
-      className="space-y-2 p-2 rounded-xl border-2 border-indigo-100 dark:border-gray-700 bg-indigo-50/60 dark:bg-gray-900/40"
+      className="space-y-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40"
     >
       {/* Four equal pills on one row, so the row never wraps on a phone. */}
       <div role="group" aria-label="Symbol group" className="grid grid-cols-4 gap-1.5">
