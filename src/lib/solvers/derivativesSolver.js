@@ -21,6 +21,8 @@ import {
   realOddRoots,
   mark,
   splitTerms,
+  constantRequirements,
+  conditionsReason,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -65,6 +67,20 @@ export async function solveDerivative(expression, options = {}) {
   if (result && exact !== expression) {
     const [from, to] = [beautify(exact), beautify(expression)];
     result.steps = (result.steps || []).map((t) => (typeof t === 'string' ? t.split(from).join(to) : t));
+  }
+  // Constants (1.73.0): what f needs of them is what f′ needs, said on the
+  // answer: d/dx aˣ = aˣ·ln(a), for a > 0. A domain the answer already gives
+  // ("x > 0") joins the same "for".
+  if (result && typeof result.answer === 'string' && !result.status && !/does not exist|undefined|not defined/.test(result.answer)) {
+    const v = options.variable || options.evalAt?.variable || extractVariable(expression);
+    // From f, and from the answer's own form (2·ln(a)·x needs a > 0).
+    const rhs = result.answer.replace(/^[^=]*=\s*/, '').replace(new RegExp(`,\\s*${v}\\s*[<>≤≥≠].*$`), '').replace(/√\(/g, 'sqrt(').replace(/√([a-z0-9]+)/gi, 'sqrt($1)').replace(/≈.*$/, '');
+    const reqs = [...new Set([...constantRequirements(expression, v), ...constantRequirements(rhs, v)])];
+    if (reqs.length) {
+      const domain = result.answer.match(new RegExp(`^(.*?),\\s*(${v}\\s*[<>≤≥≠].*)$`));
+      result.answer = domain ? `${domain[1]}, for ${domain[2]} and ${reqs.join(' and ')}` : `${result.answer}, for ${reqs.join(' and ')}`;
+      result.steps = [...(result.steps || []), `This holds for ${reqs.map((r) => mark(r)).join(' and ')}: ${conditionsReason(reqs)}.`];
+    }
   }
   if (result && result.status !== 'parse_error' && String(expression).trim()) {
     const variable = options.variable || options.evalAt?.variable || extractVariable(expression);

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.73.0] - 2026-11-08
+
+### Added
+- A definite integral with constants is worked with them left as letters:
+  "integral of a*x dx from 0 to 1" is a/2, "e^(k*x) from 0 to 1" is
+  (e^k - 1)/k, for k ≠ 0, with the k = 0 case worked (the integral is 1).
+  Every such integral was refused as "Improper integral — could not
+  evaluate the one-sided limits at the singularity": there was no
+  singularity, the numeric check could not sample a letter. Worked only
+  when the integrand is defined at every x for every allowed value of the
+  constants; the antiderivative is checked by differentiating it back in
+  every letter and the value by quadrature at several values of the
+  constants. One that could have a pole for some value ("1/(x + a) from 0
+  to 1") is refused, saying why.
+
+### Fixed
+- Answers in constants say when they hold, everywhere the systematic
+  stress test found they did not (shared `utils/conditions.js`, read off
+  the parse tree):
+  - An integral with a constant divisor: ∫sin(a·x) dx = −cos(a·x)/a + C,
+    for a ≠ 0, with the a = 0 case worked (the integrand is 0).
+    ∫aˣ dx = aˣ/ln(a) + C, for a > 0 and a ≠ 1.
+  - A derivative with a constant base or logarithm: d/dx aˣ = aˣ·ln(a),
+    for a > 0; d/dx x²·ln(a·x) for x > 0 and a > 0.
+  - An even root written as a power: x⁴ = a is ±a^(1/4), for a ≥ 0.
+- The quadratic formula in letters reads as a textbook writes it:
+  "a*x^2 + b*x + c = 0" is x = (−b ± √(b² − 4ac))/(2a), for a ≠ 0 and
+  b² − 4ac ≥ 0 (was −½·(b²/a² − 4c/a)^(1/2) − b/(2a), for a² ≠ 0 and a ≠ 0
+  and 2a ≠ 0), and a step says that at a = 0 the equation is b·x + c = 0.
+  A condition that always holds (8 + k² ≥ 0) is not stated, and 2a ≠ 0 is
+  a ≠ 0.
+
 ## [1.72.3] - 2026-11-08
 
 ### Fixed

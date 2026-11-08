@@ -30,6 +30,9 @@ import {
   bareFunctionRefusal,
   readAsText,
   exactDecimals,
+  constantRequirements,
+  conditionsReason,
+  math,
 } from './solverUtils.js';
 import { extractVariable, extractFunctionFromProblem, parseMathExpression } from '../mathParser.js';
 import { derivativeMatchesNumerically } from './substitutionSolver.js';
@@ -340,11 +343,37 @@ async function solveIndefiniteIntegral(expression, variableOverride) {
     steps = steps.map(unbar);
     shownIntegral = unbar(shownIntegral);
     // ∫(x − x) dx: the antiderivative is the constant alone, not "0 + C".
-    const answer = `∫(${beautify(expression)}) d${variable} ${perTerm.some((r) => r.approximate) ? '≈' : '='} ${shownIntegral.trim() === '0' ? 'C' : `${shownIntegral} + C`}`;
+    let answer = `∫(${beautify(expression)}) d${variable} ${perTerm.some((r) => r.approximate) ? '≈' : '='} ${shownIntegral.trim() === '0' ? 'C' : `${shownIntegral} + C`}`;
+    // Constants (1.73.0): the answer says when it holds, as an equation's
+    // does. ∫sin(a·x) dx = −cos(a·x)/a + C is for a ≠ 0 (at a = 0 the
+    // integrand is 0); ∫aˣ dx = aˣ/ln(a) + C for a > 0 and a ≠ 1. The case a
+    // constant excludes is worked in a step of its own.
+    const coreAnswer = answer;
+    const reqs = [...new Set([...constantRequirements(expression, variable), ...constantRequirements(integral, variable)])];
+    if (reqs.length && shownIntegral.trim() !== '0') {
+      for (const r of reqs) {
+        const pos = r.match(/^([a-z]) > 0$/i);
+        if (pos) answer = answer.replace(new RegExp(`ln\\|${pos[1]}\\|`, 'g'), `ln(${pos[1]})`);
+      }
+      answer = `${answer}, for ${reqs.join(' and ')}`;
+      steps.push(`This holds for ${reqs.map((r) => mark(r)).join(' and ')}: ${conditionsReason(reqs)}.`);
+      for (const r of reqs) {
+        const zero = r.match(/^([a-z]) ≠ 0$/i);
+        if (!zero) continue;
+        try {
+          const g0 = math.simplify(String(expression).replace(new RegExp(`(?<![a-z])${zero[1]}(?![a-z])`, 'g'), '0')).toString().replace(/\s*([*/])\s*/g, '$1');
+          const F0 = String(Algebrite.run(`simplify(integral(${g0}, ${variable}))`)).trim();
+          if (F0 && !/stop|error|nil|integral/i.test(F0)) {
+            const shown = F0 === '0' ? 'C' : `${lnify(F0)} + C`;
+            steps.push(`If ${mark(`${zero[1]} = 0`)}, the integrand is ${mark(beautify(g0))}, and its integral is ${mark(shown)} instead.`);
+          }
+        } catch { /* the condition still stands */ }
+      }
+    }
     // The second insight works this integral (outside review, 1.61.0): the
     // pieces the steps chose — u and du, u and dv, the split into partial
     // fractions, the trig substitution — and the result.
-    const here = workedIntegral(method, stripMathMarkers(steps.join('\n')), answer);
+    const here = workedIntegral(method, stripMathMarkers(steps.join('\n')), coreAnswer);
     if (here && method !== 'erf') tips.splice(method === 'tan reduction' ? 0 : 1, 0, here);
     return {
       steps,
