@@ -193,7 +193,8 @@ export default function UserManual() {
               Problems with a variable get an interactive graph.
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-              <li><strong>Zoom:</strong> Use the + and - buttons to zoom in and out; the curve is redrawn for every window, so it stays smooth</li>
+              <li><strong>Zoom:</strong> Pinch with two fingers, hold Ctrl (⌘ on a Mac) and scroll, or use the + and - buttons. A pinch or a scroll zooms about the point under your fingers or pointer; the curve is redrawn for every window, so it stays smooth</li>
+              <li><strong>Expand:</strong> The expand button opens the graph to fill the screen, with the same view and controls; Escape or the close button brings it back</li>
               <li><strong>Pan:</strong> Drag the graph with a mouse or finger, or use the arrow buttons</li>
               <li><strong>Fit key features:</strong> The target button frames the marked roots, turning points and asymptotes</li>
               <li><strong>Reset:</strong> Return to the starting view</li>

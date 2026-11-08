@@ -895,6 +895,63 @@ test.describe('MasterMath smoke', () => {
     expect(pdf).toContain('Problems worked through: 1');
   });
 
+  // 1.72.0: zoom by gesture about the pointer, and the graph popped out.
+  test('graph: Ctrl + wheel and pinch zoom about a point, a plain wheel scrolls the page, Expand fills the screen', async ({ page, isMobile }) => {
+    await openSolver(page);
+    await page.locator('#problem').fill('x^3 - 3x');
+    await page.getByRole('button', { name: 'Solve Problem' }).click();
+    const graph = page.getByRole('img', { name: /^Graph of/ });
+    await expect(graph).toBeVisible();
+    const ticks = () => page.locator('[data-export-graph] .recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value').evaluateAll((els) => els.map((e) => e.textContent).join(' '));
+    await expect.poll(ticks).toBe('-10 -5 0 5 10');
+    const box = await graph.boundingBox();
+    // Two fingers moving apart about the middle: the window narrows about 0.
+    const cx = box.x + 60 + (box.width - 70) / 2;
+    const cy = box.y + box.height / 2;
+    await graph.evaluate((el, { cx, cy }) => {
+      const ev = (type, id, x) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: cy, bubbles: true, isPrimary: id === 1, button: 0 }));
+      ev('pointerdown', 1, cx - 20); ev('pointerdown', 2, cx + 20);
+      for (let k = 1; k <= 5; k += 1) { ev('pointermove', 1, cx - 20 - k * 16); ev('pointermove', 2, cx + 20 + k * 16); }
+      ev('pointerup', 1, cx - 100); ev('pointerup', 2, cx + 100);
+    }, { cx, cy });
+    await expect.poll(ticks).toBe('-2 -1 0 1 2');
+    await page.getByRole('button', { name: 'Reset view' }).click();
+    await expect.poll(ticks).toBe('-10 -5 0 5 10');
+    if (!isMobile) {
+      // A plain wheel scrolls the page and says how to zoom; the graph stays.
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      const before = await page.evaluate(() => window.scrollY);
+      await page.mouse.wheel(0, 200);
+      await expect(page.getByText(/Hold (Ctrl|⌘) and scroll to zoom/)).toBeVisible();
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
+      expect(await ticks()).toBe('-10 -5 0 5 10');
+      // Ctrl + wheel zooms about the pointer: a quarter across, x = -5 stays.
+      const b = await graph.boundingBox();
+      await page.mouse.move(b.x + 60 + (b.width - 70) * 0.25, b.y + b.height / 2);
+      const scrolled = await page.evaluate(() => window.scrollY);
+      await page.keyboard.down('Control');
+      await page.mouse.wheel(0, -350);
+      await page.keyboard.up('Control');
+      await expect.poll(ticks).not.toBe('-10 -5 0 5 10');
+      expect(await ticks()).toContain('-5');
+      expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+    }
+    // Expand: a dialog with the graph, taller than the card's; Escape closes
+    // it and focus returns to the button.
+    const expand = page.getByRole('button', { name: 'Expand graph' });
+    const inlineHeight = box.height;
+    await expand.click();
+    const dialog = page.getByRole('dialog', { name: /^Graph of/ });
+    await expect(dialog).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close expanded graph' })).toBeFocused();
+    await expect.poll(async () => (await dialog.getByRole('img', { name: /^Graph of/ }).boundingBox()).height).toBeGreaterThan(inlineHeight);
+    await expect(page.locator('[data-export-graph]')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(expand).toBeFocused();
+    await expect(graph).toBeVisible();
+  });
+
   // October 2026 roadmap P2: the PDF is the typeset solution and the graph
   // (images of the page, pdfTypeset.js) with a searchable text layer — not
   // the plain-text fallback. Dark mode too: the PDF is printed light.

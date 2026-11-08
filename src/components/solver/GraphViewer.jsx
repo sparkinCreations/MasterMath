@@ -1,13 +1,13 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useId } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot, ReferenceArea, usePlotArea, useXAxisScale } from "recharts";
-import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Focus, Rows3 } from "lucide-react";
+import { TrendingUp, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Focus, Rows3, Expand, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GraphEmptyState from "@/components/solver/GraphEmptyState";
 import { useDarkMode } from "@/contexts/DarkModeContext";
 import { graphPalette } from "@/lib/graphPalette";
 import { describeGraph, describeGraphFeatures } from "@/lib/graphDescription";
-import { sampleCurve, implicitCurve, featureWindow, annotationFeatureXs, intersectionPoints, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, niceTicks, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels } from "@/lib/graphSampling";
+import { sampleCurve, implicitCurve, featureWindow, annotationFeatureXs, intersectionPoints, annotationFeatureYs, robustYWindow, tameWindow, growthWindow, niceTicks, estimateLabelWidth, formatLineX, placePointLabel, layoutLineLabels, zoomWindow } from "@/lib/graphSampling";
 
 // A ReferenceDot label placed where it fits inside the plot (placePointLabel).
 // Recharts renders this with the dot's box as `viewBox`; the props are named
@@ -89,6 +89,11 @@ function startWindow(functionData) {
 }
 const HEIGHTS = [240, 320, 400, 480, 560];
 const DEFAULT_HEIGHT_IDX = 1; // 320px
+// The narrowest x-window zoom reaches (the zoom-in button's old limit).
+const MIN_SPAN = 1;
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '');
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 export default function GraphViewer({ functionData }) {
   const { isDarkMode } = useDarkMode();
@@ -108,6 +113,10 @@ export default function GraphViewer({ functionData }) {
   // Second y-axis for the dashed curve: null = automatic (separate when the
   // two curves' visible ranges differ by more than 4×), true/false = chosen.
   const [separateAxes, setSeparateAxes] = useState(null);
+  // The graph popped out to fill the screen (1.72.0): same view, same
+  // controls, as tall as the screen allows.
+  const [expanded, setExpanded] = useState(false);
+  const [expandedHeight, setExpandedHeight] = useState(0);
 
   // New problem → reset the viewport.
   useEffect(() => {
@@ -198,7 +207,8 @@ export default function GraphViewer({ functionData }) {
     const observer = new ResizeObserver(([entry]) => setChartWidth(entry.contentRect.width));
     observer.observe(el);
     return () => observer.disconnect();
-  }, [functionData]);
+  }, [functionData, expanded]);
+  const chartHeight = expanded && expandedHeight ? expandedHeight : HEIGHTS[heightIdx];
   // On first draw, widen the x-window until the curve's whole height fits
   // at that scale (a circle in a wide plot needs more x than y).
   const fittedImplicit = useRef(null);
@@ -210,20 +220,20 @@ export default function GraphViewer({ functionData }) {
     const y0 = functionData.implicitYWindow;
     if (!x0 || !y0) return;
     const plotW = Math.max(50, chartWidth - 70);
-    const plotH = Math.max(50, HEIGHTS[heightIdx] - 45);
+    const plotH = Math.max(50, chartHeight - 45);
     const span = Math.max(x0.xMax - x0.xMin, (y0.yMax - y0.yMin) * (plotW / plotH));
     const centre = (x0.xMin + x0.xMax) / 2;
     setRange({ xMin: centre - span / 2, xMax: centre + span / 2 });
-  }, [implicit, chartWidth, functionData, heightIdx, refit]);
+  }, [implicit, chartWidth, functionData, chartHeight, refit]);
   const implicitAutoY = useMemo(() => {
     const y0 = functionData?.implicitYWindow;
     if (!implicit || !y0) return null;
     const plotW = Math.max(50, (chartWidth || 600) - 70);
-    const plotH = Math.max(50, HEIGHTS[heightIdx] - 45);
+    const plotH = Math.max(50, chartHeight - 45);
     const centre = (y0.yMin + y0.yMax) / 2;
     const half = ((range.xMax - range.xMin) * (plotH / plotW)) / 2;
     return { yMin: centre - half, yMax: centre + half };
-  }, [implicit, functionData, range, chartWidth, heightIdx]);
+  }, [implicit, functionData, range, chartWidth, chartHeight]);
   const autoY = useMemo(
     () => implicitAutoY || robustYWindow(mergedPoints, useRightAxis ? ['y'] : ['y', 'y2'], [
       ...annotationFeatureYs(functionData, 'primary'),
@@ -342,10 +352,28 @@ export default function GraphViewer({ functionData }) {
   const [dragging, setDragging] = useState(false);
   const onPointerDown = (e) => {
     if (e.button !== undefined && e.button !== 0) return;
-    drag.current = { x: e.clientX, y: e.clientY, range, yWin: yDomain || autoY, pointerType: e.pointerType, moved: false };
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not supported */ }
+    if (e.pointerType === 'touch') {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.current.size === 2) {
+        // A second finger: the drag becomes a pinch.
+        drag.current = null;
+        setDragging(false);
+        const { distance, mid } = pinchState();
+        pinch.current = { distance: Math.max(distance, 1), mid, base: { range, yWin: yDomain } };
+        return;
+      }
+      if (touches.current.size > 2) return;
+    }
+    drag.current = { x: e.clientX, y: e.clientY, range, yWin: yDomain || autoY, pointerType: e.pointerType, moved: false };
   };
   const onPointerMove = (e) => {
+    if (touches.current.has(e.pointerId)) touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current && touches.current.size === 2) {
+      const { distance } = pinchState();
+      if (distance > 0) zoomFrom(pinch.current.base, pinch.current.distance / distance, pinch.current.mid);
+      return;
+    }
     const d = drag.current;
     if (!d) return;
     const dx = e.clientX - d.x;
@@ -367,9 +395,140 @@ export default function GraphViewer({ functionData }) {
       setYDomain({ yMin: d.yWin.yMin + yShift, yMax: d.yWin.yMax + yShift });
     }
   };
-  const onPointerUp = () => {
+  const onPointerUp = (e) => {
+    touches.current.delete(e?.pointerId);
+    if (touches.current.size < 2) pinch.current = null;
     drag.current = null;
     setDragging(false);
+  };
+
+  // Zoom about a point (1.72.0): the x under the cursor, or between two
+  // fingers, stays where it is while the window narrows or widens around it.
+  // `base` is the view the gesture started from (a pinch scales from where it
+  // began, not step by step); fx, fy are the point's place across and down
+  // the plot, 0 to 1. A y-window set by hand is scaled about the point too;
+  // an automatic one keeps fitting the curve.
+  const plotBox = () => {
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const left = 60;
+    const right = (useRightAxis ? 60 : 0) + 10;
+    return { left: rect.left + left, top: rect.top + 5, width: Math.max(50, rect.width - left - right), height: Math.max(50, rect.height - 40) };
+  };
+  const pointAt = (clientX, clientY) => {
+    const box = plotBox();
+    if (!box) return { fx: 0.5, fy: 0.5 };
+    return { fx: clamp((clientX - box.left) / box.width, 0, 1), fy: clamp((clientY - box.top) / box.height, 0, 1) };
+  };
+  const zoomFrom = (base, factor, at) => {
+    const next = zoomWindow(base, factor, at, { extent: xExtent, minSpan: MIN_SPAN });
+    setRange(next.range);
+    if (next.yWin) setYDomain(next.yWin);
+  };
+
+  // Two fingers on the graph pinch-zoom it. touch-action: pan-y already kept
+  // the browser from pinch-zooming the page there, so the gesture was unused;
+  // one finger still scrolls the page and drags the graph sideways.
+  const touches = useRef(new Map());
+  const pinch = useRef(null);
+  const pinchState = () => {
+    const [a, b] = [...touches.current.values()];
+    return { distance: Math.hypot(a.x - b.x, a.y - b.y), mid: pointAt((a.x + b.x) / 2, (a.y + b.y) / 2) };
+  };
+
+  // Ctrl (or ⌘) + wheel zooms, and so does a trackpad pinch: Chrome and Edge
+  // send it as a wheel with ctrlKey, Safari as gesture events. A plain wheel
+  // scrolls the page as always, and shows how to zoom: a graph that took the
+  // wheel would trap anyone scrolling past it.
+  const [wheelHint, setWheelHint] = useState(false);
+  const hintTimer = useRef(null);
+  const zoomRef = useRef(null);
+  zoomRef.current = { zoomFrom, pointAt, range, yWin: yDomain };
+  useEffect(() => {
+    const el = chartRef.current;
+    if (!el) return undefined;
+    const onWheel = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) {
+        setWheelHint(true);
+        clearTimeout(hintTimer.current);
+        hintTimer.current = setTimeout(() => setWheelHint(false), 1500);
+        return;
+      }
+      e.preventDefault();
+      const z = zoomRef.current;
+      const pixels = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+      z.zoomFrom({ range: z.range, yWin: z.yWin }, Math.exp(clamp(pixels, -200, 200) * 0.002), z.pointAt(e.clientX, e.clientY));
+    };
+    let gesture = null;
+    const onGestureStart = (e) => {
+      e.preventDefault();
+      const z = zoomRef.current;
+      gesture = { base: { range: z.range, yWin: z.yWin }, at: z.pointAt(e.clientX, e.clientY) };
+    };
+    const onGestureChange = (e) => {
+      e.preventDefault();
+      if (gesture && e.scale > 0) zoomRef.current.zoomFrom(gesture.base, 1 / e.scale, gesture.at);
+    };
+    const onGestureEnd = (e) => { e.preventDefault(); gesture = null; };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('gesturestart', onGestureStart);
+    el.addEventListener('gesturechange', onGestureChange);
+    el.addEventListener('gestureend', onGestureEnd);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('gesturestart', onGestureStart);
+      el.removeEventListener('gesturechange', onGestureChange);
+      el.removeEventListener('gestureend', onGestureEnd);
+      clearTimeout(hintTimer.current);
+    };
+  }, [functionData, expanded]);
+
+  // The expanded view: Escape closes it, Tab stays inside, the page behind
+  // does not scroll, and focus goes back to the Expand button on close.
+  const expandButtonRef = useRef(null);
+  const closeRef = useRef(null);
+  const dialogRef = useRef(null);
+  const plotAreaRef = useRef(null);
+  const titleId = useId();
+  useEffect(() => {
+    if (!expanded) return undefined;
+    const opener = expandButtonRef.current;
+    closeRef.current?.focus();
+    const { overflow } = document.body.style;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = overflow;
+      // The button is re-created when the inline card comes back; focus it
+      // once it has.
+      requestAnimationFrame(() => (expandButtonRef.current || opener)?.focus());
+    };
+  }, [expanded]);
+  // The plot fills what the dialog leaves below its header.
+  useEffect(() => {
+    const el = plotAreaRef.current;
+    if (!expanded || !el || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(([entry]) => setExpandedHeight(Math.max(240, Math.floor(entry.contentRect.height))));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [expanded]);
+  const onDialogKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      setExpanded(false);
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(dialogRef.current?.querySelectorAll(FOCUSABLE) || []);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   };
 
   // Theme-aware colors (lib/graphPalette.js; the PDF export recolours a
@@ -416,50 +575,7 @@ export default function GraphViewer({ functionData }) {
     </Button>
   );
 
-  return (
-    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
-      <CardHeader className="border-b border-gray-100 dark:border-gray-700">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="flex items-center gap-2 text-xl text-gray-900 dark:text-gray-100">
-            <TrendingUp className="w-6 h-6 text-indigo-600" />
-            {functionData.title || "Graph View"}
-          </CardTitle>
-          <div className="flex items-center gap-0.5 flex-wrap" role="group" aria-label="Graph view controls">
-            {ctrl(() => panX(-1), "Pan left", ChevronLeft)}
-            {ctrl(() => panX(1), "Pan right", ChevronRight)}
-            {ctrl(() => panY(1), "Pan up", ChevronUp)}
-            {ctrl(() => panY(-1), "Pan down", ChevronDown)}
-            {ctrl(zoomIn, "Zoom in", ZoomIn)}
-            {ctrl(zoomOut, "Zoom out", ZoomOut)}
-            {ctrl(taller, "Taller graph", Maximize2)}
-            {ctrl(shorter, "Shorter graph", Minimize2)}
-            {annotationFeatureXs(functionData).length > 0 && ctrl(fitFeatures, "Fit key features", Focus)}
-            {hasSecondary && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-8 w-8 ${useRightAxis ? 'bg-indigo-100 dark:bg-gray-600' : ''}`}
-                onClick={() => setSeparateAxes(!useRightAxis)}
-                title={useRightAxis ? 'Use one y-axis for both curves' : `Separate y-axis for ${functionData.secondaryLabel ? functionData.secondaryLabel.split('=')[0].trim() : 'the dashed curve'}`}
-                aria-pressed={useRightAxis}
-              >
-                <Rows3 className="w-4 h-4" aria-hidden="true" />
-              </Button>
-            )}
-            {ctrl(resetZoom, "Reset view", RotateCcw)}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-6">
-        {/* Height is passed as an explicit prop (not a resized parent):
-            prop changes re-render synchronously, with no dependence on
-            ResizeObserver timing.
-
-            role="img" + aria-label present the whole chart as one described
-            picture. Recharts' internal SVG nodes are then hidden from the
-            accessibility tree, which is what we want: they carry no usable
-            semantics, and the "Key features" panel below is the readable
-            version of the same information. */}
+  const chart = (
         <div
           role="img"
           aria-label={chartLabel}
@@ -469,9 +585,19 @@ export default function GraphViewer({ functionData }) {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          className="relative"
           style={{ touchAction: 'pan-y', cursor: dragging ? 'grabbing' : 'grab' }}
         >
-          <ResponsiveContainer width="100%" height={HEIGHTS[heightIdx]}>
+          {/* How to zoom with a wheel, shown briefly when one scrolls over
+              the graph (the page scrolls; the graph does not take the wheel). */}
+          {wheelHint && (
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+              <span className="rounded-lg bg-gray-900/80 px-3 py-2 text-sm font-medium text-white">
+                Hold {isMac() ? '⌘' : 'Ctrl'} and scroll to zoom
+              </span>
+            </div>
+          )}
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart data={mergedPoints}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis
@@ -726,6 +852,77 @@ export default function GraphViewer({ functionData }) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+  );
+
+  const controls = (
+    <div className="flex items-center gap-0.5 flex-wrap" role="group" aria-label="Graph view controls">
+      {ctrl(() => panX(-1), "Pan left", ChevronLeft)}
+      {ctrl(() => panX(1), "Pan right", ChevronRight)}
+      {ctrl(() => panY(1), "Pan up", ChevronUp)}
+      {ctrl(() => panY(-1), "Pan down", ChevronDown)}
+      {ctrl(zoomIn, "Zoom in", ZoomIn)}
+      {ctrl(zoomOut, "Zoom out", ZoomOut)}
+      {!expanded && ctrl(taller, "Taller graph", Maximize2)}
+      {!expanded && ctrl(shorter, "Shorter graph", Minimize2)}
+      {annotationFeatureXs(functionData).length > 0 && ctrl(fitFeatures, "Fit key features", Focus)}
+      {hasSecondary && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`h-8 w-8 ${useRightAxis ? 'bg-indigo-100 dark:bg-gray-600' : ''}`}
+          onClick={() => setSeparateAxes(!useRightAxis)}
+          title={useRightAxis ? 'Use one y-axis for both curves' : `Separate y-axis for ${functionData.secondaryLabel ? functionData.secondaryLabel.split('=')[0].trim() : 'the dashed curve'}`}
+          aria-pressed={useRightAxis}
+        >
+          <Rows3 className="w-4 h-4" aria-hidden="true" />
+        </Button>
+      )}
+      {ctrl(resetZoom, "Reset view", RotateCcw)}
+    </div>
+  );
+  const title = (
+    <>
+      <TrendingUp className="w-6 h-6 text-indigo-600" aria-hidden="true" />
+      {functionData.title || "Graph View"}
+    </>
+  );
+
+  return (
+    <>
+    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
+      <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl text-gray-900 dark:text-gray-100">
+            {title}
+          </CardTitle>
+          <div className="flex items-center gap-0.5 flex-wrap">
+            {!expanded && controls}
+            {/* Pop the graph out to fill the screen, with the same view. */}
+            <Button ref={expandButtonRef} variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpanded(true)} title="Expand graph" aria-haspopup="dialog" aria-expanded={expanded}>
+              <Expand className="w-4 h-4" aria-hidden="true" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-6">
+        {expanded ? (
+          // While the graph is popped out, its place keeps its height so the
+          // page does not jump.
+          <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300" style={{ height: HEIGHTS[heightIdx] }}>
+            The graph is open in the expanded view.
+          </div>
+        ) : (
+          <>
+            {/* Height is passed as an explicit prop (not a resized parent):
+                prop changes re-render synchronously, with no dependence on
+                ResizeObserver timing.
+
+                role="img" + aria-label present the whole chart as one described
+                picture. Recharts' internal SVG nodes are then hidden from the
+                accessibility tree, which is what we want: they carry no usable
+                semantics, and the "Key features" panel below is the readable
+                version of the same information. */}
+            {chart}
         {/* Legend for dual curves */}
         {(hasSecondary || implicit) && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm" aria-hidden="true">
@@ -763,7 +960,50 @@ export default function GraphViewer({ functionData }) {
             {functionData.description}
           </p>
         )}
+          </>
+        )}
       </CardContent>
     </Card>
+    {expanded && (
+      <div className="fixed inset-0 z-50 flex items-stretch justify-center sm:p-4" onKeyDown={onDialogKeyDown}>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-xs animate-in fade-in" onClick={() => setExpanded(false)} aria-hidden="true" />
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="relative flex flex-col w-full max-w-7xl bg-white dark:bg-gray-800 sm:rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 animate-in zoom-in-95"
+        >
+          <div className="flex items-center justify-between flex-wrap gap-2 px-4 sm:px-6 py-3 border-b border-gray-100 dark:border-gray-700">
+            <h2 id={titleId} className="flex items-center gap-2 text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+            <div className="flex items-center gap-0.5 flex-wrap">
+              {controls}
+              <Button ref={closeRef} variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpanded(false)} title="Close expanded graph">
+                <X className="w-5 h-5" aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-6 pt-3 pb-3">
+            <div ref={plotAreaRef} className="flex-1 min-h-0">{chart}</div>
+        {/* Legend for dual curves */}
+        {(hasSecondary || implicit) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm" aria-hidden="true">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-0.5 bg-indigo-600" />
+              <span className="text-gray-600 dark:text-gray-400">{implicit ? implicit.label : 'f(x)'}</span>
+            </div>
+            {hasSecondary && (
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 border-t-2 border-dashed border-green-500" />
+                <span className="text-gray-600 dark:text-gray-400">{functionData.secondaryLabel || 'Secondary'}{useRightAxis ? ' (right axis)' : ''}</span>
+              </div>
+            )}
+          </div>
+        )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

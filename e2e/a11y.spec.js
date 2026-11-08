@@ -132,6 +132,16 @@ for (const scheme of ['light', 'dark']) {
       }
     });
 
+    test('the graph popped out (1.72.0)', async ({ page }) => {
+      await page.goto('/solver');
+      await page.locator('#problem').fill('x^3 - 3x');
+      await page.getByRole('button', { name: 'Solve Problem' }).click();
+      await expect(page.getByRole('img', { name: /^Graph of/ })).toBeVisible();
+      await page.getByRole('button', { name: 'Expand graph' }).click();
+      await expect(page.getByRole('dialog', { name: /^Graph of/ })).toBeVisible();
+      await audit(page, `expanded graph (${scheme})`);
+    });
+
     test('the solver with a validation error, and with a solution and graph', async ({ page }) => {
       await page.goto('/solver');
       { await page.getByText('Try an example:').waitFor(); const b = page.getByRole('button', { name: 'Algebra: 2*x + 5 = 11' }); if (!(await b.isVisible())) await page.getByRole('button', { name: /Show all \d+ examples/ }).click(); await b.click(); }

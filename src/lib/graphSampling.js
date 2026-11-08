@@ -560,3 +560,27 @@ export function implicitWindow(expression, xVar, yVar, { focus = null, limit = 1
   }
   return null;
 }
+
+// Zoom a view about a point (1.72.0): the x at fraction fx across the plot
+// (and the y at fy down it, when the y-window was set by hand) stays put
+// while the window is scaled by `factor` (< 1 zooms in). The x-span stays
+// within [minSpan, the extent's width] and the window inside the extent.
+// `base` is { range: { xMin, xMax }, yWin: { yMin, yMax } | null }.
+export function zoomWindow(base, factor, { fx = 0.5, fy = 0.5 } = {}, { extent = { min: -1000, max: 1000 }, minSpan = 1 } = {}) {
+  const span = base.range.xMax - base.range.xMin;
+  const maxSpan = extent.max - extent.min;
+  const newSpan = Math.min(maxSpan, Math.max(minSpan, span * factor));
+  const anchor = base.range.xMin + fx * span;
+  let xMin = anchor - fx * newSpan;
+  let xMax = xMin + newSpan;
+  if (xMin < extent.min) { xMin = extent.min; xMax = xMin + newSpan; }
+  if (xMax > extent.max) { xMax = extent.max; xMin = xMax - newSpan; }
+  let yWin = null;
+  if (base.yWin) {
+    const ySpan = base.yWin.yMax - base.yWin.yMin;
+    const k = newSpan / span;
+    const yAnchor = base.yWin.yMax - fy * ySpan;
+    yWin = { yMin: yAnchor - (1 - fy) * ySpan * k, yMax: yAnchor + fy * ySpan * k };
+  }
+  return { range: { xMin, xMax }, yWin };
+}

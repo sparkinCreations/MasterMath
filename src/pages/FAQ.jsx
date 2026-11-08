@@ -90,7 +90,7 @@ export default function FAQ() {
     },
     {
       question: "Can I zoom and pan on graphs?",
-      answer: "Yes. Drag to pan, use the zoom buttons, and press the target button to frame the marked points. The curve is redrawn for every window, and the reset button returns to the start."
+      answer: "Yes. Drag to pan; pinch, or hold Ctrl (⌘ on a Mac) and scroll, to zoom about a point, or use the zoom buttons. The target button frames the marked points, and the expand button opens the graph full screen. The curve is redrawn for every window, and the reset button returns to the start."
     },
     {
       question: "Why do I see two curves on my graph?",
