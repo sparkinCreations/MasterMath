@@ -90,7 +90,25 @@ const gluedWords = (word) => word.length >= 12 || /^(?:the|is|of)[a-z]{3,}/i.tes
 // Two or three letters side by side ("nx", "xy") are most often a product
 // typed without its *: say how to write it (r/mathematics, November 2026:
 // "lim x->0 sin(nx)/x" was refused without the fix in sight; 1.70.5).
-const productHint = (word) => (/^[a-z]{2,3}$/i.test(word) ? ` If you meant a product, write ${word.split('').join('*')}.` : '');
+// Letters side by side read as a product (1.71.0): two letters ("nx", "ab",
+// "kx") unless they are an English word or a differential ("dx"); three
+// only with two of x, y, z ("axy", "xyz"), so "box" and "tax" stay words.
+// solveProblem retries a parse error on such a word as the product; null
+// when the word is not one.
+const ENGLISH_PAIRS = new Set(['am', 'an', 'as', 'at', 'be', 'by', 'do', 'go', 'he', 'hi', 'if', 'in', 'is', 'it', 'me', 'my', 'no', 'of', 'oh', 'ok', 'on', 'or', 'so', 'to', 'up', 'us', 'we']);
+const notAProduct = (w) => !/^[a-z]{2,3}$/.test(w) || ENGLISH_PAIRS.has(w) || /^d[a-z]$/.test(w);
+export function lettersAsProduct(word) {
+  const w = String(word).toLowerCase();
+  if (notAProduct(w)) return null;
+  if (w.length === 3 && (w.match(/[xyz]/g) || []).length < 2) return null;
+  return w.split('').join('*');
+}
+// The hint for a word not read automatically ("abc"): only when it could be
+// a product, never for an English word ("box", "it") or "dx".
+const productHint = (word) => {
+  const w = String(word).toLowerCase();
+  return notAProduct(w) || /[eiou]/.test(w) ? '' : ` If you meant a product, write ${w.split('').join('*')}.`;
+};
 export const unknownWordHint = (word, problem) => (/\($/.test(word) ? unknownFunctionHint(word.slice(0, -1)) : gluedWords(word)
   ? 'The words in this problem could not be read as maths. Type the expression or equation itself, such as "x^3 - 3x" or "2x + 5 = 11", and choose a topic for what to do with it.'
   : `"${wordAsTyped(problem, word)}" is not a known function, constant or variable.${productHint(wordAsTyped(problem, word))} Variables are single letters (x, t, y); functions are sin, cos, ln, sqrt, …`);

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.71.0] - 2026-11-08
+
+### Added
+- Letters side by side are multiplied, as a textbook writes them: "nx" is
+  n·x, "ax^2 + bx + c = 0" takes the quadratic formula, "d/dx sin(kx)" is
+  k*cos(k*x), "factor a^2 + 2ab + b^2" is (a + b)^2. Two letters are read
+  this way unless they are an English word ("it", "go") or a differential
+  ("dx"); three only with two of x, y, z ("axy"), so "box" stays an
+  unknown word. The answer says how the letters were read ("Read "nx" as
+  n·x"). Stress-tested by retyping every product in the value-checked
+  problem set side by side.
+
+### Fixed
+- "d/dx sin(kx) at x = 0" answered f'(0) = 0, and "d/dx kx^2 at x = 1"
+  f'(1) = 0: a derivative at a point skipped the unknown-word check, so
+  "kx" was a constant. Both are checked now (k and 2k).
+- The "If you meant a product" hint is no longer offered for an English
+  word or "dx".
+
 ## [1.70.6] - 2026-11-08
 
 ### Fixed

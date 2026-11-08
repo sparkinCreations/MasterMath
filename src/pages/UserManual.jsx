@@ -76,7 +76,7 @@ export default function UserManual() {
               Type your math problem in the text area. Here are some formatting tips:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-              <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">*</code> for multiplication: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">2*x</code> (2x works too)</li>
+              <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">*</code> for multiplication: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">2*x</code> (2x works too, and ax is a·x)</li>
               <li>The <strong>Keypad</strong> button opens on-screen keys: digits, x and y, operators, brackets, powers and arrows. While it is open your phone's keyboard stays closed. It starts open on phones and tablets.</li>
               <li>The <strong>Symbols</strong> button opens one-tap symbols in four groups: Basic, Algebra, Calculus and Functions. Under the box, a preview shows how your problem was read, and Clear empties it.</li>
               <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">^</code> for exponents: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">x^2</code> for x² (x² works too)</li>
