@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Feedback form's Send, the FAQ and 404 links, and the selected symbol tab
   and history filter. In dark mode they are white with black text, so they
   stand out on the dark cards. Orange stays for the main action (Solve).
+- The home page's closing band is black (dark grey in dark mode), and the
+  "Master Math" slogans are gone: "Ready to Master Math?" is "Try it on
+  your own problem", "Everything You Need to Master Math" is "What
+  MasterMath Does", and the Solver's "Let's Master Some Math!" is "Solver",
+  with a shorter line under it.
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").

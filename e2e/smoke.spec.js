@@ -667,7 +667,7 @@ test.describe('MasterMath smoke', () => {
   test('every page is reachable from the sidebar and an unknown URL gets a not-found page', async ({ page }) => {
     await page.goto('/');
     for (const [path, heading] of [
-      ['/solver', /Master Some Math/],
+      ['/solver', /Type a problem from arithmetic to Calculus II/],
       ['/progress', /Problem History/],
       ['/usermanual', /User Manual|Manual/],
       ['/faq', /Frequently Asked|FAQ/],

@@ -229,10 +229,10 @@ export default function Solver() {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
-          Let's Master Some Math!
+          Solver
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">
-          Enter a supported math problem (the topic is detected, or choose one) — from arithmetic and algebra through precalculus and calculus — and you'll get a step-by-step solution
+          Type a problem from arithmetic to Calculus II. The topic is detected, or you can choose one, and every step is shown.
         </p>
       </div>
 

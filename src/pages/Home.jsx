@@ -168,7 +168,7 @@ export default function Home() {
           the one outbound request. */}
       <div>
         <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-3xl font-bold text-center text-blue-800 dark:text-blue-300 mb-2">
-          Everything You Need to Master Math
+          What MasterMath Does
         </h2>
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6 md:mb-8">
           Free, private, and all in your browser
@@ -260,24 +260,24 @@ export default function Home() {
 
       {/* CTA Section */}
       <div className="max-w-4xl mx-auto text-center px-2">
-        <div className="bg-indigo-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-2xl">
+        <div className="bg-gray-900 dark:bg-gray-800 dark:border dark:border-gray-700 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-xl">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">
-            Ready to Master Math?
+            Try it on your own problem
           </h2>
-          <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-6 md:mb-8">
-            Start solving for free — no account, no tracking, all on your device
+          <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-6 md:mb-8">
+            Free, with no account, and everything stays on your device
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
             <Button
               asChild
               size="lg"
-              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-white text-indigo-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300"
+              className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold bg-white text-gray-900 hover:bg-gray-200 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               {/* The wrapper's `inline-block` is gone on purpose: the button base
                   class supplies `inline-flex`, which is what centres the icons. */}
               <Link to={createPageUrl("Solver")}>
                 <Calculator className="w-5 h-5 mr-2" />
-                Start Solving Now
+                Open the Solver
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
