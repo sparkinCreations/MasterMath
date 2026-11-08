@@ -18,11 +18,11 @@ export default function FAQ() {
     },
     {
       question: "Does MasterMath work offline?",
-      answer: "Yes! MasterMath includes a service worker that caches the entire app for offline use. After your first visit, you can solve problems without an internet connection. All math calculations happen locally in your browser using JavaScript libraries, and your data is stored in IndexedDB, so everything is always accessible — even without Wi-Fi."
+      answer: "Yes! MasterMath includes a service worker that caches the entire app for offline use. After your first visit, you can solve problems without an internet connection. All math calculations happen locally in your browser using JavaScript libraries, and your data is stored in IndexedDB, so everything is always accessible, even without Wi-Fi."
     },
     {
       question: "Is my data private and secure?",
-      answer: "Yes. Solving and your problem history stay on your device in IndexedDB — we never see your math work. The only time anything is sent is if you choose to submit Feedback & Support (via Web3Forms); that is optional and documented in the Privacy Policy."
+      answer: "Yes. Solving and your problem history stay on your device in IndexedDB; we never see your math work. The only time anything is sent is if you choose to submit Feedback & Support (via Web3Forms); that is optional and documented in the Privacy Policy."
     },
     {
       question: "Is MasterMath AI?",
@@ -34,7 +34,7 @@ export default function FAQ() {
     },
     {
       question: "Can it solve word problems?",
-      answer: "No. Word problems are not supported: MasterMath works on the maths itself, typed as notation. Write the equation or expression the problem describes — a train that travels 120 miles in 2 hours has speed \"120/2\"; \"a number plus 7 is 12\" is \"x + 7 = 12\" — and it will solve that step by step."
+      answer: "No. Word problems are not supported: MasterMath works on the maths itself, typed as notation. Write the equation or expression the problem describes: a train that travels 120 miles in 2 hours has speed \"120/2\"; \"a number plus 7 is 12\" is \"x + 7 = 12\". MasterMath will solve that step by step."
     },
     {
       question: "Can I ask a question in words?",
@@ -54,7 +54,7 @@ export default function FAQ() {
     },
     {
       question: "How do I enter a definite integral?",
-      answer: "Either \"∫_0^1 x^2 dx\" (\"int_0^1 x^2 dx\" on a keyboard without ∫) or in words: \"integral of x^2 from 0 to 1\". The steps apply the Fundamental Theorem of Calculus and the value is cross-checked numerically. Improper integrals — an infinite bound such as \"∫_0^∞ e^(-x^2) dx\", or an integrand that blows up at an endpoint — are taken as limits, and a divergent one is reported as divergent with its sign. If no method finds the antiderivative, the definite integral is still estimated numerically (two step sizes must agree) and the answer is marked \"(numerical)\" rather than exact."
+      answer: "Either \"∫_0^1 x^2 dx\" (\"int_0^1 x^2 dx\" on a keyboard without ∫) or in words: \"integral of x^2 from 0 to 1\". The steps apply the Fundamental Theorem of Calculus and the value is cross-checked numerically. Improper integrals (an infinite bound such as \"∫_0^∞ e^(-x^2) dx\", or an integrand that blows up at an endpoint) are taken as limits, and a divergent one is reported as divergent with its sign. If no method finds the antiderivative, the definite integral is still estimated numerically (two step sizes must agree) and the answer is marked \"(numerical)\" rather than exact."
     },
     {
       question: "Does log mean base 10 or the natural log?",
@@ -62,7 +62,7 @@ export default function FAQ() {
     },
     {
       question: "What do the Settings do?",
-      answer: "Theme: System follows your device's light or dark setting and switches when it does; Light and Dark are fixed. Angle unit (Auto, Degrees or Radians) decides how plain-number angles are read and how angle results are shown, including the general solution of a trig equation; calculus always works in radians. Decimal places sets how many decimals numeric results show — exact fractions, radicals and π are kept regardless. All are saved in your browser."
+      answer: "Theme: System follows your device's light or dark setting and switches when it does; Light and Dark are fixed. Angle unit (Auto, Degrees or Radians) decides how plain-number angles are read and how angle results are shown, including the general solution of a trig equation; calculus always works in radians. Decimal places sets how many decimals numeric results show; exact fractions, radicals and π are kept regardless. All are saved in your browser."
     },
     {
       question: "Why did my solve stop after 10 seconds?",
@@ -70,7 +70,7 @@ export default function FAQ() {
     },
     {
       question: "How accurate are the solutions?",
-      answer: "We use industry-standard math libraries (Algebrite and MathJS) for calculations — not AI. However, you should always verify solutions independently. MasterMath is a learning tool, not a replacement for understanding the concepts."
+      answer: "We use industry-standard math libraries (Algebrite and MathJS) for calculations, not AI. However, you should always verify solutions independently. MasterMath is a learning tool, not a replacement for understanding the concepts."
     },
     {
       question: "Can I export my solutions?",
@@ -134,7 +134,7 @@ export default function FAQ() {
     },
     {
       question: "Who created MasterMath?",
-      answer: "MasterMath was created by sparkinCreations™ to make math learning accessible, free, and privacy-focused. It's built with modern web technologies and powered by open-source math libraries — not AI."
+      answer: "MasterMath was created by sparkinCreations™ to make math learning accessible, free, and privacy-focused. It's built with modern web technologies and powered by open-source math libraries, not AI."
     }
   ];
 

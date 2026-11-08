@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The six feature cards on the home page are plain white with a thin grey
   border; each keeps its own colour in its icon (blue, orange, green,
   amber, teal, rose) instead of a tinted header.
+- No em dashes in the site's own wording (home, Solver, FAQ, User Manual,
+  Settings, Privacy Policy, How It Compares, the notation guide): commas,
+  colons, full stops or brackets instead. The worked example on the home
+  page and the step numbers in the Solver are blue, not indigo.
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").

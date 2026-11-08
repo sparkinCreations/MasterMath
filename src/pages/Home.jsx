@@ -32,12 +32,12 @@ function prettyMath(text) {
 const FEATURES = [
   {
     icon: Calculator, title: 'Every Topic',
-    text: 'Arithmetic, algebra, systems and inequalities, trigonometry, functions, limits, derivatives and integrals — definite and improper too.',
+    text: 'Arithmetic, algebra, systems and inequalities, trigonometry, functions, limits, derivatives and integrals, definite and improper too.',
     color: 'text-blue-700 dark:text-blue-300',
   },
   {
     icon: Zap, title: 'Worked Steps, Checked',
-    text: 'Named methods — the power rule, u-substitution, by parts — every line shown and the answer verified. Open-source maths libraries, not an AI chatbot: the same answer every time.',
+    text: 'Named methods (the power rule, u-substitution, by parts), every line shown and the answer verified. Open-source maths libraries, not an AI chatbot: the same answer every time.',
     color: 'text-orange-600 dark:text-orange-400',
   },
   {
@@ -47,7 +47,7 @@ const FEATURES = [
   },
   {
     icon: Lightbulb, title: 'Insights and Mistakes',
-    text: 'Key insights and the common mistakes for the method just used — not one generic list.',
+    text: 'Key insights and the common mistakes for the method just used, not one generic list.',
     color: 'text-amber-700 dark:text-amber-300',
   },
   {
@@ -57,7 +57,7 @@ const FEATURES = [
   },
   {
     icon: Target, title: 'Private, Offline, Free',
-    text: 'No account, no tracking, no cost; it works without Wi-Fi. Solving and history stay on your device — the only thing ever sent is a feedback message you choose to submit.',
+    text: 'No account, no tracking, no cost; it works without Wi-Fi. Solving and history stay on your device. The only thing ever sent is a feedback message you choose to submit.',
     color: 'text-rose-700 dark:text-rose-300',
   },
 ];
@@ -202,13 +202,13 @@ export default function Home() {
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6 md:mb-8">
           An algebra problem, exactly as the solver works it
         </p>
-        <Card className="border border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+        <Card className="border border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
           {/* The equation being solved, as the card's own header. Styled
               Unicode rather than KaTeX: the landing page deliberately loads
               no solver library, and a test enforces that. */}
-          <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-blue-50 dark:bg-gray-700 px-6 py-5 md:px-8">
-            <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 mb-1">Solve · Algebra</p>
-            <p className="text-2xl md:text-3xl font-bold text-indigo-700 dark:text-indigo-200 font-mono tracking-tight" aria-label="x squared minus 5 x plus 6 equals 0">
+          <CardHeader className="border-b border-blue-100 dark:border-gray-700 bg-blue-50 dark:bg-gray-700 px-6 py-5 md:px-8">
+            <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300 mb-1">Solve · Algebra</p>
+            <p className="text-2xl md:text-3xl font-bold text-blue-800 dark:text-blue-200 font-mono tracking-tight" aria-label="x squared minus 5 x plus 6 equals 0">
               {prettyMath(WORKED_EXAMPLE.problem)}
             </p>
           </CardHeader>
@@ -217,7 +217,7 @@ export default function Home() {
               {WORKED_EXAMPLE.steps.map((step, i) => (
                 <li key={i} className="flex items-start gap-3 py-4 first:pt-0">
                   {/* The step number as plain text, no badge (1.70.4). */}
-                  <span className="shrink-0 w-6 font-bold leading-relaxed text-indigo-700 dark:text-indigo-300 tabular-nums" aria-hidden="true">{i + 1}.</span>
+                  <span className="shrink-0 w-6 font-bold leading-relaxed text-blue-700 dark:text-blue-300 tabular-nums" aria-hidden="true">{i + 1}.</span>
                   <span className="leading-relaxed"><span className="sr-only">Step {i + 1}. </span>{prettyMath(step)}</span>
                 </li>
               ))}

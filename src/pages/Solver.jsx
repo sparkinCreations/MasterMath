@@ -183,7 +183,7 @@ export default function Solver() {
       if (result.status === STATUS.SOLVED) {
         toast.success("Problem solved!", undefined, SOLVE_TOAST);
       } else if (result.status === STATUS.PARSE_ERROR) {
-        toast.error("Couldn't read that input — see the notes below", undefined, SOLVE_TOAST);
+        toast.error("Couldn't read that input. See the notes below.", undefined, SOLVE_TOAST);
       } else {
         toast.warning(statusLabel(result.status), undefined, SOLVE_TOAST);
       }

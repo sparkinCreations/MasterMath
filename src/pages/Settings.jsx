@@ -128,7 +128,7 @@ export default function Settings() {
           Settings
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Customize how MasterMath looks and solves — everything is saved on this device.
+          Customize how MasterMath looks and solves. Everything is saved on this device.
         </p>
       </div>
 
@@ -173,7 +173,7 @@ export default function Settings() {
           <div>
             <p className="font-medium text-gray-800 dark:text-gray-200 mb-1">Angle unit</p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              How angles are read and reported in Trigonometry — sin(30), arcsin(0.5), sin(x) = 1/2. Explicit notation (pi, °) always wins; calculus always works in radians.
+              How angles are read and reported in Trigonometry: sin(30), arcsin(0.5), sin(x) = 1/2. Explicit notation (pi, °) always wins; calculus always works in radians.
             </p>
             <div className="flex flex-wrap gap-3">
               {ANGLE_UNIT_OPTIONS.map((opt) => (
@@ -228,7 +228,7 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-700 dark:text-gray-300 mb-4">
-            Your problem history lives entirely in this browser — no accounts, no cloud, no tracking.
+            Your problem history lives entirely in this browser: no accounts, no cloud, no tracking.
           </p>
           <div className="flex flex-wrap gap-3">
             <DropdownMenu>
@@ -274,10 +274,10 @@ export default function Settings() {
             MasterMath v{pkg.version}
           </p>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            By sparkinCreations™ — step-by-step math, solved locally.
+            By sparkinCreations™. Step-by-step math, solved locally.
           </p>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 mb-4">
-            <li>• Works fully offline — solutions are computed on your device</li>
+            <li>• Works fully offline: solutions are computed on your device</li>
             <li>• Powered by open-source math libraries, not AI</li>
             <li>• No accounts, no cloud, no tracking</li>
           </ul>

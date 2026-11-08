@@ -47,7 +47,7 @@ const ROWS = [
   },
   {
     feature: "Step-by-step solutions for free",
-    cells: ["Yes", "Yes (free Basic plan)", "Advertised; free limits not stated", "No, answers only", "No — the free Basic plan “does not include step-by-step solutions”"],
+    cells: ["Yes", "Yes (free Basic plan)", "Advertised; free limits not stated", "No, answers only", "No: the free Basic plan “does not include step-by-step solutions”"],
   },
   {
     feature: "Paid plan (US$)",
@@ -81,7 +81,7 @@ const ROWS = [
   },
   {
     feature: "Where your problems go",
-    cells: ["Nowhere — solved in your browser", "Not stated", "Online service", "Online service", "Online service"],
+    cells: ["Nowhere: solved in your browser", "Not stated", "Online service", "Online service", "Online service"],
   },
   {
     feature: "Ads",
@@ -141,7 +141,7 @@ export default function Compare() {
           How MasterMath Compares
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg mb-3">
-          Checked on {CHECKED_ON}. Prices and features change — follow the sources below for the current ones.
+          Checked on {CHECKED_ON}. Prices and features change, so follow the sources below for the current ones.
         </p>
         <p className="text-gray-700 dark:text-gray-300 max-w-3xl">
           This page is here to help you pick the right tool, not to sell this one. MasterMath covers fewer
@@ -253,7 +253,7 @@ export default function Compare() {
             ))}
           </ul>
           <p>
-            Spotted something wrong or out of date — including something unfair to another app? Tell us on the{" "}
+            Spotted something wrong or out of date, including something unfair to another app? Tell us on the{" "}
             <Link to={createPageUrl("Feedback")} className="text-indigo-700 dark:text-indigo-300 underline">Feedback page</Link>{" "}
             and we will correct it.
           </p>

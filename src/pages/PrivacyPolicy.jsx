@@ -30,7 +30,7 @@ export default function PrivacyPolicy() {
             At MasterMath by sparkinCreations™, we are committed to protecting your privacy.
             This Privacy Policy explains how we handle your information when you use our educational
             math application. We believe in transparency and want you to understand exactly how your
-            data is managed. MasterMath runs entirely in your browser — all math solving is done
+            data is managed. MasterMath runs entirely in your browser: all math solving is done
             locally using JavaScript libraries, not AI or external APIs.
           </p>
         </CardContent>
@@ -85,7 +85,7 @@ export default function PrivacyPolicy() {
             </h3>
             <p className="text-gray-700 dark:text-gray-300">
               MasterMath uses a service worker to cache application files (HTML, CSS, JavaScript, images)
-              in your browser so the app works offline. This cached data contains only the app itself —
+              in your browser so the app works offline. This cached data contains only the app itself;
               no personal information is included in the cache.
             </p>
           </div>
@@ -98,8 +98,8 @@ export default function PrivacyPolicy() {
               <li>We do NOT collect any personally identifiable information (name, email, phone number)</li>
               <li>We do NOT track your IP address or location. Like any website, the host that serves the app sees the address of each request to load it; the app itself never records or sends it (see Hosting below)</li>
               <li>We do NOT use cookies for tracking or advertising</li>
-              <li>We do NOT share any data with third parties — the one exception is the Feedback page, which sends only what you type into it, only when you choose to submit it (see Web3Forms below)</li>
-              <li>We do NOT send your problems, solutions, history or settings to any external server — they never leave your device</li>
+              <li>We do NOT share any data with third parties. The one exception is the Feedback page, which sends only what you type into it, only when you choose to submit it (see Web3Forms below)</li>
+              <li>We do NOT send your problems, solutions, history or settings to any external server; they never leave your device</li>
             </ul>
           </div>
         </CardContent>
