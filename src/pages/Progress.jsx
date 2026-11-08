@@ -148,7 +148,7 @@ export default function Progress() {
         {/* Said as it is (1.59.0): a record of the problems worked through
             here, not a measure of learning ("Your Learning Journey — see how
             far you've come!" claimed what the page cannot know). */}
-        <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
+        <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300 mb-2">
           Your Problem History
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">

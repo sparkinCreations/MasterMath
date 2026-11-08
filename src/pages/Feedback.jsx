@@ -137,7 +137,7 @@ Technical Information:
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
+        <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300 mb-2">
           Feedback & Support
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">

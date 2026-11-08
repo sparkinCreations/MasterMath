@@ -146,8 +146,8 @@ export default function FAQ() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <HelpCircle className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
-          <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">
+          <HelpCircle className="w-10 h-10 text-blue-800 dark:text-blue-300" />
+          <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-300">
             Frequently Asked Questions
           </h1>
         </div>

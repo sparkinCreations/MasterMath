@@ -85,7 +85,7 @@ function AppSidebar() {
               is the document title. Rendered as <p> so screen-reader users
               get one h1 per page and a clean outline. */}
           <div>
-            <p className="font-bold text-xl text-indigo-600 dark:text-indigo-400">
+            <p className="font-bold text-xl text-blue-800 dark:text-blue-300">
               MasterMath
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Step-by-step math, solved locally</p>
@@ -164,7 +164,7 @@ export default function Layout({ children, update }) {
                   />
                   {/* Not a heading: the header brand is a home link, and
                       each page supplies its own h1. */}
-                  <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                  <p className="text-xl font-bold text-blue-800 dark:text-blue-300">
                     MasterMath <span className="text-sm font-normal text-gray-500 dark:text-gray-400">by sparkinCreations™</span> <span className="text-base font-normal text-gray-500 dark:text-gray-400">- Step-by-step math, solved locally</span>
                   </p>
                 </Link>
@@ -175,7 +175,7 @@ export default function Layout({ children, update }) {
                     aria-hidden="true"
                     className="w-6 h-6 rounded-lg shadow-md"
                   />
-                  <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 leading-tight">
+                  <p className="text-xl font-bold text-blue-800 dark:text-blue-300 leading-tight">
                     MasterMath
                     <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">by sparkinCreations™</span>
                   </p>
