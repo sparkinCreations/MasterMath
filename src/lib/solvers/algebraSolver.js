@@ -25,6 +25,7 @@ import {
   mark,
   realOddRoots,
   absBars,
+  stripOuterParens,
 } from './solverUtils.js';
 import { equationGuidance } from './algebra/guidance.js';
 import { solveWithAlgebriteRoots, rootsViaPolynomialRoot } from './algebra/polynomial.js';
@@ -162,6 +163,65 @@ export async function solveAlgebra(expression, options = {}) {
   }
 }
 
+// The conditions an answer in constants needs: each constant expression it
+// divides by is not 0, each logarithm's argument is positive. "c/3 > 0" is
+// "c > 0" (a positive divisor changes no sign).
+function constantConditions(rel, target, expression = '', divisor = null) {
+  const answer = String(rel).replace(new RegExp(`^\\s*${target}\\s*=\\s*`), '');
+  const hasTarget = (t) => new RegExp(`(?<![a-z])${target}(?![a-z])`).test(t);
+  const nonzero = [];
+  const positive = [];
+  const nonnegative = [];
+  // Divisors in the answer and in the equation itself (b = e^(x/a) needs
+  // a ≠ 0 though its answer, a·ln(b), divides by nothing), and the
+  // coefficient a linear equation was divided by (a*x = 0 is x = 0 only for
+  // a ≠ 0). "a - b ≠ 0" reads "a ≠ b".
+  const addNonzero = (raw) => {
+    const d = stripOuterParens(String(raw).trim());
+    if (!/[a-z]/i.test(d) || hasTarget(d)) return;
+    const pair = d.match(/^([a-z])\s*-\s*([a-z])$/i);
+    const text = pair ? `${pair[1]} ≠ ${pair[2]}` : `${d} ≠ 0`;
+    if (!nonzero.includes(text)) nonzero.push(text);
+  };
+  if (divisor && !String(divisor).includes('/')) addNonzero(divisor);
+  for (const text of [answer, String(expression)]) {
+    for (const m of text.matchAll(/\/\s*(\((?:[^()]|\([^()]*\))*\)|[a-z])/gi)) addNonzero(m[1]);
+  }
+  // A square root in the answer: x = ±√a needs a ≥ 0.
+  for (const m of answer.matchAll(/√(\((?:[^()]|\([^()]*\))*\)|[a-z0-9]+)/gi)) {
+    const arg = stripOuterParens(m[1]);
+    if (/[a-z]/i.test(arg) && !hasTarget(arg) && !nonnegative.includes(`${arg} ≥ 0`)) nonnegative.push(`${arg} ≥ 0`);
+  }
+  for (const m of answer.matchAll(/\bln\(((?:[^()]|\([^()]*\))*)\)/g)) {
+    let arg = m[1].trim();
+    const scaled = arg.match(/^(.+?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+    if (scaled && !/[+-]/.test(scaled[1].replace(/^\(.*\)$/, ''))) arg = stripOuterParens(scaled[1]);
+    if (/[a-z]/i.test(arg) && !hasTarget(arg) && !positive.includes(`${arg} > 0`)) positive.push(`${arg} > 0`);
+  }
+  return { nonzero, positive, nonnegative, all: [...nonzero, ...positive, ...nonnegative] };
+}
+// What the equation says when a constant it divides by is 0: e^(0·x) = b is
+// 1 = b, a*x + b = 0 is b = 0. Only when x drops out.
+function zeroCase(expression, condition, target) {
+  const letter = condition.replace(' ≠ 0', '');
+  if (!/^[a-z]$/i.test(letter)) return null;
+  try {
+    const [l, r] = expression.split('=');
+    const at = (side) => math.simplify(side.replace(new RegExp(`(?<![a-z])${letter}(?![a-z])`, 'g'), '0')).toString();
+    const [L, R] = [at(l), at(r)];
+    if (new RegExp(`(?<![a-z])${target}(?![a-z])`).test(`${L}=${R}`)) return null;
+    const shown = mark(`${beautify(L)} = ${beautify(R)}`);
+    const opening = `If ${mark(`${letter} = 0`)}, the equation is ${shown}, with no ${mark(target)} in it`;
+    const [nl, nr] = [Number(L), Number(R)];
+    if (Number.isFinite(nl) && Number.isFinite(nr)) {
+      return nl === nr ? `${opening}: every ${mark(target)} is a solution.` : `${opening}, and it is false: there is no solution.`;
+    }
+    return `${opening}: every ${mark(target)} is a solution when ${shown} holds, and none is otherwise.`;
+  } catch {
+    return null;
+  }
+}
+
 async function solveEquation(expression, options = {}) {
   const variable = extractVariable(expression);
   let steps = [];
@@ -202,24 +262,61 @@ async function solveEquation(expression, options = {}) {
     }
     const others = [...letters].filter((v) => v !== requested).sort();
     const rel = solved?.relation;
+    const vars = (list) => (list.length > 1 ? `${list.slice(0, -1).map((v) => mark(v)).join(', ')} and ${mark(list[list.length - 1])}` : list.map((v) => mark(v)).join(''));
+    // x with the constants a and b (a*x + b = 0, e^(a*x) = b) is solved for x
+    // with a and b held fixed: they are not unknowns (1.71.1; the steps said
+    // "one equation in 3 unknowns"). x with y is a relation between two.
+    const withConstants = /^[xyz]$/.test(requested) && !others.some((v) => /^[xyz]$/.test(v));
+    const constantsLine = `${others.length === 1 ? `The letter ${mark(others[0])} is a constant` : `The letters ${vars(others)} are constants`}: treat ${others.length === 1 ? 'it as a fixed number' : 'them as fixed numbers'} and solve for ${mark(requested)} in terms of ${others.length === 1 ? 'it' : 'them'}.`;
+    // When the answer holds (review of 1.71.1): a constant it divides by is
+    // not 0, and a logarithm's argument is positive. x = ln(b)/a is the
+    // answer for a ≠ 0 and b > 0; at a = 0, e^(0·x) = b is 1 = b, which no
+    // value of x decides. Read off the answer itself.
+    const conditions = rel && withConstants ? constantConditions(rel, requested, expression, solved.divisor) : null;
+    const zeroCases = conditions ? conditions.nonzero.map((c) => zeroCase(expression, c, requested)).filter(Boolean) : [];
+    const conditionText = conditions && conditions.all.length ? conditions.all.join(' and ') : '';
     if (rel) {
-      const vars = (list) => list.map((v) => mark(v)).join(' and ');
       return {
         steps: [
-          `This is one equation in ${letters.size} unknowns (${[...letters].sort().map((v) => mark(v)).join(', ')}) — it has infinitely many solutions, one for every value of ${vars(others)}. So we solve for ${mark(requested)} in terms of ${vars(others)}.`,
-          `Rewrite as an equation set to zero: ${mark(`${beautify(`(${lhsRaw.trim()}) - (${rhsRaw.trim()})`)} = 0`)}`,
+          withConstants
+            ? constantsLine
+            : `This is one equation in ${letters.size} unknowns (${[...letters].sort().map((v) => mark(v)).join(', ')}) — it has infinitely many solutions, one for every value of ${vars(others)}. So we solve for ${mark(requested)} in terms of ${vars(others)}.`,
+          ...(solved.logStep
+            ? [`Isolate the exponential and take the natural logarithm of both sides: ${mark(solved.logStep)}`]
+            : [`Rewrite as an equation set to zero: ${mark(rhsRaw.trim() === '0' ? `${beautify(lhsRaw.trim())} = 0` : `${beautify(`(${lhsRaw.trim()}) - (${rhsRaw.trim()})`)} = 0`)}`]),
           ...(solved.droppedComplex ? [`Over the real numbers, keep the real roots (the others involve ${mark('i')}, the imaginary unit).`] : []),
-          `Isolate ${mark(requested)}: ${mark(rel)}`,
+          ...(solved.logStep === rel ? [] : [`Isolate ${mark(requested)}: ${mark(rel)}`]),
+          ...(conditionText ? [`This holds for ${conditions.all.map((c) => mark(c)).join(' and ')}: ${[
+            conditions.nonzero.length ? 'a number cannot be divided by 0' : '',
+            conditions.positive.length ? 'a logarithm is defined only for a positive argument' : '',
+            conditions.nonnegative.length ? 'a square root of a negative number is not real' : '',
+          ].filter(Boolean).join(', and ')}.`] : []),
+          ...zeroCases,
           `Check: substituting each root back into ${mark(beautify(expression))} balances both sides wherever the root is a real number ✓`,
         ],
-        answer: rel,
-        tips: [
-          `To pin down a single value you need a second equation — enter both as a system, e.g. "${expression.trim()}; ${requested} - ${others[0]} = 1".`,
-          'An equation in two unknowns is a curve (here a line if it is linear); solving for one variable gives the rule for that curve.',
-        ],
-        common_mistakes: ['Expecting a single number from an equation with more unknowns than equations.'],
+        answer: conditionText ? `${rel}, for ${conditionText}` : rel,
+        tips: withConstants
+          ? [
+            `${others.length === 1 ? `${mark(others[0])} stands` : `${vars(others)} stand`} for fixed numbers: put numbers in their place and the same steps give a single value of ${mark(requested)}.`,
+            ...(conditions?.positive.length ? [`${mark('e^u')} is positive for every ${mark('u')}, so where ${conditions.positive.map((c) => mark(c.replace(' > 0', ' ≤ 0'))).join(' or ')} there is no real solution.`] : []),
+          ]
+          : [
+            `To pin down a single value you need a second equation — enter both as a system, e.g. "${expression.trim()}; ${requested} - ${others[0]} = 1".`,
+            'An equation in two unknowns is a curve (here a line if it is linear); solving for one variable gives the rule for that curve.',
+          ],
+        common_mistakes: withConstants
+          ? ['Treating the constants as unknowns to solve for: only the variable is solved for, the constants stay in the answer.']
+          : ['Expecting a single number from an equation with more unknowns than equations.'],
         graph: null,
       };
+    }
+    if (withConstants) {
+      return unsupported({
+        input: expression,
+        reason: `${constantsLine} This equation could not be rearranged for ${mark(requested)} with ${others.length === 1 ? 'the constant left as a letter' : 'the constants left as letters'}.`,
+        answer: `Solving for ${requested} with ${others.length === 1 ? `the constant ${others[0]}` : `the constants ${others.join(', ')}`} left as ${others.length === 1 ? 'a letter' : 'letters'} is not supported for this equation`,
+        tips: [`Give ${vars(others)} ${others.length === 1 ? 'a number' : 'numbers'} to solve one case.`],
+      });
     }
     return unsupported({
       input: expression,

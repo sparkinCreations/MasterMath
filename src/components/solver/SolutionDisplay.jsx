@@ -152,7 +152,9 @@ function ScrollingMath({ className = "", label, children }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
-    const measure = () => setScrolls(el.scrollWidth > el.clientWidth + 1);
+    // Either way: a root over a fraction stood 4px taller than the box, which
+    // then scrolled up and down with no tab stop (axe, 1.71.1).
+    const measure = () => setScrolls(el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1);
     measure();
     if (typeof ResizeObserver === "undefined") return undefined;
     const observer = new ResizeObserver(measure);
@@ -523,7 +525,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                 <StatusIcon className={`w-6 h-6 ${theme.cardIcon} shrink-0`} aria-hidden="true" />
                 {theme.heading}
               </h3>
-              <ScrollingMath className="py-0.5" label={theme.heading.replace(/:$/, "")}>
+              <ScrollingMath className="py-1.5" label={theme.heading.replace(/:$/, "")}>
                 {/* text-lg on a phone, where 20px costs more in wrapping than
                     it buys in emphasis — the green card and the weight already
                     set the answer apart from the 16px steps. */}

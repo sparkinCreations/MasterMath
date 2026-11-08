@@ -225,9 +225,12 @@ export default function Home() {
             <p className="mt-6 p-4 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 font-semibold text-base md:text-lg">
               Final answer: {prettyMath(WORKED_EXAMPLE.answer)}
             </p>
-            <p className="mt-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm md:text-base text-amber-900 dark:text-amber-100">
-              <span className="font-semibold">Key insight:</span> {prettyMath(WORKED_EXAMPLE.tip)}
-            </p>
+            {/* An insight as the Solver draws one (1.70.4): outlined, with a
+                lightbulb at its upper left, no filled background. */}
+            <div className="mt-4 flex items-start gap-2.5 p-4 rounded-lg border border-amber-400 dark:border-amber-700/70 text-sm md:text-base text-gray-700 dark:text-gray-200">
+              <Lightbulb className="w-4 h-4 mt-1 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+              <p><span className="font-semibold text-gray-900 dark:text-gray-100">Key insight:</span> {prettyMath(WORKED_EXAMPLE.tip)}</p>
+            </div>
             <div className="mt-8 md:mt-10 mb-2 flex justify-center">
               <Button asChild size="lg" className="h-12 md:h-14 px-6 md:px-8 text-xl bg-orange-600 hover:bg-orange-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300">
                 <Link to={createPageUrl("Solver")} state={{ problem: WORKED_EXAMPLE.problem, topic: WORKED_EXAMPLE.topic }}>

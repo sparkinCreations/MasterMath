@@ -2,7 +2,7 @@
 // textbook form and each checked in the equation.
 
 import { matchingParen } from '../../mathParser.js';
-import { math, loadAlgebrite, beautify, splitTerms } from '../solverUtils.js';
+import { math, loadAlgebrite, beautify, splitTerms, gcd, expressionsEqualInAllLetters, stripOuterParens } from '../solverUtils.js';
 import { parseRootsList, IMAGINARY } from './rootsFormat.js';
 
 // Factor an expression over the integers with Algebrite. The result is only
@@ -16,6 +16,16 @@ export async function solveForVariable(equation, target) {
   try {
     const Algebrite = await loadAlgebrite();
     const [l, r] = equation.split('=');
+    // e^(L) = R with the unknown only in L: roots() cannot undo the
+    // exponential, and "e^(a*x) = b" was refused as "one equation cannot fix
+    // 3 unknowns" (1.71.1). Take logarithms and solve L = ln(R).
+    const undone = undoExponential(l, r, target, Algebrite);
+    if (undone) {
+      const solved = await solveForVariable(undone.equation, target);
+      if (!solved) return null;
+      const relation = solved.relation.replace(new RegExp(`(?<![a-z])${undone.symbol}(?![a-z])`, 'g'), undone.log);
+      return logRootsCheck(relation, equation, target) ? { ...solved, relation, logStep: `${undone.arg} = ${undone.log}` } : null;
+    }
     // A cubic or higher with more than one term in the unknown has only a
     // Cardano-style answer, which is never shown: roots() spent 19 s on
     // y = x^3 + x before the inverse was refused (1.68.7). A pure power
@@ -24,9 +34,29 @@ export async function solveForVariable(equation, target) {
     const degree = Number(String(Algebrite.run(`deg(${expanded}, ${target})`)).trim());
     const withTarget = splitTerms(expanded).filter(({ signed }) => new RegExp(`(?<![a-z])${target}(?![a-z])`).test(signed)).length;
     if (degree >= 3 && withTarget >= 2) return null;
-    const raw = String(Algebrite.roots(`(${l.trim()}) - (${r.trim()})`, target)).trim();
-    if (!raw || /stop|error|nil|roots/i.test(raw)) return null;
-    let parts = parseRootsList(raw).map((rt) => rt.display).filter(Boolean);
+    // Linear in the unknown with a letter in its coefficient, A·x + B = 0:
+    // x = −B/A read off the coefficients. roots() wrote a*x = b*x + c as
+    // c/((a − b)(a/(a − b) − b/(a − b))) (1.71.1). A number coefficient
+    // (2x + 3y = 6) keeps roots()' slope–intercept form.
+    let parts = null;
+    let divisor = null;
+    if (degree === 1) {
+      const A = String(Algebrite.run(`simplify(coeff(${expanded}, ${target}, 1))`)).trim();
+      const B = String(Algebrite.run(`simplify(coeff(${expanded}, ${target}, 0))`)).trim();
+      if (/[a-z]/i.test(A) && !/stop|error|nil/i.test(A + B) && !hasLetter(A + B, target)) {
+        const top = positiveFirst(String(Algebrite.run(`simplify(-(${B}))`)).trim());
+        const bottom = positiveFirst(A);
+        const wrap = (t) => (splitTerms(t).length > 1 || /^-/.test(t) || /\//.test(t) ? `(${t})` : t);
+        const single = splitTerms(top).length === 1;
+        const root = top === '0' ? '0' : single && top.startsWith('-') ? `-${wrap(top.slice(1))}/${wrap(bottom)}` : `${wrap(top)}/${wrap(bottom)}`;
+        if (expressionsEqualInAllLetters(`(${root})*(${A}) + (${B})`, '0')) { parts = [root]; divisor = bottom; }
+      }
+    }
+    if (!parts) {
+      const raw = String(Algebrite.roots(`(${l.trim()}) - (${r.trim()})`, target)).trim();
+      if (!raw || /stop|error|nil|roots/i.test(raw)) return null;
+      parts = parseRootsList(raw).map((rt) => rt.display).filter(Boolean);
+    }
     if (parts.length === 0) return null;
     // Algebrite writes x² + y² = 25 as x = ±i·(y² − 25)^(1/2). Over the reals
     // that is ±(25 − y²)^(1/2): rewrite i·(A)^(1/2) → (−A)^(1/2), simplifying
@@ -47,11 +77,90 @@ export async function solveForVariable(equation, target) {
         return simpler && !/stop|error|nil/i.test(simpler) && simpler.length <= 0.6 * d.length ? simpler : d;
       } catch { return d; }
     });
+    parts = parts.map((d) => wholeCoefficients(d, Algebrite));
     const real = realRelation(parts, equation, target, Algebrite) || evenPowerRelation(equation, target, Algebrite);
     if (!real) return null;
-    return { relation: real.roots.map((d) => `${target} = ${d}`).join('  or  '), droppedComplex: real.droppedComplex };
+    // exp(x) as a textbook writes it: e^x, e^(x + 1).
+    const eForm = (d) => d.replace(/\bexp(\((?:[^()]|\([^()]*\))*\))/g, (m, arg) => (/^\([a-z0-9]+\)$/i.test(arg) ? `e^${arg.slice(1, -1)}` : `e^${arg}`));
+    return { relation: real.roots.map((d) => `${target} = ${eForm(d)}`).join('  or  '), droppedComplex: real.droppedComplex, divisor };
   } catch {
     return null;
+  }
+}
+// c·e^(L) + (terms without the unknown) = R: the equation L = w, w a fresh
+// letter standing for ln((R − the other terms)/c), so roots() keeps the
+// logarithm whole (ln(c/3)/k, not −ln(3)/k + ln(c)/k). Written ln: a bare
+// log is base 10 in MasterMath.
+const hasLetter = (t, v) => new RegExp(`(?<![a-z])${v}(?![a-z])`).test(t);
+function undoExponential(l, r, target, Algebrite) {
+  const terms = (side) => splitTerms(String(side).replace(/\s+/g, ''));
+  for (const [a, b] of [[l, r], [r, l]]) {
+    const own = terms(a);
+    const withTarget = own.filter((t) => hasLetter(t.signed, target));
+    if (withTarget.length !== 1 || hasLetter(String(b), target)) continue;
+    const m = withTarget[0].signed.match(/^(-)?(?:(.+?)\*)?(?:e\^|exp)(\(.*\)|[a-z0-9]+)$/i);
+    if (!m) continue;
+    const [, neg, coefRaw = '1', arg] = m;
+    if (arg.startsWith('(') && matchingParen(arg, 0) !== arg.length - 1) continue;
+    const coef = neg ? `-(${coefRaw})` : coefRaw;
+    if (hasLetter(coef, target) || !hasLetter(arg, target)) continue;
+    const rest = own.filter((t) => t !== withTarget[0]).map((t) => t.signed).join('+').replace(/\+-/g, '-');
+    const symbol = ['w', 'q', 'u', 'v'].find((v) => !hasLetter(`${l}=${r}`, v));
+    if (!symbol) return null;
+    // R minus the other terms, written as typed: "c - b", then over c.
+    const moved = [String(b).trim(), ...splitTerms(rest || '0').filter((t) => t.signed !== '0')
+      .map((t) => (t.signed.startsWith('-') ? `+${t.signed.slice(1)}` : `-${t.signed}`))].join('');
+    const top = positiveFirst(moved);
+    const wrap = (t) => (splitTerms(t).length > 1 || /^-/.test(t) || /[*/]/.test(t) ? `(${t})` : t);
+    const inside = coef === '1' ? top : coef === '-(1)' ? `-${wrap(top)}` : `${wrap(top)}/${wrap(beautify(coef))}`;
+    return { equation: `${arg} = ${symbol}`, symbol, arg: beautify(stripOuterParens(arg)), log: `ln(${inside})` };
+  }
+  return null;
+}
+// Each root of the logged equation, put back into the original wherever
+// every letter is positive and the logarithm is real.
+function logRootsCheck(relation, equation, target) {
+  const [l, r] = equation.split('=');
+  const roots = relation.split(/\s+or\s+/).map((part) => part.replace(new RegExp(`^\\s*${target}\\s*=\\s*`), ''));
+  const letters = [...new Set((equation.replace(/\b(?:e|exp|ln|log)\b/g, '').match(/[a-z]/gi) || []))].filter((v) => v !== target);
+  let checked = 0;
+  for (let k = 0; k < 12; k += 1) {
+    const scope = Object.fromEntries(letters.map((v, i) => [v, 0.7 + ((k * 7 + i * 3) % 11) * 0.23]));
+    for (const root of roots) {
+      let value;
+      try { value = math.evaluate(root.replace(/√/g, 'sqrt').replace(/·/g, '*').replace(/\bln\(/g, 'log('), scope); } catch { return false; }
+      if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+      const at = { ...scope, [target]: value, e: Math.E };
+      const diff = math.evaluate(`(${l}) - (${r})`.replace(/\bexp\(/g, 'e^('), at);
+      const size = Math.abs(math.evaluate(l, at)) + 1;
+      if (typeof diff !== 'number' || Math.abs(diff) > 1e-8 * size) return false;
+      checked += 1;
+    }
+  }
+  return checked >= 3;
+}
+// A fraction with fractions inside it, as a textbook clears them: roots()
+// wrote 3xy + y = 6 as y = 2/(x + 1/3) and 6xy = 3y + 2 as 1/(3(x − 1/2));
+// top and bottom times the common denominator give 6/(3x + 1) and
+// 2/(6x − 3) (1.71.1). Kept only when equal to the root in every letter.
+function wholeCoefficients(display, Algebrite) {
+  const d = String(display);
+  if (!d.includes('/') || /\^\(1\//.test(d)) return d;
+  try {
+    const num = String(Algebrite.run(`expand(numerator(${d}))`)).trim();
+    const den = String(Algebrite.run(`expand(denominator(${d}))`)).trim();
+    if (!num || !den || den === '1' || /stop|error|nil/i.test(num + den)) return d;
+    const denominators = [...`${num} ${den}`.matchAll(/\/(\d+)/g)].map((m) => Number(m[1]));
+    if (denominators.length === 0) return d;
+    const lcd = denominators.reduce((a, b) => (a * b) / gcd(a, b), 1);
+    const top = String(Algebrite.run(`expand(${lcd}*(${num}))`)).trim();
+    const bottom = String(Algebrite.run(`expand(${lcd}*(${den}))`)).trim();
+    if (/\//.test(top + bottom)) return d;
+    const wrap = (t) => (splitTerms(t).length > 1 || /^-/.test(t) ? `(${t})` : t);
+    const tidy = `${wrap(top)}/${wrap(bottom)}`;
+    return expressionsEqualInAllLetters(tidy, d) ? tidy : d;
+  } catch {
+    return d;
   }
 }
 function positiveFirst(expr) {

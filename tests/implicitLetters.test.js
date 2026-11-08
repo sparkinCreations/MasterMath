@@ -29,8 +29,8 @@ test('letters side by side are solved as a product, and said so', async () => {
   for (const [p, answer, word, product] of [
     ['d/dx ax^2', "f'(x) = 2a*x", 'ax', 'a·x'],
     ['d/dx sin(kx)', "f'(x) = k*cos(k*x)", 'kx', 'k·x'],
-    ['ax + b = 0', 'x = -b/a', 'ax', 'a·x'],
-    ['solve kx = 5', 'x = 5/k', 'kx', 'k·x'],
+    ['ax + b = 0', 'x = -b/a, for a ≠ 0', 'ax', 'a·x'],
+    ['solve kx = 5', 'x = 5/k, for k ≠ 0', 'kx', 'k·x'],
     ['factor a^2 + 2ab + b^2', '(a + b)^2', 'ab', 'a·b'],
     ['integral of kx dx', '∫(k*x) dx = 1/2*k*x^2 + C', 'kx', 'k·x'],
   ]) {

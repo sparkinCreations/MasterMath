@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.71.1] - 2026-11-08
+
+### Changed
+- The home page's worked example shows its key insight as the Solver does
+  since 1.70.4: an outlined box with a lightbulb, no filled background.
+
+### Fixed
+- "e^(a*x) = b" was refused as "one equation cannot fix 3 unknowns". An
+  exponential with constants is solved by taking logarithms: x = ln(b)/a,
+  "3e^(kx) = c" is x = ln(c/3)/k, "a*e^x + b = c" is x = ln((c - b)/a),
+  each root checked back in the equation. Written ln: a bare log is base
+  10 here.
+- An answer in constants states when it holds: "x = ln(b)/a, for a ≠ 0 and
+  b > 0", "x = -b/a, for a ≠ 0", "x = ±√a, for a ≥ 0", read off the answer
+  and the equation (a divisor is not 0, a logarithm's argument is
+  positive, a square root's is not negative). A step says what the
+  equation is when the constant is 0: e^(0·x) = b is 1 = b, true for every
+  x when b = 1 and for none otherwise; k·x = 5 at k = 0 has no solution.
+- An equation in x with constants (a*x + b = 0, e^(a*x) = b) says "the
+  letters a and b are constants" instead of calling them unknowns; x with
+  y is still one equation in two unknowns.
+- A fraction inside a fraction is cleared: "3xy + y = 6" is y = 6/(3x + 1)
+  (was 2/(x + 1/3)), "6xy = 3y + 2" is y = 2/(6x - 3) (was
+  1/(3(x - 1/2))).
+- "e^x = y" is y = e^x, not y = exp(x).
+- Accessibility: a tall final answer (a square root over a fraction, as in
+  the quadratic formula) stood 4px taller than its box, which then
+  scrolled up and down with no way to reach it from the keyboard (axe:
+  scrollable-region-focusable, live on 1.71.0). The box has room for it,
+  and becomes a tab stop whenever it scrolls either way.
+- An equation linear in x with a letter coefficient is x = −B/A read off
+  its coefficients: "a*x = b*x + c" is x = c/(a - b), for a ≠ b (was
+  c/((a - b)(a/(a - b) - b/(a - b)))); "a*x = 0" is x = 0, for a ≠ 0.
+
 ## [1.71.0] - 2026-11-08
 
 ### Added

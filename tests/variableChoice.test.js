@@ -15,7 +15,7 @@ const cases = [
   ['d/dx a*x^2 at x = 1', "f'(1) = 2a"],
   ['second derivative of a*x^3 at x = 2', "f''(2) = 12a"],
   ['d/dx sin(k*x) at x = 0', "f'(0) = k"],
-  ['a*x + b = 0', 'x = -b/a'],
+  ['a*x + b = 0', 'x = -b/a, for a ≠ 0'],
   ['2xy + y = 3', 'y = 3/(2x + 1)'],
   ['factor a^2 - b^2', '(a + b)(a - b)'],
   ['factor x^2 - a^2', '(x + a)(x - a)'],
