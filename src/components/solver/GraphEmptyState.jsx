@@ -9,7 +9,7 @@ import { TrendingUp } from "lucide-react";
 export default function GraphEmptyState({ message = "Enter a function to see its graph!" }) {
   return (
     <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
-      <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-blue-50 dark:bg-gray-700">
+      <CardHeader className="border-b border-gray-100 dark:border-gray-700">
         <CardTitle className="flex items-center gap-2 text-xl">
           <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           Graph View

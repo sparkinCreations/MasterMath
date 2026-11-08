@@ -65,7 +65,7 @@ export default function HeroVideo({ description, className = "" }) {
     v.play?.().catch(() => { setPlaying(false); setStopped(true); });
   }, [theme, reduced]);
 
-  const frame = `w-full h-auto aspect-video rounded-xl md:rounded-2xl border-2 border-indigo-200 dark:border-gray-600 shadow-2xl ${className}`;
+  const frame = `w-full h-auto aspect-video rounded-lg border border-gray-200 dark:border-gray-700 shadow-md ${className}`;
 
   if (reduced) {
     return <img src={poster} width="1600" height="900" alt={description} decoding="async" className={frame} />;

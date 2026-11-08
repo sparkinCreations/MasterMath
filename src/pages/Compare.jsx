@@ -149,8 +149,8 @@ export default function Compare() {
         </p>
       </div>
 
-      <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-amber-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             What MasterMath does not do
@@ -163,8 +163,8 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-blue-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Scale className="w-6 h-6 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
             Side by side
@@ -207,8 +207,8 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-green-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Compass className="w-6 h-6 text-green-600 dark:text-green-400" aria-hidden="true" />
             Which one to use
@@ -232,8 +232,8 @@ export default function Compare() {
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-blue-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Search className="w-6 h-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
             How we checked

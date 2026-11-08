@@ -18,7 +18,7 @@ export default function NotFound() {
         <Link to="/" className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
           <Home className="w-4 h-4" aria-hidden="true" /> Go to the home page
         </Link>
-        <Link to="/solver" className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg border-2 border-indigo-200 dark:border-gray-600 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-800 font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
+        <Link to="/solver" className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
           <Calculator className="w-4 h-4" aria-hidden="true" /> Open the solver
         </Link>
       </div>

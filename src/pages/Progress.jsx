@@ -184,8 +184,8 @@ export default function Progress() {
 
       </div>
 
-      <Card className="border-2 border-indigo-200 dark:border-gray-700 dark:bg-gray-800 shadow-lg">
-        <CardHeader className="bg-blue-50 dark:bg-gray-700 border-b border-indigo-200 dark:border-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <div className="flex flex-wrap justify-between items-center gap-2">
             <CardTitle className="text-xl dark:text-gray-100">Problem History</CardTitle>
             {problems.length > 0 && (
@@ -194,7 +194,7 @@ export default function Progress() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-700 dark:hover:text-indigo-200 hover:border-indigo-300 dark:hover:border-indigo-600"
+                      className="border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export
@@ -253,7 +253,7 @@ export default function Progress() {
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search your history"
                   aria-label="Search your problems and answers"
-                  className="w-full min-h-11 pl-9 pr-3 rounded-lg border-2 border-indigo-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
+                  className="w-full min-h-11 pl-9 pr-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400"
                 />
               </div>
               <div role="group" aria-label="Filter by topic" className="flex flex-wrap gap-2">
@@ -293,7 +293,7 @@ export default function Progress() {
                   {shown.map((p) => (
                     <li
                       key={problemKey(p)}
-                      className="p-4 rounded-lg border-2 border-indigo-200 dark:border-gray-700 bg-blue-50 dark:bg-gray-700/60 hover:shadow-md transition-shadow"
+                      className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm transition-shadow"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <span className="flex flex-wrap items-center gap-2">

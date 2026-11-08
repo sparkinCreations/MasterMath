@@ -145,8 +145,8 @@ Technical Information:
         </p>
       </div>
 
-      <Card className="border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-blue-50 dark:bg-gray-700">
+      <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <MessageSquare className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Send Feedback
@@ -291,7 +291,7 @@ Technical Information:
             </div>
 
             {/* Privacy Notice */}
-            <div className="bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-4">
+            <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
               <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Privacy Notice</h3>
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 Your feedback will be securely sent to sparkinCreations.
@@ -317,9 +317,9 @@ Technical Information:
 
       {/* Additional Information */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <CardHeader className="bg-green-50 dark:bg-gray-700">
-            <CardTitle className="text-green-800 dark:text-green-100">Quick Tips</CardTitle>
+        <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+            <CardTitle className="dark:text-gray-100">Quick Tips</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
@@ -331,9 +331,9 @@ Technical Information:
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <CardHeader className="bg-blue-50 dark:bg-gray-700">
-            <CardTitle className="text-blue-800 dark:text-blue-100">Contact Information</CardTitle>
+        <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+            <CardTitle className="dark:text-gray-100">Contact Information</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">

@@ -27,8 +27,8 @@ export default function UserManual() {
       </div>
 
       {/* Welcome Section */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-blue-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Welcome to MasterMath!
@@ -47,8 +47,8 @@ export default function UserManual() {
       </Card>
 
       {/* Getting Started */}
-      <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-blue-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Calculator className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             Getting Started - Using the Solver
@@ -78,13 +78,13 @@ export default function UserManual() {
               Type your math problem in the text area. Here are some formatting tips:
             </p>
             <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300 ml-4">
-              <li>Use <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">*</code> for multiplication: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">2*x</code> instead of 2x (though MasterMath handles both)</li>
+              <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">*</code> for multiplication: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">2*x</code> instead of 2x (though MasterMath handles both)</li>
               <li>The <strong>Keypad</strong> button above the problem box opens a keypad with the digits, x and y, + − × ÷ =, brackets, powers, backspace and arrow keys to move along the line. While it is open your phone's own keyboard stays closed, so the problem box stays in view. It starts open on a phone or tablet and closed on a computer, and stays as you leave it.</li>
               <li>The <strong>Symbols</strong> button above the problem box opens a strip of one-tap symbols in four groups: Basic (+ − × ÷ = and powers, roots, fractions, π), Algebra (≤ ≥ |x| and a ; for systems), Calculus (∫, d/dx, lim, ∞, eˣ, ln) and Functions (sin … arctan, ln, log). It stays open or closed as you leave it. The topic picks the starting group; every group stays available. Clear, under the box, empties it and keeps the topic. A preview under the box shows how your text was read, with powers raised and roots drawn.</li>
-              <li>Use <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">^</code> for exponents: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">x^2</code> for x² (unicode superscripts like x² also work)</li>
-              <li>Use parentheses for clarity: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">(x + 2)*(x - 3)</code></li>
-              <li>For limits, use format: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">lim x-&gt;0 (sin(x)/x)</code></li>
-              <li>You can type in natural language: <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">find the derivative of x^2 + 3x</code></li>
+              <li>Use <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">^</code> for exponents: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">x^2</code> for x² (unicode superscripts like x² also work)</li>
+              <li>Use parentheses for clarity: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">(x + 2)*(x - 3)</code></li>
+              <li>For limits, use format: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">lim x-&gt;0 (sin(x)/x)</code></li>
+              <li>You can type in natural language: <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">find the derivative of x^2 + 3x</code></li>
               <li>Use <strong>↑/↓ arrow keys</strong> in the input area to recall previous problems from your current session</li>
             </ul>
           </div>
@@ -99,8 +99,8 @@ export default function UserManual() {
       </Card>
 
       {/* What you can enter, by topic */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-indigo-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <ListChecks className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             What You Can Enter
@@ -109,9 +109,9 @@ export default function UserManual() {
         <CardContent className="p-6 space-y-4">
           <p className="text-gray-700 dark:text-gray-300">
             The topic you pick is a hint, not a rule: an equation in one unknown typed under Derivatives is solved as algebra (an equation in x and y is differentiated implicitly),
-            and <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">d/dx</code>,{' '}
-            <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">∫</code> or{' '}
-            <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">lim</code> in the
+            and <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">d/dx</code>,{' '}
+            <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">∫</code> or{' '}
+            <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">lim</code> in the
             problem routes it to the right solver from any topic. A notice above the steps says so when that happens, with a button to switch the topic. Under Auto-detect the notice says what was detected instead.
           </p>
           <dl className="space-y-3 text-gray-700 dark:text-gray-300">
@@ -127,7 +127,7 @@ export default function UserManual() {
               ['Trigonometry', 'Exact values at special angles, identities, and equations of the form A·f(kx) + B = C with the general solution and the solutions on one period. Plain numbers are read in the angle unit from Settings; sin(45) is taken as degrees. Ask for "the period of" or "the amplitude of" a wave, or convert an angle between degrees and radians, exactly in π.', 'sin(pi/4) · cos(60) · sin(x) = 1/2 · 2sin^2(x) - sin(x) - 1 = 0 · period of sin(2x) + cos(3x) · convert 135 degrees to radians'],
               ['Arithmetic', 'Order of operations worked one step at a time, fractions added by the least common denominator, percentages, factorials, roots, and plain-English phrasings such as "add 1/3 and 1/7". Whole numbers past 16 digits are exact. "Is 97 prime?", "the prime factorization of 360" and "round 3.14159 to 2 decimal places" (or significant figures, or the nearest hundred) are worked step by step.', '3 + 4 * 2^3 · 1/3 + 1/6 · 15% of 80 · 7! · is 91 prime · round 2.675 to 2 dp'],
             ].map(([topic, text, examples]) => (
-              <div key={topic} className="p-3 rounded-lg bg-indigo-50/60 dark:bg-gray-700/60">
+              <div key={topic} className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                 <dt className="font-semibold text-gray-800 dark:text-gray-200">{topic}</dt>
                 <dd className="mt-1">{text}</dd>
                 <dd className="mt-1 text-sm text-indigo-700 dark:text-indigo-300">Try: <code className="bg-white dark:bg-gray-600 dark:text-gray-200 px-1 rounded">{examples}</code></dd>
@@ -138,8 +138,8 @@ export default function UserManual() {
       </Card>
 
       {/* Example Problems */}
-      <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-green-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Lightbulb className="w-6 h-6 text-green-600 dark:text-green-400" />
             Example Problems
@@ -147,7 +147,7 @@ export default function UserManual() {
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="space-y-3">
-            <div className="p-4 bg-blue-50 dark:bg-gray-700 rounded-lg">
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">Derivatives Example:</p>
               <p className="text-gray-700 dark:text-gray-300">
                 Topic: Derivatives<br />
@@ -155,7 +155,7 @@ export default function UserManual() {
               </p>
             </div>
 
-            <div className="p-4 bg-indigo-50 dark:bg-gray-700 rounded-lg">
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               <p className="font-semibold text-indigo-700 dark:text-indigo-300 mb-1">Integrals Example:</p>
               <p className="text-gray-700 dark:text-gray-300">
                 Topic: Integrals<br />
@@ -163,7 +163,7 @@ export default function UserManual() {
               </p>
             </div>
 
-            <div className="p-4 bg-amber-50 dark:bg-gray-700 rounded-lg">
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               <p className="font-semibold text-amber-700 dark:text-amber-400 mb-1">Limits Example:</p>
               <p className="text-gray-700 dark:text-gray-300">
                 Topic: Limits<br />
@@ -171,7 +171,7 @@ export default function UserManual() {
               </p>
             </div>
 
-            <div className="p-4 bg-emerald-50 dark:bg-gray-700 rounded-lg">
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               <p className="font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Algebra Example:</p>
               <p className="text-gray-700 dark:text-gray-300">
                 Topic: Algebra<br />
@@ -179,7 +179,7 @@ export default function UserManual() {
               </p>
             </div>
 
-            <div className="p-4 bg-pink-50 dark:bg-gray-700 rounded-lg">
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               <p className="font-semibold text-pink-700 dark:text-pink-300 mb-1">Trigonometry Example:</p>
               <p className="text-gray-700 dark:text-gray-300">
                 Topic: Trigonometry<br />
@@ -191,8 +191,8 @@ export default function UserManual() {
       </Card>
 
       {/* Understanding Solutions */}
-      <Card className="mb-6 border-2 border-orange-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-orange-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <TrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400" />
             Understanding Your Solution
@@ -273,7 +273,7 @@ export default function UserManual() {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-2">Trigonometry Degree Detection</h3>
             <p className="text-gray-700 dark:text-gray-300">
               MasterMath auto-detects common degree values (30, 45, 60, 90, etc.) when you use
-              trigonometric functions. For example, <code className="bg-indigo-100 dark:bg-gray-700 dark:text-gray-200 px-1 rounded">sin(45)</code> is
+              trigonometric functions. For example, <code className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 px-1 rounded">sin(45)</code> is
               automatically treated as sin(45°) and results are shown in both degrees and radians.
             </p>
           </div>
@@ -281,8 +281,8 @@ export default function UserManual() {
       </Card>
 
       {/* Settings */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-indigo-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <SettingsIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Settings
@@ -300,8 +300,8 @@ export default function UserManual() {
       </Card>
 
       {/* Time limit */}
-      <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-amber-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <TimerOff className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             The 10-Second Limit and Cancel
@@ -318,8 +318,8 @@ export default function UserManual() {
       </Card>
 
       {/* Exporting Solutions */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-indigo-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Download className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Exporting Solutions
@@ -338,8 +338,8 @@ export default function UserManual() {
       </Card>
 
       {/* Progress Tracking */}
-      <Card className="mb-6 border-2 border-teal-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-teal-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <History className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             Tracking Your Progress
@@ -361,8 +361,8 @@ export default function UserManual() {
       </Card>
 
       {/* Tips for Success */}
-      <Card className="mb-6 border-2 border-rose-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-rose-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Lightbulb className="w-6 h-6 text-rose-600 dark:text-rose-400" />
             Tips for Success

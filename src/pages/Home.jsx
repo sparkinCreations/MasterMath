@@ -109,7 +109,7 @@ export default function Home() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold border-2 border-indigo-200 hover:bg-indigo-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
+                className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold border border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
               >
                 <Link to={createPageUrl("UserManual")}>
                   <BookOpen className="w-5 h-5 mr-2" />
@@ -137,7 +137,7 @@ export default function Home() {
                 href="https://github.com/sparkinCreations/MasterMath"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 text-base md:text-lg font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2 px-6 py-3 text-base md:text-lg font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors shadow-sm"
               >
                 <GithubMark className="w-5 h-5" />
                 Star on GitHub
@@ -202,11 +202,11 @@ export default function Home() {
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6 md:mb-8">
           An algebra problem, exactly as the solver works it
         </p>
-        <Card className="border border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
           {/* The equation being solved, as the card's own header. Styled
               Unicode rather than KaTeX: the landing page deliberately loads
               no solver library, and a test enforces that. */}
-          <CardHeader className="border-b border-blue-100 dark:border-gray-700 bg-blue-50 dark:bg-gray-700 px-6 py-5 md:px-8">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-700 px-6 py-5 md:px-8">
             <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300 mb-1">Solve · Algebra</p>
             <p className="text-2xl md:text-3xl font-bold text-blue-800 dark:text-blue-200 font-mono tracking-tight" aria-label="x squared minus 5 x plus 6 equals 0">
               {prettyMath(WORKED_EXAMPLE.problem)}

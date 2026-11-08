@@ -350,7 +350,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   if (!solution) {
     return (
       <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-green-50 dark:bg-gray-700">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
             <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
             Solution & Feedback
@@ -377,7 +377,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   return (
     <motion.div {...cardMotion}>
       <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-green-50 dark:bg-gray-700">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
               <StatusIcon className={`w-6 h-6 ${theme.headerIcon}`} />

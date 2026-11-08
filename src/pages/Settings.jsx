@@ -53,10 +53,10 @@ function OptionButton({ active, onClick, children, title }) {
       onClick={onClick}
       title={title}
       aria-pressed={active}
-      className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
+      className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
         active
-          ? "border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold"
-          : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+          ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900 font-semibold"
+          : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
       }`}
     >
       {children}
@@ -133,8 +133,8 @@ export default function Settings() {
       </div>
 
       {/* Appearance */}
-      <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-blue-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Palette className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Appearance
@@ -162,8 +162,8 @@ export default function Settings() {
       </Card>
 
       {/* Solver preferences */}
-      <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-blue-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <SlidersHorizontal className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             Solver Preferences
@@ -219,8 +219,8 @@ export default function Settings() {
       </Card>
 
       {/* Data & privacy */}
-      <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-green-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <HardDrive className="w-6 h-6 text-green-600 dark:text-green-400" />
             Data & Privacy
@@ -262,8 +262,8 @@ export default function Settings() {
       </Card>
 
       {/* About */}
-      <Card className="mb-6 border-2 border-teal-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-teal-50 dark:bg-gray-700">
+      <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Info className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             About

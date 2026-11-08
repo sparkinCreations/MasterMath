@@ -149,6 +149,9 @@ test.describe('MasterMath smoke', () => {
       await page.getByRole('button', { name: 'Solve Problem' }).click();
       await expect(page.locator('[aria-label="Solution"]')).toContainText('Final Answer:');
       await expect(page.getByText('Problem solved!')).toBeVisible();
+      // The first solve's toast can still be up when the second is checked;
+      // the button is enabled again only after the history entry is written.
+      await expect(page.getByRole('button', { name: 'Solve Problem' })).toBeEnabled();
     }
     await expect(page.getByText('Problem solved!')).toHaveCount(1);
     await page.goto('/progress');

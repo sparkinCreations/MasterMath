@@ -49,6 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Toasts ("Problem solved!" and the rest) are a plain white card (dark
   grey in dark mode) with a thin grey border; the colour is in the icon
   only.
+- Every other page in the same style: User Manual, How It Compares, FAQ,
+  Settings, My Progress, Feedback, Privacy Policy, Terms of Service and the
+  not-found page have white cards with a thin grey border and a light
+  shadow, untinted card headers with a hairline under the title (colour in
+  the icon only), neutral inline code and example boxes, and grey outline
+  or black buttons; Settings' selected options are black (white in dark
+  mode). The Solver's graph and solution cards, the home page's worked
+  example, the confirm dialog and the hero video's frame match.
 - A final answer in several parts shows one part per line: a semicolon
   outside brackets ends a part ("domain: …; range: …"), a Functions answer's
   function is the first line, and a label is capitalised ("Domain: …").
@@ -60,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gradient.
 
 ### Fixed
-- A flaky smoke test read My Progress before the second solve was saved;
+- Two flaky smoke tests read My Progress before the second solve was saved;
   it now waits until the Solve button is enabled again, which follows the
   save.
 
