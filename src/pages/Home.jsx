@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import GithubMark from "@/components/ui/github-mark";
+import HeroVideo from "@/components/HeroVideo";
 import { WORKED_EXAMPLE } from "@/lib/workedExample";
 
 // Solver text for display without KaTeX: superscripts, a real minus sign and
@@ -144,30 +145,14 @@ export default function Home() {
             </div>
           </div>
 
-          {/* The solver at work (1.56.4; new photo 1.59.12): the laptop
-              shows the real Solver page differentiating x² + 3x. Two WebP
-              sizes, 33 kB and 87 kB. It is
-              part of the hero on large screens now, so it loads eagerly,
-              at high priority: it is the page's largest paint (1.68.4), and
-              without the hint it waited behind the scripts; in dark mode the bright scene is dimmed a little so it does
-              not glow. The scene is an AI illustration and says so (1.70.1):
-              a site whose point is "not AI" discloses the one thing on it
-              that is. The screen was made from a screenshot of the app, with
-              parts redrawn, so it is "based on" one, not "a real" one. */}
+          {/* The solver at work: a real recording (1.70.2; HeroVideo, made
+              by scripts/record-hero.mjs), in place of an AI illustration of
+              a laptop (1.59.12–1.70.1). Its poster is the page's largest
+              paint and is preloaded at high priority. */}
           <figure className="relative px-2 lg:px-0">
-            <img
-              src="/home-desk-1600.webp"
-              srcSet="/home-desk-800.webp 800w, /home-desk-1600.webp 1600w"
-              sizes="(min-width: 1024px) 560px, 100vw"
-              width="1600"
-              height="900"
-              fetchPriority="high"
-              decoding="async"
-              alt="MasterMath open on a laptop, differentiating f(x) = x² + 3x: the graph shows the parabola with its derivative 2x + 3 as a dashed line, beside the first steps, while a student copies the working into a notebook. An illustration created with AI, based on a screenshot of MasterMath."
-              className="w-full h-auto rounded-xl md:rounded-2xl border-2 border-indigo-200 dark:border-gray-600 shadow-2xl dark:brightness-[.85]"
-            />
+            <HeroVideo description="A recording of MasterMath: x² − 4x + 3 is typed under Functions and solved. The graph shows the parabola crossing the x-axis at 1 and 3, with its minimum at 2, beside the first steps of the solution." />
             <figcaption className="mt-2 text-xs text-center lg:text-right text-gray-600 dark:text-gray-400">
-              Illustration created with AI, based on a screenshot of MasterMath.
+              A real recording of the solver.
             </figcaption>
           </figure>
         </div>
@@ -313,7 +298,7 @@ export default function Home() {
       {/* Footer */}
       <div className="text-center py-8 md:py-12 text-gray-500 dark:text-gray-400 px-2">
         <p className="text-base md:text-lg">MasterMath by sparkinCreations™</p>
-        <p className="text-xs md:text-sm mt-1">Master math with confidence — step-by-step, solved locally</p>
+        <p className="text-xs md:text-sm mt-1">Step-by-step math, solved locally</p>
         <a
           href="https://github.com/sparkinCreations/MasterMath"
           target="_blank"

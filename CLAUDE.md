@@ -14,7 +14,7 @@ stays in the browser (IndexedDB, localStorage). Deployed at mastermath.app by
 Netlify from `main`.
 
 Branding: **MasterMath** (never MathMaster) by sparkinCreations™; tagline
-"Master math with confidence"; positioning is "step-by-step local solver", never
+"Step-by-step math, solved locally" (since 1.70.2; was "Master math with confidence"); positioning is "step-by-step local solver", never
 "tutor" or AI-chatbot framing. Palette: indigo (book) and orange (operators) from
 the logo; green = answer, amber = tips.
 
@@ -381,8 +381,12 @@ worker's imports show up in the page's list too.) Images
 shown in the UI use `logo-224.webp` (7.8 kB); the manifest has `icon-192.png`,
 `icon-512.png` and a padded `icon-maskable-512.png`, made from `favicon.png`
 (the 500 px original, referenced by nothing); the tab uses `favicon-32.png`.
-Theme colour is indigo `#4F46E5`. The home photo is the largest paint and
-carries `fetchPriority="high"`. The route
+Theme colour is indigo `#4F46E5`. The home hero is a real recording of the
+Solver (`HeroVideo`, files in `public/hero/` made by
+`scripts/record-hero.mjs`; re-record when the Solver's look changes): one
+video per visitor (theme, 1600 or 800 wide, WebM then MP4), its poster
+preloaded at high priority as the largest paint, the poster alone under
+reduced motion, and a pause button. The route
 placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
 
 ## Tests and verification

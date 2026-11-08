@@ -401,7 +401,7 @@ export default function UserManual() {
       {/* Footer */}
       <div className="text-center py-6 text-gray-500 dark:text-gray-400">
         <p>MasterMath by sparkinCreations™</p>
-        <p className="text-sm mt-1">Master math with confidence — step-by-step, solved locally</p>
+        <p className="text-sm mt-1">Step-by-step math, solved locally</p>
       </div>
     </div>
   );
