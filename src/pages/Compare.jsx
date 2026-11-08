@@ -150,7 +150,7 @@ export default function Compare() {
       </div>
 
       <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-amber-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             What MasterMath does not do
@@ -164,7 +164,7 @@ export default function Compare() {
       </Card>
 
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-blue-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Scale className="w-6 h-6 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
             Side by side
@@ -208,7 +208,7 @@ export default function Compare() {
       </Card>
 
       <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-green-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Compass className="w-6 h-6 text-green-600 dark:text-green-400" aria-hidden="true" />
             Which one to use
@@ -233,7 +233,7 @@ export default function Compare() {
       </Card>
 
       <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-blue-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Search className="w-6 h-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
             How we checked
@@ -261,7 +261,7 @@ export default function Compare() {
       </Card>
 
       <div className="flex justify-center mb-4">
-        <Button asChild size="lg" className="h-12 px-6 text-base font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg">
+        <Button asChild size="lg" className="h-12 px-6 text-base font-semibold text-white bg-orange-700 hover:bg-orange-800 shadow-lg">
           <Link to={createPageUrl("Solver")}>
             <Calculator className="w-5 h-5 mr-2" aria-hidden="true" />
             Try the Solver

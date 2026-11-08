@@ -37,7 +37,7 @@ const AMBER_THEME = {
   Icon: AlertTriangle,
   headerIcon: "text-amber-600 dark:text-amber-400",
   badge: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700",
-  card: "bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/30 border-2 border-amber-300 dark:border-amber-700",
+  card: "bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700",
   cardIcon: "text-amber-600 dark:text-amber-400",
   cardText: "text-gray-800 dark:text-amber-50",
   heading: "Result:",
@@ -48,7 +48,7 @@ const STATUS_THEMES = {
     Icon: CheckCircle2,
     headerIcon: "text-green-600 dark:text-green-400",
     badge: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-200 dark:border-green-700",
-    card: "bg-linear-to-r from-green-100 to-emerald-100 dark:from-emerald-950/40 dark:to-green-950/40 border-2 border-green-300 dark:border-emerald-700",
+    card: "bg-green-100 dark:bg-emerald-950/40 border-2 border-green-300 dark:border-emerald-700",
     cardIcon: "text-green-600 dark:text-green-400",
     cardText: "text-gray-800 dark:text-emerald-50",
     heading: "Final Answer:",
@@ -57,7 +57,7 @@ const STATUS_THEMES = {
     Icon: AlertCircle,
     headerIcon: "text-red-600 dark:text-red-400",
     badge: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-200 dark:border-red-700",
-    card: "bg-linear-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/30 border-2 border-red-300 dark:border-red-800",
+    card: "bg-red-50 dark:bg-red-950/40 border-2 border-red-300 dark:border-red-800",
     cardIcon: "text-red-600 dark:text-red-400",
     cardText: "text-gray-800 dark:text-red-50",
     heading: "What went wrong:",
@@ -317,7 +317,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   if (!solution) {
     return (
       <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-green-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
             <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
             Solution & Feedback
@@ -325,7 +325,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-linear-to-br from-green-100 to-emerald-100 dark:from-gray-700 dark:to-gray-700 rounded-full flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-green-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
               <BookOpen className="w-8 h-8 text-green-500 dark:text-green-400" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 text-lg">
@@ -344,7 +344,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
   return (
     <motion.div {...cardMotion}>
       <Card className="bg-white dark:bg-gray-800 border-2 border-green-200 dark:border-gray-700 shadow-lg rounded-xl">
-        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="border-b border-green-100 dark:border-gray-700 bg-green-50 dark:bg-gray-700">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
               <StatusIcon className={`w-6 h-6 ${theme.headerIcon}`} />
@@ -442,7 +442,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     className="py-4 first:pt-1"
                   >
                     <div className="flex gap-3">
-                      <div className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                      <div className="shrink-0 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
                         <span className="sr-only">Step </span>{idx + 1}
                       </div>
                       <p className="text-gray-800 dark:text-gray-100 flex-1 leading-relaxed"><MathText text={step} /></p>
@@ -458,7 +458,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                   <div className="flex items-center gap-4">
                     <Button
                       onClick={() => setRevealed((r) => Math.min(r + 1, steps.length))}
-                      className="px-6 py-3 rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-xs hover:from-blue-600 hover:to-indigo-700"
+                      className="px-6 py-3 rounded-lg bg-indigo-600 text-white shadow-xs hover:bg-indigo-700"
                     >
                       Reveal next step
                       <ArrowRight className="w-4 h-4 ml-2" />
@@ -513,7 +513,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
                     type="button"
                     onClick={() => setPractising(true)}
                     aria-haspopup="dialog"
-                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold text-white bg-linear-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800"
+                    className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 dark:focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800"
                   >
                     <PencilLine className="w-4 h-4" aria-hidden="true" />
                     Try a similar one
@@ -534,7 +534,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Key Insights:"
               Icon={Lightbulb}
               iconClass="text-amber-500"
-              itemClass="bg-linear-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border-amber-200 dark:border-amber-700/60"
+              itemClass="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/60"
               noun="insight"
             />
           )}
@@ -547,7 +547,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
               heading="Common Mistakes to Avoid:"
               Icon={AlertCircle}
               iconClass="text-red-500"
-              itemClass="bg-linear-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-rose-950/20 border-red-200 dark:border-red-800/60"
+              itemClass="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/60"
               noun="mistake"
             />
           )}

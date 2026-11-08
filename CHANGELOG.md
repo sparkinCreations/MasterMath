@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.70.4] - 2026-11-08
+
+### Changed
+- No gradients but the page background. Every other gradient is one solid
+  colour: buttons, card headers, headings, step numbers, the answer card,
+  the closing band on the home page, the graph's curve. Colours, layout and
+  wording are unchanged. Solid orange buttons are orange-700, so white text
+  on them is 5.2:1 (the old orange-400 to orange-600 gradient fell below
+  4.5:1 at its light end); a gradient heading in dark mode is indigo-400.
+
 ## [1.70.3] - 2026-11-08
 
 ### Changed

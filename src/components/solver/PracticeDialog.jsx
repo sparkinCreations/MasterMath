@@ -255,7 +255,7 @@ export default function PracticeDialog({ problem, topic, solution, onClose }) {
                   type="button"
                   onClick={check}
                   disabled={checking}
-                  className={`inline-flex items-center justify-center min-h-11 px-5 rounded-lg font-semibold text-white bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-60 ${focusRing}`}
+                  className={`inline-flex items-center justify-center min-h-11 px-5 rounded-lg font-semibold text-white bg-orange-700 hover:bg-orange-800 disabled:opacity-60 ${focusRing}`}
                 >
                   Check
                 </button>

@@ -353,7 +353,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
       <Button
         onClick={handleSolve}
         disabled={!problem.trim() || !topic || isLoading}
-        className="w-full h-14 text-lg font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+        className="w-full h-14 text-lg font-semibold text-white bg-orange-700 hover:bg-orange-800 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
       >
         {isLoading ? (
           <>
@@ -406,7 +406,7 @@ export default function ProblemInput({ problem, setProblem, topic, setTopic, onS
               // the card's content is hidden from assistive tech, so the
               // problem is announced once, not again as MathML.
               aria-label={`${TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}: ${ex.problem}`}
-              className={`text-left p-3 rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-gray-700/60 dark:to-gray-700/60 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
+              className={`text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-gray-700/60 dark:hover:bg-gray-700 transition-all duration-200 border border-indigo-200 dark:border-gray-600 text-sm ${idx >= EXAMPLES_ON_PHONE && !allExamples ? 'hidden md:block' : ''}`}
             >
               <span aria-hidden="true">
                 <span className="font-medium text-indigo-700 dark:text-indigo-300">{TOPICS.find((t) => t.value === ex.topic)?.label || ex.topic}:</span>{" "}

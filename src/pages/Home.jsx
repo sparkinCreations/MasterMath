@@ -33,32 +33,32 @@ const FEATURES = [
   {
     icon: Calculator, title: 'Every Topic',
     text: 'Arithmetic, algebra, systems and inequalities, trigonometry, functions, limits, derivatives and integrals — definite and improper too.',
-    border: 'border-blue-200', header: 'from-blue-50 to-cyan-50', color: 'text-blue-700 dark:text-blue-400',
+    border: 'border-blue-200', header: 'bg-blue-50', color: 'text-blue-700 dark:text-blue-400',
   },
   {
     icon: Zap, title: 'Worked Steps, Checked',
     text: 'Named methods — the power rule, u-substitution, by parts — every line shown and the answer verified. Open-source maths libraries, not an AI chatbot: the same answer every time.',
-    border: 'border-indigo-200', header: 'from-indigo-50 to-pink-50', color: 'text-indigo-700 dark:text-indigo-400',
+    border: 'border-indigo-200', header: 'bg-indigo-50', color: 'text-indigo-700 dark:text-indigo-400',
   },
   {
     icon: TrendingUp, title: 'Graphs',
     text: 'Functions, derivatives and integrals are drawn, with extrema, intercepts and asymptotes marked; drag and zoom to explore.',
-    border: 'border-green-200', header: 'from-green-50 to-emerald-50', color: 'text-green-700 dark:text-green-400',
+    border: 'border-green-200', header: 'bg-green-50', color: 'text-green-700 dark:text-green-400',
   },
   {
     icon: Lightbulb, title: 'Insights and Mistakes',
     text: 'Key insights and the common mistakes for the method just used — not one generic list.',
-    border: 'border-amber-200', header: 'from-amber-50 to-yellow-50', color: 'text-amber-700 dark:text-amber-400',
+    border: 'border-amber-200', header: 'bg-amber-50', color: 'text-amber-700 dark:text-amber-400',
   },
   {
     icon: BookOpen, title: 'Export and Progress',
     text: 'Any solution as PDF, Markdown or JSON, your whole history as CSV, and a progress page of everything solved.',
-    border: 'border-indigo-200', header: 'from-indigo-50 to-indigo-50', color: 'text-indigo-700 dark:text-indigo-400',
+    border: 'border-indigo-200', header: 'bg-indigo-50', color: 'text-indigo-700 dark:text-indigo-400',
   },
   {
     icon: Target, title: 'Private, Offline, Free',
     text: 'No account, no tracking, no cost; it works without Wi-Fi. Solving and history stay on your device — the only thing ever sent is a feedback message you choose to submit.',
-    border: 'border-rose-200', header: 'from-rose-50 to-pink-50', color: 'text-rose-700 dark:text-rose-400',
+    border: 'border-rose-200', header: 'bg-rose-50', color: 'text-rose-700 dark:text-rose-400',
   },
 ];
 
@@ -97,7 +97,7 @@ export default function Home() {
               <Button
                 asChild
                 size="lg"
-                className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold text-white bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="w-full sm:w-auto h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-semibold text-white bg-orange-700 hover:bg-orange-800 shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Link to={createPageUrl("Solver")}>
                   <Calculator className="w-5 h-5 mr-2" />
@@ -172,7 +172,7 @@ export default function Home() {
           {/* The equation being solved, as the card's own header. Styled
               Unicode rather than KaTeX: the landing page deliberately loads
               no solver library, and a test enforces that. */}
-          <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 px-6 py-5 md:px-10 md:py-6">
+          <CardHeader className="border-b border-indigo-100 dark:border-gray-700 bg-blue-50 dark:bg-gray-700 px-6 py-5 md:px-10 md:py-6">
             <p className="text-xs md:text-sm font-semibold uppercase tracking-wide text-indigo-500 dark:text-indigo-300 mb-1">Solve · Algebra</p>
             <p className="text-2xl md:text-3xl font-bold text-indigo-700 dark:text-indigo-200 font-mono tracking-tight" aria-label="x squared minus 5 x plus 6 equals 0">
               {prettyMath(WORKED_EXAMPLE.problem)}
@@ -182,7 +182,7 @@ export default function Home() {
             <ol className="divide-y divide-gray-200 dark:divide-gray-700 text-sm md:text-base text-gray-700 dark:text-gray-300">
               {WORKED_EXAMPLE.steps.map((step, i) => (
                 <li key={i} className="flex items-start gap-4 py-4 md:py-5 first:pt-0">
-                  <span className="shrink-0 w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white text-sm font-bold flex items-center justify-center shadow-sm" aria-hidden="true">{i + 1}</span>
+                  <span className="shrink-0 w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center shadow-sm" aria-hidden="true">{i + 1}</span>
                   <span className="pt-1 leading-relaxed"><span className="sr-only">Step {i + 1}. </span>{prettyMath(step)}</span>
                 </li>
               ))}
@@ -194,7 +194,7 @@ export default function Home() {
               <span className="font-semibold">Key insight:</span> {prettyMath(WORKED_EXAMPLE.tip)}
             </p>
             <div className="mt-8 md:mt-10 mb-2 flex justify-center">
-              <Button asChild size="lg" className="h-12 md:h-14 px-6 md:px-8 text-base md:text-lg bg-linear-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
+              <Button asChild size="lg" className="h-12 md:h-14 px-6 md:px-8 text-base md:text-lg bg-orange-700 hover:bg-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
                 <Link to={createPageUrl("Solver")} state={{ problem: WORKED_EXAMPLE.problem, topic: WORKED_EXAMPLE.topic }}>
                   <Calculator className="w-5 h-5 mr-2" />
                   Try this one in the solver
@@ -236,7 +236,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {FEATURES.map(({ icon: Icon, title, text, border, header, color }) => (
             <Card key={title} className={`border-2 ${border} dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow`}>
-              <CardHeader className={`bg-linear-to-r ${header} dark:from-gray-700 dark:to-gray-700`}>
+              <CardHeader className={`${header} dark:bg-gray-700`}>
                 <CardTitle as="h3" className={`flex items-center gap-2 ${color}`}>
                   <Icon className="w-6 h-6" aria-hidden="true" />
                   {title}
@@ -252,7 +252,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <div className="max-w-4xl mx-auto text-center px-2">
-        <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-2xl">
+        <div className="bg-indigo-600 rounded-xl md:rounded-2xl p-6 md:p-12 shadow-2xl">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">
             Ready to Master Math?
           </h2>

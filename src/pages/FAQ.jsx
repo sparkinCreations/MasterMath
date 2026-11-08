@@ -147,7 +147,7 @@ export default function FAQ() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <HelpCircle className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
-          <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">
             Frequently Asked Questions
           </h1>
         </div>
@@ -189,7 +189,7 @@ export default function FAQ() {
         ))}
       </div>
 
-      <div className="mt-12 p-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border-2 border-indigo-200 dark:border-gray-600">
+      <div className="mt-12 p-6 bg-blue-50 dark:bg-gray-800 rounded-xl border-2 border-indigo-200 dark:border-gray-600">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
           Still have questions?
         </h2>

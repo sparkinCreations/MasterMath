@@ -228,7 +228,7 @@ export default function Solver() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
           Let's Master Some Math!
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">

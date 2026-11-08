@@ -105,17 +105,3 @@
     animation-duration: 1.5s !important;
   }
 }
-
-/* Accessibility: Windows High Contrast / forced-colors mode.
-   The gradient headings paint their colour into the text's own fill and set
-   the text transparent, which makes them vanish outright when the OS forces
-   its palette. Fall back to a plain system-coloured heading. */
-@media (forced-colors: active) {
-  .bg-clip-text {
-    background-image: none !important;
-    -webkit-background-clip: border-box !important;
-    background-clip: border-box !important;
-    -webkit-text-fill-color: currentColor !important;
-    color: CanvasText !important;
-  }
-}

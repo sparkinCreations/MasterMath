@@ -18,7 +18,7 @@ export default function UserManual() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
           User Manual
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -28,7 +28,7 @@ export default function UserManual() {
 
       {/* Welcome Section */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-blue-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Welcome to MasterMath!
@@ -48,7 +48,7 @@ export default function UserManual() {
 
       {/* Getting Started */}
       <Card className="mb-6 border-2 border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-blue-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Calculator className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             Getting Started - Using the Solver
@@ -100,7 +100,7 @@ export default function UserManual() {
 
       {/* What you can enter, by topic */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-indigo-50 to-blue-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-indigo-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <ListChecks className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             What You Can Enter
@@ -139,7 +139,7 @@ export default function UserManual() {
 
       {/* Example Problems */}
       <Card className="mb-6 border-2 border-green-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-green-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Lightbulb className="w-6 h-6 text-green-600 dark:text-green-400" />
             Example Problems
@@ -192,7 +192,7 @@ export default function UserManual() {
 
       {/* Understanding Solutions */}
       <Card className="mb-6 border-2 border-orange-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-orange-50 to-amber-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-orange-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <TrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400" />
             Understanding Your Solution
@@ -282,7 +282,7 @@ export default function UserManual() {
 
       {/* Settings */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-indigo-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <SettingsIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Settings
@@ -301,7 +301,7 @@ export default function UserManual() {
 
       {/* Time limit */}
       <Card className="mb-6 border-2 border-amber-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-amber-50 to-orange-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-amber-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <TimerOff className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             The 10-Second Limit and Cancel
@@ -319,7 +319,7 @@ export default function UserManual() {
 
       {/* Exporting Solutions */}
       <Card className="mb-6 border-2 border-indigo-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-indigo-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-indigo-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Download className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Exporting Solutions
@@ -339,7 +339,7 @@ export default function UserManual() {
 
       {/* Progress Tracking */}
       <Card className="mb-6 border-2 border-teal-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-teal-50 to-cyan-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-teal-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <History className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             Tracking Your Progress
@@ -362,7 +362,7 @@ export default function UserManual() {
 
       {/* Tips for Success */}
       <Card className="mb-6 border-2 border-rose-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-linear-to-r from-rose-50 to-pink-50 dark:from-gray-700 dark:to-gray-700">
+        <CardHeader className="bg-rose-50 dark:bg-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
             <Lightbulb className="w-6 h-6 text-rose-600 dark:text-rose-400" />
             Tips for Success

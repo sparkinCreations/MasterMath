@@ -115,7 +115,7 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
           </Button>
           <Button
             onClick={onConfirm}
-            className="flex-1 bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+            className="flex-1 bg-red-600 hover:bg-red-700"
           >
             Confirm
           </Button>
