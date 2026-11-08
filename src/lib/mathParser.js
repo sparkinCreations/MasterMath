@@ -387,7 +387,11 @@ export function extractVariable(expression) {
   // multiplication, and x is the variable.
   stripped = stripped.replace(/(?<![a-z])[a-z_]\w+\s*(?=\()/gi, '');
 
-  // Now find the first remaining letter — that's the variable
+  // x, when it is there, is the variable and every other letter a constant,
+  // as a textbook reads a*x^2 or sin(n*x) (1.70.6): the first letter made
+  // "d/dx a*x^2" the derivative in a, and "a*x + b = 0" solved for a.
+  // Otherwise the first remaining letter.
+  if (/(?<![a-z])x(?![a-z])/i.test(stripped)) return 'x';
   const match = stripped.match(/[a-z]/i);
   return match ? match[0].toLowerCase() : 'x';
 }

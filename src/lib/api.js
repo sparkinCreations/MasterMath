@@ -398,6 +398,16 @@ export async function solveProblem(problem, topic) {
       }
       const wrt = t.match(/\bwith\s+respect\s+to\s+([a-z])\b/i);
       if (wrt) derivOpts.variable = wrt[1].toLowerCase();
+      // d/dt names the variable just as "with respect to t" does (1.70.6).
+      // Only when the problem has another letter too, so a one-letter
+      // problem keeps its usual path.
+      const ddv = t.match(/\bd\s*(?:\^\s*\d\s*)?\/\s*d([a-z])\b/i);
+      if (!derivOpts.variable && ddv) {
+        const v = ddv[1].toLowerCase();
+        const rest = t.replace(ddv[0], '').replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sqrt|cbrt|abs|log|ln|exp|pi|e|derivative|of|at)\b/gi, '');
+        const others = (rest.match(/(?<![a-z])[a-z](?![a-z])/gi) || []).map((c) => c.toLowerCase()).filter((c) => c !== v);
+        if (others.length > 0) derivOpts.variable = v;
+      }
     }
     const stripDerivPhrases = (t) => String(t)
       .replace(/\bwith\s+respect\s+to\s+[a-z]\b/i, '')
