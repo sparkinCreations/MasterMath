@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - "2xy + y = 3" gave y = 3/((2x + 1)(1/(2x + 1) + 2x/(2x + 1))); it is
     y = 3/(2x + 1).
   - "sin(y) = x" is answered as x = sin(y), without a numeric scan's steps.
+  - An expansion is in textbook order, highest power of the variable first
+    and then of each other letter: (a + b)^2 was 2a*b + a^2 + b^2, now
+    a^2 + 2a*b + b^2.
 - All 2,486 recorded solves were compared before and after: the only other
   change is that sin(x) = cos(y) is refused as one equation in two
   unknowns instead of "no exact reduction".

@@ -22,11 +22,34 @@ import { parseRootsList, IMAGINARY } from './rootsFormat.js';
 import { exactRadicalForm } from './radicals.js';
 
 // "expand (x+1)^2" → x^2 + 2x + 1. Algebrite's expand, verified numerically.
+// Terms in textbook order (1.70.6): highest power of the variable first,
+// then of each other letter in turn, keeping the engine's order otherwise. Algebrite
+// wrote (a + b)^2 as 2a*b + a^2 + b^2; a textbook writes a^2 + 2ab + b^2.
+function textbookOrder(expanded, variable, Algebrite) {
+  const terms = splitTerms(expanded);
+  if (terms.length < 2) return expanded;
+  const degree = (t, v) => {
+    try { const d = Number(String(Algebrite.run(`deg(${t}, ${v})`)).trim()); return Number.isFinite(d) ? d : 0; } catch { return 0; }
+  };
+  // The variable first, then the other letters alphabetically: each term's
+  // powers in that order, compared highest first (a^2, 2ab, 2ac, b^2, 2bc, c^2).
+  const others = [...new Set(expanded.match(/(?<![a-z])[a-z](?![a-z])/gi) || [])].filter((c) => !['e', 'i', variable].includes(c)).sort();
+  const order = [variable, ...others];
+  const ranked = terms.map((t, i) => ({ t, i, powers: order.map((v) => degree(t.term, v)) }));
+  ranked.sort((p, q) => {
+    for (let k = 0; k < order.length; k += 1) if (q.powers[k] !== p.powers[k]) return q.powers[k] - p.powers[k];
+    return p.i - q.i;
+  });
+  const text = ranked.map(({ t }, k) => (k === 0 ? t.signed : t.sign === '-' ? ` - ${t.term}` : ` + ${t.term}`)).join('');
+  return text;
+}
+
 export async function expandExpression(expression) {
   try {
     const Algebrite = await loadAlgebrite();
-    const expanded = String(Algebrite.run(`expand(${expression})`)).trim();
-    if (!expanded || /stop|error|nil/i.test(expanded)) return null;
+    const raw = String(Algebrite.run(`expand(${expression})`)).trim();
+    if (!raw || /stop|error|nil/i.test(raw)) return null;
+    const expanded = textbookOrder(raw, extractVariable(expression), Algebrite);
     // Every letter is checked, not only x: with a constant in it the
     // one-letter check could not evaluate, and the input came back unexpanded.
     if (!expressionsEqualInAllLetters(expression, expanded)) return null;

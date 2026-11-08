@@ -21,6 +21,12 @@ const cases = [
   ['factor x^2 - a^2', '(x + a)(x - a)'],
   ['factor a^2*b - a*b^2', 'a*b(a - b)'],
   ['expand (x + a)^2', 'x^2 + 2a*x + a^2'],
+  // Textbook order: highest power of the variable first, then of each
+  // other letter in turn.
+  ['expand (a + b)^2', 'a^2 + 2a*b + b^2'],
+  ['expand (a + b)^3', 'a^3 + 3a^2*b + 3a*b^2 + b^3'],
+  ['expand (a + b + c)^2', 'a^2 + 2a*b + 2a*c + b^2 + 2b*c + c^2'],
+  ['expand (1 - x)^3', '-x^3 + 3x^2 - 3x + 1'],
   ['sin(y) = x', 'x = sin(y)'],
 ];
 for (const [problem, answer] of cases) {
