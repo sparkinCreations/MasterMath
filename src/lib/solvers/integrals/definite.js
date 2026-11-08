@@ -14,6 +14,7 @@ import {
 } from '../solverUtils.js';
 import { parseMathExpression } from '../../mathParser.js';
 import { antiderivativeViaTerms } from './terms.js';
+import { definiteWithConstants } from './definiteConstants.js';
 import {
   refuseDefinite,
   isInfiniteBound,
@@ -150,6 +151,12 @@ export async function solveDefiniteIntegral(parsed) {
 
     const Algebrite = await loadAlgebrite();
     const forAlgebrite = rewriteReciprocalTrig(integrand);
+
+    // Constants in the integrand: worked with them left as letters, or
+    // refused saying why (definiteConstants.js). Numeric sampling cannot
+    // see a letter, and called every such integral improper (1.73.0).
+    const withConstants = definiteWithConstants({ integrand, v, a, b, lowerRaw, upperRaw, lowerLabel, upperLabel, notation, Algebrite });
+    if (withConstants) return withConstants;
 
     // An integrand unbounded at an endpoint (1/√x at 0, ln x at 0) makes the
     // integral improper: it is a one-sided limit, and F(b) − F(a) with F

@@ -21,6 +21,13 @@ import {
   realOddRoots,
   mark,
   splitTerms,
+  constantRequirements,
+  conditionsReason,
+  mixedLogArguments,
+  keepLogArguments,
+  atPointKeepingLogs,
+  conditionAtPoint,
+  otherBranchScopes,
 } from './solverUtils.js';
 import { extractVariable } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -65,6 +72,22 @@ export async function solveDerivative(expression, options = {}) {
   if (result && exact !== expression) {
     const [from, to] = [beautify(exact), beautify(expression)];
     result.steps = (result.steps || []).map((t) => (typeof t === 'string' ? t.split(from).join(to) : t));
+  }
+  // Constants (1.73.0): what f needs of them is what f′ needs, said on the
+  // answer: d/dx aˣ = aˣ·ln(a), for a > 0. A domain the answer already gives
+  // ("x > 0") joins the same "for".
+  if (result && typeof result.answer === 'string' && !result.status && !/does not exist|undefined|not defined/.test(result.answer)) {
+    const v = options.variable || options.evalAt?.variable || extractVariable(expression);
+    // From f, and from the answer's own form (2·ln(a)·x needs a > 0).
+    const rhs = result.answer.replace(/^[^=]*=\s*/, '').replace(new RegExp(`,\\s*${v}\\s*[<>≤≥≠].*$`), '').replace(/√\(/g, 'sqrt(').replace(/√([a-z0-9]+)/gi, 'sqrt($1)').replace(/≈.*$/, '');
+    let reqs = [...new Set([...constantRequirements(expression, v), ...constantRequirements(rhs, v)])];
+    // At a point, a condition in x takes the point: a·x > 0 at x = −2 is a < 0.
+    if (options.evalAt) reqs = [...new Set(reqs.map((r) => conditionAtPoint(r, v, options.evalAt.valueText)))];
+    if (reqs.length) {
+      const domain = result.answer.match(new RegExp(`^(.*?),\\s*(${v}\\s*[<>≤≥≠].*)$`));
+      result.answer = domain ? `${domain[1]}, for ${domain[2]} and ${reqs.join(' and ')}` : `${result.answer}, for ${reqs.join(' and ')}`;
+      result.steps = [...(result.steps || []), `This holds for ${reqs.map((r) => mark(r)).join(' and ')}: ${conditionsReason(reqs)}.`];
+    }
   }
   if (result && result.status !== 'parse_error' && String(expression).trim()) {
     const variable = options.variable || options.evalAt?.variable || extractVariable(expression);
@@ -210,7 +233,34 @@ async function solveDerivativeInner(expression, options = {}) {
     }
     // Where f′ is defined: poles of f′, and any root or logarithm restriction
     // carried over from f. Stated on the answer (1/x → −1/x², x ≠ 0).
-    const domain = order === 1 && !options.evalAt ? derivativeDomain(expression, derivative, variable, Algebrite) : null;
+    // ln(a·x) stays whole: Algebrite wrote x + 2·ln(a)·x + 2x·ln(x), true only
+    // for a > 0 and x > 0, where x²·ln(a·x) is defined for a·x > 0 (review
+    // of 1.73.0). The pieces are put back, in the answer and in the steps.
+    if (mixedLogArguments(forAlgebrite, variable).length) {
+      // Verified where Algebrite's split form says nothing (a < 0, x < 0):
+      // the rebuilt f′ against a numerical derivative of f there.
+      const branch = otherBranchScopes(forAlgebrite, variable);
+      const verify = (cand) => order === 1 && branch.every((scope) => {
+        try {
+          const h = 1e-6;
+          const f = (t) => math.evaluate(forAlgebrite, { ...scope, [variable]: t });
+          const want = (f(scope[variable] + h) - f(scope[variable] - h)) / (2 * h);
+          const got = math.evaluate(cand, scope);
+          return typeof got === 'number' && Number.isFinite(want) && Math.abs(got - want) <= 1e-5 * Math.max(1, Math.abs(want));
+        } catch { return false; }
+      });
+      const keep = (d) => keepLogArguments(d, forAlgebrite, variable, Algebrite, verify);
+      for (let k = 0; k < orderChain.length; k += 1) {
+        const kept = keep(orderChain[k]);
+        if (kept !== orderChain[k]) {
+          const [before, after] = [lnify(orderChain[k]), lnify(kept)];
+          for (let i = 0; i < steps.length; i += 1) if (typeof steps[i] === 'string') steps[i] = steps[i].split(before).join(after);
+          orderChain[k] = kept;
+        }
+      }
+      derivative = orderChain[orderChain.length - 1];
+    }
+    const domain = order === 1 && !options.evalAt && !mixedLogArguments(forAlgebrite, variable).length ? derivativeDomain(expression, derivative, variable, Algebrite) : null;
     if (domain) steps.push(domain.step);
     if (order > 1) {
       const names = ['', 'first', 'second', 'third', 'fourth'];
@@ -278,9 +328,17 @@ async function solveDerivativeInner(expression, options = {}) {
         .match(/(?<![a-z])[a-z](?![a-z])/gi) || []).filter((c) => c.toLowerCase() !== variable);
       // With constants and no exact value, the derivative with the point put
       // in is still the answer; "undefined" is not (it needs a number).
-      const substituted = () => beautify(String(derivative).replace(new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'g'), `(${valueText})`));
+      const substituted = () => {
+        // ln(a·x) kept whole at the point: ln(a·(−2)) is ln(−2a).
+        const kept = mixedLogArguments(derivative, variable).length ? atPointKeepingLogs(derivative, variable, valueText, Algebrite) : null;
+        if (kept) return lnify(kept);
+        return beautify(String(derivative).replace(new RegExp(`(?<![a-z])${variable}(?![a-z])`, 'g'), `(${valueText})`));
+      };
+      // An exact value through i (ln of a negative, split by Algebrite) is
+      // never the answer; with ln(a·x) the point goes in as typed.
+      const usable = exact && !/(?<![a-z])i(?![a-z])/.test(exact) && !mixedLogArguments(derivative, variable).length;
       let symbolic = constants.length > 0
-        ? (exact && !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(exact) ? exact : substituted())
+        ? (usable && !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(exact) ? exact : substituted())
         : null;
       let numeric;
       try { numeric = math.evaluate(real(rewriteReciprocalTrig(derivative)), { [variable]: value }); } catch { numeric = NaN; }

@@ -182,7 +182,7 @@ test('the whole-Algebrite fallback is verified too, with other letters as consta
   // The check gives every other letter a fixed value, so a correct answer
   // with constants in it still passes and is shown.
   assert.equal((await solveProblem('∫ x^2 dy', 'auto')).answer, '∫(x^2) dy = x^2*y + C');
-  assert.equal((await solveProblem('∫ sin(k*t) dt', 'auto')).answer, '∫(sin(k*t)) dt = -cos(k*t)/k + C');
+  assert.equal((await solveProblem('∫ sin(k*t) dt', 'auto')).answer, '∫(sin(k*t)) dt = -cos(k*t)/k + C, for k ≠ 0');
   const src = readFileSync('src/lib/solvers/integralsSolver.js', 'utf8');
   const fallback = src.slice(src.indexOf('fall back to whole-Algebrite'));
   assert.match(fallback.slice(0, 2000), /if \(!fallbackTrusted\) throw/);

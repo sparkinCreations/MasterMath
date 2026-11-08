@@ -26,6 +26,7 @@ import {
   realOddRoots,
   absBars,
   stripOuterParens,
+  splitTerms,
 } from './solverUtils.js';
 import { equationGuidance } from './algebra/guidance.js';
 import { solveWithAlgebriteRoots, rootsViaPolynomialRoot } from './algebra/polynomial.js';
@@ -177,8 +178,11 @@ function constantConditions(rel, target, expression = '', divisor = null) {
   // coefficient a linear equation was divided by (a*x = 0 is x = 0 only for
   // a ≠ 0). "a - b ≠ 0" reads "a ≠ b".
   const addNonzero = (raw) => {
-    const d = stripOuterParens(String(raw).trim());
+    let d = stripOuterParens(String(raw).trim());
     if (!/[a-z]/i.test(d) || hasTarget(d)) return;
+    // 2a, a^2, 2*a^2 ≠ 0 are a ≠ 0.
+    const single = d.replace(/\s+/g, '').match(/^\d*\*?([a-z])(?:\^\d+)?$/i);
+    if (single) d = single[1];
     const pair = d.match(/^([a-z])\s*-\s*([a-z])$/i);
     const text = pair ? `${pair[1]} ≠ ${pair[2]}` : `${d} ≠ 0`;
     if (!nonzero.includes(text)) nonzero.push(text);
@@ -192,13 +196,24 @@ function constantConditions(rel, target, expression = '', divisor = null) {
     const arg = stripOuterParens(m[1]);
     if (/[a-z]/i.test(arg) && !hasTarget(arg) && !nonnegative.includes(`${arg} ≥ 0`)) nonnegative.push(`${arg} ≥ 0`);
   }
+  // An even root written as a power: a^(1/4), (…)^(1/2).
+  for (const m of answer.matchAll(/(\((?:[^()]|\([^()]*\))*\)|[a-z])\^\(1\/(\d+)\)/gi)) {
+    const arg = stripOuterParens(m[1]);
+    if (Number(m[2]) % 2 === 0 && /[a-z]/i.test(arg) && !hasTarget(arg) && !nonnegative.includes(`${arg} ≥ 0`)) nonnegative.push(`${arg} ≥ 0`);
+  }
   for (const m of answer.matchAll(/\bln\(((?:[^()]|\([^()]*\))*)\)/g)) {
     let arg = m[1].trim();
     const scaled = arg.match(/^(.+?)\s*\/\s*(\d+(?:\.\d+)?)$/);
     if (scaled && !/[+-]/.test(scaled[1].replace(/^\(.*\)$/, ''))) arg = stripOuterParens(scaled[1]);
     if (/[a-z]/i.test(arg) && !hasTarget(arg) && !positive.includes(`${arg} > 0`)) positive.push(`${arg} > 0`);
   }
-  return { nonzero, positive, nonnegative, all: [...nonzero, ...positive, ...nonnegative] };
+  // A condition that always holds says nothing: 8 + k² ≥ 0 (positive
+  // numbers times even powers of the constants) is dropped.
+  const alwaysNonnegative = (c) => splitTerms(c.replace(/\s*≥\s*0$/, '').replace(/\s+/g, '')).every(({ signed }) => (
+    !signed.startsWith('-') && /^\+?(?:\d+(?:\.\d+)?)?(?:\*?[a-z]\^[2468]|\*?\([^()]*\)\^[2468])*$/i.test(signed) && signed.replace(/^\+/, '') !== ''
+  ));
+  const kept = nonnegative.filter((c) => !alwaysNonnegative(c));
+  return { nonzero, positive, nonnegative: kept, all: [...nonzero, ...positive, ...kept] };
 }
 // What the equation says when a constant it divides by is 0: e^(0·x) = b is
 // 1 = b, a*x + b = 0 is b = 0. Only when x drops out.
@@ -207,9 +222,12 @@ function zeroCase(expression, condition, target) {
   if (!/^[a-z]$/i.test(letter)) return null;
   try {
     const [l, r] = expression.split('=');
-    const at = (side) => math.simplify(side.replace(new RegExp(`(?<![a-z])${letter}(?![a-z])`, 'g'), '0')).toString();
+    const at = (side) => math.simplify(side.replace(new RegExp(`(?<![a-z])${letter}(?![a-z])`, 'g'), '0')).toString().replace(/\s*([*/])\s*/g, '$1');
     const [L, R] = [at(l), at(r)];
-    if (new RegExp(`(?<![a-z])${target}(?![a-z])`).test(`${L}=${R}`)) return null;
+    // x is still there (a·x² + b·x + c at a = 0): a different equation.
+    if (new RegExp(`(?<![a-z])${target}(?![a-z])`).test(`${L}=${R}`)) {
+      return `If ${mark(`${letter} = 0`)}, the equation is ${mark(`${beautify(L)} = ${beautify(R)}`)} instead, which is solved on its own.`;
+    }
     const shown = mark(`${beautify(L)} = ${beautify(R)}`);
     const opening = `If ${mark(`${letter} = 0`)}, the equation is ${shown}, with no ${mark(target)} in it`;
     const [nl, nr] = [Number(L), Number(R)];

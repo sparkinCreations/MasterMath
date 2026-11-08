@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.73.0] - 2026-11-08
+
+### Added
+- A definite integral with constants is worked with them left as letters:
+  "integral of a*x dx from 0 to 1" is a/2, "e^(k*x) from 0 to 1" is
+  (e^k - 1)/k, for k ≠ 0, with the k = 0 case worked (the integral is 1).
+  Every such integral was refused as "Improper integral — could not
+  evaluate the one-sided limits at the singularity": there was no
+  singularity, the numeric check could not sample a letter. Worked only
+  when the integrand is defined at every x for every allowed value of the
+  constants; the antiderivative is checked by differentiating it back in
+  every letter and the value by quadrature at several values of the
+  constants. One that could have a pole for some value ("1/(x + a) from 0
+  to 1") is refused, saying why.
+
+### Fixed
+- Answers in constants say when they hold, everywhere the systematic
+  stress test found they did not (shared `utils/conditions.js`, read off
+  the parse tree):
+  - An integral with a constant divisor: ∫sin(a·x) dx = −cos(a·x)/a + C,
+    for a ≠ 0, with the a = 0 case worked (the integrand is 0).
+    ∫aˣ dx = aˣ/ln(a) + C, for a > 0 and a ≠ 1.
+  - A derivative with a constant base or logarithm: d/dx aˣ = aˣ·ln(a),
+    for a > 0.
+  - A logarithm of the variable and a constant keeps its whole domain
+    (review of this release): d/dx x²·ln(a·x) is x + 2x·ln(a·x), for
+    a·x > 0, true for a < 0 and x < 0 as well. Algebrite splits ln(a·x)
+    into ln(a) + ln(x), which holds only for a > 0 and x > 0; the
+    logarithm is rebuilt from the original (`keepLogArguments`), compared
+    with the split form where that form holds, and verified by
+    differentiation on the other branch (a < 0, x < 0) before it is shown,
+    and the argument's own condition is stated. ∫ln(a·x) dx is x·ln(a·x) − x,
+    for a·x > 0. At a point the condition takes the point: d/dx x²·ln(a·x)
+    at x = −2 is 2(−1 − 2ln(−2a)), for a < 0 (it gave a complex number,
+    with −2iπ in it, "for a > 0", live since 1.72.3).
+  - An even root written as a power: x⁴ = a is ±a^(1/4), for a ≥ 0.
+- The quadratic formula in letters reads as a textbook writes it:
+  "a*x^2 + b*x + c = 0" is x = (−b ± √(b² − 4ac))/(2a), for a ≠ 0 and
+  b² − 4ac ≥ 0 (was −½·(b²/a² − 4c/a)^(1/2) − b/(2a), for a² ≠ 0 and a ≠ 0
+  and 2a ≠ 0), and a step says that at a = 0 the equation is b·x + c = 0.
+  A condition that always holds (8 + k² ≥ 0) is not stated, and 2a ≠ 0 is
+  a ≠ 0.
+
 ## [1.72.3] - 2026-11-08
 
 ### Fixed

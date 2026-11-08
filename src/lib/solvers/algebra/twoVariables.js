@@ -56,6 +56,21 @@ export async function solveForVariable(equation, target) {
       const raw = String(Algebrite.roots(`(${l.trim()}) - (${r.trim()})`, target)).trim();
       if (!raw || /stop|error|nil|roots/i.test(raw)) return null;
       parts = parseRootsList(raw).map((rt) => rt.display).filter(Boolean);
+      // A quadratic in letters whose roots do not come out clean: the
+      // formula as a textbook writes it, (−b ± √(b² − 4ac))/(2a). roots()
+      // wrote −½·(b²/a² − 4c/a)^(1/2) − b/(2a) (1.73.0). Roots that factor
+      // (a and b from x² − (a + b)x + ab) keep their own form.
+      if (degree === 2 && parts.some((d) => /\^\(1\/2\)|√/.test(d))) {
+        const co = (k) => String(Algebrite.run(`simplify(coeff(${expanded}, ${target}, ${k}))`)).trim();
+        const [A, B, C] = [co(2), co(1), co(0)];
+        if (![A, B, C].some((t) => !t || /stop|error|nil/i.test(t) || hasLetter(t, target)) && B !== '0') {
+          const negB = String(Algebrite.run(`simplify(-(${B}))`)).trim();
+          const disc = String(Algebrite.run(`expand((${B})^2 - 4*(${A})*(${C}))`)).trim();
+          const twoA = String(Algebrite.run(`simplify(2*(${A}))`)).trim();
+          const den = A === '1' ? '2' : /^-?\d+$/.test(twoA) ? twoA : `(${twoA})`;
+          parts = [`(${negB} + (${disc})^(1/2))/${den}`, `(${negB} - (${disc})^(1/2))/${den}`];
+        }
+      }
     }
     if (parts.length === 0) return null;
     // Algebrite writes x² + y² = 25 as x = ±i·(y² − 25)^(1/2). Over the reals
