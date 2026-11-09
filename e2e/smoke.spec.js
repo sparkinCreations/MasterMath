@@ -653,18 +653,22 @@ test.describe('MasterMath smoke', () => {
     await page.getByRole('link', { name: /See how MasterMath compares/ }).click();
     await expect(page).toHaveURL(/\/compare$/);
     await expect(page).toHaveTitle(/How MasterMath Compares/);
-    await expect(page.getByText(/Checked on \w+ \d+, 20\d\d/)).toBeVisible();
+    await expect(page.getByText(/checked on \w+ \d+, 20\d\d/)).toBeVisible();
     const table = page.getByRole('table');
     // MasterMath's limits come before the table, and no column is singled out.
     await expect(page.getByRole('heading', { name: 'What MasterMath does not do' })).toBeVisible();
     await expect(page.getByText(/No word problems/)).toBeVisible();
-    await expect(table.getByRole('columnheader')).toHaveText(['Feature', 'MasterMath', 'Photomath', 'Symbolab', 'Mathway', 'Wolfram|Alpha']);
-    await expect(table.getByRole('rowheader', { name: 'Math topics' })).toBeVisible();
+    // "Feature" is a column only on a wide screen: on a phone a row's name runs across the top.
+    await expect(table.getByRole('columnheader').filter({ hasNotText: 'Feature' })).toHaveText(['MasterMath', 'Photomath', 'Symbolab', 'Mathway', 'Wolfram|Alpha']);
+    await expect(table.getByRole('rowheader', { name: 'Subjects listed' })).toBeVisible();
+    await expect(table.getByRole('rowheader', { name: 'Geometry' })).toBeVisible();
     await expect(table.getByRole('rowheader', { name: 'Step-by-step solutions for free' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Photomath', exact: true })).toHaveAttribute('href', 'https://photomath.com/');
-    // The table scrolls inside its own box on a phone; the page never scrolls sideways.
+    // All five products fit on a phone: neither the table nor the page scrolls sideways.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+    const box = await table.boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width);
   });
 
   test('every page is reachable from the sidebar and an unknown URL gets a not-found page', async ({ page }) => {
