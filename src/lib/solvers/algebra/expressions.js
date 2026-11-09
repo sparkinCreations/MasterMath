@@ -321,7 +321,15 @@ async function simplifyWithConstants(expression, variable) {
   if (!/\//.test(expression) && termCount(answer) > termCount(expression)) return null;
   const typed = beautify(expression);
   const fraction = /\//.test(expression);
+  // Where it holds: every denominator of the original is not 0, the factors
+  // cancelled away first (x/a + x/b = (a + b)x/(ab), for a ≠ 0 and b ≠ 0).
   const cancelled = fraction ? cancelledFactors(expression, raw, variable, Algebrite) : [];
+  if (fraction) {
+    for (const f of denominatorFactors(expression, variable, Algebrite)) {
+      const t = nonzeroText(f);
+      if (!cancelled.includes(t)) cancelled.push(t);
+    }
+  }
   let middle;
   if (combined) {
     let den = '';
@@ -341,7 +349,7 @@ async function simplifyWithConstants(expression, variable) {
     `Simplified form: ${mark(answer)}`,
   ];
   if (cancelled.length) {
-    steps.push(`The original divides by zero where ${cancelled.map((c) => mark(c.replace('≠', '='))).join(' or ')}, and the simplified form does not, so the two are equal only for ${cancelled.map((c) => mark(c)).join(' and ')}.`);
+    steps.push(`The original divides by zero where ${cancelled.map((c) => mark(c.replace('≠', '='))).join(' or ')}, so the two are equal only for ${cancelled.map((c) => mark(c)).join(' and ')}.`);
   }
   return {
     steps,

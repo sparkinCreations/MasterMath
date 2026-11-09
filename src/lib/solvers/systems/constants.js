@@ -22,6 +22,8 @@ export function systemWithConstants(equations, variables) {
   if (/[a-z]{2,}/i.test(equations.join(' ').replace(names, ' '))) return null;
   const unknowns = ['x', 'y', 'z'].filter((v) => variables.includes(v));
   const constants = variables.filter((v) => !unknowns.includes(v)).sort();
+  // i is the imaginary unit, not a real constant.
+  if (constants.includes('i')) return null;
   if (!constants.length || unknowns.length < 2 || unknowns.length !== equations.length) return null;
   return { unknowns, constants };
 }

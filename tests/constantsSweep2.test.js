@@ -21,7 +21,8 @@ test('simplify with constants: checked in every letter, a cancelled factor state
     ['simplify a*x + b*x', '(a + b)x'],
     ['simplify (a + b)^2 - (a - b)^2', '4ab'],
     ['simplify (a^2*x)/(a*x)', 'a, for a ≠ 0 and x ≠ 0'],
-    ['simplify x/a + x/b', '(a + b)x/(ab)'],
+    // Both conditions, a ≠ 0 and b ≠ 0, even though neither factor cancels.
+    ['simplify x/a + x/b', '(a + b)x/(ab), for a ≠ 0 and b ≠ 0'],
     ['simplify (x+a)^2 - x^2', '2ax + a^2'],
     ['simplify (2a*x)/(4a)', 'x/2, for a ≠ 0'],
   ]);
@@ -141,4 +142,14 @@ test('limits with a parameter: worked in it, compared with the function at sever
   assert.equal((await solvePlain('lim x->1 tan(a*x)', 'auto')).status, 'unsupported');
   assert.equal((await solvePlain('lim x->0 x^a', 'auto')).status, 'unsupported');
   assert.equal((await solvePlain('lim x->2 x^a', 'auto')).answer, 'lim (x→2) x^a = 2^a');
+});
+
+// Review of PR #70: i is the imaginary unit, never a real constant or
+// parameter. Sampled as a real number, it "verified" lim x→0 sin(i·x)/x = i.
+test('i is never a constant or a parameter in the paths with constants', async () => {
+  for (const p of ['lim x->0 sin(i*x)/x', 'lim x->0 (e^(i*x) - 1)/x', 'lim x->0 (1 + i*x)^(1/x)', 'lim x->inf (i*x + 1)/(x + 2)', 'x + i > 2', 'x + y = i; x - y = 1', 'ln(x) = i']) {
+    const r = await solvePlain(p, 'auto');
+    assert.notEqual(r.status, 'solved', `${p}: ${r.answer}`);
+  }
+  assert.equal((await solvePlain('lim x->i x^2', 'auto')).status, 'parse_error');
 });

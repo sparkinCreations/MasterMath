@@ -34,7 +34,8 @@ export async function solveForVariable(equation, target) {
     // own rearrangement (sin(y) = x is x = sin(y), x/y = 2 is x = 2y).
     const names = /(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sqrt|abs|log10|log|ln|exp|pi|e)(?![a-z])/gi;
     const others = [...new Set(`${l} ${r}`.replace(names, ' ').match(/(?<![a-z])[a-z](?![a-z])/gi) || [])].filter((v) => v !== target);
-    const withConstants = /^[xyz]$/.test(target) && !others.some((v) => /^[xyz]$/.test(v));
+    // i is the imaginary unit, not a real constant to undo a function with.
+    const withConstants = /^[xyz]$/.test(target) && !others.some((v) => /^[xyz]$/.test(v)) && !others.includes('i');
     const outer = withConstants ? await undoOuterFunction(l, r, target, solveForVariable) : null;
     if (outer) return { relation: outer.relation, undoSteps: outer.steps, requires: outer.requires, trig: outer.trig, divisor: null };
     // The unknown in a denominator, 1/x = a, x/(x + a) = b: the fractions

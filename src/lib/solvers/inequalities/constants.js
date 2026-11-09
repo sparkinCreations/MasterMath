@@ -32,6 +32,8 @@ export function inequalityConstants(text, variable) {
   // A word left in the text is not a run of constants.
   if (/[a-z]{2,}/i.test(String(text).replace(/(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp|pi)(?![a-z])/gi, ' '))) return null;
   const others = letters.filter((c) => c !== variable);
+  // i is the imaginary unit: an inequality with it is not about real constants.
+  if (others.includes('i')) return null;
   if (!others.length || others.some((c) => /^[xyz]$/.test(c))) return null;
   return others.sort();
 }

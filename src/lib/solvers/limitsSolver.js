@@ -6,7 +6,7 @@
 // and one-sided limits in ./limits/numeric.js, the tips and mistakes in
 // ./limits/guidance.js.
 
-import { limitWithParameter, parameterLetters } from './limits/parameter.js';
+import { limitWithParameter, parameterLetters, hasImaginaryUnit } from './limits/parameter.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import {
   math,
@@ -150,7 +150,7 @@ export async function solveLimit(expression) {
     // x → a, a parameter (1.74.0): lim x→a (x² − a²)/(x − a) = 2a. It was
     // "Unable to interpret the limit approach value".
     if (Number.isNaN(target) && parsesAsMath(func) && /^[\s\da-z+\-*/().^]+$/i.test(approachToken)
-      && !hasVariable(approachToken, variable) && parameterLetters(approachToken, variable).length) {
+      && !hasVariable(approachToken, variable) && parameterLetters(approachToken, variable).length && !hasImaginaryUnit(approachToken)) {
       const letters = [...new Set([...parameterLetters(func, variable), ...parameterLetters(approachToken, variable)])].sort();
       const solved = await limitWithParameter({ Algebrite: await loadAlgebrite(), func, variable, targetText: approachToken, letters, solveCase: null });
       if (solved) return solved;

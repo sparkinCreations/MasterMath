@@ -105,7 +105,12 @@ function nonzeroConditions(D, letters, run) {
   return [nonzeroCondition(D)];
 }
 
+// i is the imaginary unit, never a real parameter: sampled as a real number
+// it "verified" lim x→0 sin(i·x)/x = i. Complex-valued limits are refused.
+export const hasImaginaryUnit = (text) => /(?<![a-z])i(?![a-z])/i.test(String(text));
+
 export async function limitWithParameter({ Algebrite, func, variable, target, targetText, side = 0, letters, solveCase }) {
+  if (letters.includes('i') || hasImaginaryUnit(func) || hasImaginaryUnit(targetText)) return null;
   const run = (e) => { const o = String(Algebrite.run(e)).trim(); if (failed(o) && o !== '0') throw new Error(o); return o; };
   const f = toAlg(func);
   // (sin(n·x)/x) with brackets round the whole: read inside them.
