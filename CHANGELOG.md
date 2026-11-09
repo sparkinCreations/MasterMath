@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.74.0] - 2026-11-09
+
+The rest of what the systematic stress test with constants found. Each of
+these was refused or echoed back unchanged; each answer now says when it
+holds, and each is checked before it is shown.
+
+### Added
+- Simplify with constants: "simplify (a*x + a)/a" is x + 1, for a ≠ 0;
+  (x² − a²)/(x − a) is x + a, for x ≠ a; a·x + b·x is (a + b)x; x/a + x/b
+  is (a + b)x/(ab). The equality check varied only x, so every answer with
+  another letter failed it and the input came back unchanged. Algebrite's
+  form is now checked in every letter, a factor the simplification
+  cancelled is stated as a condition, and a product is not multiplied out
+  ((a + b)c stays).
+- Equations with the unknown inside one function, with constants: ln, log,
+  √, |·|, a power aˣ, sin, cos and tan are undone with the condition that
+  allows it (`algebra/undoOuter.js`): ln(x + a) = b is x = e^b − a;
+  √(x + a) = b is x = b² − a, for b ≥ 0; |x − a| = b is x = a ± b, for
+  b ≥ 0; aˣ = b is x = ln(b)/ln(a), for a > 0, a ≠ 1 and b > 0;
+  sin(x) = a is arcsin(a) + 2πn or π − arcsin(a) + 2πn, for −1 ≤ a ≤ 1;
+  sin(a·x) = 1/2 is (π/6 + 2πn)/a or (5π/6 + 2πn)/a, for a ≠ 0. Every root
+  is put back into the equation at values of the constants of both signs
+  (n = −1, 0, 1 for a family).
+- Equations with the unknown in a denominator: the fractions are cleared,
+  and a root that would make a denominator 0 for some value of the
+  constants keeps that as a condition: x/(x + a) = b is x = ab/(1 − b),
+  for a ≠ 0 and b ≠ 1.
+- A cubic in letters that factors into pieces of degree ≤ 2 is solved
+  factor by factor: x³ − ax = 0 is x = 0 or x = ±√a, for a ≥ 0, with a
+  step saying x = 0 is the only real solution when a < 0.
+- Inequalities with constants (`inequalities/constants.js`), case by case:
+  a·x > b is x > b/a if a > 0, x < b/a if a < 0, and every x when b < 0
+  (no x otherwise) if a = 0; x² < a is −√a < x < √a if a > 0, no solution
+  if a ≤ 0. Each case is tested against the inequality at many x for
+  values of the constants of both signs and 0. Other forms are refused,
+  saying which are solved.
+- Systems with constants by Cramer's rule (`systems/constants.js`):
+  x + y = a; x − y = b is x = (a + b)/2, y = (a − b)/2. The solution is
+  checked exactly in every equation and holds where the determinant is not
+  0; with one constant, each value that makes it 0 is solved as a system of
+  numbers, and the step says whether there is no solution or infinitely
+  many there.
+- Limits with a parameter (`limits/parameter.js`): by substitution where
+  the expression is defined at the point (with the condition that it is),
+  by cancelling first for a ratio of polynomials that is 0/0, by
+  L'Hôpital's rule where top and bottom are 0 for every value of the
+  parameter, through logarithms for 1^∞, and by leading terms at ±∞ (with
+  cases on the sign when the limit is infinite): lim x→0 sin(a·x)/x = a,
+  lim x→∞ (a·x + 1)/(x + 2) = a, lim x→0 (1 + a·x)^(1/x) = e^a. A point
+  that is a parameter (x → a) was a parse error and is now worked. Every
+  answer is compared with the function's own values near the point at
+  several values of the parameter.
+
+### Fixed
+- lim x→1 ln(a·x) was answered log(a), which reads as base 10 here, with
+  no condition; lim x→1 tan(a·x) was tan(a) with no condition. The
+  simplify-and-substitute fallback that gave both is removed: the first is
+  ln(a), for a > 0, and the second is refused (tan has poles).
+- x/a + x/b = 1 is x = ab/(a + b), not 1/(1/a + 1/b); a condition reads
+  a ≤ 0 rather than −a ≥ 0, and b ≠ 1 rather than 1 − b ≠ 0.
+- A constant's zero case no longer prints "Infinity" when the equation
+  itself divides by that constant, and says "it is false" when the case
+  is a false statement between fractions (0 = 1/2).
+
 ## [1.73.0] - 2026-11-08
 
 ### Added

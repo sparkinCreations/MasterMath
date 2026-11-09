@@ -6,6 +6,7 @@
 // and one-sided limits in ./limits/numeric.js, the tips and mistakes in
 // ./limits/guidance.js.
 
+import { limitWithParameter, parameterLetters } from './limits/parameter.js';
 import { extractVariable, parseMathExpression } from '../mathParser.js';
 import {
   math,
@@ -146,6 +147,20 @@ export async function solveLimit(expression) {
     }
 
     const target = resolveApproachValue(approachToken);
+    // x → a, a parameter (1.74.0): lim x→a (x² − a²)/(x − a) = 2a. It was
+    // "Unable to interpret the limit approach value".
+    if (Number.isNaN(target) && parsesAsMath(func) && /^[\s\da-z+\-*/().^]+$/i.test(approachToken)
+      && !hasVariable(approachToken, variable) && parameterLetters(approachToken, variable).length) {
+      const letters = [...new Set([...parameterLetters(func, variable), ...parameterLetters(approachToken, variable)])].sort();
+      const solved = await limitWithParameter({ Algebrite: await loadAlgebrite(), func, variable, targetText: approachToken, letters, solveCase: null });
+      if (solved) return solved;
+      return unsupported({
+        input: expression,
+        reason: `The point ${mark(approachToken)} is a parameter. A limit at a parameter is worked when the expression is defined there, or is ${mark('0/0')} for every value of it (L'Hôpital's rule), and this one is neither.`,
+        answer: `This limit at ${approachToken} could not be worked with the parameter left as a letter`,
+        tips: [`Give ${mark(parameterLetters(approachToken, variable)[0])} a number to find the limit for that case.`],
+      });
+    }
     if (Number.isNaN(target)) {
       throw new Error('Unable to interpret the limit approach value');
     }
@@ -217,34 +232,34 @@ export async function solveLimit(expression) {
     const otherSymbol = (func.replace(/\b(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sqrt|abs|log|ln|exp|pi|e|infinity)\b/gi, '').match(new RegExp(`(?<![a-z])[a-z](?![a-z])`, 'gi')) || []).find((c) => c.toLowerCase() !== variable);
     if (otherSymbol) {
       const Algebrite = await loadAlgebrite();
-      let sym = null;
-      try {
-        const simplified = String(Algebrite.run(`simplify(${func})`));
-        const substituted = Number.isFinite(target) ? String(Algebrite.run(`simplify(subst(${target}, ${variable}, ${simplified}))`)) : '';
-        if (substituted && !isAlgebriteFailure(substituted) && !/\bnil\b|Stop/.test(substituted) && !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(substituted)) {
-          sym = { simplified, substituted };
-        }
-      } catch { sym = null; }
-      if (sym) {
-        return {
-          steps: [
-            `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`,
-            `The expression also contains ${mark(otherSymbol)}, which stays symbolic — so simplify first: ${mark(`${absBars(beautify(func))} = ${beautify(sym.simplified)}`)}`,
-            `Now substitute ${mark(`${variable} = ${displayTarget}`)}: ${mark(beautify(sym.substituted))}`,
-          ],
-          answer: `lim (${variable}→${displayTarget}) ${absBars(beautify(func))} = ${beautify(sym.substituted)}`,
-          tips: ['When the expression has a parameter, simplify algebraically until the limit variable can be substituted directly.', 'This is exactly the difference-quotient limit that defines the derivative.'],
-          common_mistakes: [`Substituting before simplifying and stopping at ${mark('0/0')}.`],
-          graph: null,
-        };
+      // The parameter held fixed: substitution, L'Hôpital's rule, 1^∞ or
+      // leading terms, each answer compared with the function's values at
+      // several values of the parameter (1.74.0).
+      const withParameter = await limitWithParameter({
+        Algebrite,
+        func,
+        variable,
+        target,
+        targetText: Number.isFinite(target) ? String(approachToken) : String(target),
+        side,
+        letters: parameterLetters(func, variable),
+        solveCase: (sub) => solveLimit(`lim ${variable}->${Number.isFinite(target) ? approachToken : target > 0 ? 'inf' : '-inf'} ${sub}`),
+      });
+      if (withParameter) {
+        const { technique, ...rest } = withParameter;
+        return rest;
       }
+      // The old simplify-and-substitute fallback stated tan(a) for
+      // lim x→1 tan(a·x) with no condition, and log(a) (base 10 here) for
+      // lim x→1 ln(a·x); every case it got right, limitWithParameter works
+      // with its conditions (1.74.0).
       // Say what the limit has and what to do (r/mathematics, November 2026:
       // "lim x->0 sin(n*x)/x" was "beyond what this solver can compute",
       // and the tip named x where it meant the parameter; 1.70.5).
       const withValue = func.replace(new RegExp(`(?<![a-z])${otherSymbol}(?![a-z])`, 'g'), '3');
       return unsupported({
         input: expression,
-        reason: `The expression has a parameter, ${mark(otherSymbol)}, as well as the variable ${mark(variable)}. A limit with a parameter is worked only when it simplifies so that ${mark(`${variable} = ${displayTarget}`)} can be substituted, and this one does not.`,
+        reason: `The expression has a parameter, ${mark(otherSymbol)}, as well as the variable ${mark(variable)}. A limit with a parameter is worked by substitution where the expression is defined at the point, by L'Hôpital's rule where it is ${mark('0/0')} for every value of the parameter, through logarithms for ${mark('1^∞')}, and by leading terms at ${mark('∞')} for a ratio of polynomials; this one is none of these.`,
         answer: `Limits with a parameter (${otherSymbol}) are not supported yet`,
         tips: [`Give ${mark(otherSymbol)} a number to find the limit for that case: ${mark(`${otherSymbol} = 3`)} gives ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(withValue))}`)}.`],
       });

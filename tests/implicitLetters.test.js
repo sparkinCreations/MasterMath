@@ -69,10 +69,10 @@ test('a quadratic with letter coefficients takes the formula', async () => {
   assert.ok(read(r, 'bx', 'b·x'));
 });
 
-test('a limit with nx is refused for its parameter, not for the word', async () => {
+test('a limit with nx is read as n·x and worked in its parameter (1.74.0), not refused for the word', async () => {
   const r = await solvePlain('lim x->0 (sin(nx)/x)', 'auto');
-  assert.equal(r.status, 'unsupported');
-  assert.equal(r.answer, 'Limits with a parameter (n) are not supported yet');
+  assert.equal(r.status, 'solved');
+  assert.equal(r.answer, 'lim (x→0) (sin(n*x)/x) = n');
   assert.ok(read(r, 'nx', 'n·x'));
 });
 

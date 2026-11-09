@@ -18,10 +18,21 @@ test('letters that are not read as a product suggest writing one', async () => {
   assert.doesNotMatch(w.answer, /If you meant a product/);
 });
 
-test('a limit with a parameter names it and shows a case with a number', async () => {
+test('a limit with a parameter is worked in it (1.74.0)', async () => {
+  for (const [p, value] of [
+    ['lim x->0 (sin(n*x)/x)', '= n'],
+    ['lim x->0 sin(a*x)/x', '= a'],
+  ]) {
+    const r = await solvePlain(p, 'auto');
+    assert.equal(r.status, 'solved', p);
+    assert.ok(r.answer.endsWith(value), `${p}: ${r.answer}`);
+  }
+});
+
+test('a limit with a parameter it cannot work names it and shows a case with a number', async () => {
   for (const [p, letter, example] of [
-    ['lim x->0 (sin(n*x)/x)', 'n', 'lim (x→0) (sin(3x)/x)'],
-    ['lim x->0 sin(a*x)/x', 'a', 'lim (x→0) sin(3x)/x'],
+    ['lim x->1 tan(n*x)', 'n', 'lim (x→1) tan(3x)'],
+    ['lim x->inf x^a/e^x', 'a', 'lim (x→∞) x^3/e^x'],
   ]) {
     const r = await solvePlain(p, 'auto');
     assert.equal(r.status, 'unsupported', p);
