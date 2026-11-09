@@ -103,7 +103,12 @@ export function practiceKind(result, topic, problem) {
     if (/^f'+\([^)a-z]+\) = /.test(answer)) return { kind: 'number' };
     return null;
   }
-  if (topic === 'limits') return /= [^=]+$/.test(answer) && !/does not exist|∞/.test(afterLastEquals(dropAside(answer))) ? { kind: 'number' } : null;
+  if (topic === 'limits') {
+    // Answers split into cases are not one number: in "= ∞ if a > 0; 0 if a < 0;
+    // 1 if a = 0" the last "=" belongs to the last condition.
+    if (/\bif\b/.test(answer)) return null;
+    return /= [^=]+$/.test(answer) && !/does not exist|∞/.test(afterLastEquals(dropAside(answer))) ? { kind: 'number' } : null;
+  }
   if (topic === 'algebra') {
     if (SYSTEM_PAIRS.test(answer) || SYSTEM_VALUES.test(answer)) return { kind: 'system' };
     const m = answer.match(/^([a-z]) = /);
