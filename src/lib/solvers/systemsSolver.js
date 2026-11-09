@@ -11,6 +11,7 @@
 // original equations before it is reported — the same "verify before you
 // claim" gate the rest of the solver uses.
 
+import { systemWithConstants, solveSystemWithConstants } from './systems/constants.js';
 import { math, sampleFunction, beautify, formatNumber, loadAlgebrite, isAlgebriteFailure, mark, gcd, linearCoefficientsIn } from './solverUtils.js';
 import { parseMathExpression, expandScientific } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
@@ -35,6 +36,19 @@ async function solveSystemCase(rawText) {
   try {
     const equations = splitEquations(rawText);
     const variables = collectVariables(equations.join(' '));
+
+    // x and y (and z) with constants, x + y = a; x − y = b: Cramer's rule
+    // in the constants (1.74.0).
+    const withConstants = systemWithConstants(equations, variables);
+    if (withConstants) {
+      const solved = await solveSystemWithConstants(equations, withConstants.unknowns, withConstants.constants, (text) => solveSystemCase(text));
+      if (solved) return solved;
+      return refuse(
+        `The letter${withConstants.constants.length > 1 ? 's' : ''} ${withConstants.constants.join(', ')} ${withConstants.constants.length > 1 ? 'are constants' : 'is a constant'} here. A system with constants is solved when every equation is linear in ${withConstants.unknowns.join(', ')}; this one is not, or its determinant is 0 for every value.`,
+        `Give ${withConstants.constants.join(' and ')} ${withConstants.constants.length > 1 ? 'numbers' : 'a number'} to solve one case.`,
+        'unsupported',
+      );
+    }
 
     // Three equations in three unknowns: Gaussian elimination, exact.
     if (equations.length === 3 && variables.length === 3) {

@@ -206,6 +206,184 @@ async function cancelledPoints(original, simplified, variable) {
   return points.sort((p1, p2) => p1.numeric - p2.numeric);
 }
 
+// The factors of an expression's denominators, as typed or as Algebrite
+// factors a sum ((x^2 - a^2) → (x + a), (x − a)), numbers left out.
+function denominatorFactors(expression, variable, Algebrite) {
+  const out = [];
+  const add = (t) => { const s = stripOuterParens(String(t).trim()); if (/[a-z]/i.test(s) && !out.includes(s)) out.push(s); };
+  const split = (node) => {
+    const m = node.type === 'ParenthesisNode' ? node.content : node;
+    if (m.type === 'OperatorNode' && m.op === '*') { m.args.forEach(split); return; }
+    if (m.type === 'OperatorNode' && m.op === '^' && m.args[1].type === 'ConstantNode') { split(m.args[0]); return; }
+    if (m.type === 'OperatorNode' && (m.op === '+' || m.op === '-') && m.args.length === 2) {
+      try {
+        const f = String(Algebrite.run(`factor(${m.toString()}, ${variable})`)).trim();
+        const parts = splitTopLevel(f, '*');
+        if (parts.length > 1 && !/\//.test(f)) { parts.forEach((p) => split(math.parse(p))); return; }
+      } catch { /* keep the sum whole */ }
+    }
+    if (m.type !== 'ConstantNode') add(m.toString());
+  };
+  try {
+    math.parse(expression).traverse((n) => {
+      if (n.type === 'OperatorNode' && n.op === '/' && n.args.length === 2) split(n.args[1]);
+    });
+  } catch { return []; }
+  return out;
+}
+
+// A factor ≠ 0 as a textbook writes it: a ≠ 0 for a, 2a or a², x ≠ a for
+// x − a, x ≠ −a for x + a.
+function nonzeroText(factor) {
+  const f = factor.replace(/\s+/g, '');
+  const single = f.match(/^\d*\*?([a-z])(?:\^\d+)?$/i);
+  if (single) return `${single[1]} ≠ 0`;
+  const pair = f.match(/^([a-z])([+-])(\d*\*?[a-z]|\d+(?:\.\d+)?)$/i);
+  if (pair) return `${pair[1]} ≠ ${pair[2] === '-' ? '' : '-'}${pair[3].replace('*', '')}`;
+  return `${beautify(factor)} ≠ 0`;
+}
+
+// The factors a simplification cancelled: the original divides by them and
+// the simplified form, where they are 0, does not. Each factor is solved for
+// one of its letters (linear, a numeric coefficient) and the simplified form
+// evaluated there at several values of the other letters.
+function cancelledFactors(original, simplified, variable, Algebrite) {
+  const out = [];
+  for (const f of denominatorFactors(original, variable, Algebrite)) {
+    let node;
+    try { node = math.parse(f); } catch { continue; }
+    const names = [...new Set(node.filter((n) => n.type === 'SymbolNode' && /^[a-z]$/i.test(n.name) && n.name !== 'e').map((n) => n.name))];
+    // Solve f = 0 for a letter it is linear in: L = −(f at L = 0)/(coefficient).
+    let solvedFor = null;
+    for (const L of [variable, ...names.filter((n) => n !== variable)]) {
+      if (!names.includes(L)) continue;
+      try {
+        const c = Number(String(Algebrite.run(`coeff(${f}, ${L}, 1)`)).trim());
+        const d = String(Algebrite.run(`deg(${f}, ${L})`)).trim();
+        if (d === '1' && Number.isFinite(c) && c !== 0) { solvedFor = { L, rest: String(Algebrite.run(`-(${f} - ${c}*${L})/(${c})`)).trim() }; break; }
+      } catch { /* try the next letter */ }
+    }
+    if (!solvedFor) continue;
+    const others = [...new Set(`${original} ${simplified}`.match(/(?<![a-z])[a-z](?![a-z])/gi) || [])].filter((n) => n !== solvedFor.L && n !== 'e');
+    let finite = 0;
+    for (const [k, base] of [0.7, -1.3, 2.1, -0.4].entries()) {
+      const scope = Object.fromEntries(others.map((n, j) => [n, base + 0.53 * j + 0.17 * k * j]));
+      try {
+        scope[solvedFor.L] = Number(math.evaluate(solvedFor.rest, scope));
+        const v = Number(math.evaluate(simplified, scope));
+        if (Number.isFinite(v)) finite += 1;
+      } catch { /* undefined there */ }
+    }
+    if (finite >= 3) { const t = nonzeroText(f); if (!out.includes(t)) out.push(t); }
+  }
+  return out;
+}
+
+// Simplify with constants in it ((a*x + a)/a, a*x + b*x, x/a + x/b): the
+// one-letter equality check could not evaluate a second letter, so these
+// came back unchanged. Algebrite's form is checked in every letter, kept when
+// it is shorter or has fewer terms (collecting like terms, one fraction), and
+// any factor it cancelled is stated: (a*x + a)/a = x + 1, for a ≠ 0.
+async function simplifyWithConstants(expression, variable) {
+  const Algebrite = await loadAlgebrite();
+  const run = (e) => { const o = String(Algebrite.run(e)).trim(); if (!o || /nil|error|stop/i.test(o)) throw new Error(o); return o; };
+  const termCount = (t) => splitTerms(String(t)).length;
+  let raw;
+  try { raw = run(`simplify(${expression})`); } catch { return null; }
+  // A sum of reciprocals ((1/a + 1/b)x) reads as one fraction: (a + b)x/(ab).
+  let combined = false;
+  if (/\(1\/[a-z]/i.test(raw) || termCount(raw) > 1) {
+    try {
+      const num = run(`numerator(${raw})`);
+      const den = run(`denominator(${raw})`);
+      if (/[a-z]/i.test(den) && den !== '1') {
+        const wrap = (t) => (termCount(t) > 1 || /\*/.test(t) ? `(${t})` : t);
+        const one = `${num}/${wrap(den)}`;
+        if (termCount(one) < termCount(raw) || /\(1\//.test(raw)) { raw = one; combined = true; }
+      }
+    } catch { /* keep Algebrite's form */ }
+  }
+  // Multiplied out, in textbook order, when that is as short: (x + a)² − x²
+  // is 2ax + a², not a(2x + a).
+  if (!combined && !/\//.test(raw)) {
+    try {
+      const expanded = textbookOrder(run(`expand(${expression})`), Algebrite);
+      if (!/\//.test(expanded) && complexity(juxtapose(beautify(expanded))) <= complexity(juxtapose(beautify(raw)))) raw = expanded;
+    } catch { /* keep the simplified form */ }
+  }
+  const answer = juxtapose(beautify(raw)
+    .replace(/(?<![\w^/.)])1\/(\d+)\*([a-z](?:\^\d+)?)(?![\w^(])/gi, '$2/$1')
+    .replace(/(?<![\w^/.)])(\d+)\/(\d+)\*([a-z](?:\^\d+)?)(?![\w^(])/gi, '$1$3/$2'));
+  if (!expressionsEqualInAllLetters(expression, raw)) return null;
+  const shorter = complexity(answer) < complexity(expression);
+  if (!shorter && termCount(answer) >= termCount(expression)) return null;
+  // Multiplying out a product is expanding, not simplifying: (a + b)c stays.
+  if (!/\//.test(expression) && termCount(answer) > termCount(expression)) return null;
+  const typed = beautify(expression);
+  const fraction = /\//.test(expression);
+  // Where it holds: every denominator of the original is not 0, the factors
+  // cancelled away first (x/a + x/b = (a + b)x/(ab), for a ≠ 0 and b ≠ 0).
+  const cancelled = fraction ? cancelledFactors(expression, raw, variable, Algebrite) : [];
+  if (fraction) {
+    for (const f of denominatorFactors(expression, variable, Algebrite)) {
+      const t = nonzeroText(f);
+      if (!cancelled.includes(t)) cancelled.push(t);
+    }
+  }
+  let middle;
+  if (combined) {
+    let den = '';
+    try { den = juxtapose(beautify(run(`denominator(${raw})`))); } catch { /* none */ }
+    middle = [`Write every term over the common denominator ${mark(den)} and add the numerators.`];
+  } else if (fraction) {
+    middle = (await fractionFactoring(expression, variable)) || ['Factor the top and the bottom, and cancel the common factor.'];
+  } else {
+    middle = [termCount(answer) < termCount(expression) && /\(/.test(answer) && !/\(/.test(expression)
+      ? `Collect the like terms: they share a factor, and their coefficients are added.`
+      : 'Multiply out and combine like terms.'];
+  }
+  const steps = [
+    `Original expression: ${mark(typed)}`,
+    ...(constantNote(expression, variable) ? [constantNote(expression, variable)] : []),
+    ...middle,
+    `Simplified form: ${mark(answer)}`,
+  ];
+  if (cancelled.length) {
+    steps.push(`The original divides by zero where ${cancelled.map((c) => mark(c.replace('≠', '='))).join(' or ')}, so the two are equal only for ${cancelled.map((c) => mark(c)).join(' and ')}.`);
+  }
+  return {
+    steps,
+    answer: cancelled.length ? `${answer}, for ${cancelled.join(' and ')}` : answer,
+    tips: cancelled.length || fraction ? CANCEL_TIPS : SIMPLIFY_TIPS,
+    common_mistakes: cancelled.length || fraction ? CANCEL_MISTAKES : SIMPLIFY_MISTAKES,
+    graph: null,
+  };
+}
+
+// A product of letters as a textbook writes it: 4ab, (a + b)x, not 4a*b.
+// A number after "/" keeps its "*" (1/2*x would read as 1/(2x)).
+const juxtapose = (t) => String(t).replace(/(\d+(?:\.\d+)?|[a-z]+|\))\s*\*\s*(?=[a-z(])/gi, (m, left, at, all) => (
+  (/^\d/.test(left) && all[at - 1] === '/') || /^[a-z]{2,}$/i.test(left) ? m : left));
+
+// "The letters a and b are constants…": said only when there is an x, y or z
+// to hold them apart from.
+function constantNote(expression, variable) {
+  if (!/^[xyz]$/.test(variable) || !new RegExp(`(?<![a-z])${variable}(?![a-z])`).test(expression)) return '';
+  const list = constantList(expression, variable);
+  if (!list) return '';
+  return list.includes(' and ')
+    ? `The letters ${list} are constants: they are simplified as numbers would be.`
+    : `The letter ${list} is a constant: it is simplified as a number would be.`;
+}
+
+// "a and b" / "a, b and c": the constants, every letter but the variable.
+function constantList(expression, variable) {
+  const letters = [...new Set(String(expression).replace(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot|sqrt|abs|log|ln|exp|pi)(?![a-z])/gi, '').match(/(?<![a-z])[a-z](?![a-z])/gi) || [])]
+    .filter((c) => c !== variable && c !== 'e' && c !== 'i').sort();
+  const marked = letters.map((c) => mark(c));
+  return marked.length > 1 ? `${marked.slice(0, -1).join(', ')} and ${marked.at(-1)}` : marked[0] || '';
+}
+
 export async function simplifyExpression(expression) {
   // Exact-radical rung: a constant expression containing a radical should
   // answer in exact simplified form (sqrt(50) → 5√2), not a decimal.
@@ -213,6 +391,12 @@ export async function simplifyExpression(expression) {
   if (exact) return exact;
 
   const variable = extractVariable(expression);
+  const otherLetters = String(expression).replace(/(?<![a-z])(?:sin|cos|tan|sec|csc|cot|sqrt|abs|log|ln|exp|pi)(?![a-z])/gi, '')
+    .match(/(?<![a-z])[a-z](?![a-z])/gi)?.filter((c) => c !== variable && c !== 'e' && c !== 'i') || [];
+  if (otherLetters.length && !/[a-z]{2,}/i.test(expression.replace(/(?<![a-z])(?:pi)(?![a-z])/gi, ''))) {
+    const lettered = await simplifyWithConstants(expression, variable);
+    if (lettered) return lettered;
+  }
   const inputLen = complexity(expression);
 
   // A constant expression that nothing above could simplify (sqrt(-4),
@@ -354,7 +538,7 @@ async function fractionFactoring(expression, variable) {
     if (isAlgebriteFailure(fn) || isAlgebriteFailure(fd) || !common || /^-?\d+$/.test(common)) return null;
     const show = (t) => (/[+\-]/.test(t.replace(/^-/, '')) && !/^\(.*\)$/.test(t) ? `(${t})` : t);
     return [
-      `Factor the numerator: ${mark(`${beautify(num)} = ${fn}`)}.`,
+      beautify(num) === fn ? `The numerator ${mark(fn)} is already factored.` : `Factor the numerator: ${mark(`${beautify(num)} = ${fn}`)}.`,
       beautify(den) === fd ? `The denominator ${mark(fd)} is already factored.` : `Factor the denominator: ${mark(`${beautify(den)} = ${fd}`)}.`,
       `Cancel the common factor${/\)\s*\(|\)\^/.test(factorText(common)) ? 's' : ''} ${mark(show(factorText(common)))} from the top and the bottom.`,
     ];
