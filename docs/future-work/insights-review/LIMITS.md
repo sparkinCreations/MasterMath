@@ -845,3 +845,15 @@ Example: `lim x->infinity x/1.5^x` → lim (x→∞) x/1.5^x = 0
 2. Trusting a computed 0: a value below about 10^(−308) underflows to 0 in a computer.
 3. Treating ∞/∞ as 1 or ∞ − ∞ as 0.
 
+### Parameter in an exponent at ±∞ (added 1.75.1)
+
+Example: `lim x->inf e^(a*x)`
+
+**Key Insights** (2)
+
+1. With a parameter multiplying x in an exponent, its sign decides whether the power grows or dies away: split into cases.
+2. Do not forget the parameter being 0: the exponent is then constant.
+
+**Common Mistakes** (1)
+
+1. Giving one answer for e^(a·x) without asking the sign of a.

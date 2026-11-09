@@ -256,7 +256,7 @@ export function trigUndefinedPoints(expr, variable) {
     const key = `${text}|${because}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ text, because });
+    out.push({ text, because, offset, step });
   }
   return out;
 }

@@ -72,6 +72,16 @@ const EXACT_VALUES = [
   { value: 1 / Math.sqrt(3), text: '√3/3' },
   { value: Math.sqrt(3), text: '√3' },
 ];
+// Does a division in this expression have the symbol in its denominator?
+function dividesBySymbol(expression, symbol) {
+  try {
+    return math.parse(expression).filter((n) => n.isOperatorNode && n.op === '/'
+      && n.args[1].filter((c) => c.isSymbolNode && c.name === symbol).length > 0).length > 0;
+  } catch {
+    return true;
+  }
+}
+
 function fmtValue(c) {
   const hit = EXACT_VALUES.find((e) => near(e.value, Math.abs(c)));
   if (hit) return c < 0 && hit.value !== 0 ? `-${hit.text}` : hit.text;
@@ -452,6 +462,9 @@ function solveReducibleTrig(rawEquation, equation, variable, shown, allowRewrite
   const [g0, g1, g2, g3] = [g(0), g(1), g(2), g(3)];
   if (![g0, g1, g2, g3].every(Number.isFinite)) return null;
   if ([g0, g1, g2, g3].every((t) => Math.abs(t) < 1e-9)) {
+    // "Every value" needs both sides defined everywhere: a divisor in the
+    // function, or tan, sec, cot or csc, leaves that to the domain check.
+    if (!['sin', 'cos'].includes(fn) || dividesBySymbol(e, 'U')) return null;
     outerSteps.push('Both sides are the same expression — the equation holds for every value.');
     return { steps: outerSteps, answer: 'All real numbers (identity)', tips: ['An identity is true for every input; there is nothing to solve.'], common_mistakes: [], graph: null };
   }
