@@ -10,8 +10,8 @@ top of its own file.
 A React app that solves maths problems step by step — arithmetic, algebra,
 systems, inequalities, trigonometry, functions, limits, derivatives, integrals —
 using local JavaScript maths libraries (mathjs, Algebrite), **not AI**. All data
-stays in the browser (IndexedDB, localStorage). Deployed at mastermath.app by
-Netlify from `main`.
+stays in the browser (IndexedDB, localStorage). Hosted on Netlify at
+mastermath.app; GitHub Actions deploys it from `main`.
 
 Branding: **MasterMath** (never MathMaster) by sparkinCreations™; tagline
 "Step-by-step math, solved locally" (since 1.70.2; was "Master math with confidence"); positioning is "step-by-step local solver", never
@@ -436,8 +436,12 @@ placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
   (axe-core, WCAG 2.1 AA rules, light and dark). Run it after any change to
   `vite.config.js`, chunking, dependencies or a page component — real crashes
   have been invisible to the unit suite.
-- Both run in GitHub Actions; Netlify's build runs `npm test` before building,
-  so a red unit suite blocks the deploy.
+- Both run in GitHub Actions, and the `deploy` job in `checks.yml` runs only
+  after they pass: it builds there and uploads `dist/` with netlify-cli
+  (`--no-build`; a push to `main` goes live, a PR gets
+  `pr-N--mastermathapp.netlify.app`). Netlify's own builds are off
+  (`ignore = "exit 0"` in `netlify.toml`): the free plan's 300 build minutes
+  ran out in November 2026. It needs the `NETLIFY_AUTH_TOKEN` repository secret.
 - When an outside review lands, reproduce each claim before agreeing, then
   sweep the same class of input for more.
 

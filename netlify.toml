@@ -1,7 +1,10 @@
 [build]
-  # The unit suite runs first: a failing test fails the build, so Netlify
-  # keeps serving the previous deploy instead of shipping the regression.
-  # (The Playwright smoke test needs a browser and stays in GitHub Actions.)
+  # Netlify never builds this site itself: exit 0 tells it to skip the build.
+  # GitHub Actions tests, builds and uploads dist/ (.github/workflows/checks.yml),
+  # so the free plan's build minutes go unused. Remove this line to go back.
+  ignore = "exit 0"
+  # Only for a build Netlify is asked to run: the unit suite goes first, so a
+  # failing test keeps the previous deploy live.
   command = "npm test && npm run build"
   publish = "dist"
 
