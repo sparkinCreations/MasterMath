@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.73.2] - 2026-11-09
+
+### Fixed
+- A limit's graph marks the limit: a hollow point at (a, L), labelled with
+  the exact value (L = 1/2). The marker read the value as Number(answer),
+  never a number for an exact form, so no limit had one.
+- The graph of lim x→0 (1 − cos x)/x² dived to 0 at x = 0. Summed steps put
+  the sample "at 0" at 1e-14, where the quotient is 0 by cancellation; each
+  x is now computed from its index on the grid, so x = 0 is exactly 0 and
+  left as a gap, where the function is undefined.
+- A graph exported to PDF no longer carries the hover cursor and its dot:
+  a pointer left over the chart drew a stray line and point into the PDF.
+
 ## [1.73.1] - 2026-11-09
 
 ### Fixed

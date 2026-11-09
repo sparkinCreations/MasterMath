@@ -849,7 +849,7 @@ export default function GraphViewer({ functionData }) {
                   fill={tooltipBg}
                   stroke={extremumColor}
                   strokeWidth={3}
-                  label={<PointLabel text={`L = ${ann.limitPoint.y}`} color={extremumColor} haloColor={tooltipBg} />}
+                  label={<PointLabel text={`L = ${ann.limitPoint.label ?? ann.limitPoint.y}`} color={extremumColor} haloColor={tooltipBg} />}
                 />
               )}
 
