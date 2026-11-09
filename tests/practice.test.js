@@ -40,6 +40,19 @@ test('which answers practice can check, and which it cannot', async () => {
   }
 });
 
+test('a limit split into cases by a parameter is not practised', async () => {
+  for (const p of ['lim x->inf e^(a*x)', 'lim x->-inf e^(a*x)', 'lim x->inf 2^(a*x)', 'lim x->inf 2^((a-1)*x+3)', 'lim x->-inf 3^(a*x+1)']) {
+    const result = await solveProblem(p, 'auto');
+    assert.equal(result.status, 'solved', p);
+    assert.match(result.answer, /\bif\b/, p);
+    assert.equal(practicable(result, 'auto', p), false, p);
+    // No generated variation either: its "correct" value was the misread 0.
+    assert.equal((await practiceCandidate({ problem: p, topic: 'auto', index: 0 })).practicable, false, p);
+  }
+  // A plain limit still is.
+  assert.equal(practiceKind(await solveProblem('lim x->inf 1/x', 'auto'), 'auto', 'lim x->inf 1/x')?.kind, 'number');
+});
+
 test('an answer is checked by its value, in any form a student types', async () => {
   const frac = await correctFor('3/4+5/6');
   assert.deepEqual(verdicts(frac, '3/4+5/6', ['19/12', '1.58', '1.5833', '38/24', '1.6', '2', 'nonsense', '']), ['correct', 'correct', 'correct', 'correct', 'close', 'wrong', 'unreadable', 'empty']);

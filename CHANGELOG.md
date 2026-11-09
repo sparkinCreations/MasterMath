@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.75.2] - 2026-11-09
+
+### Fixed
+
+- Practice mode no longer offers a limit whose answer is split into cases by a
+  parameter. In `lim x->inf 2^(a*x)` it took the last "=" for the answer, the
+  one in "1 if a = 0", so "Try a similar one" built problems that marked 0 as
+  the only correct answer, or opened with nothing to practise.
+
 ## [1.75.1] - 2026-11-09
 
 ### Fixed
