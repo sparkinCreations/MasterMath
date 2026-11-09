@@ -4,6 +4,7 @@
 import { matchingParen } from '../../mathParser.js';
 import { math, loadAlgebrite, beautify, splitTerms, gcd, expressionsEqualInAllLetters, stripOuterParens } from '../solverUtils.js';
 import { parseRootsList, IMAGINARY } from './rootsFormat.js';
+import { undoOuterFunction, clearDenominators, rootsHoldEverywhere } from './undoOuter.js';
 
 // Factor an expression over the integers with Algebrite. The result is only
 // claimed after two independent checks: a numeric equivalence sweep and a
@@ -26,6 +27,29 @@ export async function solveForVariable(equation, target) {
       const relation = solved.relation.replace(new RegExp(`(?<![a-z])${undone.symbol}(?![a-z])`, 'g'), undone.log);
       return logRootsCheck(relation, equation, target) ? { ...solved, relation, logStep: `${undone.arg} = ${undone.log}` } : null;
     }
+    // The unknown inside one other function, ln(x + a) = b, √x = a,
+    // |x − a| = b, a^x = b, sin(a·x) = 1/2 (1.74.0): undone, with the
+    // condition that makes that valid, and every root checked.
+    // Only with constants (x and a, b): an equation in x and y keeps its
+    // own rearrangement (sin(y) = x is x = sin(y), x/y = 2 is x = 2y).
+    const names = /(?<![a-z])(?:sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sqrt|abs|log10|log|ln|exp|pi|e)(?![a-z])/gi;
+    const others = [...new Set(`${l} ${r}`.replace(names, ' ').match(/(?<![a-z])[a-z](?![a-z])/gi) || [])].filter((v) => v !== target);
+    // i is the imaginary unit, not a real constant to undo a function with.
+    const withConstants = /^[xyz]$/.test(target) && !others.some((v) => /^[xyz]$/.test(v)) && !others.includes('i');
+    const outer = withConstants ? await undoOuterFunction(l, r, target, solveForVariable) : null;
+    if (outer) return { relation: outer.relation, undoSteps: outer.steps, requires: outer.requires, trig: outer.trig, divisor: null };
+    // The unknown in a denominator, 1/x = a, x/(x + a) = b: the fractions
+    // cleared, and a root that would make a denominator 0 kept with the
+    // condition that it does not.
+    if (withConstants && /\//.test(`${l}${r}`)) {
+      const cleared = await clearDenominators(l, r, target, Algebrite, solveForVariable);
+      if (cleared && !cleared.none) {
+        const roots = cleared.relation.split(/\s+or\s+/).map((p) => p.replace(new RegExp(`^\\s*${target}\\s*=\\s*`), ''));
+        if (rootsHoldEverywhere(roots, equation, target, cleared.requires.map(([c]) => c))) {
+          return { relation: cleared.relation, undoSteps: cleared.steps, requires: cleared.requires, divisor: cleared.divisor };
+        }
+      }
+    }
     // A cubic or higher with more than one term in the unknown has only a
     // Cardano-style answer, which is never shown: roots() spent 19 s on
     // y = x^3 + x before the inverse was refused (1.68.7). A pure power
@@ -33,7 +57,7 @@ export async function solveForVariable(equation, target) {
     const expanded = String(Algebrite.run(`expand((${l.trim()}) - (${r.trim()}))`)).trim();
     const degree = Number(String(Algebrite.run(`deg(${expanded}, ${target})`)).trim());
     const withTarget = splitTerms(expanded).filter(({ signed }) => new RegExp(`(?<![a-z])${target}(?![a-z])`).test(signed)).length;
-    if (degree >= 3 && withTarget >= 2) return null;
+    if (degree >= 3 && withTarget >= 2) return withConstants ? solveByFactors(expanded, equation, target, Algebrite) : null;
     // Linear in the unknown with a letter in its coefficient, A·x + B = 0:
     // x = −B/A read off the coefficients. roots() wrote a*x = b*x + c as
     // c/((a − b)(a/(a − b) − b/(a − b))) (1.71.1). A number coefficient
@@ -49,7 +73,17 @@ export async function solveForVariable(equation, target) {
         const wrap = (t) => (splitTerms(t).length > 1 || /^-/.test(t) || /\//.test(t) ? `(${t})` : t);
         const single = splitTerms(top).length === 1;
         const root = top === '0' ? '0' : single && top.startsWith('-') ? `-${wrap(top.slice(1))}/${wrap(bottom)}` : `${wrap(top)}/${wrap(bottom)}`;
-        if (expressionsEqualInAllLetters(`(${root})*(${A}) + (${B})`, '0')) { parts = [root]; divisor = bottom; }
+        // A fraction inside the divisor, x/a + x/b = 1: x = ab/(a + b), not
+        // 1/(1/a + 1/b).
+        let tidy = root;
+        if (/\//.test(bottom)) {
+          try {
+            const r2 = String(Algebrite.run(`simplify(rationalize(${root}))`)).trim();
+            const d2 = String(Algebrite.run(`denominator(${r2})`)).trim();
+            if (r2 && !/stop|error|nil/i.test(r2 + d2) && !/\/.*\//.test(r2)) { tidy = beautify(r2); divisor = positiveFirst(d2); }
+          } catch { /* keep the root as found */ }
+        }
+        if (expressionsEqualInAllLetters(`(${tidy})*(${A}) + (${B})`, '0')) { parts = [tidy]; divisor = divisor || bottom; }
       }
     }
     if (!parts) {
@@ -98,6 +132,28 @@ export async function solveForVariable(equation, target) {
     // exp(x) as a textbook writes it: e^x, e^(x + 1).
     const eForm = (d) => d.replace(/\bexp(\((?:[^()]|\([^()]*\))*\))/g, (m, arg) => (/^\([a-z0-9]+\)$/i.test(arg) ? `e^${arg.slice(1, -1)}` : `e^${arg}`));
     return { relation: real.roots.map((d) => `${target} = ${eForm(d)}`).join('  or  '), droppedComplex: real.droppedComplex, divisor };
+  } catch {
+    return null;
+  }
+}
+// A cubic or higher in letters that factors into pieces of degree ≤ 2,
+// x³ − ax = 0 as x(x² − a) (1.74.0): each factor solved, the roots joined.
+async function solveByFactors(expanded, equation, target, Algebrite) {
+  try {
+    const f = String(Algebrite.run(`factor(${expanded}, ${target})`)).trim();
+    if (!f || /stop|error|nil/i.test(f) || /\//.test(f)) return null;
+    const factors = f.split(/\*(?![^()]*\))/).map((t) => t.trim().replace(/\^\d+$/, (m) => (/^\(.*\)$/.test(t.replace(/\^\d+$/, '')) || /^[a-z]$/i.test(t.replace(/\^\d+$/, '')) ? '' : m)))
+      .map((t) => stripOuterParens(t)).filter((t) => hasLetter(t, target));
+    if (factors.length < 2) return null;
+    const roots = [];
+    for (const factor of factors) {
+      const deg = Number(String(Algebrite.run(`deg(${factor}, ${target})`)).trim());
+      if (!(deg >= 1 && deg <= 2)) return null;
+      const solved = factor === target ? { relation: `${target} = 0` } : await solveForVariable(`${factor} = 0`, target);
+      if (!solved?.relation) return null;
+      for (const part of solved.relation.split(/\s+or\s+/)) if (!roots.includes(part.trim())) roots.push(part.trim());
+    }
+    return { relation: roots.join('  or  '), divisor: null, factored: beautify(f).replace(/\)\*\(/g, ')(').replace(/(^|[^\w)])([a-z])\*\(/gi, '$1$2(') };
   } catch {
     return null;
   }

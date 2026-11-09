@@ -165,8 +165,14 @@ Each file documents its own methods at the top. Shared invariants:
   a divisor ≠ 0 (also the coefficient divided by: a*x = 0 is x = 0 for
   a ≠ 0), a logarithm's argument > 0, a square root's ≥ 0: "x = ln(b)/a,
   for a ≠ 0 and b > 0". A step says what the equation is when a constant is
-  0, decided when it can be. Limits and function analysis with a parameter
-  are refused, with a case to try, until they are supported.
+  0, decided when it can be. Since 1.74.0 the same holds for the unknown
+  inside one function or a denominator (`algebra/undoOuter.js`), simplify
+  (a cancelled factor is a condition), inequalities (case by case on the
+  sign of what is divided by, `inequalities/constants.js`), systems
+  (Cramer's rule, D ≠ 0, `systems/constants.js`) and limits with a
+  parameter (`limits/parameter.js`; each answer compared with the
+  function's values at several values of the parameter). Function analysis
+  with a parameter is refused, with a case to try, until it is supported.
 - **Exact first.** Fractions and radicals stay exact (18/5, √2, π/6); a
   decimal is shown alongside, "=" when it is the whole value (1/2 (= 0.5)),
   "≈" when rounded (1/3 (≈ 0.3333)): write "(≈ …)" and `finalizeResult`
@@ -208,7 +214,8 @@ anything above degree 12 to `polynomialRoots`; simplification; factoring),
 exact bisection, verified complex roots, cap `MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,
 non-linear by substitution; linearity read off the parse tree by
 `linearCoefficientsIn`, the substitution's real roots from the exact root
-finder), `inequalitiesSolver` (sign charts, compound; periodic ones on one
+finder; x and y with constants by Cramer's rule in `systems/constants.js`,
+a word in the text never read as constants), `inequalitiesSolver` (sign charts, compound; periodic ones on one
 period + every period, their zeros the real roots of a polynomial in the
 tangent of the half-angle (`trigonometry/circle.js`); every zero proved
 (`inequalities/zeros.js`: the exact root finder, else monotone stretches
@@ -216,7 +223,9 @@ between turning points with end signs read off growth rates, convexity for
 a wave against a line, branches for an absolute value, squaring for one
 square root against a polynomial; refused when not proved; checked
 against a dense grid by `tests/crossCheck.test.js`); poles read from the typed expression, so a cancelled factor stays
-out; a boundary point decided by the value there; refuses two variables),
+out; a boundary point decided by the value there; x with constants, linear
+or x² against a constant, case by case (`inequalities/constants.js`);
+refuses two variables),
 `trigonometrySolver` (values, exact only to double precision, else ≈;
 identities proved in sin and cos by t = tan(x/2) in exact fractions, with
 the domain a simplification loses; A·sin/cos(kx + c) + d = mx + b counted

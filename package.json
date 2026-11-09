@@ -1,7 +1,7 @@
 {
   "name": "mastermath",
   "private": true,
-  "version": "1.73.3",
+  "version": "1.75.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

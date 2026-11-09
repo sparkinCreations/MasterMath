@@ -55,6 +55,7 @@ import { refuse, buildGraph, buildTrivial, buildSteps, movedText } from './inequ
 import { inequalityGuidance } from './inequalities/guidance.js';
 import { solveLinear } from './inequalities/linear.js';
 import { solvePeriodic } from './inequalities/periodic.js';
+import { inequalityConstants, solveInequalityWithConstants, CONSTANTS_REFUSAL } from './inequalities/constants.js';
 import { readTanBranches } from './trigonometry/tanBranches.js';
 
 const OPERATORS = ['<=', '>=', '<', '>'];
@@ -73,6 +74,9 @@ export async function solveInequality(rawText) {
     const r = await solveSingle(text);
     if (r.periodic) {
       return refuse('One part is a periodic (trigonometric) inequality; combining it with another part is not supported yet.', 'Solve each part on its own: its solution repeats every period.', 'unsupported');
+    }
+    if (r.withConstants) {
+      return refuse('One part has constants in it; combining such parts is not supported yet.', 'Solve each part on its own: its answer is given case by case.', 'unsupported');
     }
     if (!r.pieces) return strip(r); // a refusal from one part is the answer
     parts.push({ text, result: r });
@@ -212,6 +216,14 @@ async function solveSingle(rawText) {
     // symbol and answered "No solution" — confidently wrong (found in the
     // 1.49.0 routing sweep).
     const letters = new Set((fExpr.replace(/(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp|pi|e)(?![a-z])/gi, ' ').match(/(?<![a-z])[a-z](?![a-z])/gi) || []).map((c) => c.toLowerCase()));
+    // x with constants (a·x > b, x² < a): solved case by case (1.74.0).
+    const constants = letters.size > 1 ? inequalityConstants(fExpr, variable) : null;
+    if (constants) {
+      const solved = await solveInequalityWithConstants(lhs, rhs, op, variable, constants);
+      if (solved) return solved;
+      const { reason, hint } = CONSTANTS_REFUSAL(constants, variable);
+      return refuse(reason, hint, 'unsupported');
+    }
     if (letters.size > 1) {
       return refuse(
         `This inequality has more than one variable (${[...letters].sort().join(', ')}). Its solutions are a region of the plane, not a set of numbers on a line, and graphing regions is not supported.`,

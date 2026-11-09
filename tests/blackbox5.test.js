@@ -212,7 +212,8 @@ test('edge: limits — named constants, converging slowly, and a symbolic parame
   assert.match((await solveProblem('lim x→∞ (1 + 2/x)^x', 'limits')).answer, /= e\^2 \(≈ 7\.3891\)$/);
   assert.match((await solveProblem('lim n->infinity (1+1/n)^n', 'limits')).answer, /= e \(≈ 2\.7183\)$/);
   assert.match((await solveProblem('lim h->0 ((x+h)^2 - x^2)/h', 'limits')).answer, /= 2x$/);
-  assert.equal((await solveProblem('lim h->0 (sin(x+h)-sin(x))/h', 'limits')).status, 'unsupported');
+  // Worked by L'Hôpital's rule in h, x held fixed (1.74.0; refused before).
+  assert.match((await solveProblem('lim h->0 (sin(x+h)-sin(x))/h', 'limits')).answer, /= cos\(x\)$/);
 });
 
 test('edge: derivatives — order, with respect to, ln|x|, asymptote at the point, symbolic point', async () => {

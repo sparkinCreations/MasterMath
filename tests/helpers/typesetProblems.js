@@ -153,6 +153,14 @@ export const CONVERTED = [
   ['trigonometry', '2*sin(x)*cos(x) = sin(x)'], ['trigonometry', 'csc(x) - sin(x) = cos(x)'], ['trigonometry', 'sin(x) + tan(x) = 1'], ['trigonometry', 'tan(x)*cos(x) = 1'], ['trigonometry', 'tan(2x) = sin(2x)'], ['trigonometry', 'sin(x)^2 = 3*cos(x)^2'],
   // 1.68.3: d/dx in front of an equation; its refusals.
   ['auto', 'd/dx (x^2 + y^2 = 25)'], ['auto', 'd/dx (x^2 + 3x = 5)'], ['auto', 'd/dx (2 = 2)'], ['auto', 'd/dx (x^2 + y^2) = 25'], ['auto', 'd/dx (x^2 + y^2 = r^2)'], ['auto', 'd/dx (y = 3)'],
+  // 1.74.0: constants in simplify, equations, inequalities, systems and limits.
+  ['auto', 'simplify (a*x + a)/a'], ['auto', 'simplify a*x + b*x'], ['auto', 'simplify x/a + x/b'], ['auto', 'simplify (a + b)^2 - (a - b)^2'],
+  ['auto', 'ln(x + a) = b'], ['auto', 'log(x) = a'], ['auto', 'sqrt(x + a) = b'], ['auto', 'abs(x - a) = b'], ['auto', 'a^x = b'], ['auto', 'sin(x) = a'], ['auto', 'sin(a*x) = 1/2'], ['auto', 'tan(x/a) = 1'],
+  ['auto', 'x/(x + a) = b'], ['auto', '1/x + 1/a = 1'], ['auto', 'x^3 - a*x = 0'],
+  ['auto', 'a*x > b'], ['auto', 'a*x + 1 <= 3'], ['auto', 'x + a > b'], ['auto', 'x^2 < a'], ['auto', 'x^2 >= a'], ['auto', 'x^3 > a'],
+  ['auto', 'x + y = a; x - y = b'], ['auto', 'x + a*y = 2; a*x + y = 2'], ['auto', 'x + y + z = a; x - y = 0; y - z = b'], ['auto', 'x*y = a; x + y = 1'],
+  ['auto', 'lim x->0 sin(a*x)/x'], ['auto', 'lim x->a (x^2 - a^2)/(x - a)'], ['auto', 'lim x->0 (1 + a*x)^(1/x)'], ['auto', 'lim x->inf a*x^2/(x + 1)'], ['auto', 'lim x->-inf (a*x^3+1)/(x^2+1)'],
+  ['auto', 'lim x->3 (x + a)/(x - a)'], ['auto', 'lim x->1 ln(a*x)'], ['auto', 'lim x->1 tan(a*x)'],
   // 1.73.1: complex-valued limits and text before a limit, refused.
   ['auto', 'lim x->2 (x√(-1))'], ['auto', 'lim x->2 x*i'], ['auto', 'i * lim x->0 (sin(x)/x)'],
   // 1.73.3: an absolute value equal to an expression in x.

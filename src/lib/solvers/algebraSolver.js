@@ -44,6 +44,7 @@ import { rewriteToCommonBase, solveTwoPowers } from './algebra/exponentialBases.
 import { satisfiesEquation } from './algebra/rootsFormat.js';
 import { solvePolynomialInPower } from './algebra/powerSubstitution.js';
 import { solveTwoRadicals } from './algebra/twoRadicals.js';
+import { nonzeroCondition, tidyCondition } from './algebra/undoOuter.js';
 import {
   factorExpression,
   expandExpression,
@@ -186,15 +187,12 @@ function constantConditions(rel, target, expression = '', divisor = null) {
     let d = stripOuterParens(String(raw).trim());
     if (!/[a-z]/i.test(d) || hasTarget(d)) return;
     // 2a, a^2, 2*a^2 ≠ 0 are a ≠ 0.
-    const single = d.replace(/\s+/g, '').match(/^\d*\*?([a-z])(?:\^\d+)?$/i);
-    if (single) d = single[1];
-    const pair = d.match(/^([a-z])\s*-\s*([a-z])$/i);
-    const text = pair ? `${pair[1]} ≠ ${pair[2]}` : `${d} ≠ 0`;
+    const text = nonzeroCondition(d);
     if (!nonzero.includes(text)) nonzero.push(text);
   };
   if (divisor && !String(divisor).includes('/')) addNonzero(divisor);
   for (const text of [answer, String(expression)]) {
-    for (const m of text.matchAll(/\/\s*(\((?:[^()]|\([^()]*\))*\)|[a-z])/gi)) addNonzero(m[1]);
+    for (const m of text.matchAll(/\/\s*(\((?:[^()]|\([^()]*\))*\)|[a-z](?![a-z(]))/gi)) addNonzero(m[1]);
   }
   // A square root in the answer: x = ±√a needs a ≥ 0.
   for (const m of answer.matchAll(/√(\((?:[^()]|\([^()]*\))*\)|[a-z0-9]+)/gi)) {
@@ -220,6 +218,17 @@ function constantConditions(rel, target, expression = '', divisor = null) {
   const kept = nonnegative.filter((c) => !alwaysNonnegative(c));
   return { nonzero, positive, nonnegative: kept, all: [...nonzero, ...positive, ...kept] };
 }
+// x = 0 or x = ±√a, for a ≥ 0: where a < 0 the root without a radical is
+// still a solution, and the step says so (x³ − ax = 0 has x = 0 for every a).
+function onlyRealRoots(rel, conditions) {
+  if (!rel || !conditions?.nonnegative?.length) return [];
+  const parts = rel.split(/\s+or\s+/);
+  const plain = parts.filter((p) => !/√|\^\(1\/\d+\)/.test(p));
+  if (!plain.length || plain.length === parts.length) return [];
+  const negated = conditions.nonnegative.map((c) => c.replace('≥', '<').replace('≤', '>'));
+  return [`If ${negated.map((c) => mark(c)).join(' or ')}, the square root is not real, and ${plain.map((p) => mark(p.trim())).join(' and ')} ${plain.length === 1 ? 'is the only real solution' : 'are the only real solutions'}.`];
+}
+
 // What the equation says when a constant it divides by is 0: e^(0·x) = b is
 // 1 = b, a*x + b = 0 is b = 0. Only when x drops out.
 function zeroCase(expression, condition, target) {
@@ -229,13 +238,17 @@ function zeroCase(expression, condition, target) {
     const [l, r] = expression.split('=');
     const at = (side) => math.simplify(side.replace(new RegExp(`(?<![a-z])${letter}(?![a-z])`, 'g'), '0')).toString().replace(/\s*([*/])\s*/g, '$1');
     const [L, R] = [at(l), at(r)];
+    // The equation itself divides by the constant (x/a + x/b = 1): at 0 it
+    // means nothing, and the condition says so already.
+    if (/Infinity|NaN/.test(`${L}${R}`)) return null;
     // x is still there (a·x² + b·x + c at a = 0): a different equation.
     if (new RegExp(`(?<![a-z])${target}(?![a-z])`).test(`${L}=${R}`)) {
       return `If ${mark(`${letter} = 0`)}, the equation is ${mark(`${beautify(L)} = ${beautify(R)}`)} instead, which is solved on its own.`;
     }
     const shown = mark(`${beautify(L)} = ${beautify(R)}`);
     const opening = `If ${mark(`${letter} = 0`)}, the equation is ${shown}, with no ${mark(target)} in it`;
-    const [nl, nr] = [Number(L), Number(R)];
+    const num = (t) => { try { const v = math.evaluate(String(t)); return typeof v === 'number' ? v : NaN; } catch { return NaN; } };
+    const [nl, nr] = [num(L), num(R)];
     if (Number.isFinite(nl) && Number.isFinite(nr)) {
       return nl === nr ? `${opening}: every ${mark(target)} is a solution.` : `${opening}, and it is false: there is no solution.`;
     }
@@ -296,6 +309,21 @@ async function solveEquation(expression, options = {}) {
     // answer for a ≠ 0 and b > 0; at a = 0, e^(0·x) = b is 1 = b, which no
     // value of x decides. Read off the answer itself.
     const conditions = rel && withConstants ? constantConditions(rel, requested, expression, solved.divisor) : null;
+    // What undoing a function needed (√x = a needs a ≥ 0, sin(x) = a needs
+    // −1 ≤ a ≤ 1, x/(x + a) = b needs a ≠ 0): stated first, with its reason.
+    if (conditions && solved.requires?.length) {
+      const extra = solved.requires;
+      const own = new Set(extra.map(([c]) => c));
+      for (const key of ['nonzero', 'positive', 'nonnegative']) conditions[key] = conditions[key].filter((c) => !own.has(c));
+      conditions.extra = extra;
+      conditions.all = [...extra.map(([c]) => c), ...conditions.all.filter((c) => !own.has(c))];
+    }
+    // −a ≥ 0 reads a ≤ 0; −1 ≤ a + 2 ≤ 1 reads −3 ≤ a ≤ −1.
+    if (conditions) {
+      const tidied = new Map();
+      for (const c of conditions.all) tidied.set(c, await tidyCondition(c));
+      conditions.all = [...new Set(conditions.all.map((c) => tidied.get(c)))];
+    }
     const zeroCases = conditions ? conditions.nonzero.map((c) => zeroCase(expression, c, requested)).filter(Boolean) : [];
     const conditionText = conditions && conditions.all.length ? conditions.all.join(' and ') : '';
     if (rel) {
@@ -306,15 +334,18 @@ async function solveEquation(expression, options = {}) {
             : `This is one equation in ${letters.size} unknowns (${[...letters].sort().map((v) => mark(v)).join(', ')}) — it has infinitely many solutions, one for every value of ${vars(others)}. So we solve for ${mark(requested)} in terms of ${vars(others)}.`,
           ...(solved.logStep
             ? [`Isolate the exponential and take the natural logarithm of both sides: ${mark(solved.logStep)}`]
-            : [`Rewrite as an equation set to zero: ${mark(rhsRaw.trim() === '0' ? `${beautify(lhsRaw.trim())} = 0` : `${beautify(`(${lhsRaw.trim()}) - (${rhsRaw.trim()})`)} = 0`)}`]),
+            : solved.undoSteps ? solved.undoSteps : [`Rewrite as an equation set to zero: ${mark(rhsRaw.trim() === '0' ? `${beautify(lhsRaw.trim())} = 0` : `${beautify(`(${lhsRaw.trim()}) - (${rhsRaw.trim()})`)} = 0`)}`]),
+          ...(solved.factored ? [`Factor, and set each factor to zero: ${mark(`${solved.factored} = 0`)}`] : []),
           ...(solved.droppedComplex ? [`Over the real numbers, keep the real roots (the others involve ${mark('i')}, the imaginary unit).`] : []),
           ...(solved.logStep === rel ? [] : [`Isolate ${mark(requested)}: ${mark(rel)}`]),
           ...(conditionText ? [`This holds for ${conditions.all.map((c) => mark(c)).join(' and ')}: ${[
+            ...[...new Set((conditions.extra || []).map(([, why]) => why))],
             conditions.nonzero.length ? 'a number cannot be divided by 0' : '',
             conditions.positive.length ? 'a logarithm is defined only for a positive argument' : '',
             conditions.nonnegative.length ? 'a square root of a negative number is not real' : '',
           ].filter(Boolean).join(', and ')}.`] : []),
           ...zeroCases,
+          ...onlyRealRoots(rel, conditions),
           `Check: substituting each root back into ${mark(beautify(expression))} balances both sides wherever the root is a real number ✓`,
         ],
         answer: conditionText ? `${rel}, for ${conditionText}` : rel,
