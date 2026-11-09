@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.75.1] - 2026-11-09
+
+### Fixed
+- An identity with values excluded no longer gets advice that contradicts its
+  answer. x/x = 1 was answered "all real numbers with x ≠ 0" and then told
+  "every x is a solution" and "every number works, not just 0". These
+  equations now have their own insights, which name the excluded values.
+- An identity no longer loses an excluded value between the points a scan
+  checks: every divisor's zeros are now proved from its form. (3x − 1)/(3x − 1)
+  = 1 excludes x = 1/3, (x² − 2)/(x² − 2) = 1 excludes x = −√2 and x = √2,
+  (eˣ − 2)/(eˣ − 2) = 1 excludes x = ln(2). All were "all real numbers".
+- An identity whose domain cannot be proved is refused, in words, instead of
+  answered: (sin(x) + 1/2)/(sin(x) + 1/2) = 1, tan(x²) = tan(x²). The trig
+  solver's "both sides are the same" shortcut no longer answers these.
+- Exclusions and a periodic set are named together: 1/x + tan(x) = 1/x +
+  tan(x) excludes x = 0 and x = π/2 + nπ; sin(x)/sin(x) = 1 excludes every nπ,
+  not only 0.
+- A zero power has no value at a zero base: x^0 = 1 holds for x ≠ 0, and
+  0^x = 0 for x > 0.
+- e^ln(x) = x holds for x > 0, not x ≥ 0, and ln(x²) = 2·ln(x) says x > 0
+  without a redundant x ≠ 0.
+- A limit at ±∞ with a parameter in an exponent is no longer answered 0.
+  lim x→∞ e^(a·x) is ∞ if a > 0, 0 if a < 0 and 1 if a = 0, split by the sign
+  of the parameter. a^x and e^(a·x)/x, which were 0 as well, are refused until
+  they are supported.
+- A limit's check no longer skips a parameter value because the function
+  overflowed, and says "both signs" only when both were compared. An answer
+  tested on one sign when the other was allowed is not given.
+
 ## [1.75.0] - 2026-11-09
 
 A sweep of 92 textbook equations found which ones fell to the numeric

@@ -4,9 +4,10 @@
 // found in it: by substitution where the expression is defined at the point
 // (with the condition that it is), by L'Hôpital's rule where top and bottom
 // are both 0 for every value of the parameter, through logarithms for 1^∞,
-// and by leading coefficients at ±∞ for a ratio of polynomials. Every answer
-// is compared with the function's own values near the point at several
-// values of the parameter, both signs; the value is never read off samples.
+// by leading coefficients at ±∞ for a ratio of polynomials, and by the sign
+// of the parameter for b^(k·x + c) at ±∞. Every answer is compared with the
+// function's own values near the point at several values of the parameter,
+// of every sign its conditions allow; the value is never read off samples.
 
 import { math, beautify, mark, splitTopLevel, stripOuterParens } from '../solverUtils.js';
 import { nonzeroCondition, tidyCondition } from '../algebra/undoOuter.js';
@@ -46,6 +47,9 @@ function nearValue(func, variable, target, scope) {
     const s = Math.sign(target);
     const ladder = [1e3, 1e4, 1e5, 1e6].map((x) => at(s * x));
     if (ladder.some((v) => !Number.isFinite(v))) {
+      // Overflow in one direction is growth: e^(0.7x) is Infinity from x = 10⁴.
+      // NaN is not: e^(a·x)/e^(a·x) is Infinity/Infinity, and its limit is 1.
+      if (!ladder.some(Number.isNaN) && ladder.filter((v) => !Number.isFinite(v)).every((v) => v === ladder.at(-1)) && !Number.isFinite(ladder.at(-1))) return ladder.at(-1);
       const big = ladder.filter(Number.isFinite);
       return big.length >= 2 && Math.abs(big.at(-1)) > 1e8 ? Math.sign(big.at(-1)) * Infinity : NaN;
     }
@@ -62,25 +66,35 @@ function nearValue(func, variable, target, scope) {
 }
 
 // The value at several values of the parameters where the conditions hold:
-// at least three comparisons, none failing.
+// at least three comparisons, none failing, and a real comparison for every
+// sign the conditions allow. A sign whose samples all went unsettled would
+// be an answer never tested there: e^(a·x) "checked" only for a < 0.
 function agreesNearby(func, variable, targetText, valueText, letters, conditions = []) {
   const vals = [0.7, -1.3, 1.9, -0.45, 2.6, -2.2, 0.35, 1.15, -0.8, 3.1];
   let compared = 0;
+  const allowed = letters.map(() => new Set());
+  const seen = letters.map(() => new Set());
+  const failure = { ok: false, bothSigns: false };
   for (let k = 0; k < 12; k += 1) {
     const scope = Object.fromEntries(letters.map((c, j) => [c, vals[(k * 3 + j * 7) % vals.length] * (1 + 0.09 * j)]));
     if (!conditions.every((c) => conditionTrue(c, scope))) continue;
+    letters.forEach((c, j) => allowed[j].add(Math.sign(scope[c])));
     let target;
     try { target = /^[+-]?∞$|infinity/i.test(targetText) ? (/-/.test(targetText) ? -Infinity : Infinity) : Number(math.evaluate(toMathjs(targetText), scope)); } catch { continue; }
     let value;
-    try { value = valueText === '∞' ? Infinity : valueText === '-∞' ? -Infinity : Number(math.evaluate(toMathjs(valueText), { ...scope, e: Math.E })); } catch { return false; }
+    try { value = valueText === '∞' ? Infinity : valueText === '-∞' ? -Infinity : Number(math.evaluate(toMathjs(valueText), { ...scope, e: Math.E })); } catch { return failure; }
     const near = nearValue(func, variable, target, scope);
     if (Number.isNaN(near)) continue; // not settled here: decides nothing
     if (!Number.isFinite(value) || !Number.isFinite(near)) {
-      if (value !== near) return false;
-    } else if (Math.abs(near - value) > 1e-3 * (1 + Math.abs(value))) return false;
+      if (value !== near) return failure;
+    } else if (Math.abs(near - value) > 1e-3 * (1 + Math.abs(value))) return failure;
     compared += 1;
+    letters.forEach((c, j) => seen[j].add(Math.sign(scope[c])));
   }
-  return compared >= 3;
+  return {
+    ok: compared >= 3 && allowed.every((signs, j) => [...signs].every((sign) => seen[j].has(sign))),
+    bothSigns: seen.every((signs) => signs.has(1) && signs.has(-1)),
+  };
 }
 
 function conditionTrue(cond, scope) {
@@ -105,6 +119,37 @@ function nonzeroConditions(D, letters, run) {
   return [nonzeroCondition(D)];
 }
 
+// Does any exponent in this expression contain the variable?
+function exponentHasVariable(expression, variable) {
+  try {
+    return math.parse(toMathjs(expression)).filter((n) => n.isOperatorNode && n.op === '^' && hasLetter(n.args[1].toString(), variable)).length > 0
+      || /(?<![a-z])exp\(/.test(expression);
+  } catch {
+    return true;
+  }
+}
+
+// b^E (or exp(E)) as the whole expression, b a positive number other than 1.
+function constantBasePower(expression, variable) {
+  let node;
+  try {
+    node = math.parse(toMathjs(expression));
+  } catch {
+    return null;
+  }
+  while (node.isParenthesisNode) node = node.content;
+  if (node.isFunctionNode && node.fn.name === 'exp') return { base: Math.E, baseText: 'e', exponent: node.args[0].toString() };
+  if (!node.isOperatorNode || node.op !== '^') return null;
+  let base;
+  try {
+    base = node.args[0].evaluate({ e: Math.E });
+  } catch {
+    return null;
+  }
+  if (typeof base !== 'number' || !(base > 0) || base === 1 || !hasLetter(node.args[1].toString(), variable)) return null;
+  return { base, baseText: beautify(stripOuterParens(node.args[0].toString())), exponent: stripOuterParens(node.args[1].toString()) };
+}
+
 // i is the imaginary unit, never a real parameter: sampled as a real number
 // it "verified" lim x→0 sin(i·x)/x = i. Complex-valued limits are refused.
 export const hasImaginaryUnit = (text) => /(?<![a-z])i(?![a-z])/i.test(String(text));
@@ -127,6 +172,49 @@ export async function limitWithParameter({ Algebrite, func, variable, target, ta
     .replace(/(?<![\w^/.)])1\/(\d+)\*([a-z](?:\^\d+)?)(?![\w^(])/gi, '$2/$1')
     .replace(/(?<![\w^/.)])(\d+)\/(\d+)\*([a-z](?:\^\d+)?)(?![\w^(])/gi, '$1$3/$2')
     .replace(/\bexp\(([^()]*)\)/g, (m0, a) => (/^[a-z0-9]+$/i.test(a) ? `e^${a}` : `e^(${a})`));
+  // b^(k·x + c) at ±∞, b a number and k linear in one parameter: the sign
+  // of k sends the exponent to +∞ or −∞; k = 0 leaves the constant b^c.
+  const exponentialBySign = async () => {
+    const form = constantBasePower(inner, variable);
+    if (!form || letters.length !== 1) return null;
+    const E = toAlg(form.exponent);
+    if (Number(run(`deg(${E}, ${variable})`)) !== 1) return null;
+    const k = run(`simplify(coeff(${E}, ${variable}, 1))`);
+    const c = run(`simplify(coeff(${E}, ${variable}, 0))`);
+    if (!hasLetter(k, letters[0]) || Number(run(`deg(${k}, ${letters[0]})`)) !== 1 || hasLetter(c, variable)) return null;
+    const shownK = tidy(k);
+    const posText = await tidyCondition(`${shownK} > 0`);
+    const negText = await tidyCondition(`${shownK} < 0`);
+    if (!/^[a-z] [<>] -?\d+(?:\/\d+)?$/.test(posText)) return null;
+    const zeroCase = posText.replace(/[<>]/, '=');
+    const grows = (target > 0) === (form.base > 1);
+    const [whenPos, whenNeg] = grows ? ['∞', '0'] : ['0', '∞'];
+    const atInfinity = target > 0 ? '∞' : '-∞';
+    if (!agreesNearby(func, variable, atInfinity, whenPos, letters, [posText]).ok) return null;
+    if (!agreesNearby(func, variable, atInfinity, whenNeg, letters, [negText]).ok) return null;
+    // k = 0: the exponent is c, a constant.
+    const [L, val] = zeroCase.split(' = ');
+    const constant = tidy(run(`simplify(subst(${val}, ${L}, ${c}))`));
+    const zeroValue = constant === '0' ? '1' : `${form.baseText}^${wrap(constant)}`;
+    return {
+      steps: [
+        intro,
+        `The exponent is ${mark(tidy(E).replace(/ \* /g, '·'))}, and ${mark(variable)} goes to ${mark(atInfinity)}. What the exponent does depends on the sign of its coefficient ${mark(shownK)}, so split into cases.`,
+        `If ${mark(posText)}, the exponent goes to ${mark(target > 0 ? '∞' : '-∞')}, and the power goes to ${mark(whenPos)}.`,
+        `If ${mark(negText)}, the exponent goes to ${mark(target > 0 ? '-∞' : '∞')}, and the power goes to ${mark(whenNeg)}.`,
+        `If ${mark(zeroCase)}, the exponent is the constant ${mark(constant)}, and the expression is ${mark(zeroValue)} for every ${mark(variable)}.`,
+        `Check: compared with the function's values for large ${mark(variable)} at several values of the parameter, in each case ✓`,
+      ],
+      answer: `${lim} = ${whenPos} if ${posText};  ${whenNeg} if ${negText};  ${zeroValue} if ${zeroCase}`,
+      technique: 'sign of the exponent',
+      tips: [
+        `With a parameter multiplying ${mark(variable)} in an exponent, its sign decides whether the power grows or dies away: split into cases.`,
+        `Do not forget the parameter being ${mark('0')}: the exponent is then constant.`,
+      ],
+      common_mistakes: [`Giving one answer for ${mark(`${form.baseText}^(${shownK}·${variable})`)} without asking the sign of ${mark(shownK)}.`],
+      graph: null,
+    };
+  };
   const finish = (value, steps, given = [], technique = '') => {
     // What the value itself needs: 1/(2√x) needs x > 0 … read off it.
     const own = constantRequirements(tidy(value).replace(/√\(/g, 'sqrt(').replace(/√([a-z0-9]+)/gi, 'sqrt($1)'), variable)
@@ -146,14 +234,15 @@ export async function limitWithParameter({ Algebrite, func, variable, target, ta
       const m = c.match(/^(.+) ≠ (.+)$/);
       return !(m && conditions.includes(`${m[1]} > ${m[2]}`));
     });
-    if (!agreesNearby(func, variable, Number.isFinite(target) || target === undefined ? targetText : (target > 0 ? '∞' : '-∞'), toMathjs(value).replace(/\bexp\(/g, 'exp('), letters, conditions)) return null;
+    const check = agreesNearby(func, variable, Number.isFinite(target) || target === undefined ? targetText : (target > 0 ? '∞' : '-∞'), toMathjs(value).replace(/\bexp\(/g, 'exp('), letters, conditions);
+    if (!check.ok) return null;
     const shown = tidy(value);
     return {
       steps: [
         intro,
         ...steps,
         ...(conditions.length ? [`This holds for ${conditions.map((c) => mark(c)).join(' and ')}.`] : []),
-        `Check: compared with the function's values near ${mark(`${variable} = ${shownTarget}`)} at several values of ${letters.length === 1 ? 'the parameter' : 'the parameters'}, both signs ✓`,
+        `Check: compared with the function's values near ${mark(`${variable} = ${shownTarget}`)} at several values of ${letters.length === 1 ? 'the parameter' : 'the parameters'}${check.bothSigns ? ', both signs' : ''} ✓`,
       ],
       answer: `${lim} = ${shown}${conditions.length ? `, for ${conditions.join(' and ')}` : ''}`,
       technique,
@@ -166,12 +255,22 @@ export async function limitWithParameter({ Algebrite, func, variable, target, ta
     };
   };
 
+  // At ±∞: b^(k·x + c), by the sign of k.
+  if (target !== undefined && !Number.isFinite(target)) {
+    try {
+      const split = await exponentialBySign();
+      if (split) return split;
+    } catch { /* not this form */ }
+  }
+
   // At ±∞: a ratio of polynomials in x, by leading coefficients.
   if (target !== undefined && !Number.isFinite(target)) {
     try {
       const parts = splitTopLevel(inner, '/');
       const [N, D] = parts.length === 2 ? parts.map((p) => toAlg(stripOuterParens(p))) : [f, '1'];
-      const isPoly = (p) => !/[a-z]{2,}/i.test(p.replace(/\bpi\b/g, '')) && !new RegExp(`${variable}\\s*\\^\\s*\\(?[^\\d(]`).test(p) && !/\//.test(p);
+      // The variable in an exponent is no polynomial: e^(a·x) has "degree 0"
+      // only because Algebrite cannot see into it.
+      const isPoly = (p) => !/[a-z]{2,}/i.test(p.replace(/\bpi\b/g, '')) && !new RegExp(`${variable}\\s*\\^\\s*\\(?[^\\d(]`).test(p) && !/\//.test(p) && !exponentHasVariable(p, variable);
       if (!isPoly(N) || !isPoly(D)) return null;
       const dn = Number(run(`deg(${N}, ${variable})`));
       const dd = Number(run(`deg(${D}, ${variable})`));
@@ -193,8 +292,8 @@ export async function limitWithParameter({ Algebrite, func, variable, target, ta
       const negText = await tidyCondition(`${tidy(ratio)} < 0`);
       const [up, down] = odd ? ['-∞', '∞'] : ['∞', '-∞'];
       if (!/[a-z]/i.test(ratio)) return finish(Number(math.evaluate(ratio)) > 0 ? up : down, [divide, `The top has the higher degree, so the limit is infinite, with the sign of ${mark(tidy(ratio))}${odd ? `, reversed because ${mark(`${variable}^${dn - dd}`)} is negative as ${mark(`${variable} → -∞`)}` : ''}.`], [], 'leading terms');
-      const okPos = agreesNearby(func, variable, target > 0 ? '∞' : '-∞', up, letters, [posText]);
-      const okNeg = agreesNearby(func, variable, target > 0 ? '∞' : '-∞', down, letters, [negText]);
+      const okPos = agreesNearby(func, variable, target > 0 ? '∞' : '-∞', up, letters, [posText]).ok;
+      const okNeg = agreesNearby(func, variable, target > 0 ? '∞' : '-∞', down, letters, [negText]).ok;
       if (!okPos || !okNeg) return null;
       // Where the leading coefficient is 0 the expression is a different one,
       // worked as such.

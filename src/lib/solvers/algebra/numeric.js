@@ -16,9 +16,12 @@ import {
   piForm,
   structuralPeriod,
   absBars,
+  stripOuterParens,
+  linearCoefficients,
 } from '../solverUtils.js';
 import { infiniteSignChanges } from '../inequalities/zeros.js';
 import { tanBranchRoots } from '../trigonometry/tanBranches.js';
+import { readPolynomial, allRoots } from '../polynomialRoots.js';
 
 // Brute-force numeric root finding, used only when symbolic methods fail.
 //
@@ -57,21 +60,34 @@ export function solveNumerically(equation, variable) {
       // An identity holds wherever BOTH sides are defined. Simplifying
       // 1/(x-1) = 1/(x-1) to 0 = 0 loses that x = 1 was never allowed, so the
       // domain is read off the original sides, not the simplified difference.
-      const restrictions = domainRestrictionsOf([left, right], variable);
+      const domain = domainRestrictionsOf([left, right], variable);
+      if (!domain.proved) {
+        return {
+          envelope: unsupported({
+            input: `${beautify(left.trim())} = ${beautify(right.trim())}`,
+            reason: DOMAIN_NOT_PROVED,
+            answer: DOMAIN_NOT_PROVED,
+          }),
+        };
+      }
       // tan, sec, cot, csc and divisions by sin or cos are undefined on a
       // lattice of points the grid never lands on exactly (tan(π/2) is a
       // huge finite number in floating point), so read those off the
       // structure: tan(x) = sin(x)/cos(x) holds except at x = π/2 + nπ.
-      const poles = trigUndefinedPoints(`${left} = ${right}`, variable);
+      const poles = [...trigUndefinedPoints(`${left} = ${right}`, variable), ...domain.lattices]
+        .filter((pole, i, all) => all.findIndex((q) => q.text === pole.text && q.because === pole.because) === i);
+      // A point the scan hit on a lattice is the lattice's: 1/sin(x) at 0.
+      const onLattice = (x) => poles.some((p) => Math.abs((x - p.offset) / p.step - Math.round((x - p.offset) / p.step)) < 1e-9);
+      const restrictions = domain.regions.filter((r) => !(r.from === r.to && !r.whole && onLattice(r.from)));
       if (restrictions.length === 0 && poles.length > 0) {
         const where = [...new Set(poles.map((p) => p.text))].join(' and ');
         const because = [...new Set(poles.map((p) => p.because))].join(', ');
         return {
           steps: [
-            `Before simplifying, note where the original equation is defined: ${because} ${poles.length > 1 ? 'are' : 'is'} undefined at ${where} (n any integer), so those values are excluded from the start.`,
-            `Rewrite as ${beautify(expression)} = 0`,
-            `The ${variable} terms cancel — the two sides are identical wherever they are both defined.`,
-            `This is an identity on its domain: every real number except ${where} is a solution. The excluded points are not solutions, even though the simplified form 0 = 0 would allow them.`,
+            `Before simplifying, note where the original equation is defined: ${markBecause(because)} ${poles.length > 1 ? 'are' : 'is'} undefined at ${markConditions(where)} (${mark('n')} any integer), so those values are excluded from the start.`,
+            `Rewrite as ${mark(`${beautify(expression)} = 0`)}`,
+            `The ${mark(variable)} terms cancel — the two sides are identical wherever they are both defined.`,
+            `This is an identity on its domain: every real number except ${markConditions(where)} is a solution. The excluded points are not solutions, even though the simplified form ${mark('0 = 0')} would allow them.`,
           ],
           answer: `All real numbers except ${where}, n any integer (identity on its domain — ${because} ${poles.length > 1 ? 'are' : 'is'} undefined there)`,
           solutions: [],
@@ -80,31 +96,36 @@ export function solveNumerically(equation, variable) {
       if (restrictions.length === 0) {
         return {
           steps: [
-            `Rewrite as ${beautify(expression)} = 0`,
-            `The ${variable} terms cancel — the two sides are identical for every value of ${variable}.`,
+            `Rewrite as ${mark(`${beautify(expression)} = 0`)}`,
+            `The ${mark(variable)} terms cancel — the two sides are identical for every value of ${mark(variable)}.`,
             'This is an identity: every real number is a solution.',
           ],
           answer: `All real numbers (identity — true for every ${variable})`,
           solutions: [],
         };
       }
-      const undefinedFor = restrictions.map((r) => formatRestriction(r, variable)).join(' and for ');
-      const allowed = restrictions.map((r) => formatRestriction(r, variable, { allowed: true })).join(' and ');
+      // Other exclusions and a lattice together: 1/x + tan(x).
+      const periodic = poles.length > 0;
+      const shownEnd = (r) => r.undefinedText ?? formatRestriction(r, variable, { fmt: exactEndpoint });
+      const shownAllowed = (r) => r.allowedText ?? formatRestriction(r, variable, { allowed: true, fmt: exactEndpoint });
+      const latticeTexts = [...new Set(poles.map((p) => p.text))];
+      const undefinedFor = [...restrictions.map(shownEnd), ...latticeTexts].join(' and for ');
+      const allowed = [...restrictions.map(shownAllowed), ...latticeTexts.map((t) => t.replace(' = ', ' ≠ '))].join(' and ');
       return {
         steps: [
-          `Before simplifying, note where the original equation is defined: it is undefined for ${undefinedFor}.`,
-          `Rewrite as ${beautify(expression)} = 0`,
-          `The ${variable} terms cancel — the two sides are identical wherever they are both defined.`,
-          `This is an identity on its domain: every real number with ${allowed} is a solution. Values where the original expression is undefined are not solutions, even though the simplified form 0 = 0 would allow them.`,
+          `Before simplifying, note where the original equation is defined: it is undefined for ${markConditions(undefinedFor)}.`,
+          `Rewrite as ${mark(`${beautify(expression)} = 0`)}`,
+          `The ${mark(variable)} terms cancel — the two sides are identical wherever they are both defined.`,
+          `This is an identity on its domain: every real number with ${markConditions(allowed)} is a solution${periodic ? `, with ${mark('n')} any integer` : ''}. Values where the original expression is undefined are not solutions, even though the simplified form ${mark('0 = 0')} would allow them.`,
         ],
-        answer: `All real numbers with ${allowed} (identity on its domain)`,
+        answer: `All real numbers with ${allowed}${periodic ? ', n any integer' : ''} (identity on its domain)`,
         solutions: [],
       };
     }
     return {
       steps: [
-        `Rewrite as ${beautify(expression)} = 0`,
-        `The ${variable} terms cancel — the difference between the sides is always ${formatNumber(constant)}, never 0.`,
+        `Rewrite as ${mark(`${beautify(expression)} = 0`)}`,
+        `The ${mark(variable)} terms cancel — the difference between the sides is always ${mark(formatNumber(constant))}, never ${mark('0')}.`,
         'The two sides can never be equal, so this equation has no solution.',
       ],
       answer: 'No solution (the two sides are never equal)',
@@ -368,18 +389,298 @@ const CONSTANT_PROBE_POINTS = [-9.7, -4.3, -1.1, 0.6, 2.9, 7.4, 23.7];
 // The identity branch above needs this so the domain isn't lost in the
 // simplification; both sides are checked because x = 1 must be excluded from
 // "x = 1/(x-1)·(x-1)" whichever side the trouble sits on.
+// Conditions joined in words ("x ≠ 0 and x ≠ 1"): each one marked, the
+// words left as words.
+export function markConditions(conditions) {
+  return conditions.split(/\s+and(?:\s+for)?\s+/)
+    .map((c) => (c.startsWith('not ') ? `not ${mark(c.slice(4))}` : mark(c)))
+    .join(' and ');
+}
+
+// "tan(x), division by cos(x)": the functions marked, the words not.
+function markBecause(because) {
+  return because.split(', ')
+    .map((part) => (part.startsWith('division by ') ? `division by ${mark(part.slice(12))}` : mark(part)))
+    .join(', ');
+}
+
+const DOMAIN_NOT_PROVED = 'The two sides appear to be identical, but MasterMath cannot yet determine every value where they are defined.';
+
+// A scan's edge is shown only when it is a simple fraction: anything else is
+// a rounded stand-in for a value the scan did not prove.
+const SIMPLE_DENOMINATORS = [1, 2, 3, 4, 5, 6, 8, 10, 12];
+const simpleDenominator = (x) => SIMPLE_DENOMINATORS.find((d) => Math.abs(x * d - Math.round(x * d)) < 1e-9);
+function exactEndpoint(x) {
+  const d = simpleDenominator(x);
+  return d === undefined || d === 1 ? formatNumber(x) : `${Math.round(x * d)}/${d}`;
+}
+
 function domainRestrictionsOf(sides, variable) {
-  const regions = [];
+  const found = [];
+  const lattices = [];
+  let proved = true;
   for (const side of sides) {
-    for (const r of findUndefinedRegions(side.trim(), variable)) {
-      // Same edge means equal infinities or values within tolerance —
-      // (-∞) − (-∞) is NaN, so a plain difference test would never dedupe.
-      const sameEdge = (a, b) => a === b || Math.abs(a - b) < 1e-6;
-      const dup = regions.some((q) => sameEdge(q.from, r.from) && sameEdge(q.to, r.to));
-      if (!dup) regions.push(r);
+    found.push(...findUndefinedRegions(side.trim(), variable));
+    const structural = structuralRestrictions(side.trim(), variable);
+    found.push(...structural.regions);
+    lattices.push(...structural.lattices);
+    proved = proved && structural.proved;
+  }
+  const regions = mergeRestrictions(found).sort((a, b) => (a.from ?? -Infinity) - (b.from ?? -Infinity));
+  const edgeShown = (r) => r.allowedText || [r.from, r.to].every((x) => !Number.isFinite(x) || simpleDenominator(x) !== undefined);
+  return { regions, lattices, proved: proved && regions.every(edgeShown) };
+}
+
+const unwrap = (node) => {
+  let n = node;
+  while (n.isParenthesisNode) n = n.content;
+  return n;
+};
+const dependsOn = (node, variable) => node.filter((c) => c.isSymbolNode && c.name === variable).length > 0;
+const constantValue = (node) => {
+  try {
+    const v = node.evaluate();
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  } catch {
+    return null;
+  }
+};
+const pointRegion = (value, variable, text) => ({
+  from: value,
+  to: value,
+  fromClosed: true,
+  toClosed: true,
+  ...(text ? { allowedText: `${variable} ≠ ${text}`, undefinedText: `${variable} = ${text}` } : {}),
+});
+
+// (−b ± s√r)/(2a) for a quadratic with integer coefficients, as text.
+function surdZeros(coefficients) {
+  const lcm = coefficients.reduce((acc, c) => (acc * c.d) / gcdBig(acc, c.d), 1n);
+  let [c, b, a] = coefficients.map((f) => Number(f.s * f.n * (lcm / f.d)));
+  if (a < 0) [a, b, c] = [-a, -b, -c];
+  const discriminant = b * b - 4 * a * c;
+  if (!Number.isSafeInteger(discriminant) || discriminant <= 0) return null;
+  let outside = 1;
+  let inside = discriminant;
+  for (let k = Math.floor(Math.sqrt(inside)); k > 1; k -= 1) {
+    if (inside % (k * k) === 0) {
+      outside = k;
+      inside /= k * k;
+      break;
     }
   }
-  return regions.sort((a, b) => (a.from ?? -Infinity) - (b.from ?? -Infinity));
+  if (inside === 1) return null;
+  const divide = (x, y) => (y === 0 ? Math.abs(x) : divide(y, x % y));
+  const common = divide(divide(Math.abs(b), outside), 2 * a);
+  const p = -b / common;
+  const q = outside / common;
+  const den = (2 * a) / common;
+  const surd = `${q === 1 ? '' : q}√${inside}`;
+  const texts = p === 0
+    ? [`-${surd}`, surd]
+    : [`${p} - ${surd}`, `${p} + ${surd}`];
+  const shown = texts.map((t) => (den === 1 ? t : p === 0 ? `${t}/${den}` : `(${t})/${den}`));
+  const values = [-1, 1].map((sign) => (-b + sign * Math.sqrt(discriminant)) / (2 * a));
+  return values.map((value, i) => ({ value, text: shown[i] }));
+}
+const gcdBig = (a, b) => (b === 0n ? a : gcdBig(b, a % b));
+
+function polynomialZeros(polynomial, node, variable) {
+  const roots = allRoots(polynomial).real;
+  const rational = (root) => (root.exact.d === 1n ? String(root.exact.m) : `${root.exact.m}/${root.exact.d}`);
+  if (roots.every((root) => root.exact)) return roots.map((root) => pointRegion(root.value, variable, rational(root)));
+  if (polynomial.degree === 2) {
+    const zeros = surdZeros(polynomial.coefficients);
+    if (zeros) return zeros.map(({ value, text }) => pointRegion(value, variable, text));
+  }
+  // No tidy form (a cubic's irrational root): the condition itself is exact.
+  const shown = beautify(stripOuterParens(node.toString()));
+  return [{ ...pointRegion(roots[0].value, variable), allowedText: `${shown} ≠ 0`, undefinedText: `${shown} = 0`, whole: true }];
+}
+
+// k·b^(ax + c) + d: at most one zero, ln-exact, and none when −d/k ≤ 0.
+function exponentialZeros(n, variable) {
+  if (!n.isOperatorNode || !['add', 'subtract'].includes(n.fn) || n.args.length !== 2) return null;
+  const readPower = (node) => {
+    const t = unwrap(node);
+    if (t.isOperatorNode && t.fn === 'unaryMinus') {
+      const r = readPower(t.args[0]);
+      return r && { ...r, k: -r.k };
+    }
+    if (t.isOperatorNode && t.fn === 'multiply' && t.args.length === 2) {
+      const [a, b] = t.args;
+      const k = dependsOn(a, variable) ? constantValue(b) : constantValue(a);
+      const r = readPower(dependsOn(a, variable) ? a : b);
+      return r && k !== null ? { ...r, k: r.k * k } : null;
+    }
+    if (t.isFunctionNode && t.fn.name === 'exp') return { k: 1, base: Math.E, exponent: t.args[0] };
+    if (t.isOperatorNode && t.fn === 'pow') {
+      const base = constantValue(t.args[0]);
+      return base !== null && base > 0 && base !== 1 && dependsOn(t.args[1], variable) ? { k: 1, base, exponent: t.args[1] } : null;
+    }
+    return null;
+  };
+  const [first, second] = n.args;
+  const firstHasVariable = dependsOn(first, variable);
+  if (firstHasVariable === dependsOn(second, variable)) return null;
+  const power = readPower(firstHasVariable ? first : second);
+  const constant = constantValue(firstHasVariable ? second : first);
+  if (!power || constant === null) return null;
+  const k = firstHasVariable || n.fn === 'add' ? power.k : -power.k;
+  const d = !firstHasVariable || n.fn === 'add' ? constant : -constant;
+  const target = -d / k;
+  if (target <= 0) return [];
+  const line = linearCoefficients(stripOuterParens(power.exponent.toString()), variable);
+  if (!line || line.k === 0 || line.k < 0 || !Number.isInteger(line.k) || !Number.isInteger(line.d) || !Number.isInteger(target)) return null;
+  const logarithm = power.base === Math.E ? `ln(${target})` : `ln(${target})/ln(${power.base})`;
+  const value = (Math.log(target) / Math.log(power.base) - line.d) / line.k;
+  if (target === 1) {
+    const whole = -line.d / line.k;
+    return Number.isInteger(whole) ? [pointRegion(whole, variable, String(whole))] : null;
+  }
+  const top = line.d === 0 ? logarithm : `${line.k === 1 ? '' : '('}${logarithm} ${line.d > 0 ? '-' : '+'} ${Math.abs(line.d)}${line.k === 1 ? '' : ')'}`;
+  return [pointRegion(value, variable, line.k === 1 ? top : `${top}/${line.k}`)];
+}
+
+// k·sin(u) + c or k·cos(u) + c with |c| > |k| cannot reach 0.
+function waveNeverZero(n, variable) {
+  if (!['add', 'subtract'].includes(n.fn) || n.args.length !== 2) return false;
+  const amplitude = (node) => {
+    const t = unwrap(node);
+    if (t.isFunctionNode && ['sin', 'cos'].includes(t.fn.name)) return 1;
+    if (t.isOperatorNode && t.fn === 'unaryMinus') return amplitude(t.args[0]);
+    if (t.isOperatorNode && t.fn === 'multiply' && t.args.length === 2) {
+      const [a, b] = t.args;
+      const k = dependsOn(a, variable) ? constantValue(b) : constantValue(a);
+      const inner = amplitude(dependsOn(a, variable) ? a : b);
+      return k !== null && inner !== null ? Math.abs(k) * inner : null;
+    }
+    return null;
+  };
+  const [first, second] = n.args;
+  if (dependsOn(first, variable) === dependsOn(second, variable)) return false;
+  const k = amplitude(dependsOn(first, variable) ? first : second);
+  const c = constantValue(dependsOn(first, variable) ? second : first);
+  return k !== null && c !== null && Math.abs(c) > k;
+}
+
+// Every zero of an expression, proved from its form, or null when no proof
+// is at hand. Never from samples: a zero between the scan's points is exactly
+// what a scan misses.
+function zerosOf(node, variable) {
+  const n = unwrap(node);
+  const none = { points: [], lattices: [] };
+  if (!dependsOn(n, variable)) return none;
+  const polynomial = readPolynomial(n.toString(), variable);
+  if (polynomial?.tooHigh) return null;
+  if (polynomial && polynomial.degree >= 1) return { points: polynomialZeros(polynomial, n, variable), lattices: [] };
+  const union = (a, b) => (a && b ? { points: [...a.points, ...b.points], lattices: [...a.lattices, ...b.lattices] } : null);
+  if (n.isOperatorNode) {
+    if (n.fn === 'unaryMinus') return zerosOf(n.args[0], variable);
+    if (n.fn === 'multiply') return n.args.reduce((acc, a) => union(acc, zerosOf(a, variable)), none);
+    // The denominator has its own turn: it is a divisor too.
+    if (n.fn === 'divide') return zerosOf(n.args[0], variable);
+    if (n.fn === 'pow') {
+      const power = constantValue(n.args[1]);
+      if (power !== null) return zerosOf(n.args[0], variable);
+      const base = constantValue(n.args[0]);
+      if (base !== null && base > 0) return none;
+      return null;
+    }
+    if (waveNeverZero(n, variable)) return none;
+    const exponential = exponentialZeros(n, variable);
+    return exponential ? { points: exponential, lattices: [] } : null;
+  }
+  if (n.isFunctionNode) {
+    const name = n.fn.name;
+    const argument = n.args[0];
+    if (name === 'exp') return none;
+    if (name === 'abs' || name === 'sqrt') return zerosOf(argument, variable);
+    if (name === 'ln' || (name === 'log' && n.args.length === 1) || name === 'log10' || name === 'log2') {
+      const minusOne = readPolynomial(`(${argument.toString()}) - 1`, variable);
+      if (!minusOne || minusOne.tooHigh || minusOne.degree < 1) return null;
+      return { points: polynomialZeros(minusOne, argument, variable).filter((r) => !r.whole), lattices: [] };
+    }
+    if (name === 'sin' || name === 'cos') {
+      const lattice = trigUndefinedPoints(`${name === 'cos' ? 'tan' : 'cot'}(${argument.toString()})`, variable);
+      if (lattice.length === 0) return null;
+      const because = `division by ${name}(${beautify(argument.toString())})`;
+      return { points: [], lattices: lattice.map((l) => ({ ...l, because })) };
+    }
+  }
+  return null;
+}
+
+// Where a side has no value, read off the parse tree: every divisor's zeros
+// ((3x − 1)/(3x − 1) at 1/3, between the scan's points), a base raised to
+// the power 0 (mathjs says 0^0 = 1; here it has no value, as in limits), and
+// a logarithm's zero argument hidden by what surrounds it (e^ln(x) is 0 at
+// 0). proved is false when a divisor's zeros cannot be established.
+function structuralRestrictions(side, variable) {
+  let tree;
+  try {
+    tree = math.parse(side);
+  } catch {
+    return { regions: [], lattices: [], proved: false };
+  }
+  const nonzero = [];
+  const logArguments = [];
+  let proved = true;
+  tree.traverse((node) => {
+    if (node.isOperatorNode && node.op === '/') nonzero.push(node.args[1]);
+    if (node.isOperatorNode && node.op === '^') {
+      const power = constantValue(node.args[1]);
+      if (power !== null && power <= 0) nonzero.push(node.args[0]);
+      // 0^x at x = 0 is the same 0^0.
+      if (constantValue(node.args[0]) === 0) nonzero.push(node.args[1]);
+    }
+    if (node.isFunctionNode && ['ln', 'log', 'log10', 'log2'].includes(node.fn.name)) logArguments.push(node.args[0]);
+    if (node.isFunctionNode && ['tan', 'sec', 'cot', 'csc'].includes(node.fn.name)
+      && dependsOn(node, variable) && trigUndefinedPoints(`${node.fn.name}(${node.args[0].toString()})`, variable).length === 0) proved = false;
+  });
+  const regions = [];
+  const lattices = [];
+  for (const node of nonzero) {
+    const zeros = zerosOf(node, variable);
+    if (!zeros) {
+      proved = false;
+      continue;
+    }
+    regions.push(...zeros.points);
+    lattices.push(...zeros.lattices);
+  }
+  for (const node of logArguments) {
+    const polynomial = readPolynomial(node.toString(), variable);
+    if (polynomial && !polynomial.tooHigh && polynomial.degree >= 1) {
+      regions.push(...polynomialZeros(polynomial, node, variable).filter((r) => !r.whole));
+    }
+  }
+  return { regions, lattices, proved };
+}
+
+// One entry per restriction: a repeated value once (the exact wording kept),
+// a point inside an interval dropped, a point at an interval's end closing it.
+function mergeRestrictions(regions) {
+  const near = (a, b) => a === b || Math.abs(a - b) < 1e-6;
+  const isPoint = (r) => Number.isFinite(r.from) && Number.isFinite(r.to) && near(r.from, r.to);
+  const intervals = [];
+  for (const r of regions.filter((q) => !isPoint(q))) {
+    if (!intervals.some((q) => near(q.from, r.from) && near(q.to, r.to))) intervals.push({ ...r });
+  }
+  const points = [];
+  for (const r of regions.filter(isPoint)) {
+    const end = !r.whole && intervals.find((q) => near(q.from, r.from) || near(q.to, r.from));
+    if (end) {
+      if (near(end.from, r.from)) end.fromClosed = true;
+      else end.toClosed = true;
+      continue;
+    }
+    if (!r.whole && intervals.some((q) => q.from < r.from && r.from < q.to)) continue;
+    const same = points.findIndex((q) => (q.whole && r.whole ? q.allowedText === r.allowedText : !q.whole && !r.whole && near(q.from, r.from)));
+    if (same === -1) points.push(r);
+    else if (r.allowedText) points[same] = r;
+  }
+  return [...intervals, ...points];
 }
 
 function detectConstantDifference(evalReal) {

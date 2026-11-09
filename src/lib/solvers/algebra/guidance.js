@@ -2,6 +2,7 @@
 // used (equations, simplify, cancel, radicals).
 
 import { stripMathMarkers, mark, beautify } from '../solverUtils.js';
+import { markConditions } from './numeric.js';
 
 const TIPS = [
   'Combine like terms by adding or subtracting their coefficients.',
@@ -183,6 +184,22 @@ function methodGuidance(steps, expression) {
         'Treating a located root as exact — its next digits are not zeros.',
         `Taking logarithms to isolate ${mark('x')}: ${mark('ln(x·e^x)')} is ${mark('ln x + x')}, which still has ${mark('x')} in two places.`,
         'Stopping at one root when the graphs cross more than once.',
+      ],
+    };
+  }
+  // An identity with values excluded (x/x = 1): the advice for one true
+  // everywhere said "every x is a solution" under an answer that excludes 0.
+  if (/identity on its domain/.test(text)) {
+    return {
+      method: 'identityOnDomain',
+      tips: [
+        `When the terms cancel to ${mark('0 = 0')}, the two sides agree only where both are defined, so read the domain from the original equation before simplifying: ${mark('x/x = 1')} has no value at ${mark('x = 0')}.`,
+        'A value that makes either side undefined is not a solution, even when the simplified form accepts it.',
+        `Cancelling can hide a restriction: ${mark('(x² − 1)/(x − 1)')} equals ${mark('x + 1')} only for ${mark('x ≠ 1')}.`,
+      ],
+      common_mistakes: [
+        `Answering "all real numbers" after reaching ${mark('0 = 0')}, and losing the values where the original equation is undefined.`,
+        `Counting an excluded value as a solution: at ${mark('x = 0')}, ${mark('x/x')} is ${mark('0/0')}, which has no value.`,
       ],
     };
   }
@@ -483,6 +500,14 @@ function workedEquation(method, text, expression, answer) {
       const chain = [...text.matchAll(/^(?:Subtract|Add|Divide|Multiply|Distribute|Expand|Collect|Combine|Move|Simplify)[^:\n]*: (.+)$/gm)].map((m) => m[1].trim());
       const start = expression.split('=').map((side) => beautify(side.trim())).join(' = ');
       return chain.length ? `Here: ${mark([start, ...chain].join(' → '))}.` : null;
+    }
+    case 'identityOnDomain': {
+      const except = pick(/every real number except (.+?) is a solution/);
+      if (except) return `Here the two sides agree wherever both are defined: every real number except ${markConditions(except)}, with ${mark('n')} any integer, is a solution. The original equation is undefined at those values.`;
+      const allowed = pick(/every real number with (.+?) is a solution/);
+      if (!allowed) return null;
+      const excluded = pick(/it is undefined for (.+?)\.$/m);
+      return `Here the two sides agree wherever both are defined: every real number with ${markConditions(allowed)} is a solution.${excluded ? ` Excluded: ${markConditions(excluded)}, where the original equation is undefined${/, with n any integer/.test(text) ? `, with ${mark('n')} any integer` : ''}.` : ''}`;
     }
     case 'cancel': {
       if (/two sides are identical/.test(text)) return `Here the ${mark('x')} terms cancel and the two sides are the same expression: every ${mark('x')} is a solution.`;

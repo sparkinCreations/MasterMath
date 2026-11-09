@@ -150,6 +150,24 @@ Example: `2(x+3) = 2x+6`
 1. Dividing by 0 (the coefficient left after the terms cancel) and reporting a number.
 2. Writing x = 0 for an identity: every number works, not just 0.
 
+### Identity on its domain (added 1.74.1)
+
+Example: `x/x = 1`. The list for an identity true everywhere said "every x is a solution" under an answer that excludes 0.
+
+**Key Insights** (4)
+
+1. When the terms cancel to 0 = 0, the two sides agree only where both are defined, so read the domain from the original equation before simplifying: x/x = 1 has no value at x = 0.
+2. Here the two sides agree wherever both are defined: every real number with x ≠ 0 is a solution. Excluded: x = 0, where the original equation is undefined.
+3. A value that makes either side undefined is not a solution, even when the simplified form accepts it.
+
+   *— Show more —*
+4. Cancelling can hide a restriction: (x² − 1)/(x − 1) equals x + 1 only for x ≠ 1.
+
+**Common Mistakes** (2)
+
+1. Answering "all real numbers" after reaching 0 = 0, and losing the values where the original equation is undefined.
+2. Counting an excluded value as a solution: at x = 0, x/x is 0/0, which has no value.
+
 ### Factoring
 
 Example: `x^2 - 5x + 6 = 0`

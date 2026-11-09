@@ -13,6 +13,10 @@ export const CONVERTED = [
   // polynomial whose roots are located numerically (its own insights).
   ['limits', 'lim x->infinity (x^3*ln(x)^2)/e^x'], ['limits', 'lim x->infinity e^x/ln(x)'], ['limits', 'lim x->infinity ln(x)/e^x'],
   ['algebra', 'x^5 - x - 1 = 0'],
+  // 1.75.1: a parameter in an exponent at ±∞, split by its sign.
+  ['limits', 'lim x->inf e^(a*x)'], ['limits', 'lim x->-inf 2^((a-1)*x+3)'],
+  // 1.74.1: an identity with values excluded, its advice says which.
+  ['algebra', 'x/x = 1'], ['algebra', 'x/(x*(x-1)) = 1/(x-1)'], ['algebra', 'sqrt(x)^2 = x'], ['algebra', 'tan(x) = sin(x)/cos(x)'], ['algebra', '(x^2-2)/(x^2-2) = 1'], ['algebra', '(x^2+x-1)/(x^2+x-1) = 1'], ['algebra', '(e^x-2)/(e^x-2) = 1'], ['algebra', '1/x + tan(x) = 1/x + tan(x)'], ['algebra', '(x^3-2)/(x^3-2) = 1'],
   // 1.68.6: limits at ±∞ proved from the expression (leading powers, the
   // conjugate of two roots, the limit laws, ∞⁰), and an estimate said to be one.
   ['limits', 'lim x->inf (sqrt(x+1) - sqrt(x))'], ['limits', 'lim x->inf sqrt(x)/(x+1)'], ['limits', 'lim x->inf sin(1/sqrt(x))'],
