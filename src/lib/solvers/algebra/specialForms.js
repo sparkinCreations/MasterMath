@@ -8,6 +8,7 @@ import {
   isAlgebriteFailure,
   beautify,
   formatNumber,
+  gcd,
   hasVariable,
   mark,
   absBars,
@@ -46,7 +47,11 @@ export async function solveAbsoluteValueEquation(equation, variable) {
     abs = parseSide(rhsRaw);
     other = lhsRaw;
   }
-  if (!abs || !isConst(other)) return null;
+  if (!abs) return null;
+  // |g| = S with the variable in S too (|2x − 3| = x + 1): two cases, and a
+  // root is kept only where S ≥ 0. It fell to the numeric scan, which gave
+  // x ≈ 0.6667 for 2/3 with no cases shown (1.73.3).
+  if (!isConst(other)) return solveAbsoluteEqualsExpression(equation, abs, other, v);
   const Algebrite = await loadAlgebrite();
   const exactOf = (code) => {
     try {
@@ -119,6 +124,133 @@ export async function solveAbsoluteValueEquation(equation, variable) {
   const shownRoots = verified.map((x) => `${v} = ${exactOfRoot[x] ? beautify(exactOfRoot[x]) : formatNumber(x)}`);
   steps.push(verified.length ? `Solution: ${shownRoots.join('  or  ')}` : 'No real solution.');
   return { steps, answer: verified.length ? shownRoots.join('  or  ') : 'No real solution', solutions: verified };
+}
+
+// k·|g| + b = R, R in the variable: |g| = S with S = (R − b)/k, then g = S or
+// g = −S. Each case is solved exactly (by hand when linear), and a candidate
+// where S < 0 is rejected, with the reason, before the check in the original.
+async function solveAbsoluteEqualsExpression(equation, abs, other, v) {
+  if (/abs\(/i.test(other) || /[a-z]{2,}/i.test(other.replace(/\b(?:pi|sqrt)\b/gi, ''))) return null;
+  const Algebrite = await loadAlgebrite();
+  const run = (code) => {
+    try {
+      const out = String(Algebrite.run(code)).trim();
+      return isAlgebriteFailure(out) || /nil|stop/i.test(out) ? null : out;
+    } catch { return null; }
+  };
+  const kNum = Number(math.evaluate(abs.k));
+  if (!Number.isFinite(kNum) || kNum === 0) return null;
+  const S = run(`simplify(((${other}) - (${abs.b}))/(${abs.k}))`);
+  if (!S) return null;
+  const degS = Number(run(`deg(${S}, ${v})`));
+  const degG = Number(run(`deg(${abs.g}, ${v})`));
+  if (!(degS >= 0 && degS <= 2 && degG >= 1 && degG <= 2)) return null;
+  const hasV = new RegExp(`(?<![a-z])${v}(?![a-z])`, 'g');
+  const at = (expr, x) => Number(math.evaluate(String(expr).replace(hasV, `(${x})`)));
+  const wrap = (t) => (/[+-]/.test(String(t).replace(/^-/, '')) ? `(${t})` : String(t));
+  // S as typed when nothing was moved; else expanded over one denominator,
+  // (x + 3)/2 rather than 1/2*(x + 3) or 2(x + 2).
+  const show = (expr) => {
+    const num = run(`expand(numerator(${expr}))`);
+    const den = run(`denominator(${expr})`);
+    if (!num || !den) return beautify(expr);
+    return den === '1' ? beautify(num) : `${wrap(beautify(num))}/${beautify(den)}`;
+  };
+  const gShown = beautify(abs.g);
+  const sShown = abs.k === '1' && abs.b === '0' ? beautify(other) : show(S);
+  const bars = (t) => absBars(beautify(t)).replace(/\s*=\s*/, ' = ');
+  const steps = [`This is an absolute-value equation: ${mark(bars(equation))}.`];
+  if (abs.k !== '1' || abs.b !== '0') steps.push(`First isolate the absolute value: ${mark(`|${gShown}| = ${sShown}`)}.`);
+  // −S as a textbook writes it: −(x + 1), but x for S = −x.
+  const negShown = /^-[^+-]*$/.test(sShown.replace(/\s+/g, '')) ? sShown.replace(/^-\s*/, '') : `−${wrap(sShown)}`;
+  steps.push(`${mark(`|${gShown}| = ${sShown}`)} means ${mark(`${gShown} = ${sShown}`)} or ${mark(`${gShown} = ${negShown}`)}. An absolute value is never negative, so a solution also needs ${mark(`${sShown} ≥ 0`)}.`);
+
+  // Where S ≥ 0, for a linear S: the set an identity case contributes.
+  const sNonnegative = () => {
+    if (run(`deg(${S}, ${v})`) !== '1') return null;
+    const a = Number(math.evaluate(run(`coeff(${S}, ${v}, 1)`)));
+    const root = run(`simplify(-(${run(`coeff(${S}, ${v}, 0)`)})/(${run(`coeff(${S}, ${v}, 1)`)}))`);
+    if (!Number.isFinite(a) || !root) return null;
+    return { op: a > 0 ? '≥' : '≤', root, value: Number(math.evaluate(root)) };
+  };
+
+  const candidates = [];
+  let interval = null;
+  for (const [label, rhs, rhsShown] of [['Case 1', S, sShown], ['Case 2', run(`expand(-(${S}))`) || `-(${S})`, negShown]]) {
+    const diff = run(`expand((${abs.g}) - (${rhs}))`);
+    if (diff === null) return null;
+    const degree = run(`deg(${diff}, ${v})`);
+    if (degree === '1') {
+      // Whole-number coefficients: (x + 3)/2 cases are multiplied through.
+      let A = run(`coeff(${diff}, ${v}, 1)`);
+      let B = run(`coeff(${diff}, ${v}, 0)`);
+      if (!A || B === null) return null;
+      const dens = [A, B].map((t) => Number(run(`denominator(${t})`) || 1));
+      const L = dens.reduce((m, d) => (m * d) / gcd(m, d), 1);
+      if (L > 1) { A = run(`${L}*(${A})`); B = run(`${L}*(${B})`); }
+      const x = run(`simplify(-(${B})/(${A}))`);
+      if (!x) return null;
+      const lhs = beautify(`${A === '1' ? '' : A === '-1' ? '-' : `${A}*`}${v}`);
+      const rhsNum = beautify(run(`simplify(-(${B}))`));
+      const collect = `${L > 1 ? `Multiply by ${mark(String(L))} and collect` : 'Collect'} the ${mark(v)} terms`;
+      steps.push(`${label}: ${mark(`${gShown} = ${rhsShown}`)}`);
+      steps.push(`  ${collect}: ${mark(`${lhs} = ${rhsNum}`)}${lhs === v ? '.' : `, so ${mark(`${v} = ${beautify(x)}`)}.`}`);
+      candidates.push({ x, value: Number(math.evaluate(x)) });
+    } else if (degree === '0') {
+      if (run(`simplify(${diff})`) !== '0') {
+        steps.push(`${label}: ${mark(`${gShown} = ${rhsShown}`)}`);
+        steps.push(`  This case has no solution: the ${mark(v)} terms cancel and a false statement is left.`);
+        continue;
+      }
+      // An identity (|x| = x): every x where S ≥ 0.
+      const set = sNonnegative();
+      if (!set) return null;
+      steps.push(`${label}: ${mark(`${gShown} = ${rhsShown}`)}`);
+      steps.push(`  This holds for every ${mark(v)}, so every ${mark(v)} with ${mark(`${sShown} ≥ 0`)} is a solution: ${mark(`${v} ${set.op} ${beautify(set.root)}`)}.`);
+      interval = set;
+    } else {
+      const viaRoots = await solveWithAlgebriteRoots(`${abs.g} = ${rhs}`, v);
+      if (!viaRoots) return null;
+      steps.push(`${label}: ${mark(`${gShown} = ${rhsShown}`)}`);
+      for (const st of viaRoots.steps) steps.push(`  ${st}`);
+      // Each root's exact form, read off the method's own answer.
+      const forms = String(viaRoots.answer || '').split(/\s+or\s+/).map((t) => t.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').trim());
+      for (const r of viaRoots.solutions) {
+        if (!Number.isFinite(r)) continue;
+        const form = forms.find((f) => {
+          try { return Math.abs(Number(math.evaluate(f.replace(/√\(/g, 'sqrt(').replace(/√(\d+)/g, 'sqrt($1)'))) - r) < 1e-9; } catch { return false; }
+        });
+        if (!form || /≈/.test(form)) return null; // an inexact root: leave to the other methods
+        candidates.push({ x: form, value: r });
+      }
+    }
+  }
+  const kept = [];
+  for (const c of candidates) {
+    if (kept.some((k) => Math.abs(k.value - c.value) < 1e-9)) continue;
+    const sAt = at(S, c.value);
+    if (!(sAt >= -1e-12)) {
+      steps.push(`Reject ${mark(`${v} = ${beautify(c.x)}`)}: there ${mark(`${sShown} = ${formatNumber(sAt)}`)}, which is negative, and an absolute value cannot equal a negative number.`);
+      continue;
+    }
+    if (!satisfiesEquation(equation, v, c.value)) return null; // never list an unverified root
+    if (interval && (interval.op === '≥' ? c.value >= interval.value - 1e-12 : c.value <= interval.value + 1e-12)) continue; // already in the interval
+    kept.push(c);
+  }
+  kept.sort((p, q) => p.value - q.value);
+  if (interval) {
+    // Check the set at its end and one point inside.
+    const inside = interval.op === '≥' ? interval.value + 1.5 : interval.value - 1.5;
+    if (!satisfiesEquation(equation, v, interval.value) || !satisfiesEquation(equation, v, inside)) return null;
+  }
+  const exactAbs = (c) => {
+    const out = run(`simplify(abs(${String(abs.g).replace(hasV, `(${c.x.replace(/√/g, 'sqrt')})`)}))`);
+    return out ? beautify(out) : formatNumber(Math.abs(at(abs.g, c.value)));
+  };
+  const shown = [...(interval ? [`${v} ${interval.op} ${beautify(interval.root)}`] : []), ...kept.map((c) => `${v} = ${beautify(c.x)}`)];
+  if (kept.length) steps.push(`Check in the original: ${kept.map((c) => `${mark(`${v} = ${beautify(c.x)}`)} gives ${mark(exactAbs(c))} on both sides`).join('; ')} ✓`);
+  steps.push(shown.length ? `Solution: ${shown.map((t) => mark(t)).join(' or ')}` : 'No real solution.');
+  return { steps, answer: shown.length ? shown.join('  or  ') : 'No real solution', solutions: kept.map((c) => c.value), method: 'absolute-value-expression' };
 }
 
 // sqrt(R) = S: isolate the radical, state the domain (R ≥ 0, and S ≥ 0

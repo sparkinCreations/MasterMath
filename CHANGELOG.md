@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.73.3] - 2026-11-09
+
+### Fixed
+- An absolute value equal to an expression in x is worked in two cases
+  (user report): |2x − 3| = x + 1 is 2x − 3 = x + 1 or 2x − 3 = −(x + 1),
+  so x = 4 or x = 2/3, each exact. It fell to the numeric scan, which gave
+  "x ≈ 0.6667 or x = 4" with no cases shown. A root where the right side is
+  negative is rejected with the reason (|x − 1| = 2x + 4 keeps x = −1, not
+  −5), and the check is exact (x = 2/3 gives 5/3 on both sides).
+- |x| = x was "no solution was found", though every x ≥ 0 is a solution: a
+  case that holds for every x now gives the interval where the right side
+  is ≥ 0 (|x| = x is x ≥ 0, |x − 2| = x − 2 is x ≥ 2).
+
 ## [1.73.1] - 2026-11-09
 
 ### Fixed

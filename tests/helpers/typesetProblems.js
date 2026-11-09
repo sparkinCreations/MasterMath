@@ -155,6 +155,8 @@ export const CONVERTED = [
   ['auto', 'd/dx (x^2 + y^2 = 25)'], ['auto', 'd/dx (x^2 + 3x = 5)'], ['auto', 'd/dx (2 = 2)'], ['auto', 'd/dx (x^2 + y^2) = 25'], ['auto', 'd/dx (x^2 + y^2 = r^2)'], ['auto', 'd/dx (y = 3)'],
   // 1.73.1: complex-valued limits and text before a limit, refused.
   ['auto', 'lim x->2 (x√(-1))'], ['auto', 'lim x->2 x*i'], ['auto', 'i * lim x->0 (sin(x)/x)'],
+  // 1.73.3: an absolute value equal to an expression in x.
+  ['auto', 'abs(2x-3) = x+1'], ['auto', 'abs(x-1) = 2x+4'], ['auto', '2abs(x+1) - 3 = x'], ['auto', 'abs(x^2-4) = 3x'], ['auto', 'abs(x) = x'], ['auto', 'abs(x) = -x'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a
