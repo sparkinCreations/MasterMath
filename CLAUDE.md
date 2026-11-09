@@ -196,7 +196,13 @@ factoring or the formula; cubics and higher by the Rational Root Theorem and
 synthetic division (`solveByRationalRoots`, shown step by step) down to a
 quadratic, the rest to `polynomialRoots` without calling Algebrite — its
 `roots()` grinds for seconds on an irreducible quintic; exp/log/radical/abs
-substitutions; Algebrite roots checked for completeness against the degree,
+substitutions; |g| = an expression and |A| = |B| in cases; a product = 0
+factor by factor (`algebra/zeroProduct.js`); exponentials in a common base
+or by logs (`algebra/exponentialBases.js`); u = x^p
+(`algebra/powerSubstitution.js`); two square roots (`algebra/twoRadicals.js`);
+the numeric scan last, saying it is a numeric answer and naming the hand
+method for the shape (a gap found there is a method to add, not a scan to
+keep); Algebrite roots checked for completeness against the degree,
 anything above degree 12 to `polynomialRoots`; simplification; factoring),
 `polynomialRoots` (exact reader, `factorByRationalRoots`, Sturm counting,
 exact bisection, verified complex roots, cap `MAX_POLYNOMIAL_DEGREE` = 100), `systemsSolver` (2×2 Cramer, 3×3 Gaussian,

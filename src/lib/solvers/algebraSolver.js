@@ -39,6 +39,11 @@ import {
 } from './algebra/expLog.js';
 import { solveNumerically } from './algebra/numeric.js';
 import { solveForVariable } from './algebra/twoVariables.js';
+import { solveZeroProduct } from './algebra/zeroProduct.js';
+import { rewriteToCommonBase, solveTwoPowers } from './algebra/exponentialBases.js';
+import { satisfiesEquation } from './algebra/rootsFormat.js';
+import { solvePolynomialInPower } from './algebra/powerSubstitution.js';
+import { solveTwoRadicals } from './algebra/twoRadicals.js';
 import {
   factorExpression,
   expandExpression,
@@ -375,6 +380,13 @@ async function solveEquation(expression, options = {}) {
     }
   }
 
+  // 1a'. Two single powers, 4^x = 8^(x − 1) or 2^x = 3^(x − 1): exponents
+  // equated in a common base, else both sides logged (1.75.0).
+  if (!answer) {
+    const viaTwo = await solveTwoPowers(expression, variable);
+    if (viaTwo) ({ steps, answer, solutions } = viaTwo);
+  }
+
   // 1b. A polynomial in e^x — e^(2x) − 3e^x + 2 = 0 — is solved by the
   // substitution u = e^x, so the answer is ln 2, not 0.6931 from the numeric
   // scan. (September 2026 audit row G09.)
@@ -382,6 +394,14 @@ async function solveEquation(expression, options = {}) {
     const viaU = await solveViaExpSubstitution(expression, variable);
     if (viaU) {
       ({ steps, answer, solutions } = viaU);
+    } else {
+      // 9^x − 3^(x+1) − 4 = 0: every power written in base 3 first (1.75.0).
+      const common = rewriteToCommonBase(expression, variable);
+      const viaCommon = common ? await solveViaExpSubstitution(common.equation, variable) : null;
+      if (viaCommon && viaCommon.solutions.every((x) => satisfiesEquation(expression, variable, x))) {
+        ({ steps, answer, solutions } = viaCommon);
+        steps = [`Write every power in base ${mark(String(common.base))}: ${common.rewrites.map((r) => mark(r)).join(', ')}.`, ...steps];
+      }
     }
   }
 
@@ -407,6 +427,13 @@ async function solveEquation(expression, options = {}) {
     }
   }
 
+  // 1d'. Two square roots, √x + √(x − 5) = 5: isolate one, square, solve
+  // the one-root equation left, check in the original (1.75.0).
+  if (!answer && (expression.match(/(?<![a-z])sqrt\s*\(/gi) || []).length === 2) {
+    const viaTwo = await solveTwoRadicals(expression, variable, (eq) => solveEquation(eq, options));
+    if (viaTwo) ({ steps, answer, solutions } = viaTwo);
+  }
+
   // 1e. One power with a fractional exponent — x^(1/3) = −2, x^(2/3) = 4 —
   // isolated and raised to the reciprocal power, exactly. The zero-crossing
   // scan answered x^(1/3) = 0 and x^(1/3) = −2 "No real solution found"
@@ -417,6 +444,13 @@ async function solveEquation(expression, options = {}) {
     if (viaPower) {
       ({ steps, answer, solutions } = viaPower);
     }
+  }
+
+  // 1f. A polynomial in a power of x, x^(2/3) − 5x^(1/3) + 6 = 0 or
+  // x^(−2) − x^(−1) − 2 = 0, by u = x^p (1.75.0).
+  if (!answer && new RegExp(`(?<![a-z])${variable}\\s*\\^\\s*\\(\\s*-|(?<![a-z])${variable}\\s*\\^\\s*\\(\\s*\\d+\\s*/`).test(expression)) {
+    const viaPower = await solvePolynomialInPower(expression, variable);
+    if (viaPower) ({ steps, answer, solutions } = viaPower);
   }
 
   // 2. Algebrite roots — exact solutions (integers, fractions, radicals, complex)
@@ -436,6 +470,13 @@ async function solveEquation(expression, options = {}) {
     const viaExact = rootsViaPolynomialRoot(null, `(${lhs.trim()}) - (${rhs.trim()})`, variable);
     if (viaExact?.envelope) return viaExact.envelope;
     if (viaExact) ({ steps, answer, solutions } = viaExact);
+  }
+
+  // 2b'. Roots found only as decimals, ±1.4142 for ±√2 in
+  // (x² − 1)² − 5(x² − 1) + 4 = 0: exact by u = x² when that works (1.75.0).
+  if (answer && /≈/.test(answer) && isEquation(expression)) {
+    const viaPower = await solvePolynomialInPower(expression, variable);
+    if (viaPower && !/≈/.test(viaPower.answer)) ({ steps, answer, solutions } = viaPower);
   }
 
   // 2c. x/(x − 1) = 1: clearing the denominators leaves 1 = 0, a
@@ -462,6 +503,14 @@ async function solveEquation(expression, options = {}) {
         solutions = [];
       }
     }
+  }
+
+  // 2d. A product equal to 0 — (x − 2)·√x = 0, x·ln(x) = x — factor by
+  // factor, each root kept where every factor is defined (1.75.0). The scan
+  // below missed x = 0 in (x − 2)·√x = 0, which touches 0 without crossing.
+  if (!answer && isEquation(expression)) {
+    const viaProduct = await solveZeroProduct(expression, variable, (eq) => solveEquation(eq, options));
+    if (viaProduct) ({ steps, answer, solutions } = viaProduct);
   }
 
   // 3. Numeric root-finding — last resort.
