@@ -23,6 +23,7 @@ import { parseError, unsupported, undefinedValue } from '../solutionEnvelope.js'
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
 import { detectTrigAsymptote, EXPLODED_MAGNITUDE } from './trigonometrySolver.js';
 import { limitGuidance } from './limits/guidance.js';
+import { complexPart, textBeforeLimit } from './limits/complexValues.js';
 import {
   evaluateOneSidedLimit,
   evalAt,
@@ -67,6 +68,18 @@ export async function solveLimit(expression) {
       })
       .replace(/\s{2,}/g, ' ')
       .trim();
+
+    // "i * lim x->0 (sin(x)/x)": the factor in front was dropped and the
+    // answer was the limit's alone, 1 (1.73.1). Refuse rather than ignore.
+    const before = textBeforeLimit(cleaned);
+    if (before) {
+      return unsupported({
+        input: expression,
+        reason: `The input has ${mark(before.replace(/\s*[*·]\s*$/, ''))} in front of the limit. MasterMath works one limit at a time, and would otherwise drop that part.`,
+        answer: `Only a single limit can be worked: "${before}" before it would be ignored`,
+        tips: ['Work the limit on its own, then combine: for example, find "lim x->0 (sin(x)/x)" first and multiply the result afterwards.'],
+      });
+    }
 
     let approachValue = 0;
     let func = cleaned;
@@ -131,6 +144,19 @@ export async function solveLimit(expression) {
         input: expression,
         hint: 'The limit notation could not be separated from the function.',
         tips: ['Write limits like: "lim x->0 (sin(x)/x)", or "sin(x)/x as x approaches 0".'],
+      });
+    }
+
+    // The imaginary unit, or an even root of a negative number: a complex
+    // limit. "x√(−1)" was "does not exist" and "x·i" was 2i (1.73.1).
+    const complex = complexPart(func, variable) || complexPart(String(approachValue), variable) || complexPart(cleaned, variable);
+    if (complex) {
+      const unit = complex === 'i' ? mark('i') : `${mark(complex)}, an imaginary number,`;
+      return unsupported({
+        input: expression,
+        reason: `The limit has ${unit} in it, so its values are complex numbers. MasterMath works limits of real functions of a real variable; complex-valued limits are not supported.`,
+        answer: 'Complex-valued limits aren\'t supported',
+        tips: [`A real limit has no ${mark('i')} in it, and no even root of a negative number: ${mark('√(-1)')} is ${mark('i')}. Complex numbers are supported in arithmetic and algebra, where an equation's complex roots are shown.`],
       });
     }
 
