@@ -71,6 +71,9 @@ function graphImage(graph) {
   const rect = svg.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
   const copy = svg.cloneNode(true);
+  // The hover cursor and its highlighted dot are not part of the graph: a
+  // pointer left over the chart drew a stray line and dot into the PDF.
+  copy.querySelectorAll('.recharts-tooltip-cursor, .recharts-active-dot').forEach((n) => n.remove());
   copy.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   copy.setAttribute('width', String(Math.round(rect.width)));
   copy.setAttribute('height', String(Math.round(rect.height)));
