@@ -151,5 +151,6 @@ test('i is never a constant or a parameter in the paths with constants', async (
     const r = await solvePlain(p, 'auto');
     assert.notEqual(r.status, 'solved', `${p}: ${r.answer}`);
   }
-  assert.equal((await solvePlain('lim x->i x^2', 'auto')).status, 'parse_error');
+  // A limit at i is complex-valued, refused as such (1.73.1).
+  assert.equal((await solvePlain('lim x->i x^2', 'auto')).answer, "Complex-valued limits aren't supported");
 });
