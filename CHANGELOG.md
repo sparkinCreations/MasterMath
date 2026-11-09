@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.73.2] - 2026-11-09
+## [1.73.3] - 2026-11-09
 
 ### Fixed
 - A limit's graph marks the limit: a hollow point at (a, L), labelled with
@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   left as a gap, where the function is undefined.
 - A graph exported to PDF no longer carries the hover cursor and its dot:
   a pointer left over the chart drew a stray line and point into the PDF.
+
+## [1.73.2] - 2026-11-09
+
+### Changed
+- The comparison table is easier to compare (r/coolgithubprojects). The
+  "Math topics" row, a sentence per product, is one row per subject with a
+  count ("8 of 10"); every row that can be answers Yes, No, Paid only or Not
+  stated, with any detail beneath, grouped by Subjects, Entering a problem,
+  Cost, Learning help and so on.
+- On a phone all five products fit on the screen with no sideways swiping
+  (it showed less than one), and the product names stay in view as you
+  scroll. The page wrapper clips sideways overflow instead of scrolling, so
+  a sticky header can follow the page.
+- Subjects re-checked against each vendor's own pages on November 8. Mathway
+  now advertises free steps (was "No, answers only"), describes itself as
+  AI-powered and lists chemistry; Wolfram|Alpha lists word problems.
 
 ## [1.73.1] - 2026-11-09
 

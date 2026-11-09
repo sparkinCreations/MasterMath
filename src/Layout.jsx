@@ -195,7 +195,7 @@ export default function Layout({ children, update }) {
               </div>
             </header>
 
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-x-clip">
               {children}
             </div>
           </main>
