@@ -716,3 +716,122 @@ Example: `sqrt(72)`
 2. Missing the largest square factor (√72 = 6√2, not 2√18).
 3. Stopping at a decimal when the exact simplified radical was the point.
 
+
+## Added in 1.76.0: the methods from 1.75.0 and 1.76.0
+
+These methods led with the linear list ("Undo the operations in reverse
+order…") until 1.76.0. Each now has its own list, ranked the same way:
+the method first, the student's own working second, then where it holds.
+
+### Several absolute values, piece by piece
+
+Example: `abs(x) + abs(x-2) = 4`
+
+**Key Insights** (5)
+
+1. With several absolute values, find where each inside is 0: those points split the number line into pieces, and on each piece every |A| is A or −A.
+2. Here the split points are x = 0 and x = 2, and the pieces give x = -1 or x = 3.
+3. A root counts only if it lies in the piece it came from: only there do the absolute values have the forms used to find it.
+
+   *— Show more —*
+4. Read the signs from a test point in each piece: at x = −1, x − 2 < 0, so |x − 2| = −(x − 2) on the whole piece x < 0.
+5. A piece where the equation becomes a true statement such as 2 = 2 gives that whole stretch of the number line, not one point.
+
+**Common Mistakes** (3)
+
+1. Keeping a root that lies outside the piece it was found in.
+2. Changing the sign of only the first term: −(x − 2) is −x + 2, not −x − 2.
+3. Using the same form of |x − 2| on every piece instead of reading it again on each.
+
+### Several absolute values, a whole stretch
+
+Example: `abs(x) + abs(x-2) = 2`
+
+**Key Insights** (5)
+
+1. With several absolute values, find where each inside is 0: those points split the number line into pieces, and on each piece every |A| is A or −A.
+2. Here the split points are x = 0 and x = 2, and the pieces give 0 ≤ x ≤ 2.
+3. A root counts only if it lies in the piece it came from: only there do the absolute values have the forms used to find it.
+
+   *— Show more —*
+4. Read the signs from a test point in each piece: at x = −1, x − 2 < 0, so |x − 2| = −(x − 2) on the whole piece x < 0.
+5. A piece where the equation becomes a true statement such as 2 = 2 gives that whole stretch of the number line, not one point.
+
+**Common Mistakes** (3)
+
+1. Keeping a root that lies outside the piece it was found in.
+2. Changing the sign of only the first term: −(x − 2) is −x + 2, not −x − 2.
+3. Using the same form of |x − 2| on every piece instead of reading it again on each.
+
+### Two equal absolute values
+
+Example: `abs(x-1) = abs(2x+3)`
+
+**Key Insights** (4)
+
+1. |A| = |B| exactly when A = B or A = −B: two cases, with no need to split the number line.
+2. Here: x - 1 = 2x + 3 or x - 1 = −(2x + 3), so x = -4 or x = -2/3.
+3. Squaring gives the same two cases: A² = B² is (A − B)(A + B) = 0.
+
+   *— Show more —*
+4. Neither case can give an extraneous root, since together the two cases say exactly what the equation says; the check in the original confirms the arithmetic.
+
+**Common Mistakes** (2)
+
+1. Solving only A = B and missing the case A = −B.
+2. Changing the sign of only the first term of B: −(2x + 3) is −2x − 3.
+
+### Zero product
+
+Example: `x*(x-1)*ln(x) = 0`
+
+**Key Insights** (4)
+
+1. A product is 0 exactly when one factor is 0: solve each factor on its own, then keep only the values where every factor is defined.
+2. Here the factors give x = 0, x = 1; x = 0 is rejected (ln(x) is undefined there), so x = 1.
+3. Never divide both sides by a factor that contains x: dividing x(x − 1) = 0 by x loses x = 0.
+
+   *— Show more —*
+4. A factor that is 0 does not make up for one that is undefined: at x = 0, x·ln(x) is not 0, because ln(0) does not exist.
+
+**Common Mistakes** (2)
+
+1. Keeping a root of one factor where another factor is undefined (x = 0 in x·ln(x) = 0).
+2. Dividing by a factor that contains x and losing that factor's roots.
+
+### Common base
+
+Example: `4^x = 8^(x-1)`
+
+**Key Insights** (4)
+
+1. When both bases are powers of one number, write both sides with that base and set the exponents equal: 9^x = 27 is 3^(2x) = 3^3, so 2x = 3.
+2. Here: 2x = 3x - 3, so x = 3.
+3. A power of a power multiplies the exponents, all of them: (2^3)^(x − 1) = 2^(3(x − 1)) = 2^(3x − 3).
+
+   *— Show more —*
+4. When the bases are not powers of one number (2^x = 3), take logarithms instead.
+
+**Common Mistakes** (2)
+
+1. Multiplying only part of the exponent: (2^3)^(x − 1) is 2^(3x − 3), not 2^(3x − 1).
+2. Setting the exponents equal while the bases still differ: 2^x = 4^(x − 1) does not give x = x − 1.
+
+### Two bases, logarithms
+
+Example: `2^(x+1) = 3^x`
+
+**Key Insights** (4)
+
+1. Two powers with different bases: take ln of both sides, and each exponent comes down as a factor, ln(a^u) = u·ln(a).
+2. Here: (x + 1)·ln(2) = x·ln(3), so x = ln(2)/(ln(3) - ln(2)).
+3. What is left is linear in x, and the logarithms are ordinary numbers: collect the x terms, factor out x and divide.
+
+   *— Show more —*
+4. Keep the answer exact, as a quotient of logarithms, and round only at the end.
+
+**Common Mistakes** (2)
+
+1. Bringing down only part of an exponent: ln(2^(x + 1)) is (x + 1)·ln(2), not x + 1·ln(2).
+2. Cancelling the logarithms: ln(2)/ln(3) is not 2/3, and ln(3) − ln(2) is ln(3/2), not ln(1).
+

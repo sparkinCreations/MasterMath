@@ -56,6 +56,80 @@ function isPolynomialIn(expression) {
 function methodGuidance(steps, expression) {
   const text = stripMathMarkers(steps.join('\n'));
   const variableInDenominator = /\/\s*\(?[0-9.]*[a-z]/i.test(expression);
+  // The methods added in 1.75.0 and 1.76.0, read off their own first step
+  // (they had inherited the linear list).
+  if (/Each absolute value changes form where its inside is 0/.test(text)) {
+    return {
+      method: 'absolute value pieces',
+      tips: [
+        `With several absolute values, find where each inside is ${mark('0')}: those points split the number line into pieces, and on each piece every ${mark('|A|')} is ${mark('A')} or ${mark('−A')}.`,
+        'A root counts only if it lies in the piece it came from: only there do the absolute values have the forms used to find it.',
+        `Read the signs from a test point in each piece: at ${mark('x = −1')}, ${mark('x − 2 < 0')}, so ${mark('|x − 2| = −(x − 2)')} on the whole piece ${mark('x < 0')}.`,
+        `A piece where the equation becomes a true statement such as ${mark('2 = 2')} gives that whole stretch of the number line, not one point.`,
+      ],
+      common_mistakes: [
+        'Keeping a root that lies outside the piece it was found in.',
+        `Changing the sign of only the first term: ${mark('−(x − 2)')} is ${mark('−x + 2')}, not ${mark('−x − 2')}.`,
+        `Using the same form of ${mark('|x − 2|')} on every piece instead of reading it again on each.`,
+      ],
+    };
+  }
+  if (/are not powers of one number, so take the natural logarithm of both sides/.test(text)) {
+    return {
+      method: 'logs of two powers',
+      tips: [
+        `Two powers with different bases: take ${mark('ln')} of both sides, and each exponent comes down as a factor, ${mark('ln(a^u) = u·ln(a)')}.`,
+        `What is left is linear in ${mark('x')}, and the logarithms are ordinary numbers: collect the ${mark('x')} terms, factor out ${mark('x')} and divide.`,
+        'Keep the answer exact, as a quotient of logarithms, and round only at the end.',
+      ],
+      common_mistakes: [
+        `Bringing down only part of an exponent: ${mark('ln(2^(x + 1))')} is ${mark('(x + 1)·ln(2)')}, not ${mark('x + 1·ln(2)')}.`,
+        `Cancelling the logarithms: ${mark('ln(2)/ln(3)')} is not ${mark('2/3')}, and ${mark('ln(3) − ln(2)')} is ${mark('ln(3/2)')}, not ${mark('ln(1)')}.`,
+      ],
+    };
+  }
+  if (/two absolute values are equal exactly when the insides are equal or opposite/.test(text)) {
+    return {
+      method: 'equal absolute values',
+      tips: [
+        `${mark('|A| = |B|')} exactly when ${mark('A = B')} or ${mark('A = −B')}: two cases, with no need to split the number line.`,
+        `Squaring gives the same two cases: ${mark('A² = B²')} is ${mark('(A − B)(A + B) = 0')}.`,
+        'Neither case can give an extraneous root, since together the two cases say exactly what the equation says; the check in the original confirms the arithmetic.',
+      ],
+      common_mistakes: [
+        `Solving only ${mark('A = B')} and missing the case ${mark('A = −B')}.`,
+        `Changing the sign of only the first term of ${mark('B')}: ${mark('−(2x + 3)')} is ${mark('−2x − 3')}.`,
+      ],
+    };
+  }
+  if (/A product is 0 exactly when one of its factors is 0/.test(text)) {
+    return {
+      method: 'zero product',
+      tips: [
+        `A product is ${mark('0')} exactly when one factor is ${mark('0')}: solve each factor on its own, then keep only the values where every factor is defined.`,
+        `Never divide both sides by a factor that contains ${mark('x')}: dividing ${mark('x(x − 1) = 0')} by ${mark('x')} loses ${mark('x = 0')}.`,
+        `A factor that is ${mark('0')} does not make up for one that is undefined: at ${mark('x = 0')}, ${mark('x·ln(x)')} is not ${mark('0')}, because ${mark('ln(0)')} does not exist.`,
+      ],
+      common_mistakes: [
+        `Keeping a root of one factor where another factor is undefined (${mark('x = 0')} in ${mark('x·ln(x) = 0')}).`,
+        `Dividing by a factor that contains ${mark('x')} and losing that factor's roots.`,
+      ],
+    };
+  }
+  if (/Write both sides as powers of/.test(text)) {
+    return {
+      method: 'common base',
+      tips: [
+        `When both bases are powers of one number, write both sides with that base and set the exponents equal: ${mark('9^x = 27')} is ${mark('3^(2x) = 3^3')}, so ${mark('2x = 3')}.`,
+        `A power of a power multiplies the exponents, all of them: ${mark('(2^3)^(x − 1) = 2^(3(x − 1)) = 2^(3x − 3)')}.`,
+        `When the bases are not powers of one number (${mark('2^x = 3')}), take logarithms instead.`,
+      ],
+      common_mistakes: [
+        `Multiplying only part of the exponent: ${mark('(2^3)^(x − 1)')} is ${mark('2^(3x − 3)')}, not ${mark('2^(3x − 1)')}.`,
+        `Setting the exponents equal while the bases still differ: ${mark('2^x = 4^(x − 1)')} does not give ${mark('x = x − 1')}.`,
+      ],
+    };
+  }
   // The methods that used to inherit the linear list (October 2026 tips
   // audit): a fractional power undone, a root located numerically, a proof
   // that there is no solution, an identity or contradiction, an LCD.
@@ -511,6 +585,29 @@ function workedEquation(method, text, expression, answer) {
       const r = pick(/Take the square root of both sides[^:]*: (.+?)\.\s*$/m)?.split(/\.\s/)[0];
       return r ? `Here: ${mark(r)}, so ${result}.` : null;
     }
+    case 'absolute value pieces': {
+      const at = pick(/inside is 0: (.+?)\. Split/);
+      if (!at) return null;
+      const points = at.split(' and ').map((p) => mark(p.trim()));
+      return `Here the split points are ${points.join(' and ')}, and the pieces give ${result}.`;
+    }
+    case 'zero product': {
+      const roots = [...text.matchAll(/^(?:[^\n:]*= 0: )?([a-z] = [^\n:]+?)\.$/gm)].flatMap((m) => m[1].split(/\s+or\s+/)).map((r) => r.trim());
+      const rejected = [...text.matchAll(/^Reject ([a-z] = [^:\n]+): there (.+?) is undefined/gm)];
+      if (!roots.length) return null;
+      const unique = [...new Set(roots)];
+      const why = rejected.map((m) => `${mark(m[1])} is rejected (${mark(m[2])} is undefined there)`).join('; ');
+      return `Here the factors give ${unique.map((r) => mark(r)).join(', ')}${why ? `; ${why}` : ''}, so ${result}.`;
+    }
+    case 'logs of two powers': {
+      const down = pick(/each exponent comes down: (.+?)\.\s*$/m);
+      return down ? `Here: ${mark(down)}, so ${result}.` : null;
+    }
+    case 'common base': {
+      const ex = pick(/have equal exponents: (.+?), so/);
+      return ex ? `Here: ${mark(ex)}, so ${result}.` : null;
+    }
+    case 'equal absolute values':
     case 'absolute value': {
       const c1 = pick(/^Case 1[^:\n]*: (.+)$/m);
       const c2 = pick(/^Case 2[^:\n]*: (.+)$/m);

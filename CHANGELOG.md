@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is x = ±2, with 0 and ±√2 rejected as outside their pieces. These were
   the last textbook shape in the sweep left to the numeric search.
 
+### Fixed
+- Key Insights and Common Mistakes now match the method for several
+  absolute values, |A| = |B|, the zero product rule, a common base
+  (4^x = 8^(x − 1)) and logarithms of two powers (2^(x + 1) = 3^x). These
+  came in 1.75.0 and 1.76.0 and led with the linear-equation list ("Undo the
+  operations in reverse order…"). Each list starts with its method, then
+  works the student's own problem; the lists are in
+  `docs/future-work/insights-review/ALGEBRA.md`.
+
 ## [1.75.0] - 2026-11-09
 
 A sweep of 92 textbook equations found which ones fell to the numeric
