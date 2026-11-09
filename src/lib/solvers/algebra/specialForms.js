@@ -41,6 +41,50 @@ export async function solveAbsoluteValueEquation(equation, variable) {
     if (!hasVariable(g, v)) return null;
     return { k: m[1] ? m[1].slice(0, -1) : '1', g, b: b[1] || '0' };
   };
+  // |A| = |B|: A = B or A = −B, both sides already never negative (1.75.0).
+  const whole = (side) => {
+    const m = side.match(/^abs\(/i);
+    if (!m) return null;
+    const close = matchingParen(side, 3);
+    return close === side.length - 1 ? side.slice(4, -1) : null;
+  };
+  const [wl, wr] = [whole(lhsRaw), whole(rhsRaw)];
+  if (wl && wr && (hasVariable(wl, v) || hasVariable(wr, v))) {
+    const A = wl;
+    const B = wr;
+    const shownA = beautify(A);
+    const shownB = beautify(B);
+    const steps = [
+      `This is ${mark(`|${shownA}| = |${shownB}|`)}: two absolute values are equal exactly when the insides are equal or opposite, so ${mark(`${shownA} = ${shownB}`)} or ${mark(`${shownA} = −(${shownB})`)}.`,
+    ];
+    const roots = [];
+    for (const [label, eq] of [['Case 1', `${A} = ${B}`], ['Case 2', `${A} = -(${B})`]]) {
+      const solved = await solveWithAlgebriteRoots(eq, v);
+      steps.push(`${label}: ${mark(label === 'Case 1' ? `${shownA} = ${shownB}` : `${shownA} = −(${shownB})`)}`);
+      if (!solved) {
+        // Linear with the x terms cancelling: a false statement, or every x.
+        const L = Number(math.evaluate(`(${A}) - (${label === 'Case 1' ? B : `-(${B})`})`, { [v]: 0.37 }));
+        const L2 = Number(math.evaluate(`(${A}) - (${label === 'Case 1' ? B : `-(${B})`})`, { [v]: 1.91 }));
+        if (Math.abs(L) < 1e-12 && Math.abs(L2) < 1e-12) return null; // true for every x: not worked here
+        steps.push(`  This case has no solution.`);
+        continue;
+      }
+      for (const st of solved.steps) steps.push(`  ${st}`);
+      const forms = String(solved.answer || '').split(/\s+or\s+/).map((t) => t.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').replace(/\s*\((?:repeated root, )?multiplicity \d+\)/, '').trim());
+      for (const r of solved.solutions) {
+        if (!Number.isFinite(r) || roots.some((q) => Math.abs(q.value - r) < 1e-9)) continue;
+        const form = forms.find((f) => { try { return Math.abs(Number(math.evaluate(f.replace(/√\(/g, 'sqrt(').replace(/√(\d+)/g, 'sqrt($1)'))) - r) < 1e-9; } catch { return false; } });
+        if (!form || /≈/.test(form)) return null;
+        roots.push({ form, value: r });
+      }
+    }
+    if (!roots.every((r) => satisfiesEquation(equation, v, r.value))) return null;
+    roots.sort((p, q) => p.value - q.value);
+    const shown = roots.map((r) => `${v} = ${beautify(r.form)}`);
+    steps.push(shown.length ? `Solution: ${shown.map((t) => mark(t)).join(' or ')}` : 'No real solution.');
+    return { steps, answer: shown.length ? shown.join('  or  ') : 'No real solution', solutions: roots.map((r) => r.value) };
+  }
+
   let abs = parseSide(lhsRaw);
   let other = rhsRaw;
   if (!abs) {
@@ -214,7 +258,7 @@ async function solveAbsoluteEqualsExpression(equation, abs, other, v) {
       steps.push(`${label}: ${mark(`${gShown} = ${rhsShown}`)}`);
       for (const st of viaRoots.steps) steps.push(`  ${st}`);
       // Each root's exact form, read off the method's own answer.
-      const forms = String(viaRoots.answer || '').split(/\s+or\s+/).map((t) => t.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').trim());
+      const forms = String(viaRoots.answer || '').split(/\s+or\s+/).map((t) => t.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').replace(/\s*\((?:repeated root, )?multiplicity \d+\)/, '').trim());
       for (const r of viaRoots.solutions) {
         if (!Number.isFinite(r)) continue;
         const form = forms.find((f) => {

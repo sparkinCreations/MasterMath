@@ -150,7 +150,9 @@ export async function solveTrigonometry(expression, settingsOverride) {
             ? 'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots are located between the poles, one stretch at a time, by bisection.'
             : 'This trig equation has no exact reduction here (it is not linear or quadratic in one function, not a·sin + b·cos = c, and not f(A) = f(B) with linear arguments), so it is solved numerically: the roots nearest zero are found by scanning and each is verified by substitution.',
           ...(bound ? [bound.step] : []),
-          ...(numeric.steps || []),
+          // The algebra solver's own "found numerically" line repeats the
+          // sentence above (1.75.0).
+          ...(numeric.steps || []).filter((t) => !/^MasterMath has no step-by-step method/.test(stripMathMarkers(t))),
         ];
         if (bound) numeric.bounded = bound;
         Object.assign(numeric, equationGuidance(numeric) ?? {});

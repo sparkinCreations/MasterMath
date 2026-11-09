@@ -15,6 +15,7 @@ import {
   realOddRoots,
   piForm,
   structuralPeriod,
+  absBars,
 } from '../solverUtils.js';
 import { infiniteSignChanges } from '../inequalities/zeros.js';
 import { tanBranchRoots } from '../trigonometry/tanBranches.js';
@@ -271,8 +272,13 @@ export function solveNumerically(equation, variable) {
       .slice(0, 5)
       .sort((a, b) => a - b);
 
+  // Say what this is (1.75.0): a numeric answer, not a method a student is
+  // meant to copy, with the hand method for the shape when there is one.
+  const shown = absBars(beautify(expression)).replace(/(?<![a-z])sqrt\(/g, '√(').replace(/√\(([a-z0-9]+)\)/gi, '√$1');
   const steps = [
-    `Rewrite as ${beautify(expression)} = 0`,
+    `MasterMath has no step-by-step method for this equation, so its solutions were found numerically: values of ${mark(variable)} were tried until the two sides balanced, and each one was checked by substituting it back.`,
+    ...(handMethod(equation, variable) ? [handMethod(equation, variable)] : []),
+    `Rewrite as ${mark(`${shown} = 0`)}`,
     ...(branch ? branch.steps : ['Search for values where the expression crosses zero, then verify each candidate by substituting it back.']),
   ];
   if (branch) {
@@ -303,7 +309,24 @@ export function solveNumerically(equation, variable) {
   // The number shown must also be the root located, not merely a point where
   // f is tiny: at the triple root 2π of tan(x) = sin(x), f(6.2832) ≈ 10^(−17).
   const isShown = (s) => Math.abs(Number(formatNumber(s)) - s) <= 1e-12 * (1 + Math.abs(s));
-  const items = solutions.map((s) => `${variable} ${isShown(s) && exactAt(formatNumber(s)) ? '=' : '≈'} ${formatNumber(s)}`);
+  // 0.6667 that is exactly 2/3 is shown as 2/3: a fraction with a small
+  // denominator is kept only when it satisfies the equation exactly.
+  const fraction = (s) => {
+    for (let q = 2; q <= 12; q += 1) {
+      const p = Math.round(s * q);
+      if (Math.abs(p / q - s) < 1e-9 && exactAt(String(p / q)) && Number.isInteger(p) && p % q !== 0) {
+        const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+        const d = g(p, q);
+        return `${p / d}/${q / d}`;
+      }
+    }
+    return null;
+  };
+  const items = solutions.map((s) => {
+    const f = fraction(s);
+    if (f) return `${variable} = ${f}`;
+    return `${variable} ${isShown(s) && exactAt(formatNumber(s)) ? '=' : '≈'} ${formatNumber(s)}`;
+  });
   const listed = items.join('  or  ');
   // A list cut to five says so in the answer itself, which is what is read
   // (and exported) on its own.
@@ -322,6 +345,15 @@ export function solveNumerically(equation, variable) {
         ? `${listed} (found by a numeric search, which can miss solutions next to the poles; there may be more)`
         : listed;
   steps.push(`Solution: ${answer}`);
+  // Which roots are exact and which are numerical (review of 1.75.0):
+  // x² = 2ˣ has x = 2 and x = 4 exactly, and only x ≈ −0.7667 numerically.
+  const exactItems = items.filter((t) => / = /.test(t));
+  const approxItems = items.filter((t) => / ≈ /.test(t));
+  if (!branch && !period && !endless && exactItems.length && approxItems.length) {
+    steps.push(`${exactItems.map((t) => mark(t)).join(' and ')} ${exactItems.length === 1 ? 'is' : 'are'} exact: substituted back, ${exactItems.length === 1 ? 'it makes' : 'each makes'} the two sides exactly equal. ${approxItems.map((t) => mark(t)).join(' and ')} ${approxItems.length === 1 ? 'is' : 'are'} numerical: located to high precision and rounded, with no simple exact form found.`);
+  } else if (!branch && !period && !endless && exactItems.length && !approxItems.length) {
+    steps.push(`${exactItems.length === 1 ? 'This root is' : 'These roots are'} exact: substituted back, ${exactItems.length === 1 ? 'it makes' : 'each makes'} the two sides exactly equal.`);
+  }
 
   return { steps, answer, solutions };
 }
@@ -396,4 +428,23 @@ function refineRoot(expression, variable, a, b) {
     else right = mid;
   }
   return (left + right) / 2;
+}
+
+// The method a student would use by hand for this shape, or that there is
+// none: said beside a numeric answer, so the search is not taken for the
+// lesson (1.75.0).
+function handMethod(equation, v) {
+  const t = String(equation);
+  const x = `(?<![a-z])${v}(?![a-z(])`;
+  const transcendental = /(?<![a-z])(?:sin|cos|tan|sec|csc|cot|ln|log|exp)\(|e\s*\^|\d\s*\^\s*\(?[^)]*[a-z]/i.test(t);
+  // x itself outside every function and power, beside a function of x.
+  const bare = t.replace(/(?<![a-z])[a-z]+\((?:[^()]|\([^()]*\))*\)/gi, '').replace(/\^\s*\((?:[^()]|\([^()]*\))*\)/g, '').replace(/\^\s*[a-z0-9]+/gi, '');
+  if (transcendental && new RegExp(x).test(bare)) {
+    return `By hand: an equation that mixes ${mark(v)} itself with an exponential, a logarithm or a trig function of ${mark(v)} has no general algebraic method. A root that is a simple number can still be spotted and checked exactly (shown with ${mark('=')}); the others are located numerically, by graphing or Newton's method (shown with ${mark('≈')}).`;
+  }
+  if (/(?<![a-z])abs\(/.test(t)) return 'By hand: split each absolute value into cases, where its inside is positive and where it is negative, and solve each case.';
+  if (/(?<![a-z])sqrt\(|\^\s*\(\s*1\s*\/\s*2\s*\)/.test(t)) return 'By hand: isolate a square root, square both sides, and check every answer in the original equation (squaring can add false ones).';
+  if (/(?<![a-z])(?:ln|log)\(/.test(t)) return 'By hand: combine the logarithms into one, rewrite it in exponential form, and check that every logarithm is defined at the answer.';
+  if (transcendental) return 'By hand: isolate the exponential or trig function, then undo it (take logarithms, or use the inverse function and every period).';
+  return null;
 }

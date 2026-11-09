@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.75.0] - 2026-11-09
+
+A sweep of 92 textbook equations found which ones fell to the numeric
+search although they have an algebraic method; each now has its method,
+with exact answers and its steps.
+
+### Added
+- A product equal to 0 is solved factor by factor, a root kept only where
+  every factor is defined (`algebra/zeroProduct.js`): x·eˣ = 0, x·ln(x) = x
+  (x·(ln(x) − 1) = 0, x = 0 rejected), x²eˣ − 4eˣ = 0, (2x − 1)·ln(x) = 0.
+- |A| = |B| as A = B or A = −B: |x + 2| = |2x − 1| is x = −1/3 or x = 3.
+- Exponentials in one base or two (`algebra/exponentialBases.js`):
+  9^x − 3^(x+1) − 4 = 0 is written in base 3 and solved by u = 3^x
+  (x = ln(4)/ln(3)); 4^x = 8^(x − 1) equates the exponents in base 2
+  (x = 3); 2^x = 3^(x − 1) takes logarithms, x = ln(3)/(ln(3) − ln(2)).
+- A polynomial in a power of x by u = x^p (`algebra/powerSubstitution.js`):
+  x^(2/3) − 5x^(1/3) + 6 = 0 is x = 8 or 27; x^(−2) − x^(−1) − 2 = 0 is
+  x = −1 or 1/2; (x² − 1)² − 5(x² − 1) + 4 = 0 is ±√2 and ±√5 (it gave
+  ±1.4142 and ±2.2361).
+- Two square roots (`algebra/twoRadicals.js`): one is isolated and both
+  sides squared, the one-root equation left is solved, and every candidate
+  is checked in the original: √x + √(x − 5) = 5 is x = 9.
+
+### Fixed
+- (x − 2)·√x = 0 was answered x = 2 alone: the numeric search looks for a
+  sign change, and √x touches 0 at the edge of its domain without
+  crossing. The product method gives x = 0 or x = 2.
+- The numeric search says what it is. Its first step reads "MasterMath has
+  no step-by-step method for this equation, so its solutions were found
+  numerically …", the next names the method a student would use by hand
+  (split an absolute value into cases, isolate and square a root, combine
+  logarithms), or says an equation that mixes x with an exponential,
+  logarithm or trig function has no general algebraic method, though a
+  root that is a simple number is still found and checked exactly. A step
+  then says which roots are exact and which numerical: x² = 2ˣ has x = 2
+  and x = 4 exactly and only x ≈ −0.7667 numerically. The equation is shown
+  with |…| and √, and a decimal that is exactly a simple fraction is shown
+  as the fraction (2/3, not 0.6667).
+
 ## [1.74.0] - 2026-11-09
 
 The rest of what the systematic stress test with constants found. Each of
@@ -83,6 +122,7 @@ holds, and each is checked before it is shown.
 - |x| = x was "no solution was found", though every x ≥ 0 is a solution: a
   case that holds for every x now gives the interval where the right side
   is ≥ 0 (|x| = x is x ≥ 0, |x − 2| = x − 2 is x ≥ 2).
+
 
 ## [1.73.3] - 2026-11-09
 
