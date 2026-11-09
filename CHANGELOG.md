@@ -71,6 +71,48 @@ holds, and each is checked before it is shown.
   itself divides by that constant, and says "it is false" when the case
   is a false statement between fractions (0 = 1/2).
 
+## [1.73.4] - 2026-11-09
+
+### Fixed
+- An absolute value equal to an expression in x is worked in two cases
+  (user report): |2x − 3| = x + 1 is 2x − 3 = x + 1 or 2x − 3 = −(x + 1),
+  so x = 4 or x = 2/3, each exact. It fell to the numeric scan, which gave
+  "x ≈ 0.6667 or x = 4" with no cases shown. A root where the right side is
+  negative is rejected with the reason (|x − 1| = 2x + 4 keeps x = −1, not
+  −5), and the check is exact (x = 2/3 gives 5/3 on both sides).
+- |x| = x was "no solution was found", though every x ≥ 0 is a solution: a
+  case that holds for every x now gives the interval where the right side
+  is ≥ 0 (|x| = x is x ≥ 0, |x − 2| = x − 2 is x ≥ 2).
+
+## [1.73.3] - 2026-11-09
+
+### Fixed
+- A limit's graph marks the limit: a hollow point at (a, L), labelled with
+  the exact value (L = 1/2). The marker read the value as Number(answer),
+  never a number for an exact form, so no limit had one.
+- The graph of lim x→0 (1 − cos x)/x² dived to 0 at x = 0. Summed steps put
+  the sample "at 0" at 1e-14, where the quotient is 0 by cancellation; each
+  x is now computed from its index on the grid, so x = 0 is exactly 0 and
+  left as a gap, where the function is undefined.
+- A graph exported to PDF no longer carries the hover cursor and its dot:
+  a pointer left over the chart drew a stray line and point into the PDF.
+
+## [1.73.2] - 2026-11-09
+
+### Changed
+- The comparison table is easier to compare (r/coolgithubprojects). The
+  "Math topics" row, a sentence per product, is one row per subject with a
+  count ("8 of 10"); every row that can be answers Yes, No, Paid only or Not
+  stated, with any detail beneath, grouped by Subjects, Entering a problem,
+  Cost, Learning help and so on.
+- On a phone all five products fit on the screen with no sideways swiping
+  (it showed less than one), and the product names stay in view as you
+  scroll. The page wrapper clips sideways overflow instead of scrolling, so
+  a sticky header can follow the page.
+- Subjects re-checked against each vendor's own pages on November 8. Mathway
+  now advertises free steps (was "No, answers only"), describes itself as
+  AI-powered and lists chemistry; Wolfram|Alpha lists word problems.
+
 ## [1.73.1] - 2026-11-09
 
 ### Fixed

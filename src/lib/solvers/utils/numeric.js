@@ -240,7 +240,12 @@ export function sampleFunction(expression, variable, options = {}) {
   const points = [];
 
   const realExpr = realOddRoots(expression);
-  for (let x = min; x <= max + 1e-9; x += step) {
+  // Each x from its index, rounded to the grid: summed steps drift (0 came
+  // out as 1e-14), and (1 − cos x)/x² there is 0 by cancellation, not the
+  // gap it is at x = 0, so the curve dived to 0 (1.73.2).
+  const count = Math.floor((max - min) / step + 1e-9);
+  for (let i = 0; i <= count; i += 1) {
+    const x = Math.round((min + i * step) * 1e9) / 1e9;
     const scope = { [variable]: x };
     try {
       const y = math.evaluate(realExpr, scope);

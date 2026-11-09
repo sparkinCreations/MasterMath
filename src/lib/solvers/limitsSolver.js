@@ -551,6 +551,24 @@ function oneSidedDomain(func, variable, target) {
   return 0;
 }
 
+// The limit's value as its exact text and its number: "1/2", "e^2",
+// "π/4 (≈ 0.7854)". It was read as Number(answer), which is no number for
+// any exact form but a whole number, so 1/2, e or π/4 had no limit marker
+// (1.73.2). None for an estimate (≈), ±∞ or a sentence.
+function limitValue(answer) {
+  const text = String(answer ?? '');
+  // The technique's own answer ("1/2", "e^2") or a whole line ("… = 1/2").
+  const at = text.lastIndexOf(' = ');
+  const exact = (at < 0 ? text : text.slice(at + 3)).replace(/\s*\((?:≈|=)[^)]*\)\s*$/, '').trim();
+  if (!exact || /∞|≈/.test(exact) || /[a-z]{2,}/i.test(exact.replace(/π|pi|sqrt|√/g, ''))) return null;
+  try {
+    const value = Number(math.evaluate(exact.replace(/(?<![a-z])e(?![a-z])/g, 'e').replace(/π/g, 'pi').replace(/√\(/g, 'sqrt(').replace(/√([a-z0-9.]+)/gi, 'sqrt($1)').replace(/(\d)\s*(?=[a-z(])/gi, '$1*')));
+    return Number.isFinite(value) ? { value, text: exact } : null;
+  } catch {
+    return null;
+  }
+}
+
 function generateLimitGraph(func, variable, target, displayTarget, limitAnswer) {
   try {
     const center = Number.isFinite(target) ? target : 0;
@@ -562,11 +580,11 @@ function generateLimitGraph(func, variable, target, displayTarget, limitAnswer) 
       // Annotate the point of interest: a guideline at the approach value and,
       // when the limit is a finite number, a marker at (target, L) — hollow,
       // because the function need not actually reach that value.
-      const numericLimit = Number(String(limitAnswer).trim());
+      const limit = limitValue(limitAnswer);
       const annotations = Number.isFinite(target)
         ? {
             guideline: { x: target, label: `${variable} → ${displayTarget}` },
-            limitPoint: Number.isFinite(numericLimit) ? { x: target, y: numericLimit } : null,
+            limitPoint: limit ? { x: target, y: limit.value, label: limit.text } : null,
           }
         : null;
 
