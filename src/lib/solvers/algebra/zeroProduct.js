@@ -98,7 +98,7 @@ export async function solveZeroProduct(expression, v, solveSub) {
       steps.push(`${mark(`${shownFactors[i]} = 0`)}: no real solution.`);
       continue;
     }
-    const parts = text.split(/\s+or\s+/).map((p) => p.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').trim());
+    const parts = text.split(/\s+or\s+/).map((p) => p.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').replace(/\s*\((?:repeated root, )?multiplicity \d+\)/, '').trim());
     const roots = [];
     for (const part of parts) {
       const approx = /≈/.test(part.replace(/\s*\((?:≈|=)[^)]*\)\s*$/, ''));

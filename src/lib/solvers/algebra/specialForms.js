@@ -70,7 +70,7 @@ export async function solveAbsoluteValueEquation(equation, variable) {
         continue;
       }
       for (const st of solved.steps) steps.push(`  ${st}`);
-      const forms = String(solved.answer || '').split(/\s+or\s+/).map((t) => t.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').trim());
+      const forms = String(solved.answer || '').split(/\s+or\s+/).map((t) => t.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').replace(/\s*\((?:repeated root, )?multiplicity \d+\)/, '').trim());
       for (const r of solved.solutions) {
         if (!Number.isFinite(r) || roots.some((q) => Math.abs(q.value - r) < 1e-9)) continue;
         const form = forms.find((f) => { try { return Math.abs(Number(math.evaluate(f.replace(/√\(/g, 'sqrt(').replace(/√(\d+)/g, 'sqrt($1)'))) - r) < 1e-9; } catch { return false; } });
@@ -258,7 +258,7 @@ async function solveAbsoluteEqualsExpression(equation, abs, other, v) {
       steps.push(`${label}: ${mark(`${gShown} = ${rhsShown}`)}`);
       for (const st of viaRoots.steps) steps.push(`  ${st}`);
       // Each root's exact form, read off the method's own answer.
-      const forms = String(viaRoots.answer || '').split(/\s+or\s+/).map((t) => t.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').trim());
+      const forms = String(viaRoots.answer || '').split(/\s+or\s+/).map((t) => t.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').replace(/\s*\((?:repeated root, )?multiplicity \d+\)/, '').trim());
       for (const r of viaRoots.solutions) {
         if (!Number.isFinite(r)) continue;
         const form = forms.find((f) => {

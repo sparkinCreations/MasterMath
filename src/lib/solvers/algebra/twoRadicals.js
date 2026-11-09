@@ -57,7 +57,7 @@ export async function solveTwoRadicals(expression, v, solveSub) {
     `One square root is left; solve that equation:`,
     ...(sub.steps || []).filter((s) => !/^Detected as|^Check in the original|^Solution:/.test(String(s).replace(/⟦|⟧/g, ''))).map((s) => `  ${s}`),
   ];
-  const parts = /^No (real )?solution/i.test(text) ? [] : text.split(/\s+or\s+/).map((p) => p.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').trim());
+  const parts = /^No (real )?solution/i.test(text) ? [] : text.split(/\s+or\s+/).map((p) => p.replace(new RegExp(`^\\s*${v}\\s*=\\s*`), '').replace(/\s*\((?:repeated root, )?multiplicity \d+\)/, '').trim());
   const kept = [];
   for (const part of parts) {
     if (/≈/.test(part)) return null;

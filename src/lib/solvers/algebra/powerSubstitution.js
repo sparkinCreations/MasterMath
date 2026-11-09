@@ -85,7 +85,7 @@ export async function solvePolynomialInPower(equation, v) {
     .join('');
   const solvedU = await solveWithAlgebriteRoots(`${polyU} = 0`, 'u');
   if (!solvedU) return null;
-  const forms = String(solvedU.answer || '').split(/\s+or\s+/).map((t) => t.replace(/^\s*u\s*=\s*/, '').trim());
+  const forms = String(solvedU.answer || '').split(/\s+or\s+/).map((t) => t.replace(/^\s*u\s*=\s*/, '').replace(/\s*\((?:repeated root, )?multiplicity \d+\)/, '').trim());
   const steps = [
     `Every power of ${mark(v)} here is a whole multiple of ${mark(uOf)}: let ${mark(`u = ${uOf}`)}. Then ${mark(`${beautify(polyU)} = 0`)}, a polynomial in ${mark('u')}.`,
     ...solvedU.steps.map((s) => `  ${s}`),
