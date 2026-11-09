@@ -161,6 +161,8 @@ export const CONVERTED = [
   ['auto', 'x + y = a; x - y = b'], ['auto', 'x + a*y = 2; a*x + y = 2'], ['auto', 'x + y + z = a; x - y = 0; y - z = b'], ['auto', 'x*y = a; x + y = 1'],
   ['auto', 'lim x->0 sin(a*x)/x'], ['auto', 'lim x->a (x^2 - a^2)/(x - a)'], ['auto', 'lim x->0 (1 + a*x)^(1/x)'], ['auto', 'lim x->inf a*x^2/(x + 1)'], ['auto', 'lim x->-inf (a*x^3+1)/(x^2+1)'],
   ['auto', 'lim x->3 (x + a)/(x - a)'], ['auto', 'lim x->1 ln(a*x)'], ['auto', 'lim x->1 tan(a*x)'],
+  // 1.73.1: complex-valued limits and text before a limit, refused.
+  ['auto', 'lim x->2 (x√(-1))'], ['auto', 'lim x->2 x*i'], ['auto', 'i * lim x->0 (sin(x)/x)'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

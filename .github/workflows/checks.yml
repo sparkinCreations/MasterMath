@@ -1,10 +1,11 @@
 # Dependency audit, unit suite and browser smoke test on every push and pull
-# request.
+# request, then the deploy: a push to main goes live, a pull request from this
+# repository gets a preview.
 #
-# Netlify builds and deploys main on its own, but its build command runs the
-# unit suite first (netlify.toml), so a failing unit test blocks the deploy.
-# This workflow adds the dependency audit and the browser smoke test, which
-# Netlify does not run; a red smoke test shows on the commit that caused it.
+# Netlify's own builds are switched off (netlify.toml: ignore), because they
+# used up the free plan's build minutes. The deploy job builds here and uploads
+# the finished dist/, which uses none of them. It runs only after
+# test-and-smoke passes, so a failing audit, unit test or smoke test stops it.
 name: checks
 
 on:
@@ -53,3 +54,37 @@ jobs:
             playwright-report
             test-results
           retention-days: 7
+
+  deploy:
+    needs: test-and-smoke
+    # A fork's pull request gets no preview: its code is not ours to publish,
+    # and GitHub gives it no secrets.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One upload at a time per target; a newer commit waiting replaces an older
+    # one waiting, so the last push is the one that ends up live.
+    concurrency:
+      group: deploy-${{ github.event.pull_request.number || 'production' }}
+      cancel-in-progress: false
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: 66658bad-d664-4bd0-a3a6-065c95c79abc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Stamps sw.js with this commit (vite.config.js), as on any other build.
+      - run: npm run build
+      # --no-build: netlify-cli would otherwise run the build command first.
+      - name: Upload to production
+        if: github.event_name == 'push'
+        run: npx --yes netlify-cli@27.16.2 deploy --no-build --dir=dist --prod --message "${{ github.sha }}"
+      - name: Upload a preview
+        if: github.event_name == 'pull_request'
+        run: |
+          npx --yes netlify-cli@27.16.2 deploy --no-build --dir=dist --alias "pr-${{ github.event.pull_request.number }}" --message "${{ github.sha }}"
+          echo "Preview: https://pr-${{ github.event.pull_request.number }}--mastermathapp.netlify.app" >> "$GITHUB_STEP_SUMMARY"
