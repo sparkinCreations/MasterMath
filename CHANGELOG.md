@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.73.1] - 2026-11-09
+
+### Fixed
+- A limit with an imaginary number in it is refused as complex-valued
+  (r/mathematics): lim x→2 (x√(−1)) and lim x→∞ (3^x) − e^(π√(−1)) were
+  answered "the limit does not exist" (the complex samples read as "not
+  defined on either side"), and lim x→2 x·i was 2i. MasterMath works limits
+  of real functions; i, or an even root of a negative number, in the
+  expression or the point now gives "Complex-valued limits aren't
+  supported".
+- Text in front of a limit is refused, not dropped: "i * lim x->0
+  (sin(x)/x)" was answered 1, the limit alone.
+
 ## [1.73.0] - 2026-11-08
 
 ### Added

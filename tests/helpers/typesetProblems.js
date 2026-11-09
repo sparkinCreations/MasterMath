@@ -153,6 +153,8 @@ export const CONVERTED = [
   ['trigonometry', '2*sin(x)*cos(x) = sin(x)'], ['trigonometry', 'csc(x) - sin(x) = cos(x)'], ['trigonometry', 'sin(x) + tan(x) = 1'], ['trigonometry', 'tan(x)*cos(x) = 1'], ['trigonometry', 'tan(2x) = sin(2x)'], ['trigonometry', 'sin(x)^2 = 3*cos(x)^2'],
   // 1.68.3: d/dx in front of an equation; its refusals.
   ['auto', 'd/dx (x^2 + y^2 = 25)'], ['auto', 'd/dx (x^2 + 3x = 5)'], ['auto', 'd/dx (2 = 2)'], ['auto', 'd/dx (x^2 + y^2) = 25'], ['auto', 'd/dx (x^2 + y^2 = r^2)'], ['auto', 'd/dx (y = 3)'],
+  // 1.73.1: complex-valued limits and text before a limit, refused.
+  ['auto', 'lim x->2 (x√(-1))'], ['auto', 'lim x->2 x*i'], ['auto', 'i * lim x->0 (sin(x)/x)'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a
