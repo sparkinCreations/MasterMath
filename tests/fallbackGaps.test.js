@@ -80,11 +80,11 @@ test('two square roots: isolate one, square, solve, check in the original', asyn
 });
 
 test('the numeric scan, when it runs, says so and names the hand method', async () => {
-  const r = await solvePlain('abs(x) + abs(x-2) = 4', 'auto');
-  assert.equal(r.answer, 'x = -1  or  x = 3');
+  // |x| + |x − 2| = 4 is worked piece by piece since 1.76.0; an absolute
+  // value inside a function still reaches the scan.
+  const r = await solvePlain('abs(x) + e^x = 3', 'auto');
   assert.match(r.steps[1], /^MasterMath has no step-by-step method for this equation, so its solutions were found numerically/);
-  assert.match(r.steps[2], /^By hand: split each absolute value into cases/);
-  assert.ok(r.steps.some((s) => s === 'Rewrite as (|x| + |x - 2|) - (4) = 0'), r.steps.join('\n'));
+  assert.match(r.steps.join('\n'), /Rewrite as \(\|x\| \+ e\^x\) - \(3\) = 0/);
   const t = await solvePlain('e^x = x + 2', 'auto');
   assert.match(t.steps.join('\n'), /has no general algebraic method/);
   // The trig solver explains its own numeric method; the line is not repeated.

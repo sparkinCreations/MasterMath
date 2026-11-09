@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.0] - 2026-11-09
+
+### Added
+- Several absolute values of linear expressions are worked piece by piece
+  (`algebra/absPiecewise.js`): the number line is split where each inside is
+  0, each |…| is its inside or minus it on each piece, the equation is solved
+  there, and a root counts only in its own piece. |x| + |x − 2| = 4 is
+  x = −1 or x = 3 (the middle piece gives 2 = 4, no solution);
+  |x| + |x − 2| = 2 is 0 ≤ x ≤ 2, a whole stretch; |x + 1| + |x − 1| = x²
+  is x = ±2, with 0 and ±√2 rejected as outside their pieces. These were
+  the last textbook shape in the sweep left to the numeric search.
+
 ## [1.75.0] - 2026-11-09
 
 A sweep of 92 textbook equations found which ones fell to the numeric

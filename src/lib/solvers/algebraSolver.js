@@ -40,6 +40,7 @@ import {
 import { solveNumerically } from './algebra/numeric.js';
 import { solveForVariable } from './algebra/twoVariables.js';
 import { solveZeroProduct } from './algebra/zeroProduct.js';
+import { solveAbsPiecewise } from './algebra/absPiecewise.js';
 import { rewriteToCommonBase, solveTwoPowers } from './algebra/exponentialBases.js';
 import { satisfiesEquation } from './algebra/rootsFormat.js';
 import { solvePolynomialInPower } from './algebra/powerSubstitution.js';
@@ -387,6 +388,13 @@ async function solveEquation(expression, options = {}) {
   const viaAbs = await solveAbsoluteValueEquation(expression, variable);
   if (viaAbs) {
     ({ steps, answer, solutions } = viaAbs);
+  }
+
+  // 0b. Several absolute values of linear insides, |x| + |x − 2| = 4: the
+  // number line split where each inside is 0, solved piece by piece (1.76.0).
+  if (!answer && (expression.match(/(?<![a-z])abs\s*\(/gi) || []).length >= 2) {
+    const viaPieces = await solveAbsPiecewise(expression, variable);
+    if (viaPieces) ({ steps, answer, solutions } = viaPieces);
   }
 
   // 1. Linear equations: the textbook inverse-operations walkthrough in exact
