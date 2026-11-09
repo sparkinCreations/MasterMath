@@ -168,7 +168,7 @@ export const CONVERTED = [
   // 1.75.0: the gaps the fallback sweep found, and the fallback's own lines.
   ['auto', '(x-2)*sqrt(x) = 0'], ['auto', 'x*ln(x) = x'], ['auto', 'x^2*e^x - 4e^x = 0'], ['auto', 'abs(x+2) = abs(2x-1)'],
   ['auto', '9^x - 3^(x+1) - 4 = 0'], ['auto', '4^x = 8^(x-1)'], ['auto', '2^x = 3^(x-1)'], ['auto', 'x^(2/3) - 5x^(1/3) + 6 = 0'], ['auto', 'x^(-2) - x^(-1) - 2 = 0'],
-  ['auto', '(x^2-1)^2 - 5(x^2-1) + 4 = 0'], ['auto', 'sqrt(x) + sqrt(x-5) = 5'], ['auto', 'abs(x) + abs(x-2) = 4'], ['auto', 'e^x = x + 2'],
+  ['auto', '(x^2-1)^2 - 5(x^2-1) + 4 = 0'], ['auto', 'sqrt(x) + sqrt(x-5) = 5'], ['auto', 'abs(x) + abs(x-2) = 4'], ['auto', 'e^x = x + 2'], ['auto', 'x^2 = 2^x'], ['auto', 'ln(x) = 1 - x'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

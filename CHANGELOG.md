@@ -39,9 +39,12 @@ with exact answers and its steps.
   numerically …", the next names the method a student would use by hand
   (split an absolute value into cases, isolate and square a root, combine
   logarithms), or says an equation that mixes x with an exponential,
-  logarithm or trig function usually has no algebraic solution. The
-  equation is shown with |…| and √, and a decimal that is exactly a simple
-  fraction is shown as the fraction (2/3, not 0.6667).
+  logarithm or trig function has no general algebraic method, though a
+  root that is a simple number is still found and checked exactly. A step
+  then says which roots are exact and which numerical: x² = 2ˣ has x = 2
+  and x = 4 exactly and only x ≈ −0.7667 numerically. The equation is shown
+  with |…| and √, and a decimal that is exactly a simple fraction is shown
+  as the fraction (2/3, not 0.6667).
 
 ## [1.74.0] - 2026-11-09
 

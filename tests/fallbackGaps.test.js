@@ -86,8 +86,23 @@ test('the numeric scan, when it runs, says so and names the hand method', async 
   assert.match(r.steps[2], /^By hand: split each absolute value into cases/);
   assert.ok(r.steps.some((s) => s === 'Rewrite as (|x| + |x - 2|) - (4) = 0'), r.steps.join('\n'));
   const t = await solvePlain('e^x = x + 2', 'auto');
-  assert.match(t.steps.join('\n'), /usually has no algebraic solution/);
+  assert.match(t.steps.join('\n'), /has no general algebraic method/);
   // The trig solver explains its own numeric method; the line is not repeated.
   const c = await solvePlain('x = cos(x)', 'auto');
   assert.ok(!c.steps.some((s) => /^MasterMath has no step-by-step method/.test(s)), c.steps.join('\n'));
+});
+
+// Review of 1.75.0: a numeric answer still shows its exact roots exactly, and
+// says which roots are exact and which are numerical.
+test('a numeric answer keeps its exact roots exact and labels the rest', async () => {
+  const ln = await solvePlain('ln(x) = 1 - x', 'auto');
+  assert.equal(ln.answer, 'x = 1');
+  assert.ok(ln.steps.includes('This root is exact: substituted back, it makes the two sides exactly equal.'), ln.steps.join('\n'));
+  const pw = await solvePlain('x^2 = 2^x', 'auto');
+  assert.equal(pw.answer, 'x ≈ -0.7667  or  x = 2  or  x = 4');
+  assert.ok(pw.steps.includes('x = 2 and x = 4 are exact: substituted back, each makes the two sides exactly equal. x ≈ -0.7667 is numerical: located to high precision and rounded, with no simple exact form found.'), pw.steps.join('\n'));
+  // tan(x) = x: the root 0 is exact among numerical ones.
+  const tn = await solvePlain('tan(x) = x', 'auto');
+  assert.match(tn.answer, /or {2}x = 0 {2}or/);
+  assert.ok((tn.answer.match(/x ≈/g) || []).length === 4, tn.answer);
 });

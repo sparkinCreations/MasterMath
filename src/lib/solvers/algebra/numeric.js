@@ -345,6 +345,15 @@ export function solveNumerically(equation, variable) {
         ? `${listed} (found by a numeric search, which can miss solutions next to the poles; there may be more)`
         : listed;
   steps.push(`Solution: ${answer}`);
+  // Which roots are exact and which are numerical (review of 1.75.0):
+  // x² = 2ˣ has x = 2 and x = 4 exactly, and only x ≈ −0.7667 numerically.
+  const exactItems = items.filter((t) => / = /.test(t));
+  const approxItems = items.filter((t) => / ≈ /.test(t));
+  if (!branch && !period && !endless && exactItems.length && approxItems.length) {
+    steps.push(`${exactItems.map((t) => mark(t)).join(' and ')} ${exactItems.length === 1 ? 'is' : 'are'} exact: substituted back, ${exactItems.length === 1 ? 'it makes' : 'each makes'} the two sides exactly equal. ${approxItems.map((t) => mark(t)).join(' and ')} ${approxItems.length === 1 ? 'is' : 'are'} numerical: located to high precision and rounded, with no simple exact form found.`);
+  } else if (!branch && !period && !endless && exactItems.length && !approxItems.length) {
+    steps.push(`${exactItems.length === 1 ? 'This root is' : 'These roots are'} exact: substituted back, ${exactItems.length === 1 ? 'it makes' : 'each makes'} the two sides exactly equal.`);
+  }
 
   return { steps, answer, solutions };
 }
@@ -431,7 +440,7 @@ function handMethod(equation, v) {
   // x itself outside every function and power, beside a function of x.
   const bare = t.replace(/(?<![a-z])[a-z]+\((?:[^()]|\([^()]*\))*\)/gi, '').replace(/\^\s*\((?:[^()]|\([^()]*\))*\)/g, '').replace(/\^\s*[a-z0-9]+/gi, '');
   if (transcendental && new RegExp(x).test(bare)) {
-    return `By hand: an equation that mixes ${mark(v)} itself with an exponential, a logarithm or a trig function of ${mark(v)} usually has no algebraic solution, so a numeric answer is the usual one here (by graphing, or Newton's method).`;
+    return `By hand: an equation that mixes ${mark(v)} itself with an exponential, a logarithm or a trig function of ${mark(v)} has no general algebraic method. A root that is a simple number can still be spotted and checked exactly (shown with ${mark('=')}); the others are located numerically, by graphing or Newton's method (shown with ${mark('≈')}).`;
   }
   if (/(?<![a-z])abs\(/.test(t)) return 'By hand: split each absolute value into cases, where its inside is positive and where it is negative, and solve each case.';
   if (/(?<![a-z])sqrt\(|\^\s*\(\s*1\s*\/\s*2\s*\)/.test(t)) return 'By hand: isolate a square root, square both sides, and check every answer in the original equation (squaring can add false ones).';
