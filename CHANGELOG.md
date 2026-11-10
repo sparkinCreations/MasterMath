@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.0] - 2026-11-10
+
+### Added
+- Several absolute values of linear expressions are worked piece by piece
+  (`algebra/absPiecewise.js`): the number line is split where each inside is
+  0, each |…| is its inside or minus it on each piece, the equation is solved
+  there, and a root counts only in its own piece. |x| + |x − 2| = 4 is
+  x = −1 or x = 3 (the middle piece gives 2 = 4, no solution);
+  |x| + |x − 2| = 2 is 0 ≤ x ≤ 2, a whole stretch; |x + 1| + |x − 1| = x²
+  is x = ±2, with 0 and ±√2 rejected as outside their pieces. These were
+  the last textbook shape in the sweep left to the numeric search.
+  Roots may hold π (|x| + |x − 2| = 4π is x = 1 ± 2π), and an equation true
+  on every piece is all real numbers. A variable under a division or in a
+  power that is not a whole number stays out of this method, so a value
+  where the equation is undefined never lands inside a stretch.
+
+### Fixed
+- Several absolute values with decimals are worked exactly, as fractions.
+  |x − 0.1| + |x − 0.3| = 0.2 answered x = 2/9, one point of the whole
+  stretch 1/10 ≤ x ≤ 3/10.
+- Key Insights and Common Mistakes now match the method for several
+  absolute values, |A| = |B|, the zero product rule, a common base
+  (4^x = 8^(x − 1)) and logarithms of two powers (2^(x + 1) = 3^x). These
+  came in 1.75.0 and 1.76.0 and led with the linear-equation list ("Undo the
+  operations in reverse order…"). Each list starts with its method, then
+  works the student's own problem; the lists are in
+  `docs/future-work/insights-review/ALGEBRA.md`.
+
 ## [1.75.2] - 2026-11-09
 
 ### Fixed

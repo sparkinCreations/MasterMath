@@ -29,6 +29,8 @@ const METHODS = {
     ['square roots', 'x^2 = 9'], ['absolute value', 'abs(2x-3) = 5'], ['radical', 'sqrt(x+2) = x'],
     ['logarithm', 'ln(x) = 1'], ['exponential', '2^x = 10'], ['rational', 'x/(x-1) = 2'],
     ['rational root theorem', 'x^3 - 6x^2 + 11x - 6 = 0'], ['simplify', '3(x-2)+4'], ['cancel', '(x^2-1)/(x-1)'],
+    ['absolute value pieces', 'abs(x) + abs(x-2) = 4'], ['equal absolute values', 'abs(x-1) = abs(2x+3)'],
+    ['zero product', 'x*(x-1)*ln(x) = 0'], ['common base', '4^x = 8^(x-1)'], ['logs of two powers', '2^(x+1) = 3^x'],
   ],
   derivatives: [
     ['power', 'x^3'], ['chain', 'sin(3x^2)'], ['product', 'x^2*sin(x)'], ['quotient', '(x+1)/(x-1)'],
