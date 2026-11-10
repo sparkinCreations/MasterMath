@@ -199,7 +199,7 @@ export default function Compare() {
           How MasterMath Compares
         </h1>
         <p className="text-gray-600 dark:text-gray-400 text-lg mb-3">
-          Subjects, free steps and AI checked on {CHECKED_ON}; the rest on {REST_CHECKED_ON}. Prices and features change, so follow the sources below for the current ones.
+          Subjects, free steps and AI usage checked on {CHECKED_ON}; the rest on {REST_CHECKED_ON}. Prices and features change, so follow the sources below for the current ones.
         </p>
         <p className="text-gray-700 dark:text-gray-300 max-w-3xl">
           MasterMath covers fewer topics than the others.
