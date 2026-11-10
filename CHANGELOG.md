@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and 3√2, not √2*√5 and 3*√2. Logarithms stay with the other methods:
   Algebrite leaves log(100) as ln(100)/ln(10), so the middle piece of
   |x| + |x − 2| = log(100) would not be seen to hold for every x.
+  A constant that is 0 in value but that Algebrite cannot reduce to 0, such
+  as a nested root, leaves the method for the same reason, and a root that
+  would be a nested radical or a quotient of sums goes to the numeric route.
 
 ## [1.76.0] - 2026-11-10
 

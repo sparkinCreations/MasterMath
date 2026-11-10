@@ -128,7 +128,7 @@ export async function solveAbsPiecewise(equation, v) {
       const r = run(`simplify(-(${b})/(${a}))`);
       const value = Number(math.evaluate(r));
       if (!Number.isFinite(value)) return null;
-      if (!points.some((p) => Math.abs(p.value - value) < 1e-12)) points.push({ text: exactForm(r), value });
+      if (!points.some((p) => Math.abs(p.value - value) < 1e-12)) points.push({ text: rootText(r), value });
     }
   } catch { return null; }
   points.sort((p, q) => p.value - q.value);
@@ -168,6 +168,14 @@ export async function solveAbsPiecewise(equation, v) {
     const head = `For ${mark(label(p))}: ${forms.map((f) => mark(f)).join(', ')}, so the equation is ${mark(pieceEq)}.`;
     let degree;
     try { degree = Number(run(`deg(${expanded}, ${v})`)); } catch { return null; }
+    // A coefficient that is 0 in value but not in Algebrite's text, as in
+    // √(3 + 2√2) − √2 − 1: read as a number, a piece true for every x looks false.
+    try {
+      for (const k of [0, 1, 2]) {
+        const c = run(`coeff(${expanded}, ${v}, ${k})`);
+        if (c !== '0' && !(Math.abs(Number(math.evaluate(c))) > 1e-9)) return null;
+      }
+    } catch { return null; }
     if (!hasVar(expanded, v)) {
       if (expanded === '0') {
         // True for every x on this piece.
@@ -190,6 +198,9 @@ export async function solveAbsPiecewise(equation, v) {
       try { value = Number(math.evaluate(r)); } catch { return null; }
       if (!Number.isFinite(value)) return null;
       const shown = rootText(r);
+      // Exact only when it can be read: a nested root or a quotient of sums
+      // goes to the other methods, which round it.
+      if (/√\(|\/\(/.test(shown)) return null;
       const atEdge = p.hi && Math.abs(value - p.hi.value) < 1e-12;
       if (inside(p, value)) {
         found.push({ shown, value });
