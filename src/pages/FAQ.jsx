@@ -172,9 +172,9 @@ export default function FAQ() {
                   {faq.question}
                 </h2>
                 {openIndex === index ? (
-                  <ChevronUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+                  <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 mt-1" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+                  <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 mt-1" />
                 )}
               </div>
             </button>

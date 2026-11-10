@@ -148,7 +148,7 @@ Technical Information:
       <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <MessageSquare className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <MessageSquare className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Send Feedback
           </CardTitle>
         </CardHeader>

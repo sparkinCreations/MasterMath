@@ -11,7 +11,7 @@ import { useDarkMode } from "@/contexts/DarkModeContext";
 //   high priority (it is the page's largest paint), so the page shows at
 //   once and the video starts when it can.
 // - One file per visitor: the theme's, 1600 px wide from 640 px up, else
-//   800; WebM first, MP4 for Safari. About 80–240 kB.
+//   800; WebM first, MP4 for Safari. About 120–280 kB.
 // - Reduced motion: the poster alone, no video.
 // - Pausing (WCAG 2.2.2: anything moving for more than 5 seconds can be
 //   paused): a tap or click on the video pauses and plays it, with a short

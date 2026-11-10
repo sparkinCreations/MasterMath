@@ -252,7 +252,7 @@ function LearnMore({ topic }) {
   return (
     <div className="space-y-2">
       <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
-        <GraduationCap className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        <GraduationCap className="w-5 h-5 text-gray-500 dark:text-gray-400" />
         Learn more
       </h3>
       <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -354,14 +354,14 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
       <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 text-xl dark:text-gray-100">
-            <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <BookOpen className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Solution & Feedback
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8">
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-green-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-              <BookOpen className="w-8 h-8 text-green-500 dark:text-green-400" />
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+              <BookOpen className="w-8 h-8 text-gray-400 dark:text-gray-400" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 text-lg">
               Your solution will appear here!
@@ -430,7 +430,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
-                  <BookOpen className="w-5 h-5 text-indigo-600" />
+                  <BookOpen className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                   {notes ? 'Notes:' : 'Step-by-Step Solution:'}
                 </h3>
                 {walkable && steps.length > 1 && (

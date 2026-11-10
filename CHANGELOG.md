@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.1] - 2026-11-10
+
+### Changed
+- The home page reads in one column. The hero's copy is centred over the
+  recording, which now takes the hero's full width: beside the headline it
+  was a 1440-px Solver page shrunk into a 540-px column, its text about 6 px
+  and unreadable on a laptop. The features and the worked example are
+  stacked, not side by side, so one heading leads at a time and no gap is
+  left beside the shorter column.
+- The hero recording is re-recorded at 1152 × 648 (was 1440 × 810), so the
+  Solver's text plays at nearly its own size, and it now scrolls on from
+  the graph to the steps: the poster is the method, not the empty form.
+- Decorative icons are one grey: the feature cards, the section headers of
+  the Terms, Privacy, User Manual, Settings, Compare and Feedback pages, the
+  FAQ's arrows and the Solver's card titles and empty states had cycled
+  through six or seven colours that meant nothing. Colour stays where it
+  means something: green the answer, amber a tip or warning, orange Solve.
+- "Full step-by-step solutions, free on every problem" is gone from the
+  hero: the subline and "Solved locally · No account · Works offline" say
+  it already.
+
 ## [1.76.0] - 2026-11-10
 
 ### Added

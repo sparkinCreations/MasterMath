@@ -136,7 +136,7 @@ export default function Settings() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Palette className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <Palette className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Appearance
           </CardTitle>
         </CardHeader>
@@ -165,7 +165,7 @@ export default function Settings() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <SlidersHorizontal className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <SlidersHorizontal className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Solver Preferences
           </CardTitle>
         </CardHeader>
@@ -222,7 +222,7 @@ export default function Settings() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <HardDrive className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <HardDrive className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Data & Privacy
           </CardTitle>
         </CardHeader>
@@ -265,7 +265,7 @@ export default function Settings() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Info className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            <Info className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             About
           </CardTitle>
         </CardHeader>

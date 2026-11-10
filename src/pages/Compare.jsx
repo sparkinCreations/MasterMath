@@ -209,7 +209,7 @@ export default function Compare() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <AlertTriangle className="w-6 h-6 text-gray-500 dark:text-gray-400" aria-hidden="true" />
             What MasterMath does not do
           </CardTitle>
         </CardHeader>
@@ -223,7 +223,7 @@ export default function Compare() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Scale className="w-6 h-6 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+            <Scale className="w-6 h-6 text-gray-500 dark:text-gray-400" aria-hidden="true" />
             Side by side
           </CardTitle>
         </CardHeader>
@@ -294,7 +294,7 @@ export default function Compare() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Compass className="w-6 h-6 text-green-600 dark:text-green-400" aria-hidden="true" />
+            <Compass className="w-6 h-6 text-gray-500 dark:text-gray-400" aria-hidden="true" />
             Which one to use
           </CardTitle>
         </CardHeader>
@@ -319,7 +319,7 @@ export default function Compare() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Search className="w-6 h-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+            <Search className="w-6 h-6 text-gray-500 dark:text-gray-400" aria-hidden="true" />
             How we checked
           </CardTitle>
         </CardHeader>
