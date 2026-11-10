@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.76.1] - 2026-11-10
-
 ### Changed
 - The home page reads in one column. The hero's copy is centred over the
   recording, which now takes the hero's full width: beside the headline it

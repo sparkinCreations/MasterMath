@@ -22,7 +22,7 @@ action buttons are blue-800 (blue-300 in dark mode, dark text); Solve is the
 one orange button; a selected tab or option is gray-900 (white in dark
 mode), so "picked" never looks like "press". Decorative icons (section
 headers, feature cards, empty states) are one grey (gray-500, gray-400 in
-dark mode) since 1.76.1: colour is kept for what it means. The home page's
+dark mode): colour is kept for what it means. The home page's
 worked example copies the Solver's look by hand: change both.
 
 ## Layout

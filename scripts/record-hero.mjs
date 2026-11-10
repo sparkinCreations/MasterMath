@@ -1,6 +1,6 @@
 // Records the home page's hero video: the real Solver, typing x² − 4x + 3
 // under Functions, solving it, the graph drawing its zeros and minimum, and
-// then the steps (1.70.2; the steps scrolled to in 1.76.1). Re-run it when the Solver's look changes.
+// then the steps (1.70.2; later scrolled on to the steps). Re-run it when the Solver's look changes.
 //
 //   node scripts/record-hero.mjs [url]      (default https://mastermath.app)
 //
@@ -12,7 +12,7 @@
 //                                    plays, and instead of it for reduced motion
 //
 // Frames come from Chrome's screencast at 1600 × 900: a 1152 × 648 page at
-// 1.39× (1.76.1; was 1440 × 810 at 1.11×). The home page shows the video
+// 1.39× (was 1440 × 810 at 1.11×). The home page shows the video
 // about 1000 px wide, so the Solver's text plays at nearly its own size; at
 // 1440 it was shrunk to about a third. 1152 keeps the two-column layout
 // (lg is 1024). Timed as captured, then encoded at 25 fps. The "Problem solved!" toast is hidden so
@@ -79,7 +79,7 @@ async function record(theme) {
   // Down to the problem box's top: the box and the graph, held.
   await scrollTo((await top(page.locator('#problem'))) - 12);
   await page.waitForTimeout(2400);
-  // Then the steps (1.76.1): the method is the point, and the last frame is
+  // Then the steps: the method is the point, and the last frame is
   // the poster. A 648-px page cannot hold the graph and the steps at once.
   await scrollTo((await top(page.locator('[aria-label="Solution"]'))) - 12);
   await page.waitForTimeout(3200);

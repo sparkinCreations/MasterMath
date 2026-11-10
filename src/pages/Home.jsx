@@ -61,7 +61,7 @@ export default function Home() {
 
   return (
     <div className="p-4 md:p-6">
-      {/* Hero Section — one column (1.76.1): the logo and headline in one
+      {/* Hero Section — one column: the logo and headline in one
           lockup, the copy and buttons centred under it, then the recording
           at the hero's full width. Side by side (1.57.3–1.76.0) the
           recording was a 1440-px Solver page in a 540-px column, its text
@@ -112,7 +112,7 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* The promise once (1.76.1): "Full step-by-step solutions, free
+          {/* The promise once: "Full step-by-step solutions, free
               on every problem" said again what the subline and this line
               say. The comparison lives on its own dated, sourced page
               (1.58.0); the home page only claims what MasterMath does. */}
@@ -154,7 +154,7 @@ export default function Home() {
         </figure>
       </div>
 
-      {/* The features, then the worked example, one under the other (1.76.1).
+      {/* The features, then the worked example, one under the other.
           Side by side (1.70.4–1.76.0) they were two headings competing at
           the same size, and the grid ended long before the example, leaving
           a hole beside it. */}
@@ -173,7 +173,7 @@ export default function Home() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Plain white cards, every icon the same grey (1.76.1): six colours
+          {/* Plain white cards, every icon the same grey: six colours
               meant nothing. Colour is kept for what it means elsewhere:
               green the answer, amber a tip, orange Solve. */}
           {FEATURES.map(({ icon: Icon, title, text }) => (
