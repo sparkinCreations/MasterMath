@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A constant that is 0 in value but that Algebrite cannot reduce to 0, such
   as a nested root, leaves the method for the same reason, and a root that
   would be a nested radical or a quotient of sums goes to the numeric route.
+- The numeric search no longer reports a root where the equation is
+  undefined. |x| + |x − 1| + (x − 2)/(x − 2) = 4 answered x = −1 or x ≈ 2,
+  and e^x + (x − 1)/(x − 1) = e + 1 answered x ≈ 1. The search closes on a
+  number just beside the point, where the fraction is still 1, so the check
+  by substitution passed. Such a root is now rejected, with the reason shown.
 
 ## [1.76.0] - 2026-11-10
 

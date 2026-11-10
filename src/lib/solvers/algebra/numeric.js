@@ -246,10 +246,16 @@ export function solveNumerically(equation, variable) {
   // the equation. This is what turns a scanner bug into "no answer" instead
   // of a wrong answer. Tight tolerance: bisection lands within 1e-6 easily,
   // and anything looser lets asymptotic tails through.
+  const denominators = [...denominatorsOf(left, variable), ...denominatorsOf(right, variable)];
+  const rejected = [];
   const verified = roots.filter((r) => {
     const residual = evalReal(r);
-    return Number.isFinite(residual) && Math.abs(residual) <= 1e-6;
+    if (!Number.isFinite(residual) || Math.abs(residual) > 1e-6) return false;
+    const zero = denominators.find((d) => isAtDenominatorZero(d, r, evalReal));
+    if (zero) rejected.push({ root: r, denominator: zero.text });
+    return !zero;
   });
+  const rejectedText = (r) => `${variable} ≈ ${formatNumber(r.root)}`;
 
   // None found is not none: a search over −100…100 proves nothing about
   // the rest of the line, or a root it stepped over. It was answered "No
@@ -277,7 +283,7 @@ export function solveNumerically(equation, variable) {
     return {
       envelope: unsupported({
         input: equation,
-        reason: `No solution of ${beautify(equation)} turned up in a numeric search from ${variable} = −100 to 100, but a search cannot show there is none, and no exact method applies to this equation.`,
+        reason: `${rejected.map((r) => `${rejectedText(r)} balances the two sides only as a limit: ${r.denominator} is 0 there, so the equation is undefined and it is rejected. `).join('')}No ${rejected.length ? 'other ' : ''}solution of ${beautify(equation)} turned up in a numeric search from ${variable} = −100 to 100, but a search cannot show there is none, and no exact method applies to this equation.`,
         answer: 'No solution was found, but this solver cannot show there is none',
         tips: ['This is a limitation of the solver, not proof that the equation has no solution.'],
       }),
@@ -312,6 +318,9 @@ export function solveNumerically(equation, variable) {
     steps.push(`As ${mark(`${variable} → ${endless.dir < 0 ? '−∞' : '∞'}`)}, ${mark(beautify(endless.settling))} approaches ${mark(formatNumber(endless.limit))} while ${mark(beautify(endless.periodic))} repeats every ${mark(every)} and crosses ${mark(formatNumber(-endless.limit))}, so the expression changes sign in every period from some point on: there are infinitely many solutions. Showing the ${solutions.length} closest to zero.`);
   } else if (verified.length > solutions.length) {
     steps.push(`The equation has more solutions in range; showing the ${solutions.length} closest to zero.`);
+  }
+  for (const r of rejected) {
+    steps.push(`${mark(rejectedText(r))} is rejected: the two sides only approach each other there, because ${mark(r.denominator)} is ${mark('0')} and the equation is undefined.`);
   }
   // A root located numerically is written with ≈, and with = only when the
   // number shown satisfies the equation exactly (x = 2, not x = 0.5671 for
@@ -681,6 +690,60 @@ function mergeRestrictions(regions) {
     else if (r.allowedText) points[same] = r;
   }
   return [...intervals, ...points];
+}
+
+// What a side divides by: each denominator with the variable in it, the base
+// of a negative power, and the cosine or sine behind tan, sec, cot and csc.
+function denominatorsOf(side, variable) {
+  let tree;
+  try { tree = math.parse(realOddRoots(side)); } catch { return []; }
+  const mentions = (n) => n.filter((t) => t.isSymbolNode && t.name === variable).length > 0;
+  const out = [];
+  const add = (node, wrap = (v) => v, label = (t) => t) => {
+    const compiled = node.compile();
+    out.push({
+      text: label(beautify(stripOuterParens(node.toString()))),
+      at: (x) => {
+        try {
+          const v = compiled.evaluate({ [variable]: x });
+          return typeof v === 'number' ? wrap(v) : NaN;
+        } catch { return NaN; }
+      },
+    });
+  };
+  tree.traverse((n) => {
+    if (n.isOperatorNode && n.op === '/' && mentions(n.args[1])) add(n.args[1]);
+    if (n.isOperatorNode && n.op === '^' && mentions(n.args[0])) {
+      try { if (n.args[1].evaluate() < 0) add(n.args[0]); } catch { /* an exponent in x is not a denominator */ }
+    }
+    if (n.isFunctionNode && mentions(n) && n.args.length === 1) {
+      if (n.name === 'tan' || n.name === 'sec') add(n.args[0], Math.cos, (t) => `cos(${t})`);
+      if (n.name === 'cot' || n.name === 'csc') add(n.args[0], Math.sin, (t) => `sin(${t})`);
+    }
+  });
+  return out;
+}
+
+// Is a located root really the point where a denominator is 0? Bisection
+// closes on 2.0000000000001, where (x − 2)/(x − 2) is still exactly 1, so
+// substituting back cannot see that the equation has no value at 2; a flat
+// equation stops even further off (sin(x) + x − π is 0 to rounding 10^(−5)
+// from π). So find the denominator's own zero near the root, and call the
+// root that point only if the equation balances right beside it: a real root
+// that merely sits close to a zero of the denominator does not.
+function isAtDenominatorZero(denominator, root, evalReal) {
+  if (!(Math.abs(denominator.at(root)) < 1e-3)) return false;
+  let zero = root;
+  for (let i = 0; i < 12 && denominator.at(zero) !== 0; i += 1) {
+    const slope = (denominator.at(zero + 1e-7) - denominator.at(zero - 1e-7)) / 2e-7;
+    if (!Number.isFinite(slope) || slope === 0) break;
+    zero -= denominator.at(zero) / slope;
+  }
+  const here = Math.abs(denominator.at(zero));
+  if (!(here < 1e-6) || Math.abs(zero - root) > 1e-3) return false;
+  const nearby = [zero - 1e-3, zero + 1e-3].map((x) => Math.abs(denominator.at(x))).filter(Number.isFinite);
+  if (!(nearby.length > 0 && Math.max(...nearby) > 100 * here)) return false;
+  return [zero - 1e-9, zero + 1e-9].some((x) => Math.abs(evalReal(x)) <= 1e-6);
 }
 
 function detectConstantDifference(evalReal) {
