@@ -7,7 +7,8 @@
 // checked in the original. This fell to the numeric search.
 
 import { matchingParen } from '../../mathParser.js';
-import { math, beautify, mark, loadAlgebrite } from '../solverUtils.js';
+import { math, exactForm, gcd, mark, loadAlgebrite } from '../solverUtils.js';
+import { prettyRadicals, IMAGINARY } from './rootsFormat.js';
 
 const hasVar = (t, v) => new RegExp(`(?<![a-z])${v}(?![a-z])`).test(String(t));
 
@@ -37,15 +38,67 @@ function withSigns(text, calls, signs) {
   return out + text.slice(at);
 }
 
+// A decimal as the fraction it is. Algebrite's floats leave 0.3 − 0.1 − 0.2
+// as a tiny number instead of 0, which would hide a piece true for every x.
+function exactDecimals(text) {
+  return String(text).replace(/(?<![\w.])(\d*)\.(\d+)(?![\w.])/g, (match, whole, digits, at, all) => {
+    if (digits.length > 12) return match;
+    const top = Number(`${whole}${digits}`);
+    const bottom = 10 ** digits.length;
+    const common = gcd(top, bottom);
+    if (bottom === common) return String(top / common);
+    const fraction = `${top / common}/${bottom / common}`;
+    // A neighbouring / or ^ would otherwise take only half of the fraction.
+    const before = all.slice(0, at).trimEnd().slice(-1);
+    const after = all.slice(at + match.length).trimStart()[0];
+    return before === '/' || before === '^' || after === '^' ? `(${fraction})` : fraction;
+  });
+}
+
+// Polynomials and absolute values only. Expanding a piece cancels 1/x against
+// 1/x and x/x to 1, so a variable under a division, or a power that is not a
+// whole number, would lose the values where the equation is undefined.
+function polynomialWithAbs(node, v) {
+  const check = (n) => polynomialWithAbs(n, v);
+  const mentions = (n) => n.filter((t) => t.isSymbolNode && t.name === v).length > 0;
+  switch (node.type) {
+    case 'ConstantNode': return true;
+    case 'SymbolNode': return node.name === v || node.name === 'pi' || node.name === 'e';
+    case 'ParenthesisNode': return check(node.content);
+    case 'FunctionNode': return node.name === 'abs' && node.args.length === 1 && check(node.args[0]);
+    case 'OperatorNode':
+      if (['+', '-', '*'].includes(node.op)) return node.args.every(check);
+      if (node.op === '/') return !mentions(node.args[1]) && node.args.every(check);
+      if (node.op === '^') {
+        if (!check(node.args[0])) return false;
+        try {
+          const power = node.args[1].evaluate();
+          return Number.isInteger(power) && power >= 0;
+        } catch { return false; }
+      }
+      return false;
+    default: return false;
+  }
+}
+
+// A root as a textbook writes it: √6 − 1, (√17 − 1)/2. The value is computed
+// from Algebrite's own text, never from this.
+function rootText(root) {
+  let out = prettyRadicals(exactForm(root));
+  while (/√\d+\*?√\d+/.test(out)) out = out.replace(/√(\d+)\*?√(\d+)/, (m, a, b) => `√${a * b}`);
+  const over = out.match(/^(-?√\d+)\/(\d+) ([+-]) (\d+)\/\2$/);
+  return over ? `(${over[1]} ${over[3]} ${over[4]})/${over[2]}` : out;
+}
+
 export async function solveAbsPiecewise(equation, v) {
-  const [lhs, rhs] = String(equation).split('=');
-  if (rhs === undefined) return null;
+  const sides = String(equation).split('=');
+  if (sides.length !== 2) return null;
+  const [lhs, rhs] = sides.map(exactDecimals);
   const text = `(${lhs.trim()}) - (${rhs.trim()})`;
   const calls = absCalls(text);
   if (!calls || calls.length < 2) return null;
   if (calls.some((c) => /abs\s*\(/i.test(c.arg) || !hasVar(c.arg, v))) return null;
-  // Nothing but polynomials outside the absolute values.
-  if (/(?<![a-z])(?:sin|cos|tan|sec|csc|cot|ln|log|exp|sqrt)\s*\(|\^\s*\(?[^)]*[a-z]/i.test(text.replace(/abs\s*\(/gi, '('))) return null;
+  try { if (!polynomialWithAbs(math.parse(text), v)) return null; } catch { return null; }
   const Algebrite = await loadAlgebrite();
   const run = (e) => { const o = String(Algebrite.run(e)).trim(); if (!o || /nil|stop|error/i.test(o)) throw new Error(o); return o; };
   // Where each inside is 0: linear insides only.
@@ -58,7 +111,7 @@ export async function solveAbsPiecewise(equation, v) {
       const r = run(`simplify(-(${b})/(${a}))`);
       const value = Number(math.evaluate(r));
       if (!Number.isFinite(value)) return null;
-      if (!points.some((p) => Math.abs(p.value - value) < 1e-12)) points.push({ text: beautify(r), value });
+      if (!points.some((p) => Math.abs(p.value - value) < 1e-12)) points.push({ text: exactForm(r), value });
     }
   } catch { return null; }
   points.sort((p, q) => p.value - q.value);
@@ -71,7 +124,7 @@ export async function solveAbsPiecewise(equation, v) {
   }
   const label = (p) => (p.lo && p.hi ? `${p.lo.text} ≤ ${v} < ${p.hi.text}` : p.lo ? `${v} ≥ ${p.lo.text}` : `${v} < ${p.hi.text}`);
   const inside = (p, x) => (p.lo ? x >= p.lo.value - 1e-12 : true) && (p.hi ? x <= p.hi.value + 1e-12 : true);
-  const shownAbs = calls.map((c) => `|${beautify(c.arg)}|`);
+  const shownAbs = calls.map((c) => `|${exactForm(c.arg)}|`);
   const steps = [
     `Each absolute value changes form where its inside is ${mark('0')}: ${points.map((p) => mark(`${v} = ${p.text}`)).join(' and ')}. Split the number line at ${points.length === 1 ? 'that point' : 'those points'} and solve on each piece, where every ${mark('|…|')} is its inside or minus its inside.`,
   ];
@@ -85,16 +138,16 @@ export async function solveAbsPiecewise(equation, v) {
     let expanded;
     try { expanded = run(`expand(${piece})`); } catch { return null; }
     // −x for a plain inside, −(x − 2) otherwise.
-    const neg = (arg) => (/^[a-z0-9.]+$/i.test(arg.trim()) ? `−${beautify(arg)}` : `−(${beautify(arg)})`);
-    const forms = calls.map((c, i) => `${shownAbs[i]} = ${signs[i] > 0 ? beautify(c.arg) : neg(c.arg)}`);
+    const neg = (arg) => (/^[a-z0-9.]+$/i.test(arg.trim()) ? `−${exactForm(arg)}` : `−(${exactForm(arg)})`);
+    const forms = calls.map((c, i) => `${shownAbs[i]} = ${signs[i] > 0 ? exactForm(c.arg) : neg(c.arg)}`);
     // The equation on this piece as typed, each side simplified.
     const side = (t) => {
       const own = absCalls(t) || [];
       const sg = own.map((c) => (Number(math.evaluate(c.arg, { [v]: test })) >= 0 ? 1 : -1));
-      return beautify(run(`expand(${withSigns(t, own, sg)})`));
+      return exactForm(run(`expand(${withSigns(t, own, sg)})`));
     };
     let pieceEq;
-    try { pieceEq = `${side(lhs.trim())} = ${side(rhs.trim())}`; } catch { pieceEq = `${beautify(expanded)} = 0`; }
+    try { pieceEq = `${side(lhs.trim())} = ${side(rhs.trim())}`; } catch { pieceEq = `${exactForm(expanded)} = 0`; }
     const head = `For ${mark(label(p))}: ${forms.map((f) => mark(f)).join(', ')}, so the equation is ${mark(pieceEq)}.`;
     let degree;
     try { degree = Number(run(`deg(${expanded}, ${v})`)); } catch { return null; }
@@ -115,11 +168,11 @@ export async function solveAbsPiecewise(equation, v) {
     const found = [];
     const notes = [];
     for (const r of list) {
-      if (/i/.test(r)) continue;
+      if (IMAGINARY.test(r)) continue;
       let value;
       try { value = Number(math.evaluate(r)); } catch { return null; }
       if (!Number.isFinite(value)) return null;
-      const shown = beautify(r).replace(/(\d+)\^\(1\/2\)/g, '√$1');
+      const shown = rootText(r);
       const atEdge = p.hi && Math.abs(value - p.hi.value) < 1e-12;
       if (inside(p, value)) {
         found.push({ shown, value });
@@ -151,8 +204,13 @@ export async function solveAbsPiecewise(equation, v) {
   const closedLabel = (p) => (p.lo && p.hi ? `${p.lo.text} ≤ ${v} ≤ ${p.hi.text}` : p.lo ? `${v} ≥ ${p.lo.text}` : `${v} ≤ ${p.hi.text}`);
   for (const p of intervals) {
     for (const x of [p.lo?.value, p.hi?.value].filter((t) => t !== undefined)) {
-      if (Math.abs(Number(math.evaluate(text, { [v]: x }))) > 1e-9) return null;
+      if (!(Math.abs(Number(math.evaluate(text, { [v]: x }))) <= 1e-9)) return null;
     }
+  }
+  // Every piece true for every x: the whole line.
+  if (intervals.length === 1 && !intervals[0].lo && !intervals[0].hi) {
+    steps.push('The equation holds on every piece, so all real numbers are solutions.');
+    return { steps, answer: `All real numbers (identity — true for every ${v})`, solutions: [] };
   }
   kept.sort((a, b) => a.value - b.value);
   const parts = [...intervals.map((p) => closedLabel(p)), ...kept.filter((r) => !intervals.some((p) => (p.lo ? r.value >= p.lo.value - 1e-12 : true) && (p.hi ? r.value <= p.hi.value + 1e-12 : true))).map((r) => `${v} = ${r.shown}`)];

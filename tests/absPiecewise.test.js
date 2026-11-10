@@ -31,3 +31,74 @@ test('|A| = |B| and |g| = S keep their own methods', async () => {
   assert.equal((await solvePlain('abs(x+2) = abs(2x-1)', 'auto')).answer, 'x = -1/3  or  x = 3');
   assert.equal((await solvePlain('abs(2x-3) = x+1', 'auto')).answer, 'x = 2/3  or  x = 4');
 });
+
+// Found in review of 1.76.0: each of these answered wrongly or echoed the
+// equation, where the numeric search had been right or had refused.
+const answerOf = async (p) => solvePlain(p, 'auto');
+
+test('a value where the equation is undefined is never part of a stretch', async () => {
+  for (const p of [
+    'abs(x) + abs(x-2) + 1/(x-1) = 2 + 1/(x-1)',
+    'abs(x) + abs(x-2) + 1/x = 2 + 1/x',
+    'abs(x) + abs(x-2) + x/x = 3',
+    'abs(x) + abs(x-2) + x^(-1) = 2 + x^(-1)',
+  ]) {
+    const r = await answerOf(p);
+    assert.doesNotMatch(String(r.answer), /≤ x ≤/, p);
+    assert.ok(!r.steps?.some((s) => /Each absolute value changes form/.test(s)), `${p}: split into pieces`);
+  }
+  // A variable under a division between the absolute values keeps its own path.
+  assert.equal((await answerOf('abs(x)/abs(x) = 1')).answer, 'All real numbers with x ≠ 0 (identity on its domain)');
+  assert.equal((await answerOf('abs(x)/abs(x-1) = 2')).answer, 'x = 2/3  or  x = 2');
+});
+
+test('a root with pi in it is a real root', async () => {
+  for (const [p, answer] of [
+    ['abs(x) + abs(x-2) = 4*pi', 'x = 1 - 2π  or  x = 1 + 2π'],
+    ['abs(x-pi) + abs(x+pi) = 4*pi', 'x = -2π  or  x = 2π'],
+    ['abs(x-pi) + abs(x+pi) = 2*pi', '-π ≤ x ≤ π'],
+  ]) {
+    const r = await answerOf(p);
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+    assert.ok(r.steps.some((s) => /Each absolute value changes form/.test(s)), `${p}: not split into pieces`);
+  }
+  // A genuinely complex root is still set aside.
+  assert.equal((await answerOf('abs(x) + abs(x-1) = -x^2 - 5')).answer, 'No real solution');
+});
+
+test('an equation true on every piece is all real numbers', async () => {
+  for (const p of ['abs(x) + abs(-x) = 2*abs(x)', 'abs(x) - abs(-x) = 0', 'abs(x-1) + abs(1-x) = 2*abs(x-1)', 'abs(2*x) = 2*abs(x)']) {
+    const r = await answerOf(p);
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, 'All real numbers (identity — true for every x)', p);
+  }
+});
+
+test('decimals are worked as the fractions they are', async () => {
+  for (const [p, answer] of [
+    ['abs(x-0.1) + abs(x-0.3) = 0.2', '1/10 ≤ x ≤ 3/10'],
+    ['abs(x-1/10) + abs(x-3/10) = 1/5', '1/10 ≤ x ≤ 3/10'],
+    ['abs(x-0.1) + abs(x-0.2) = 0.1', '1/10 ≤ x ≤ 1/5'],
+    ['abs(x) + abs(x-0.1) = 0.1', '0 ≤ x ≤ 1/10'],
+    ['abs(x-0.5) + abs(x-1.5) = 1', '1/2 ≤ x ≤ 3/2'],
+    ['abs(x-0.1) + abs(x-0.3) = 1', 'x = -3/10  or  x = 7/10'],
+    ['abs(x/0.5) + abs(x-1) = 4', 'x = -1  or  x = 5/3'],
+  ]) {
+    const r = await answerOf(p);
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+  }
+});
+
+test('a polynomial may stand in front of the absolute values', async () => {
+  for (const [p, answer] of [
+    ['x^2 + abs(x) + abs(x-1) = 4', 'x = -1  or  x = √6 - 1'],
+    ['abs(x)^2 + abs(x-1) = 3', 'x = -1  or  x = (√17 - 1)/2'],
+    ['x^2 + abs(x) + abs(x-5) = 36', 'x = 1 - 4√2  or  x = √42 - 1'],
+  ]) {
+    const r = await answerOf(p);
+    assert.equal(r.answer, answer, p);
+    assert.ok(r.steps.some((s) => /Each absolute value changes form/.test(s)), r.steps.join('\n'));
+  }
+});

@@ -177,6 +177,8 @@ export const CONVERTED = [
   ['auto', 'abs(x) + abs(x-2) = 2'], ['auto', 'abs(x-1) - abs(2x+3) = x'], ['auto', 'abs(x+1) + abs(x-1) = x^2'], ['auto', 'abs(x) + abs(x-2) = 1'],
   // 1.76.0: the new methods' own tips.
   ['auto', 'x*(x-1)*ln(x) = 0'], ['auto', 'x^2*(x+2)*sqrt(x-1) = 0'], ['auto', 'abs(x-1) = abs(2x+3)'], ['auto', '2^(x+1) = 3^x'],
+  // Several absolute values with pi, on every piece, and in decimals.
+  ['auto', 'abs(x) + abs(x-2) = 4*pi'], ['auto', 'abs(x-pi) + abs(x+pi) = 2*pi'], ['auto', 'abs(x) + abs(-x) = 2*abs(x)'], ['auto', 'abs(x-0.1) + abs(x-0.3) = 0.2'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a
