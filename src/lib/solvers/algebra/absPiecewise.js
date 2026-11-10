@@ -61,6 +61,17 @@ function exactDecimals(text) {
 function polynomialWithAbs(node, v) {
   const check = (n) => polynomialWithAbs(n, v);
   const mentions = (n) => n.filter((t) => t.isSymbolNode && t.name === v).length > 0;
+  // A part without the variable made of roots (√5, 3·√2, 2^(1/2)) is a
+  // number: kept when it is a real one, so the roots stay exact instead of
+  // going to the search. Logarithms stay out: Algebrite leaves log(100) as
+  // ln(100)/ln(10), not 2.
+  if (!mentions(node) && node.type !== 'ConstantNode' && node.type !== 'SymbolNode') {
+    if (node.filter((t) => t.isFunctionNode && t.name !== 'sqrt').length) return false;
+    try {
+      const value = node.evaluate();
+      return typeof value === 'number' && Number.isFinite(value);
+    } catch { return false; }
+  }
   switch (node.type) {
     case 'ConstantNode': return true;
     case 'SymbolNode': return node.name === v || node.name === 'pi' || node.name === 'e';
@@ -83,9 +94,15 @@ function polynomialWithAbs(node, v) {
 
 // A root as a textbook writes it: √6 − 1, (√17 − 1)/2. The value is computed
 // from Algebrite's own text, never from this.
-function rootText(root) {
-  let out = prettyRadicals(exactForm(root));
+// √2·√5 is √10, and 3*√2 is 3√2.
+function radicalText(t) {
+  let out = prettyRadicals(exactForm(t));
   while (/√\d+\*?√\d+/.test(out)) out = out.replace(/√(\d+)\*?√(\d+)/, (m, a, b) => `√${a * b}`);
+  return out.replace(/(\d)\*√/g, '$1√');
+}
+
+function rootText(root) {
+  const out = radicalText(root);
   const over = out.match(/^(-?√\d+)\/(\d+) ([+-]) (\d+)\/\2$/);
   return over ? `(${over[1]} ${over[3]} ${over[4]})/${over[2]}` : out;
 }
@@ -144,10 +161,10 @@ export async function solveAbsPiecewise(equation, v) {
     const side = (t) => {
       const own = absCalls(t) || [];
       const sg = own.map((c) => (Number(math.evaluate(c.arg, { [v]: test })) >= 0 ? 1 : -1));
-      return exactForm(run(`expand(${withSigns(t, own, sg)})`));
+      return radicalText(run(`expand(${withSigns(t, own, sg)})`));
     };
     let pieceEq;
-    try { pieceEq = `${side(lhs.trim())} = ${side(rhs.trim())}`; } catch { pieceEq = `${exactForm(expanded)} = 0`; }
+    try { pieceEq = `${side(lhs.trim())} = ${side(rhs.trim())}`; } catch { pieceEq = `${radicalText(expanded)} = 0`; }
     const head = `For ${mark(label(p))}: ${forms.map((f) => mark(f)).join(', ')}, so the equation is ${mark(pieceEq)}.`;
     let degree;
     try { degree = Number(run(`deg(${expanded}, ${v})`)); } catch { return null; }
