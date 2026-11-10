@@ -102,3 +102,22 @@ test('a polynomial may stand in front of the absolute values', async () => {
     assert.ok(r.steps.some((s) => /Each absolute value changes form/.test(s)), r.steps.join('\n'));
   }
 });
+
+test('a constant made of roots stays exact, and a logarithm stays out', async () => {
+  for (const [p, answer, step] of [
+    ['abs(x) + abs(x-2) = sqrt(5)', 'x = 1 - √5/2  or  x = 1 + √5/2', '-2x + 2 = √5'],
+    ['abs(x) + abs(x-2) = 3*sqrt(2)', 'x = 1 - 3√2/2  or  x = 1 + 3√2/2', '2 = 3√2'],
+    ['abs(x) + abs(x-3) = sqrt(10)', 'x = 3/2 - √10/2  or  x = 3/2 + √10/2', '2x - 3 = √10'],
+    ['abs(x) + abs(x-2) = sqrt(2)*sqrt(2)', '0 ≤ x ≤ 2', null],
+    ['abs(x-sqrt(2)) + abs(x+sqrt(2)) = sqrt(8)', '-√2 ≤ x ≤ √2', null],
+    ['abs(x) + abs(x-2) = sqrt(3)', 'No real solution', null],
+  ]) {
+    const r = await answerOf(p);
+    assert.equal(r.answer, answer, p);
+    if (step) assert.ok(r.steps.some((s) => s.includes(`so the equation is ${step}.`)), r.steps.join('\n'));
+  }
+  // log(100) is 2, but Algebrite keeps ln(100)/ln(10): the middle piece
+  // would not be seen to hold for every x.
+  const r = await answerOf('abs(x) + abs(x-2) = log(100)');
+  assert.ok(!r.steps.some((s) => /Each absolute value changes form/.test(s)), r.steps.join('\n'));
+});

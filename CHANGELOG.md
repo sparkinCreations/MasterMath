@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on every piece is all real numbers. A variable under a division or in a
   power that is not a whole number stays out of this method, so a value
   where the equation is undefined never lands inside a stretch.
+  A constant made of roots keeps the answer exact: |x| + |x − 2| = √5 is
+  x = 1 ± √5/2, not x ≈ −0.118 or x ≈ 2.118 from the numeric search.
 
 ### Fixed
 - Several absolute values with decimals are worked exactly, as fractions.
