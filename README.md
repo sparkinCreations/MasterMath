@@ -11,6 +11,8 @@ account, and works offline once it has loaded.
 [![React 19](https://img.shields.io/badge/React-19-blue)](https://react.dev/)
 [![Vite 8](https://img.shields.io/badge/Vite-8-purple)](https://vitejs.dev/)
 
+![mastermath — type a problem and get the graph and every step, offline in the browser](https://raw.githubusercontent.com/yasirwhite/opendemo-media/main/sparkinCreations-MasterMath/mastermath-demo.gif)
+
 ![The Solver with f(x) = x³ − 3x: the problem, its graph with the maximum, minimum and intercepts marked, and the start of the solution](docs/screenshots/solver-desktop.png)
 
 ## What it solves
