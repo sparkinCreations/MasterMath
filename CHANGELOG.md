@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Solved; an equation that cannot be worked is now refused. The numeric search
   lost a negative x under an odd root, x^(2/3) − 0.3x^(1/3) − 0.4 = 0. A
   rounded root was written with = when another candidate had been rejected.
+- A cubic with π, e or a square root in its coefficients comes back in a
+  moment as decimals, the number of real roots read off the discriminant. It
+  took Algebrite about ten seconds to write out Cardano's formula, which could
+  run past the solve budget and could not be read when it did not.
 
 ## [1.76.0] - 2026-11-10
 

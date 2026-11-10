@@ -11,7 +11,7 @@ import {
   MAX_POLYNOMIAL_DEGREE,
 } from '../polynomialRoots.js';
 import { getSettings } from '../../settings.js';
-import { loadAlgebrite, beautify, formatNumber, mark } from '../solverUtils.js';
+import { math, loadAlgebrite, beautify, exactForm, formatNumber, mark } from '../solverUtils.js';
 import {
   rootsViaComplexEvaluate,
   parseRootsList,
@@ -26,6 +26,65 @@ import { quadraticDerivation } from './radicals.js';
 // A known function name that is NOT followed by an argument list — "sin^2*x",
 // "ln + 3". Always a mis-read, never mathematics a solver should act on.
 const BARE_FUNCTION_NAME = /(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp)(?![a-z])\s*(?!\()/i;
+
+// A polynomial in v whose coefficients are numbers: read off the parse tree,
+// since a cubic in form only (e^x)^3 must not be taken for one.
+function isPolynomial(node, v) {
+  const check = (n) => isPolynomial(n, v);
+  const mentions = (n) => n.filter((t) => t.isSymbolNode && t.name === v).length > 0;
+  switch (node.type) {
+    case 'ConstantNode': return true;
+    case 'SymbolNode': return node.name === v || node.name === 'pi' || node.name === 'e';
+    case 'ParenthesisNode': return check(node.content);
+    case 'FunctionNode': return node.name === 'sqrt' && !mentions(node) && node.args.every(check);
+    case 'OperatorNode':
+      if (['+', '-', '*'].includes(node.op)) return node.args.every(check);
+      if (node.op === '/') return !mentions(node.args[1]) && node.args.every(check);
+      if (node.op === '^') {
+        if (!mentions(node)) return node.args.every(check);
+        try {
+          const power = node.args[1].evaluate();
+          return Number.isInteger(power) && power >= 0 && check(node.args[0]);
+        } catch { return false; }
+      }
+      return false;
+    default: return false;
+  }
+}
+
+// Three roots from the discriminant and the cubic formula in numbers: how many
+// are real is read off the sign of Δ, so a repeated root (Δ ≈ 0, where rounding
+// decides) goes back to the exact route.
+function irrationalCubic(Algebrite, target, v, clearingSteps, sides) {
+  try {
+    if (!isPolynomial(math.parse(target), v)) return null;
+    if (String(Algebrite.run(`deg(${target}, ${v})`)).trim() !== '3') return null;
+    const [d, c, b, a] = [0, 1, 2, 3].map((k) => Number(math.evaluate(String(Algebrite.run(`coeff(${target}, ${v}, ${k})`)).trim())));
+    if (![a, b, c, d].every(Number.isFinite) || a === 0) return null;
+    const delta = 18 * a * b * c * d - 4 * b ** 3 * d + b ** 2 * c ** 2 - 4 * a * c ** 3 - 27 * a ** 2 * d ** 2;
+    const scale = 1 + Math.abs(18 * a * b * c * d) + 4 * Math.abs(b ** 3 * d) + (b * c) ** 2 + 4 * Math.abs(a * c ** 3) + 27 * (a * d) ** 2;
+    if (Math.abs(delta) < 1e-9 * scale) return null;
+    const roots = math.polynomialRoot(d, c, b, a);
+    const reals = roots.map((r) => (typeof r === 'number' ? r : r.re)).filter((_, i) => typeof roots[i] === 'number' || Math.abs(roots[i].im) < 1e-9 * (1 + Math.abs(roots[i].re)));
+    if (reals.length !== (delta > 0 ? 3 : 1)) return null;
+    const value = (x) => ((a * x + b) * x + c) * x + d;
+    const size = (x) => Math.abs(a * x ** 3) + Math.abs(b * x * x) + Math.abs(c * x) + Math.abs(d);
+    if (reals.some((x) => !(Math.abs(value(x)) <= 1e-9 * (1 + size(x))))) return null;
+    const complex = roots.filter((r) => typeof r !== 'number' && Math.abs(r.im) >= 1e-9 * (1 + Math.abs(r.re))).sort((p, q) => p.im - q.im);
+    const shownReal = [...reals].sort((p, q) => p - q).map((x) => `${v} ≈ ${formatNumber(x)}`);
+    const shownComplex = complex.map((z) => `${v} ≈ ${formatComplexRoot(z).display}`);
+    return {
+      steps: [
+        ...clearingSteps,
+        `${mark(sides.map(exactForm).join(' = '))} is a cubic with ${mark('π')}, ${mark('e')} or a square root in its coefficients. Its exact roots are Cardano's formula written out, too long to be of use, so they are given as decimals.`,
+        `The discriminant is ${mark(`Δ ≈ ${formatNumber(delta)}`)}: ${delta > 0 ? `positive, so there are three distinct real roots.` : `negative, so there is one real root and a pair of complex ones.`}`,
+        `Solution: ${[...shownReal, ...shownComplex].map((t) => mark(t)).join(' or ')}`,
+      ],
+      answer: [...shownReal, ...shownComplex].join('  or  '),
+      solutions: [...reals].sort((p, q) => p - q),
+    };
+  } catch { return null; }
+}
 
 export async function solveWithAlgebriteRoots(equation, variable) {
   try {
@@ -77,6 +136,13 @@ export async function solveWithAlgebriteRoots(equation, variable) {
     // quadratic that remains — and whatever has no rational root goes to
     // the exact root finder without a call to Algebrite, whose roots() ground
     // for three seconds on an irreducible quintic before giving up.
+    // A cubic with π, e or a square root in it: Algebrite's roots() spent
+    // about ten seconds writing out Cardano's formula, which nobody could read.
+    if (!read) {
+      const cubic = irrationalCubic(Algebrite, target, variable, clearingSteps, [left.trim(), right.trim()]);
+      if (cubic) return cubic;
+    }
+
     if (read && !read.tooHigh && read.degree >= 3) {
       const leading = [
         ...(/^0$/.test(right.trim()) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),

@@ -54,3 +54,26 @@ test('a rounded root stays rounded when another candidate is rejected', async ()
   const cubic = await solvePlain('x^3 - 2*x - 3 + (x-1)/(x-1) = 1', 'algebra');
   assert.equal(cubic.answer, 'x ≈ 1.8933');
 });
+
+test('a cubic with an irrational coefficient comes back as decimals, not Cardano', async () => {
+  for (const [p, real] of [
+    ['x^3 - 2*pi*x + 4*pi = 0', 1], // Δ < 0
+    ['x^3 - 6*sqrt(2)*x + 1 = 0', 3], // Δ > 0
+    ['x^3 - 6*e*x - 2*e = 0', 3],
+  ]) {
+    const r = await solvePlain(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.ok(r.answer.length < 90, `${p}: ${r.answer}`);
+    assert.doesNotMatch(r.answer, /\^\(1\/2\)|√/, p);
+    const reals = r.answer.split(/\s{2}or\s{2}/).filter((t) => !/i\b/.test(t));
+    assert.equal(reals.length, real, r.answer);
+    assert.ok(reals.every((t) => t.includes('≈')), r.answer);
+    assert.ok(r.steps.some((s) => s.includes('discriminant')), r.steps.join('\n'));
+  }
+  // A cubic in form only, and a repeated root, keep their own routes.
+  const form = await solvePlain('(e^x)^3 = 8', 'algebra');
+  assert.match(form.answer, /0\.6931/);
+  assert.ok(!form.steps.some((s) => s.includes('discriminant')), form.steps.join('\n'));
+  assert.match((await solvePlain('(x-pi)^2*(x+1) = 0', 'algebra')).answer, /π|pi/);
+});
+
