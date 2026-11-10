@@ -7,7 +7,7 @@
 // checked in the original. This fell to the numeric search.
 
 import { matchingParen } from '../../mathParser.js';
-import { math, exactForm, gcd, mark, loadAlgebrite } from '../solverUtils.js';
+import { math, exactForm, decimalsAsFractions, mark, loadAlgebrite } from '../solverUtils.js';
 import { prettyRadicals, IMAGINARY } from './rootsFormat.js';
 
 const hasVar = (t, v) => new RegExp(`(?<![a-z])${v}(?![a-z])`).test(String(t));
@@ -36,23 +36,6 @@ function withSigns(text, calls, signs) {
     at = c.end;
   });
   return out + text.slice(at);
-}
-
-// A decimal as the fraction it is. Algebrite's floats leave 0.3 − 0.1 − 0.2
-// as a tiny number instead of 0, which would hide a piece true for every x.
-function exactDecimals(text) {
-  return String(text).replace(/(?<![\w.])(\d*)\.(\d+)(?![\w.])/g, (match, whole, digits, at, all) => {
-    if (digits.length > 12) return match;
-    const top = Number(`${whole}${digits}`);
-    const bottom = 10 ** digits.length;
-    const common = gcd(top, bottom);
-    if (bottom === common) return String(top / common);
-    const fraction = `${top / common}/${bottom / common}`;
-    // A neighbouring / or ^ would otherwise take only half of the fraction.
-    const before = all.slice(0, at).trimEnd().slice(-1);
-    const after = all.slice(at + match.length).trimStart()[0];
-    return before === '/' || before === '^' || after === '^' ? `(${fraction})` : fraction;
-  });
 }
 
 // Polynomials and absolute values only. Expanding a piece cancels 1/x against
@@ -110,7 +93,7 @@ function rootText(root) {
 export async function solveAbsPiecewise(equation, v) {
   const sides = String(equation).split('=');
   if (sides.length !== 2) return null;
-  const [lhs, rhs] = sides.map(exactDecimals);
+  const [lhs, rhs] = sides.map(decimalsAsFractions);
   const text = `(${lhs.trim()}) - (${rhs.trim()})`;
   const calls = absCalls(text);
   if (!calls || calls.length < 2) return null;

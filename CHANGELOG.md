@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and e^x + (x − 1)/(x − 1) = e + 1 answered x ≈ 1. The search closes on a
   number just beside the point, where the fraction is still 1, so the check
   by substitution passed. Such a root is now rejected, with the reason shown.
+- Equations found wrong by the new cross-check. Two sides that are the same
+  product, (x − 1)(x − 2) = (x − 1)(x − 2), listed its factors' roots instead
+  of all real numbers. A decimal in |…| with a factor outside, 2|3x − 0.3| =
+  0.3, crashed on Algebrite's "0.150000..." and showed the typed equation as
+  Solved; an equation that cannot be worked is now refused. The numeric search
+  lost a negative x under an odd root, x^(2/3) − 0.3x^(1/3) − 0.4 = 0. A
+  rounded root was written with = when another candidate had been rejected.
 
 ## [1.76.0] - 2026-11-10
 

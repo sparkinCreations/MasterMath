@@ -158,6 +158,15 @@ export async function solveAlgebra(expression, options = {}) {
     return withWorkedExpression(await simplifyExpression(expression), expression);
   } catch (error) {
     console.error('Algebra solver error:', error);
+    // An equation has an answer or a refusal: the typed text is neither, and
+    // it was shown marked Solved.
+    if (isEquation(expression)) {
+      return unsupported({
+        input: expression,
+        reason: `${beautify(expression)} could not be worked here.`,
+        answer: 'This equation is beyond what this solver can compute',
+      });
+    }
     return {
       steps: [
         `Identify the expression: ${beautify(expression)}`,
@@ -582,7 +591,15 @@ async function solveEquation(expression, options = {}) {
     const extraneous = solutions.filter((x) => Number.isFinite(x) && (!definedAt(lhs, x) || !definedAt(rhs, x)));
     if (extraneous.length > 0) {
       const keep = solutions.filter((x) => !extraneous.includes(x));
-      const kept = keep.map((x) => `${variable} = ${formatNumber(x)}`);
+      // Written back from a number, so = only when the number shown solves it.
+      const exactly = (x) => {
+        try {
+          const shown = { [variable]: Number(formatNumber(x)) };
+          const [l, r] = [math.evaluate(realOddRoots(lhs), shown), math.evaluate(realOddRoots(rhs), shown)];
+          return typeof l === 'number' && typeof r === 'number' && Math.abs(l - r) <= 1e-12 * (1 + Math.abs(l));
+        } catch { return false; }
+      };
+      const kept = keep.map((x) => `${variable} ${exactly(x) ? '=' : '≈'} ${formatNumber(x)}`);
       steps = [
         ...steps,
         `Check each candidate in the ORIGINAL equation: ${extraneous.map((x) => `${variable} = ${formatNumber(x)}`).join(', ')} leave${extraneous.length === 1 ? 's' : ''} the original equation undefined (a denominator of zero, or an even root or logarithm of a negative number), so ${extraneous.length === 1 ? 'it is' : 'they are'} extraneous and ${extraneous.length === 1 ? 'is' : 'are'} rejected.`,

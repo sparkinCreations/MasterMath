@@ -379,6 +379,13 @@ export function exactDecimalSigns(text) {
   });
 }
 
+// exactDecimals for text a student reads: x - 1/10, not x - (1/10). The
+// brackets stay beside a / or ^, or after a number or letter, where the
+// fraction would otherwise be read differently.
+export function decimalsAsFractions(text) {
+  return exactDecimals(text).replace(/(?<![\w)/^]\s*)\((\d+\/\d+)\)(?!\s*\^)/g, '$1');
+}
+
 // Every decimal as the fraction it is, reduced and in brackets: 0.5 → (1/2),
 // 1.5 → (3/2), 0.001 → (1/1000), 3.0 → 3. For the engines: on a decimal
 // Algebrite turns to floating point, writes x^2.0, and fails on integrals

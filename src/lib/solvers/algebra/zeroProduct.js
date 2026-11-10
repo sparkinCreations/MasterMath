@@ -63,6 +63,9 @@ function productFactors(lhs, rhs, v) {
     return { negative: num < 0, body };
   });
   const sum = rest.map((r, k) => (k === 0 ? `${r.negative ? '-' : ''}${r.body}` : ` ${r.negative ? '-' : '+'} ${r.body}`)).join('');
+  // The two sides are the same product: (1 − 1) is 0 for every x, so this is
+  // an identity on its domain, not an equation in its factors.
+  try { if (!hasVar(sum, v) && Math.abs(math.evaluate(sum)) < 1e-12) return null; } catch { return null; }
   const factors = [...common, sum];
   if (factors.filter((f) => hasVar(f, v)).length < 2) return null;
   return { factors, factored: `${common.map((c) => (/[+-]/.test(c) ? `(${c})` : c)).join('*')}*(${sum})` };

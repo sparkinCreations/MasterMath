@@ -12,6 +12,7 @@ import {
   hasVariable,
   mark,
   absBars,
+  decimalsAsFractions,
 } from '../solverUtils.js';
 import { satisfiesEquation, parseRootsList, prettyRadicals } from './rootsFormat.js';
 import { numericText, asNumber } from './radicals.js';
@@ -25,7 +26,7 @@ import { solveWithAlgebriteRoots } from './polynomial.js';
 // is not of this shape.
 export async function solveAbsoluteValueEquation(equation, variable) {
   const v = variable;
-  const [lhsRaw, rhsRaw] = equation.split('=').map((t) => t.replace(/\s+/g, ''));
+  const [lhsRaw, rhsRaw] = equation.split('=').map((t) => decimalsAsFractions(t).replace(/\s+/g, ''));
   if (!lhsRaw || rhsRaw === undefined) return null;
   const isConst = (t) => t !== '' && !/[a-z]/i.test(t.replace(/\b(?:pi|sqrt|e)\b/gi, ''));
   const parseSide = (side) => {

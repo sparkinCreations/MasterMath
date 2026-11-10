@@ -162,7 +162,7 @@ export function solveNumerically(equation, variable) {
     const fb = evalReal(b);
     if (!Number.isFinite(fa) || !Number.isFinite(fb)) return;
     if (Math.sign(fa) !== Math.sign(fb) && fa !== 0 && fb !== 0) {
-      const root = refineRoot(expression, variable, a, b);
+      const root = refineRoot(realExpression, variable, a, b);
       if (root !== null && !seen(root)) roots.push(root);
       return;
     }
