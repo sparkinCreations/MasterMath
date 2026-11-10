@@ -892,7 +892,7 @@ export default function GraphViewer({ functionData }) {
   );
   const title = (
     <>
-      <TrendingUp className="w-6 h-6 text-indigo-600" aria-hidden="true" />
+      <TrendingUp className="w-6 h-6 text-gray-500 dark:text-gray-400" aria-hidden="true" />
       {functionData.title || "Graph View"}
     </>
   );

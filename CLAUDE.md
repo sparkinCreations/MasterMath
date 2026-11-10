@@ -20,8 +20,10 @@ the logo; green = answer, amber = tips. Since 1.70.4 the UI is plain: no
 gradients, a solid blue-50 page, thin grey borders; headings, the name and
 action buttons are blue-800 (blue-300 in dark mode, dark text); Solve is the
 one orange button; a selected tab or option is gray-900 (white in dark
-mode), so "picked" never looks like "press". The home page's worked example
-copies the Solver's look by hand: change both.
+mode), so "picked" never looks like "press". Decorative icons (section
+headers, feature cards, empty states) are one grey (gray-500, gray-400 in
+dark mode): colour is kept for what it means. The home page's
+worked example copies the Solver's look by hand: change both.
 
 ## Layout
 

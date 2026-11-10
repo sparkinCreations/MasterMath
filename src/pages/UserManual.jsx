@@ -30,7 +30,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <BookOpen className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Welcome to MasterMath!
           </CardTitle>
         </CardHeader>
@@ -48,7 +48,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Calculator className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <Calculator className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Getting Started - Using the Solver
           </CardTitle>
         </CardHeader>
@@ -101,7 +101,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <ListChecks className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <ListChecks className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             What You Can Enter
           </CardTitle>
         </CardHeader>
@@ -140,7 +140,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <TrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+            <TrendingUp className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Understanding Your Solution
           </CardTitle>
         </CardHeader>
@@ -220,7 +220,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <SettingsIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <SettingsIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Settings
           </CardTitle>
         </CardHeader>
@@ -239,7 +239,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <TimerOff className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+            <TimerOff className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             The 10-Second Limit and Cancel
           </CardTitle>
         </CardHeader>
@@ -257,7 +257,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Download className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <Download className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Exporting Solutions
           </CardTitle>
         </CardHeader>
@@ -277,7 +277,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <History className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            <History className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Tracking Your Progress
           </CardTitle>
         </CardHeader>
@@ -300,7 +300,7 @@ export default function UserManual() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Lightbulb className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+            <Lightbulb className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Tips for Success
           </CardTitle>
         </CardHeader>

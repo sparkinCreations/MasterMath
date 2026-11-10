@@ -23,7 +23,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Scale className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <Scale className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Agreement to Terms
           </CardTitle>
         </CardHeader>
@@ -40,7 +40,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <BookOpen className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Description of Service
           </CardTitle>
         </CardHeader>
@@ -79,7 +79,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <CheckCircle className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Acceptable Use
           </CardTitle>
         </CardHeader>
@@ -103,7 +103,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+            <XCircle className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Prohibited Use
           </CardTitle>
         </CardHeader>
@@ -129,7 +129,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+            <AlertTriangle className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Academic Integrity
           </CardTitle>
         </CardHeader>
@@ -156,7 +156,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <AlertTriangle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+            <AlertTriangle className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Accuracy Disclaimer - Verify Your Sources
           </CardTitle>
         </CardHeader>
@@ -197,7 +197,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <AlertTriangle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+            <AlertTriangle className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             No Warranty - Use at Your Own Risk
           </CardTitle>
         </CardHeader>
@@ -245,7 +245,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <Scale className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <Scale className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Limitation of Liability
           </CardTitle>
         </CardHeader>
@@ -278,7 +278,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <FileText className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            <FileText className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Intellectual Property
           </CardTitle>
         </CardHeader>
@@ -341,7 +341,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <FileText className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Modifications to Service and Terms
           </CardTitle>
         </CardHeader>
@@ -386,7 +386,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <XCircle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+            <XCircle className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Termination
           </CardTitle>
         </CardHeader>
@@ -423,7 +423,7 @@ export default function TermsOfService() {
       <Card className="mb-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="flex items-center gap-2 dark:text-gray-100">
-            <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <FileText className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             Contact Information
           </CardTitle>
         </CardHeader>
