@@ -694,7 +694,7 @@ function mergeRestrictions(regions) {
 
 // What a side divides by: each denominator with the variable in it, the base
 // of a negative power, and the cosine or sine behind tan, sec, cot and csc.
-function denominatorsOf(side, variable) {
+export function denominatorsOf(side, variable) {
   let tree;
   try { tree = math.parse(realOddRoots(side)); } catch { return []; }
   const mentions = (n) => n.filter((t) => t.isSymbolNode && t.name === variable).length > 0;
@@ -724,6 +724,22 @@ function denominatorsOf(side, variable) {
   return out;
 }
 
+// The zero of a denominator within `radius` of a value, or null. Falling away
+// from larger values nearby tells a true 0 from one that is merely small.
+export function denominatorZeroNear(denominator, root, radius = 1e-3) {
+  if (!(Math.abs(denominator.at(root)) < 1e-3)) return null;
+  let zero = root;
+  for (let i = 0; i < 12 && denominator.at(zero) !== 0; i += 1) {
+    const slope = (denominator.at(zero + 1e-7) - denominator.at(zero - 1e-7)) / 2e-7;
+    if (!Number.isFinite(slope) || slope === 0) break;
+    zero -= denominator.at(zero) / slope;
+  }
+  const here = Math.abs(denominator.at(zero));
+  if (!(here < 1e-6) || Math.abs(zero - root) > radius) return null;
+  const nearby = [zero - 1e-3, zero + 1e-3].map((x) => Math.abs(denominator.at(x))).filter(Number.isFinite);
+  return nearby.length > 0 && Math.max(...nearby) > 100 * here ? zero : null;
+}
+
 // Is a located root really the point where a denominator is 0? Bisection
 // closes on 2.0000000000001, where (x − 2)/(x − 2) is still exactly 1, so
 // substituting back cannot see that the equation has no value at 2; a flat
@@ -732,17 +748,8 @@ function denominatorsOf(side, variable) {
 // root that point only if the equation balances right beside it: a real root
 // that merely sits close to a zero of the denominator does not.
 function isAtDenominatorZero(denominator, root, evalReal) {
-  if (!(Math.abs(denominator.at(root)) < 1e-3)) return false;
-  let zero = root;
-  for (let i = 0; i < 12 && denominator.at(zero) !== 0; i += 1) {
-    const slope = (denominator.at(zero + 1e-7) - denominator.at(zero - 1e-7)) / 2e-7;
-    if (!Number.isFinite(slope) || slope === 0) break;
-    zero -= denominator.at(zero) / slope;
-  }
-  const here = Math.abs(denominator.at(zero));
-  if (!(here < 1e-6) || Math.abs(zero - root) > 1e-3) return false;
-  const nearby = [zero - 1e-3, zero + 1e-3].map((x) => Math.abs(denominator.at(x))).filter(Number.isFinite);
-  if (!(nearby.length > 0 && Math.max(...nearby) > 100 * here)) return false;
+  const zero = denominatorZeroNear(denominator, root);
+  if (zero === null) return false;
   return [zero - 1e-9, zero + 1e-9].some((x) => Math.abs(evalReal(x)) <= 1e-6);
 }
 

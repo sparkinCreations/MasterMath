@@ -37,7 +37,7 @@ import {
   solveViaLogSubstitution,
   solvePowerEquation,
 } from './algebra/expLog.js';
-import { solveNumerically } from './algebra/numeric.js';
+import { solveNumerically, denominatorsOf, denominatorZeroNear } from './algebra/numeric.js';
 import { solveForVariable } from './algebra/twoVariables.js';
 import { solveZeroProduct } from './algebra/zeroProduct.js';
 import { solveAbsPiecewise } from './algebra/absPiecewise.js';
@@ -588,7 +588,11 @@ async function solveEquation(expression, options = {}) {
         return false;
       }
     };
-    const extraneous = solutions.filter((x) => Number.isFinite(x) && (!definedAt(lhs, x) || !definedAt(rhs, x)));
+    // An exact root is rounded when it is evaluated, so 1 + √2 can miss the
+    // zero of x − 1 − √2 and leave a finite, meaningless value there.
+    const denominators = [...denominatorsOf(lhs, variable), ...denominatorsOf(rhs, variable)];
+    const atDenominatorZero = (x) => denominators.some((d) => denominatorZeroNear(d, x, 1e-9 * (1 + Math.abs(x))) !== null);
+    const extraneous = solutions.filter((x) => Number.isFinite(x) && (!definedAt(lhs, x) || !definedAt(rhs, x) || atDenominatorZero(x)));
     if (extraneous.length > 0) {
       const keep = solutions.filter((x) => !extraneous.includes(x));
       // Written back from a number, so = only when the number shown solves it.
@@ -629,7 +633,7 @@ async function solveEquation(expression, options = {}) {
     if (checks.length === solutions.filter(Number.isFinite).length && checks.length > 0) {
       steps = [
         ...steps,
-        `Check in the original equation: ${checks.map((c) => `${variable} = ${formatNumber(c.x)} gives ${absBars(beautify(lhs.trim()))} = ${formatNumber(c.l)} and ${absBars(beautify(rhs.trim()))} = ${formatNumber(c.r)}`).join('; ')} ✓`,
+        `Check in the original equation: ${checks.map((c) => `${variable} ${Math.abs(Number(formatNumber(c.x)) - c.x) <= 1e-12 * (1 + Math.abs(c.x)) ? '=' : '≈'} ${formatNumber(c.x)} gives ${absBars(beautify(lhs.trim()))} = ${formatNumber(c.l)} and ${absBars(beautify(rhs.trim()))} = ${formatNumber(c.r)}`).join('; ')} ✓`,
       ];
     }
   }

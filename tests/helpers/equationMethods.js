@@ -16,6 +16,8 @@ export const NUMBERS = {
   pi: { text: (n) => `${n}*pi`, of: (n) => n * Math.PI },
   e: { text: (n) => `${n}*e`, of: (n) => n * Math.E },
   'square roots': { text: (n) => `${n}*sqrt(2)`, of: (n) => n * Math.SQRT2 },
+  // A decimal beside an irrational: Algebrite floats the lot.
+  'decimals with pi': { text: (n) => `${(n / 10).toFixed(1)}*pi`, of: (n) => (n / 10) * Math.PI },
 };
 
 const signed = (n, k) => (k < 0 ? `-${n.text(-k)}` : n.text(k));

@@ -85,6 +85,16 @@ export function finalizeResult(result, input) {
       ],
     });
   }
+  // A division by 0 in a solved answer is an exact method that fell apart
+  // (two roots too close: "x = 1/0 + √2"), not a value. An answer about the
+  // division says so in words and carries its own status.
+  if (typeof result.answer === 'string' && (result.status === undefined || result.status === STATUS.SOLVED) && /\/0(?![\d.])/.test(result.answer) && !/undefined|divides? by zero|does not exist/i.test(result.answer)) {
+    return unsupported({
+      input,
+      reason: 'The exact method broke down on this input, giving a division by zero in the answer. Two of its solutions may be too close together to separate. This is a limitation of the solver.',
+      answer: 'This problem is beyond what this solver can compute',
+    });
+  }
   // Numbers are fine as answers, but the UI and exports expect a string.
   // The ⟦…⟧ math markers (mathMarkers.js) belong to steps, tips and
   // mistakes, which the page typesets by them; the answer is graded, saved

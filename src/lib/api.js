@@ -9,7 +9,7 @@
 
 import { extractFunctionFromProblem, parseMathExpression, extractVariable } from './mathParser.js';
 import { STATUS, parseError, solved, unsupported } from './solutionEnvelope.js';
-import { bareFunctionName, bareFunctionRefusal, beautify, splitVariableProducts } from './solvers/solverUtils.js';
+import { bareFunctionName, bareFunctionRefusal, beautify, splitVariableProducts, stripOuterParens } from './solvers/solverUtils.js';
 import { mark } from './mathMarkers.js';
 import { readPlainEnglish } from './plainEnglish.js';
 import { syntaxProblem } from './syntaxCheck.js';
@@ -197,6 +197,13 @@ async function solveProblemOnce(problem, topic) {
     // "x squared", "e to the x", "is greater than", "x**3" → notation,
     // before routing reads it (plainEnglish.js).
     problem = readPlainEnglish(problem);
+    // (x^2 = 4): brackets round a whole equation are not part of either side.
+    // Split at "=" they left each side unbalanced, and every candidate looked
+    // undefined. stripOuterParens only takes a pair that encloses all of it.
+    if (problem.includes('=') && !problem.includes(';')) {
+      const bare = stripOuterParens(problem);
+      if (bare.includes('=')) problem = bare;
+    }
     // "xy = 6; x + y = 5", "2xy + x = 3": variables side by side are a
     // product, as implicit differentiation already read them; Algebra
     // refused "xy" as an unknown word (outside review, November 2026;
