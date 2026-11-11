@@ -206,6 +206,7 @@ substitutions; |g| = an expression and |A| = |B| in cases; a product = 0
 factor by factor (`algebra/zeroProduct.js`); exponentials in a common base
 or by logs (`algebra/exponentialBases.js`); u = x^p
 (`algebra/powerSubstitution.js`); two square roots (`algebra/twoRadicals.js`);
+roots in a + b√n in exact arithmetic, a nested root undone (`algebra/surdRoots.js`);
 the numeric scan last, saying it is a numeric answer and naming the hand
 method for the shape (a gap found there is a method to add, not a scan to
 keep); Algebrite roots checked for completeness against the degree,

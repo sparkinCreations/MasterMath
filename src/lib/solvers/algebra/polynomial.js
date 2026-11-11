@@ -23,6 +23,7 @@ import {
   IMAGINARY,
 } from './rootsFormat.js';
 import { quadraticDerivation } from './radicals.js';
+import { exactSurdRoots, isqrt } from './surdRoots.js';
 
 // A known function name that is NOT followed by an argument list — "sin^2*x",
 // "ln + 3". Always a mis-read, never mathematics a solver should act on.
@@ -122,13 +123,16 @@ export function groupRootLines(written, misleads, roots, variable, multiplicity)
 // The most distinct roots a list may have and still be shown as decimals.
 export const MAX_DECIMAL_ROOTS = 8;
 
-// Which written roots mislead: a form at odds with its value (`hides`).
+// Which written roots mislead: a form at odds with its value (`hides`), or one
+// too long to be of use (`tooLong`).
 export function misleadingForms(written) {
   const hides = written.map(writtenFormMisleads);
-  return { hides, misleads: hides };
+  const tooLong = written.map((t) => t.length > 60);
+  return { hides, tooLong, misleads: written.map((_, i) => hides[i] || tooLong[i]) };
 }
 
-// The answer for Algebrite's root list (`rootsRaw` is its list, `asWritten` the answer from it as it stands): each
+// The answer for Algebrite's root list when no exact a + b√n form was found
+// (`rootsRaw` is its list, `asWritten` the answer from it as it stands): each
 // misleading root as a decimal while there are at most MAX_DECIMAL_ROOTS of
 // them; past that, a form that hides real or complex is refused, never shown.
 export function rootListAnswer(rootsRaw, variable, multiplicity, asWritten) {
@@ -144,6 +148,199 @@ export function rootListAnswer(rootsRaw, variable, multiplicity, asWritten) {
     return { refuse: 'The exact form of these roots hides whether they are real or complex, and there are too many to list as decimals. This is a limitation of the solver.' };
   }
   return { answer: asWritten };
+}
+
+// How many times each listed root counts, summing to the degree: from the list
+// when it repeats them, else from the exact value of each derivative at the
+// root. Null when that cannot reach the degree.
+export function provenMultiplicities(Algebrite, target, v, written) {
+  const degree = Number(String(Algebrite.run(`deg(${target}, ${v})`)).trim());
+  const listed = [...new Set(written)];
+  const counts = new Map(listed.map((t) => [t, written.filter((w) => w === t).length]));
+  if (written.length >= degree) return counts;
+  if (!Number.isInteger(degree) || degree > 12) return null;
+  const proven = new Map();
+  for (const root of listed) {
+    let m = 0;
+    let derivative = target;
+    while (m < degree) {
+      let value;
+      try { value = String(Algebrite.run(`simplify(subst((${root}), ${v}, ${derivative}))`)).trim(); } catch { break; }
+      if (value !== '0') break;
+      m += 1;
+      derivative = `d(${derivative}, ${v})`;
+    }
+    proven.set(root, Math.max(m, 1));
+  }
+  return [...proven.values()].reduce((sum, m) => sum + m, 0) === degree ? proven : null;
+}
+
+// Four roots of a quartic, accounted for as a set: four of them, none too close
+// to tell apart, complex ones in conjugate pairs, and multiplied back together
+// they give the polynomial. `coefficients` are highest power first. Each root
+// balancing on its own would not show that none was missed or counted twice.
+export function checkedQuarticRoots(coefficients, roots) {
+  if (roots.length !== 4 || !roots.every((r) => Number.isFinite(r.re) && Number.isFinite(r.im))) return null;
+  const clean = roots.map((r) => (Math.abs(r.im) < 1e-9 * (1 + Math.abs(r.re)) ? { re: r.re, im: 0 } : r));
+  const span = 1 + Math.max(...clean.map((r) => Math.hypot(r.re, r.im)));
+  for (let i = 0; i < 4; i += 1) {
+    for (let j = i + 1; j < 4; j += 1) {
+      if (Math.hypot(clean[i].re - clean[j].re, clean[i].im - clean[j].im) < 1e-5 * span) return null;
+    }
+  }
+  const above = clean.filter((r) => r.im > 0);
+  const below = clean.filter((r) => r.im < 0);
+  if (above.length !== below.length) return null;
+  if (!above.every((u) => below.some((w) => Math.hypot(u.re - w.re, u.im + w.im) < 1e-7 * span))) return null;
+  // Expand (x − r₁)(x − r₂)(x − r₃)(x − r₄), and its size with every sign taken
+  // positive, which is what rounding is relative to.
+  let product = [{ re: 1, im: 0 }];
+  let size = [1];
+  for (const r of clean) {
+    const next = Array.from({ length: product.length + 1 }, () => ({ re: 0, im: 0 }));
+    product.forEach((c, k) => {
+      next[k].re += c.re;
+      next[k].im += c.im;
+      next[k + 1].re -= c.re * r.re - c.im * r.im;
+      next[k + 1].im -= c.re * r.im + c.im * r.re;
+    });
+    const modulus = Math.hypot(r.re, r.im);
+    size = Array.from({ length: size.length + 1 }, (_, k) => (size[k] ?? 0) + (k > 0 ? size[k - 1] * modulus : 0));
+    product = next;
+  }
+  const lead = coefficients[0];
+  const agrees = coefficients.every((c, k) => Math.hypot(product[k].re - c / lead, product[k].im) <= 1e-9 * (1 + Math.abs(c / lead) + size[k]));
+  return agrees ? clean : null;
+}
+
+// Durand–Kerner in plain numbers, for a quartic whose coefficients are not
+// fractions. Highest power first.
+function quarticRootsNumeric(coefficients) {
+  const monic = coefficients.map((c) => c / coefficients[0]);
+  const radius = 1 + Math.max(...monic.slice(1).map(Math.abs));
+  let z = [0, 1, 2, 3].map((k) => ({ re: radius * Math.cos(0.4 + k * 1.57), im: radius * Math.sin(0.4 + k * 1.57) }));
+  const times = (p, q) => ({ re: p.re * q.re - p.im * q.im, im: p.re * q.im + p.im * q.re });
+  const over = (p, q) => { const d = q.re * q.re + q.im * q.im; return { re: (p.re * q.re + p.im * q.im) / d, im: (p.im * q.re - p.re * q.im) / d }; };
+  for (let step = 0; step < 2000; step += 1) {
+    let moved = 0;
+    z = z.map((r, i) => {
+      const value = monic.reduce((sum, c) => { const t = times(sum, r); return { re: t.re + c, im: t.im }; }, { re: 0, im: 0 });
+      const below = z.reduce((p, w, j) => (j === i ? p : times(p, { re: r.re - w.re, im: r.im - w.im })), { re: 1, im: 0 });
+      const delta = over(value, below);
+      moved = Math.max(moved, Math.hypot(delta.re, delta.im));
+      return { re: r.re - delta.re, im: r.im - delta.im };
+    });
+    if (moved < 1e-15 * radius) break;
+  }
+  return z;
+}
+
+function isQuarticPolynomial(Algebrite, target, v) {
+  try { return isPolynomial(math.parse(target), v) && String(Algebrite.run(`deg(${target}, ${v})`)).trim() === '4'; } catch { return false; }
+}
+
+// A quartic with a repeated root in a + b√n: proven there, without roots().
+function exactRepeatedQuartic(target, v, clearingSteps) {
+  const exact = /(?<![a-z])sqrt\(|\^\(1\/2\)/.test(target) ? exactSurdRoots(target, v) : null;
+  if (!exact || exact.roots.reduce((sum, r) => sum + r.multiplicity, 0) !== 4) return null;
+  const line = (r) => `${v} = ${r.text}${r.multiplicity > 1 ? ` (repeated root, multiplicity ${r.multiplicity})` : ''}`;
+  return {
+    steps: [...clearingSteps, ...exact.steps, `Solution: ${exact.roots.map((r) => `${mark(`${v} = ${r.text}`)}${r.multiplicity > 1 ? ` (repeated root, multiplicity ${r.multiplicity})` : ''}`).join(' or ')}`],
+    answer: exact.roots.map(line).join('  or  '),
+    solutions: exact.roots.map((r) => r.value),
+  };
+}
+
+// A written-out quartic with π, e or a square root: Algebrite spent seconds on
+// Ferrari's formula, which nobody could read. A factored form, or x⁴ + π with
+// no x or x³ term, stays with Algebrite: its exact answer is short and quick.
+function irrationalQuartic(Algebrite, target, v, clearingSteps, sides, equation) {
+  try {
+    if (!isPolynomial(math.parse(target), v)) return null;
+    let top = math.parse(sides[0]);
+    while (top.type === 'ParenthesisNode') top = top.content;
+    if (!(top.type === 'OperatorNode' && (top.op === '+' || top.op === '-') && top.args.length === 2)) return null;
+    if (String(Algebrite.run(`deg(${target}, ${v})`)).trim() !== '4') return null;
+    const coefficients = [4, 3, 2, 1, 0].map((k) => Number(math.evaluate(String(Algebrite.run(`coeff(${target}, ${v}, ${k})`)).trim())));
+    if (!coefficients.every(Number.isFinite) || (coefficients[1] === 0 && coefficients[3] === 0)) return null;
+    const checked = checkedQuarticRoots(coefficients, quarticRootsNumeric(coefficients));
+    if (!checked) return null;
+    if (!rootsBalance(`[${checked.map((r) => `(${r.re})+(${r.im})*i`).join(',')}]`, target, v, equation)) return null;
+    const sorted = [...checked].sort((p, q) => (p.im !== 0) - (q.im !== 0) || p.re - q.re || p.im - q.im);
+    const shown = sorted.map((r) => `${v} ≈ ${formatComplexRoot(r).display}`);
+    return {
+      steps: [
+        ...clearingSteps,
+        `${mark(sides.map(exactForm).join(' = '))} is a quartic with ${mark('π')}, ${mark('e')} or a square root in its coefficients. Its exact roots are too long to be of use, so they are found numerically.`,
+        'All four roots are accounted for: multiplied back together they give the polynomial, each one balances the equation, and complex roots come in conjugate pairs.',
+        `Solution: ${shown.map((t) => mark(t)).join(' or ')}`,
+      ],
+      answer: shown.join('  or  '),
+      solutions: sorted.filter((r) => r.im === 0).map((r) => r.re),
+    };
+  } catch { return null; }
+}
+
+// A quadratic whose coefficients run past 10^9. A common factor is divided out
+// and the small equation solved as usual; failing that, the formula in exact
+// integers. Null for anything smaller.
+async function largeQuadratic(read, target, variable, equation, clearingSteps) {
+  const parts = read.coefficients.map((c) => ({ m: BigInt(c.s) * BigInt(c.n), d: BigInt(c.d) }));
+  const bgcd = (p, q) => (q === 0n ? (p < 0n ? -p : p) : bgcd(q, p % q));
+  const common = parts.reduce((l, c) => (l * c.d) / bgcd(l, c.d), 1n);
+  let [C, B, A] = parts.map((c) => (c.m * common) / c.d);
+  const limit = 1000000000n;
+  const size = (x) => (x < 0n ? -x : x);
+  if (![A, B, C].some((x) => size(x) >= limit)) return null;
+  const g = bgcd(bgcd(A, B), C);
+  [A, B, C] = [A / g, B / g, C / g];
+  if (A < 0n) [A, B, C] = [-A, -B, -C];
+  const shown = `${A === 1n ? '' : `${A}*`}x^2${B === 0n ? '' : ` ${B < 0n ? '-' : '+'} ${size(B) === 1n ? '' : `${size(B)}*`}x`}${C === 0n ? '' : ` ${C < 0n ? '-' : '+'} ${size(C)}`}`.replace(/x/g, variable);
+  if (![A, B, C].some((x) => size(x) >= limit)) {
+    const small = await solveWithAlgebriteRoots(`${shown} = 0`, variable);
+    if (!small || small.envelope) return null;
+    return { ...small, steps: [...clearingSteps, `Divide every term by the common factor ${mark(String(g))}: ${mark(`${beautify(shown)} = 0`)}.`, ...small.steps] };
+  }
+  const D = B * B - 4n * A * C;
+  const abs = size(D);
+  let [s, t, rest] = [1n, 1n, abs];
+  for (let p = 2n; p * p <= rest && p < 200000n; p += 1n) {
+    let k = 0;
+    while (rest % p === 0n) { rest /= p; k += 1; }
+    s *= p ** BigInt(k >> 1);
+    if (k % 2) t *= p;
+  }
+  const leftover = isqrt(rest);
+  if (leftover * leftover === rest) s *= leftover;
+  else t *= rest;
+  const over = (top, bottom) => {
+    const k = bgcd(top, bottom) || 1n;
+    return `${top / k}${bottom / k === 1n ? '' : `/${bottom / k}`}`;
+  };
+  const two = 2n * A;
+  const unit = D < 0n ? 'i' : '';
+  const surd = t === 1n ? '' : `√${t}`;
+  const raw = [-1n, 1n].map((sign) => `(${-B} ${sign < 0n ? '-' : '+'} ${s}${t === 1n ? '' : `*${t}^(1/2)`}${D < 0n ? '*i' : ''})/${two}`);
+  if (!rootsBalance(`[${raw.join(',')}]`, target, variable, equation)) return null;
+  const k = bgcd(bgcd(B, s), two) || 1n;
+  const text = (sign) => {
+    if (D === 0n) return over(-B, two);
+    if (t === 1n && D > 0n) return over(-B + sign * s, two);
+    const part = `${s / k === 1n ? '' : s / k}${unit}${surd}`;
+    const body = B === 0n ? `${sign < 0n ? '-' : ''}${part}` : `${-B / k} ${sign < 0n ? '-' : '+'} ${part}`;
+    return two / k === 1n ? body : B === 0n ? `${body}/${two / k}` : `(${body})/${two / k}`;
+  };
+  const answer = D === 0n ? `${variable} = ${text(1n)} (repeated root, multiplicity 2)` : `${variable} = ${text(-1n)}  or  ${variable} = ${text(1n)}`;
+  return {
+    steps: [
+      ...clearingSteps,
+      `Discriminant: ${mark(`b² − 4ac = ${D}`)}.`,
+      `Quadratic formula: ${mark(`${variable} = (−b ± √(b² − 4ac))/(2a)`)}.`,
+      `Solution: ${answer}`,
+    ],
+    answer,
+    solutions: D < 0n ? [] : [-1, 1].map((sign) => (-Number(B) + sign * Number(s) * Math.sqrt(Number(t))) / Number(two)).filter((x, i, all) => all.indexOf(x) === i),
+  };
 }
 
 // The size of a number, real or complex.
@@ -253,6 +450,10 @@ export async function solveWithAlgebriteRoots(equation, variable) {
       try { if (isPolynomial(math.parse(target), variable)) target = decimalsAsFractions(target); } catch { /* not a polynomial */ }
       const cubic = irrationalCubic(Algebrite, target, variable, clearingSteps, [left.trim(), right.trim()]);
       if (cubic) return cubic;
+      const quartic = irrationalQuartic(Algebrite, target, variable, clearingSteps, [left.trim(), right.trim()], equation);
+      if (quartic) return quartic;
+      const repeated = exactRepeatedQuartic(target, variable, clearingSteps);
+      if (repeated) return repeated;
     }
 
     if (read && !read.tooHigh && read.degree >= 3) {
@@ -266,10 +467,22 @@ export async function solveWithAlgebriteRoots(equation, variable) {
 
     // Algebrite throws "not factorable" for x^5 − x + 1: every root is
     // still found numerically rather than left to the zero-crossing scan.
+    // A quadratic with very large coefficients: Algebrite's roots() factors
+    // them, 32 seconds at 10^11, past the page's budget.
+    if (read && read.degree === 2) {
+      const large = await largeQuadratic(read, target, variable, equation, clearingSteps);
+      if (large) return large;
+    }
+
     let rootsRaw;
     try {
       rootsRaw = Algebrite.roots(target, variable).toString();
     } catch {
+      // A quartic with irrational coefficients has no other complete route:
+      // the numeric scan could miss a root or lose how often one repeats.
+      if (!read && isQuarticPolynomial(Algebrite, target, variable)) {
+        return { envelope: unsupported({ input: equation, reason: 'The roots of this quartic could not all be accounted for, so none are shown. This is a limitation of the solver.', answer: 'This equation is beyond what this solver can compute' }) };
+      }
       return rootsViaPolynomialRoot(Algebrite, target, variable);
     }
 
@@ -312,16 +525,36 @@ export async function solveWithAlgebriteRoots(equation, variable) {
       };
     }
 
-    const roots = parseRootsList(rootsRaw);
+    let roots = parseRootsList(rootsRaw);
     if (roots.length === 0) return null;
     const refuse = (reason) => ({ envelope: unsupported({ input: equation, reason, answer: 'This equation is beyond what this solver can compute' }) });
 
-    let answer = formatSolutions(roots, variable);
+    // With irrational coefficients the list can hold a repeated root only
+    // once: [pi, -i, i] for (x − π)²(x² + 1). How many times is proven here,
+    // and a list that cannot reach the degree is refused.
     const written = splitRootsList(rootsRaw).map((t) => t.trim());
-    const { hides } = misleadingForms(written);
-    const shown = rootListAnswer(rootsRaw, variable, new Map(), answer);
-    if (shown.refuse) return refuse(shown.refuse);
-    answer = shown.answer;
+    let multiplicity = new Map();
+    if (!read && isPolynomial(math.parse(target), variable)) {
+      const proven = provenMultiplicities(Algebrite, target, variable, written);
+      if (!proven) return refuse('The exact method did not account for every root of this polynomial, so none are shown. This is a limitation of the solver.');
+      multiplicity = proven;
+      const listed = [...new Set(written)];
+      if (listed.reduce((sum, t) => sum + proven.get(t), 0) > written.length) {
+        roots = listed.flatMap((t) => Array(proven.get(t)).fill(roots[written.indexOf(t)]));
+      }
+    }
+
+    let answer = formatSolutions(roots, variable);
+    const { hides, tooLong, misleads } = misleadingForms(written);
+    // Worked again in a + b√n when that says it plainly: x = 1 + √2, not a
+    // decimal, and not a quotient with a radical below the line.
+    const exact = misleads.some(Boolean) || written.some((t) => /\/\(/.test(t)) ? exactSurdRoots(target, variable) : null;
+    if (exact) answer = exact.roots.map((r) => `${variable} = ${r.text}${r.multiplicity > 1 ? ` (repeated root, multiplicity ${r.multiplicity})` : ''}`).join('  or  ');
+    else {
+      const shown = rootListAnswer(rootsRaw, variable, multiplicity, answer);
+      if (shown.refuse) return refuse(shown.refuse);
+      answer = shown.answer;
+    }
     // Algebrite lists a double root once; a quadratic with a single root has
     // it twice, and the answer says so.
     if (roots.length === 1 && !/multiplicity/.test(answer) && String(Algebrite.run(`deg(${target}, ${variable})`)).trim() === '2') {
@@ -337,11 +570,15 @@ export async function solveWithAlgebriteRoots(equation, variable) {
       ...(/^0$/.test(right.trim()) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),
       ...clearingSteps,
       ...(derivation || [`Solve for ${variable} by finding the roots.`]),
-      ...(hides.some(Boolean) ? ['The exact form hides whether these roots are real or complex, so they are given as decimals.'] : []),
-      `Solution: ${answer}`,
+      ...(exact ? exact.steps : []),
+      ...(!exact && hides.some(Boolean) ? ['The exact form hides whether these roots are real or complex, so they are given as decimals.'] : []),
+      ...(!exact && !hides.some(Boolean) && tooLong.some(Boolean) ? ['The exact form is too long to be of use, so these roots are given as decimals.'] : []),
+      exact
+        ? `Solution: ${exact.roots.map((r) => `${mark(`${variable} = ${r.text}`)}${r.multiplicity > 1 ? ` (repeated root, multiplicity ${r.multiplicity})` : ''}`).join(' or ')}`
+        : `Solution: ${answer}`,
     ];
 
-    return { steps, answer, solutions: numericSolutions };
+    return { steps, answer, solutions: exact ? exact.roots.map((r) => r.value) : numericSolutions };
   } catch (e) {
     return null;
   }
