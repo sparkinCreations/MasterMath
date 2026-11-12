@@ -121,8 +121,8 @@ test('a cubic with an irrational coefficient, at every multiplicity', async () =
     assert.ok(r.answer.split(/\s{2}or\s{2}/).every((t) => t.includes('≈')), r.answer);
   }
   // Double and triple roots, and two roots 10⁻⁶ apart, stay on the exact route.
-  assert.match((await solvePlain('(x-pi)^2*(x+1) = 0', 'algebra')).answer, /^x = -1 {2}or {2}x = pi\b/);
-  assert.match((await solvePlain(expanded('sqrt(2)', 'sqrt(2)', 'sqrt(2)'), 'algebra')).answer, /^x = √2\b/);
+  assert.equal((await solvePlain('(x-pi)^2*(x+1) = 0', 'algebra')).answer, 'x = -1  or  x = pi (repeated root, multiplicity 2)');
+  assert.equal((await solvePlain(expanded('sqrt(2)', 'sqrt(2)', 'sqrt(2)'), 'algebra')).answer, 'x = √2 (repeated root, multiplicity 3)');
   const apart = await solvePlain(expanded('sqrt(2)', '(sqrt(2) + 1/1000000)', '3'), 'algebra');
   assert.equal(apart.answer.split(/\s{2}or\s{2}/).length, 3, apart.answer);
   // A rational cubic stays exact.
@@ -249,9 +249,71 @@ test('an exact form that says what it is stays exact', async () => {
   assert.equal(writtenFormMisleads('(-40 + pi^2)^(1/2)'), true);
 });
 
+test('roots in a + b√n are worked exactly, with a nested root undone', async () => {
+  for (const [p, answer] of [
+    ['x^2 = 3 + 2*sqrt(2)', 'x = -1 - √2  or  x = 1 + √2'],
+    ['x^2 = (1+sqrt(2))^2', 'x = -1 - √2  or  x = 1 + √2'],
+    ['x^2 = 3 - 2*sqrt(2)', 'x = 1 - √2  or  x = -1 + √2'],
+    ['x^2 = 7 + 4*sqrt(3)', 'x = -2 - √3  or  x = 2 + √3'],
+    ['x^3 - (sqrt(2) + sqrt(2) + 3)*x^2 + (sqrt(2)*sqrt(2) + sqrt(2)*3 + 3*sqrt(2))*x - sqrt(2)*sqrt(2)*3 = 0', 'x = √2 (repeated root, multiplicity 2)  or  x = 3'],
+  ]) {
+    const r = await solvePlain(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+    assert.ok(r.steps.some((t) => /a \+ b√/.test(t)), r.steps.join('\n'));
+  }
+  // Not a perfect square in that field: decimals stay, nothing is invented.
+  assert.equal((await solvePlain('x^2 = 1 + sqrt(2)', 'algebra')).answer, 'x ≈ -1.5538  or  x ≈ 1.5538');
+  assert.equal((await solvePlain('x^2 = 3 + sqrt(5)', 'algebra')).answer, 'x ≈ -2.2882  or  x ≈ 2.2882');
+});
 
+test('the field arithmetic proves what it returns', async () => {
+  const { exactSurdRoots } = await import('../src/lib/solvers/algebra/surdRoots.js');
+  const shown = (t) => exactSurdRoots(t, 'x')?.roots.map((r) => [r.text, r.multiplicity]);
+  assert.deepEqual(shown('x^2 - 3 - 2*sqrt(2)'), [['-1 - √2', 1], ['1 + √2', 1]]);
+  assert.deepEqual(shown('(x - sqrt(2))^2*(x - 3)'), [['√2', 2], ['3', 1]]);
+  assert.deepEqual(shown('(x - sqrt(2))^3'), [['√2', 3]]);
+  assert.equal(exactSurdRoots('x^2 - sqrt(2) - sqrt(3)', 'x'), null, 'two different radicals');
+  assert.equal(exactSurdRoots('x^2 - pi', 'x'), null, 'π is not in the field');
+  assert.equal(exactSurdRoots('x^2 - 1 - sqrt(2)', 'x'), null, 'no square root in the field');
+  assert.equal(exactSurdRoots('x^3 - sqrt(2)*x + 1', 'x'), null, 'a cubic with no repeated root');
+});
 
+test('a quadratic with very large coefficients does not wait on Algebrite', async () => {
+  for (const [p, answer] of [
+    ['100000000000*x^2 + 300000000000*x - 100000000000 = 0', 'x = (-3 - √13)/2  or  x = (-3 + √13)/2'],
+    ['1000000000000000*x^2 + 3000000000000000*x - 1000000000000000 = 0', 'x = (-3 - √13)/2  or  x = (-3 + √13)/2'],
+    ['100000000000*x^2 - 500000000000*x + 600000000000 = 0', 'x = 2  or  x = 3'],
+    ['100000000007*x^2 - 100000000007*x - 200000000014 = 0', 'x = -1  or  x = 2'],
+    ['1000000007*x^2 + 1000000009*x + 3 = 0', null],
+    ['1000000000000*x^2 + 1000000000000*x + 1000000000000 = 0', 'x = (-1 - i√3)/2  or  x = (-1 + i√3)/2'],
+  ]) {
+    const start = Date.now();
+    const r = await solvePlain(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.ok(Date.now() - start < 8000, `${p}: ${Date.now() - start} ms`);
+    if (answer) assert.equal(r.answer, answer, p);
+  }
+  // A common factor is divided out and said so.
+  const common = await solvePlain('100000000000*x^2 + 300000000000*x - 100000000000 = 0', 'algebra');
+  assert.ok(common.steps.some((t) => t.includes('Divide every term by the common factor 100000000000')), common.steps.join('\n'));
+  // No common factor to remove: the formula, each root compared by value.
+  const { endpointValue } = await import('./helpers/crossCheck.js');
+  for (const [a, b, c] of [[1000000007, 3000000019, 1000000021], [1000000007, -5000000029, 2000000011]]) {
+    const r = await solvePlain(`${a}*x^2 ${b < 0 ? '-' : '+'} ${Math.abs(b)}*x + ${c} = 0`, 'algebra');
+    const got = r.answer.split(/\s{2}or\s{2}/).map((t) => endpointValue(t.replace(/^x = /, ''))).sort((u, v) => u - v);
+    const want = [-1, 1].map((sign) => (-b + sign * Math.sqrt(b * b - 4 * a * c)) / (2 * a)).sort((u, v) => u - v);
+    assert.ok(got.length === 2 && got.every((x, i) => Math.abs(x - want[i]) < 1e-6), `${r.answer}: wanted ${want}`);
+  }
+});
 
+test('an unreadable closed form becomes decimals', async () => {
+  const r = await solvePlain('x^4 + pi*x + 1 = 0', 'algebra');
+  assert.equal(r.status, 'solved');
+  const parts = r.answer.split(/\s{2}or\s{2}/);
+  assert.equal(parts.length, 4, r.answer);
+  assert.ok(parts.every((t) => t.length < 40 && t.includes('≈')), r.answer);
+});
 
 test('brackets round a whole equation are not part of either side', async () => {
   for (const [p, answer] of [
@@ -315,3 +377,85 @@ test('the solver refuses nine roots with a misleading form and shows eight', asy
   const eight = await solvePlain(`${q}*(x-1)*(x-2)*(x-3)*(x-4)*(x-5)*(x-6) = 0`, 'algebra');
   assert.equal(eight.answer, 'x = 1  or  x = 2  or  x = 3  or  x = 4  or  x = 5  or  x = 6  or  x ≈ -1.5708 - 2.7446i  or  x ≈ -1.5708 + 2.7446i');
 });
+
+const quartic = (a, b, c, d) => {
+  const pairs = [[a, b], [a, c], [a, d], [b, c], [b, d], [c, d]].map(([u, v]) => `(${u})*(${v})`).join(' + ');
+  const triples = [[a, b, c], [a, b, d], [a, c, d], [b, c, d]].map((t) => t.map((u) => `(${u})`).join('*')).join(' + ');
+  return `x^4 - (${a} + ${b} + ${c} + ${d})*x^3 + (${pairs})*x^2 - (${triples})*x + (${a})*(${b})*(${c})*(${d}) = 0`;
+};
+const pieces = (answer) => answer.split(/\s{2}or\s{2}/);
+
+test('a quartic with an irrational coefficient accounts for all four roots', async () => {
+  for (const [p, reals, complex] of [
+    [quartic('pi', '1', '-sqrt(2)', '3'), [-Math.SQRT2, 1, 3, Math.PI], 0],
+    ['x^4 + pi*x + 1 = 0', [-1.3378, -0.3217], 2],
+    ['x^4 + e*x^2 + pi*x + 1 = 0', [], 4],
+  ]) {
+    const start = Date.now();
+    const r = await solvePlain(p, 'algebra');
+    assert.equal(r.status, 'solved', p);
+    assert.ok(Date.now() - start < 4000, `${p}: ${Date.now() - start} ms`);
+    const parts = pieces(r.answer);
+    assert.equal(parts.length, 4, r.answer);
+    assert.ok(parts.every((t) => t.startsWith('x ≈ ')), r.answer);
+    const got = parts.filter((t) => !t.includes('i')).map((t) => Number(t.replace('x ≈ ', '')));
+    assert.ok(got.length === reals.length && got.every((x, i) => Math.abs(x - reals[i]) < 1e-3), r.answer);
+    assert.equal(parts.filter((t) => t.includes('i')).length, complex, r.answer);
+    assert.ok(r.steps.some((t) => /multipl/i.test(t) && /four/.test(t)), r.steps.join('\n'));
+  }
+});
+
+test('the numeric quartic refuses a list it cannot account for', async () => {
+  const { checkedQuarticRoots: check } = await import('../src/lib/solvers/algebra/polynomial.js');
+  const c = (re, im = 0) => ({ re, im });
+  // x⁴ − 10x² + 9, roots ±1, ±3, coefficients highest first.
+  const P = [1, 0, -10, 0, 9];
+  assert.ok(check(P, [c(-3), c(-1), c(1), c(3)]));
+  assert.equal(check(P, [c(-3), c(-1), c(1)]), null, 'three of four');
+  assert.equal(check(P, [c(-3), c(-1), c(1), c(4)]), null, 'does not multiply back');
+  // (x² + 1)(x² + 4): two conjugate pairs; one root off its pair is refused.
+  const Q = [1, 0, 5, 0, 4];
+  assert.ok(check(Q, [c(0, -2), c(0, -1), c(0, 1), c(0, 2)]));
+  assert.equal(check(Q, [c(0, -2), c(0.5, 1), c(0, 1.5), c(0, 2)]), null, 'not conjugate pairs');
+  // Two roots too close to tell apart are refused, never merged.
+  const R = [1, -2.0000001, 1.0000001 - 1, 2.0000001, -1.0000001];
+  assert.equal(check(R, [c(-1), c(1), c(1), c(1.0000001)]), null, 'too close');
+});
+
+test('multiplicities are proven, never guessed from nearby decimals', async () => {
+  const { provenMultiplicities, groupRootLines } = await import('../src/lib/solvers/algebra/polynomial.js');
+  const { loadAlgebrite } = await import('../src/lib/solvers/solverUtils.js');
+  const Algebrite = await loadAlgebrite();
+  const counts = (t, listed) => { const m = provenMultiplicities(Algebrite, t, 'x', listed); return m && Object.fromEntries(m); };
+  assert.deepEqual(counts('(x - pi)^2*(x^2 + 1)', ['pi', '-i', 'i']), { pi: 2, '-i': 1, i: 1 });
+  assert.deepEqual(counts('(x - 1)^2*(x + 2)', ['1', '1', '-2']), { 1: 2, '-2': 1 });
+  assert.equal(counts('(x - pi)^2*(x^2 + 1)', ['pi', 'i']), null, 'a list that cannot reach the degree');
+  // Two different roots that round alike are not one repeated root.
+  assert.equal(groupRootLines(['(-40+pi^2)^(1/2)', '(-40+pi^2)^(1/2)+0.0000001'], [true, true], [{}, {}], 'x', new Map()), null);
+  const r = await solvePlain('(x^2 + pi*x + 10)^2 = 0', 'algebra');
+  assert.equal(r.answer, 'x ≈ -1.5708 - 2.7446i (multiplicity 2)  or  x ≈ -1.5708 + 2.7446i (multiplicity 2)');
+  assert.equal((await solvePlain('(x - pi)^2*(x^2 + 1) = 0', 'algebra')).answer, 'x = pi (repeated root, multiplicity 2)  or  x = -i  or  x = i');
+  // A triple root, and two double roots, in a written-out quartic.
+  assert.equal((await solvePlain(quartic('sqrt(2)', 'sqrt(2)', 'sqrt(2)', '3'), 'algebra')).answer, 'x = √2 (repeated root, multiplicity 3)  or  x = 3');
+  assert.equal((await solvePlain(quartic('sqrt(3)', 'sqrt(3)', '1', '1'), 'algebra')).answer, 'x = 1 (repeated root, multiplicity 2)  or  x = √3 (repeated root, multiplicity 2)');
+  // A repeated root in a written-out quartic stays exact.
+  assert.match((await solvePlain(quartic('pi', 'pi', '1', '2'), 'algebra')).answer, /multiplicity 2/);
+  // Rational quartics keep their exact route.
+  assert.equal((await solvePlain('x^4 - 10*x^2 + 9 = 0', 'algebra')).answer, 'x = -3  or  x = -1  or  x = 1  or  x = 3');
+  assert.equal((await solvePlain('x^4 - 10*x^3 + 35*x^2 - 50*x + 24 = 0', 'algebra')).answer, 'x = 1  or  x = 2  or  x = 3  or  x = 4');
+});
+
+test('the integer square root is exact around 2^53 and past it', async () => {
+  const { isqrt } = await import('../src/lib/solvers/algebra/surdRoots.js');
+  for (const n of [0n, 1n, 2n, 3n, 4n, 2n ** 53n - 1n, 2n ** 53n, 2n ** 53n + 1n, 10n ** 40n - 1n]) {
+    const r = isqrt(n);
+    assert.ok(r * r <= n && (r + 1n) * (r + 1n) > n, String(n));
+  }
+  const big = (2n ** 53n + 1n) ** 2n;
+  assert.equal(isqrt(big), 2n ** 53n + 1n);
+  assert.equal(isqrt(big - 1n), 2n ** 53n);
+  // (1000000007x + 3)(1000000009x + 5): above 2^53, no common factor, a perfect square inside.
+  const r = await solvePlain('1000000016000000063*x^2 + 8000000062*x + 15 = 0', 'algebra');
+  assert.equal(r.answer, 'x = -5/1000000009  or  x = -3/1000000007');
+});
+

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.77.0] - 2026-11-11
+
+### Added
+- Roots in a + b√n are worked exactly (`algebra/surdRoots.js`), a nested root
+  undone when it has a square root in the field: x² = 3 + 2√2 is x = ±(1 + √2)
+  and a repeated root is √2, not a quotient with a radical below the line. Each
+  root is proved by substitution in exact arithmetic.
+- A quadratic with coefficients past 10^9 no longer waits on Algebrite, which
+  took 18 s to a minute: a common factor is divided out, and otherwise the
+  formula runs in exact integers.
+- A written-out quartic with π, e or a square root comes back as decimals in
+  a moment, all four roots accounted for: multiplied back they give the
+  polynomial, and complex ones come in conjugate pairs. A closed form too long
+  to read becomes decimals too.
+
+### Fixed
+- A repeated root keeps its count where Algebrite listed it once:
+  (x − π)²(x² + 1) = 0 is x = π with multiplicity 2. The count is proven from
+  the derivatives, and two roots that merely round alike are refused, never
+  merged.
+
 ## [1.76.1] - 2026-11-11
 
 ### Fixed

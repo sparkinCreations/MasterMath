@@ -175,6 +175,20 @@ const numericSearch = (r, n) => oneOf(r, [
   () => ({ lhs: 'e^x', rhs: `x ${plus(n, int(r, 2, 6))}`, window: 12 }),
 ])();
 
+// Roots in a + b√n: an exact square root in the field, and a repeated root.
+const RADICANDS = [2, 3, 5];
+const surdSquare = (r) => {
+  const [p, q, n] = [nonzero(r, -4, 4), nonzero(r, -3, 3), RADICANDS[int(r, 0, 2)]];
+  const constant = p * p + q * q * n;
+  return { lhs: 'x^2', rhs: `${constant} ${2 * p * q < 0 ? '-' : '+'} ${Math.abs(2 * p * q)}*sqrt(${n})` };
+};
+const surdRepeated = (r) => {
+  const [q, n, k] = [int(r, 1, 3), RADICANDS[int(r, 0, 2)], int(r, 4, 9)];
+  const a = `(${q}*sqrt(${n}))`;
+  return { lhs: `x^3 - (${a} + ${a} + ${k})*x^2 + (${a}*${a} + ${a}*${k} + ${k}*${a})*x - ${a}*${a}*${k}`, rhs: '0' };
+};
+const surdAnything = (r) => ({ lhs: 'x^2', rhs: `${int(r, 1, 9)} + ${int(r, 1, 3)}*sqrt(${RADICANDS[int(r, 0, 2)]})` });
+
 export const METHODS = {
   'absPiecewise.js': absPiecewise,
   'specialForms.js': { perFamily: 4, families: [
@@ -189,6 +203,13 @@ export const METHODS = {
   ] },
   'exponentialBases.js': { perFamily: 4, families: awkward(twoBases) },
   'polynomial.js': { perFamily: 4, families: awkward(polynomialEq) },
+  'surdRoots.js': { perFamily: 8, marker: /a \+ b√/, families: [
+    { name: 'an exact square root in the field', make: surdSquare, answered: 0.7 },
+    // Algebrite usually writes these well, so this checks the value; the exact
+    // form is pinned in tests/equationFindings.test.js.
+    { name: 'a repeated root', make: surdRepeated },
+    { name: 'any nested root', make: surdAnything },
+  ] },
   'powerSubstitution.js': { perFamily: 4, families: awkward(powerSubstitution) },
   'twoRadicals.js': { perFamily: 4, families: awkward(twoRadicals) },
   'zeroProduct.js': { perFamily: 4, families: awkward(zeroProduct) },

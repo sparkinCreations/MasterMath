@@ -178,7 +178,7 @@ export const CONVERTED = [
   // 1.76.0: the new methods' own tips.
   ['auto', 'x*(x-1)*ln(x) = 0'], ['auto', 'x^2*(x+2)*sqrt(x-1) = 0'], ['auto', 'abs(x-1) = abs(2x+3)'], ['auto', '2^(x+1) = 3^x'],
   // Several absolute values with pi, on every piece, and in decimals.
-  ['auto', 'abs(x) + abs(x-2) = 4*pi'], ['auto', 'abs(x-pi) + abs(x+pi) = 2*pi'], ['auto', 'abs(x) + abs(-x) = 2*abs(x)'], ['auto', 'abs(x-0.1) + abs(x-0.3) = 0.2'], ['auto', 'abs(2*x-sqrt(5)) + abs(x) = 3'], ['algebra', 'abs(x)+abs(x-1)+(x-2)/(x-2)=4'], ['algebra', 'x^3 - 2*pi*x + 4*pi = 0'], ['algebra', 'x^2 + pi*x + 10 = 0'], ['algebra', 'x^2 = 3 + 2*sqrt(2)'], ['algebra', 'x^2 = 1 + sqrt(2)'], ['auto', 'abs(x) + abs(x-3) = sqrt(10)'], ['auto', 'abs(x) + abs(x-2) = 3*sqrt(2)'],
+  ['auto', 'abs(x) + abs(x-2) = 4*pi'], ['auto', 'abs(x-pi) + abs(x+pi) = 2*pi'], ['auto', 'abs(x) + abs(-x) = 2*abs(x)'], ['auto', 'abs(x-0.1) + abs(x-0.3) = 0.2'], ['auto', 'abs(2*x-sqrt(5)) + abs(x) = 3'], ['algebra', 'abs(x)+abs(x-1)+(x-2)/(x-2)=4'], ['algebra', 'x^3 - 2*pi*x + 4*pi = 0'], ['algebra', 'x^2 + pi*x + 10 = 0'], ['algebra', 'x^2 = 3 + 2*sqrt(2)'], ['algebra', 'x^2 = 1 + sqrt(2)'], ['algebra', 'x^4 + pi*x + 1 = 0'], ['algebra', '100000000000*x^2 + 300000000000*x - 100000000000 = 0'], ['algebra', '1000000007*x^2 + 3000000019*x + 1000000021 = 0'], ['algebra', '(x - sqrt(2))^2*(x - 3) = 0'], ['auto', 'abs(x) + abs(x-3) = sqrt(10)'], ['auto', 'abs(x) + abs(x-2) = 3*sqrt(2)'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a
