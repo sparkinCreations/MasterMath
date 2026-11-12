@@ -102,3 +102,63 @@ test('a polynomial may stand in front of the absolute values', async () => {
     assert.ok(r.steps.some((s) => /Each absolute value changes form/.test(s)), r.steps.join('\n'));
   }
 });
+
+test('a constant made of roots stays exact, and a logarithm stays out', async () => {
+  for (const [p, answer, step] of [
+    ['abs(x) + abs(x-2) = sqrt(5)', 'x = 1 - √5/2  or  x = 1 + √5/2', '-2x + 2 = √5'],
+    ['abs(x) + abs(x-2) = 3*sqrt(2)', 'x = 1 - 3√2/2  or  x = 1 + 3√2/2', '2 = 3√2'],
+    ['abs(x) + abs(x-3) = sqrt(10)', 'x = 3/2 - √10/2  or  x = 3/2 + √10/2', '2x - 3 = √10'],
+    ['abs(x) + abs(x-2) = sqrt(2)*sqrt(2)', '0 ≤ x ≤ 2', null],
+    ['abs(x-sqrt(2)) + abs(x+sqrt(2)) = sqrt(8)', '-√2 ≤ x ≤ √2', null],
+    ['abs(x) + abs(x-2) = sqrt(3)', 'No real solution', null],
+  ]) {
+    const r = await answerOf(p);
+    assert.equal(r.answer, answer, p);
+    if (step) assert.ok(r.steps.some((s) => s.includes(`so the equation is ${step}.`)), r.steps.join('\n'));
+  }
+  // log(100) is 2, but Algebrite keeps ln(100)/ln(10): the middle piece
+  // would not be seen to hold for every x.
+  const r = await answerOf('abs(x) + abs(x-2) = log(100)');
+  assert.ok(!r.steps.some((s) => /Each absolute value changes form/.test(s)), r.steps.join('\n'));
+});
+
+test('a constant that is 0 only in value is not taken for a number', async () => {
+  // Each right side is 2, so 0 ≤ x ≤ 2 is the answer; Algebrite does not
+  // reduce these, and the middle piece looked false, leaving only the ends.
+  for (const p of [
+    'abs(x) + abs(x-2) = sqrt(3+2*sqrt(2)) - sqrt(2) + 1',
+    'abs(x) + abs(x-2) = 1/(sqrt(2)-1) - sqrt(2) + 1',
+  ]) {
+    const r = await answerOf(p);
+    assert.ok(!r.steps?.some((s) => /Each absolute value changes form/.test(s)), `${p}: split into pieces`);
+    assert.notEqual(r.status, 'solved', p);
+  }
+});
+
+test('a root is only shown exactly when it can be read', async () => {
+  for (const p of ['abs(sqrt(2)*x-1) + abs(x) = 3', 'abs(x) + abs(x-1) = x^2 - sqrt(2)']) {
+    const r = await answerOf(p);
+    assert.equal(r.status, 'solved', p);
+    assert.doesNotMatch(r.answer, /√\(|\/\(/, p);
+    assert.match(r.answer, /≈/, p);
+  }
+  const r = await answerOf('abs(2*x-sqrt(5)) + abs(x) = 3');
+  assert.equal(r.answer, 'x = √5/3 - 1  or  x = 1 + √5/3');
+  assert.ok(r.steps.some((s) => s.startsWith('For x ≥ √5/2:')), r.steps.join('\n'));
+});
+
+// The two sides touch and do not cross, so a scan for sign changes cannot see
+// these (tests/absPiecewiseCrossCheck.test.js): each answer is stated exactly.
+test('a repeated root that touches without crossing is kept', async () => {
+  for (const [p, answer] of [
+    ['abs(x) + abs(x-1) = -x^2 + 6*x - 5', 'x = 2'], // inside the last piece
+    ['abs(x) + abs(x-1) = x^2 + 4*x + 10', 'x = -3'], // inside the first piece
+    ['abs(x) + abs(x-1) = x^2 - x + 5/4', 'x = -1/2  or  x = 1/2  or  x = 3/2'], // one on each piece
+    ['abs(x-1) + abs(2*x-2) = 0', 'x = 1'], // at the corner itself
+  ]) {
+    const r = await answerOf(p);
+    assert.equal(r.status, 'solved', p);
+    assert.equal(r.answer, answer, p);
+    assert.ok(r.steps.some((s) => /Each absolute value changes form/.test(s)), `${p}: not split into pieces`);
+  }
+});

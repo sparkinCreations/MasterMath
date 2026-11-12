@@ -11,7 +11,7 @@ import {
   MAX_POLYNOMIAL_DEGREE,
 } from '../polynomialRoots.js';
 import { getSettings } from '../../settings.js';
-import { loadAlgebrite, beautify, formatNumber, mark } from '../solverUtils.js';
+import { math, loadAlgebrite, beautify, exactForm, decimalsAsFractions, formatNumber, mark } from '../solverUtils.js';
 import {
   rootsViaComplexEvaluate,
   parseRootsList,
@@ -20,12 +20,180 @@ import {
   formatComplexRoot,
   cleanNumber,
   splitRootsList,
+  IMAGINARY,
 } from './rootsFormat.js';
 import { quadraticDerivation } from './radicals.js';
 
 // A known function name that is NOT followed by an argument list — "sin^2*x",
 // "ln + 3". Always a mis-read, never mathematics a solver should act on.
 const BARE_FUNCTION_NAME = /(?<![a-z])(?:arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|sec|csc|cot|sqrt|abs|ln|log|exp)(?![a-z])\s*(?!\()/i;
+
+// A polynomial in v whose coefficients are numbers: read off the parse tree,
+// since a cubic in form only (e^x)^3 must not be taken for one.
+function isPolynomial(node, v) {
+  const check = (n) => isPolynomial(n, v);
+  const mentions = (n) => n.filter((t) => t.isSymbolNode && t.name === v).length > 0;
+  switch (node.type) {
+    case 'ConstantNode': return true;
+    case 'SymbolNode': return node.name === v || node.name === 'pi' || node.name === 'e';
+    case 'ParenthesisNode': return check(node.content);
+    case 'FunctionNode': return node.name === 'sqrt' && !mentions(node) && node.args.every(check);
+    case 'OperatorNode':
+      if (['+', '-', '*'].includes(node.op)) return node.args.every(check);
+      if (node.op === '/') return !mentions(node.args[1]) && node.args.every(check);
+      if (node.op === '^') {
+        if (!mentions(node)) return node.args.every(check);
+        try {
+          const power = node.args[1].evaluate();
+          return Number.isInteger(power) && power >= 0 && check(node.args[0]);
+        } catch { return false; }
+      }
+      return false;
+    default: return false;
+  }
+}
+
+// Three roots from the discriminant and the cubic formula in numbers: how many
+// are real is read off the sign of Δ, so a repeated root (Δ ≈ 0, where rounding
+// decides) goes back to the exact route.
+function irrationalCubic(Algebrite, target, v, clearingSteps, sides) {
+  try {
+    if (!isPolynomial(math.parse(target), v)) return null;
+    if (String(Algebrite.run(`deg(${target}, ${v})`)).trim() !== '3') return null;
+    const [d, c, b, a] = [0, 1, 2, 3].map((k) => Number(math.evaluate(String(Algebrite.run(`coeff(${target}, ${v}, ${k})`)).trim())));
+    if (![a, b, c, d].every(Number.isFinite) || a === 0) return null;
+    const delta = 18 * a * b * c * d - 4 * b ** 3 * d + b ** 2 * c ** 2 - 4 * a * c ** 3 - 27 * a ** 2 * d ** 2;
+    const scale = 1 + Math.abs(18 * a * b * c * d) + 4 * Math.abs(b ** 3 * d) + (b * c) ** 2 + 4 * Math.abs(a * c ** 3) + 27 * (a * d) ** 2;
+    if (Math.abs(delta) < 1e-9 * scale) return null;
+    const roots = math.polynomialRoot(d, c, b, a);
+    const reals = roots.map((r) => (typeof r === 'number' ? r : r.re)).filter((_, i) => typeof roots[i] === 'number' || Math.abs(roots[i].im) < 1e-9 * (1 + Math.abs(roots[i].re)));
+    if (reals.length !== (delta > 0 ? 3 : 1)) return null;
+    const value = (x) => ((a * x + b) * x + c) * x + d;
+    const size = (x) => Math.abs(a * x ** 3) + Math.abs(b * x * x) + Math.abs(c * x) + Math.abs(d);
+    if (reals.some((x) => !(Math.abs(value(x)) <= 1e-9 * (1 + size(x))))) return null;
+    const complex = roots.filter((r) => typeof r !== 'number' && Math.abs(r.im) >= 1e-9 * (1 + Math.abs(r.re))).sort((p, q) => p.im - q.im);
+    // Each complex root substituted back as well: a pair comes from the same formula.
+    const times = ([p, q], [r, s]) => [p * r - q * s, p * s + q * r];
+    const atComplex = (z) => [b, c, d].reduce(([re, im], k) => { const [x, y] = times([re, im], [z.re, z.im]); return [x + k, y]; }, [a, 0]);
+    if (complex.length !== 3 - reals.length || complex.some((z) => !(Math.hypot(...atComplex(z)) <= 1e-9 * (1 + size(Math.hypot(z.re, z.im)))))) return null;
+    const shownReal = [...reals].sort((p, q) => p - q).map((x) => `${v} ≈ ${formatNumber(x)}`);
+    const shownComplex = complex.map((z) => `${v} ≈ ${formatComplexRoot(z).display}`);
+    return {
+      steps: [
+        ...clearingSteps,
+        `${mark(sides.map(exactForm).join(' = '))} is a cubic with ${mark('π')}, ${mark('e')} or a square root in its coefficients. Its exact roots are Cardano's formula written out, too long to be of use, so they are given as decimals.`,
+        `The discriminant is ${mark(`Δ ≈ ${formatNumber(delta)}`)}: ${delta > 0 ? `positive, so there are three distinct real roots.` : `negative, so there is one real root and a pair of complex ones.`}`,
+        `Solution: ${[...shownReal, ...shownComplex].map((t) => mark(t)).join(' or ')}`,
+      ],
+      answer: [...shownReal, ...shownComplex].join('  or  '),
+      solutions: [...reals].sort((p, q) => p - q),
+    };
+  } catch { return null; }
+}
+
+// Is this root's written form at odds with its value? (−40 + π²)^(1/2) has no
+// i and is complex; i·(−3 − 2√2)^(1/2) has one and is real. An imaginary part
+// that is only rounding noise counts as real.
+export function writtenFormMisleads(text) {
+  let value;
+  try { value = math.evaluate(text); } catch { return false; }
+  const real = typeof value === 'number' || (value && Math.abs(value.im) < 1e-9 * (1 + Math.abs(value.re)));
+  return Boolean(real) === IMAGINARY.test(text);
+}
+
+// The roots with each misleading one as a decimal: always ≈, since it is
+// rounded, reals first and each conjugate pair together. A root is repeated
+// only when `multiplicity` says so: two different roots that round alike are
+// not one root, so that is null, never a merge.
+export function groupRootLines(written, misleads, roots, variable, multiplicity) {
+  const lines = [...new Set(written)].map((text) => {
+    const i = written.indexOf(text);
+    const count = multiplicity.get(text) ?? written.filter((t) => t === text).length;
+    const tail = count > 1 ? ` (multiplicity ${count})` : '';
+    if (!misleads[i]) return { line: `${formatSolutions([roots[i]], variable)}${tail}`, re: roots[i].numeric, im: 0 };
+    const shown = formatComplexRoot(math.evaluate(text));
+    return { line: `${variable} ≈ ${shown.display}${tail}`, re: shown.numeric, im: shown.im };
+  });
+  if (new Set(lines.map((l) => l.line)).size !== lines.length) return null;
+  lines.sort((p, q) => (Math.abs(p.im) > 0) - (Math.abs(q.im) > 0) || (p.re - q.re) || (p.im - q.im));
+  return lines.map((l) => l.line).join('  or  ');
+}
+
+// The most distinct roots a list may have and still be shown as decimals.
+export const MAX_DECIMAL_ROOTS = 8;
+
+// Which written roots mislead: a form at odds with its value (`hides`).
+export function misleadingForms(written) {
+  const hides = written.map(writtenFormMisleads);
+  return { hides, misleads: hides };
+}
+
+// The answer for Algebrite's root list (`rootsRaw` is its list, `asWritten` the answer from it as it stands): each
+// misleading root as a decimal while there are at most MAX_DECIMAL_ROOTS of
+// them; past that, a form that hides real or complex is refused, never shown.
+export function rootListAnswer(rootsRaw, variable, multiplicity, asWritten) {
+  const written = splitRootsList(rootsRaw).map((t) => t.trim());
+  const { hides, misleads } = misleadingForms(written);
+  if (misleads.some(Boolean) && new Set(written).size <= MAX_DECIMAL_ROOTS) {
+    const decimals = groupRootLines(written, misleads, parseRootsList(rootsRaw), variable, multiplicity);
+    return decimals === null
+      ? { refuse: 'Two different roots round to the same decimal, so they cannot be shown apart. This is a limitation of the solver.' }
+      : { answer: decimals };
+  }
+  if (hides.some(Boolean)) {
+    return { refuse: 'The exact form of these roots hides whether they are real or complex, and there are too many to list as decimals. This is a limitation of the solver.' };
+  }
+  return { answer: asWritten };
+}
+
+// The size of a number, real or complex.
+const sizeOf = (v) => (typeof v === 'number' ? Math.abs(v) : v && typeof v.re === 'number' ? Math.hypot(v.re, v.im) : NaN);
+
+// How large the written terms of an expression are at a point: rounding is
+// relative to them, so a tolerance must follow the coefficients and the root
+// together. 10^13·x² − 2·10^13 at √2 misses 0 by 0.004 and is right.
+function termSize(node, scope) {
+  if (node.type === 'ParenthesisNode') return termSize(node.content, scope);
+  if (node.type === 'OperatorNode') {
+    if (node.op === '+' || node.op === '-') return node.args.reduce((sum, a) => sum + termSize(a, scope), 0);
+    if (node.op === '*') return node.args.reduce((product, a) => product * termSize(a, scope), 1);
+    if (node.op === '/') return termSize(node.args[0], scope) / sizeOf(node.args[1].evaluate(scope));
+    if (node.op === '^') {
+      const power = sizeOf(node.args[1].evaluate(scope));
+      if (power > 0 && typeof node.args[1].evaluate(scope) === 'number') return termSize(node.args[0], scope) ** power;
+    }
+  }
+  return sizeOf(node.evaluate(scope));
+}
+
+// Do the two sides agree at this value? One that cannot be evaluated is not a
+// disproof here: the check for undefined points in solveEquation handles it.
+function sidesAgree(left, right, scope) {
+  try {
+    const miss = sizeOf(math.evaluate(`(${left}) - (${right})`, scope));
+    const size = termSize(math.parse(left), scope) + termSize(math.parse(right), scope);
+    if (!Number.isFinite(miss) || !Number.isFinite(size)) return true;
+    return miss <= 1e-9 * size;
+  } catch { return true; }
+}
+
+// Does every root Algebrite listed, real or complex, balance the polynomial it
+// solved and the equation as typed? A value that cannot be read, or is not a
+// number at all (1/0 + √2), fails.
+export function rootsBalance(rootsRaw, target, variable, equation = null) {
+  for (const text of splitRootsList(rootsRaw)) {
+    let value;
+    try { value = math.evaluate(text.trim()); } catch { return false; }
+    if (!Number.isFinite(sizeOf(value))) return false;
+    const scope = { [variable]: value };
+    if (!sidesAgree(target, '0', scope)) return false;
+    if (equation) {
+      const [left, right] = equation.split('=');
+      if (right !== undefined && !sidesAgree(left, right, scope)) return false;
+    }
+  }
+  return true;
+}
 
 export async function solveWithAlgebriteRoots(equation, variable) {
   try {
@@ -77,6 +245,16 @@ export async function solveWithAlgebriteRoots(equation, variable) {
     // quadratic that remains — and whatever has no rational root goes to
     // the exact root finder without a call to Algebrite, whose roots() ground
     // for three seconds on an irreducible quintic before giving up.
+    // A cubic with π, e or a square root in it: Algebrite's roots() spent
+    // about ten seconds writing out Cardano's formula, which nobody could read.
+    if (!read) {
+      // A decimal beside π or √2: Algebrite floats the whole polynomial and
+      // prints "9.901020...", which nothing can read back, and a root was lost.
+      try { if (isPolynomial(math.parse(target), variable)) target = decimalsAsFractions(target); } catch { /* not a polynomial */ }
+      const cubic = irrationalCubic(Algebrite, target, variable, clearingSteps, [left.trim(), right.trim()]);
+      if (cubic) return cubic;
+    }
+
     if (read && !read.tooHigh && read.degree >= 3) {
       const leading = [
         ...(/^0$/.test(right.trim()) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),
@@ -122,10 +300,28 @@ export async function solveWithAlgebriteRoots(equation, variable) {
       return rootsViaPolynomialRoot(Algebrite, target, variable);
     }
 
+    // Every root is substituted back before it is reported: the check
+    // shown later only decides whether a line is printed.
+    if (!rootsBalance(rootsRaw, target, variable, equation)) {
+      return {
+        envelope: unsupported({
+          input: equation,
+          reason: 'A solution this exact method produced did not balance the equation when it was substituted back, so none are shown. This is a limitation of the solver.',
+          answer: 'This equation is beyond what this solver can compute',
+        }),
+      };
+    }
+
     const roots = parseRootsList(rootsRaw);
     if (roots.length === 0) return null;
+    const refuse = (reason) => ({ envelope: unsupported({ input: equation, reason, answer: 'This equation is beyond what this solver can compute' }) });
 
     let answer = formatSolutions(roots, variable);
+    const written = splitRootsList(rootsRaw).map((t) => t.trim());
+    const { hides } = misleadingForms(written);
+    const shown = rootListAnswer(rootsRaw, variable, new Map(), answer);
+    if (shown.refuse) return refuse(shown.refuse);
+    answer = shown.answer;
     // Algebrite lists a double root once; a quadratic with a single root has
     // it twice, and the answer says so.
     if (roots.length === 1 && !/multiplicity/.test(answer) && String(Algebrite.run(`deg(${target}, ${variable})`)).trim() === '2') {
@@ -141,6 +337,7 @@ export async function solveWithAlgebriteRoots(equation, variable) {
       ...(/^0$/.test(right.trim()) ? [] : [`Rewrite as an equation set to zero: ${beautify(polynomial)} = 0`]),
       ...clearingSteps,
       ...(derivation || [`Solve for ${variable} by finding the roots.`]),
+      ...(hides.some(Boolean) ? ['The exact form hides whether these roots are real or complex, so they are given as decimals.'] : []),
       `Solution: ${answer}`,
     ];
 

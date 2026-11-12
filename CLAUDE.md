@@ -446,6 +446,14 @@ placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
   0 confidently-wrong is the bar), the October 2026 test list
   (`tests/octoberTestList.test.js`, 95 cases from
   `docs/evaluations/2026-10/test-cases.json`) and a build-preload check.
+- `tests/equationCrossCheck.test.js` — every file in `solvers/algebra/` is in
+  the registry (`tests/helpers/equationMethods.js`), with seeded families of
+  awkward inputs read back and compared with a dense grid, or exempt with its
+  reason and the tests that cover it. A new file that is neither fails the
+  suite. It covers that folder only: `linearEquationSolver.js` and the other
+  topics' solvers sit outside it. The grid is an oracle,
+  not a proof: it cannot see a root that touches without crossing, or two
+  roots inside one step, so exact targeted tests stay beside it.
 - `npm run smoke` — Playwright against the production build, desktop and
   phone: pages, every example, worker + budget + Cancel, CSP, accessibility
   (axe-core, WCAG 2.1 AA rules, light and dark). Run it after any change to
@@ -459,6 +467,12 @@ placeholder (`RouteFallback`) is a screen tall so the footer never jumps.
   ran out in November 2026. It needs the `NETLIFY_AUTH_TOKEN` repository secret.
 - When an outside review lands, reproduce each claim before agreeing, then
   sweep the same class of input for more.
+- **A new equation method in `solvers/algebra/`** (the PR template repeats this): add it to the
+  registry with families in π, e, decimals, fractions, square roots, x in a
+  denominator, true everywhere and true nowhere (`awkward(...)` gives all of
+  them from one shape); set `answered` so the method must really be the one
+  answering; add exact tests for what a scan cannot see (a repeated root, the
+  exact form of the answer); and plant a bug in a copy to see a family fail.
 
 ## Release process (required)
 

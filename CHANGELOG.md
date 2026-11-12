@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.1] - 2026-11-11
+
+### Fixed
+- Several absolute values with a constant made of roots stay exact:
+  |x| + |x − 2| = √5 is x = 1 ± √5/2, worked piece by piece, instead of
+  x ≈ −0.118 or x ≈ 2.118 from the numeric search. Piece equations show √10
+  and 3√2, not √2*√5 and 3*√2. Logarithms stay with the other methods:
+  Algebrite leaves log(100) as ln(100)/ln(10), so the middle piece of
+  |x| + |x − 2| = log(100) would not be seen to hold for every x.
+  A constant that is 0 in value but that Algebrite cannot reduce to 0, such
+  as a nested root, leaves the method for the same reason, and a root that
+  would be a nested radical or a quotient of sums goes to the numeric route.
+- The numeric search no longer reports a root where the equation is
+  undefined. |x| + |x − 1| + (x − 2)/(x − 2) = 4 answered x = −1 or x ≈ 2,
+  and e^x + (x − 1)/(x − 1) = e + 1 answered x ≈ 1. The search closes on a
+  number just beside the point, where the fraction is still 1, so the check
+  by substitution passed. Such a root is now rejected, with the reason shown.
+- Equations found wrong by the new cross-check. Two sides that are the same
+  product, (x − 1)(x − 2) = (x − 1)(x − 2), listed its factors' roots instead
+  of all real numbers. A decimal in |…| with a factor outside, 2|3x − 0.3| =
+  0.3, crashed on Algebrite's "0.150000..." and showed the typed equation as
+  Solved; an equation that cannot be worked is now refused. The numeric search
+  lost a negative x under an odd root, x^(2/3) − 0.3x^(1/3) − 0.4 = 0. A
+  rounded root was written with = when another candidate had been rejected.
+- A cubic with π, e or a square root in its coefficients comes back in a
+  moment as decimals, the number of real roots read off the discriminant. It
+  took Algebrite about ten seconds to write out Cardano's formula, which could
+  run past the solve budget and could not be read when it did not.
+- A decimal beside π or a square root in a polynomial no longer loses a root:
+  (x − π)(x − π − 0.25)(x + 1) = 0 listed two of its three. An answer that
+  divides by 0, such as x = 1/0 + √2 for two roots almost equal, is refused
+  instead of shown as Solved.
+- Every root from Algebrite's roots, real or complex, is substituted back
+  into the polynomial and the equation as typed before it is reported, with a
+  tolerance sized by the equation's own terms, and the equation is refused if
+  one does not balance. The check shown in the steps only decided whether
+  that line was printed. A root at a zero of a denominator is rejected even
+  when rounding leaves a finite value there: x²/(x − 1 − √2) =
+  (1 + √2)²/(x − 1 − √2) listed the point where it is undefined.
+- A root whose written form hides whether it is real or complex is shown as a
+  decimal: x² + πx + 10 = 0 printed its complex roots with no i, and
+  x² = 1 + √2 wrote its real roots with one. With more than eight roots to
+  list, the equation is refused instead.
+- Brackets round a whole equation are read as the equation: (x² = 4) answered
+  "No solution", because each side was left with an unbalanced bracket.
+### Changed
+- The check in the steps writes ≈ beside a rounded root, not =, as the answer
+  already did: "x ≈ -3.9694 gives (2/3)^x = 5".
+
 ## [1.76.0] - 2026-11-10
 
 ### Added

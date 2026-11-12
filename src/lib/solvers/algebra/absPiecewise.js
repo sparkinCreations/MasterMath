@@ -7,7 +7,7 @@
 // checked in the original. This fell to the numeric search.
 
 import { matchingParen } from '../../mathParser.js';
-import { math, exactForm, gcd, mark, loadAlgebrite } from '../solverUtils.js';
+import { math, exactForm, decimalsAsFractions, mark, loadAlgebrite } from '../solverUtils.js';
 import { prettyRadicals, IMAGINARY } from './rootsFormat.js';
 
 const hasVar = (t, v) => new RegExp(`(?<![a-z])${v}(?![a-z])`).test(String(t));
@@ -38,29 +38,23 @@ function withSigns(text, calls, signs) {
   return out + text.slice(at);
 }
 
-// A decimal as the fraction it is. Algebrite's floats leave 0.3 − 0.1 − 0.2
-// as a tiny number instead of 0, which would hide a piece true for every x.
-function exactDecimals(text) {
-  return String(text).replace(/(?<![\w.])(\d*)\.(\d+)(?![\w.])/g, (match, whole, digits, at, all) => {
-    if (digits.length > 12) return match;
-    const top = Number(`${whole}${digits}`);
-    const bottom = 10 ** digits.length;
-    const common = gcd(top, bottom);
-    if (bottom === common) return String(top / common);
-    const fraction = `${top / common}/${bottom / common}`;
-    // A neighbouring / or ^ would otherwise take only half of the fraction.
-    const before = all.slice(0, at).trimEnd().slice(-1);
-    const after = all.slice(at + match.length).trimStart()[0];
-    return before === '/' || before === '^' || after === '^' ? `(${fraction})` : fraction;
-  });
-}
-
 // Polynomials and absolute values only. Expanding a piece cancels 1/x against
 // 1/x and x/x to 1, so a variable under a division, or a power that is not a
 // whole number, would lose the values where the equation is undefined.
 function polynomialWithAbs(node, v) {
   const check = (n) => polynomialWithAbs(n, v);
   const mentions = (n) => n.filter((t) => t.isSymbolNode && t.name === v).length > 0;
+  // A part without the variable made of roots (√5, 3·√2, 2^(1/2)) is a
+  // number: kept when it is a real one, so the roots stay exact instead of
+  // going to the search. Logarithms stay out: Algebrite leaves log(100) as
+  // ln(100)/ln(10), not 2.
+  if (!mentions(node) && node.type !== 'ConstantNode' && node.type !== 'SymbolNode') {
+    if (node.filter((t) => t.isFunctionNode && t.name !== 'sqrt').length) return false;
+    try {
+      const value = node.evaluate();
+      return typeof value === 'number' && Number.isFinite(value);
+    } catch { return false; }
+  }
   switch (node.type) {
     case 'ConstantNode': return true;
     case 'SymbolNode': return node.name === v || node.name === 'pi' || node.name === 'e';
@@ -83,9 +77,15 @@ function polynomialWithAbs(node, v) {
 
 // A root as a textbook writes it: √6 − 1, (√17 − 1)/2. The value is computed
 // from Algebrite's own text, never from this.
-function rootText(root) {
-  let out = prettyRadicals(exactForm(root));
+// √2·√5 is √10, and 3*√2 is 3√2.
+function radicalText(t) {
+  let out = prettyRadicals(exactForm(t));
   while (/√\d+\*?√\d+/.test(out)) out = out.replace(/√(\d+)\*?√(\d+)/, (m, a, b) => `√${a * b}`);
+  return out.replace(/(\d)\*√/g, '$1√');
+}
+
+function rootText(root) {
+  const out = radicalText(root);
   const over = out.match(/^(-?√\d+)\/(\d+) ([+-]) (\d+)\/\2$/);
   return over ? `(${over[1]} ${over[3]} ${over[4]})/${over[2]}` : out;
 }
@@ -93,7 +93,7 @@ function rootText(root) {
 export async function solveAbsPiecewise(equation, v) {
   const sides = String(equation).split('=');
   if (sides.length !== 2) return null;
-  const [lhs, rhs] = sides.map(exactDecimals);
+  const [lhs, rhs] = sides.map(decimalsAsFractions);
   const text = `(${lhs.trim()}) - (${rhs.trim()})`;
   const calls = absCalls(text);
   if (!calls || calls.length < 2) return null;
@@ -111,7 +111,7 @@ export async function solveAbsPiecewise(equation, v) {
       const r = run(`simplify(-(${b})/(${a}))`);
       const value = Number(math.evaluate(r));
       if (!Number.isFinite(value)) return null;
-      if (!points.some((p) => Math.abs(p.value - value) < 1e-12)) points.push({ text: exactForm(r), value });
+      if (!points.some((p) => Math.abs(p.value - value) < 1e-12)) points.push({ text: rootText(r), value });
     }
   } catch { return null; }
   points.sort((p, q) => p.value - q.value);
@@ -144,13 +144,21 @@ export async function solveAbsPiecewise(equation, v) {
     const side = (t) => {
       const own = absCalls(t) || [];
       const sg = own.map((c) => (Number(math.evaluate(c.arg, { [v]: test })) >= 0 ? 1 : -1));
-      return exactForm(run(`expand(${withSigns(t, own, sg)})`));
+      return radicalText(run(`expand(${withSigns(t, own, sg)})`));
     };
     let pieceEq;
-    try { pieceEq = `${side(lhs.trim())} = ${side(rhs.trim())}`; } catch { pieceEq = `${exactForm(expanded)} = 0`; }
+    try { pieceEq = `${side(lhs.trim())} = ${side(rhs.trim())}`; } catch { pieceEq = `${radicalText(expanded)} = 0`; }
     const head = `For ${mark(label(p))}: ${forms.map((f) => mark(f)).join(', ')}, so the equation is ${mark(pieceEq)}.`;
     let degree;
     try { degree = Number(run(`deg(${expanded}, ${v})`)); } catch { return null; }
+    // A coefficient that is 0 in value but not in Algebrite's text, as in
+    // √(3 + 2√2) − √2 − 1: read as a number, a piece true for every x looks false.
+    try {
+      for (const k of [0, 1, 2]) {
+        const c = run(`coeff(${expanded}, ${v}, ${k})`);
+        if (c !== '0' && !(Math.abs(Number(math.evaluate(c))) > 1e-9)) return null;
+      }
+    } catch { return null; }
     if (!hasVar(expanded, v)) {
       if (expanded === '0') {
         // True for every x on this piece.
@@ -173,6 +181,9 @@ export async function solveAbsPiecewise(equation, v) {
       try { value = Number(math.evaluate(r)); } catch { return null; }
       if (!Number.isFinite(value)) return null;
       const shown = rootText(r);
+      // Exact only when it can be read: a nested root or a quotient of sums
+      // goes to the other methods, which round it.
+      if (/√\(|\/\(/.test(shown)) return null;
       const atEdge = p.hi && Math.abs(value - p.hi.value) < 1e-12;
       if (inside(p, value)) {
         found.push({ shown, value });

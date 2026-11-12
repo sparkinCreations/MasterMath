@@ -37,6 +37,7 @@ export {
   piForm,
   exactForm,
   exactDecimals,
+  decimalsAsFractions,
   exactDecimalSigns,
   splitVariableProducts,
 } from './utils/text.js';
