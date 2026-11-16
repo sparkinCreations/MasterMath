@@ -12,11 +12,11 @@ test('a product equal to 0: each factor, a root kept where every factor is defin
     // The scan missed x = 0, where √x touches 0 at the edge of its domain.
     ['(x-2)*sqrt(x) = 0', 'x = 0  or  x = 2'],
     ['x*e^x = 0', 'x = 0'],
-    ['x*ln(x) = x', 'x = e'],
+    ['x*ln(x) = x', 'x = e, where x > 0'],
     ['x^2*e^x - 4e^x = 0', 'x = -2  or  x = 2'],
-    ['(2x-1)*ln(x) = 0', 'x = 1/2  or  x = 1'],
-    ['x*ln(x) = 0', 'x = 1'],
-    ['(x-1)^2*ln(x) = 0', 'x = 1'],
+    ['(2x-1)*ln(x) = 0', 'x = 1/2  or  x = 1, where x > 0'],
+    ['x*ln(x) = 0', 'x = 1, where x > 0'],
+    ['(x-1)^2*ln(x) = 0', 'x = 1, where x > 0'],
   ]) {
     const r = await solvePlain(p, 'auto');
     assert.equal(r.answer, answer, p);
@@ -56,7 +56,7 @@ test('exponentials in one base, or two bases by logarithms', async () => {
 test('a polynomial in a power of x, by u = x^p', async () => {
   for (const [p, answer] of [
     ['x^(2/3) - 5x^(1/3) + 6 = 0', 'x = 8  or  x = 27'],
-    ['x^(-2) - x^(-1) - 2 = 0', 'x = -1  or  x = 1/2'],
+    ['x^(-2) - x^(-1) - 2 = 0', 'x = -1  or  x = 1/2, where x ≠ 0'],
     ['(x^2-1)^2 - 5(x^2-1) + 4 = 0', 'x = -√5  or  x = -√2  or  x = √2  or  x = √5'],
     // A repeated root in u ("u = 0 (multiplicity 2)") is read too.
     ['x^(2/3) - x = 0', 'x = 0  or  x = 1'],
@@ -96,7 +96,7 @@ test('the numeric scan, when it runs, says so and names the hand method', async 
 // says which roots are exact and which are numerical.
 test('a numeric answer keeps its exact roots exact and labels the rest', async () => {
   const ln = await solvePlain('ln(x) = 1 - x', 'auto');
-  assert.equal(ln.answer, 'x = 1');
+  assert.equal(ln.answer, 'x = 1, where x > 0');
   assert.ok(ln.steps.includes('This root is exact: substituted back, it makes the two sides exactly equal.'), ln.steps.join('\n'));
   const pw = await solvePlain('x^2 = 2^x', 'auto');
   assert.equal(pw.answer, 'x ≈ -0.7667  or  x = 2  or  x = 4');

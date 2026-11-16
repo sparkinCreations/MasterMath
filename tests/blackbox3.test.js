@@ -29,7 +29,7 @@ test('sin(45)^2 = 1/2 — only the angle inside the trig call is converted to ra
 test('solutions that make the original equation undefined are rejected and explained', async () => {
   // Was: x = 0 or x = 1 (x = 1 zeroes both denominators).
   const r = await solveProblem('x^2/(x-1) = 1/(x-1) + 1', 'algebra');
-  assert.equal(r.answer, 'x = 0');
+  assert.equal(r.answer, 'x = 0, where x ≠ 1');
   assert.match(r.steps.join('\n'), /x = 1 leaves the original equation undefined \(a denominator of zero, or an even root or logarithm of a negative number\), so it is extraneous/);
   const none = await solveProblem('x/(x-2) = 2/(x-2)', 'algebra');
   assert.match(none.answer, /^No solution/);

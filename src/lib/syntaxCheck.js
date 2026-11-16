@@ -49,6 +49,13 @@ export function syntaxProblem(text) {
   // Sentence punctuation at the end is not part of the maths.
   s = s.replace(/[?.]+\s*$/, '');
 
+  // A piecewise function in braces, "f(x) = {x^2 if x<0; x+1 if x>=0}":
+  // said for what it is, not answered with a hint about grouping
+  // (November 2026 review).
+  if (/\{[^{}]*(?:\b(?:if|for|when|otherwise)\b|[<>≤≥][^{}]*[;,][^{}]*[<>≤≥])[^{}]*\}/i.test(s)) {
+    return result('Piecewise functions are not supported yet: MasterMath works with one formula at a time. Enter the piece that applies — for x ≥ 0 in {x^2 if x < 0; x + 1 if x ≥ 0}, that is x + 1.');
+  }
+
   // Characters that are not maths, before anything else: the scan below
   // reads only operators and brackets.
   const withoutBraces = s.replace(ALLOWED_BRACES, '$1');

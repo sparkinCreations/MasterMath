@@ -49,7 +49,7 @@ test('a value where the equation is undefined is never part of a stretch', async
   }
   // A variable under a division between the absolute values keeps its own path.
   assert.equal((await answerOf('abs(x)/abs(x) = 1')).answer, 'All real numbers with x ≠ 0 (identity on its domain)');
-  assert.equal((await answerOf('abs(x)/abs(x-1) = 2')).answer, 'x = 2/3  or  x = 2');
+  assert.equal((await answerOf('abs(x)/abs(x-1) = 2')).answer, 'x = 2/3  or  x = 2, where x ≠ 1');
 });
 
 test('a root with pi in it is a real root', async () => {

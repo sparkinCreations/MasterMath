@@ -64,6 +64,9 @@ function evaluateAt(expr, variable, x) {
 // The main value of an answer: the decimal beside an exact value goes, as
 // does a domain note.
 const dropAside = (text) => String(text).replace(/\s*\((?:≈|=)[^()]*\)\s*$/, '').trim();
+// An equation's answer carries the restriction its own denominators and
+// logarithms impose ("x = 7/2, where x ≠ 2"): set aside to read the values.
+const withoutRestriction = (text) => (/^[a-z] (?:=|≈) /.test(text) ? text.replace(/,\s+where\s+.*$/, '') : text);
 const afterLastEquals = (text) => {
   // The last "=" outside brackets: "lim (x→2) (x^2 - 4)/(x - 2) = 4".
   let depth = 0;
@@ -88,7 +91,7 @@ const hasVariable = (text) => /(?<![a-z])[a-df-z](?![a-z(])/i.test(String(text).
 
 export function practiceKind(result, topic, problem) {
   if (!result || result.status !== 'solved' || typeof result.answer !== 'string') return null;
-  const answer = plain(result.answer);
+  const answer = withoutRestriction(plain(result.answer));
   topic = result.routedTopic || topic;
   if (topic === 'algebra' && isSetAnswer(answer)) return { kind: 'intervals', variable: setVariable(answer, problem) };
   if (/≈/.test(dropAside(answer))) return null; // an estimate or a located root: nothing exact to check against
@@ -165,7 +168,7 @@ function equationsOf(problem) {
 export function readCorrect(result, topic, problem) {
   const kind = practiceKind(result, topic, problem);
   if (!kind) return null;
-  const answer = plain(result.answer);
+  const answer = withoutRestriction(plain(result.answer));
   if (kind.kind === 'number') {
     const main = afterLastEquals(dropAside(answer));
     const value = evaluateAt(engineExpr(main), null);

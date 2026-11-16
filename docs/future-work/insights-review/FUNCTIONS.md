@@ -895,3 +895,46 @@ Example: `(x-1)^3` → f(x) = (x - 1)^3: domain: all real numbers; range: all re
 4. Missing a root where the graph only touches the axis: a sign change finds crossings, not touches.
 5. Thinking every repeated root only touches the axis: (x − 1)^3 crosses it at x = 1.
 
+
+## Added in 1.76.1: a constant function in disguise
+
+sin²(x) + cos²(x), tan(x)·cot(x) and the like are proved constant (exactly,
+not from samples) and get their own list: the general analysis had shown
+turning points made of rounding (November 2026 review, round 2).
+
+### Constant (identity)
+
+Example: `sin(x)^2+cos(x)^2`
+
+**Key Insights** (4)
+
+1. When f′(x) = 0 at every point of an interval, f is constant there: simplify first, before looking for turning points.
+2. Here sin(x)^2 + cos(x)^2 = 1, so the graph is the line y = 1.
+3. A constant function has no isolated peaks or valleys, yet every point is a non-strict local maximum and minimum: no nearby value is higher or lower.
+
+   *— Show more —*
+4. Simplifying keeps the original domain: tan(x)·cot(x) = 1 only where both are defined, so x ≠ nπ/2.
+
+**Common Mistakes** (2)
+
+1. Reading turning points off a table or a calculator when the function is constant: rounding differences are not peaks or valleys.
+2. Dropping the domain after simplifying: x/x is 1 only for x ≠ 0.
+
+### Constant with a restricted domain
+
+Example: `tan(x)*cot(x)`
+
+**Key Insights** (4)
+
+1. When f′(x) = 0 at every point of an interval, f is constant there: simplify first, before looking for turning points.
+2. Here tan(x)*cot(x) = 1 for x ≠ nπ/2, n any integer, so the graph is the line y = 1.
+3. A constant function has no isolated peaks or valleys, yet every point is a non-strict local maximum and minimum: no nearby value is higher or lower.
+
+   *— Show more —*
+4. Simplifying keeps the original domain: tan(x)·cot(x) = 1 only where both are defined, so x ≠ nπ/2.
+
+**Common Mistakes** (2)
+
+1. Reading turning points off a table or a calculator when the function is constant: rounding differences are not peaks or valleys.
+2. Dropping the domain after simplifying: x/x is 1 only for x ≠ 0.
+

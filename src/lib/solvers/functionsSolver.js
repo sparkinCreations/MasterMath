@@ -39,6 +39,7 @@ import { extractVariable, parseMathExpression } from '../mathParser.js';
 import { parseError, unsupported } from '../solutionEnvelope.js';
 import { functionGuidance } from './functions/guidance.js';
 import { provedRange } from './functions/ranges.js';
+import { provedConstant, constantFunction } from './functions/constant.js';
 import { readPolynomial, allRoots } from './polynomialRoots.js';
 import {
   WINDOW,
@@ -108,7 +109,7 @@ export async function solveFunctions(expression) {
           `${beautify(func)} does not depend on ${variable} — this is a constant function${typeof value === 'number' && Number.isFinite(value) ? `, f(${variable}) = ${shown} for every ${variable}` : ''}.`,
           'Domain: all real numbers. Its graph is a horizontal line.',
           `y-intercept: (0, ${shown}). ${typeof value === 'number' && Math.abs(value) < 1e-12 ? 'It IS the x-axis, so every point is an x-intercept.' : 'It never crosses the x-axis, so there are no x-intercepts.'}`,
-          'No extrema in the usual sense (every point is both a maximum and a minimum), no asymptotes, no periodicity — a constant is the same everywhere.',
+          'Extrema: every point is a non-strict local maximum and a non-strict local minimum (no nearby value is higher or lower), but there are no isolated turning points: no peaks or valleys.',
         ],
         answer: `f(${variable}) = ${beautify(func)}: a constant function, equal to ${shown} for every ${variable}; its graph is the horizontal line y = ${shown}.`,
         tips: [`A constant function has derivative ${mark('0')} — its graph has slope zero everywhere.`, `For a constant ${mark('c')}, ${mark('∫c dx = c·x + C')}.`],
@@ -139,6 +140,36 @@ export async function solveFunctions(expression) {
       Algebrite = await loadAlgebrite();
     } catch {
       Algebrite = null;
+    }
+
+    // Constant on its domain, however it is written (sin²(x) + cos²(x),
+    // tan(x)·cot(x)): proved exactly, or left to the general analysis
+    // (functions/constant.js; November 2026 review).
+    const proof = provedConstant(func, variable, Algebrite);
+    const result = proof ? constantFunction(func, variable, proof, Algebrite) : null;
+    if (result) {
+      const points = sampleFunction(func, variable, { min: -40, max: 40, step: 0.25 });
+      return {
+        steps: result.steps,
+        answer: result.answer,
+        tips: result.tips,
+        common_mistakes: result.common_mistakes,
+        graph: points.length > 0 ? {
+          points,
+          expression: func,
+          variable,
+          initialWindow: { xMin: -10, xMax: 10 },
+          title: `Graph of f(${variable}) = ${beautify(func)}`,
+          description: `The horizontal line y = ${proof.text}${result.holes.length ? ', with gaps where the function is undefined' : ''}: the function is constant on its domain (${result.domainText}).`,
+          annotations: {
+            extrema: [],
+            intercepts: [],
+            yIntercept: result.defined0 ? { x: 0, y: proof.value } : null,
+            verticalAsymptotes: [],
+            holes: result.holes.map((x) => ({ x, y: proof.value })),
+          },
+        } : null,
+      };
     }
 
     const features = analyzeFunction(func, variable, Algebrite);
@@ -239,7 +270,7 @@ function analyzeFunction(func, variable, Algebrite) {
   const yIntercept = Number.isFinite(evalAt(func, variable, 0))
     ? { x: 0, y: snap(evalAt(func, variable, 0)), yText: exactValueAt(Algebrite, func, variable, '0', snap(evalAt(func, variable, 0))) }
     : null;
-  let { extrema, monotonic, derivative, derivativeFactored, stationary, derivativeNeverZero } = findExtrema(func, variable, grid, Algebrite, isPeriodic);
+  let { extrema, monotonic, derivative, derivativeFactored, stationary, derivativeNeverZero, outsideDomain } = findExtrema(func, variable, grid, Algebrite, isPeriodic);
   // Monotonic on the part of the window where f is defined — kept for the
   // endpoint reasoning below even when the global claim has to be dropped.
   const monotonicOnDomain = monotonic;
@@ -265,6 +296,7 @@ function analyzeFunction(func, variable, Algebrite) {
     derivativeFactored,
     stationary,
     derivativeNeverZero,
+    outsideDomain,
     inflections,
     verticalAsymptotes,
     horizontalAsymptote,

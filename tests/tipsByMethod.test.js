@@ -18,7 +18,7 @@ const METHODS = {
   ],
   functions: [
     ['quadratic', 'x^2 - 4x + 3'], ['rational', '1/(x-2)'], ['periodic', 'sin(2x)'], ['logarithm', 'ln(x)'],
-    ['exponential', 'e^x'], ['root', 'sqrt(x-2)'], ['polynomial', 'x^3 - x'],
+    ['exponential', 'e^x'], ['root', 'sqrt(x-2)'], ['polynomial', 'x^3 - x'], ['constant', 'sin(x)^2+cos(x)^2'],
   ],
   other: [
     ['order of operations', '(5 + 3) * 4 - 2^3'], ['fractions', '3/4 + 5/6'], ['percent', '15% of 80'],

@@ -46,7 +46,7 @@ export async function labelTranscendentalZeros(numerator, variable, zeros, label
     const { solveAlgebra } = await import('../algebraSolver.js');
     // Algebrite writes the natural log as log; the solvers read a bare log
     // as base 10 (rewriteCommonLog), so hand it back as ln.
-    const r = await solveAlgebra(`${inAppNotation(numerator)} = 0`);
+    const r = await solveAlgebra(`${inAppNotation(numerator)} = 0`, { internal: true });
     if (!r || r.status && r.status !== 'solved') return;
     for (const part of String(r.answer).split(/\s+or\s+/)) {
       const m = part.match(new RegExp(`^\\s*${variable}\\s*=\\s*([^≈]+?)\\s*(?:\\(≈[^)]*\\))?\\s*$`));

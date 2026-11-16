@@ -12,37 +12,37 @@ import { solvePlain } from './helpers/solvePlain.js';
 const solve = (p) => solvePlain(p, 'algebra');
 
 test('ln(x) = c is exact: e, e^2, 1/e — with the decimal alongside', async () => {
-  assert.equal((await solve('ln(x) = 1')).answer, 'x = e (≈ 2.7183)');
-  assert.equal((await solve('ln(x) = 2')).answer, 'x = e^2 (≈ 7.3891)');
-  assert.equal((await solve('ln(x) = -1')).answer, 'x = 1/e (≈ 0.3679)');
-  assert.equal((await solve('ln(x) = 0')).answer, 'x = 1');
+  assert.equal((await solve('ln(x) = 1')).answer, 'x = e (≈ 2.7183), where x > 0');
+  assert.equal((await solve('ln(x) = 2')).answer, 'x = e^2 (≈ 7.3891), where x > 0');
+  assert.equal((await solve('ln(x) = -1')).answer, 'x = 1/e (≈ 0.3679), where x > 0');
+  assert.equal((await solve('ln(x) = 0')).answer, 'x = 1, where x > 0');
 });
 
 test('a linear argument is solved after back-substitution: ln(2x) = 3 → e^3/2', async () => {
   const r = await solve('ln(2x) = 3');
-  assert.equal(r.answer, 'x = e^3/2 (≈ 10.0428)');
+  assert.equal(r.answer, 'x = e^3/2 (≈ 10.0428), where x > 0');
   assert.ok(r.steps.some((s) => /Let u = ln\(2x\)/.test(s)), 'names the substitution');
   assert.ok(r.steps.some((s) => /2x = e\^3/.test(s)), 'shows the exponential form');
 });
 
 test('a quadratic in ln(x): ln(x)^2 = 4 → e^2 and 1/e^2', async () => {
   const r = await solve('ln(x)^2 = 4');
-  assert.equal(r.answer, 'x = 1/e^2 (≈ 0.1353)  or  x = e^2 (≈ 7.3891)');
+  assert.equal(r.answer, 'x = 1/e^2 (≈ 0.1353)  or  x = e^2 (≈ 7.3891), where x > 0');
 });
 
 test('base-10 logs: log(x) = 2 → 100; log(x) + log(x − 3) = 1 → 5, with −2 rejected and the reason shown', async () => {
-  assert.equal((await solve('log(x) = 2')).answer, 'x = 100');
+  assert.equal((await solve('log(x) = 2')).answer, 'x = 100, where x > 0');
   const r = await solve('log(x) + log(x-3) = 1');
-  assert.equal(r.answer, 'x = 5');
+  assert.equal(r.answer, 'x = 5, where x > 3');
   assert.ok(r.steps.some((s) => /log\(a\) \+ log\(b\) = log\(ab\)/.test(s)), 'states the product rule');
   assert.ok(r.steps.some((s) => /x = -2 makes a logarithm's argument zero or negative/.test(s)), 'explains the rejected candidate');
-  assert.equal((await solve('log_2(x) = 5')).answer, 'x = 32');
+  assert.equal((await solve('log_2(x) = 5')).answer, 'x = 32, where x > 0');
 });
 
 test('sums and differences of natural logs combine by the log rules', async () => {
-  assert.equal((await solve('ln(x) + ln(x-1) = 0')).answer, 'x = (1 + √5)/2 (≈ 1.618)');
-  assert.equal((await solve('ln(x) - ln(x-1) = ln(2)')).answer, 'x = 2');
-  assert.equal((await solve('2 ln(x) = ln(9)')).answer, 'x = 3');
+  assert.equal((await solve('ln(x) + ln(x-1) = 0')).answer, 'x = (1 + √5)/2 (≈ 1.618), where x > 1');
+  assert.equal((await solve('ln(x) - ln(x-1) = ln(2)')).answer, 'x = 2, where x > 1');
+  assert.equal((await solve('2 ln(x) = ln(9)')).answer, 'x = 3, where x > 0');
 });
 
 test('the graph marks the exact solution', async () => {
@@ -70,10 +70,10 @@ test('shapes outside the family still get a correct numeric answer', async () =>
   // Mixed bases and a variable outside the logarithm do not close under the
   // substitution; the numeric scan takes over and is still right.
   assert.equal((await solve('4^x - 5*2^x + 4 = 0')).answer, 'x = 0  or  x = 2');
-  assert.equal((await solve('ln(x) + x = 2')).answer, 'x ≈ 1.5571'); // located numerically: ≈ (1.53.2)
+  assert.equal((await solve('ln(x) + x = 2')).answer, 'x ≈ 1.5571, where x > 0'); // located numerically: ≈ (1.53.2)
   // ln(x^2) = 4: Algebrite writes the roots of x^2 = e^4 in a complex form,
   // so x^n = b^u is solved by hand: x = ±e^2 (was ≈ ±7.3891, 1.53.2).
   const r = await solve('ln(x^2) = 4');
-  assert.equal(r.answer, 'x = -e^2 (≈ -7.3891)  or  x = e^2 (≈ 7.3891)');
+  assert.equal(r.answer, 'x = -e^2 (≈ -7.3891)  or  x = e^2 (≈ 7.3891), where x ≠ 0');
   assert.doesNotMatch(r.answer, /i\*/);
 });

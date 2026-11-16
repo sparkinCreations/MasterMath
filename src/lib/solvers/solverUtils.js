@@ -12,6 +12,7 @@ export { math, loadAlgebrite, isAlgebriteFailure, runAlgebrite } from './utils/e
 export {
   realOddRoots,
   findUndefinedRegions,
+  STRICT_LOGS,
   formatRestriction,
   expressionsNumericallyEqual,
   expressionsEqualInAllLetters,

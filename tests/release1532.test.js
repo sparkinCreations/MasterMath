@@ -151,11 +151,11 @@ test('found in the sweep: exact rational logarithms, and ≈ for a root found nu
 
 test('a logarithm of a power solves exactly: ln(x^2) = 4 is x = ±e^2', async () => {
   for (const [p, answer] of [
-    ['ln(x^2) = 4', 'x = -e^2 (≈ -7.3891)  or  x = e^2 (≈ 7.3891)'],
-    ['ln(x^2) = 3', 'x = -e^(3/2) (≈ -4.4817)  or  x = e^(3/2) (≈ 4.4817)'],
-    ['ln(x^3) = 6', 'x = e^2 (≈ 7.3891)'],
-    ['ln(x^2) = -2', 'x = -1/e (≈ -0.3679)  or  x = 1/e (≈ 0.3679)'],
-    ['log(x^2) = 2', 'x = -10  or  x = 10'],
+    ['ln(x^2) = 4', 'x = -e^2 (≈ -7.3891)  or  x = e^2 (≈ 7.3891), where x ≠ 0'],
+    ['ln(x^2) = 3', 'x = -e^(3/2) (≈ -4.4817)  or  x = e^(3/2) (≈ 4.4817), where x ≠ 0'],
+    ['ln(x^3) = 6', 'x = e^2 (≈ 7.3891), where x > 0'],
+    ['ln(x^2) = -2', 'x = -1/e (≈ -0.3679)  or  x = 1/e (≈ 0.3679), where x ≠ 0'],
+    ['log(x^2) = 2', 'x = -10  or  x = 10, where x ≠ 0'],
   ]) {
     assert.equal((await solveProblem(p, 'algebra')).answer, answer, p);
   }

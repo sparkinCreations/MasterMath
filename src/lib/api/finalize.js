@@ -34,7 +34,11 @@ export function noteRouting(result, from, to, why) {
 // parameter list and body, an arrow with a body, a native/object stringify)
 // so ordinary prose — "return to the original variable", "the arguments of
 // the trig functions" — is never mistaken for a leak.
-const SOURCE_CODE_PATTERN = /\bfunction\b\s*[\w$]*\s*\([^)]*\)\s*\{|\)\s*=>\s*[{(\w]|\[native code\]|\[object \w+\]|\barguments\.length\b/;
+const SOURCE_CODE_PATTERN = /\bfunction\b\s*[\w$]*\s*\([^)]*\)\s*\{|\)\s*=>\s*[{(\w]|\[native code\]|\[object \w+\]|\barguments\.length\b|Cannot read propert(?:y|ies) of (?:null|undefined)|\bis not a function\b|\b(?:TypeError|ReferenceError|RangeError):/;
+
+// A JavaScript failure's message is code-shaped too: "x = Cannot read
+// properties of null (reading 'elem')" was shown as a root, and the answer
+// built on it was "No solution" (November 2026 sweep).
 
 // Is this value a legitimate piece of solution text — a string of maths or
 // prose, or a finite/readable number? Anything else (functions, objects,

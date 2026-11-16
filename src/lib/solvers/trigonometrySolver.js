@@ -96,7 +96,7 @@ export async function solveTrigonometry(expression, settingsOverride) {
       // has a non-linear argument): fall back to the algebra solver's
       // verified numeric root scan rather than refusing outright.
       const { solveAlgebra } = await import('./algebraSolver.js');
-      const numeric = await solveAlgebra(expression);
+      const numeric = await solveAlgebra(expression, { internal: true });
       // One equation in two unknowns (sin(y) = x) comes back as a relation,
       // solved for one letter in terms of the other: it was never scanned,
       // so it is returned without the numeric-scan preface (1.70.6).

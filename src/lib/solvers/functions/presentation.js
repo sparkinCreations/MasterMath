@@ -106,8 +106,21 @@ export function buildSteps(func, variable, f) {
     if (f.derivative) {
       const d = mark(`${fPrime} = ${f.derivative}`);
       const stationaryXs = f.extrema.filter((e) => e.origin === 'stationary');
-      if (f.stationary.length > 0) {
+      // A zero of f′ where f is undefined is no critical point: said, with
+      // the reason, so the student sees the check (ln(x² − 9) at x = 0).
+      const outside = f.outsideDomain || [];
+      const shownX = (r) => (r.display.length > 24 ? `≈ ${formatNumber(r.numeric)}` : r.display);
+      const rejectOutside = () => {
+        if (!outside.length) return;
+        const list = outside.map((r) => mark(`${variable} = ${shownX(r)}`).replace(/= ≈/, '≈')).join(' and ');
+        steps.push(`${list} ${outside.length > 1 ? 'are' : 'is'} not in the domain (${mark('f')} is undefined there), so ${outside.length > 1 ? 'they are' : 'it is'} not a critical point of ${mark('f')}: every candidate from ${mark(`${fPrime} = 0`)} must be a point where ${mark('f')} exists.`);
+      };
+      if (f.stationary.length === 0 && outside.length > 0 && stationaryXs.length === 0) {
+        steps.push(`Differentiate: ${d}. ${mark(`${fPrime} = 0`)} gives ${mark(`${variable} = ${outside.map(shownX).join(', ')}`)}.`);
+        rejectOutside();
+      } else if (f.stationary.length > 0) {
         steps.push(`Differentiate: ${d}. Set ${mark(`${fPrime} = 0`)}: ${mark(`${f.derivative} = 0`)} at ${mark(`${variable} = ${f.stationary.map((r) => r.display).join(', ')}`)}.`);
+        rejectOutside();
         const saddles = f.stationary.filter((r) => !f.extrema.some((e) => Math.abs(e.x - r.numeric) < 1e-6));
         if (saddles.length > 0) {
           steps.push(`At ${mark(`${variable} = ${saddles.map((r) => r.display).join(', ')}`)} ${mark(fPrime)} is 0 but does not change sign, so there is no extremum there: the graph flattens and carries on.`);
@@ -141,7 +154,7 @@ export function buildSteps(func, variable, f) {
     } else if (f.monotonic) {
       steps.push(`No local extrema — the function is strictly ${f.monotonic} across the window.`);
     } else if (f.endpointExtrema.length === 0 && !f.isPeriodic) {
-      steps.push(`No local extrema found in the analyzed window${f.derivative ? ` (no zero of ${mark(fPrime)} was found there)` : ''}.`);
+      steps.push(`No local extrema found in the analyzed window${f.derivative ? ` (no zero of ${mark(fPrime)} ${(f.outsideDomain || []).length ? 'inside the domain ' : ''}was found there)` : ''}.`);
     }
     // Endpoint extrema are reported in their own words: they are where the
     // function starts or stops, not two-sided local extrema.
@@ -220,7 +233,10 @@ function formatDomain(domain, variable, extraPoints = []) {
     return `only isolated points (such as ${variable} = ${examples}) — no interval of real numbers`;
   }
   const note = isolated.length ? ` (plus isolated points such as ${variable} = ${examples})` : '';
-  return parts.join(' and ') + note;
+  // A union with another condition after it is grouped: (x < −3 or x > 3)
+  // and x ≠ −4, which "x < −3 or x > 3 and x ≠ −4" does not say.
+  const grouped = parts.length > 1 ? parts.map((t) => (/ or /.test(t) ? `(${t})` : t)) : parts;
+  return grouped.join(' and ') + note;
 }
 
 // Each condition of a domain marked on its own, the words between them left
@@ -232,7 +248,14 @@ function markDomain(text) {
   const only = t.match(/^only isolated points \(such as (.+)\) — (.+)$/);
   if (only) return `only isolated points (such as ${mark(only[1])}) — ${only[2]}`;
   const [main, note] = t.split(/ (?=\(plus isolated points such as )/);
-  const marked = main.split(' and ').map((c) => (/^not /.test(c) ? `not ${mark(c.slice(4))}` : mark(c))).join(' and ');
+  // Each condition its own math run; a grouping bracket stays outside it.
+  const one = (c) => {
+    const open = c.startsWith('(') ? '(' : '';
+    const close = c.endsWith(')') && (c.match(/\(/g) || []).length < (c.match(/\)/g) || []).length + (open ? 1 : 0) ? ')' : '';
+    const core = c.slice(open.length, c.length - close.length);
+    return `${open}${/^not /.test(core) ? `not ${mark(core.slice(4))}` : mark(core)}${close}`;
+  };
+  const marked = main.split(/ (and|or) /).map((c, i) => (i % 2 ? c : one(c))).join(' ');
   return note ? `${marked} ${note.replace(/such as (.+)\)$/, (m, v) => `such as ${mark(v)})`)}` : marked;
 }
 

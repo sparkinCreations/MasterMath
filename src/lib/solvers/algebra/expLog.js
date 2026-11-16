@@ -713,8 +713,70 @@ export async function solveViaLogSubstitution(equation, variable) {
         // Algebrite writes the real roots of x² = e⁴ as ±i·(−e⁴)^(1/2), and
         // the numeric scan gave ±7.3891 for what is ±e².
         const power = String(g).replace(/\s+/g, '').match(new RegExp(`^\\(?${v}\\^\\(?(\\d+)\\)?\\)?$`));
+        // g = (ax + b)ⁿ: ax + b = ±b^(u/n) (n even) or b^(u/n) (n odd),
+        // then x exactly. Algebrite's roots() of (2x + 1)³ − e³ failed with
+        // "Cannot read properties of null", that text was shown as x, and
+        // the answer was "No solution" (November 2026 sweep).
+        const linearPower = (() => {
+          if (power) return null;
+          let node;
+          try { node = math.parse(String(g)); } catch { return null; }
+          while (node.type === 'ParenthesisNode') node = node.content;
+          if (node.type !== 'OperatorNode' || node.op !== '^' || !/^\d+$/.test(node.args[1].toString())) return null;
+          const n = Number(node.args[1].toString());
+          // The coefficients read exactly, never through floating point
+          // (1 + 1/10^20 and 1 + e/10^20 are both 1 there): the exact path
+          // takes only small rationals; anything else is declined.
+          const exact = readPolynomial(node.args[0].toString(), v);
+          const small = (c) => { const f = math.fraction(c); return BigInt(f.d) <= 1000n && BigInt(f.n) <= 1000000n; };
+          const named = !(exact && !exact.tooHigh && exact.degree === 1 && exact.coefficients.every(small));
+          // k and d themselves from the exact reading: floating point turns
+          // (10^20 + 1 − 10^20 + 1)·x into 1·x, though it is 2·x.
+          const asNumber = (c) => Number(math.fraction(c).valueOf());
+          const lin = n < 2 ? null
+            : !named ? { k: asNumber(exact.coefficients[1]), d: asNumber(exact.coefficients[0]) }
+              : linearCoefficients(node.args[0].toString(), v);
+          return lin && lin.k !== 0 ? { n, k: lin.k, d: lin.d, named } : null;
+        })();
         let xs;
-        if (power && Number(power[1]) >= 2) {
+        if (linearPower) {
+          const { n, k, d, named } = linearPower;
+          const frac = (x) => { try { const f = math.fraction(x); return Number(f.d) === 1 ? `${Number(f.s) * Number(f.n)}` : `${Number(f.s) * Number(f.n)}/${Number(f.d)}`; } catch { return null; } };
+          let ex;
+          try {
+            const f = math.fraction(String(r.display).replace(/\s+/g, '')).div(n);
+            ex = Number(f.d) === 1 ? `${Number(f.s) * Number(f.n)}` : `${Number(f.s) * Number(f.n)}/${Number(f.d)}`;
+          } catch {
+            ex = `(${r.display})/${n}`;
+          }
+          const one = ex === '1' ? (base === 'e' ? 'exp(1)' : base) : base === 'e' ? `exp(${ex})` : `${base}^(${ex})`;
+          const value = (base === 'e' ? Math.E : Number(base)) ** (r.numeric / n);
+          // Exact rationals only: e·x + 1 has a coefficient a fraction would
+          // only approximate (it was shown as 12496140/4597073). Declined:
+          // another method takes it.
+          const exactRational = (x) => { try { const f = math.fraction(x); return Number(f.d) <= 1000 && Math.abs(Number(f.s) * Number(f.n) / Number(f.d) - x) < 1e-12 * (1 + Math.abs(x)) ? f : null; } catch { return null; } };
+          const kf = exactRational(Math.abs(k));
+          const dText = exactRational(Math.abs(d)) ? frac(Math.abs(d)) : null;
+          if (named || !kf || dText === null) return null;
+          // A shift that swamps b^(u/n) (ln((x + 1)²) = −80: 1 ± e^−40 is 1 in
+          // floating point) cannot be checked numerically: declined, never
+          // "no solution".
+          if (d !== 0 && value < 1e-9 * Math.abs(d)) return null;
+          const [p, q] = [Number(kf.n), Number(kf.d)]; // |k| = p/q
+          xs = (n % 2 === 0 ? [-1, 1] : [1]).map((sgn) => {
+            // x = (±value − d)/k = (sign(k)·(±value) − sign(k)·d)·q/p: two
+            // signed terms, the positive one first (3 − e, not −(e − 3)).
+            const sk = Math.sign(k);
+            const terms = [{ pos: sgn * sk > 0, text: one }];
+            if (d !== 0) terms.push({ pos: -d * sk > 0, text: dText });
+            terms.sort((a, b) => Number(b.pos) - Number(a.pos));
+            const num = terms.map((t, i) => (i === 0 ? `${t.pos ? '' : '-'}${t.text}` : ` ${t.pos ? '+' : '-'} ${t.text}`)).join('');
+            const sum = terms.length > 1;
+            const scaled = q === 1 ? num : sum ? `${q}(${num})` : num.startsWith('-') ? `-${q}*${num.slice(1)}` : `${q}*${num}`;
+            const display = p === 1 ? scaled : sum && q === 1 ? `(${scaled})/${p}` : `${scaled}/${p}`;
+            return { display, numeric: (sgn * value - d) / k };
+          }).sort((a, b) => a.numeric - b.numeric);
+        } else if (power && Number(power[1]) >= 2) {
           const n = Number(power[1]);
           let ex;
           try {
@@ -730,7 +792,9 @@ export async function solveViaLogSubstitution(equation, variable) {
             : [{ display: one, numeric: value }];
         } else {
           const raw = String(Algebrite.run(`roots((${g}) - ${powText(r.display)}, ${v})`)).trim();
-          if (!raw || /stop|error|nil/i.test(raw)) return null;
+          // An engine failure comes back as text ("Cannot read properties of
+          // null"): never a root to show.
+          if (!raw || /stop|error|nil|cannot|undefined|null|properties/i.test(raw)) return null;
           // Any other g with that complex form: decline; the numeric scan takes it.
           if (/\(-.*\)\^\(1\/\d+\)/.test(raw)) return null;
           xs = parseRootsList(raw);
@@ -784,7 +848,9 @@ export async function solveViaLogSubstitution(equation, variable) {
       if (!Number.isFinite(c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} is not real`); continue; }
       if (!argumentPositive(c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} makes a logarithm's argument zero or negative`); continue; }
       if (!satisfiesEquation(equation, v, c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} does not balance the original equation`); continue; }
-      if (kept.some((k) => Math.abs(k.numeric - c.numeric) < 1e-9)) continue;
+      // A repeat of a root already kept: the same value up to rounding,
+      // relative to its size (±e^−15/1000 are two roots, 6e−10 apart).
+      if (kept.some((k) => k.display === show || Math.abs(k.numeric - c.numeric) <= 1e-12 * Math.max(Math.abs(k.numeric), Math.abs(c.numeric)))) continue;
       kept.push({ display: show, numeric: c.numeric });
     }
     if (rejected.length > 0) {
