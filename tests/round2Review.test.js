@@ -201,3 +201,17 @@ test('two roots a hair apart are both kept, and close edges are compared exactly
   // x > 1/10^13 is tighter than x > 0, though 1e−13 is within rounding of 0.
   assert.match((await fn('ln(x - 1/10^13) - ln(x - 1/10^13) + ln(x) - ln(x)')).answer, /\(domain: x > 1\/10000000000000\)/);
 });
+
+test('a constant is drawn as exactly c: rounding never shows as spikes, and the gaps stay', async () => {
+  const { sampleCurve, robustYWindow } = await import('../src/lib/graphSampling.js');
+  for (const [p, c] of [['sin(x)^2+cos(x)^2', 1], ['(x+1)^2-(x-1)^2-4x', 0]]) {
+    const g = (await fn(p)).graph;
+    const pts = sampleCurve(g.expression, g.variable, { xMin: -10, xMax: 10 });
+    assert.ok(pts.every((q) => q.y === null || q.y === c), p);
+    assert.ok(g.points.every((q) => !Number.isFinite(q.y) || q.y === c), p);
+    const w = robustYWindow(pts);
+    assert.ok(w.yMax - w.yMin >= 2, `${p}: y-window ${JSON.stringify(w)}`);
+  }
+  const ln = (await fn('ln(x)-ln(x)')).graph;
+  assert.ok(sampleCurve(ln.expression, ln.variable, { xMin: -10, xMax: 10 }).filter((q) => q.x < 0).every((q) => q.y === null || !Number.isFinite(q.y)));
+});

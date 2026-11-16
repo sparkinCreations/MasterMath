@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.2] - 2026-11-16
+
+### Fixed
+- A constant function's graph is the flat line it is. sin²(x) + cos²(x)
+  under Functions was drawn as spikes: the graph re-sampled the expression,
+  which evaluates to 1 ± 2e−16, and the auto-fitted y-axis zoomed into that
+  rounding. The graph is now drawn at exactly c wherever the function is
+  defined, and keeps its gaps (ln(x) − ln(x) only for x > 0).
+- A horizontal line is drawn at all. The curve's colour gradient was sized
+  to the line's own bounding box, which has no height for a horizontal
+  line, and SVG then draws nothing: f(x) = 5 under Functions showed only its
+  y-intercept dot. The gradient now spans the chart.
+
 ## [1.76.1] - 2026-11-16
 
 ### Fixed
