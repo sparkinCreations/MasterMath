@@ -127,8 +127,13 @@ export function lostDomain(original, simplified, variable) {
     }
   };
   const loses = (points) => points.some(([S, C]) => !defined(A, S, C) && defined(B, S, C));
-  if (loses([[1, 0], [-1, 0]])) return `cos(${variable}) = 0`;
-  if (loses([[0, 1], [0, -1]])) return `sin(${variable}) = 0`;
+  const atCos = loses([[1, 0], [-1, 0]]);
+  const atSin = loses([[0, 1], [0, -1]]);
+  // Both (tan(x)·cot(x) = 1): sin(x)·cos(x) = 0, that is sin(2x) = 0. Only
+  // the first was said, "for cos(x) ≠ 0", though cot(0) is undefined.
+  if (atCos && atSin) return `sin(2${variable}) = 0`;
+  if (atCos) return `cos(${variable}) = 0`;
+  if (atSin) return `sin(${variable}) = 0`;
   return null;
 }
 

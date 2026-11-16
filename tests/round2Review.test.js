@@ -215,3 +215,14 @@ test('a constant is drawn as exactly c: rounding never shows as spikes, and the 
   const ln = (await fn('ln(x)-ln(x)')).graph;
   assert.ok(sampleCurve(ln.expression, ln.variable, { xMin: -10, xMax: 10 }).filter((q) => q.x < 0).every((q) => q.y === null || !Number.isFinite(q.y)));
 });
+
+test('a proved trig identity is drawn from its simplified form; both lost sets are stated', async () => {
+  for (const p of ['sin(x)^2+cos(x)^2', 'sec(x)^2-tan(x)^2', 'tan(x)*cot(x)']) {
+    const r = await solvePlain(p, 'auto');
+    const ys = r.graph.points.map((q) => q.y).filter(Number.isFinite);
+    assert.ok(ys.length > 100 && ys.every((y) => y === 1), `${p}: ${Math.min(...ys)}..${Math.max(...ys)}`);
+  }
+  // cot(x) is undefined where sin(x) = 0 as well: x = nπ/2 in all.
+  assert.equal((await solvePlain('tan(x)*cot(x)', 'auto')).answer, '1 (for sin(2x) ≠ 0)');
+  assert.equal((await solvePlain('tan(x)*cos(x)', 'auto')).answer, 'sin(x) (for cos(x) ≠ 0)');
+});

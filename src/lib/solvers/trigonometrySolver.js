@@ -550,7 +550,7 @@ async function simplifyTrigExpression(expression, variable) {
         steps,
         answer: `${beautify(simplified)}${lost ? ` (for ${lost.replace('= 0', '≠ 0')})` : ''}`,
         ...identityGuidance(display, beautify(simplified), lost, identityUsed ?? (simplified === '1' && isPythagoreanIdentity(expression) ? `Pythagorean identity ${mark('sin²(θ) + cos²(θ) = 1')}` : null)),
-        graph: generateSymbolicTrigGraph(expression, variable, beautify(simplified)),
+        graph: generateSymbolicTrigGraph(expression, variable, beautify(simplified), simplified),
       };
     }
 
@@ -590,11 +590,19 @@ function isPythagoreanIdentity(expression) {
   );
 }
 
-// Graph the symbolic expression itself over -2π..2π (an identity like
-// sin²+cos² draws its constant value — a flat line at 1 — which is the point).
-function generateSymbolicTrigGraph(expression, variable, simplifiedDisplay) {
+// Graph the expression over -2π..2π (an identity like sin²+cos² draws its
+// constant value — a flat line at 1 — which is the point). A proved identity
+// is drawn from its simplified form, plus 0·(the original) to keep the
+// original's gaps (0·NaN and 0·∞ are NaN): sec² − tan² subtracts two huge
+// numbers near its poles, and its rounding (1 − 2e−5) drew spikes.
+function generateSymbolicTrigGraph(expression, variable, simplifiedDisplay, simplified = null) {
   try {
-    const points = sampleFunction(expression, variable, { min: -6.28, max: 6.28, step: 0.1, cap: 10 });
+    const sample = (expr) => sampleFunction(expr, variable, { min: -6.28, max: 6.28, step: 0.1, cap: 10 });
+    let points = [];
+    if (simplified !== null) {
+      try { points = sample(`(${simplified}) + 0*(${expression})`); } catch { points = []; }
+    }
+    if (points.length === 0) points = sample(expression);
     if (points.length === 0) return null;
     return {
       points,

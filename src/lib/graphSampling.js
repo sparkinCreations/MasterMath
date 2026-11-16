@@ -231,9 +231,13 @@ export function robustYWindow(points, keys = ['y'], featureYs = []) {
       hi = Math.max(hi, y);
     }
   }
-  if (!(hi > lo)) {
-    lo -= 1;
-    hi += 1;
+  // A spread that is only rounding (sin² + cos² is 1 ± 2e−16, whatever
+  // path draws it) is a flat line: shown as y ± 1, never zoomed into the
+  // last bits of a double, which drew a constant as spikes.
+  if (!(hi - lo > 1e-12 * Math.max(1, Math.abs(lo), Math.abs(hi)))) {
+    const mid = (lo + hi) / 2;
+    lo = mid - 1;
+    hi = mid + 1;
   }
   const pad = (hi - lo) * 0.05;
   return { yMin: lo - pad, yMax: hi + pad };
