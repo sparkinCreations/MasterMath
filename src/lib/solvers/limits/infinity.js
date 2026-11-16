@@ -138,6 +138,28 @@ function logOfPowerLike(term, v, sign) {
     D *= q.den;
     if (N > LIMIT || D > LIMIT) return null;
   }
+  // The coefficients are combined as doubles too, so they must be exact
+  // as well: whole-number literals up to 2²⁰, a division only by a power of
+  // two, and no arithmetic between constants. ((1 + 10⁻¹⁶) − 1)·x² would
+  // lose its x² term, and x/10 + x/10 + x/10 − 3x/10 its rounding.
+  const hasV = (n) => n.filter((x) => x.type === 'SymbolNode' && x.name === v).length > 0;
+  const exactCoefficients = (n) => {
+    while (n.type === 'ParenthesisNode') n = n.content;
+    if (n.type === 'ConstantNode') return intNode(n);
+    if (n.type === 'SymbolNode') return true;
+    if (n.type === 'FunctionNode') return n.args.every(exactCoefficients);
+    if (n.type !== 'OperatorNode') return false;
+    if (n.op === '^') return exactCoefficients(n.args[0]);
+    if (n.fn === 'unaryMinus' || n.fn === 'unaryPlus') return exactCoefficients(n.args[0]);
+    if (!hasV(n)) return false;
+    if (n.op === '/' && !hasV(n.args[1])) {
+      let d = n.args[1];
+      while (d.type === 'ParenthesisNode') d = d.content;
+      return exactCoefficients(n.args[0]) && intNode(d) && powerOfTwo(Math.abs(Number(d.value)));
+    }
+    return n.args.every(exactCoefficients);
+  };
+  if (!exactCoefficients(arg)) return null;
   const lead = leadingPower(probe, v);
   if (!lead || lead.c === 0 || !Number.isFinite(lead.p)) return null;
   // ln needs P > 0 far out, unless it is ln|P|.

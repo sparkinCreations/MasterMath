@@ -30,8 +30,10 @@ from a handful of samples, and each could be fooled.
 - Cancelling logarithms at ∞ is proved, not rounded: every exponent and
   root inside must be a whole number or a fraction over a power of two
   (x², √x, x^(3/4)), with the products of numerators and of denominators
-  at most 2²⁰, so a double computes the leading power with no rounding at
-  all; anything else (a cube root, a tower of powers) is not cancelled on. ln(x^(1 + 10⁻¹⁶) + 1) − ln(x + 1) and
+  at most 2²⁰, and coefficients whole-number literals (a division only by
+  a power of two, no arithmetic between constants), so a double computes
+  the leading power with no rounding at all; anything else (a cube root, a
+  tower of powers, ((1 + 10⁻¹⁶) − 1)·x²) is not cancelled on. ln(x^(1 + 10⁻¹⁶) + 1) − ln(x + 1) and
   ln(x·x^(1/10¹⁶) + 1) − ln(x + 1), which → ∞, were given the horizontal
   asymptote y = 0 (a double rounds that power to 1). A squeeze-theorem limit that is not a whole number is
   shown with ≈ (1/3 + e^(−x)·sin(x) → ≈ 0.3333), not as an exact "= 0.3333".

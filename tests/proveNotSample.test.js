@@ -246,6 +246,11 @@ test('review round 5: digits a double drops are never worked rounded; an undecid
   const { provedLimitAtInfinity } = await import('../src/lib/solvers/limits/infinity.js');
   const { loadAlgebrite } = await import('../src/lib/solvers/solverUtils.js');
   assert.equal(provedLimitAtInfinity('ln(x^1.0000000000000001+1)-ln(x+1)', 'x', 1, await loadAlgebrite()), null);
+  // Nor from coefficients combined as doubles: (1 + 10⁻¹⁶) − 1 is 0 there,
+  // which would hide the x² term; x/10 and 0.1·x sums round.
+  for (const f of ['ln(((1+10^(-16))-1)*x^2+x+1)-ln(x+1)', 'ln(x/10+x/10+x/10-3*x/10+1)', 'ln(0.1*x+0.2*x-0.3*x+1)']) {
+    assert.equal(provedLimitAtInfinity(f, 'x', 1, await loadAlgebrite()), null, f);
+  }
   // A periodic term too small to tell from a constant: refused, not "≈ 1".
   for (const p of ['lim x->inf (1+0.000000000001*sin(x))', 'lim x->inf 1+0.000000000001*sin(x)']) {
     assert.equal((await lim(p)).status, 'unsupported', p);
