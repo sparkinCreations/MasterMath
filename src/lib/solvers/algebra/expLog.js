@@ -740,16 +740,29 @@ export async function solveViaLogSubstitution(equation, variable) {
           }
           const one = ex === '1' ? (base === 'e' ? 'exp(1)' : base) : base === 'e' ? `exp(${ex})` : `${base}^(${ex})`;
           const value = (base === 'e' ? Math.E : Number(base)) ** (r.numeric / n);
-          const kText = frac(Math.abs(k));
-          const dText = frac(Math.abs(d));
-          if (kText === null || dText === null) return null;
+          // Exact rationals only: e·x + 1 has a coefficient a fraction would
+          // only approximate (it was shown as 12496140/4597073). Declined:
+          // another method takes it.
+          const exactRational = (x) => { try { const f = math.fraction(x); return Number(f.d) <= 1000 && Math.abs(Number(f.s) * Number(f.n) / Number(f.d) - x) < 1e-12 * (1 + Math.abs(x)) ? f : null; } catch { return null; } };
+          const kf = exactRational(Math.abs(k));
+          const dText = exactRational(Math.abs(d)) ? frac(Math.abs(d)) : null;
+          if (!kf || dText === null) return null;
+          // A shift that swamps b^(u/n) (ln((x + 1)²) = −80: 1 ± e^−40 is 1 in
+          // floating point) cannot be checked numerically: declined, never
+          // "no solution".
+          if (d !== 0 && value < 1e-9 * Math.abs(d)) return null;
+          const [p, q] = [Number(kf.n), Number(kf.d)]; // |k| = p/q
           xs = (n % 2 === 0 ? [-1, 1] : [1]).map((sgn) => {
-            // x = (±value − d)/k, written with the positive term first.
-            const lead = sgn > 0 ? one : `-${one}`;
-            const shift = d === 0 ? '' : d > 0 ? ` - ${dText}` : ` + ${dText}`;
-            let num = `${lead}${shift}`;
-            if (k < 0) num = `-(${num})`;
-            const display = Math.abs(k) === 1 ? num : `(${num})/${kText}`;
+            // x = (±value − d)/k = (sign(k)·(±value) − sign(k)·d)·q/p: two
+            // signed terms, the positive one first (3 − e, not −(e − 3)).
+            const sk = Math.sign(k);
+            const terms = [{ pos: sgn * sk > 0, text: one }];
+            if (d !== 0) terms.push({ pos: -d * sk > 0, text: dText });
+            terms.sort((a, b) => Number(b.pos) - Number(a.pos));
+            const num = terms.map((t, i) => (i === 0 ? `${t.pos ? '' : '-'}${t.text}` : ` ${t.pos ? '+' : '-'} ${t.text}`)).join('');
+            const sum = terms.length > 1;
+            const scaled = q === 1 ? num : sum ? `${q}(${num})` : num.startsWith('-') ? `-${q}*${num.slice(1)}` : `${q}*${num}`;
+            const display = p === 1 ? scaled : sum && q === 1 ? `(${scaled})/${p}` : `${scaled}/${p}`;
             return { display, numeric: (sgn * value - d) / k };
           }).sort((a, b) => a.numeric - b.numeric);
         } else if (power && Number(power[1]) >= 2) {

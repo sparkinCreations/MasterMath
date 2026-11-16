@@ -16,10 +16,10 @@
 // zeros of a polynomial denominator (the exact root finder), and the
 // intervals the domain finder measures (a logarithm, a square root).
 
-import { math, beautify, formatNumber, formatRestriction, exactForm, piForm, mark, rewriteReciprocalTrig, trigUndefinedPoints } from '../solverUtils.js';
-import { readPolynomial, allRoots } from '../polynomialRoots.js';
+import { math, beautify, formatNumber, exactForm, piForm, mark, rewriteReciprocalTrig, trigUndefinedPoints } from '../solverUtils.js';
+import { domainConditions } from '../algebra/restrictions.js';
 import { proveTrigIdentity } from '../trigonometry/circle.js';
-import { evalAt, findDomain, exactNumber, WINDOW } from './features.js';
+import { evalAt, exactNumber, WINDOW } from './features.js';
 
 const SAMPLES = [0.3719, 1.2347, -2.7183, 4.1231, -0.6180, 7.389];
 
@@ -80,9 +80,33 @@ export function provedConstant(func, variable, Algebrite) {
   return null;
 }
 
+// A multiple of π as a textbook writes it, for any denominator: piForm
+// covers 1, 2, 3, 4, 6 and 12 only (π/8 came back null, and tan(4x)·cot(4x)
+// fell over — CodeRabbit on PR #80).
+function piText(x) {
+  const f = piForm(x);
+  if (f) return f;
+  for (let q = 1; q <= 96; q += 1) {
+    const p = Math.round((x * q) / Math.PI);
+    if (Math.abs((p * Math.PI) / q - x) < 1e-9) {
+      const num = p === 1 ? 'π' : p === -1 ? '-π' : `${p}π`;
+      return q === 1 ? num : `${num}/${q}`;
+    }
+  }
+  return formatNumber(x);
+}
+
+// v = offset + n·step, in the function's own variable.
+function latticeText(variable, offset, step) {
+  const s = piText(step);
+  const k = s.match(/^π\/(\d+)$/);
+  const off = Math.abs(offset) < 1e-12 ? '' : `${piText(offset)} + `;
+  return `${variable} = ${off}${s === 'π' ? 'nπ' : k ? `nπ/${k[1]}` : `n·${s}`}`;
+}
+
 // Two lattices a step apart by half a step are one: tan's π/2 + nπ and
 // cot's nπ are nπ/2.
-function mergeLattices(lattices) {
+function mergeLattices(lattices, variable) {
   const out = [];
   for (const l of lattices) {
     const same = out.find((o) => Math.abs(o.step - l.step) < 1e-9);
@@ -92,72 +116,44 @@ function mergeLattices(lattices) {
       if (Math.abs(gap - same.step / 2) < 1e-9) {
         same.step /= 2;
         same.offset = (((same.offset % same.step) + same.step) % same.step);
-        same.merged = true;
         continue;
       }
     }
     out.push({ ...l });
   }
-  return out.map((l) => {
-    if (!l.merged) return l;
-    const step = piForm(l.step);
-    const k = step.match(/^π\/(\d+)$/);
-    const offset = Math.abs(l.offset) < 1e-12 ? '' : `${piForm(l.offset)} + `;
-    return { ...l, text: `x = ${offset}${k ? `nπ/${k[1]}` : `n·${step}`}` };
-  });
+  return out.map((l) => ({ ...l, text: latticeText(variable, l.offset, l.step) }));
 }
 
-// Real zeros of every polynomial denominator in f.
-function denominatorZeros(func, variable) {
-  const zeros = [];
-  let tree;
-  try { tree = math.parse(String(func)); } catch { return zeros; }
-  tree.traverse((n) => {
-    const den = n.type === 'OperatorNode' && n.op === '/' ? n.args[1]
-      : n.type === 'OperatorNode' && n.op === '^' && /^-/.test(n.args[1].toString()) ? n.args[0] : null;
-    if (!den || !mentions(den.toString(), variable)) return;
-    const poly = readPolynomial(den.toString(), variable);
-    if (!poly || poly.tooHigh || poly.degree < 1) return;
-    for (const r of allRoots(poly).real) {
-      if (zeros.some((z) => Math.abs(z.value - r.value) < 1e-9)) continue;
-      zeros.push({ value: r.value, text: r.exact ? (r.exact.d === 1n ? String(r.exact.m) : `${r.exact.m}/${r.exact.d}`) : formatNumber(r.value) });
-    }
-  });
-  return zeros.sort((a, b) => a.value - b.value);
-}
-
-export function constantFunction(func, variable, proof) {
+export function constantFunction(func, variable, proof, Algebrite = null) {
   const c = proof.text;
-  const own = trigUndefinedPoints(func, variable);
-  const lattices = mergeLattices(own);
+  const own = trigUndefinedPoints(func, variable).map((l) => ({ ...l, text: latticeText(variable, l.offset, l.step) }));
+  const lattices = mergeLattices(own, variable);
   const onLattice = (x) => lattices.some((l) => Math.abs(((x - l.offset) / l.step) - Math.round((x - l.offset) / l.step)) < 1e-9);
-  const regions = findDomain(func, variable);
-  const intervals = regions.filter((r) => !(Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.to - r.from) < 1e-9));
-  const inInterval = (x) => intervals.some((r) => (x > r.from || (x === r.from && r.fromClosed)) && (x < r.to || (x === r.to && r.toClosed)));
-  // Isolated points: denominators' zeros, and points the domain finder hit
-  // exactly, not already on a trig lattice or inside an excluded interval.
-  const points = [...denominatorZeros(func, variable), ...regions
-    .filter((r) => Number.isFinite(r.from) && Number.isFinite(r.to) && Math.abs(r.to - r.from) < 1e-9)
-    .map((r) => ({ value: r.from, text: exactNumber(r.from) }))]
-    .filter((p, i, all) => all.findIndex((q) => Math.abs(q.value - p.value) < 1e-9) === i)
-    .filter((p) => !onLattice(p.value) && !inInterval(p.value))
-    .sort((a, b) => a.value - b.value);
+  // The rest of the domain read off the expression itself (denominators,
+  // logarithms, square roots), never off the ±10 window: ln(100 − x) −
+  // ln(100 − x) is 0 for x < 100 only, and the window saw no restriction.
+  const found = domainConditions(func, variable, { Algebrite, skipTrig: true });
+  if (found?.empty) return null;
+  const inside = (x) => !found || found.holds(x);
+  const points = (found?.points || []).filter((p) => !onLattice(p.value));
+  // Its bounds and anything stated as written; the excluded points are
+  // listed again below, without those already on a trig lattice.
+  const bounds = found ? found.conditions.filter((t) => !t.startsWith(`${variable} ≠ `)) : [];
 
   const conditions = [
-    ...intervals.map((r) => formatRestriction(r, variable, { allowed: true })),
+    ...bounds,
     ...(points.length ? [`${variable} ≠ ${points.map((p) => p.text).join(', ')}`] : []),
-    ...lattices.map((l) => l.text.replace(/^x = /, `${variable} ≠ `)),
+    ...lattices.map((l) => l.text.replace(new RegExp(`^${variable} = `), `${variable} ≠ `)),
   ];
   const everywhere = conditions.length === 0;
   const latticeNote = lattices.length ? ', n any integer' : '';
   const domainText = everywhere ? 'all real numbers' : `${conditions.join(' and ')}${latticeNote}`;
-  const domainMarked = everywhere ? 'all real numbers' : `${conditions.map((t) => t.split(/ (or) /).map((p, i) => (i % 2 ? p : mark(p))).join(' ')).join(' and ')}${latticeNote}`;
-  const defined0 = Number.isFinite(evalAt(func, variable, 0));
+  const domainMarked = everywhere ? 'all real numbers' : `${conditions.map((t) => mark(t)).join(' and ')}${latticeNote}`;
+  const defined0 = Number.isFinite(evalAt(func, variable, 0)) && inside(0) && !onLattice(0);
 
   const why = [
     ...own.map((l) => `${/^division/.test(l.because) ? l.because.replace(/by (.+)$/, (m, g) => `by ${mark(g)}`) : mark(l.because)} is undefined at ${mark(l.text)}`),
-    ...points.map((p) => `a denominator is ${mark('0')} at ${mark(`${variable} = ${p.text}`)}`),
-    ...intervals.map((r) => `${mark('f')} is undefined for ${mark(formatRestriction(r, variable))}`),
+    ...(found?.reasons?.length ? [`it needs ${found.reasons.map((r) => r.text).join(' and ')}`] : []),
   ];
   const holes = [
     ...points.map((p) => p.value),
@@ -166,7 +162,7 @@ export function constantFunction(func, variable, proof) {
       for (let n = Math.ceil((WINDOW.min - l.offset) / l.step); l.offset + n * l.step <= WINDOW.max; n += 1) out.push(l.offset + n * l.step);
       return out;
     }),
-  ].filter((x) => x >= WINDOW.min && x <= WINDOW.max && !inInterval(x));
+  ].filter((x) => x >= WINDOW.min && x <= WINDOW.max && (!found || (found.lower ? x > found.lower.value || (!found.lower.strict && x === found.lower.value) : true) && (found.upper ? x < found.upper.value || (!found.upper.strict && x === found.upper.value) : true)));
 
   // How it simplifies, in the words a textbook uses for that kind.
   const text = String(func);

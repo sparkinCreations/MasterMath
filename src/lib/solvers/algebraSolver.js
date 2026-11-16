@@ -27,6 +27,7 @@ import {
   absBars,
   stripOuterParens,
   splitTerms,
+  stripMathMarkers,
 } from './solverUtils.js';
 import { equationGuidance } from './algebra/guidance.js';
 import { equationRestrictions } from './algebra/restrictions.js';
@@ -625,9 +626,9 @@ async function solveEquation(expression, options = {}) {
   // (", for a ≠ 0") already carries its own.
   // Only on the answer a student reads: callers inside the solvers parse
   // the answer (an inequality's zeros, a factor's roots).
-  if (!options.internal && isEquation(expression) && steps.length > 0 && !/,\s(?:for|where)\s|identity/.test(answer) && !steps.some((st) => /^(?:Domain|Restriction)/.test(st))) {
+  if (!options.internal && isEquation(expression) && steps.length > 0 && !/,\s(?:for|where)\s|identity/.test(answer) && !steps.some((st) => /^(?:Restriction first|Before simplifying, note where)/.test(stripMathMarkers(st)))) {
     const restriction = equationRestrictions(expression, variable);
-    const listed = /^[a-z] = /.test(answer) && solutions.length > 0 && solutions.every(Number.isFinite);
+    const listed = /^[a-z] (?:=|≈) /.test(answer) && solutions.length > 0 && solutions.every(Number.isFinite);
     if (restriction && (!listed || solutions.every((x) => restriction.holds(x)))) {
       steps = [restriction.step, ...steps];
       if (listed) {

@@ -233,7 +233,10 @@ function formatDomain(domain, variable, extraPoints = []) {
     return `only isolated points (such as ${variable} = ${examples}) — no interval of real numbers`;
   }
   const note = isolated.length ? ` (plus isolated points such as ${variable} = ${examples})` : '';
-  return parts.join(' and ') + note;
+  // A union with another condition after it is grouped: (x < −3 or x > 3)
+  // and x ≠ −4, which "x < −3 or x > 3 and x ≠ −4" does not say.
+  const grouped = parts.length > 1 ? parts.map((t) => (/ or /.test(t) ? `(${t})` : t)) : parts;
+  return grouped.join(' and ') + note;
 }
 
 // Each condition of a domain marked on its own, the words between them left
@@ -245,7 +248,14 @@ function markDomain(text) {
   const only = t.match(/^only isolated points \(such as (.+)\) — (.+)$/);
   if (only) return `only isolated points (such as ${mark(only[1])}) — ${only[2]}`;
   const [main, note] = t.split(/ (?=\(plus isolated points such as )/);
-  const marked = main.split(/ (and|or) /).map((c, i) => (i % 2 ? c : /^not /.test(c) ? `not ${mark(c.slice(4))}` : mark(c))).join(' ');
+  // Each condition its own math run; a grouping bracket stays outside it.
+  const one = (c) => {
+    const open = c.startsWith('(') ? '(' : '';
+    const close = c.endsWith(')') && (c.match(/\(/g) || []).length < (c.match(/\)/g) || []).length + (open ? 1 : 0) ? ')' : '';
+    const core = c.slice(open.length, c.length - close.length);
+    return `${open}${/^not /.test(core) ? `not ${mark(core.slice(4))}` : mark(core)}${close}`;
+  };
+  const marked = main.split(/ (and|or) /).map((c, i) => (i % 2 ? c : one(c))).join(' ');
   return note ? `${marked} ${note.replace(/such as (.+)\)$/, (m, v) => `such as ${mark(v)})`)}` : marked;
 }
 

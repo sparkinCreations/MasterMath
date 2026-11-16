@@ -504,10 +504,26 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
     // reported as six maxima and minima (November 2026 review). The floor
     // scales with the values compared. It only stops noise being read as a
     // feature; it decides nothing about the function.
-    const tol = NOISE * Math.max(1, Math.abs(y), Math.abs(l), Math.abs(r));
+    // Only for a candidate from the numeric scan: an exact zero of f′ is
+    // classified on its values as before (x⁴ at 0 has neighbours of 1e−16,
+    // below the floor, and its minimum was lost — CodeRabbit on PR #80).
+    const tol = root ? 0 : NOISE * Math.max(1, Math.abs(y), Math.abs(l), Math.abs(r));
     let kind = null;
     if (y >= l - tol && y >= r - tol && (y > l + tol || y > r + tol)) kind = 'max';
     if (y <= l + tol && y <= r + tol && (y < l - tol || y < r - tol)) kind = 'min';
+    // An exact zero of f′ whose neighbouring values are too close to tell
+    // (x⁶ − 1 at 0: they differ by 1e−24): the first-derivative test, the
+    // sign of f′ on either side.
+    if (!kind && root && derivativeStr) {
+      for (const h of [1e-3, 1e-2, 1e-1]) {
+        const sl = evalAt(derivativeStr, variable, x - h);
+        const sr = evalAt(derivativeStr, variable, x + h);
+        if (!Number.isFinite(sl) || !Number.isFinite(sr) || sl === 0 || sr === 0) continue;
+        if (sl < 0 && sr > 0) kind = 'min';
+        else if (sl > 0 && sr < 0) kind = 'max';
+        break;
+      }
+    }
     if (!kind) return; // saddle / not an extremum — do not report
     if (extrema.some((e) => Math.abs(e.x - x) < 1e-5)) return;
     const sx = snap(x);

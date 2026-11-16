@@ -38,13 +38,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never shown as a step or an answer.
 - A piecewise function in braces is refused for what it is ("Piecewise
   functions are not supported yet"), not with a hint about grouping.
+- A very flat turning point at an exact zero of f′ is classified by the
+  first-derivative test: x⁶ − 1 has its minimum at (0, −1) (it was not
+  listed), as x⁴ has its minimum at 0.
+- A domain that joins a union to another condition is grouped:
+  (x < −3 or x > 3) and x ≠ −4.
 
 ### Changed
 - Rational and logarithmic equations state their restriction first and
   keep it with the answer: (x + 1)/(x − 2) = 3 is x = 7/2, where x ≠ 2;
   log₂(x − 1) = 3 is x = 9, where x > 1; ln(x) + ln(x − 2) = ln(3) is x = 3,
   where x > 2 (`algebra/restrictions.js`). A denominator proved never 0
-  excludes nothing. Practice mode and the corpus grader set the
+  excludes nothing; an irrational excluded value stays exact (x ≠ −√2, √2).
+  A constant function's domain is read off the expression the same way,
+  never off the ±10 window: ln(100 − x) − ln(100 − x) is 0 for x < 100. Practice mode and the corpus grader set the
   restriction aside to read the values.
 
 ## [1.76.0] - 2026-11-10

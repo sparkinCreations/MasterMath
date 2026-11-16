@@ -258,7 +258,7 @@ export function sampleFunction(expression, variable, options = {}) {
   const count = Math.floor((max - min) / step + 1e-9);
   for (let i = 0; i <= count; i += 1) {
     const x = Math.round((min + i * step) * 1e9) / 1e9;
-    const scope = { [variable]: x };
+    const scope = { ...STRICT_LOGS, [variable]: x };
     try {
       const y = math.evaluate(realExpr, scope);
       if (Number.isFinite(y) && Math.abs(y) <= cap) {

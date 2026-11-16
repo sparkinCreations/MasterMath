@@ -66,7 +66,7 @@ function evaluateAt(expr, variable, x) {
 const dropAside = (text) => String(text).replace(/\s*\((?:≈|=)[^()]*\)\s*$/, '').trim();
 // An equation's answer carries the restriction its own denominators and
 // logarithms impose ("x = 7/2, where x ≠ 2"): set aside to read the values.
-const withoutRestriction = (text) => (/^[a-z] = /.test(text) ? text.replace(/,\s+where\s+.*$/, '') : text);
+const withoutRestriction = (text) => (/^[a-z] (?:=|≈) /.test(text) ? text.replace(/,\s+where\s+.*$/, '') : text);
 const afterLastEquals = (text) => {
   // The last "=" outside brackets: "lim (x→2) (x^2 - 4)/(x - 2) = 4".
   let depth = 0;

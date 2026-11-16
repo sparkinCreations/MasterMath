@@ -125,3 +125,53 @@ test('an engine failure message is never presentable as a step or an answer', ()
   assert.equal(isPresentable('The function is not defined on either side of x = 0, so there is nothing'), true);
   assert.equal(isPresentable('f is undefined for x ≤ 0'), true);
 });
+
+// CodeRabbit's review of PR #80: each finding, reproduced and pinned.
+test('an exact stationary point is classified by the first-derivative test, however flat', async () => {
+  assert.match((await fn('x^4')).answer, /local minimum \(0, 0\)/);
+  assert.match((await fn('x^6 - 1')).answer, /local minimum \(0, -1\)/);
+  assert.match((await fn('-x^8 + 2')).answer, /local maximum \(0, 2\)/);
+  assert.doesNotMatch((await fn('x^3')).answer, /local (?:minimum|maximum)/);
+});
+
+test('a log of a power of a linear expression: exact rationals only, written correctly, never a false "no solution"', async () => {
+  assert.equal((await solvePlain('ln((x/2+1)^3) = 3', 'auto')).answer, 'x = 2(e - 1) (≈ 3.4366), where x > -2');
+  assert.equal((await solvePlain('ln((3-x)^3) = 3', 'auto')).answer, 'x = 3 - e (≈ 0.2817), where x < 3');
+  assert.equal((await solvePlain('ln((2x/3+1)^3) = 3', 'auto')).answer, 'x = 3(e - 1)/2 (≈ 2.5774), where x > -3/2');
+  assert.doesNotMatch((await solvePlain('ln((e*x+1)^3) = 3', 'auto')).answer, /\d{5,}\//);
+  // Rounding merges −1 ± e^−40 with −1: declined honestly, not "No solution".
+  const merged = await solvePlain('ln((x+1)^2) = -80', 'auto');
+  assert.notEqual(merged.status, 'solved');
+  assert.doesNotMatch(merged.answer, /^No solution \(/);
+});
+
+test('a restriction keeps its brackets, and is stated beside a radical\'s domain and on ≈ answers', async () => {
+  const r = await solvePlain('1/((x+1)*(x-1)) = 1', 'auto');
+  assert.match(steps(r), /so \(x \+ 1\) \* \(x - 1\) ≠ 0, that is x ≠ -1, 1/);
+  assert.match(r.answer, /, where x ≠ -1, 1$/);
+  assert.equal((await solvePlain('sqrt(x) + (x-1)/(x-1) = 3', 'auto')).answer, 'x = 4, where x ≠ 1');
+});
+
+test('a constant function\'s domain is read off the expression, exactly, in its own variable', async () => {
+  for (const [p, domain] of [
+    ['tan(4*x)*cot(4*x)', 'x ≠ nπ/8, n any integer'],
+    ['(x^2-2)/(x^2-2)', 'x ≠ -√2, √2'],
+    ['sec(t)^2-tan(t)^2', 't ≠ π/2 + nπ, n any integer'],
+    ['ln(100-x)-ln(100-x)', 'x < 100'],
+    ['sqrt(x)^2/x', 'x > 0'],
+    ['sqrt(x-3)-sqrt(x-3)', 'x ≥ 3'],
+  ]) {
+    const r = await fn(p);
+    assert.equal(r.status, 'solved', p);
+    assert.ok(r.answer.includes(`(domain: ${domain})`), `${p}: ${r.answer}`);
+  }
+});
+
+test('a union is grouped before another domain condition', async () => {
+  assert.match((await fn('ln(x^2-9)+1/(x+4)')).answer, /domain: \(x < -3 or x > 3\) and x ≠ -4;/);
+});
+
+test('graph samples leave out a point where a logarithm is undefined', async () => {
+  const { sampleFunction } = await import('../src/lib/solvers/solverUtils.js');
+  assert.ok(!sampleFunction('e^(ln(x))', 'x', { min: -1, max: 1, step: 0.5 }).some((p) => p.x === 0));
+});

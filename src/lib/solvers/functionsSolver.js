@@ -146,8 +146,8 @@ export async function solveFunctions(expression) {
     // tan(x)·cot(x)): proved exactly, or left to the general analysis
     // (functions/constant.js; November 2026 review).
     const proof = provedConstant(func, variable, Algebrite);
-    if (proof) {
-      const result = constantFunction(func, variable, proof);
+    const result = proof ? constantFunction(func, variable, proof, Algebrite) : null;
+    if (result) {
       const points = sampleFunction(func, variable, { min: -40, max: 40, step: 0.25 });
       return {
         steps: result.steps,
