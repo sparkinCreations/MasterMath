@@ -31,7 +31,8 @@ from a handful of samples, and each could be fooled.
   root inside must be a whole number or a fraction over a power of two
   (x², √x, x^(3/4)), with the products of numerators and of denominators
   at most 2²⁰, and coefficients whole-number literals (a division only by
-  a power of two, no arithmetic between constants), so a double computes
+  a power of two, no arithmetic between constants, sizes multiplying to at
+  most 2⁴⁰), so a double computes
   the leading power with no rounding at all; anything else (a cube root, a
   tower of powers, ((1 + 10⁻¹⁶) − 1)·x²) is not cancelled on. ln(x^(1 + 10⁻¹⁶) + 1) − ln(x + 1) and
   ln(x·x^(1/10¹⁶) + 1) − ln(x + 1), which → ∞, were given the horizontal

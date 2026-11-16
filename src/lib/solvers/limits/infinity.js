@@ -142,10 +142,15 @@ function logOfPowerLike(term, v, sign) {
   // as well: whole-number literals up to 2²⁰, a division only by a power of
   // two, and no arithmetic between constants. ((1 + 10⁻¹⁶) − 1)·x² would
   // lose its x² term, and x/10 + x/10 + x/10 − 3x/10 its rounding.
+  // The product of every literal's size and every divisor is capped at 2⁴⁰
+  // as well, so no coefficient underflows or loses a bit (x²/2²⁰/2²⁰/… is
+  // 0 in a double after 54 divisions).
   const hasV = (n) => n.filter((x) => x.type === 'SymbolNode' && x.name === v).length > 0;
+  let budget = 1;
+  const spend = (k) => { budget *= Math.max(1, Math.abs(k)); return budget <= 2 ** 40; };
   const exactCoefficients = (n) => {
     while (n.type === 'ParenthesisNode') n = n.content;
-    if (n.type === 'ConstantNode') return intNode(n);
+    if (n.type === 'ConstantNode') return intNode(n) && spend(Number(n.value));
     if (n.type === 'SymbolNode') return true;
     if (n.type === 'FunctionNode') return n.args.every(exactCoefficients);
     if (n.type !== 'OperatorNode') return false;
@@ -155,7 +160,7 @@ function logOfPowerLike(term, v, sign) {
     if (n.op === '/' && !hasV(n.args[1])) {
       let d = n.args[1];
       while (d.type === 'ParenthesisNode') d = d.content;
-      return exactCoefficients(n.args[0]) && intNode(d) && powerOfTwo(Math.abs(Number(d.value)));
+      return exactCoefficients(n.args[0]) && intNode(d) && powerOfTwo(Math.abs(Number(d.value))) && spend(Number(d.value));
     }
     return n.args.every(exactCoefficients);
   };
