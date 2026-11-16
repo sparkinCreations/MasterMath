@@ -20,6 +20,9 @@ import {
   mark,
   absBars,
   piForm,
+  splitTerms,
+  structuralPeriod,
+  stripOuterParens,
 } from './solverUtils.js';
 import { parseError, unsupported, undefinedValue } from '../solutionEnvelope.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
@@ -307,7 +310,9 @@ export async function solveLimit(expression) {
         input: expression,
         reason: result.refusedStep
           ? 'A step function (floor, ceil, round, fix, sign or mod) meets a jump here in a way this solver cannot settle, so no limit is claimed.'
-          : 'No method here proves this limit, and the sampled values have not settled: they may approach a number very slowly, or not at all.',
+          : result.refusedPeriodic
+            ? 'A periodic term here could not be shown to be constant or to keep the expression from settling, and samples cannot decide that, so no limit is claimed.'
+            : 'No method here proves this limit, and the sampled values have not settled: they may approach a number very slowly, or not at all.',
         answer: 'This limit could not be determined',
         steps: [`Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`, ...result.steps],
         tips: ['Look for a method that proves the limit: compare growth rates, rationalise with the conjugate, or use L\'Hôpital\'s rule on a quotient.'],
@@ -558,6 +563,20 @@ async function evaluateInfiniteLimit(func, variable, target) {
         verificationMethod: 'squeeze theorem',
       };
     }
+    // A bounded periodic part added to a rest that → ±∞ (x + sin(x)): the
+    // sum → ±∞, proved, not sampled.
+    if (r && r.inf && r.how === 'periodic' && r.periodic) {
+      const inf = r.inf > 0 ? '∞' : '-∞';
+      return {
+        steps: [
+          `${mark(beautify(r.periodic.Q))} repeats every ${mark(piForm(r.periodic.period) ?? formatNumber(r.periodic.period))} and is defined everywhere, so it is bounded: it stays between its least and greatest values.`,
+          `The other terms of ${mark(beautify(func))} → ${mark(inf)}, and adding a bounded amount does not stop that, so the limit is ${mark(inf)}.`,
+        ],
+        answer: inf,
+        verified: true,
+        verificationMethod: 'bounded periodic part',
+      };
+    }
     if (r && r.none && r.periodic) {
       const q = beautify(r.periodic.Q);
       return {
@@ -574,6 +593,17 @@ async function evaluateInfiniteLimit(func, variable, target) {
       };
     }
   } catch { /* fall through */ }
+  // A periodic term that the proof above could not settle (too small to
+  // tell from a constant: 10⁻¹²·sin(x)) is not estimated: the samples would
+  // settle on a value that is not a limit. Refused instead.
+  if (splitTerms(stripOuterParens(String(func))).some(({ signed }) => { const p = structuralPeriod(signed, variable); return p && p > 0; })) {
+    return {
+      steps: [`A term of ${mark(beautify(func))} repeats periodically, and whether it is constant or keeps the whole from settling is not proved here.`],
+      answer: null,
+      undetermined: true,
+      refusedPeriodic: true,
+    };
+  }
   return estimateInfiniteLimit(func, variable, target);
 }
 

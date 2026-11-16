@@ -28,12 +28,20 @@ from a handful of samples, and each could be fooled.
   simplification is now taken only when proved; otherwise the expression is
   left as typed and the steps say no simpler form could be proved.
 - Cancelling logarithms at ∞ is proved, not rounded: every exponent and
-  root inside must be a whole number or a ratio of whole numbers up to 1000,
-  with the denominators' product at most 10⁶, so the leading power is
-  recovered exactly. ln(x^(1 + 10⁻¹⁶) + 1) − ln(x + 1) and
+  root inside must be a whole number or a fraction over a power of two
+  (x², √x, x^(3/4)), with the products of numerators and of denominators
+  at most 2²⁰, so a double computes the leading power with no rounding at
+  all; anything else (a cube root, a tower of powers) is not cancelled on. ln(x^(1 + 10⁻¹⁶) + 1) − ln(x + 1) and
   ln(x·x^(1/10¹⁶) + 1) − ln(x + 1), which → ∞, were given the horizontal
   asymptote y = 0 (a double rounds that power to 1). A squeeze-theorem limit that is not a whole number is
   shown with ≈ (1/3 + e^(−x)·sin(x) → ≈ 0.3333), not as an exact "= 0.3333".
+- A limit at ∞ with a periodic term the proof cannot settle (10⁻¹²·sin(x),
+  too small to tell from a constant) is refused, not estimated "≈ 1" from
+  samples; a bounded periodic term added to a rest that → ±∞ is proved
+  (x + sin(x) → ∞; it was an estimate, and refused on 1.76.3). A number with
+  more than 15 significant digits is never used to prove a limit at ∞, and
+  a step-function limit at a typed point that is not exactly the number
+  computed with (1.0000000000000001) is refused.
 - An identity is named by what the input is, not by where it lands:
   tan(x)·cot(x) = 1 is the reciprocal identity cot(θ) = 1/tan(θ), not "the
   Pythagorean identity"; sec²(x) − tan²(x) = 1 is 1 + tan²(θ) = sec²(θ).

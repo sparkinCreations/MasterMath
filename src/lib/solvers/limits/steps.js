@@ -42,6 +42,14 @@ const JUMPS = {
   sign: { set: '0', at: () => 0, below: () => -1, above: () => 1 },
 };
 
+// A number in the text with more significant digits than a double keeps
+// (15, leading and trailing zeros aside), or null: parsing rounds it
+// (1.0000000000000001 is 1), so nothing exact can be read from it.
+export function longLiteral(text) {
+  return (String(text).match(/\d*\.?\d+/g) || [])
+    .find((lit) => lit.replace('.', '').replace(/^0+/, '').replace(/0+$/, '').length > 15) ?? null;
+}
+
 // A step function call, or x % m, which mathjs reads as mod(x, m).
 const stepName = (n) => (n.type === 'FunctionNode' ? n.fn.name : n.type === 'OperatorNode' && n.fn === 'mod' ? 'mod' : null);
 const isStep = (n) => { const name = stepName(n); return Boolean(name && (JUMPS[name] || name === 'mod')); };
@@ -175,8 +183,7 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
   // A number typed with more significant digits than a double keeps (15) is
   // rounded before any of this runs (0.99999999999999999 is 1), and near a
   // jump that rounding decides the answer: refused, never worked rounded.
-  const longNumber = (String(func).match(/\d*\.?\d+/g) || [])
-    .find((lit) => lit.replace('.', '').replace(/^0+/, '').replace(/0+$/, '').length > 15);
+  const longNumber = longLiteral(func);
   if (longNumber) return refuse(`The number ${mark(longNumber)} has more digits than this solver keeps exactly, so a jump of the step function could not be told apart from a point beside it: the limit is not claimed.`);
   if (!Algebrite) return refuse('The tools to work this step function exactly did not load, so the limit is not claimed.');
   if (nodes.some((n) => n.args.some((arg) => arg.filter(isStep).length))) {
@@ -185,6 +192,15 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
   // The point exactly: from its typed digits when it is a decimal (a point
   // within rounding of a jump is then refused below, never put on it).
   const aText = pointText === null ? rationalText(a) : exactPoint(Algebrite, pointText);
+  // The point the solver computes with (a double) must be exactly the point
+  // typed: 1.0000000000000001 is computed as 1, and every value read off
+  // it (which side of a jump, the step's value there) would be the value at 1.
+  if (aText !== null && pointText !== null) {
+    const asComputed = rationalText(a);
+    let same = false;
+    try { same = asComputed !== null && String(Algebrite.run(`simplify((${aText}) - (${asComputed}))`)).trim() === '0'; } catch { same = false; }
+    if (!same) return refuse(`The point ${mark(String(pointText))} has more digits than this solver computes with exactly, so which side of a jump it lies on could not be decided: the limit is not claimed.`);
+  }
   if (aText === null) return refuse(`The point ${mark(formatNumber(a))} is not a simple fraction, so it cannot be compared with a jump exactly: the limit is not claimed.`);
   const steps = [];
   const replacement = new Map();

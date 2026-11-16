@@ -219,11 +219,13 @@ test('review round 3: exponent literals, % as mod, exponents a double rounds, sq
   // An exponent a double rounds (1 + 10⁻¹⁶ is 1) is not cancelled on: no
   // asymptote is claimed for a function that → ∞.
   // Nor when whole-ratio exponents combine into one (x·x^(1/10¹⁶)).
-  for (const p of ['ln(x^(1+10^(-16))+1)-ln(x+1)', 'ln(x*x^(1/10000000000000000)+1)-ln(x+1)']) {
+  const P = '(((x^1000)^1000)^1000)^1000';
+  const Q = '(x^(1/1000))^(1/1000)';
+  for (const p of ['ln(x^(1+10^(-16))+1)-ln(x+1)', 'ln(x*x^(1/10000000000000000)+1)-ln(x+1)', `ln(${P}*${Q}/${P}*x+1)-ln(x+1)`]) {
     assert.doesNotMatch((await solvePlain(p, 'functions')).answer, /horizontal asymptote/, p);
   }
   // Powers that do cancel exactly still give their asymptote.
-  for (const p of ['ln(x^2+1)-2*ln(x+1)', 'ln(sqrt(x)+1)-ln(x+1)/2']) {
+  for (const p of ['ln(x^2+1)-2*ln(x+1)', 'ln(sqrt(x)+1)-ln(x+1)/2', 'ln(x^(3/4)+1)-3*ln(x)/4']) {
     assert.match((await solvePlain(p, 'functions')).answer, /horizontal asymptote y = 0 as x → ∞/, p);
   }
   // Whole-number powers still cancel exactly: the antiderivative's log terms
@@ -233,4 +235,27 @@ test('review round 3: exponent literals, % as mod, exponents a double rounds, sq
   assert.match((await lim('lim x->inf 1/3+exp(-x)*sin(x)')).answer, /≈ 0\.3333$/);
   assert.doesNotMatch((await lim('lim x->inf 1/3+exp(-x)*sin(x)')).answer, /= ≈/);
   assert.match((await lim('lim x->inf (2+exp(-x)*sin(x))')).answer, /= 2$/);
+});
+
+test('review round 5: digits a double drops are never worked rounded; an undecided periodic term is refused', async () => {
+  const lim = (p) => solvePlain(p, 'limits');
+  // The typed point is 1 + 10⁻¹⁶; computed as 1, the argument there is 1.5
+  // (a step value of 1), not 0.5: refused, never "= 0".
+  assert.equal((await lim('lim x->1.0000000000000001 floor(10000000000000000*(x-1)+0.5)')).status, 'unsupported');
+  // x^1.0000000000000001 is x once parsed: no cancellation is proved from it.
+  const { provedLimitAtInfinity } = await import('../src/lib/solvers/limits/infinity.js');
+  const { loadAlgebrite } = await import('../src/lib/solvers/solverUtils.js');
+  assert.equal(provedLimitAtInfinity('ln(x^1.0000000000000001+1)-ln(x+1)', 'x', 1, await loadAlgebrite()), null);
+  // A periodic term too small to tell from a constant: refused, not "≈ 1".
+  for (const p of ['lim x->inf (1+0.000000000001*sin(x))', 'lim x->inf 1+0.000000000001*sin(x)']) {
+    assert.equal((await lim(p)).status, 'unsupported', p);
+  }
+  // A bounded periodic part added to a rest that → ±∞ is proved, not sampled.
+  for (const [p, a] of [['lim x->inf x+sin(x)', /= ∞$/], ['lim x->-inf x+cos(2*x)', /= -∞$/], ['lim x->inf x^2-3*sin(x)', /= ∞$/]]) {
+    const r = await lim(p);
+    assert.match(r.answer, a, p);
+    assert.doesNotMatch(r.answer, /estimate/, p);
+  }
+  // Estimates of non-periodic limits are unchanged: (1 + 3/x)^x → e³.
+  assert.match((await lim('lim x->inf (1+3/x)^x')).answer, /= e\^3/);
 });
