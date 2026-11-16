@@ -234,4 +234,6 @@ test('lost points are stated as they are: never a set wider than what is lost; u
   // Only a numeric check matched 1: the graph shows the expression itself.
   const r = await solvePlain('sin(x)^2+cos(x)^2+10^(-30)*x^40', 'auto');
   assert.ok(Math.max(...r.graph.points.map((q) => q.y).filter(Number.isFinite)) > 2);
+  assert.doesNotMatch(r.graph.description, /Equivalent/);
+  assert.match((await solvePlain('sin(x)^2+cos(x)^2', 'auto')).graph.description, /^Equivalent to 1/);
 });

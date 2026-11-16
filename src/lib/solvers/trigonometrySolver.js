@@ -553,7 +553,7 @@ async function simplifyTrigExpression(expression, variable) {
         // Drawn from the simplified form only when the identity is proved:
         // a numeric check alone (sin² + cos² + 10^−30·x^40 matches 1 at the
         // sample points) must not flatten the original's graph.
-        graph: generateSymbolicTrigGraph(expression, variable, beautify(simplified), proved ? simplified : null),
+        graph: generateSymbolicTrigGraph(expression, variable, proved ? beautify(simplified) : null, proved ? simplified : null),
       };
     }
 
