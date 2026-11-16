@@ -410,7 +410,10 @@ export function tryLimitLaws(Algebrite, func, variable, target, { valueOnly = fa
   if (method === 'conjugate of two roots') {
     here = `Here: ${mark(`${f} = ${found.rewrite}`)}, and that quotient ${mark(`→ ${answer}`)}.`;
   } else if (method === 'leading powers') {
-    here = `Here: ${mark(f)} behaves like ${mark(powerText(leadingPower(tree, v), v))}, so the limit is ${mark(answer)}.`;
+    // An irrational leading coefficient (√(2x)) has no display: no "Here"
+    // line rather than "behaves like null" (1.76.4).
+    const leadText = powerText(leadingPower(tree, v), v);
+    here = leadText ? `Here: ${mark(f)} behaves like ${mark(leadText)}, so the limit is ${mark(answer)}.` : null;
   } else {
     // The arrows the steps established, inside out: "ln(x) → ∞, then …".
     const arrows = found.steps.map((s) => (s.match(/⟦([^⟦⟧]*→[^⟦⟧]*)⟧\.$/) || [])[1]).filter(Boolean);

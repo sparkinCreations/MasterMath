@@ -44,7 +44,14 @@ from a handful of samples, and each could be fooled.
   is 1. Where that does not settle it (⌊x²⌋ at 0, whose inside is flat
   there) or what is left is not continuous (floor(x)/x), the limit is
   refused, not guessed. One-sided limits through a step function are
-  proved too (floor(x) as x → 0⁻ is −1), no longer estimated.
+  proved too (floor(x) as x → 0⁻ is −1), no longer estimated, and exact:
+  floor(x) + √2 as x → 0⁺ is √2 (≈ 1.4142). Nothing in this route is
+  decided by a sample or a tolerance: being on a jump and two sides being
+  equal are proved exactly (10¹² + ⌊x⌋ at 0 has sides 10¹² − 1 and 10¹²;
+  ⌊x + 10⁻¹³⌋ at 0 is refused), and continuity is read off the expression
+  (a denominator not 0, a logarithm's or root's argument positive, tan away
+  from its poles), so ⌊x⌋ + arctan(1/x) at 0⁻ is refused where a sampled
+  check passed it.
 - floor, ceil, round and sign are typeset upright, as named functions.
 
 ### Changed
@@ -55,13 +62,17 @@ from a handful of samples, and each could be fooled.
   grows (the squeeze theorem for a decaying factor times a bounded one).
   The improper integrals and asymptotes no longer keep their own sampling.
   A sum of logarithms of polynomials (a partial-fraction antiderivative,
-  ½ln|t − 1| − ½ln|t + 1|) is read through each leading term, so
+  ½ln|t − 1| − ½ln|t + 1|) is read through each leading term — the ln(t)
+  parts cancelling only when their coefficients sum to exactly 0 — so
   ∫₂^∞ 1/(x² − 1) dx = ½ln(3) and ∫₀^∞ 1/(x⁴ + 1) dx = π/(2√2) stay proved;
   a leading coefficient that is irrational (√2·x + 1) no longer stops the
   limit laws.
 - The corpus harness reports two rates: safety (correct or honestly
   refused: no confidently wrong answer) and solved (correct only). A
-  refusal counts toward the first, never the second.
+  refusal counts toward the first, never the second; a row whose right
+  answer is a refusal counts as refused, and "No solution" is a claim,
+  graded like any other (it was counted as a refusal). On this corpus:
+  safety 100%, solved 90.3%, 0 wrong.
 
 ## [1.76.3] - 2026-11-16
 

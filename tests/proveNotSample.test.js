@@ -107,6 +107,10 @@ test('an identity is named by what the input is, not by where it lands', async (
   assert.match(await second('csc(x)^2-cot(x)^2'), /Pythagorean identity 1 \+ cot²\(θ\) = csc²\(θ\)/);
   assert.match(await second('sin(x)^2+cos(x)^2'), /Pythagorean identity: sin²\(θ\) \+ cos²\(θ\) = 1/);
   assert.match(await second('2*sin(x)*cos(x)'), /double-angle identity/);
+  // The tip teaches the identity the step names.
+  const tc = await solvePlain('tan(x)*cot(x)', 'trigonometry');
+  assert.match(tc.tips[0], /^Reciprocal identities/);
+  assert.doesNotMatch(tc.tips[0], /Pythagorean/);
 });
 
 test('a limit through a step function is worked one side at a time, never by substituting the point', async () => {
@@ -138,4 +142,34 @@ test('a limit through a step function is worked one side at a time, never by sub
     assert.equal(r.status, 'unsupported', `${p}: ${r.answer}`);
   }
   assert.match((await lim('lim x->0 floor(x^2)')).steps.join('\n'), /derivative there is 0/);
+});
+
+test('review of 1.76.4: no step-limit decision rests on a tolerance or a sample', async () => {
+  const lim = (p) => solvePlain(p, 'limits');
+  // Sides 10¹² − 1 and 10¹²: different, proved exactly.
+  assert.match((await lim('lim x->0 (1000000000000+floor(x))')).answer, /does not exist$/);
+  // Within rounding of a jump, not on it: refused, not "does not exist".
+  // round(x, 1) has other jumps: refused. atan(1/x) is not continuous at 0,
+  // and tan(x + π/2) has a pole there: refused, not given a value.
+  for (const p of ['lim x->0 floor(x+0.0000000000001)', 'lim x->0.5 round(x,1)', 'lim x->0- (floor(x) + atan(1/x))', 'lim x->0 floor(x)*tan(x+pi/2)']) {
+    assert.equal((await lim(p)).status, 'unsupported', p);
+  }
+  // Exact, not a bare decimal.
+  assert.match((await lim('lim x->0+ (floor(x)+sqrt(2))')).answer, /= √2 \(≈ 1\.4142\)$/);
+  // A constant left by the replacement is continuous: √0 near x = 1.
+  assert.match((await lim('lim x->1 sqrt(floor(x))')).answer, /does not exist$/);
+});
+
+test('review of 1.76.4: signs, exact cancellation and a remainder beside a squeezed term', async () => {
+  const shown = async (p) => horizontal(await solvePlain(p, 'functions')).join(' | ').replace(/⟦|⟧/g, '');
+  assert.match(await shown('-1/(2+sin(x)/x)'), /y = -0\.5 as x → ±∞/);
+  // 10⁻¹³·ln(x) still grows without bound: no asymptote.
+  assert.equal(await shown('ln(x+1)-ln(x+2)+0.0000000000001*ln(x+3)'), '');
+  const r = await solvePlain('lim x->inf (2+exp(-x)*sin(x))', 'limits');
+  assert.match(r.answer, /= 2$/);
+  assert.match(steps(r), /Every other term has a limit of its own/);
+  // An irrational leading coefficient: no "behaves like null" anywhere.
+  const root = await solvePlain('lim x->inf sqrt(2*x)', 'limits');
+  assert.match(root.answer, /= ∞$/);
+  assert.doesNotMatch([...root.steps, ...root.tips].join('\n'), /null/);
 });

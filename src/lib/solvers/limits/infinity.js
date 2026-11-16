@@ -92,12 +92,14 @@ function logOfPowerLike(term, v, sign) {
   const absolute = arg.type === 'FunctionNode' && arg.fn.name === 'abs';
   if (absolute) arg = arg.args[0];
   let c = 1;
+  const cParts = [];
   for (const f of factors) {
     if (f === logs[0]) continue;
     let k;
     try { k = Number(f.node.evaluate({})); } catch { return null; }
     if (!Number.isFinite(k)) return null;
     c *= f.inv ? 1 / k : k;
+    cParts.push(f.inv ? `1/(${f.node.toString()})` : `(${f.node.toString()})`);
   }
   // At −∞ by t = −x: P(−t) ~ c₀·(−1)^p·t^p.
   let probe = arg;
@@ -106,7 +108,10 @@ function logOfPowerLike(term, v, sign) {
   if (!lead || lead.c === 0 || !Number.isFinite(lead.p)) return null;
   // ln needs P > 0 far out, unless it is ln|P|.
   if (!absolute && lead.c < 0) return null;
-  return { lnCoef: c * lead.p, constant: c * Math.log(Math.abs(lead.c)) };
+  let pText;
+  try { const f = math.fraction(lead.p); pText = `${Number(f.s) < 0 ? '-' : ''}${f.n}/${f.d}`; } catch { return null; }
+  // The exact coefficient of ln(t), c·p, for proving that the sum cancels.
+  return { lnCoef: c * lead.p, constant: c * Math.log(Math.abs(lead.c)), exact: `(${cParts.length ? cParts.join('*') : '1'})*(${pText})` };
 }
 
 // One term, proved or null: its growth form, the limit laws, or a decaying
@@ -122,11 +127,13 @@ function termLimit(term, v, sign, Algebrite = null, depth = 0) {
   let node;
   try { node = math.parse(String(term).replace(/π/g, 'pi')); } catch { return null; }
   const factors = [];
+  // The sign of each unary minus is kept: −1/(2 + sin(x)/x) → −1/2.
+  let sign1 = 1;
   const flatten = (n, inv) => {
     while (n.type === 'ParenthesisNode') n = n.content;
     if (n.type === 'OperatorNode' && n.op === '*') n.args.forEach((a) => flatten(a, inv));
     else if (n.type === 'OperatorNode' && n.op === '/') { flatten(n.args[0], inv); flatten(n.args[1], !inv); }
-    else if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') flatten(n.args[0], inv);
+    else if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') { sign1 = -sign1; flatten(n.args[0], inv); }
     else factors.push({ text: n.toString(), inv });
   };
   flatten(node, false);
@@ -158,8 +165,8 @@ function termLimit(term, v, sign, Algebrite = null, depth = 0) {
     return null;
   }
   if (!Number.isFinite(B.value) || Math.abs(B.value) < 1e-300 || !T) return null;
-  if (Number.isFinite(T.value)) return { value: T.value / B.value };
-  if (T.inf) return { value: T.inf * Math.sign(B.value) * Infinity };
+  if (Number.isFinite(T.value)) return { value: sign1 * (T.value / B.value) };
+  if (T.inf) return { value: sign1 * T.inf * Math.sign(B.value) * Infinity };
   return null;
 }
 
@@ -192,13 +199,15 @@ export function provedLimitAtInfinity(f, v, sign, Algebrite = null, depth = 0) {
   let limit = 0;
   let squeeze = false;
   let lnCoef = 0;
+  let lnScale = 0;
   let lnConstant = 0;
   let logs = 0;
+  const lnExact = [];
   for (const t of terms) {
     const period = structuralPeriod(t, v);
     if (period && period > 0) { periodic.push(t); continue; }
     const log = logOfPowerLike(t, v, sign);
-    if (log) { lnCoef += log.lnCoef; lnConstant += log.constant; logs += 1; continue; }
+    if (log) { lnCoef += log.lnCoef; lnScale += Math.abs(log.lnCoef); lnConstant += log.constant; lnExact.push(log.exact); logs += 1; continue; }
     const found = termLimit(t, v, sign, Algebrite, depth);
     if (!found || Number.isNaN(found.value)) return null;
     if (found.squeeze) squeeze = true;
@@ -208,14 +217,20 @@ export function provedLimitAtInfinity(f, v, sign, Algebrite = null, depth = 0) {
       else if (L !== limit) return null; // ∞ − ∞
     } else if (Number.isFinite(limit)) limit += L;
   }
-  // The logarithms together: (Σ c·p)·ln(t) + Σ c·ln|c₀|.
+  // The logarithms together: (Σ c·p)·ln(t) + Σ c·ln|c₀|. Σ c·p clearly
+  // away from 0 (far beyond rounding) decides ±∞; otherwise it must be
+  // shown exactly 0 — 10⁻¹³·ln(t) still grows without bound.
   if (logs) {
-    const scale = 1e-12 * (1 + Math.abs(lnCoef));
-    if (Math.abs(lnCoef) > scale) {
+    if (Math.abs(lnCoef) > 1e-9 * (1 + lnScale)) {
       const L = Math.sign(lnCoef) * Infinity;
       if (Number.isFinite(limit)) limit = L;
       else if (L !== limit) return null; // ∞ − ∞
-    } else if (Number.isFinite(limit)) limit += lnConstant;
+    } else {
+      let zero = false;
+      try { zero = Boolean(Algebrite) && String(Algebrite.run(`simplify(${lnExact.join(' + ').replace(/(?<![a-z_])e(?![a-z(_])/g, 'exp(1)')})`)).trim() === '0'; } catch { zero = false; }
+      if (!zero) return null;
+      if (Number.isFinite(limit)) limit += lnConstant;
+    }
   }
   if (!periodic.length) {
     if (Number.isFinite(limit)) return { value: limit, how: squeeze ? 'squeeze' : logs ? 'logs' : 'growth' };

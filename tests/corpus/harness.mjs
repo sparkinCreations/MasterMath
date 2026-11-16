@@ -284,8 +284,11 @@ function numClose(a, b) {
   return Math.abs(a - b) < 1e-3 * (1 + Math.abs(b));
 }
 
+// A refusal declines to answer. "No solution" is not one: it is a claim
+// about the solution set, right or wrong, and a false one is WRONG, never
+// safe (1.76.4; it was counted REFUSED).
 function isRefusal(answer) {
-  return /unable to|could not|no solution|not (?:recognized|supported)|invalid/i.test(String(answer));
+  return /unable to|could not|not (?:recognized|supported)|invalid|beyond what/i.test(String(answer));
 }
 function saysDNE(s) {
   return /does not exist|dne|undefined/i.test(String(s));
@@ -479,7 +482,8 @@ async function grade(category, problem, expected, meta = {}) {
   // the answer must not be presented as an ordinary solved value.
   if (meta.expectRefusal) {
     const declined = r.status !== 'solved' || /diverge|undefined|indeterminate|non-elementary|does not exist|beyond what|cannot|not supported/i.test(ans);
-    return { verdict: declined ? 'CORRECT' : 'WRONG', got: ans };
+    // Safe, but not a solve: it counts toward safety, never the solved rate.
+    return { verdict: declined ? 'REFUSED' : 'WRONG', got: ans };
   }
 
   if (cat === 'derivatives' && /^d[a-z]\/d[a-z]\b/.test(ans)) {
@@ -730,7 +734,7 @@ if (wrong.length) {
 if (!showWrongOnly) {
   console.log('\n─── Corpus scoreboard ───');
   console.log(`  CORRECT : ${tally.CORRECT}`);
-  console.log(`  REFUSED : ${tally.REFUSED}  (pass for unbuilt features)`);
+  console.log(`  REFUSED : ${tally.REFUSED}  (declined honestly: unbuilt features, and rows whose right answer is a refusal)`);
   console.log(`  WRONG   : ${tally.WRONG}`);
   console.log(`  SKIP    : ${tally.SKIP}  (Functions — Wave 2)`);
   console.log(`  ─────────────────────`);

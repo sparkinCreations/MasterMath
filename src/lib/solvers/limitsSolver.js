@@ -396,12 +396,13 @@ async function evaluateFiniteLimit(func, variable, target) {
   const stepped = await stepThrough(func, variable, target);
   if (stepped) {
     if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
-    const same = Math.abs(stepped.left - stepped.right) <= 1e-12 * (1 + Math.abs(stepped.left));
+    // Equal only when proved equal (limits/steps.js), never within a tolerance.
+    const same = stepped.same;
     return {
       steps: [...stepped.steps, same
-        ? `Both sides give ${mark(formatNumber(stepped.left))}, so the limit is ${mark(formatNumber(stepped.left))} (the value at the point itself does not enter a limit).`
-        : `The two sides give different values, ${mark(formatNumber(stepped.left))} and ${mark(formatNumber(stepped.right))}, so the limit does not exist.`],
-      answer: same ? formatNumber(stepped.left) : 'Does not exist',
+        ? `Both sides give ${mark(stepped.left.shown)}, so the limit is ${mark(stepped.left.shown)} (the value at the point itself does not enter a limit).`
+        : `The two sides give different values, ${mark(stepped.left.shown)} and ${mark(stepped.right.shown)}, so the limit does not exist.`],
+      answer: same ? stepped.left.shown : 'Does not exist',
       verified: true,
       verificationMethod: 'one-sided limits of a step function',
     };
@@ -547,7 +548,10 @@ async function evaluateInfiniteLimit(func, variable, target) {
     // theorem, not a sampled "≈ 0".
     if (r && r.how === 'squeeze' && Number.isFinite(r.value)) {
       return {
-        steps: [`Each term of ${mark(beautify(func))} is a factor that → ${mark('0')} times a sine or cosine, which stays between ${mark('−1')} and ${mark('1')}. So each term lies between minus and plus the size of its decaying factor, and both of those → ${mark('0')}: each term → ${mark('0')} (the squeeze theorem), so the limit is ${mark(formatNumber(r.value))}.`],
+        steps: [
+          `A term of ${mark(beautify(func))} that is a factor → ${mark('0')} times a bounded one (a sine or cosine, between ${mark('−1')} and ${mark('1')}) lies between minus and plus the size of that factor, and both of those → ${mark('0')}: such a term → ${mark('0')} (the squeeze theorem).`,
+          `Every other term has a limit of its own, so the limit is their sum: ${mark(formatNumber(r.value))}.`,
+        ],
         answer: formatNumber(r.value),
         verified: true,
         verificationMethod: 'squeeze theorem',
@@ -579,8 +583,8 @@ async function evaluateOneSided(func, variable, target, side) {
     if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
     const value = side > 0 ? stepped.right : stepped.left;
     return {
-      steps: [`This is a one-sided limit: only the ${side > 0 ? 'right' : 'left'}-hand behaviour (${mark(`${variable} → ${formatNumber(target)}${side > 0 ? '⁺' : '⁻'}`)}) matters.`, ...stepped.steps, `So the ${side > 0 ? 'right' : 'left'}-hand limit is ${mark(formatNumber(value))}.`],
-      answer: formatNumber(value),
+      steps: [`This is a one-sided limit: only the ${side > 0 ? 'right' : 'left'}-hand behaviour (${mark(`${variable} → ${formatNumber(target)}${side > 0 ? '⁺' : '⁻'}`)}) matters.`, ...stepped.steps, `So the ${side > 0 ? 'right' : 'left'}-hand limit is ${mark(value.shown)}.`],
+      answer: value.shown,
       verified: true,
       verificationMethod: 'one-sided limits of a step function',
     };
@@ -609,14 +613,15 @@ async function evaluateOneSided(func, variable, target, side) {
 // where defined).
 async function stepThrough(func, variable, target) {
   if (!/\b(?:floor|ceil|round|fix|sign|mod)\s*\(/.test(String(func))) return null;
+  // A step function is present: from here on the answer is proved or
+  // refused, never left to substitution (which is what got it wrong) —
+  // not even if Algebrite fails to load.
   let Algebrite = null;
-  try { Algebrite = await loadAlgebrite(); } catch { return null; }
-  const continuousAt = (text, a) => Number.isFinite(valueAt(text, variable, a)) && oneSidedDomain(text, variable, a) === 0
-    && [1e-6, 1e-8].every((d) => Number.isFinite(evalAt(text, variable, a - d)) && Number.isFinite(evalAt(text, variable, a + d)));
+  try { Algebrite = await loadAlgebrite(); } catch { Algebrite = null; }
   try {
-    return await stepFunctionLimit(func, variable, target, { Algebrite, continuousAt });
+    return stepFunctionLimit(func, variable, target, { Algebrite });
   } catch {
-    return null;
+    return { refuse: true, steps: ['This step function could not be worked here, so the limit is not claimed.'] };
   }
 }
 
