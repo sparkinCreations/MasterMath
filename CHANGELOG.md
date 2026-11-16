@@ -30,6 +30,8 @@ from a handful of samples, and each could be fooled.
 - An identity is named by what the input is, not by where it lands:
   tan(x)·cot(x) = 1 is the reciprocal identity cot(θ) = 1/tan(θ), not "the
   Pythagorean identity"; sec²(x) − tan²(x) = 1 is 1 + tan²(θ) = sec²(θ).
+  Its tip and mistakes are the reciprocal ones (cot is 1/tan, not arctan),
+  not the Pythagorean tip and the double-angle warning.
 - lim (1 + 10⁻⁷·sin(x)) as x → ∞ was estimated "≈ 1" from samples; it does
   not exist, proved from its periodic part. lim sin(πx) and lim tan(x) as
   x → ∞, which were "could not be determined", are proved not to exist the
@@ -45,10 +47,12 @@ from a handful of samples, and each could be fooled.
   there) or what is left is not continuous (floor(x)/x), the limit is
   refused, not guessed. One-sided limits through a step function are
   proved too (floor(x) as x → 0⁻ is −1), no longer estimated, and exact:
-  floor(x) + √2 as x → 0⁺ is √2 (≈ 1.4142). Nothing in this route is
+  floor(x) + √2 as x → 0⁺ is √2 (≈ 1.4142); a side whose exact value is
+  not found is shown with ≈, never as a bare decimal. Nothing in this route is
   decided by a sample or a tolerance: being on a jump and two sides being
   equal are proved exactly (10¹² + ⌊x⌋ at 0 has sides 10¹² − 1 and 10¹²;
-  ⌊x + 10⁻¹³⌋ at 0 is refused), and continuity is read off the expression
+  ⌊x + 10⁻¹³⌋ at 0 is refused, and so is ⌊x⌋ at a typed point 10⁻¹⁶, read
+  exactly from its digits rather than as a double rounded onto the jump), and continuity is read off the expression
   (a denominator not 0, a logarithm's or root's argument positive, tan away
   from its poles), so ⌊x⌋ + arctan(1/x) at 0⁻ is refused where a sampled
   check passed it.
@@ -71,7 +75,10 @@ from a handful of samples, and each could be fooled.
   refused: no confidently wrong answer) and solved (correct only). A
   refusal counts toward the first, never the second; a row whose right
   answer is a refusal counts as refused, and "No solution" is a claim,
-  graded like any other (it was counted as a refusal). On this corpus:
+  graded like any other (it was counted as a refusal). A refusal is read
+  from the answer's status before its text, so "No solution was found, but
+  this solver cannot show there is none" is never a match for "No
+  solution". On this corpus:
   safety 100%, solved 90.3%, 0 wrong.
 
 ## [1.76.3] - 2026-11-16

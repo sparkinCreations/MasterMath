@@ -297,8 +297,8 @@ export async function solveLimit(expression) {
     const result = !Number.isFinite(target)
       ? await evaluateInfiniteLimit(func, variable, target)
       : side !== 0
-        ? await evaluateOneSided(func, variable, target, side)
-        : await evaluateFiniteLimit(func, variable, target);
+        ? await evaluateOneSided(func, variable, target, side, approachToken)
+        : await evaluateFiniteLimit(func, variable, target, approachToken);
 
     // Samples that never settled decide nothing: this was "does not exist"
     // for 1/ln(x) as x → ∞, which → 0 (1.68.6).
@@ -389,11 +389,11 @@ function formatApproach(raw, target) {
 // after the symbolic rungs have had a chance. This ordering is what fixes the
 // classic 0/0 removable limits — (1-cos x)/x^2, (sin x - x)/x^3, etc. — that
 // blind sampling at 1e-6/1e-8 gets wrong through floating-point cancellation.
-async function evaluateFiniteLimit(func, variable, target) {
+async function evaluateFiniteLimit(func, variable, target, pointText = null) {
   // A step function (floor, ceil, round, fix, sign, mod) is not continuous at
   // its jumps, so substitution proves nothing there: each side is worked on
   // its own (limits/steps.js, 1.76.4). lim x→0 floor(x) was "= 0".
-  const stepped = await stepThrough(func, variable, target);
+  const stepped = await stepThrough(func, variable, target, pointText);
   if (stepped) {
     if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
     // Equal only when proved equal (limits/steps.js), never within a tolerance.
@@ -577,8 +577,8 @@ async function evaluateInfiniteLimit(func, variable, target) {
 }
 
 // A one-sided limit: growth rates first at 0⁺ (x·ln(x)), then sampling.
-async function evaluateOneSided(func, variable, target, side) {
-  const stepped = await stepThrough(func, variable, target);
+async function evaluateOneSided(func, variable, target, side, pointText = null) {
+  const stepped = await stepThrough(func, variable, target, pointText);
   if (stepped) {
     if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
     const value = side > 0 ? stepped.right : stepped.left;
@@ -606,12 +606,11 @@ async function evaluateOneSided(func, variable, target, side) {
   return evaluateOneSidedLimit(func, variable, target, side);
 }
 
-// The step-function route (limits/steps.js), with this solver's continuity
-// check for what is left once each step function is replaced by its value:
-// an expression with no step function is continuous at a point where it is
-// finite and defined on both sides (every other function here is continuous
-// where defined).
-async function stepThrough(func, variable, target) {
+// The step-function route (limits/steps.js). What is left once each step
+// function is replaced by its value on a side must be proved continuous at
+// the point from its structure (continuousAt in steps.js: every denominator,
+// logarithm, root and power base checked there), never from samples.
+async function stepThrough(func, variable, target, pointText = null) {
   if (!/\b(?:floor|ceil|round|fix|sign|mod)\s*\(/.test(String(func))) return null;
   // A step function is present: from here on the answer is proved or
   // refused, never left to substitution (which is what got it wrong) —
@@ -619,7 +618,7 @@ async function stepThrough(func, variable, target) {
   let Algebrite = null;
   try { Algebrite = await loadAlgebrite(); } catch { Algebrite = null; }
   try {
-    return stepFunctionLimit(func, variable, target, { Algebrite });
+    return stepFunctionLimit(func, variable, target, { Algebrite, pointText });
   } catch {
     return { refuse: true, steps: ['This step function could not be worked here, so the limit is not claimed.'] };
   }

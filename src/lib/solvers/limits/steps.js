@@ -60,10 +60,22 @@ function rationalText(x) {
     const f = math.fraction(x);
     if (Number(f.d) > 1e6) return null;
     const text = `${Number(f.s) < 0 ? '-' : ''}${f.n}${String(f.d) === '1' ? '' : `/${f.d}`}`;
-    return Math.abs(Number(f.s) * Number(f.n) / Number(f.d) - x) <= 1e-15 * (1 + Math.abs(x)) ? text : null;
+    // Exactly this double, or nothing: 10⁻¹⁶ is not 0.
+    return Number(f.s) * Number(f.n) / Number(f.d) === x ? text : null;
   } catch {
     return null;
   }
+}
+
+// A point typed as a plain decimal, read exactly from its digits:
+// "0.0000000000000001" is 1/10¹⁶, which a double may not hold (as a double,
+// 0.99999999999999999 is 1).
+function decimalText(t) {
+  const m = /^\s*([-−]?)(\d+)(?:\.(\d+))?\s*$/.exec(String(t ?? ''));
+  if (!m) return null;
+  const places = (m[3] || '').length;
+  const digits = `${m[2]}${m[3] || ''}`.replace(/^0+(?=\d)/, '');
+  return `${m[1] ? '-' : ''}${digits}${places ? `/1${'0'.repeat(places)}` : ''}`;
 }
 
 // mathjs text to Algebrite's: e is exp(1) there.
@@ -130,7 +142,7 @@ export function continuousAt(node, v, a) {
 
 // Null when the expression has no step function; else { left, right, steps }
 // — each side { value, exact } — or { refuse, steps } when not proved here.
-export function stepFunctionLimit(func, v, a, { Algebrite }) {
+export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
   let tree;
   try { tree = math.parse(String(func)); } catch { return null; }
   const nodes = tree.filter(isStep);
@@ -140,7 +152,9 @@ export function stepFunctionLimit(func, v, a, { Algebrite }) {
   if (nodes.some((n) => n.args.some((arg) => arg.filter(isStep).length))) {
     return refuse('A step function inside another one is not worked here, so the limit is not claimed.');
   }
-  const aText = rationalText(a);
+  // The point exactly: from its typed digits when it is a decimal (a point
+  // within rounding of a jump is then refused below, never put on it).
+  const aText = decimalText(pointText) ?? rationalText(a);
   if (aText === null) return refuse(`The point ${mark(formatNumber(a))} is not a simple fraction, so it cannot be compared with a jump exactly: the limit is not claimed.`);
   const steps = [];
   const replacement = new Map();
@@ -220,9 +234,12 @@ export function stepFunctionLimit(func, v, a, { Algebrite }) {
     if (Number.isFinite(d) && d !== 0) same = false;
   }
   if (same === null) return refuse('Whether the two sides agree is not shown exactly here, so the limit is not claimed.');
+  // Exact when Algebrite gave the side's value; otherwise the decimal is
+  // only an approximation and says so.
   const shownValue = (s) => {
     const exact = s.exact ? exactForm(s.exact) : null;
-    return exact && exact !== formatNumber(s.value) ? `${exact} (≈ ${formatNumber(s.value)})` : formatNumber(s.value);
+    if (!exact) return `≈ ${formatNumber(s.value)}`;
+    return exact !== formatNumber(s.value) ? `${exact} (≈ ${formatNumber(s.value)})` : exact;
   };
   steps.push(`From the left, ${mark(beautify(func))} is ${mark(beautify(L.text))} near ${mark(formatNumber(a))}, continuous there, so it → ${mark(shownValue(L))}; from the right it is ${mark(beautify(R.text))}, so it → ${mark(shownValue(R))}.`);
   return { left: { value: L.value, shown: shownValue(L) }, right: { value: R.value, shown: shownValue(R) }, same, steps };

@@ -166,6 +166,16 @@ export function identityGuidance(display, result, lost, identityUsed) {
   const here = result && result !== display
     ? `Here: ${generic ? 'written in sin and cos, ' : ''}${mark(`${display} = ${result}`)}${generic ? '' : ` by the ${identityUsed}`}${lost ? `, for ${lost.map((c) => mark(c.replace(' = ', ' ≠ '))).join(' and ')}` : ''}.`
     : null;
+  // 1.76.4: a reciprocal simplification gets its own mistakes, not the
+  // double-angle warning of the shared list.
+  if (/reciprocal/.test(name)) {
+    return assemble(tips, here, [
+      `Writing ${mark('tan(x)·cot(x) = 1')} for every ${mark('x')}: where ${mark('sin(x) = 0')} or ${mark('cos(x) = 0')} one factor is undefined, so the product is too.`,
+      `Reading ${mark('cot(x)')} as ${mark('arctan(x)')}: the reciprocal ${mark('1/tan(x)')} is not the inverse function; likewise ${mark('sec(x) = 1/cos(x)')}, not ${mark('arccos(x)')}.`,
+      `Pairing the wrong reciprocals: ${mark('sec(x) = 1/cos(x)')} and ${mark('csc(x) = 1/sin(x)')}, not the other way round.`,
+      'Forgetting where the original is undefined after it simplifies.',
+    ]);
+  }
   return assemble(tips, here, [
     `Cancelling across a sum: ${mark('sin(x)/x')} is not sin — only common factors cancel.`,
     `Dropping the argument: ${mark('sin² + cos²')} means nothing without the same angle inside both.`,

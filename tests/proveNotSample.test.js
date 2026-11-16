@@ -111,6 +111,11 @@ test('an identity is named by what the input is, not by where it lands', async (
   const tc = await solvePlain('tan(x)*cot(x)', 'trigonometry');
   assert.match(tc.tips[0], /^Reciprocal identities/);
   assert.doesNotMatch(tc.tips[0], /Pythagorean/);
+  // …and the mistakes are the reciprocal ones, not the double-angle warning.
+  const mistakes = tc.common_mistakes.join(' ');
+  assert.match(mistakes, /arctan/);
+  assert.doesNotMatch(mistakes, /double-angle/);
+  assert.match((await solvePlain('2*sin(x)*cos(x)', 'trigonometry')).common_mistakes.join(' '), /double-angle/);
 });
 
 test('a limit through a step function is worked one side at a time, never by substituting the point', async () => {
@@ -154,6 +159,16 @@ test('review of 1.76.4: no step-limit decision rests on a tolerance or a sample'
   for (const p of ['lim x->0 floor(x+0.0000000000001)', 'lim x->0.5 round(x,1)', 'lim x->0- (floor(x) + atan(1/x))', 'lim x->0 floor(x)*tan(x+pi/2)']) {
     assert.equal((await lim(p)).status, 'unsupported', p);
   }
+  // A typed point within rounding of a jump is read from its digits, never
+  // put on the jump (as doubles, 10⁻¹⁶ was rounded to 0, and
+  // 0.99999999999999999 is 1): refused, not "does not exist".
+  for (const p of ['lim x->0.0000000000000001 floor(x)', 'lim x->0.99999999999999999 floor(x)', 'lim x->1.0000000000000001 floor(x)', 'lim x->0.0000000000000001- floor(x)']) {
+    assert.equal((await lim(p)).status, 'unsupported', p);
+  }
+  // A point exactly on a jump still is: 10·0.1 = 1, and 3·(1/3) = 1.
+  for (const p of ['lim x->0.1 floor(10*x)', 'lim x->1/3 floor(3*x)']) {
+    assert.match((await lim(p)).answer, /does not exist$/, p);
+  }
   // Exact, not a bare decimal.
   assert.match((await lim('lim x->0+ (floor(x)+sqrt(2))')).answer, /= √2 \(≈ 1\.4142\)$/);
   // A constant left by the replacement is continuous: √0 near x = 1.
@@ -172,4 +187,20 @@ test('review of 1.76.4: signs, exact cancellation and a remainder beside a squee
   const root = await solvePlain('lim x->inf sqrt(2*x)', 'limits');
   assert.match(root.answer, /= ∞$/);
   assert.doesNotMatch([...root.steps, ...root.tips].join('\n'), /null/);
+});
+
+test('a step-limit side whose exact value is not found is shown with ≈, never as a bare decimal', async () => {
+  const { stepFunctionLimit } = await import('../src/lib/solvers/limits/steps.js');
+  const { loadAlgebrite } = await import('../src/lib/solvers/solverUtils.js');
+  const real = await loadAlgebrite();
+  // Algebrite answers the derivative and the sides' difference, but not a
+  // side's own value: the decimal must then carry ≈.
+  const stub = { run: (s) => { if (/^simplify\(subst\(/.test(s) && !/\) - \(/.test(s)) throw new Error('no'); return real.run(s); } };
+  const r = stepFunctionLimit('floor(x) + sqrt(2)', 'x', 0, { Algebrite: stub });
+  assert.equal(r.same, false);
+  assert.match(r.left.shown, /^≈ /);
+  assert.match(r.right.shown, /^≈ /);
+  // With the exact value found, it leads and the decimal follows with ≈.
+  const exact = stepFunctionLimit('floor(x) + sqrt(2)', 'x', 0, { Algebrite: real });
+  assert.match(exact.right.shown, /^√2 \(≈ 1\.414/);
 });

@@ -462,6 +462,11 @@ async function grade(category, problem, expected, meta = {}) {
 
   const r = gradable(await solveProblem(input, TOPIC[meta.topic] || topic));
   const ans = String(r.answer);
+  // A refusal is graded by its status before any text is read: an
+  // unsupported answer can say "No solution was found, but this solver
+  // cannot show there is none", which must not match an expected "No
+  // solution" (or "diverges") as a solve.
+  if (!meta.expectRefusal && (r.status === 'unsupported' || r.status === 'parse_error')) return { verdict: 'REFUSED', got: ans };
 
   // Trig equations: compare the solutions listed on one period, as sets.
   // Expected "5pi/6, 7pi/6 on [0,2pi)"; the answer ends "on [0, 2π): 5π/6, 7π/6".
