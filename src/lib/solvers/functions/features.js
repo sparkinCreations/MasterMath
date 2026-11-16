@@ -17,6 +17,7 @@ import {
   mark,
 } from '../solverUtils.js';
 import { readPolynomial, allRoots } from '../polynomialRoots.js';
+import { provedLimitAtInfinity } from '../limits/infinity.js';
 
 export const WINDOW = { min: -10, max: 10 };
 export const FINE_STEP = 0.05;
@@ -697,20 +698,24 @@ export function findInflections(func, variable, Algebrite) {
   }
 }
 
-export function findHorizontalAsymptote(func, variable) {
-  const settle = (sign) => {
-    const a = evalAt(func, variable, sign * 1e6);
-    const b = evalAt(func, variable, sign * 1e8);
-    if (Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) < 1e-6 * (1 + Math.abs(b))) {
-      return snap(b);
-    }
-    return null;
+// Horizontal asymptotes, proved (limits/infinity.js) — never read off two
+// samples: sin(πx) is 0 at x = 10⁶ and at 10⁸, and was given the asymptote
+// y = 0 (1.76.4). A side whose limit is not proved finite has none claimed.
+// Returns { asymptote, text }: asymptote is a number (the same both ways),
+// { left, right } or null, as before; text the exact forms (π/2), when known.
+export function findHorizontalAsymptote(func, variable, Algebrite = null) {
+  const side = (sign) => {
+    // Defined far out at all (a refutation, which a sample can give).
+    if (!Number.isFinite(evalAt(func, variable, sign * 1e6))) return null;
+    const r = provedLimitAtInfinity(func, variable, sign, Algebrite);
+    if (!r || r.none || r.inf || !Number.isFinite(r.value)) return null;
+    return { value: snap(r.value), text: r.text ?? null };
   };
-  const right = settle(1);
-  const left = settle(-1);
-  if (right !== null && left !== null && Math.abs(right - left) < 1e-9) return right;
-  if (right !== null || left !== null) return { left, right };
-  return null;
+  const right = side(1);
+  const left = side(-1);
+  if (right && left && Math.abs(right.value - left.value) < 1e-9) return { asymptote: right.value, text: right.text };
+  if (right || left) return { asymptote: { left: left?.value ?? null, right: right?.value ?? null }, text: { left: left?.text ?? null, right: right?.text ?? null } };
+  return { asymptote: null, text: null };
 }
 
 // --- whole-line patterns and proofs (1.64.0) -----------------------------------

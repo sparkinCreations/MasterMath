@@ -19,6 +19,7 @@ import {
   isAlgebriteFailure,
   mark,
   absBars,
+  piForm,
 } from './solverUtils.js';
 import { parseError, unsupported, undefinedValue } from '../solutionEnvelope.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
@@ -37,6 +38,8 @@ import {
 import { tryGrowthRates, tryZeroToZero, tryNoContestAtZero } from './limits/growth.js';
 import { tryTwoSequences } from './limits/sequences.js';
 import { tryLimitLaws } from './limits/laws.js';
+import { provedLimitAtInfinity } from './limits/infinity.js';
+import { stepFunctionLimit } from './limits/steps.js';
 import {
   tryNamedTechnique,
   tryAlgebriteSimplify,
@@ -302,7 +305,9 @@ export async function solveLimit(expression) {
     if (result.undetermined) {
       return unsupported({
         input: expression,
-        reason: 'No method here proves this limit, and the sampled values have not settled: they may approach a number very slowly, or not at all.',
+        reason: result.refusedStep
+          ? 'A step function (floor, ceil, round, fix, sign or mod) meets a jump here in a way this solver cannot settle, so no limit is claimed.'
+          : 'No method here proves this limit, and the sampled values have not settled: they may approach a number very slowly, or not at all.',
         answer: 'This limit could not be determined',
         steps: [`Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`, ...result.steps],
         tips: ['Look for a method that proves the limit: compare growth rates, rationalise with the conjugate, or use L\'Hôpital\'s rule on a quotient.'],
@@ -385,6 +390,23 @@ function formatApproach(raw, target) {
 // classic 0/0 removable limits — (1-cos x)/x^2, (sin x - x)/x^3, etc. — that
 // blind sampling at 1e-6/1e-8 gets wrong through floating-point cancellation.
 async function evaluateFiniteLimit(func, variable, target) {
+  // A step function (floor, ceil, round, fix, sign, mod) is not continuous at
+  // its jumps, so substitution proves nothing there: each side is worked on
+  // its own (limits/steps.js, 1.76.4). lim x→0 floor(x) was "= 0".
+  const stepped = await stepThrough(func, variable, target);
+  if (stepped) {
+    if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
+    const same = Math.abs(stepped.left - stepped.right) <= 1e-12 * (1 + Math.abs(stepped.left));
+    return {
+      steps: [...stepped.steps, same
+        ? `Both sides give ${mark(formatNumber(stepped.left))}, so the limit is ${mark(formatNumber(stepped.left))} (the value at the point itself does not enter a limit).`
+        : `The two sides give different values, ${mark(formatNumber(stepped.left))} and ${mark(formatNumber(stepped.right))}, so the limit does not exist.`],
+      answer: same ? formatNumber(stepped.left) : 'Does not exist',
+      verified: true,
+      verificationMethod: 'one-sided limits of a step function',
+    };
+  }
+
   // Rung 1: direct substitution. If the function is continuous at the point,
   // that value *is* the limit and we are done. This is exact by evaluation —
   // stronger than a numeric cross-check — so it carries its own method label
@@ -516,11 +538,53 @@ async function evaluateInfiniteLimit(func, variable, target) {
     const laws = tryLimitLaws(Algebrite, func, variable, target);
     if (laws && laws.verified) return laws;
   } catch { /* fall through */ }
+  // A periodic part that is not constant, beside a part that settles: the
+  // function keeps oscillating, proved (limits/infinity.js). 1 + 10⁻⁷·sin(x)
+  // was estimated "≈ 1" from samples, though it has no limit (1.76.4).
+  try {
+    const r = provedLimitAtInfinity(func, variable, target === Infinity ? 1 : -1, Algebrite);
+    // A decaying factor times a bounded one (e^(−x)·sin(x)): the squeeze
+    // theorem, not a sampled "≈ 0".
+    if (r && r.how === 'squeeze' && Number.isFinite(r.value)) {
+      return {
+        steps: [`Each term of ${mark(beautify(func))} is a factor that → ${mark('0')} times a sine or cosine, which stays between ${mark('−1')} and ${mark('1')}. So each term lies between minus and plus the size of its decaying factor, and both of those → ${mark('0')}: each term → ${mark('0')} (the squeeze theorem), so the limit is ${mark(formatNumber(r.value))}.`],
+        answer: formatNumber(r.value),
+        verified: true,
+        verificationMethod: 'squeeze theorem',
+      };
+    }
+    if (r && r.none && r.periodic) {
+      const q = beautify(r.periodic.Q);
+      return {
+        steps: [
+          ...(r.periodic.alone ? [] : [`Split ${mark(beautify(func))} into its periodic part ${mark(q)} and the rest.`]),
+          `${mark(q)} repeats every ${mark(piForm(r.periodic.period) ?? formatNumber(r.periodic.period))} and is not constant (it takes different values within one period), so it has no limit: it takes each of its values again and again, as far out as you go.`,
+          r.periodic.alone
+            ? `So the limit does not exist.`
+            : `The rest settles to a limit, so ${mark(beautify(func))} keeps oscillating as ${mark(`${variable} → ${target === Infinity ? '∞' : '−∞'}`)}: the limit does not exist.`,
+        ],
+        answer: 'Does not exist',
+        verified: true,
+        verificationMethod: 'periodic part',
+      };
+    }
+  } catch { /* fall through */ }
   return estimateInfiniteLimit(func, variable, target);
 }
 
 // A one-sided limit: growth rates first at 0⁺ (x·ln(x)), then sampling.
 async function evaluateOneSided(func, variable, target, side) {
+  const stepped = await stepThrough(func, variable, target);
+  if (stepped) {
+    if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
+    const value = side > 0 ? stepped.right : stepped.left;
+    return {
+      steps: [`This is a one-sided limit: only the ${side > 0 ? 'right' : 'left'}-hand behaviour (${mark(`${variable} → ${formatNumber(target)}${side > 0 ? '⁺' : '⁻'}`)}) matters.`, ...stepped.steps, `So the ${side > 0 ? 'right' : 'left'}-hand limit is ${mark(formatNumber(value))}.`],
+      answer: formatNumber(value),
+      verified: true,
+      verificationMethod: 'one-sided limits of a step function',
+    };
+  }
   try {
     const pole = tryPoleSigns(await loadAlgebrite(), func, variable, target, side);
     if (pole && pole.verified) {
@@ -536,6 +600,24 @@ async function evaluateOneSided(func, variable, target, side) {
     } catch { /* fall through */ }
   }
   return evaluateOneSidedLimit(func, variable, target, side);
+}
+
+// The step-function route (limits/steps.js), with this solver's continuity
+// check for what is left once each step function is replaced by its value:
+// an expression with no step function is continuous at a point where it is
+// finite and defined on both sides (every other function here is continuous
+// where defined).
+async function stepThrough(func, variable, target) {
+  if (!/\b(?:floor|ceil|round|fix|sign|mod)\s*\(/.test(String(func))) return null;
+  let Algebrite = null;
+  try { Algebrite = await loadAlgebrite(); } catch { return null; }
+  const continuousAt = (text, a) => Number.isFinite(valueAt(text, variable, a)) && oneSidedDomain(text, variable, a) === 0
+    && [1e-6, 1e-8].every((d) => Number.isFinite(evalAt(text, variable, a - d)) && Number.isFinite(evalAt(text, variable, a + d)));
+  try {
+    return await stepFunctionLimit(func, variable, target, { Algebrite, continuousAt });
+  } catch {
+    return null;
+  }
 }
 
 // 1 when the function is defined just right of the point but not just left

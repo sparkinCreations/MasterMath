@@ -160,6 +160,15 @@ Each file documents its own methods at the top. Shared invariants:
 - **Refuse honestly.** Out-of-family input returns `unsupported`, never a
   guess. Never decide a mathematical property (linearity, completeness of a
   root list) from fixed sample points — construct a proof or refuse.
+  Samples may refute a claim, never establish one: powers of ten alias any
+  whole-number period (∫₀^∞ cos(πx) dx was "= 0", sin(πx) had an
+  asymptote), and a small extra term hides between seven test points. A
+  limit at ±∞ goes through `provedLimitAtInfinity` (`limits/infinity.js`:
+  growth rates, the limit laws, logarithms of polynomials together, the
+  squeeze theorem, and a non-constant periodic term added to a part with a
+  proved finite limit), null when not proved; a limit through floor, ceil,
+  round, sign or mod goes through `limits/steps.js`, one side at a time,
+  never by substituting the point (1.76.4).
 - **State when an answer in constants holds** (1.71.1). x with letter
   constants (a*x + b = 0, e^(a*x) = b) is solved for x with the constants
   held fixed, and the steps call them constants, not unknowns; x with y is

@@ -11,10 +11,11 @@ import {
   isAlgebriteFailure,
   lnify,
   mark,
+  piForm,
 } from '../solverUtils.js';
 import { unsupported, diverges } from '../../solutionEnvelope.js';
 import { antiderivativeViaTerms } from './terms.js';
-import { growthLimitAtInfinity } from '../limits/growth.js';
+import { provedLimitAtInfinity } from '../limits/infinity.js';
 import {
   evalAntiderivNumeric,
   isInfiniteBound,
@@ -32,46 +33,16 @@ import {
   exactValueToRaw,
 } from './evaluate.js';
 
-// lim F(t) as t → ±∞. Returns { value } (finite limit), { diverges: '∞' |
-// '-∞' } or { undefined: true } (oscillates / unreadable). Proved from the
-// growth rates of F's terms where they are all c·t^p·e^(kt)·ln(t)^m
-// (`proved`); by sampling otherwise. Sampling alone called −2/√t "not
-// settling" and ∫_1^∞ x^(−3/2) dx divergent (1.66.0); it is 2.
-function limitAtInfinity(F, variable, sign) {
+// lim F(t) as t → ±∞, proved (limits/infinity.js), or { unproved }: never
+// decided from samples, which only show what was checked (1.76.4).
+function limitAtInfinity(F, variable, sign, Algebrite) {
   const samples = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8].map((m) => evalAntiderivNumeric(F, variable, sign * m));
-  // In the notation growthForm reads: √u as sqrt(u), |u| as (u) (it is
-  // positive far out on the right; at −∞ a logarithm is refused anyway).
-  const readable = lnify(F)
-    .replace(/(?<![a-z])ln\(/g, 'log(')
-    .replace(/\|([^|]+)\|/g, '($1)')
-    .replace(/√\(/g, 'sqrt(')
-    .replace(/√([a-z0-9]+)/gi, 'sqrt($1)');
-  const proved = growthLimitAtInfinity(readable, variable, sign);
-  if (proved !== null && !Number.isNaN(proved)) {
-    if (Number.isFinite(proved)) return { value: proved, samples, proved: true };
-    return { diverges: proved > 0 ? '∞' : '-∞', samples, proved: true };
-  }
-  const finite = samples.filter(Number.isFinite);
-  if (finite.length === 0) return { unreadable: true, samples };
-  if (finite.length < 3) {
-    const last = finite[finite.length - 1];
-    return { diverges: last > 0 ? '∞' : '-∞', samples };
-  }
-  const last = finite[finite.length - 1];
-  const prev = finite[finite.length - 2];
-  const diffs = finite.slice(1).map((v, i) => Math.abs(v - finite[i]));
-  const shrinking = diffs.slice(-3).every((d, i, arr) => i === 0 || d <= arr[i - 1] * 1.01);
-  if (Math.abs(last - prev) < 1e-6 * (1 + Math.abs(last)) || (shrinking && Math.abs(last - prev) < 1e-4 * (1 + Math.abs(last)))) {
-    return { value: last, samples };
-  }
-  if (Math.abs(last) > Math.abs(prev) * 2 && Math.abs(last) > 1e3) return { diverges: last > 0 ? '∞' : '-∞', samples };
-  // Slow but steady growth (ln t, √t): every step in the same direction and
-  // the steps not shrinking away — that is divergence, not oscillation.
-  const signedDiffs = finite.slice(1).map((v, i) => v - finite[i]);
-  const sameDir = signedDiffs.every((d) => d > 0) || signedDiffs.every((d) => d < 0);
-  const notShrinking = Math.abs(signedDiffs[signedDiffs.length - 1]) >= 0.5 * Math.abs(signedDiffs[0]);
-  if (sameDir && notShrinking) return { diverges: last > 0 ? '∞' : '-∞', slow: true, samples };
-  return { undefined: true, samples };
+  const r = provedLimitAtInfinity(F, variable, sign, Algebrite);
+  if (!r) return { unproved: true, samples };
+  const base = { samples, proved: true, ...(r.periodic ? { periodic: r.periodic } : {}), ...(r.how === 'laws' ? { laws: true } : {}), ...(r.how === 'squeeze' ? { squeeze: true } : {}), ...(r.how === 'logs' ? { logs: true } : {}) };
+  if (r.none) return { undefined: true, ...base };
+  if (r.inf) return { diverges: r.inf > 0 ? '∞' : '-∞', ...base };
+  return { value: r.value, ...base };
 }
 
 // A numerical estimate of ∫_a^b f with a = −∞ and/or b = ∞, reported only
@@ -195,17 +166,22 @@ export async function solveImproperInfinite(parsed, notation) {
     const shown = (res.samples || []).slice(0, 4).map((x) => (Number.isFinite(x) ? formatNumber(x) : '±∞')).join(', ');
     const at = sign > 0 ? '10², 10³, 10⁴, 10⁵' : '-10², -10³, -10⁴, -10⁵';
     const why = 'the fastest-growing term of F decides it: an exponential outgrows any power, a power any logarithm, and a negative power falls to 0';
-    if (res.value !== undefined && res.proved) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)}: ${why}.`);
+    if (res.periodic && res.diverges) steps.push(`As ${mark(arrow)}, the terms of ${mark('F')} other than ${mark(beautify(res.periodic.Q))} run off to ${mark(res.diverges)}, and ${mark(beautify(res.periodic.Q))} is periodic and bounded, so ${mark(`F(${sign > 0 ? 't' : 's'}) → ${res.diverges}`)}. The limit is not a finite number.`);
+    else if (res.periodic && res.undefined) steps.push(`${mark(beautify(res.periodic.Q))} repeats every ${mark(piForm(res.periodic.period) ?? nameConstant(res.periodic.period) ?? formatNumber(res.periodic.period))} and is not constant${res.periodic.alone ? '' : `, and the rest of ${mark('F')} settles`}, so as ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'})`)} keeps oscillating: it has no limit.`);
+    else if (res.laws && res.value !== undefined) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)}, by the limit laws, worked from the inside out.`);
+    else if (res.laws && res.diverges) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${res.diverges}`)}, by the limit laws, worked from the inside out. The limit is not a finite number.`);
+    else if (res.value !== undefined && res.proved && res.logs) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)}: each logarithm ${mark('c·ln|P|')} of a polynomial behaves like ${mark('c·p·ln(t) + c·ln|a|')}, with ${mark('a·t^p')} the leading term of ${mark('P')}; the ${mark('ln(t)')} parts cancel, and the constants that are left${/arctan|atan/.test(F) ? `, with each ${mark('arctan')} term levelling off at ${mark('±π/2')},` : ''} give the limit.`);
+    else if (res.value !== undefined && res.proved && res.squeeze) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)}: each term is a factor that falls to ${mark('0')} times a bounded one (a sine or cosine), so it is squeezed to ${mark('0')}.`);
+    else if (res.value !== undefined && res.proved) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)}: ${why}.`);
     else if (res.diverges && res.proved) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${res.diverges}`)}: ${why}. The limit is not a finite number.`);
     else if (res.value !== undefined) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${nameConstant(res.value) ?? formatNumber(res.value)}`)} (samples at ${at}: ${shown}).`);
-    else if (res.diverges) steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'}) → ${res.diverges}`)}${res.slow ? ' — slowly, but steadily' : ''} (samples: ${shown}): the limit is not a finite number.`);
-    else steps.push(`As ${mark(arrow)}, ${mark(`F(${sign > 0 ? 't' : 's'})`)} does not settle (samples: ${shown}).`);
+
   };
 
   let upperPart;
   let lowerPart;
   if (upperInf) {
-    const res = limitAtInfinity(F, v, boundSign(upperRaw));
+    const res = limitAtInfinity(F, v, boundSign(upperRaw), Algebrite);
     describeLimit(boundSign(upperRaw), res);
     upperPart = res;
   } else {
@@ -216,7 +192,7 @@ export async function solveImproperInfinite(parsed, notation) {
     steps.push(`${mark(`F(${upperLabel}) = ${exact ?? formatNumber(num)}`)}.`);
   }
   if (lowerInf) {
-    const res = limitAtInfinity(F, v, boundSign(lowerRaw));
+    const res = limitAtInfinity(F, v, boundSign(lowerRaw), Algebrite);
     describeLimit(boundSign(lowerRaw), res);
     lowerPart = res;
   } else {
@@ -227,6 +203,17 @@ export async function solveImproperInfinite(parsed, notation) {
     steps.push(`${mark(`F(${lowerLabel}) = ${exact ?? formatNumber(num)}`)}.`);
   }
 
+  if ([upperPart, lowerPart].some((p) => p.unproved)) {
+    // Samples can show a limit fails, never that it holds (powers of ten
+    // miss an oscillation with a whole-number period): not proved, not said.
+    const reason = 'Whether the antiderivative settles as the bound goes to infinity could not be proved here, so whether this integral converges is not claimed.';
+    return unsupported({
+      input: notation,
+      reason,
+      answer: 'This improper integral is beyond what this solver can prove',
+      steps: [...steps, reason],
+    });
+  }
   if ([upperPart, lowerPart].some((p) => p.unreadable)) {
     const reason = 'The antiderivative could not be evaluated numerically far out, so the limit defining this improper integral cannot be checked here.';
     return unsupported({

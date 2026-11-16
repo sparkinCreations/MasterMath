@@ -125,7 +125,17 @@ function fromLeading(n, lead, v) {
   if (n.type === 'SymbolNode') return { L: INF(1), steps: [] };
   const f = show(n);
   const leadText = powerText(lead, v);
-  if (leadText === null) return null;
+  // An irrational coefficient (√2·x + 1) changes nothing but how it is
+  // written: a positive power of x times a nonzero constant still grows
+  // without bound, a negative one still → 0 (1.76.4: ∫₀^∞ 1/(x⁴ + 1) dx has
+  // arctan(√2·x + 1) in its antiderivative).
+  if (leadText === null) {
+    const pText = rational(lead.p);
+    if (pText === null || lead.p === 0) return null;
+    const xp = lead.p === 1 ? v : `${v}^(${pText})`;
+    const L = lead.p > 0 ? INF(Math.sign(lead.c)) : { value: 0 };
+    return { L, steps: [`As ${mark(`${v} → ∞`)}, ${mark(f)} behaves like a ${lead.c > 0 ? 'positive' : 'negative'} constant times ${mark(xp)}, so ${mark(`${f} → ${describe(L)}`)}.`] };
+  }
   let L;
   let why;
   if (lead.p > 0) {
@@ -253,6 +263,12 @@ function limitOf(raw, v, alg) {
         const L = { value: (a.L.inf * Math.PI) / 2, text: a.L.inf > 0 ? 'π/2' : '-π/2' };
         return { L, steps: [...a.steps, `${mark(shownName)} levels off at its horizontal asymptote: ${mark(`${f} → ${L.text}`)}.`] };
       }
+      // erf and tanh level off at ±1 (1.76.4: the improper integral of
+      // e^(−x²) has F = (√π/2)·erf(x)).
+      if (name === 'erf' || name === 'tanh') {
+        const L = { value: a.L.inf, text: a.L.inf > 0 ? '1' : '-1' };
+        return { L, steps: [...a.steps, `${mark(shownName)} levels off at ${mark('±1')}: ${mark(`${f} → ${L.text}`)}.`] };
+      }
       return null;
     }
     // A finite inner limit L: continuity at L passes the limit through. Not at
@@ -366,8 +382,10 @@ function consistent(func, v, L) {
   return Number.isFinite(gap[3]) && gap[3] <= gap[0] + 1e-12;
 }
 
-export function tryLimitLaws(Algebrite, func, variable, target) {
-  if (target === -Infinity) return atMinusInfinity(Algebrite, func, variable);
+// `valueOnly`: a caller that needs the number, not a display (an improper
+// integral's F at ∞), also gets a proved value with no exact text (π·erf(x)).
+export function tryLimitLaws(Algebrite, func, variable, target, { valueOnly = false } = {}) {
+  if (target === -Infinity) return atMinusInfinity(Algebrite, func, variable, valueOnly);
   if (target !== Infinity) return null;
   let tree;
   try { tree = math.parse(func); } catch { return null; }
@@ -384,6 +402,7 @@ export function tryLimitLaws(Algebrite, func, variable, target) {
   if (!found) return null;
   // A symbolic value carries its decimal: π/2 (≈ 1.5708) (1.68.8).
   const answer = found.L.inf ? (found.L.inf > 0 ? '∞' : '-∞') : found.L.text ? `${found.L.text} (≈ ${formatNumber(found.L.value)})` : rational(found.L.value);
+  if (answer === null && valueOnly && Number.isFinite(found.L.value) && consistent(func, v, found.L)) return { value: found.L.value, steps: found.steps, verified: true };
   if (answer === null || !consistent(func, v, found.L)) return null;
   // The insight applied to this limit, shown second (limits/guidance.js).
   const f = show(tree);
@@ -400,6 +419,9 @@ export function tryLimitLaws(Algebrite, func, variable, target) {
   return {
     steps: found.steps,
     answer,
+    // The value itself, unrounded, for a caller that needs the number
+    // (an improper integral's limit of F, 1.76.4).
+    value: found.L.inf ? found.L.inf * Infinity : found.L.value,
     verified: true,
     verificationMethod: method,
     ...(here ? { here } : {}),
@@ -407,7 +429,7 @@ export function tryLimitLaws(Algebrite, func, variable, target) {
 }
 
 // x → −∞ by t = −x, t → ∞: √(−x)/(1 − x) was sampled as "0.0001" too.
-function atMinusInfinity(Algebrite, func, x) {
+function atMinusInfinity(Algebrite, func, x, valueOnly = false) {
   let tree;
   try { tree = math.parse(func); } catch { return null; }
   const t = ['t', 'u', 's'].find((name) => name !== x && !tree.filter((n) => n.type === 'SymbolNode' && n.name === name).length);
@@ -415,7 +437,7 @@ function atMinusInfinity(Algebrite, func, x) {
   const swapped = tree.transform((n) => (n.type === 'SymbolNode' && n.name === x ? math.parse(`(-${t})`) : n));
   let g;
   try { g = math.simplify(swapped, [{ l: '-(-n)', r: 'n' }, { l: '--n', r: 'n' }]); } catch { g = swapped; }
-  const result = tryLimitLaws(Algebrite, g.toString(), t, Infinity);
+  const result = tryLimitLaws(Algebrite, g.toString(), t, Infinity, { valueOnly });
   if (!result) return null;
   const rewrite = `Let ${mark(`${t} = −${x}`)}: as ${mark(`${x} → −∞`)}, ${mark(`${t} → ∞`)}, and ${mark(`${show(tree)} = ${show(g)}`)}.`;
   return {

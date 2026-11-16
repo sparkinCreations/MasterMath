@@ -119,7 +119,9 @@ npm run build      # production build in dist/
   includes:
   - a randomized cross-check of answers against a numerical oracle;
   - graded evaluation corpora, where the bar is zero confidently wrong
-    answers;
+    answers. The harness reports two rates: safety (correct or honestly
+    refused) and solved (correct only); a refusal counts toward the first,
+    never the second;
   - regression tests for every math bug that has been fixed.
 - `npm run smoke` runs Playwright against the production build on a desktop
   and a phone viewport. It covers every example problem, the worker and its

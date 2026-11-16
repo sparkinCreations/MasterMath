@@ -284,7 +284,7 @@ function analyzeFunction(func, variable, Algebrite) {
   if (domain.length > 0 || verticalAsymptotes.length > 0) monotonic = null;
   const endpointExtrema = findEndpointExtrema(func, variable, domain, extrema, monotonicOnDomain);
   const inflections = findInflections(func, variable, Algebrite);
-  const horizontalAsymptote = findHorizontalAsymptote(func, variable);
+  const { asymptote: horizontalAsymptote, text: horizontalAsymptoteText } = findHorizontalAsymptote(func, variable, Algebrite);
   const quadratic = analyzeQuadratic(func, variable, Algebrite);
   const range = detectRange(func, variable, quadratic) ?? polynomialRange(func, variable, Algebrite) ?? absWave?.range ?? provedRange(Algebrite, func, variable);
 
@@ -305,6 +305,7 @@ function analyzeFunction(func, variable, Algebrite) {
     inflections,
     verticalAsymptotes,
     horizontalAsymptote,
+    horizontalAsymptoteText,
     isPeriodic,
     provedEverywhere,
     domainWhy,

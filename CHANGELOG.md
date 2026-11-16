@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.4] - 2026-11-16
+
+### Fixed
+A property is proved or not claimed: samples may refute a claim, never
+establish one. Three paths decided convergence, an asymptote or an identity
+from a handful of samples, and each could be fooled.
+- An improper integral of an oscillation with a whole-number period was
+  given a value: ∫₀^∞ cos(πx) dx "= 0", ∫₁^∞ sin(2πx) dx "≈ 0". Its
+  antiderivative, sin(πt)/π, is 0 at every power of ten the limit was
+  sampled at. It diverges, and the steps now say why: the periodic part
+  repeats and is not constant, so F keeps oscillating.
+- sin(πx) had the "horizontal asymptote y = 0" and cos(2πx) "y = 1", read
+  off two samples at x = 10⁶ and 10⁸. Asymptotes are now proved or not
+  claimed; the true ones (1/x, e^(−x²), sin(x)/x, the logistic curve,
+  arctan) are kept, and arctan's are exact: y = π/2 (≈ 1.5708).
+- A trig simplification was taken when it agreed with the input at seven
+  sample points: 2·sin(x)·cos(x) + 0.0000001·x was "sin(2x)",
+  cos²(x) + sin²(x) + 0.0000001·sin(x) was "1 (for sin(2x) ≠ 0)". A
+  simplification is now taken only when proved; otherwise the expression is
+  left as typed and the steps say no simpler form could be proved.
+- An identity is named by what the input is, not by where it lands:
+  tan(x)·cot(x) = 1 is the reciprocal identity cot(θ) = 1/tan(θ), not "the
+  Pythagorean identity"; sec²(x) − tan²(x) = 1 is 1 + tan²(θ) = sec²(θ).
+- lim (1 + 10⁻⁷·sin(x)) as x → ∞ was estimated "≈ 1" from samples; it does
+  not exist, proved from its periodic part. lim sin(πx) and lim tan(x) as
+  x → ∞, which were "could not be determined", are proved not to exist the
+  same way, and lim e^(−x)·sin(x) is 0 by the squeeze theorem, not "≈ 0".
+- A limit through a step function was "found" by substituting the point,
+  which proves a limit only where the function is continuous:
+  lim x→0 floor(x) was "= 0" and lim x→0 sign(x)² "= 0". Each side is now
+  worked on its own (`limits/steps.js`): floor and ceil jump at the
+  integers, round at the half-integers, sign at 0, mod(u, m) at the
+  multiples of m; at a jump the sign of the inside's derivative says which
+  side it comes from. floor(x) at 0 does not exist (−1 and 0); sign(x)² at 0
+  is 1. Where that does not settle it (⌊x²⌋ at 0, whose inside is flat
+  there) or what is left is not continuous (floor(x)/x), the limit is
+  refused, not guessed. One-sided limits through a step function are
+  proved too (floor(x) as x → 0⁻ is −1), no longer estimated.
+- floor, ceil, round and sign are typeset upright, as named functions.
+
+### Changed
+- `limits/infinity.js`: one limit at ±∞, proved or null, shared by the
+  improper integrals, the horizontal asymptotes and the limits solver —
+  growth rates, the limit laws (now also erf and tanh → ±1, and a value
+  with no exact text), and a periodic part beside a part that settles or
+  grows (the squeeze theorem for a decaying factor times a bounded one).
+  The improper integrals and asymptotes no longer keep their own sampling.
+  A sum of logarithms of polynomials (a partial-fraction antiderivative,
+  ½ln|t − 1| − ½ln|t + 1|) is read through each leading term, so
+  ∫₂^∞ 1/(x² − 1) dx = ½ln(3) and ∫₀^∞ 1/(x⁴ + 1) dx = π/(2√2) stay proved;
+  a leading coefficient that is irrational (√2·x + 1) no longer stops the
+  limit laws.
+- The corpus harness reports two rates: safety (correct or honestly
+  refused: no confidently wrong answer) and solved (correct only). A
+  refusal counts toward the first, never the second.
+
 ## [1.76.3] - 2026-11-16
 
 ### Fixed

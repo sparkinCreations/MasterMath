@@ -734,8 +734,12 @@ if (!showWrongOnly) {
   console.log(`  WRONG   : ${tally.WRONG}`);
   console.log(`  SKIP    : ${tally.SKIP}  (Functions — Wave 2)`);
   console.log(`  ─────────────────────`);
-  console.log(`  Score   : ${pct}%  (CORRECT+REFUSED of ${graded} graded)`);
-  console.log(`  Confident-wrong answers: ${tally.WRONG}  ← Wave 1 target: 0`);
+  // Two different measures (1.76.4): safety counts an honest refusal as a
+  // pass — no confidently wrong answer — so it says nothing about coverage;
+  // the solved rate is how many graded rows actually got the answer.
+  console.log(`  Safety  : ${pct}%  (CORRECT+REFUSED of ${graded} graded: no confidently wrong answer)`);
+  console.log(`  Solved  : ${graded ? (tally.CORRECT / graded * 100).toFixed(1) : '0'}%  (CORRECT of ${graded} graded; a refusal is not a solve)`);
+  console.log(`  Confident-wrong answers: ${tally.WRONG}  ← target: 0`);
   if (corrected) console.log(`  (${corrected} corpus row(s) use a documented correction — see CORPUS_CORRECTIONS)`);
   console.log('');
 }

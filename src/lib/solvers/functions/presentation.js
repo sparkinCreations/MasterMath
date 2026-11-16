@@ -179,12 +179,15 @@ export function buildSteps(func, variable, f) {
   if (f.verticalAsymptotes.length > 0) {
     steps.push(`Vertical asymptote${f.verticalAsymptotes.length > 1 ? 's' : ''}: ${mark(f.verticalAsymptotes.map((a) => `${variable} = ${formatNumber(a)}`).join(', '))} — the function blows up there.`);
   }
+  // Exact first: y = π/2 (≈ 1.5708), not 1.5708 (1.76.4).
+  const ha = (y, text) => (text && text !== formatNumber(y) ? `${text} (≈ ${formatNumber(y)})` : formatNumber(y));
+  const haText = f.horizontalAsymptoteText ?? null;
   if (f.horizontalAsymptote !== null && typeof f.horizontalAsymptote === 'number') {
-    steps.push(`Horizontal asymptote: ${mark(`y = ${formatNumber(f.horizontalAsymptote)}`)} as ${mark(`${variable} → ±∞`)}.`);
+    steps.push(`Horizontal asymptote: ${mark(`y = ${ha(f.horizontalAsymptote, typeof haText === 'string' ? haText : null)}`)} as ${mark(`${variable} → ±∞`)}.`);
   } else if (f.horizontalAsymptote && typeof f.horizontalAsymptote === 'object') {
     // One side only: eˣ − 2 levels off at −2 as x → −∞ (it was left out).
-    for (const [side, y] of [['−∞', f.horizontalAsymptote.left], ['∞', f.horizontalAsymptote.right]]) {
-      if (y !== null && y !== undefined) steps.push(`Horizontal asymptote: ${mark(`y = ${formatNumber(y)}`)} as ${mark(`${variable} → ${side}`)} only.`);
+    for (const [side, y, t] of [['−∞', f.horizontalAsymptote.left, haText?.left], ['∞', f.horizontalAsymptote.right, haText?.right]]) {
+      if (y !== null && y !== undefined) steps.push(`Horizontal asymptote: ${mark(`y = ${ha(y, t)}`)} as ${mark(`${variable} → ${side}`)} only.`);
     }
   }
 
@@ -352,10 +355,12 @@ export function summarizeAnalysis(func, variable, f) {
   for (const h of f.holes) parts.push(`hole at (${formatNumber(h.x)}, ${h.yText ?? formatNumber(h.y)})`);
   if (asymptotePattern) parts.push(`vertical asymptotes at ${asymptotePattern}`);
   else if (f.verticalAsymptotes.length > 0) parts.push(`vertical asymptote${f.verticalAsymptotes.length > 1 ? 's' : ''} ${f.verticalAsymptotes.map((a) => `${variable} = ${formatNumber(a)}`).join(', ')}`);
-  if (typeof f.horizontalAsymptote === 'number') parts.push(`horizontal asymptote y = ${formatNumber(f.horizontalAsymptote)}`);
+  const haShown = (y, text) => (text && text !== formatNumber(y) ? `${text} (≈ ${formatNumber(y)})` : formatNumber(y));
+  const haT = f.horizontalAsymptoteText ?? null;
+  if (typeof f.horizontalAsymptote === 'number') parts.push(`horizontal asymptote y = ${haShown(f.horizontalAsymptote, typeof haT === 'string' ? haT : null)}`);
   else if (f.horizontalAsymptote && typeof f.horizontalAsymptote === 'object') {
-    if (f.horizontalAsymptote.left != null) parts.push(`horizontal asymptote y = ${formatNumber(f.horizontalAsymptote.left)} as ${variable} → −∞`);
-    if (f.horizontalAsymptote.right != null) parts.push(`horizontal asymptote y = ${formatNumber(f.horizontalAsymptote.right)} as ${variable} → ∞`);
+    if (f.horizontalAsymptote.left != null) parts.push(`horizontal asymptote y = ${haShown(f.horizontalAsymptote.left, haT?.left)} as ${variable} → −∞`);
+    if (f.horizontalAsymptote.right != null) parts.push(`horizontal asymptote y = ${haShown(f.horizontalAsymptote.right, haT?.right)} as ${variable} → ∞`);
   }
   if (f.slant) parts.push(`slant asymptote y = ${f.slant.line}`);
   if (f.inflections.length > 0) parts.push(`inflection at ${variable} = ${f.inflections.map((i) => i.display).join(', ')}`);
