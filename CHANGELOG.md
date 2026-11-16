@@ -27,6 +27,11 @@ from a handful of samples, and each could be fooled.
   cos²(x) + sin²(x) + 0.0000001·sin(x) was "1 (for sin(2x) ≠ 0)". A
   simplification is now taken only when proved; otherwise the expression is
   left as typed and the steps say no simpler form could be proved.
+- Cancelling logarithms at ∞ reads each power from the typed exponent, and
+  only a whole number or a ratio of whole numbers: ln(x^(1 + 10⁻¹⁶) + 1) −
+  ln(x + 1) → ∞ was given the horizontal asymptote y = 0 (a double rounds
+  that exponent to 1). A squeeze-theorem limit that is not a whole number is
+  shown with ≈ (1/3 + e^(−x)·sin(x) → ≈ 0.3333), not as an exact "= 0.3333".
 - An identity is named by what the input is, not by where it lands:
   tan(x)·cot(x) = 1 is the reciprocal identity cot(θ) = 1/tan(θ), not "the
   Pythagorean identity"; sec²(x) − tan²(x) = 1 is 1 + tan²(θ) = sec²(θ).
@@ -48,11 +53,15 @@ from a handful of samples, and each could be fooled.
   refused, not guessed. One-sided limits through a step function are
   proved too (floor(x) as x → 0⁻ is −1), no longer estimated, and exact:
   floor(x) + √2 as x → 0⁺ is √2 (≈ 1.4142); a side whose exact value is
-  not found is shown with ≈, never as a bare decimal. Nothing in this route is
+  not found is shown with ≈, never as a bare decimal. A number written in
+  exponent form (mathjs writes 0.0001 as 1e-4) is a number, not the constant
+  e (floor(x) + 0.0001 as x → 0⁺ is 1/10000), and x % 2 is mod(x, 2), worked
+  the same way (at x = 2 it does not exist; it was "= 0"). Nothing in this route is
   decided by a sample or a tolerance: being on a jump and two sides being
   equal are proved exactly (10¹² + ⌊x⌋ at 0 has sides 10¹² − 1 and 10¹²;
   ⌊x + 10⁻¹³⌋ at 0 is refused, and so is ⌊x⌋ at a typed point 10⁻¹⁶, read
-  exactly from its digits rather than as a double rounded onto the jump), and continuity is read off the expression
+  exactly from its digits rather than as a double rounded onto the jump,
+  in parentheses or arithmetic too: (0.99999999999999999)), and continuity is read off the expression
   (a denominator not 0, a logarithm's or root's argument positive, tan away
   from its poles), so ⌊x⌋ + arctan(1/x) at 0⁻ is refused where a sampled
   check passed it.

@@ -162,11 +162,12 @@ test('review of 1.76.4: no step-limit decision rests on a tolerance or a sample'
   // A typed point within rounding of a jump is read from its digits, never
   // put on the jump (as doubles, 10⁻¹⁶ was rounded to 0, and
   // 0.99999999999999999 is 1): refused, not "does not exist".
-  for (const p of ['lim x->0.0000000000000001 floor(x)', 'lim x->0.99999999999999999 floor(x)', 'lim x->1.0000000000000001 floor(x)', 'lim x->0.0000000000000001- floor(x)']) {
+  for (const p of ['lim x->0.0000000000000001 floor(x)', 'lim x->0.99999999999999999 floor(x)', 'lim x->1.0000000000000001 floor(x)', 'lim x->0.0000000000000001- floor(x)',
+    'lim x->(0.99999999999999999) floor(x)', 'lim x->(1e-16) floor(x)']) {
     assert.equal((await lim(p)).status, 'unsupported', p);
   }
   // A point exactly on a jump still is: 10·0.1 = 1, and 3·(1/3) = 1.
-  for (const p of ['lim x->0.1 floor(10*x)', 'lim x->1/3 floor(3*x)']) {
+  for (const p of ['lim x->0.1 floor(10*x)', 'lim x->1/3 floor(3*x)', 'lim x->(1/3) floor(3*x)', 'lim x->0.25+0.25 round(x)']) {
     assert.match((await lim(p)).answer, /does not exist$/, p);
   }
   // Exact, not a bare decimal.
@@ -203,4 +204,25 @@ test('a step-limit side whose exact value is not found is shown with ≈, never 
   // With the exact value found, it leads and the decimal follows with ≈.
   const exact = stepFunctionLimit('floor(x) + sqrt(2)', 'x', 0, { Algebrite: real });
   assert.match(exact.right.shown, /^√2 \(≈ 1\.414/);
+});
+
+test('review round 3: exponent literals, % as mod, exponents a double rounds, squeeze decimals', async () => {
+  const lim = (p) => solvePlain(p, 'limits');
+  // mathjs writes 0.0001 as 1e-4: a number, never the constant e.
+  assert.match((await lim('lim x->0+ floor(x) + 0.0001')).answer, /= 1\/10000 \(= 0\.0001\)$/);
+  assert.match((await lim('lim x->0 floor(x + 100000)')).answer, /does not exist$/);
+  // x % m is mod(x, m): worked one side at a time, not substituted.
+  for (const p of ['lim x->2 x%2', 'lim x->0 x % 3']) assert.match((await lim(p)).answer, /does not exist$/, p);
+  assert.match((await lim('lim x->1 x%2')).answer, /= 1$/);
+  // An exponent a double rounds (1 + 10⁻¹⁶ is 1) is not cancelled on: no
+  // asymptote is claimed for a function that → ∞.
+  const f = await solvePlain('ln(x^(1+10^(-16))+1)-ln(x+1)', 'functions');
+  assert.doesNotMatch(f.answer, /horizontal asymptote/);
+  // Whole-number powers still cancel exactly: the antiderivative's log terms
+  // at ∞ in ∫₂^∞ 1/(x² − 1) dx.
+  assert.match((await solvePlain('∫_2^∞ 1/(x^2-1) dx', 'integrals')).answer, /= 1\/2\*ln\(3\)/);
+  // A squeeze whose rest is not a whole number is shown with ≈.
+  assert.match((await lim('lim x->inf 1/3+exp(-x)*sin(x)')).answer, /≈ 0\.3333$/);
+  assert.doesNotMatch((await lim('lim x->inf 1/3+exp(-x)*sin(x)')).answer, /= ≈/);
+  assert.match((await lim('lim x->inf (2+exp(-x)*sin(x))')).answer, /= 2$/);
 });

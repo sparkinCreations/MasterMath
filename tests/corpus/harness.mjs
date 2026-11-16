@@ -432,7 +432,7 @@ function gradable(r) {
   return { ...r, answer };
 }
 
-async function grade(category, problem, expected, meta = {}) {
+export async function grade(category, problem, expected, meta = {}) {
   const cat = category.toLowerCase();
   if (cat === 'functions') {
     const checker = FUNCTION_TRUTH[problem];
@@ -646,112 +646,116 @@ async function grade(category, problem, expected, meta = {}) {
 }
 
 // --- run --------------------------------------------------------------------
+// Run only as a script: tests import grade() without running the corpus.
+const isMain = Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
 
-const showWrongOnly = process.argv.includes('--wrong');
-const rows = parseCSV(fs.readFileSync(CSV, 'utf8'));
-const header = rows.shift(); // Category,Problem,Expected,Solver,Classification
-if (fs.existsSync(ADDITIONS)) {
-  const extra = parseCSV(fs.readFileSync(ADDITIONS, 'utf8'));
-  extra.shift(); // same header shape
-  rows.push(...extra);
-}
-// The September 2026 evaluation (149 problems, graded against SymPy). Its
-// "Trig values" rows are the trigonometry topic; categories this harness
-// has no grader for (systems, inequalities, trig equations, adversarial
-// input) are counted as SKIP rather than guessed at.
-const SEPTEMBER = path.resolve(__dirname, '../../docs/evaluations/2026-09/mastermath_evaluation_v1.29.csv');
-const septemberRows = parseCSV(fs.readFileSync(SEPTEMBER, 'utf8'));
-septemberRows.shift();
-rows.push(...septemberRows.map(adaptSeptemberRow));
-
-// The September CSV writes metadata into the text: "[angle unit: degrees]"
-// and "[topic: integrals]" on the problem, commentary on the expected value
-// ("x = 1 (x = -2 is extraneous)", "… — must route to Algebra"), and an
-// expected refusal as a word ("refuse", "undefined", "indeterminate",
-// "diverges"). Read all of that into a row the grader understands.
-function adaptSeptemberRow([category, problem, expected, ...rest]) {
-  const meta = {};
-  let p = problem;
-  p = p.replace(/\s*\[angle unit:\s*(\w+)\]/i, (_, u) => { meta.angleUnit = u.toLowerCase(); return ''; });
-  p = p.replace(/\s*\[topic:\s*(\w+)\]/i, (_, t) => { meta.topic = t.toLowerCase(); return ''; });
-  // An adversarial row whose expected value allows an alternative ("refuse —
-  // or the correct set (-1, 3)") is not graded by guesswork; plain "refuse"
-  // rows are, under Algebra (whose router sends calculus notation onward).
-  if (category === 'Adversarial') {
-    if (/—\s*or\b|\bor a clear refusal/i.test(expected)) meta.skip = 'adversarial row with an alternative answer';
-    else meta.topic = meta.topic || 'algebra';
+  const showWrongOnly = process.argv.includes('--wrong');
+  const rows = parseCSV(fs.readFileSync(CSV, 'utf8'));
+  const header = rows.shift(); // Category,Problem,Expected,Solver,Classification
+  if (fs.existsSync(ADDITIONS)) {
+    const extra = parseCSV(fs.readFileSync(ADDITIONS, 'utf8'));
+    extra.shift(); // same header shape
+    rows.push(...extra);
   }
-  if (category === 'Trig equations') meta.trigEquation = true;
-  let e = expected;
-  // Commentary follows a space and ends the value: "x = 1 (x = -2 is
-  // extraneous)", "4x^3 (derivative notation … — must route)". Brackets that
-  // are part of the maths — "(√6 − √2)/4", "e^(2x)(2cos(x) + sin(x))/5" —
-  // either have no space before them or do not end the string.
-  const noteRe = /\s+\((?![≈=])(?=[^)]*[a-z]{3,}[\s)])(?:[^()]|\([^()]*\))*\)\s*(?:—.*)?$/i;
-  const note = (e.match(noteRe) || [''])[0];
-  e = e.replace(noteRe, '').replace(/\s+—\s+.*$/, '').trim();
-  // "x = 1 (plus a complex pair)": the grader accepts the complex roots
-  // alongside the real one when the expected value says "complex".
-  if (/\bplus\b[^)]*complex|complex (?:pair|roots|solutions)/i.test(note)) e = `${e}, complex`;
-  if (/^(?:refuse|undefined|indeterminate|diverges|does not exist|dne)\b/i.test(e)) meta.expectRefusal = true;
-  // "sin(0.5 rad) ≈ 0.4794", "cos(1.5°) ≈ 0.99966": grade the decimal.
-  const approx = e.match(/(?:rad|°)\)?\s*≈\s*(-?[\d.]+)\s*$/);
-  if (approx) e = approx[1];
-  const cat = { 'Trig values': 'Trigonometry', Systems: 'Algebra', Inequalities: 'Algebra', 'Trig equations': 'Trigonometry', Adversarial: 'Algebra' }[category] || category;
-  return [cat, p.trim(), e, ...rest, meta];
-}
+  // The September 2026 evaluation (149 problems, graded against SymPy). Its
+  // "Trig values" rows are the trigonometry topic; categories this harness
+  // has no grader for (systems, inequalities, trig equations, adversarial
+  // input) are counted as SKIP rather than guessed at.
+  const SEPTEMBER = path.resolve(__dirname, '../../docs/evaluations/2026-09/mastermath_evaluation_v1.29.csv');
+  const septemberRows = parseCSV(fs.readFileSync(SEPTEMBER, 'utf8'));
+  septemberRows.shift();
+  rows.push(...septemberRows.map(adaptSeptemberRow));
 
-const tally = { CORRECT: 0, WRONG: 0, REFUSED: 0, SKIP: 0 };
-const wrong = [];
-
-let corrected = 0;
-for (const row of rows) {
-  const [category, problem, rawExpected] = row;
-  const meta = typeof row[row.length - 1] === 'object' ? row[row.length - 1] : {};
-  if (!category) continue;
-  const correction = CORPUS_CORRECTIONS[problem];
-  const expected = correction ? correction.expected : rawExpected;
-  if (correction) corrected += 1;
-  let res;
-  try {
-    if (meta.angleUnit) saveSettings({ angleUnit: meta.angleUnit });
-    try {
-      res = await grade(category, problem, expected, meta);
-    } finally {
-      if (meta.angleUnit) resetSettings();
+  // The September CSV writes metadata into the text: "[angle unit: degrees]"
+  // and "[topic: integrals]" on the problem, commentary on the expected value
+  // ("x = 1 (x = -2 is extraneous)", "… — must route to Algebra"), and an
+  // expected refusal as a word ("refuse", "undefined", "indeterminate",
+  // "diverges"). Read all of that into a row the grader understands.
+  function adaptSeptemberRow([category, problem, expected, ...rest]) {
+    const meta = {};
+    let p = problem;
+    p = p.replace(/\s*\[angle unit:\s*(\w+)\]/i, (_, u) => { meta.angleUnit = u.toLowerCase(); return ''; });
+    p = p.replace(/\s*\[topic:\s*(\w+)\]/i, (_, t) => { meta.topic = t.toLowerCase(); return ''; });
+    // An adversarial row whose expected value allows an alternative ("refuse —
+    // or the correct set (-1, 3)") is not graded by guesswork; plain "refuse"
+    // rows are, under Algebra (whose router sends calculus notation onward).
+    if (category === 'Adversarial') {
+      if (/—\s*or\b|\bor a clear refusal/i.test(expected)) meta.skip = 'adversarial row with an alternative answer';
+      else meta.topic = meta.topic || 'algebra';
     }
-  } catch (e) {
-    res = { verdict: 'WRONG', got: `THREW: ${e.message.slice(0, 60)}` };
+    if (category === 'Trig equations') meta.trigEquation = true;
+    let e = expected;
+    // Commentary follows a space and ends the value: "x = 1 (x = -2 is
+    // extraneous)", "4x^3 (derivative notation … — must route)". Brackets that
+    // are part of the maths — "(√6 − √2)/4", "e^(2x)(2cos(x) + sin(x))/5" —
+    // either have no space before them or do not end the string.
+    const noteRe = /\s+\((?![≈=])(?=[^)]*[a-z]{3,}[\s)])(?:[^()]|\([^()]*\))*\)\s*(?:—.*)?$/i;
+    const note = (e.match(noteRe) || [''])[0];
+    e = e.replace(noteRe, '').replace(/\s+—\s+.*$/, '').trim();
+    // "x = 1 (plus a complex pair)": the grader accepts the complex roots
+    // alongside the real one when the expected value says "complex".
+    if (/\bplus\b[^)]*complex|complex (?:pair|roots|solutions)/i.test(note)) e = `${e}, complex`;
+    if (/^(?:refuse|undefined|indeterminate|diverges|does not exist|dne)\b/i.test(e)) meta.expectRefusal = true;
+    // "sin(0.5 rad) ≈ 0.4794", "cos(1.5°) ≈ 0.99966": grade the decimal.
+    const approx = e.match(/(?:rad|°)\)?\s*≈\s*(-?[\d.]+)\s*$/);
+    if (approx) e = approx[1];
+    const cat = { 'Trig values': 'Trigonometry', Systems: 'Algebra', Inequalities: 'Algebra', 'Trig equations': 'Trigonometry', Adversarial: 'Algebra' }[category] || category;
+    return [cat, p.trim(), e, ...rest, meta];
   }
-  tally[res.verdict] = (tally[res.verdict] || 0) + 1;
-  if (res.verdict === 'WRONG') {
-    wrong.push(`  ✗ [${category}] ${problem}  →  got: ${res.got}  |  expected: ${expected}${res.note ? '  (' + res.note + ')' : ''}`);
+
+  const tally = { CORRECT: 0, WRONG: 0, REFUSED: 0, SKIP: 0 };
+  const wrong = [];
+
+  let corrected = 0;
+  for (const row of rows) {
+    const [category, problem, rawExpected] = row;
+    const meta = typeof row[row.length - 1] === 'object' ? row[row.length - 1] : {};
+    if (!category) continue;
+    const correction = CORPUS_CORRECTIONS[problem];
+    const expected = correction ? correction.expected : rawExpected;
+    if (correction) corrected += 1;
+    let res;
+    try {
+      if (meta.angleUnit) saveSettings({ angleUnit: meta.angleUnit });
+      try {
+        res = await grade(category, problem, expected, meta);
+      } finally {
+        if (meta.angleUnit) resetSettings();
+      }
+    } catch (e) {
+      res = { verdict: 'WRONG', got: `THREW: ${e.message.slice(0, 60)}` };
+    }
+    tally[res.verdict] = (tally[res.verdict] || 0) + 1;
+    if (res.verdict === 'WRONG') {
+      wrong.push(`  ✗ [${category}] ${problem}  →  got: ${res.got}  |  expected: ${expected}${res.note ? '  (' + res.note + ')' : ''}`);
+    }
   }
-}
 
-const graded = tally.CORRECT + tally.WRONG + tally.REFUSED;
-const pct = graded ? ((tally.CORRECT + tally.REFUSED) / graded * 100).toFixed(1) : '0';
+  const graded = tally.CORRECT + tally.WRONG + tally.REFUSED;
+  const pct = graded ? ((tally.CORRECT + tally.REFUSED) / graded * 100).toFixed(1) : '0';
 
-if (wrong.length) {
-  console.log('\nWRONG / unexpected rows:');
-  console.log(wrong.join('\n'));
-}
-if (!showWrongOnly) {
-  console.log('\n─── Corpus scoreboard ───');
-  console.log(`  CORRECT : ${tally.CORRECT}`);
-  console.log(`  REFUSED : ${tally.REFUSED}  (declined honestly: unbuilt features, and rows whose right answer is a refusal)`);
-  console.log(`  WRONG   : ${tally.WRONG}`);
-  console.log(`  SKIP    : ${tally.SKIP}  (Functions — Wave 2)`);
-  console.log(`  ─────────────────────`);
-  // Two different measures (1.76.4): safety counts an honest refusal as a
-  // pass — no confidently wrong answer — so it says nothing about coverage;
-  // the solved rate is how many graded rows actually got the answer.
-  console.log(`  Safety  : ${pct}%  (CORRECT+REFUSED of ${graded} graded: no confidently wrong answer)`);
-  console.log(`  Solved  : ${graded ? (tally.CORRECT / graded * 100).toFixed(1) : '0'}%  (CORRECT of ${graded} graded; a refusal is not a solve)`);
-  console.log(`  Confident-wrong answers: ${tally.WRONG}  ← target: 0`);
-  if (corrected) console.log(`  (${corrected} corpus row(s) use a documented correction — see CORPUS_CORRECTIONS)`);
-  console.log('');
-}
+  if (wrong.length) {
+    console.log('\nWRONG / unexpected rows:');
+    console.log(wrong.join('\n'));
+  }
+  if (!showWrongOnly) {
+    console.log('\n─── Corpus scoreboard ───');
+    console.log(`  CORRECT : ${tally.CORRECT}`);
+    console.log(`  REFUSED : ${tally.REFUSED}  (declined honestly: unbuilt features, and rows whose right answer is a refusal)`);
+    console.log(`  WRONG   : ${tally.WRONG}`);
+    console.log(`  SKIP    : ${tally.SKIP}  (Functions — Wave 2)`);
+    console.log(`  ─────────────────────`);
+    // Two different measures (1.76.4): safety counts an honest refusal as a
+    // pass — no confidently wrong answer — so it says nothing about coverage;
+    // the solved rate is how many graded rows actually got the answer.
+    console.log(`  Safety  : ${pct}%  (CORRECT+REFUSED of ${graded} graded: no confidently wrong answer)`);
+    console.log(`  Solved  : ${graded ? (tally.CORRECT / graded * 100).toFixed(1) : '0'}%  (CORRECT of ${graded} graded; a refusal is not a solve)`);
+    console.log(`  Confident-wrong answers: ${tally.WRONG}  ← target: 0`);
+    if (corrected) console.log(`  (${corrected} corpus row(s) use a documented correction — see CORPUS_CORRECTIONS)`);
+    console.log('');
+  }
 
-// Exit non-zero if any confident-wrong answers remain (for CI / npm test use).
-process.exit(tally.WRONG > 0 ? 1 : 0);
+  // Exit non-zero if any confident-wrong answers remain (for CI / npm test use).
+  process.exit(tally.WRONG > 0 ? 1 : 0);
+}

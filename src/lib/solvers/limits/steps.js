@@ -42,7 +42,9 @@ const JUMPS = {
   sign: { set: '0', at: () => 0, below: () => -1, above: () => 1 },
 };
 
-const isStep = (n) => n.type === 'FunctionNode' && (JUMPS[n.fn.name] || n.fn.name === 'mod');
+// A step function call, or x % m, which mathjs reads as mod(x, m).
+const stepName = (n) => (n.type === 'FunctionNode' ? n.fn.name : n.type === 'OperatorNode' && n.fn === 'mod' ? 'mod' : null);
+const isStep = (n) => { const name = stepName(n); return Boolean(name && (JUMPS[name] || name === 'mod')); };
 
 const evalNode = (node, v, x) => {
   try {
@@ -78,8 +80,30 @@ function decimalText(t) {
   return `${m[1] ? '-' : ''}${digits}${places ? `/1${'0'.repeat(places)}` : ''}`;
 }
 
+// The typed point exactly, as a fraction, from its own text: each decimal
+// literal read from its digits, then Algebrite's exact arithmetic
+// ("(0.99999999999999999)" is 99999999999999999/10¹⁷, "1/3" is 1/3). Null —
+// and the limit refused — when it is not a rational number (π/2) or cannot
+// be read.
+function exactPoint(Algebrite, pointText) {
+  const plain = decimalText(pointText);
+  if (plain !== null) return plain;
+  try {
+    const text = forAlgebrite(String(pointText).replace(/−/g, '-').replace(/π/g, 'pi'))
+      .replace(/(\d+)\.(\d+)/g, (m, whole, frac) => `(${`${whole}${frac}`.replace(/^0+(?=\d)/, '')}/1${'0'.repeat(frac.length)})`);
+    const out = String(Algebrite.run(`simplify(${text})`)).trim();
+    return /^-?\d+(?:\/\d+)?$/.test(out) ? out : null;
+  } catch {
+    return null;
+  }
+}
+
 // mathjs text to Algebrite's: e is exp(1) there.
-const forAlgebrite = (text) => String(text).replace(/(?<![a-z_])e(?![a-z(_])/g, 'exp(1)');
+// A literal in exponent notation (mathjs writes 0.0001 as 1e-4) is a number,
+// not the constant e: written as a power of ten first.
+const forAlgebrite = (text) => String(text)
+  .replace(/(\d+(?:\.\d+)?)e([+-]?\d+)/gi, '($1*10^($2))')
+  .replace(/(?<![a-z_\d.])e(?![a-z(_])/g, 'exp(1)');
 
 // The exact value of an expression at v = a (Algebrite), or null.
 function exactAt(Algebrite, text, v, aText) {
@@ -125,7 +149,7 @@ export function continuousAt(node, v, a) {
       return;
     }
     if (n.type === 'FunctionNode') {
-      const name = n.fn.name;
+      const name = stepName(n);
       const arg = n.args.length === 1 ? evalNode(n.args[0], v, a) : NaN;
       if (EVERYWHERE.has(name) && n.args.length === 1) return;
       if (POSITIVE.has(name) && n.args.length === 1) { if (!(arg > TINY)) ok = false; return; }
@@ -154,12 +178,12 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
   }
   // The point exactly: from its typed digits when it is a decimal (a point
   // within rounding of a jump is then refused below, never put on it).
-  const aText = decimalText(pointText) ?? rationalText(a);
+  const aText = pointText === null ? rationalText(a) : exactPoint(Algebrite, pointText);
   if (aText === null) return refuse(`The point ${mark(formatNumber(a))} is not a simple fraction, so it cannot be compared with a jump exactly: the limit is not claimed.`);
   const steps = [];
   const replacement = new Map();
   for (const n of nodes) {
-    const name = n.fn.name;
+    const name = stepName(n);
     const shown = beautify(n.toString());
     let rule = JUMPS[name];
     let m = null;

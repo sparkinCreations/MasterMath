@@ -104,6 +104,16 @@ function logOfPowerLike(term, v, sign) {
   // At −∞ by t = −x: P(−t) ~ c₀·(−1)^p·t^p.
   let probe = arg;
   if (sign < 0) probe = arg.transform((n) => (n.type === 'SymbolNode' && n.name === v ? math.parse(`(-${v})`) : n));
+  // The exact power is read from the typed exponents, so each must be a
+  // whole number or a ratio of whole numbers: x^(1 + 10^(-16)) is a power a
+  // double rounds to 1, and cancelling on that would be a guess.
+  const plainRational = (n) => {
+    while (n.type === 'ParenthesisNode') n = n.content;
+    if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') return plainRational(n.args[0]);
+    if (n.type === 'ConstantNode') return Number.isInteger(Number(n.value));
+    return n.type === 'OperatorNode' && n.op === '/' && n.args.every((x) => x.type === 'ConstantNode' && Number.isInteger(Number(x.value)));
+  };
+  if (arg.filter((n) => n.type === 'OperatorNode' && n.op === '^').some((n) => !plainRational(n.args[1]))) return null;
   const lead = leadingPower(probe, v);
   if (!lead || lead.c === 0 || !Number.isFinite(lead.p)) return null;
   // ln needs P > 0 far out, unless it is ln|P|.
@@ -227,7 +237,7 @@ export function provedLimitAtInfinity(f, v, sign, Algebrite = null, depth = 0) {
       else if (L !== limit) return null; // ∞ − ∞
     } else {
       let zero = false;
-      try { zero = Boolean(Algebrite) && String(Algebrite.run(`simplify(${lnExact.join(' + ').replace(/(?<![a-z_])e(?![a-z(_])/g, 'exp(1)')})`)).trim() === '0'; } catch { zero = false; }
+      try { zero = Boolean(Algebrite) && String(Algebrite.run(`simplify(${lnExact.join(' + ').replace(/(\d+(?:\.\d+)?)e([+-]?\d+)/gi, '($1*10^($2))').replace(/(?<![a-z_\d.])e(?![a-z(_])/g, 'exp(1)')})`)).trim() === '0'; } catch { zero = false; }
       if (!zero) return null;
       if (Number.isFinite(limit)) limit += lnConstant;
     }

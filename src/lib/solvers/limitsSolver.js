@@ -326,7 +326,8 @@ export async function solveLimit(expression) {
       ? ' does not exist'
       : result.estimate
         ? `${/∞/.test(result.answer) ? ' = ' : ' ≈ '}${String(result.answer).replace(/\s*\(≈[^)]*\)$/, '')} (an estimate from samples, not a proof)`
-        : ` = ${result.answer}`;
+        // A proved value known only as a decimal reads "≈ 0.3333", not "= ≈".
+        : /^≈ /.test(String(result.answer)) ? ` ${result.answer}` : ` = ${result.answer}`;
     const steps = [
       `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${shownFunc}`)}`,
       ...result.steps,
@@ -550,9 +551,9 @@ async function evaluateInfiniteLimit(func, variable, target) {
       return {
         steps: [
           `A term of ${mark(beautify(func))} that is a factor → ${mark('0')} times a bounded one (a sine or cosine, between ${mark('−1')} and ${mark('1')}) lies between minus and plus the size of that factor, and both of those → ${mark('0')}: such a term → ${mark('0')} (the squeeze theorem).`,
-          `Every other term has a limit of its own, so the limit is their sum: ${mark(formatNumber(r.value))}.`,
+          `Every other term has a limit of its own, so the limit is their sum: ${mark(squeezeShown(r.value))}.`,
         ],
-        answer: formatNumber(r.value),
+        answer: squeezeShown(r.value),
         verified: true,
         verificationMethod: 'squeeze theorem',
       };
@@ -606,12 +607,17 @@ async function evaluateOneSided(func, variable, target, side, pointText = null) 
   return evaluateOneSidedLimit(func, variable, target, side);
 }
 
+// The squeeze route's sum of term limits is a float: a whole number is
+// shown as it is, anything else with ≈ (1/3 is not claimed from 0.3333).
+const squeezeShown = (value) => (Number.isInteger(value) ? formatNumber(value) : `≈ ${formatNumber(value)}`);
+
 // The step-function route (limits/steps.js). What is left once each step
 // function is replaced by its value on a side must be proved continuous at
 // the point from its structure (continuousAt in steps.js: every denominator,
 // logarithm, root and power base checked there), never from samples.
 async function stepThrough(func, variable, target, pointText = null) {
-  if (!/\b(?:floor|ceil|round|fix|sign|mod)\s*\(/.test(String(func))) return null;
+  // x % m is mod(x, m) (mathjs reads % as mod): it goes the same way.
+  if (!/\b(?:floor|ceil|round|fix|sign|mod)\s*\(|%/.test(String(func))) return null;
   // A step function is present: from here on the answer is proved or
   // refused, never left to substitution (which is what got it wrong) —
   // not even if Algebrite fails to load.
