@@ -211,3 +211,21 @@ test('zoomWindow scales a hand-set y-window about the point, and respects its li
   const edge = zoomWindow({ range: { xMin: 10, xMax: 20 }, yWin: null }, 1.5, { fx: 1 }, { extent: { min: -20, max: 20 } });
   assert.deepEqual(edge.range, { xMin: 5, xMax: 20 });
 });
+
+test('robustYWindow: a spread that is only rounding is a flat line, shown as y ± 1', () => {
+  // sin² + cos² sampled in floating point: 1 ± 2e−16.
+  const noisy = [1, 1 + 2.220446049250313e-16, 0.9999999999999999, 1].map((y, i) => ({ x: i, y }));
+  const w = robustYWindow(noisy);
+  assert.ok(Math.abs(w.yMin - -0.1) < 1e-9 && Math.abs(w.yMax - 2.1) < 1e-9, JSON.stringify(w));
+  // Around 0 too (sin² + cos² − 1).
+  const zero = robustYWindow([0, 1e-16, -1e-16].map((y, i) => ({ x: i, y })));
+  assert.ok(zero.yMax - zero.yMin > 2, JSON.stringify(zero));
+  // A huge flat value: the window holds every sample and has two ends.
+  for (const ys of [[1e14, 1e14 + 16], [2 ** 60, 2 ** 60 + 1024]]) {
+    const big = robustYWindow(ys.map((y, i) => ({ x: i, y })));
+    assert.ok(big.yMin <= ys[0] && big.yMax >= ys[1] && big.yMax > big.yMin, JSON.stringify(big));
+  }
+  // A real variation, however small next to 1, keeps its own window.
+  const real = robustYWindow([1, 1.001].map((y, i) => ({ x: i, y })));
+  assert.ok(real.yMax - real.yMin < 0.01, JSON.stringify(real));
+});

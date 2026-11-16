@@ -160,7 +160,7 @@ export function identityGuidance(display, result, lost, identityUsed) {
   // A rewrite in sin and cos leads when no one identity was named.
   if (generic) tips.unshift(tips.splice(1, 1)[0]);
   const here = result && result !== display
-    ? `Here: ${generic ? 'written in sin and cos, ' : ''}${mark(`${display} = ${result}`)}${generic ? '' : ` by the ${identityUsed}`}${lost ? `, for ${mark(lost.replace('= 0', '≠ 0'))}` : ''}.`
+    ? `Here: ${generic ? 'written in sin and cos, ' : ''}${mark(`${display} = ${result}`)}${generic ? '' : ` by the ${identityUsed}`}${lost ? `, for ${lost.map((c) => mark(c.replace(' = ', ' ≠ '))).join(' and ')}` : ''}.`
     : null;
   return assemble(tips, here, [
     `Cancelling across a sum: ${mark('sin(x)/x')} is not sin — only common factors cancel.`,

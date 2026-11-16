@@ -20,7 +20,7 @@ import {
 import { getSettings, COMMON_DEGREE_VALUES } from '../settings.js';
 import { valueGuidance, identityGuidance, equationGuidance } from './trigonometry/guidance.js';
 import { countWaveLineRoots, waveLineBound } from './trigonometry/rootCount.js';
-import { proveTrigIdentity, lostDomain } from './trigonometry/circle.js';
+import { proveTrigIdentity, lostDomain, lostExcluded } from './trigonometry/circle.js';
 import { parseError, unsupported, solved, undefinedValue } from '../solutionEnvelope.js';
 
 
@@ -544,13 +544,16 @@ async function simplifyTrigExpression(expression, variable) {
       steps.push(proved
         ? `Check: writing both sides in ${mark(`sin(${variable})`)} and ${mark(`cos(${variable})`)} and substituting ${mark(`t = tan(${variable}/2)`)} turns them into the same rational function of ${mark('t')}; at ${mark(`${variable} = π + 2πn`)}, where ${mark('t')} is undefined, the two sides are compared directly. So the identity holds wherever both sides are defined.`
         : `Result checked numerically at several values of ${mark(variable)} (not proved symbolically).`);
-      if (lost) steps.push(`The original is undefined where ${mark(lost)} and the result is not, so the equality holds for ${mark(lost.replace('= 0', '≠ 0'))}: ${mark(`${display} = ${beautify(simplified)}`)} there.`);
-      steps.push(`Result: ${mark(beautify(simplified))}${lost ? `, for ${mark(lost.replace('= 0', '≠ 0'))}` : ''}.`);
+      if (lost) steps.push(`The original is undefined where ${lost.map((c) => mark(c)).join(' or ')} and the result is not, so the equality holds for ${lostExcluded(lost, mark)}: ${mark(`${display} = ${beautify(simplified)}`)} there.`);
+      steps.push(`Result: ${mark(beautify(simplified))}${lost ? `, for ${lostExcluded(lost, mark)}` : ''}.`);
       return {
         steps,
-        answer: `${beautify(simplified)}${lost ? ` (for ${lost.replace('= 0', '≠ 0')})` : ''}`,
+        answer: `${beautify(simplified)}${lost ? ` (for ${lostExcluded(lost)})` : ''}`,
         ...identityGuidance(display, beautify(simplified), lost, identityUsed ?? (simplified === '1' && isPythagoreanIdentity(expression) ? `Pythagorean identity ${mark('sin²(θ) + cos²(θ) = 1')}` : null)),
-        graph: generateSymbolicTrigGraph(expression, variable, beautify(simplified)),
+        // Drawn from the simplified form only when the identity is proved:
+        // a numeric check alone (sin² + cos² + 10^−30·x^40 matches 1 at the
+        // sample points) must not flatten the original's graph.
+        graph: generateSymbolicTrigGraph(expression, variable, proved ? beautify(simplified) : null, proved ? simplified : null),
       };
     }
 
@@ -590,11 +593,19 @@ function isPythagoreanIdentity(expression) {
   );
 }
 
-// Graph the symbolic expression itself over -2π..2π (an identity like
-// sin²+cos² draws its constant value — a flat line at 1 — which is the point).
-function generateSymbolicTrigGraph(expression, variable, simplifiedDisplay) {
+// Graph the expression over -2π..2π (an identity like sin²+cos² draws its
+// constant value — a flat line at 1 — which is the point). A proved identity
+// is drawn from its simplified form, plus 0·(the original) to keep the
+// original's gaps (0·NaN and 0·∞ are NaN): sec² − tan² subtracts two huge
+// numbers near its poles, and its rounding (1 − 2e−5) drew spikes.
+function generateSymbolicTrigGraph(expression, variable, simplifiedDisplay, simplified = null) {
   try {
-    const points = sampleFunction(expression, variable, { min: -6.28, max: 6.28, step: 0.1, cap: 10 });
+    const sample = (expr) => sampleFunction(expr, variable, { min: -6.28, max: 6.28, step: 0.1, cap: 10 });
+    let points = [];
+    if (simplified !== null) {
+      try { points = sample(`(${simplified}) + 0*(${expression})`); } catch { points = []; }
+    }
+    if (points.length === 0) points = sample(expression);
     if (points.length === 0) return null;
     return {
       points,

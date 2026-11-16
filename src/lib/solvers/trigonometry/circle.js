@@ -113,7 +113,10 @@ export function proveTrigIdentity(Algebrite, a, b, variable) {
 // exactly: on the circle, cos(x) = 0 is (S, C) = (±1, 0) and sin(x) = 0 is
 // (0, ±1), so evaluating both in exact fractions there decides it.
 // tan(x)·cos(x) = sin(x) only where cos(x) ≠ 0; tan(x) + cot(x) = 2/sin(2x)
-// loses nothing (1.65.0).
+// loses nothing (1.65.0). Returns the lost points as conditions, from the
+// points themselves: all four are sin(2x) = 0 (tan(x)·cot(x)), a pair is
+// cos(x) = 0 or sin(x) = 0, and any other lost point is its own lattice
+// (x = π + 2πn); never a set wider than what is lost. Null when none.
 export function lostDomain(original, simplified, variable) {
   const A = trigInSC(original, variable);
   const B = trigInSC(simplified, variable);
@@ -126,10 +129,29 @@ export function lostDomain(original, simplified, variable) {
       return false;
     }
   };
-  const loses = (points) => points.some(([S, C]) => !defined(A, S, C) && defined(B, S, C));
-  if (loses([[1, 0], [-1, 0]])) return `cos(${variable}) = 0`;
-  if (loses([[0, 1], [0, -1]])) return `sin(${variable}) = 0`;
-  return null;
+  const lost = ([S, C]) => !defined(A, S, C) && defined(B, S, C);
+  const v = variable;
+  const [up, down, right, left] = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(lost);
+  if (up && down && right && left) return [`sin(2${v}) = 0`];
+  const out = [];
+  if (up && down) out.push(`cos(${v}) = 0`);
+  else {
+    if (up) out.push(`${v} = π/2 + 2πn`);
+    if (down) out.push(`${v} = 3π/2 + 2πn`);
+  }
+  if (right && left) out.push(`sin(${v}) = 0`);
+  else {
+    if (right) out.push(`${v} = 2πn`);
+    if (left) out.push(`${v} = π + 2πn`);
+  }
+  return out.length ? out : null;
+}
+
+// The lost points as the text that excludes them: "cos(x) ≠ 0", or
+// "x ≠ π + 2πn and cos(x) ≠ 0"; each condition passed through `wrap` (mark)
+// on its own, so the joining word stays prose.
+export function lostExcluded(lost, wrap = (t) => t) {
+  return lost.map((c) => wrap(c.replace(' = ', ' ≠ '))).join(' and ');
 }
 
 // Every zero of f(x), a polynomial in sin and cos of rational multiples of

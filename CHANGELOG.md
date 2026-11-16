@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.3] - 2026-11-16
+
+### Fixed
+- A constant's graph is flat on every path, not only under Functions:
+  sin²(x) + cos²(x) under Auto-detect (solved as Trigonometry) still drew
+  spikes. The graph's y-axis now reads a spread that is only rounding
+  (under 10⁻¹² of the values) as a flat line and shows it as y ± 1
+  (`robustYWindow` in `graphSampling.js`). A proved trig identity is drawn
+  from its simplified form, keeping the original's gaps: sec²(x) − tan²(x)
+  subtracts two huge numbers near its poles, and that rounding (1 − 2e−5)
+  was more than the axis could call noise.
+- tan(x)·cot(x) simplifies to 1 for sin(2x) ≠ 0 (x ≠ nπ/2); the answer said
+  "for cos(x) ≠ 0", though cot(x) is undefined where sin(x) = 0 too. The
+  points a simplification loses are read off one by one and stated as they
+  are, never as a wider set: one lost point of a pair was reported as the
+  whole pair.
+
 ## [1.76.2] - 2026-11-16
 
 ### Fixed

@@ -215,3 +215,25 @@ test('a constant is drawn as exactly c: rounding never shows as spikes, and the 
   const ln = (await fn('ln(x)-ln(x)')).graph;
   assert.ok(sampleCurve(ln.expression, ln.variable, { xMin: -10, xMax: 10 }).filter((q) => q.x < 0).every((q) => q.y === null || !Number.isFinite(q.y)));
 });
+
+test('a proved trig identity is drawn from its simplified form; both lost sets are stated', async () => {
+  for (const p of ['sin(x)^2+cos(x)^2', 'sec(x)^2-tan(x)^2', 'tan(x)*cot(x)']) {
+    const r = await solvePlain(p, 'auto');
+    const ys = r.graph.points.map((q) => q.y).filter(Number.isFinite);
+    assert.ok(ys.length > 100 && ys.every((y) => y === 1), `${p}: ${Math.min(...ys)}..${Math.max(...ys)}`);
+  }
+  // cot(x) is undefined where sin(x) = 0 as well: x = nπ/2 in all.
+  assert.equal((await solvePlain('tan(x)*cot(x)', 'auto')).answer, '1 (for sin(2x) ≠ 0)');
+  assert.equal((await solvePlain('tan(x)*cos(x)', 'auto')).answer, 'sin(x) (for cos(x) ≠ 0)');
+});
+
+test('lost points are stated as they are: never a set wider than what is lost; unproved identities are drawn as typed', async () => {
+  // Lost at x = 3π/2 (sin = −1) and x = π (cos = −1) only: x = 0 is defined.
+  assert.equal((await solvePlain('(1+sin(x))/(1+sin(x))*(1+cos(x))/(1+cos(x))', 'auto')).answer, '1 (for x ≠ 3π/2 + 2πn and x ≠ π + 2πn)');
+  assert.equal((await solvePlain('cot(x)*sin(x)', 'auto')).answer, 'cos(x) (for sin(x) ≠ 0)');
+  // Only a numeric check matched 1: the graph shows the expression itself.
+  const r = await solvePlain('sin(x)^2+cos(x)^2+10^(-30)*x^40', 'auto');
+  assert.ok(Math.max(...r.graph.points.map((q) => q.y).filter(Number.isFinite)) > 2);
+  assert.doesNotMatch(r.graph.description, /Equivalent/);
+  assert.match((await solvePlain('sin(x)^2+cos(x)^2', 'auto')).graph.description, /^Equivalent to 1/);
+});
