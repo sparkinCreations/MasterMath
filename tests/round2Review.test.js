@@ -150,6 +150,10 @@ test('a log of a power of a linear expression: exact rationals only, written cor
   // coefficients are read exactly, so the edge is exact and the root ≈.
   const tiny = await solvePlain('ln((x*(1+1/10^20)+1)^3) = 3', 'auto');
   assert.equal(tiny.answer, 'x ≈ 1.7183, where x > -100000000000000000000/100000000000000000001');
+  // Cancellation: (10^20 + 1 − 10^20 + 1) is 2 exactly, 1 in floating point.
+  // The exact path reads 2 (its candidate is (e − 1)/2); it never shows the
+  // rounded coefficient's x = e − 1.
+  assert.doesNotMatch((await solvePlain('ln(((10^20+1-10^20+1)*x+1)^3) = 3', 'auto')).answer, /^x = e - 1/);
   // Rounding merges −1 ± e^−40 with −1: declined honestly, not "No solution".
   const merged = await solvePlain('ln((x+1)^2) = -80', 'auto');
   assert.notEqual(merged.status, 'solved');
@@ -189,4 +193,11 @@ test('a union is grouped before another domain condition', async () => {
 test('graph samples leave out a point where a logarithm is undefined', async () => {
   const { sampleFunction } = await import('../src/lib/solvers/solverUtils.js');
   assert.ok(!sampleFunction('e^(ln(x))', 'x', { min: -1, max: 1, step: 0.5 }).some((p) => p.x === 0));
+});
+
+test('two roots a hair apart are both kept, and close edges are compared exactly', async () => {
+  // ±e^−15/1000 are 6e−10 apart: an absolute 1e−9 merge dropped one.
+  assert.match((await solvePlain('ln((1000*x)^2) = -30', 'auto')).answer, /^x = -1\/e\^15\/1000 \(≈ 0\)  or  x = 1\/e\^15\/1000 \(≈ 0\)/);
+  // x > 1/10^13 is tighter than x > 0, though 1e−13 is within rounding of 0.
+  assert.match((await fn('ln(x - 1/10^13) - ln(x - 1/10^13) + ln(x) - ln(x)')).answer, /\(domain: x > 1\/10000000000000\)/);
 });

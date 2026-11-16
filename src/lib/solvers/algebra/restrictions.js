@@ -30,10 +30,18 @@ function exactLinearZero(node, v) {
   const [c0, c1] = poly.coefficients;
   const z = math.fraction(c0).neg().div(math.fraction(c1));
   const sign = Number(z.s) < 0 && String(z.n) !== '0' ? '-' : '';
-  return { value: Number(z.valueOf()), text: String(z.d) === '1' ? `${sign}${z.n}` : `${sign}${z.n}/${z.d}`, rising: Number(math.fraction(c1).s) > 0 };
+  return { value: Number(z.valueOf()), exact: z, text: String(z.d) === '1' ? `${sign}${z.n}` : `${sign}${z.n}/${z.d}`, rising: Number(math.fraction(c1).s) > 0 };
 }
 
 const rootText = (r) => (r.exact ? (r.exact.d === 1n ? String(r.exact.m) : `${r.exact.m}/${r.exact.d}`) : null);
+
+// Two values in order: exactly when both are exact rationals (1/10^13 and
+// 0 are different edges), else within rounding.
+function compareValues(a, b) {
+  if (a.exact && b.exact) return Number(a.exact.compare(b.exact));
+  if (Math.abs(a.value - b.value) <= 1e-12 * (1 + Math.max(Math.abs(a.value), Math.abs(b.value)))) return 0;
+  return a.value < b.value ? -1 : 1;
+}
 
 // What an expression's own denominators, logarithms and square roots
 // exclude, read off its parse tree: excluded points (exact: rationals from
@@ -71,18 +79,19 @@ export function domainConditions(text, v, { Algebrite = null, roots = true, skip
   let lower = null;
   let upper = null;
   const at = (node, x) => { try { return Number(node.evaluate({ [v]: x })); } catch { return NaN; } };
-  const addPoint = (value, shown) => { if (!points.some((p) => Math.abs(p.value - value) < 1e-12)) points.push({ value, text: shown }); };
+  const addPoint = (value, shown, exact = null) => { const pt = { value, text: shown, exact }; if (!points.some((p) => compareValues(p, pt) === 0)) points.push(pt); };
   // A bound: the tighter wins; at the same value, the strict one.
-  const bound = (edge, text, above, strict) => {
-    if (above) { if (!lower || edge > lower.value + 1e-12 || (Math.abs(edge - lower.value) <= 1e-12 && strict)) lower = { value: edge, text, strict }; }
-    else if (!upper || edge < upper.value - 1e-12 || (Math.abs(edge - upper.value) <= 1e-12 && strict)) upper = { value: edge, text, strict };
+  const bound = (edge, text, above, strict, exact = null) => {
+    const b = { value: edge, text, strict, exact };
+    if (above) { const c = lower && compareValues(b, lower); if (!lower || c > 0 || (c === 0 && strict)) lower = b; }
+    else { const c = upper && compareValues(b, upper); if (!upper || c < 0 || (c === 0 && strict)) upper = b; }
   };
   // The real zeros of a polynomial, exactly, or null.
   const exactZeros = (node) => {
     const poly = readPolynomial(node.toString(), v);
     if (!poly || poly.tooHigh || poly.degree < 1) return null;
     const real = allRoots(poly).real;
-    if (real.every(rootText)) return real.map((r) => ({ value: r.value, text: rootText(r) }));
+    if (real.every(rootText)) return real.map((r) => ({ value: r.value, text: rootText(r), exact: math.fraction(rootText(r)) }));
     if (!Algebrite) return null;
     try {
       const listed = parseRootsList(String(Algebrite.run(`roots(${node.toString()}, ${v})`)).trim())
@@ -112,7 +121,7 @@ export function domainConditions(text, v, { Algebrite = null, roots = true, skip
     if (reasons.some((r) => r.key === `d:${shown}`)) continue;
     tests.push((x) => Math.abs(at(den, x)) > 1e-12);
     const zeros = exactZeros(den);
-    if (zeros) zeros.forEach((z) => addPoint(z.value, z.text));
+    if (zeros) zeros.forEach((z) => addPoint(z.value, z.text, z.exact ?? null));
     else unsolved.push(`${shown} ≠ 0`);
     reasons.push({ key: `d:${shown}`, kind: 'd', text: mark(`${shown} ≠ 0`) });
   }
@@ -132,29 +141,32 @@ export function domainConditions(text, v, { Algebrite = null, roots = true, skip
     if (power % 2 === 0) {
       if (!strict) continue;
       const sq = exactLinearZero(base, v);
-      if (sq) { addPoint(sq.value, sq.text); continue; }
+      if (sq) { addPoint(sq.value, sq.text, sq.exact); continue; }
       unsolved.push(`${shown} ${rel} 0`);
       continue;
     }
     const lin = exactLinearZero(base, v);
-    if (lin) { bound(lin.value, lin.text, lin.rising, strict); continue; }
+    if (lin) { bound(lin.value, lin.text, lin.rising, strict, lin.exact); continue; }
     unsolved.push(`${shown} ${rel} 0`);
   }
   if (!reasons.length) return null;
-  if (lower && upper && (lower.value > upper.value || (lower.value === upper.value && (lower.strict || upper.strict)))) return { empty: true };
+  if (lower && upper) {
+    const c = compareValues(lower, upper);
+    if (c > 0 || (c === 0 && (lower.strict || upper.strict))) return { empty: true };
+  }
 
   // An excluded point on a closed edge makes the edge strict: x ≥ 0 and
   // x ≠ 0 is x > 0.
   for (const edge of [lower, upper]) {
     if (!edge || edge.strict) continue;
-    const at = points.findIndex((p) => Math.abs(p.value - edge.value) <= 1e-12);
+    const at = points.findIndex((p) => compareValues(p, edge) === 0);
     if (at >= 0) { edge.strict = true; points.splice(at, 1); }
   }
   // One statement: the interval, then the points it does not already
   // exclude, then anything left as written.
-  const inside = (x) => (!lower || x > lower.value + 1e-12 || (!lower.strict && Math.abs(x - lower.value) <= 1e-12))
-    && (!upper || x < upper.value - 1e-12 || (!upper.strict && Math.abs(x - upper.value) <= 1e-12));
-  const kept = points.filter((p) => inside(p.value)).sort((a, b) => a.value - b.value);
+  const inside = (p) => (!lower || compareValues(p, lower) > 0 || (!lower.strict && compareValues(p, lower) === 0))
+    && (!upper || compareValues(p, upper) < 0 || (!upper.strict && compareValues(p, upper) === 0));
+  const kept = points.filter(inside).sort(compareValues);
   const conditions = [];
   const lo = lower && `${lower.text} ${lower.strict ? '<' : '≤'} `;
   const hi = upper && ` ${upper.strict ? '<' : '≤'} ${upper.text}`;

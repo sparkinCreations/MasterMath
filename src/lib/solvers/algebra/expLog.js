@@ -730,7 +730,12 @@ export async function solveViaLogSubstitution(equation, variable) {
           const exact = readPolynomial(node.args[0].toString(), v);
           const small = (c) => { const f = math.fraction(c); return BigInt(f.d) <= 1000n && BigInt(f.n) <= 1000000n; };
           const named = !(exact && !exact.tooHigh && exact.degree === 1 && exact.coefficients.every(small));
-          const lin = n >= 2 ? linearCoefficients(node.args[0].toString(), v) : null;
+          // k and d themselves from the exact reading: floating point turns
+          // (10^20 + 1 − 10^20 + 1)·x into 1·x, though it is 2·x.
+          const asNumber = (c) => Number(math.fraction(c).valueOf());
+          const lin = n < 2 ? null
+            : !named ? { k: asNumber(exact.coefficients[1]), d: asNumber(exact.coefficients[0]) }
+              : linearCoefficients(node.args[0].toString(), v);
           return lin && lin.k !== 0 ? { n, k: lin.k, d: lin.d, named } : null;
         })();
         let xs;
@@ -843,7 +848,9 @@ export async function solveViaLogSubstitution(equation, variable) {
       if (!Number.isFinite(c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} is not real`); continue; }
       if (!argumentPositive(c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} makes a logarithm's argument zero or negative`); continue; }
       if (!satisfiesEquation(equation, v, c.numeric)) { rejected.push(`${mark(`${v} = ${show}`)} does not balance the original equation`); continue; }
-      if (kept.some((k) => Math.abs(k.numeric - c.numeric) < 1e-9)) continue;
+      // A repeat of a root already kept: the same value up to rounding,
+      // relative to its size (±e^−15/1000 are two roots, 6e−10 apart).
+      if (kept.some((k) => k.display === show || Math.abs(k.numeric - c.numeric) <= 1e-12 * Math.max(Math.abs(k.numeric), Math.abs(c.numeric)))) continue;
       kept.push({ display: show, numeric: c.numeric });
     }
     if (rejected.length > 0) {
