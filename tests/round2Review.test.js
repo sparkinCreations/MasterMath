@@ -226,3 +226,12 @@ test('a proved trig identity is drawn from its simplified form; both lost sets a
   assert.equal((await solvePlain('tan(x)*cot(x)', 'auto')).answer, '1 (for sin(2x) ≠ 0)');
   assert.equal((await solvePlain('tan(x)*cos(x)', 'auto')).answer, 'sin(x) (for cos(x) ≠ 0)');
 });
+
+test('lost points are stated as they are: never a set wider than what is lost; unproved identities are drawn as typed', async () => {
+  // Lost at x = 3π/2 (sin = −1) and x = π (cos = −1) only: x = 0 is defined.
+  assert.equal((await solvePlain('(1+sin(x))/(1+sin(x))*(1+cos(x))/(1+cos(x))', 'auto')).answer, '1 (for x ≠ 3π/2 + 2πn and x ≠ π + 2πn)');
+  assert.equal((await solvePlain('cot(x)*sin(x)', 'auto')).answer, 'cos(x) (for sin(x) ≠ 0)');
+  // Only a numeric check matched 1: the graph shows the expression itself.
+  const r = await solvePlain('sin(x)^2+cos(x)^2+10^(-30)*x^40', 'auto');
+  assert.ok(Math.max(...r.graph.points.map((q) => q.y).filter(Number.isFinite)) > 2);
+});

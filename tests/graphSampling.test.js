@@ -220,6 +220,11 @@ test('robustYWindow: a spread that is only rounding is a flat line, shown as y �
   // Around 0 too (sin² + cos² − 1).
   const zero = robustYWindow([0, 1e-16, -1e-16].map((y, i) => ({ x: i, y })));
   assert.ok(zero.yMax - zero.yMin > 2, JSON.stringify(zero));
+  // A huge flat value: the window holds every sample and has two ends.
+  for (const ys of [[1e14, 1e14 + 16], [2 ** 60, 2 ** 60 + 1024]]) {
+    const big = robustYWindow(ys.map((y, i) => ({ x: i, y })));
+    assert.ok(big.yMin <= ys[0] && big.yMax >= ys[1] && big.yMax > big.yMin, JSON.stringify(big));
+  }
   // A real variation, however small next to 1, keeps its own window.
   const real = robustYWindow([1, 1.001].map((y, i) => ({ x: i, y })));
   assert.ok(real.yMax - real.yMin < 0.01, JSON.stringify(real));

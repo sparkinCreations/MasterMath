@@ -232,12 +232,15 @@ export function robustYWindow(points, keys = ['y'], featureYs = []) {
     }
   }
   // A spread that is only rounding (sin² + cos² is 1 ± 2e−16, whatever
-  // path draws it) is a flat line: shown as y ± 1, never zoomed into the
-  // last bits of a double, which drew a constant as spikes.
+  // path draws it) is a flat line: shown as y ± 1 (± a billionth of y for a
+  // huge y, so the window still holds every sample and has two distinct
+  // ends), never zoomed into the last bits of a double, which drew a
+  // constant as spikes.
   if (!(hi - lo > 1e-12 * Math.max(1, Math.abs(lo), Math.abs(hi)))) {
     const mid = (lo + hi) / 2;
-    lo = mid - 1;
-    hi = mid + 1;
+    const half = Math.max(1, 1e-9 * Math.abs(mid));
+    lo = mid - half;
+    hi = mid + half;
   }
   const pad = (hi - lo) * 0.05;
   return { yMin: lo - pad, yMax: hi + pad };

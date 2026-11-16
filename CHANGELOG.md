@@ -19,7 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subtracts two huge numbers near its poles, and that rounding (1 − 2e−5)
   was more than the axis could call noise.
 - tan(x)·cot(x) simplifies to 1 for sin(2x) ≠ 0 (x ≠ nπ/2); the answer said
-  "for cos(x) ≠ 0", though cot(x) is undefined where sin(x) = 0 too.
+  "for cos(x) ≠ 0", though cot(x) is undefined where sin(x) = 0 too. The
+  points a simplification loses are read off one by one and stated as they
+  are, never as a wider set: one lost point of a pair was reported as the
+  whole pair.
 
 ## [1.76.2] - 2026-11-16
 
