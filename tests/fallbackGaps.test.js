@@ -56,7 +56,7 @@ test('exponentials in one base, or two bases by logarithms', async () => {
 test('a polynomial in a power of x, by u = x^p', async () => {
   for (const [p, answer] of [
     ['x^(2/3) - 5x^(1/3) + 6 = 0', 'x = 8  or  x = 27'],
-    ['x^(-2) - x^(-1) - 2 = 0', 'x = -1  or  x = 1/2'],
+    ['x^(-2) - x^(-1) - 2 = 0', 'x = -1  or  x = 1/2, where x ≠ 0'],
     ['(x^2-1)^2 - 5(x^2-1) + 4 = 0', 'x = -√5  or  x = -√2  or  x = √2  or  x = √5'],
     // A repeated root in u ("u = 0 (multiplicity 2)") is read too.
     ['x^(2/3) - x = 0', 'x = 0  or  x = 1'],

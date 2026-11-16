@@ -8,6 +8,7 @@
 // - a denominator cannot be 0: the real zeros of a polynomial denominator
 //   from the exact root finder (x ≠ 2), any other denominator as written
 //   (sin(x) ≠ 0);
+//   (a negative power, g^(−1), is a denominator too);
 // - a logarithm needs a positive argument: a linear argument gives a bound
 //   (x − 1 > 0, so x > 1), bounds from several logarithms are intersected
 //   (ln(x) + ln(x − 2): x > 2), the square of a linear argument excludes
@@ -29,6 +30,11 @@ function fraction(x) {
   return null;
 }
 
+// Numbers only beside the unknown: a named constant can round to a
+// rational in floating point (1 + e/10^20 is 1), so only such an
+// expression's edge is shown as an exact fraction.
+const numbersOnly = (node, v) => { let ok = true; node.traverse((m) => { if (m.type === 'SymbolNode' && m.name !== v) ok = false; }); return ok; };
+
 const rootText = (r) => (r.exact ? (r.exact.d === 1n ? String(r.exact.m) : `${r.exact.m}/${r.exact.d}`) : null);
 
 // What an expression's own denominators, logarithms and square roots
@@ -47,6 +53,18 @@ export function domainConditions(text, v, { Algebrite = null, roots = true, skip
     if (n.type === 'OperatorNode' && n.op === '/' && mentions(n.args[1].toString(), v)) dens.push(n.args[1]);
     if (n.type === 'FunctionNode' && LOGS.test(n.fn?.name ?? '') && n.args[0] && mentions(n.args[0].toString(), v)) args.push({ node: n.args[0], kind: 'l' });
     if (roots && n.type === 'FunctionNode' && n.fn?.name === 'sqrt' && n.args[0] && mentions(n.args[0].toString(), v)) args.push({ node: n.args[0], kind: 's' });
+    // g^(−k) is 1/g^k: its base is a denominator; g^(p/q) with q even is a
+    // square-root-like power: its base cannot be negative.
+    if (n.type === 'OperatorNode' && n.op === '^' && mentions(n.args[0].toString(), v) && !mentions(n.args[1].toString(), v)) {
+      let e = NaN;
+      try { e = Number(n.args[1].evaluate()); } catch { e = NaN; }
+      if (Number.isFinite(e) && e < 0) dens.push(n.args[0]);
+      if (roots && Number.isFinite(e) && !Number.isInteger(e)) {
+        let even = true;
+        try { even = Number(math.fraction(e).d) % 2 === 0; } catch { even = true; }
+        if (even) args.push({ node: n.args[0], kind: 's' });
+      }
+    }
   });
   const reasons = [];
   const tests = [];
@@ -115,12 +133,12 @@ export function domainConditions(text, v, { Algebrite = null, roots = true, skip
     if (power > 1) base = base.args[0];
     if (power % 2 === 0) {
       if (!strict) continue;
-      const sq = linearCoefficients(base.toString(), v);
+      const sq = numbersOnly(base, v) && linearCoefficients(base.toString(), v);
       if (sq && sq.k !== 0 && fraction(-sq.d / sq.k) !== null) { addPoint(-sq.d / sq.k, fraction(-sq.d / sq.k)); continue; }
       unsolved.push(`${shown} ${rel} 0`);
       continue;
     }
-    const lin = linearCoefficients(base.toString(), v);
+    const lin = numbersOnly(base, v) && linearCoefficients(base.toString(), v);
     if (lin && lin.k !== 0) {
       const edge = -lin.d / lin.k;
       const edgeText = fraction(edge);

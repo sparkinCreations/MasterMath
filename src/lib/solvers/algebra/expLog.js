@@ -724,12 +724,17 @@ export async function solveViaLogSubstitution(equation, variable) {
           while (node.type === 'ParenthesisNode') node = node.content;
           if (node.type !== 'OperatorNode' || node.op !== '^' || !/^\d+$/.test(node.args[1].toString())) return null;
           const n = Number(node.args[1].toString());
+          // Numbers only beside the unknown: a named constant (e, π) can
+          // round to a rational in floating point (1 + e/10^20 is 1), so a
+          // coefficient is shown as an exact fraction only when it is one.
+          let named = false;
+          node.args[0].traverse((m) => { if (m.type === 'SymbolNode' && m.name !== v) named = true; });
           const lin = n >= 2 ? linearCoefficients(node.args[0].toString(), v) : null;
-          return lin && lin.k !== 0 ? { n, k: lin.k, d: lin.d } : null;
+          return lin && lin.k !== 0 ? { n, k: lin.k, d: lin.d, named } : null;
         })();
         let xs;
         if (linearPower) {
-          const { n, k, d } = linearPower;
+          const { n, k, d, named } = linearPower;
           const frac = (x) => { try { const f = math.fraction(x); return Number(f.d) === 1 ? `${Number(f.s) * Number(f.n)}` : `${Number(f.s) * Number(f.n)}/${Number(f.d)}`; } catch { return null; } };
           let ex;
           try {
@@ -746,7 +751,7 @@ export async function solveViaLogSubstitution(equation, variable) {
           const exactRational = (x) => { try { const f = math.fraction(x); return Number(f.d) <= 1000 && Math.abs(Number(f.s) * Number(f.n) / Number(f.d) - x) < 1e-12 * (1 + Math.abs(x)) ? f : null; } catch { return null; } };
           const kf = exactRational(Math.abs(k));
           const dText = exactRational(Math.abs(d)) ? frac(Math.abs(d)) : null;
-          if (!kf || dText === null) return null;
+          if (named || !kf || dText === null) return null;
           // A shift that swamps b^(u/n) (ln((x + 1)²) = −80: 1 ± e^−40 is 1 in
           // floating point) cannot be checked numerically: declined, never
           // "no solution".

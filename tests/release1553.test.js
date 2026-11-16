@@ -84,7 +84,7 @@ test('a fractional power is undone exactly, with real odd roots', async () => {
     ['cbrt(x + 1) = -2', 'x = -9'], // was "one equation cannot fix 5 unknowns" (c, b, r, t, x)
     ['(x-1)^(2/3) = 9', 'x = -26  or  x = 28'],
     ['x^(3/2) = 8', 'x = 4'],
-    ['x^(-1/2) = 2', 'x = 1/4'],
+    ['x^(-1/2) = 2', 'x = 1/4, where x ≠ 0'],
   ]) {
     const r = await solveProblem(p, 'algebra');
     assert.equal(r.status, 'solved', p);

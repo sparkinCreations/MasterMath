@@ -84,6 +84,7 @@ test('rational and log equations state their restriction first and with the answ
   // A denominator that is never 0 excludes nothing; |g| is 0 where g is.
   assert.equal((await solvePlain('e^(2x)/e^x = 3', 'auto')).answer, 'x = ln(3) (≈ 1.0986)');
   assert.equal((await solvePlain('1/abs(x-1) = 3', 'auto')).answer, 'x = 2/3  or  x = 4/3, where x ≠ 1');
+  assert.equal((await solvePlain('(x-2)^(-1) = 3', 'auto')).answer, 'x = 7/3, where x ≠ 2');
 });
 
 test('the restriction is only on the answer a student reads: inner solves stay exact', async () => {
@@ -139,6 +140,12 @@ test('a log of a power of a linear expression: exact rationals only, written cor
   assert.equal((await solvePlain('ln((3-x)^3) = 3', 'auto')).answer, 'x = 3 - e (≈ 0.2817), where x < 3');
   assert.equal((await solvePlain('ln((2x/3+1)^3) = 3', 'auto')).answer, 'x = 3(e - 1)/2 (≈ 2.5774), where x > -3/2');
   assert.doesNotMatch((await solvePlain('ln((e*x+1)^3) = 3', 'auto')).answer, /\d{5,}\//);
+  assert.match((await solvePlain('ln((e*x+1)^3) = 3', 'auto')).answer, /^x ≈ 0\.6321/);
+  // A coefficient that rounds to a rational in floating point is not one:
+  // no exact root, and no exact edge, is claimed for it.
+  const near = await solvePlain('ln((x*(1+e/10^20)+1)^3) = 3', 'auto');
+  assert.match(near.answer, /^x ≈ 1\.7183/);
+  assert.doesNotMatch(near.answer, /e - 1|x > -1/);
   // Rounding merges −1 ± e^−40 with −1: declined honestly, not "No solution".
   const merged = await solvePlain('ln((x+1)^2) = -80', 'auto');
   assert.notEqual(merged.status, 'solved');
@@ -160,6 +167,10 @@ test('a constant function\'s domain is read off the expression, exactly, in its 
     ['ln(100-x)-ln(100-x)', 'x < 100'],
     ['sqrt(x)^2/x', 'x > 0'],
     ['sqrt(x-3)-sqrt(x-3)', 'x ≥ 3'],
+    // A negative power is a denominator; an even root's power needs a base ≥ 0.
+    ['(x-100)^(-1) - (x-100)^(-1)', 'x ≠ 100'],
+    ['x^(-2)*x^2', 'x ≠ 0'],
+    ['x^(-1/2)*x^(1/2)', 'x > 0'],
   ]) {
     const r = await fn(p);
     assert.equal(r.status, 'solved', p);
