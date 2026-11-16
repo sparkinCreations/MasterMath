@@ -148,7 +148,12 @@ export async function solveFunctions(expression) {
     const proof = provedConstant(func, variable, Algebrite);
     const result = proof ? constantFunction(func, variable, proof, Algebrite) : null;
     if (result) {
-      const points = sampleFunction(func, variable, { min: -40, max: 40, step: 0.25 });
+      // Drawn as exactly c wherever f is defined: f itself evaluates to
+      // c ± 2e−16 (sin² + cos²), and an auto-fitted y-axis zoomed into that
+      // rounding drew a constant as spikes. c + 0·f keeps f's gaps (0·NaN
+      // and 0·∞ are NaN) for the viewer's re-sampling.
+      const points = sampleFunction(func, variable, { min: -40, max: 40, step: 0.25 })
+        .map((pt) => (Number.isFinite(pt.y) ? { ...pt, y: proof.value } : pt));
       return {
         steps: result.steps,
         answer: result.answer,
@@ -156,7 +161,7 @@ export async function solveFunctions(expression) {
         common_mistakes: result.common_mistakes,
         graph: points.length > 0 ? {
           points,
-          expression: func,
+          expression: `${proof.value} + 0*(${func})`,
           variable,
           initialWindow: { xMin: -10, xMax: 10 },
           title: `Graph of f(${variable}) = ${beautify(func)}`,
