@@ -166,7 +166,7 @@ function logOfPowerLike(term, v, sign) {
   };
   if (!exactCoefficients(arg)) return null;
   const lead = leadingPower(probe, v);
-  if (!lead || lead.c === 0 || !Number.isFinite(lead.p)) return null;
+  if (!lead || lead.c === 0 || !Number.isFinite(lead.c) || !Number.isFinite(lead.p)) return null;
   // ln needs P > 0 far out, unless it is ln|P|.
   if (!absolute && lead.c < 0) return null;
   let pText;

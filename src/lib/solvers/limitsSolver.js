@@ -596,7 +596,13 @@ async function evaluateInfiniteLimit(func, variable, target) {
   // A periodic term that the proof above could not settle (too small to
   // tell from a constant: 10⁻¹²·sin(x)) is not estimated: the samples would
   // settle on a value that is not a limit. Refused instead.
-  if (splitTerms(stripOuterParens(String(func))).some(({ signed }) => { const p = structuralPeriod(signed, variable); return p && p > 0; })) {
+  // Anywhere in the expression, not only a top-level term:
+  // (1 + 1/x)·(1 + 10⁻¹²·sin(x)) has one inside a product.
+  let parts = [];
+  try {
+    parts = math.parse(String(func)).filter((n) => n.type !== 'ConstantNode' && n.type !== 'SymbolNode').map((n) => n.toString());
+  } catch { parts = splitTerms(stripOuterParens(String(func))).map(({ signed }) => signed); }
+  if (parts.some((t) => { const p = hasVariable(t, variable) ? structuralPeriod(t, variable) : null; return p && p > 0; })) {
     return {
       steps: [`A term of ${mark(beautify(func))} repeats periodically, and whether it is constant or keeps the whole from settling is not proved here.`],
       answer: null,

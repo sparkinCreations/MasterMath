@@ -601,6 +601,9 @@ function dominant(forms, order) {
 export function growthLimitAtInfinity(expr, v, dir) {
   let forms = termForms(expr, v);
   if (!forms) return null;
+  // A coefficient that overflowed (ln((2x)^1024) has the constant
+  // ln(2^1024) = ∞ as a double) decides nothing.
+  if (forms.some((t) => ![t.c, t.p, t.k, t.m].every(Number.isFinite))) return null;
   // x → −∞ as t = −x → ∞: (−t)^p = (−1)^p·t^p, e^(kx) = e^(−kt); ln is
   // not defined there.
   if (dir < 0) {
@@ -618,6 +621,7 @@ export function growthLimitAtInfinity(expr, v, dir) {
 export function growthLimitAtZeroRight(expr, t) {
   const forms = termForms(expr, t);
   if (!forms || forms.some((f) => !Number.isInteger(f.m))) return null;
+  if (forms.some((f) => ![f.c, f.p, f.k, f.m].every(Number.isFinite))) return null;
   const merged = forms.map((f) => ({ ...f, k: 0 }));
   const lead = dominant(merged, (a, b) => (a.p - b.p) || (b.m - a.m));
   if (!lead) return 0;

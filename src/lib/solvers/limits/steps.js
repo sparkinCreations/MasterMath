@@ -222,7 +222,18 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
     const g = n.args[0];
     const gText = beautify(g.toString());
     if (!continuousAt(g, v, a)) return refuse(`The inside of ${mark(shown)}, ${mark(gText)}, is not shown continuous at ${mark(`${v} = ${formatNumber(a)}`)}, so the limit is not claimed.`);
-    const c = evalNode(g, v, a);
+    let c = evalNode(g, v, a);
+    // The inside's value at the point is read exactly first: decimal
+    // arithmetic can cancel badly (10¹⁴ + 1/100 − 10¹⁴ is 0.015625 as a
+    // double), and that would put it on the wrong side of a jump. Its exact
+    // value must agree with the decimal one, or nothing is claimed.
+    const gExact = exactAt(Algebrite, g.toString(), v, aText);
+    let gExactValue = NaN;
+    try { gExactValue = gExact === null ? NaN : Number(math.evaluate(gExact.replace(/(?<![a-z])exp\(1\)/g, 'e'))); } catch { gExactValue = NaN; }
+    if (!Number.isFinite(gExactValue) || Math.abs(gExactValue - c) > TINY * (1 + Math.abs(c))) {
+      return refuse(`The value of ${mark(gText)} at ${mark(`${v} = ${formatNumber(a)}`)} could not be pinned down exactly, so which side of a jump of ${mark(shown)} it is on is not settled: the limit is not claimed.`);
+    }
+    c = gExactValue;
     const J = rule.at(c);
     const near = J !== null && Math.abs(c - J) <= TINY * (1 + Math.abs(c));
     let onJump = false;

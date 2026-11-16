@@ -198,7 +198,9 @@ test('a step-limit side whose exact value is not found is shown with ≈, never 
   const real = await loadAlgebrite();
   // Algebrite answers the derivative and the sides' difference, but not a
   // side's own value: the decimal must then carry ≈.
-  const stub = { run: (s) => { if (/^simplify\(subst\(/.test(s) && !/\) - \(/.test(s)) throw new Error('no'); return real.run(s); } };
+  // (The inside of floor, x, is still read exactly: only the sides, which
+  // carry √2, fail.)
+  const stub = { run: (s) => { if (/^simplify\(subst\(/.test(s) && /sqrt/.test(s) && !/\) - \(/.test(s)) throw new Error('no'); return real.run(s); } };
   const r = stepFunctionLimit('floor(x) + sqrt(2)', 'x', 0, { Algebrite: stub });
   assert.equal(r.same, false);
   assert.match(r.left.shown, /^≈ /);
@@ -264,4 +266,20 @@ test('review round 5: digits a double drops are never worked rounded; an undecid
   }
   // Estimates of non-periodic limits are unchanged: (1 + 3/x)^x → e³.
   assert.match((await lim('lim x->inf (1+3/x)^x')).answer, /= e\^3/);
+});
+
+test('review round 6: overflow, cancellation and periodic parts inside products are never proved', async () => {
+  const lim = (p) => solvePlain(p, 'limits');
+  const { provedLimitAtInfinity } = await import('../src/lib/solvers/limits/infinity.js');
+  const { loadAlgebrite } = await import('../src/lib/solvers/solverUtils.js');
+  // ln((2x)^1024) has the constant ln(2^1024), ∞ as a double: not a proof of ∞.
+  assert.equal(provedLimitAtInfinity('ln((2*x)^1024+1)-1024*ln(x+1)', 'x', 1, await loadAlgebrite()), null);
+  // 10¹⁴ + 1/100 − 10¹⁴ cancels badly in decimals: the inside is 1 + 100x
+  // exactly, at a jump, so "= 1" was wrong; refused unless exact.
+  assert.equal((await lim('lim x->0 floor(100*(100000000000000+1/100+x-100000000000000))')).status, 'unsupported');
+  // A periodic part inside a product is refused too, not estimated.
+  assert.equal((await lim('lim x->inf (1+1/x)*(1+0.000000000001*sin(x))')).status, 'unsupported');
+  // Unchanged: an ordinary step limit and a non-periodic estimate.
+  assert.match((await lim('lim x->0+ floor(x)+sqrt(2)')).answer, /= √2 \(≈ 1\.4142\)$/);
+  assert.match((await lim('lim x->inf x*sin(1/x)')).answer, /≈ 1/);
 });

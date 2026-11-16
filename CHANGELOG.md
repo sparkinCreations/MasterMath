@@ -45,6 +45,12 @@ from a handful of samples, and each could be fooled.
   more than 15 significant digits is never used to prove a limit at ∞, and
   a step-function limit at a typed point that is not exactly the number
   computed with (1.0000000000000001) is refused.
+- A growth rate or a log's leading coefficient that overflows a double
+  (ln((2x)^1024 + 1) − 1024·ln(x + 1) read as ln(2^1024) = ∞) proves
+  nothing; the inside of a step function is placed against its jumps from
+  its exact value (10¹⁴ + 1/100 − 10¹⁴ cancels badly in decimals); and a
+  periodic part inside a product, (1 + 1/x)·(1 + 10⁻¹²·sin(x)), is refused
+  like a periodic term.
 - An identity is named by what the input is, not by where it lands:
   tan(x)·cot(x) = 1 is the reciprocal identity cot(θ) = 1/tan(θ), not "the
   Pythagorean identity"; sec²(x) − tan²(x) = 1 is 1 + tan²(θ) = sec²(θ).
