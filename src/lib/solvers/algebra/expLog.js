@@ -724,11 +724,12 @@ export async function solveViaLogSubstitution(equation, variable) {
           while (node.type === 'ParenthesisNode') node = node.content;
           if (node.type !== 'OperatorNode' || node.op !== '^' || !/^\d+$/.test(node.args[1].toString())) return null;
           const n = Number(node.args[1].toString());
-          // Numbers only beside the unknown: a named constant (e, π) can
-          // round to a rational in floating point (1 + e/10^20 is 1), so a
-          // coefficient is shown as an exact fraction only when it is one.
-          let named = false;
-          node.args[0].traverse((m) => { if (m.type === 'SymbolNode' && m.name !== v) named = true; });
+          // The coefficients read exactly, never through floating point
+          // (1 + 1/10^20 and 1 + e/10^20 are both 1 there): the exact path
+          // takes only small rationals; anything else is declined.
+          const exact = readPolynomial(node.args[0].toString(), v);
+          const small = (c) => { const f = math.fraction(c); return BigInt(f.d) <= 1000n && BigInt(f.n) <= 1000000n; };
+          const named = !(exact && !exact.tooHigh && exact.degree === 1 && exact.coefficients.every(small));
           const lin = n >= 2 ? linearCoefficients(node.args[0].toString(), v) : null;
           return lin && lin.k !== 0 ? { n, k: lin.k, d: lin.d, named } : null;
         })();

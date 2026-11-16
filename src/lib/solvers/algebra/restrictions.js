@@ -21,19 +21,17 @@ import { parseRootsList } from './rootsFormat.js';
 const mentions = (text, v) => new RegExp(`(?<![a-z])${v}(?![a-z])`, 'i').test(String(text));
 const LOGS = /^(?:ln|log|log10|log2|log_\d+)$/;
 
-// A number as a fraction when it is one: 7/2, −1/3.
-function fraction(x) {
-  for (let q = 1; q <= 100; q += 1) {
-    const p = Math.round(x * q);
-    if (Math.abs(x - p / q) < 1e-12 * (1 + Math.abs(x))) return q === 1 ? String(p) : `${p}/${q}`;
-  }
-  return null;
+// The zero of a linear expression, exactly: its coefficients read as exact
+// rationals by the polynomial reader, never through floating point, where
+// 1 + 1/10^20 is 1. Null for anything else (e·x + 1 is stated as written).
+function exactLinearZero(node, v) {
+  const poly = readPolynomial(node.toString(), v);
+  if (!poly || poly.tooHigh || poly.degree !== 1) return null;
+  const [c0, c1] = poly.coefficients;
+  const z = math.fraction(c0).neg().div(math.fraction(c1));
+  const sign = Number(z.s) < 0 && String(z.n) !== '0' ? '-' : '';
+  return { value: Number(z.valueOf()), text: String(z.d) === '1' ? `${sign}${z.n}` : `${sign}${z.n}/${z.d}`, rising: Number(math.fraction(c1).s) > 0 };
 }
-
-// Numbers only beside the unknown: a named constant can round to a
-// rational in floating point (1 + e/10^20 is 1), so only such an
-// expression's edge is shown as an exact fraction.
-const numbersOnly = (node, v) => { let ok = true; node.traverse((m) => { if (m.type === 'SymbolNode' && m.name !== v) ok = false; }); return ok; };
 
 const rootText = (r) => (r.exact ? (r.exact.d === 1n ? String(r.exact.m) : `${r.exact.m}/${r.exact.d}`) : null);
 
@@ -133,19 +131,13 @@ export function domainConditions(text, v, { Algebrite = null, roots = true, skip
     if (power > 1) base = base.args[0];
     if (power % 2 === 0) {
       if (!strict) continue;
-      const sq = numbersOnly(base, v) && linearCoefficients(base.toString(), v);
-      if (sq && sq.k !== 0 && fraction(-sq.d / sq.k) !== null) { addPoint(-sq.d / sq.k, fraction(-sq.d / sq.k)); continue; }
+      const sq = exactLinearZero(base, v);
+      if (sq) { addPoint(sq.value, sq.text); continue; }
       unsolved.push(`${shown} ${rel} 0`);
       continue;
     }
-    const lin = numbersOnly(base, v) && linearCoefficients(base.toString(), v);
-    if (lin && lin.k !== 0) {
-      const edge = -lin.d / lin.k;
-      const edgeText = fraction(edge);
-      if (edgeText === null) { unsolved.push(`${shown} ${rel} 0`); continue; }
-      bound(edge, edgeText, lin.k > 0, strict);
-      continue;
-    }
+    const lin = exactLinearZero(base, v);
+    if (lin) { bound(lin.value, lin.text, lin.rising, strict); continue; }
     unsolved.push(`${shown} ${rel} 0`);
   }
   if (!reasons.length) return null;

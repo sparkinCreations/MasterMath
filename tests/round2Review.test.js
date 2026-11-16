@@ -146,6 +146,10 @@ test('a log of a power of a linear expression: exact rationals only, written cor
   const near = await solvePlain('ln((x*(1+e/10^20)+1)^3) = 3', 'auto');
   assert.match(near.answer, /^x ≈ 1\.7183/);
   assert.doesNotMatch(near.answer, /e - 1|x > -1/);
+  // Numbers alone can round too: 1 + 1/10^20 is 1 in floating point. The
+  // coefficients are read exactly, so the edge is exact and the root ≈.
+  const tiny = await solvePlain('ln((x*(1+1/10^20)+1)^3) = 3', 'auto');
+  assert.equal(tiny.answer, 'x ≈ 1.7183, where x > -100000000000000000000/100000000000000000001');
   // Rounding merges −1 ± e^−40 with −1: declined honestly, not "No solution".
   const merged = await solvePlain('ln((x+1)^2) = -80', 'auto');
   assert.notEqual(merged.status, 'solved');

@@ -54,9 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never off the ±10 window: ln(100 − x) − ln(100 − x) is 0 for x < 100. A
   negative power is a denominator ((x − 2)^(−1) = 3 is x = 7/3, where
   x ≠ 2; x^(−2)·x² is 1 for x ≠ 0), and an even root's power needs a base
-  ≥ 0. An exact root or edge is claimed only when the coefficients are
-  numbers: one with a named constant (e·x + 1) is located with ≈, since
-  floating point can round it to a fraction. Practice mode and the corpus
+  ≥ 0. An exact root or edge is claimed only from coefficients read
+  exactly, never through floating point, which rounds 1 + 1/10^20 to 1:
+  one with a named constant (e·x + 1) is located with ≈. Practice mode and the corpus
   grader set the restriction aside to read the values.
 
 ## [1.76.0] - 2026-11-10
