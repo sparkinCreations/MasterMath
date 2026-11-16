@@ -29,6 +29,7 @@ import {
   splitTerms,
 } from './solverUtils.js';
 import { equationGuidance } from './algebra/guidance.js';
+import { equationRestrictions } from './algebra/restrictions.js';
 import { solveWithAlgebriteRoots, rootsViaPolynomialRoot } from './algebra/polynomial.js';
 import { solveAbsoluteValueEquation, solveViaRadicalIsolation } from './algebra/specialForms.js';
 import {
@@ -469,7 +470,7 @@ async function solveEquation(expression, options = {}) {
   // 1d'. Two square roots, √x + √(x − 5) = 5: isolate one, square, solve
   // the one-root equation left, check in the original (1.75.0).
   if (!answer && (expression.match(/(?<![a-z])sqrt\s*\(/gi) || []).length === 2) {
-    const viaTwo = await solveTwoRadicals(expression, variable, (eq) => solveEquation(eq, options));
+    const viaTwo = await solveTwoRadicals(expression, variable, (eq) => solveEquation(eq, { ...options, internal: true }));
     if (viaTwo) ({ steps, answer, solutions } = viaTwo);
   }
 
@@ -548,7 +549,7 @@ async function solveEquation(expression, options = {}) {
   // factor, each root kept where every factor is defined (1.75.0). The scan
   // below missed x = 0 in (x − 2)·√x = 0, which touches 0 without crossing.
   if (!answer && isEquation(expression)) {
-    const viaProduct = await solveZeroProduct(expression, variable, (eq) => solveEquation(eq, options));
+    const viaProduct = await solveZeroProduct(expression, variable, (eq) => solveEquation(eq, { ...options, internal: true }));
     if (viaProduct) ({ steps, answer, solutions } = viaProduct);
   }
 
@@ -618,6 +619,23 @@ async function solveEquation(expression, options = {}) {
   }
 
   const guidance = equationGuidance(steps, expression, answer);
+  // What the equation's own denominators and logarithms exclude: said
+  // first, checked against the solutions, and kept with the answer
+  // (x = 7/2, where x ≠ 2). An answer with conditions on constants
+  // (", for a ≠ 0") already carries its own.
+  // Only on the answer a student reads: callers inside the solvers parse
+  // the answer (an inequality's zeros, a factor's roots).
+  if (!options.internal && isEquation(expression) && steps.length > 0 && !/,\s(?:for|where)\s|identity/.test(answer) && !steps.some((st) => /^(?:Domain|Restriction)/.test(st))) {
+    const restriction = equationRestrictions(expression, variable);
+    const listed = /^[a-z] = /.test(answer) && solutions.length > 0 && solutions.every(Number.isFinite);
+    if (restriction && (!listed || solutions.every((x) => restriction.holds(x)))) {
+      steps = [restriction.step, ...steps];
+      if (listed) {
+        steps.push(`${solutions.length > 1 ? 'Each solution satisfies' : 'The solution satisfies'} the restriction ${restriction.marked} ✓`);
+        answer = `${answer}, where ${restriction.text}`;
+      }
+    }
+  }
   return {
     steps: steps.length > 0 ? steps : [`Solve ${beautify(expression)}`, `Result: ${answer}`],
     answer,

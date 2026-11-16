@@ -713,8 +713,46 @@ export async function solveViaLogSubstitution(equation, variable) {
         // Algebrite writes the real roots of x² = e⁴ as ±i·(−e⁴)^(1/2), and
         // the numeric scan gave ±7.3891 for what is ±e².
         const power = String(g).replace(/\s+/g, '').match(new RegExp(`^\\(?${v}\\^\\(?(\\d+)\\)?\\)?$`));
+        // g = (ax + b)ⁿ: ax + b = ±b^(u/n) (n even) or b^(u/n) (n odd),
+        // then x exactly. Algebrite's roots() of (2x + 1)³ − e³ failed with
+        // "Cannot read properties of null", that text was shown as x, and
+        // the answer was "No solution" (November 2026 sweep).
+        const linearPower = (() => {
+          if (power) return null;
+          let node;
+          try { node = math.parse(String(g)); } catch { return null; }
+          while (node.type === 'ParenthesisNode') node = node.content;
+          if (node.type !== 'OperatorNode' || node.op !== '^' || !/^\d+$/.test(node.args[1].toString())) return null;
+          const n = Number(node.args[1].toString());
+          const lin = n >= 2 ? linearCoefficients(node.args[0].toString(), v) : null;
+          return lin && lin.k !== 0 ? { n, k: lin.k, d: lin.d } : null;
+        })();
         let xs;
-        if (power && Number(power[1]) >= 2) {
+        if (linearPower) {
+          const { n, k, d } = linearPower;
+          const frac = (x) => { try { const f = math.fraction(x); return Number(f.d) === 1 ? `${Number(f.s) * Number(f.n)}` : `${Number(f.s) * Number(f.n)}/${Number(f.d)}`; } catch { return null; } };
+          let ex;
+          try {
+            const f = math.fraction(String(r.display).replace(/\s+/g, '')).div(n);
+            ex = Number(f.d) === 1 ? `${Number(f.s) * Number(f.n)}` : `${Number(f.s) * Number(f.n)}/${Number(f.d)}`;
+          } catch {
+            ex = `(${r.display})/${n}`;
+          }
+          const one = ex === '1' ? (base === 'e' ? 'exp(1)' : base) : base === 'e' ? `exp(${ex})` : `${base}^(${ex})`;
+          const value = (base === 'e' ? Math.E : Number(base)) ** (r.numeric / n);
+          const kText = frac(Math.abs(k));
+          const dText = frac(Math.abs(d));
+          if (kText === null || dText === null) return null;
+          xs = (n % 2 === 0 ? [-1, 1] : [1]).map((sgn) => {
+            // x = (±value − d)/k, written with the positive term first.
+            const lead = sgn > 0 ? one : `-${one}`;
+            const shift = d === 0 ? '' : d > 0 ? ` - ${dText}` : ` + ${dText}`;
+            let num = `${lead}${shift}`;
+            if (k < 0) num = `-(${num})`;
+            const display = Math.abs(k) === 1 ? num : `(${num})/${kText}`;
+            return { display, numeric: (sgn * value - d) / k };
+          }).sort((a, b) => a.numeric - b.numeric);
+        } else if (power && Number(power[1]) >= 2) {
           const n = Number(power[1]);
           let ex;
           try {
@@ -730,7 +768,9 @@ export async function solveViaLogSubstitution(equation, variable) {
             : [{ display: one, numeric: value }];
         } else {
           const raw = String(Algebrite.run(`roots((${g}) - ${powText(r.display)}, ${v})`)).trim();
-          if (!raw || /stop|error|nil/i.test(raw)) return null;
+          // An engine failure comes back as text ("Cannot read properties of
+          // null"): never a root to show.
+          if (!raw || /stop|error|nil|cannot|undefined|null|properties/i.test(raw)) return null;
           // Any other g with that complex form: decline; the numeric scan takes it.
           if (/\(-.*\)\^\(1\/\d+\)/.test(raw)) return null;
           xs = parseRootsList(raw);

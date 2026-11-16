@@ -415,12 +415,16 @@ const FUNCTION_TRUTH = {
 
 // The answer's mathematics without the qualifiers that accompany it since
 // 1.53.1, which grade nothing themselves: a cancelled factor's domain
-// ("x + 1, for x ≠ 1") and the decimals beside exact endpoints
+// ("x + 1, for x ≠ 1"), an equation's restriction ("x = 5, where x > 3")
+// and the decimals beside exact endpoints
 // ("x > √2  (√2 ≈ 1.4142)").
 function gradable(r) {
   if (!r || typeof r.answer !== 'string') return r;
   const answer = r.answer
     .replace(/,\s*for\s+[a-z]\s*≠[^]*$/, '')
+    // An equation's restriction on the unknown, since November 2026:
+    // "x = 5, where x > 3" (not "…, where α ≈ 2.7183 is a zero of …").
+    .replace(/,\s*where\s+(?:[a-z]\s*[≠<>≤≥]|-?[\d/]+\s*<\s*[a-z]\s*<)[^]*$/, '')
     .replace(/\s{2}\(([^]*≈[^]*)\)\s*$/, '');
   return { ...r, answer };
 }

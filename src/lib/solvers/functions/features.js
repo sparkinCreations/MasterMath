@@ -9,6 +9,7 @@ import {
   formatNumber,
   rewriteReciprocalTrig,
   findUndefinedRegions,
+  STRICT_LOGS,
   realOddRoots,
   piForm,
   neverZeroSide,
@@ -19,6 +20,9 @@ import { readPolynomial, allRoots } from '../polynomialRoots.js';
 
 export const WINDOW = { min: -10, max: 10 };
 export const FINE_STEP = 0.05;
+// Relative size of a difference that is rounding, not change: about 45
+// units in the last place of a double.
+const NOISE = 1e-14;
 const BIG = 1e6;
 
 // A number as a fraction when it is one (1/2, -5/4), else formatted: a
@@ -35,7 +39,7 @@ export function exactNumber(x) {
 
 export function evalAt(func, variable, x) {
   try {
-    const y = math.evaluate(realOddRoots(func), { [variable]: x });
+    const y = math.evaluate(realOddRoots(func), { ...STRICT_LOGS, [variable]: x });
     const n = typeof y === 'number' ? y : Number(y);
     return Number.isFinite(n) ? n : NaN;
   } catch {
@@ -495,9 +499,15 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
     const l = evalAt(func, variable, x - 1e-4);
     const r = evalAt(func, variable, x + 1e-4);
     if (!Number.isFinite(l) || !Number.isFinite(r)) return;
+    // Differences at the level of rounding are no evidence of a turn:
+    // sin²(x) + cos²(x) evaluates to 1 ± 2e−16, and those flickers were
+    // reported as six maxima and minima (November 2026 review). The floor
+    // scales with the values compared. It only stops noise being read as a
+    // feature; it decides nothing about the function.
+    const tol = NOISE * Math.max(1, Math.abs(y), Math.abs(l), Math.abs(r));
     let kind = null;
-    if (y >= l && y >= r && (y > l || y > r)) kind = 'max';
-    if (y <= l && y <= r && (y < l || y < r)) kind = 'min';
+    if (y >= l - tol && y >= r - tol && (y > l + tol || y > r + tol)) kind = 'max';
+    if (y <= l + tol && y <= r + tol && (y < l - tol || y < r - tol)) kind = 'min';
     if (!kind) return; // saddle / not an extremum — do not report
     if (extrema.some((e) => Math.abs(e.x - x) < 1e-5)) return;
     const sx = snap(x);
@@ -532,6 +542,10 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
 
   let derivativeStr = null;
   const stationary = [];
+  // Zeros of f′ where f itself is undefined: ln(x² − 9) has f′ = 2x/(x² − 9),
+  // which is 0 at x = 0, but ln(−9) does not exist, so x = 0 is not a
+  // critical point of f (November 2026 review). Kept to be said so.
+  const outsideDomain = [];
   if (Algebrite) {
     try {
       derivativeStr = Algebrite.derivative(toAlgebrite(func), variable).toString();
@@ -546,7 +560,13 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
         // (x² − 1)/(x − 1) has f′ = (x − 1)²/(x − 1)², and "1 = 0 at x = 1".
         const slope = evalAt(derivativeStr, variable, r.numeric);
         if (!Number.isFinite(slope) || Math.abs(slope) > 1e-6) continue;
-        if (r.numeric >= WINDOW.min && r.numeric <= WINDOW.max) {
+        if (r.numeric < WINDOW.min || r.numeric > WINDOW.max) continue;
+        // Every candidate is checked against the original function.
+        if (!Number.isFinite(evalAt(func, variable, r.numeric))) {
+          outsideDomain.push(r);
+          continue;
+        }
+        {
           stationary.push(r);
           classify(r.numeric, r);
         }
@@ -560,7 +580,10 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
       const s1 = grid[i - 1].y - grid[i - 2].y;
       const s2 = grid[i].y - grid[i - 1].y;
       if (!Number.isFinite(s1) || !Number.isFinite(s2)) continue;
-      if (Math.sign(s1) !== Math.sign(s2) && s1 !== 0) {
+      // A slope at the level of rounding has no sign worth reading.
+      const floor = NOISE * Math.max(1, Math.abs(grid[i - 1].y));
+      if (Math.abs(s1) <= floor || Math.abs(s2) <= floor) continue;
+      if (Math.sign(s1) !== Math.sign(s2)) {
         // Refine the critical point via slope bisection.
         const slope = (x) => (evalAt(func, variable, x + 1e-6) - evalAt(func, variable, x - 1e-6));
         const cp = bisect(slope, grid[i - 2].x, grid[i].x);
@@ -617,7 +640,7 @@ export function findExtrema(func, variable, grid, Algebrite, isPeriodic) {
       if (fac && !/nil|Stop/.test(fac) && /\(/.test(fac)) derivativeFactored = exactForm(fac).replace(/\*/g, '');
     }
   } catch { derivativeFactored = null; }
-  return { extrema: extrema.slice(0, keep).sort((a, b) => a.x - b.x), monotonic, derivative, derivativeFactored, stationary: stationary.slice(0, keep), derivativeNeverZero };
+  return { extrema: extrema.slice(0, keep).sort((a, b) => a.x - b.x), monotonic, derivative, derivativeFactored, stationary: stationary.slice(0, keep), derivativeNeverZero, outsideDomain };
 }
 
 // f(x) at an exact x, by substitution, shown as a textbook writes it (1/e,

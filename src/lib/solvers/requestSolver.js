@@ -568,7 +568,7 @@ export async function inverseOf(expr, variable, solveAlgebra) {
   if (!solvedFor) {
     // A polynomial in which the variable appears more than once: the
     // algebra solver's rearrangement, refused when it branches.
-    const solved = await solveAlgebra(`${y} = ${expr}`, { solveFor: variable });
+    const solved = await solveAlgebra(`${y} = ${expr}`, { solveFor: variable, internal: true });
     const m = String(solved?.answer || '').match(new RegExp(`^${variable} = (.+)$`));
     if (!m) return refuse(`${mark(`${y} = ${shown}`)} could not be solved for ${mark(variable)}.`);
     if (/±|\bor\b/.test(m[1])) {

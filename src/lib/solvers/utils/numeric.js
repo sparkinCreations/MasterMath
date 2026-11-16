@@ -44,12 +44,24 @@ export function realOddRoots(expression) {
  * Used by the algebra solver to carry a domain onto identity answers and by
  * the functions solver for its domain step.
  */
+// Logarithms undefined at and below 0, as in mathematics. Floating point
+// gives ln(0) = −∞, and e^(ln 0) = e^(−∞) = 0 is then a number: e^(ln x)
+// read as defined at x = 0, with a y-intercept (0, 0) (November 2026
+// review). Passed as the scope of every evaluation that decides where a
+// function is defined.
+export const STRICT_LOGS = {
+  log: (a, b) => (typeof a === 'number' && a > 0 ? (b === undefined ? Math.log(a) : (b > 0 && b !== 1 ? Math.log(a) / Math.log(b) : NaN)) : NaN),
+  ln: (a) => (typeof a === 'number' && a > 0 ? Math.log(a) : NaN),
+  log10: (a) => (typeof a === 'number' && a > 0 ? Math.log10(a) : NaN),
+  log2: (a) => (typeof a === 'number' && a > 0 ? Math.log2(a) : NaN),
+};
+
 export function findUndefinedRegions(expression, variable, options = {}) {
   const { min = -20, max = 20, step = 0.05 } = options;
   const realExpr = realOddRoots(expression);
   const definedAt = (x) => {
     try {
-      const v = math.evaluate(realExpr, { [variable]: x });
+      const v = math.evaluate(realExpr, { ...STRICT_LOGS, [variable]: x });
       return typeof v === 'number' && Number.isFinite(v);
     } catch {
       return false;
@@ -157,10 +169,10 @@ export function formatRestriction(region, variable, options = {}) {
       ? `${variable} ${fromClosed ? '<' : '≤'} ${fmt(from)}`
       : `${variable} ${fromClosed ? '≥' : '>'} ${fmt(from)}`;
   }
-  // A bounded gap: the allowed form is a union, which reads worse than the
-  // gap itself, so both modes name the gap.
-  const gap = `${fmt(from)} ${fromClosed ? '≤' : '<'} ${variable} ${toClosed ? '≤' : '<'} ${fmt(to)}`;
-  return allowed ? `not ${gap}` : gap;
+  // A bounded gap: the allowed form is the union a textbook writes,
+  // x < −3 or x > 3 (it was "not −3 ≤ x ≤ 3", November 2026 review).
+  if (allowed) return `${variable} ${fromClosed ? '<' : '≤'} ${fmt(from)} or ${variable} ${toClosed ? '>' : '≥'} ${fmt(to)}`;
+  return `${fmt(from)} ${fromClosed ? '≤' : '<'} ${variable} ${toClosed ? '≤' : '<'} ${fmt(to)}`;
 }
 
 

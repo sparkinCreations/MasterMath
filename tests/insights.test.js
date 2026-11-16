@@ -363,7 +363,7 @@ test('algebra: statements say where they hold', async () => {
 test('algebra sweep: edge cases answered correctly', async () => {
   const cases = [
     ['sqrt(x) = -2', /^No solution/], ['abs(x-1) = -3', /^No real solution/], ['x/(x-2) = 2/(x-2)', /^No solution/],
-    ['1/(x-1) = 0', /^No real solution/], ['ln(x-1) + ln(x+1) = ln(3)', /^x = 2$/], ['e^x = -2', /^No real solution/],
+    ['1/(x-1) = 0', /^No real solution/], ['ln(x-1) + ln(x+1) = ln(3)', /^x = 2, where x > 1$/], ['e^x = -2', /^No real solution/],
     ['3^(2x) = 27', /^x = 3\/2$/], ['sqrt(x) + sqrt(x-5) = 5', /^x = 9$/], ['x^4 - 5x^2 + 4 = 0', /^x = -2 {2}or {2}x = -1 {2}or {2}x = 1 {2}or {2}x = 2$/],
     ['x/(x+1) + 1/x = 1', /^No real solution/], ['e^(2x) - 3e^x + 2 = 0', /^x = 0 {2}or {2}x = ln\(2\)/],
   ];

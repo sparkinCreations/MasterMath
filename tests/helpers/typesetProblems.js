@@ -179,6 +179,11 @@ export const CONVERTED = [
   ['auto', 'x*(x-1)*ln(x) = 0'], ['auto', 'x^2*(x+2)*sqrt(x-1) = 0'], ['auto', 'abs(x-1) = abs(2x+3)'], ['auto', '2^(x+1) = 3^x'],
   // Several absolute values with pi, on every piece, and in decimals.
   ['auto', 'abs(x) + abs(x-2) = 4*pi'], ['auto', 'abs(x-pi) + abs(x+pi) = 2*pi'], ['auto', 'abs(x) + abs(-x) = 2*abs(x)'], ['auto', 'abs(x-0.1) + abs(x-0.3) = 0.2'],
+  // November 2026 review, round 2: constants in disguise, critical points
+  // outside the domain, restrictions stated first.
+  ['functions', 'sin(x)^2+cos(x)^2'], ['functions', 'tan(x)*cot(x)'], ['functions', 'cosh(x)^2-sinh(x)^2'], ['functions', '(x+1)^2-(x-1)^2-4x'], ['functions', 'x/x'],
+  ['functions', 'ln(x^2-9)'], ['functions', 'sqrt(x^2-1)'], ['functions', 'e^(ln(x))'],
+  ['auto', '(x+1)/(x-2) = 3'], ['auto', 'log_2(x-1) = 3'], ['auto', 'ln(x) + ln(x-2) = ln(3)'], ['auto', '1/x + 1/(x-1) = 3/2'], ['auto', 'x/(x-3) = 3/(x-3)'], ['auto', 'ln((2x+1)^3) = 3'],
 ];
 
 // Math left in a text run: an equation, a power, a function call, a

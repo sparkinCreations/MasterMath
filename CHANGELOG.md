@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.1] - 2026-11-16
+
+### Fixed
+- A constant function written so it does not look it is proved constant:
+  sin²(x) + cos²(x), tan(x)·cot(x), sec²(x) − tan²(x), cosh²(x) − sinh²(x),
+  (x² − 1)/(x − 1) − x. The analysis searched them numerically for turning
+  points, and rounding (1 ± 2e−16) was reported as six maxima and minima
+  beside "f′(x) = 0"; (x + 1)² − (x − 1)² − 4x, which is 0, was given six
+  x-intercepts. Values only propose the constant; Algebrite (with tan, cot,
+  sec, csc in sin and cos) or the exact trig prover proves it, else the
+  function goes to the general analysis. The answer says every point is a
+  non-strict local maximum and minimum, with no isolated turning points,
+  and keeps the original domain: tan(x)·cot(x) is 1 for x ≠ nπ/2
+  (`functions/constant.js`).
+- A zero of f′ where the function is undefined is not a critical point:
+  ln(x² − 9) at x = 0, √x/(x − 1) at x = −1. The steps said "f′ is 0 but
+  does not change sign: the graph flattens and carries on" there, and then
+  "no zero of f′ was found". Every candidate is now checked against the
+  original function, and the step says why it is rejected.
+- e^(ln x) has the domain x > 0. Floating point evaluates e^(ln 0) as
+  e^(−∞) = 0, so x = 0 read as defined, with a y-intercept and an
+  x-intercept at the origin. Logarithms are undefined at and below 0 in
+  every evaluation that decides a domain.
+- A domain with a gap reads as a textbook writes it: x < −3 or x > 3 (was
+  "not −3 ≤ x ≤ 3").
+- ln((x + 1)³) = 3 was "No solution", with "Cannot read properties of null"
+  shown as a value of x: the logarithm of a power of a linear expression is
+  now solved exactly, x = e − 1, and a JavaScript failure's message is
+  never shown as a step or an answer.
+- A piecewise function in braces is refused for what it is ("Piecewise
+  functions are not supported yet"), not with a hint about grouping.
+
+### Changed
+- Rational and logarithmic equations state their restriction first and
+  keep it with the answer: (x + 1)/(x − 2) = 3 is x = 7/2, where x ≠ 2;
+  log₂(x − 1) = 3 is x = 9, where x > 1; ln(x) + ln(x − 2) = ln(3) is x = 3,
+  where x > 2 (`algebra/restrictions.js`). A denominator proved never 0
+  excludes nothing. Practice mode and the corpus grader set the
+  restriction aside to read the values.
+
 ## [1.76.0] - 2026-11-10
 
 ### Added

@@ -153,7 +153,10 @@ Each file documents its own methods at the top. Shared invariants:
 - **Verify before reporting.** Every equation solution is substituted back
   into the original; every antiderivative is differentiated back; definite
   integrals are cross-checked by quadrature; limits numerically. Extraneous
-  roots are rejected with the reason shown.
+  roots are rejected with the reason shown. A rational or logarithmic
+  equation states what its own denominators and logarithms exclude, first
+  and with the answer ("x = 7/2, where x ≠ 2"; `algebra/restrictions.js`),
+  on the answer a student reads only: an inner solve passes `internal`.
 - **Refuse honestly.** Out-of-family input returns `unsupported`, never a
   guess. Never decide a mathematical property (linearity, completeness of a
   root list) from fixed sample points — construct a proof or refuse.
@@ -240,6 +243,11 @@ which then writes a mix of functions of one angle in sin and cos, clears,
 factors and solves each factor exactly, excluded angles removed),
 `functionsSolver` (exact extrema/intercepts/asymptotes: a numeric value is
 shown exact only when `recognizeExact` proves it by substitution, else ≈;
+a function constant on its domain proved so (`functions/constant.js`:
+Algebrite in sin, cos and exponentials, or the exact trig prover) and
+never searched for turning points; every critical point checked against
+the original function's domain; logarithms undefined at and below 0 in
+every evaluation that decides a domain (`STRICT_LOGS`);
 polynomial intercepts from the exact root finder; sine and cosine waves as
 patterns in n; slant asymptotes; ranges and domains only when proved), `limitsSolver`
 (named techniques incl. 1^∞ by logarithms, the conjugate at ±∞, growth rates
