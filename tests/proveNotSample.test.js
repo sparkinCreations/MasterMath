@@ -163,7 +163,9 @@ test('review of 1.76.4: no step-limit decision rests on a tolerance or a sample'
   // put on the jump (as doubles, 10⁻¹⁶ was rounded to 0, and
   // 0.99999999999999999 is 1): refused, not "does not exist".
   for (const p of ['lim x->0.0000000000000001 floor(x)', 'lim x->0.99999999999999999 floor(x)', 'lim x->1.0000000000000001 floor(x)', 'lim x->0.0000000000000001- floor(x)',
-    'lim x->(0.99999999999999999) floor(x)', 'lim x->(1e-16) floor(x)']) {
+    'lim x->(0.99999999999999999) floor(x)', 'lim x->(1e-16) floor(x)',
+    // …and so is a number inside the function with more digits than a double keeps.
+    'lim x->0 floor(x+0.99999999999999999)', 'lim x->0 floor(x)+0.99999999999999999']) {
     assert.equal((await lim(p)).status, 'unsupported', p);
   }
   // A point exactly on a jump still is: 10·0.1 = 1, and 3·(1/3) = 1.
@@ -216,8 +218,14 @@ test('review round 3: exponent literals, % as mod, exponents a double rounds, sq
   assert.match((await lim('lim x->1 x%2')).answer, /= 1$/);
   // An exponent a double rounds (1 + 10⁻¹⁶ is 1) is not cancelled on: no
   // asymptote is claimed for a function that → ∞.
-  const f = await solvePlain('ln(x^(1+10^(-16))+1)-ln(x+1)', 'functions');
-  assert.doesNotMatch(f.answer, /horizontal asymptote/);
+  // Nor when whole-ratio exponents combine into one (x·x^(1/10¹⁶)).
+  for (const p of ['ln(x^(1+10^(-16))+1)-ln(x+1)', 'ln(x*x^(1/10000000000000000)+1)-ln(x+1)']) {
+    assert.doesNotMatch((await solvePlain(p, 'functions')).answer, /horizontal asymptote/, p);
+  }
+  // Powers that do cancel exactly still give their asymptote.
+  for (const p of ['ln(x^2+1)-2*ln(x+1)', 'ln(sqrt(x)+1)-ln(x+1)/2']) {
+    assert.match((await solvePlain(p, 'functions')).answer, /horizontal asymptote y = 0 as x → ∞/, p);
+  }
   // Whole-number powers still cancel exactly: the antiderivative's log terms
   // at ∞ in ∫₂^∞ 1/(x² − 1) dx.
   assert.match((await solvePlain('∫_2^∞ 1/(x^2-1) dx', 'integrals')).answer, /= 1\/2\*ln\(3\)/);

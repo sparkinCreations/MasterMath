@@ -172,6 +172,12 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
   const nodes = tree.filter(isStep);
   if (!nodes.length) return null;
   const refuse = (why) => ({ refuse: true, steps: [why] });
+  // A number typed with more significant digits than a double keeps (15) is
+  // rounded before any of this runs (0.99999999999999999 is 1), and near a
+  // jump that rounding decides the answer: refused, never worked rounded.
+  const longNumber = (String(func).match(/\d*\.?\d+/g) || [])
+    .find((lit) => lit.replace('.', '').replace(/^0+/, '').replace(/0+$/, '').length > 15);
+  if (longNumber) return refuse(`The number ${mark(longNumber)} has more digits than this solver keeps exactly, so a jump of the step function could not be told apart from a point beside it: the limit is not claimed.`);
   if (!Algebrite) return refuse('The tools to work this step function exactly did not load, so the limit is not claimed.');
   if (nodes.some((n) => n.args.some((arg) => arg.filter(isStep).length))) {
     return refuse('A step function inside another one is not worked here, so the limit is not claimed.');

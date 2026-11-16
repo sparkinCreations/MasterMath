@@ -27,10 +27,12 @@ from a handful of samples, and each could be fooled.
   cos²(x) + sin²(x) + 0.0000001·sin(x) was "1 (for sin(2x) ≠ 0)". A
   simplification is now taken only when proved; otherwise the expression is
   left as typed and the steps say no simpler form could be proved.
-- Cancelling logarithms at ∞ reads each power from the typed exponent, and
-  only a whole number or a ratio of whole numbers: ln(x^(1 + 10⁻¹⁶) + 1) −
-  ln(x + 1) → ∞ was given the horizontal asymptote y = 0 (a double rounds
-  that exponent to 1). A squeeze-theorem limit that is not a whole number is
+- Cancelling logarithms at ∞ is proved, not rounded: every exponent and
+  root inside must be a whole number or a ratio of whole numbers up to 1000,
+  with the denominators' product at most 10⁶, so the leading power is
+  recovered exactly. ln(x^(1 + 10⁻¹⁶) + 1) − ln(x + 1) and
+  ln(x·x^(1/10¹⁶) + 1) − ln(x + 1), which → ∞, were given the horizontal
+  asymptote y = 0 (a double rounds that power to 1). A squeeze-theorem limit that is not a whole number is
   shown with ≈ (1/3 + e^(−x)·sin(x) → ≈ 0.3333), not as an exact "= 0.3333".
 - An identity is named by what the input is, not by where it lands:
   tan(x)·cot(x) = 1 is the reciprocal identity cot(θ) = 1/tan(θ), not "the
@@ -61,7 +63,9 @@ from a handful of samples, and each could be fooled.
   equal are proved exactly (10¹² + ⌊x⌋ at 0 has sides 10¹² − 1 and 10¹²;
   ⌊x + 10⁻¹³⌋ at 0 is refused, and so is ⌊x⌋ at a typed point 10⁻¹⁶, read
   exactly from its digits rather than as a double rounded onto the jump,
-  in parentheses or arithmetic too: (0.99999999999999999)), and continuity is read off the expression
+  in parentheses or arithmetic too: (0.99999999999999999); a number in
+  the function with more than 15 significant digits, ⌊x + 0.99999999999999999⌋,
+  is refused rather than worked rounded), and continuity is read off the expression
   (a denominator not 0, a logarithm's or root's argument positive, tan away
   from its poles), so ⌊x⌋ + arctan(1/x) at 0⁻ is refused where a sampled
   check passed it.

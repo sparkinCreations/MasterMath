@@ -104,22 +104,45 @@ function logOfPowerLike(term, v, sign) {
   // At −∞ by t = −x: P(−t) ~ c₀·(−1)^p·t^p.
   let probe = arg;
   if (sign < 0) probe = arg.transform((n) => (n.type === 'SymbolNode' && n.name === v ? math.parse(`(-${v})`) : n));
-  // The exact power is read from the typed exponents, so each must be a
-  // whole number or a ratio of whole numbers: x^(1 + 10^(-16)) is a power a
-  // double rounds to 1, and cancelling on that would be a guess.
-  const plainRational = (n) => {
+  // The exact power. Every exponent and root in the argument must be a
+  // whole number or a ratio of whole numbers up to 1000, and the product D
+  // of their denominators at most 10⁶. The true leading power is then a
+  // fraction whose denominator divides D, and two such fractions differ by
+  // at least 1/D² ≥ 10⁻¹², far more than rounding moves the computed power:
+  // the fraction within 10⁻¹³ of it with a denominator dividing D is it.
+  // Anything else (x^(1 + 10⁻¹⁶), x·x^(1/10¹⁶), both 1 as a double) is not
+  // cancelled on.
+  const SMALL = 1000;
+  const smallInt = (x) => x.type === 'ConstantNode' && Number.isInteger(Number(x.value)) && Math.abs(Number(x.value)) <= SMALL;
+  const denominatorOf = (n) => {
     while (n.type === 'ParenthesisNode') n = n.content;
-    if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') return plainRational(n.args[0]);
-    if (n.type === 'ConstantNode') return Number.isInteger(Number(n.value));
-    return n.type === 'OperatorNode' && n.op === '/' && n.args.every((x) => x.type === 'ConstantNode' && Number.isInteger(Number(x.value)));
+    if (n.type === 'OperatorNode' && n.fn === 'unaryMinus') return denominatorOf(n.args[0]);
+    if (smallInt(n)) return 1;
+    if (n.type === 'OperatorNode' && n.op === '/' && n.args.every(smallInt) && Number(n.args[1].value) !== 0) return Math.abs(Number(n.args[1].value));
+    return null;
   };
-  if (arg.filter((n) => n.type === 'OperatorNode' && n.op === '^').some((n) => !plainRational(n.args[1]))) return null;
+  let D = 1;
+  for (const n of arg.filter((x) => (x.type === 'OperatorNode' && x.op === '^') || x.type === 'FunctionNode')) {
+    let d = 1;
+    if (n.type === 'OperatorNode') d = denominatorOf(n.args[1]);
+    else if (n.fn.name === 'sqrt') d = 2;
+    else if (n.fn.name === 'cbrt') d = 3;
+    else if (n.fn.name === 'nthRoot') d = n.args.length === 2 && smallInt(n.args[1]) ? Math.abs(Number(n.args[1].value)) : null;
+    if (!d) return null;
+    D *= d;
+    if (D > 1e6) return null;
+  }
   const lead = leadingPower(probe, v);
-  if (!lead || lead.c === 0 || !Number.isFinite(lead.p)) return null;
+  if (!lead || lead.c === 0 || !Number.isFinite(lead.p) || Math.abs(lead.p) > SMALL) return null;
   // ln needs P > 0 far out, unless it is ln|P|.
   if (!absolute && lead.c < 0) return null;
   let pText;
-  try { const f = math.fraction(lead.p); pText = `${Number(f.s) < 0 ? '-' : ''}${f.n}/${f.d}`; } catch { return null; }
+  try {
+    const f = math.fraction(lead.p);
+    const q = Number(f.d);
+    if (D % q !== 0 || Math.abs(Number(f.s) * Number(f.n) / q - lead.p) > 1e-13) return null;
+    pText = `${Number(f.s) < 0 ? '-' : ''}${f.n}/${f.d}`;
+  } catch { return null; }
   // The exact coefficient of ln(t), c·p, for proving that the sum cancels.
   return { lnCoef: c * lead.p, constant: c * Math.log(Math.abs(lead.c)), exact: `(${cParts.length ? cParts.join('*') : '1'})*(${pText})` };
 }
