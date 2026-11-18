@@ -164,7 +164,7 @@ test('review of 1.76.4: no step-limit decision rests on a tolerance or a sample'
   // 0.99999999999999999 is 1): refused, not "does not exist".
   for (const p of ['lim x->0.0000000000000001 floor(x)', 'lim x->0.99999999999999999 floor(x)', 'lim x->1.0000000000000001 floor(x)', 'lim x->0.0000000000000001- floor(x)',
     'lim x->(0.99999999999999999) floor(x)', 'lim x->(1e-16) floor(x)',
-    // …and so is a number inside the function with more digits than a double keeps.
+    // …and so is a number inside the function with more digits than a double is guaranteed to preserve.
     'lim x->0 floor(x+0.99999999999999999)', 'lim x->0 floor(x)+0.99999999999999999']) {
     assert.equal((await lim(p)).status, 'unsupported', p);
   }

@@ -42,9 +42,10 @@ const JUMPS = {
   sign: { set: '0', at: () => 0, below: () => -1, above: () => 1 },
 };
 
-// A number in the text with more significant digits than a double keeps
-// (15, leading and trailing zeros aside), or null: parsing rounds it
-// (1.0000000000000001 is 1), so nothing exact can be read from it.
+// A number in the text with more significant digits than a double is
+// guaranteed to preserve (15, leading and trailing zeros aside), or null:
+// converting it may change its value (1.0000000000000001 becomes 1), so its
+// exact typed value is not available for a proof.
 export function longLiteral(text) {
   return (String(text).match(/\d*\.?\d+/g) || [])
     .find((lit) => lit.replace('.', '').replace(/^0+/, '').replace(/0+$/, '').length > 15) ?? null;
@@ -78,8 +79,9 @@ function rationalText(x) {
 }
 
 // A point typed as a plain decimal, read exactly from its digits:
-// "0.0000000000000001" is 1/10¹⁶, which a double may not hold (as a double,
-// 0.99999999999999999 is 1).
+// "0.0000000000000001" is exactly 1/10¹⁶. A double holds only a nearby
+// binary fraction (and 0.99999999999999999 becomes exactly 1), so the
+// typed digits, not the converted number, are what a proof can use.
 function decimalText(t) {
   const m = /^\s*([-−]?)(\d+)(?:\.(\d+))?\s*$/.exec(String(t ?? ''));
   if (!m) return null;
@@ -184,7 +186,7 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
   // rounded before any of this runs (0.99999999999999999 is 1), and near a
   // jump that rounding decides the answer: refused, never worked rounded.
   const longNumber = longLiteral(func);
-  if (longNumber) return refuse(`The number ${mark(longNumber)} has more digits than this solver keeps exactly, so a jump of the step function could not be told apart from a point beside it: the limit is not claimed.`);
+  if (longNumber) return refuse(`The number ${mark(longNumber)} is precision-sensitive: converting it to a floating-point number may not preserve the exact value typed, and near a jump of the step function that exact value decides the answer, so the limit is conservatively not claimed.`);
   if (!Algebrite) return refuse('The tools to work this step function exactly did not load, so the limit is not claimed.');
   if (nodes.some((n) => n.args.some((arg) => arg.filter(isStep).length))) {
     return refuse('A step function inside another one is not worked here, so the limit is not claimed.');
@@ -199,7 +201,7 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
     const asComputed = rationalText(a);
     let same = false;
     try { same = asComputed !== null && String(Algebrite.run(`simplify((${aText}) - (${asComputed}))`)).trim() === '0'; } catch { same = false; }
-    if (!same) return refuse(`The point ${mark(String(pointText))} has more digits than this solver computes with exactly, so which side of a jump it lies on could not be decided: the limit is not claimed.`);
+    if (!same) return refuse(`The point ${mark(String(pointText))} is precision-sensitive: converting it to a floating-point number may not preserve the exact value typed, which is needed to prove which side of a jump it lies on, so the limit is conservatively not claimed.`);
   }
   if (aText === null) return refuse(`The point ${mark(formatNumber(a))} is not a simple fraction, so it cannot be compared with a jump exactly: the limit is not claimed.`);
   const steps = [];

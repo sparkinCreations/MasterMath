@@ -78,11 +78,14 @@ from a handful of samples, and each could be fooled.
   the same way (at x = 2 it does not exist; it was "= 0"). Nothing in this route is
   decided by a sample or a tolerance: being on a jump and two sides being
   equal are proved exactly (10¹² + ⌊x⌋ at 0 has sides 10¹² − 1 and 10¹²;
-  ⌊x + 10⁻¹³⌋ at 0 is refused, and so is ⌊x⌋ at a typed point 10⁻¹⁶, read
-  exactly from its digits rather than as a double rounded onto the jump,
-  in parentheses or arithmetic too: (0.99999999999999999); a number in
-  the function with more than 15 significant digits, ⌊x + 0.99999999999999999⌋,
-  is refused rather than worked rounded), and continuity is read off the expression
+  ⌊x + 10⁻¹³⌋ at 0 is refused. A typed point is read exactly from its
+  digits, in parentheses or arithmetic too; one that is precision-sensitive
+  near a jump, such as 10⁻¹⁶ or (0.99999999999999999), is conservatively
+  refused, because converting it to a floating-point number may not
+  preserve the exact typed value a proof needs (10⁻¹⁶ was taken as the
+  jump at 0, "does not exist"). So is a number in the function with more
+  than 15 significant digits, ⌊x + 0.99999999999999999⌋, rather than worked
+  rounded), and continuity is read off the expression
   (a denominator not 0, a logarithm's or root's argument positive, tan away
   from its poles), so ⌊x⌋ + arctan(1/x) at 0⁻ is refused where a sampled
   check passed it.
