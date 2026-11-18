@@ -47,7 +47,10 @@ function divisionGuidance(expr) {
     let rem = P % Q;
     let digits = '';
     let significant = whole > 0n ? 4 : 0;
-    while (rem !== 0n && digits.length < 40) {
+    // A terminating decimal of p/q with q < 2⁵³ has at most 53 digits after
+    // the point (q = 2^a·5^b): 64 always reaches the end. Should it not,
+    // the "…" below says the digits were cut off.
+    while (rem !== 0n && digits.length < 64) {
       rem *= 10n;
       const d = rem / Q;
       rem %= Q;
@@ -58,7 +61,7 @@ function divisionGuidance(expr) {
       }
     }
     const body = digits ? `${whole}.${digits}` : String(whole);
-    return `${negative ? '−' : ''}${body}${terminates ? '' : '…'}`;
+    return `${negative ? '−' : ''}${body}${terminates && rem === 0n ? '' : '…'}`;
   };
   const decimal = longDivision();
   const cutOff = decimal.replace(/…$/, '');

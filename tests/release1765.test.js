@@ -47,6 +47,11 @@ test('a division is worked on its own numbers, not 100/8', async () => {
   assert.match((await solvePlain('1/16', 'other')).tips.find((t) => /^Here/.test(t)), /1\/16 = 0\.0625\.$/);
   assert.match((await solvePlain('1/300', 'other')).tips[0], /repeats \(0\.003333…\)/);
   assert.match((await solvePlain('1/7', 'other')).tips[0], /repeats \(0\.1428…\)/);
+  // A terminating decimal longer than 40 digits is shown whole (2⁴¹ in the
+  // denominator: 41 digits), not cut off as if it were exact.
+  const long = (await solvePlain('1000000000001/2199023255552', 'other')).tips[0];
+  assert.ok(long.includes('0.45474735088691886630840599536895751953125.'), long);
+  assert.doesNotMatch(long, /…/);
   // At six places 1/1500000 reaches this tip; its size is kept (a double's
   // "6.666…e-7" cut short read as 6.666…).
   saveSettings({ decimalPlaces: 6 });
