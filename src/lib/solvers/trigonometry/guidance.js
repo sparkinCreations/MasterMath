@@ -117,7 +117,7 @@ export function valueGuidance(expression, steps, answer) {
   // Radians is −0.988; that leads, because it explains the surprise.
   const n = Number(arg);
   // Auto read a bare common angle as degrees: say so first.
-  if (/Detected input as degrees/.test(text) && !/°/.test(expression)) {
+  if (/Detected input as degrees/.test(text) && !/°/.test(expression) && Number.isInteger(n)) {
     // At 0 the two units agree (cos(0°) = cos(0) = 1): it is the only bare
     // angle where they do, so the tip says so rather than claiming a
     // different value (1.76.5).

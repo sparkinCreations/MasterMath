@@ -18,9 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - A division's tip and common mistakes are worked on the numbers typed:
   12/18 cancels the common factor 6 to 2/3, a repeating decimal (0.6666…),
-  and the mistakes name 12 ÷ 18 and rounding 2/3 to 0.67. They always used
-  100/8 = 25/2 and 12.5. Decimals are cleared first (2.5/0.5 = 25/5 = 5),
-  a whole quotient is checked by multiplying back, and 0/5 is 0.
+  and the mistakes name 12 ÷ 18 and taking the cut-off 0.6666 as exact.
+  They always used 100/8 = 25/2 and 12.5. Decimals are cleared first
+  (2.5/0.5 = 25/5 = 5), a whole quotient is checked by multiplying back
+  with its signs (−10/2 = −5: −5 × 2 = −10), 0/5 is 0, and the decimal is
+  worked by long division on the integers, never read off a double.
 - JSON exports (history and a single solution) add `topicLabel`, the name
   the page shows ("Arithmetic"), beside the stored `topic` ("other").
 

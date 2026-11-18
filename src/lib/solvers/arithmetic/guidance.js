@@ -3,7 +3,7 @@
 // a worked "Here: …" line second, read from this solve's own steps (1.67.0,
 // the last topic of the insights plan).
 
-import { math, stripMathMarkers, mark } from '../solverUtils.js';
+import { math, stripMathMarkers, mark, gcd } from '../solverUtils.js';
 
 const dedupe = (list) => [...new Set(list.filter(Boolean))];
 const assemble = (tips, here, mistakes) => ({ tips: dedupe([tips[0], here, ...tips.slice(1)]), common_mistakes: dedupe(mistakes) });
@@ -27,8 +27,7 @@ function divisionGuidance(expr) {
   const negative = (m[1] === '-') !== (m[4] === '-') && A !== 0;
   const minus = (t) => (negative ? `−${t}` : t);
   const typed = `${m[1] ? '−' : ''}${m[2]}${m[3] ? `.${m[3]}` : ''}/${m[4] ? '−' : ''}${m[5]}${m[6] ? `.${m[6]}` : ''}`;
-  const gcdOf = (x, y) => { while (y) [x, y] = [y, x % y]; return x || 1; };
-  const g = gcdOf(A, B);
+  const g = gcd(A, B) || 1;
   const p = A / g;
   const q = B / g;
   const fraction = minus(q === 1 ? String(p) : `${p}/${q}`);
@@ -37,15 +36,45 @@ function divisionGuidance(expr) {
   const terminates = r === 1;
   const value = (negative ? -1 : 1) * (A / B);
   const plain = (x) => String(x).replace(/^-/, '−');
-  const decimal = terminates ? plain(value) : `${plain(value).slice(0, value < 0 ? 7 : 6)}…`;
+  // The decimal by long division on the integers, never from a double:
+  // every digit of a terminating one (9007199254740991/25 is
+  // 360287970189639.64), and four significant digits of a repeating one,
+  // cut off with "…" (1/3000000 is 0.0000003333…).
+  const longDivision = () => {
+    const P = BigInt(p);
+    const Q = BigInt(q);
+    const whole = P / Q;
+    let rem = P % Q;
+    let digits = '';
+    let significant = whole > 0n ? 4 : 0;
+    while (rem !== 0n && digits.length < 40) {
+      rem *= 10n;
+      const d = rem / Q;
+      rem %= Q;
+      digits += String(d);
+      if (!terminates) {
+        if (significant > 0 || d !== 0n) significant += 1;
+        if (significant >= 4 + (whole > 0n ? 4 : 0) && digits.length >= 4) break;
+      }
+    }
+    const body = digits ? `${whole}.${digits}` : String(whole);
+    return `${negative ? '−' : ''}${body}${terminates ? '' : '…'}`;
+  };
+  const decimal = longDivision();
+  const cutOff = decimal.replace(/…$/, '');
   const cleared = places > 0
     ? `Clear the decimals first: multiply both numbers by ${mark(String(10 ** places))}, so ${mark(`${typed} = ${minus(`${A}/${B}`)}`)}. `
     : '';
+  // The check keeps the signs: −10/2 = −5 is checked by −5 × 2 = −10.
+  const dividend = m[1] === '-' ? -A : A;
+  const divisor = m[4] === '-' ? -B : B;
+  const quotient = q === 1 ? dividend / divisor : NaN;
+  const signedCheck = `${plain(quotient)} × ${divisor < 0 ? `(${plain(divisor)})` : divisor} = ${plain(dividend)}`;
   const asDecimal = terminates ? `as a decimal, ${mark(decimal)}` : `as a decimal it repeats (${mark(decimal)})`;
   const first = A === 0
     ? `${mark('0')} divided by any number other than ${mark('0')} is ${mark('0')}: ${mark(`${typed} = 0`)}.`
     : q === 1
-    ? `${cleared}${mark(String(B))} goes into ${mark(String(A))} exactly ${mark(String(p))} ${p === 1 ? 'time' : 'times'}, so ${mark(`${typed} = ${fraction}`)}; check by multiplying back: ${mark(`${p} × ${B} = ${A}`)}.`
+    ? `${cleared}${mark(String(B))} goes into ${mark(String(A))} exactly ${mark(String(p))} ${p === 1 ? 'time' : 'times'}, so ${mark(`${typed} = ${fraction}`)}; check by multiplying back: ${mark(signedCheck)}.`
     : g > 1
       ? `${cleared}A division is a fraction: cancel the common factor ${mark(String(g))} of ${mark(String(A))} and ${mark(String(B))} to get ${mark(`${typed} = ${fraction}`)}; ${asDecimal}.`
       : `${cleared}A division is a fraction: ${mark(String(A))} and ${mark(String(B))} share no common factor, so ${mark(fraction)} is already in lowest terms; ${asDecimal}.`;
@@ -53,7 +82,7 @@ function divisionGuidance(expr) {
     ? 'Skipping the check: the quotient times the divisor must give back the number divided.'
     : terminates
       ? `Rounding ${mark(decimal)} to ${mark(plain(Math.floor(value)))} or ${mark(plain(Math.ceil(value)))} when the exact value is asked for.`
-      : `Giving a rounded decimal such as ${mark(plain(value.toFixed(2)))} as if it were exact: ${mark(fraction)} is exact, and the repeating decimal only approximates it once it is cut off.`;
+      : `Giving a cut-off decimal such as ${mark(cutOff)} as if it were exact: ${mark(fraction)} is exact, and the repeating decimal only approximates it once it is cut off.`;
   return {
     tips: [first, 'A division that does not come out even is a fraction or a repeating decimal, both exact; a rounded decimal is an approximation.'],
     common_mistakes: [

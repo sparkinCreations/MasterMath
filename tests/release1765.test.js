@@ -14,13 +14,23 @@ test('a division is worked on its own numbers, not 100/8', async () => {
   assert.match(r.tips[0], /common factor 6 of 12 and 18 to get 12\/18 = 2\/3; as a decimal it repeats \(0\.6666…\)/);
   assert.doesNotMatch(all(r), /100\/8|12\.5|25\/2/);
   assert.match(r.common_mistakes[0], /12\/18 is 12 ÷ 18/);
-  assert.match(r.common_mistakes[1], /0\.67 as if it were exact: 2\/3 is exact/);
+  assert.match(r.common_mistakes[1], /cut-off decimal such as 0\.6666 as if it were exact: 2\/3 is exact/);
   // A terminating decimal, a whole quotient, decimals cleared, a sign, 0.
   assert.match((await solvePlain('100/8', 'other')).tips[0], /common factor 4 .* 25\/2; as a decimal, 12\.5/);
   assert.match((await solvePlain('9/3', 'other')).tips[0], /3 goes into 9 exactly 3 times/);
   assert.match((await solvePlain('2.5/0.5', 'other')).tips[0], /multiply both numbers by 10, so 2\.5\/0\.5 = 25\/5/);
   assert.match((await solvePlain('-12/18', 'other')).tips[0], /−12\/18 = −2\/3/);
   assert.match((await solvePlain('0/5', 'other')).tips[0], /0\/5 = 0/);
+  // A whole quotient is checked with its signs (−10/2 = −5: −5 × 2 = −10).
+  for (const [p, check] of [['10/2', '5 × 2 = 10'], ['-10/2', '−5 × 2 = −10'], ['10/-2', '−5 × (−2) = 10'], ['-10/-2', '5 × (−2) = −10'], ['-2.5/0.5', '−5 × 5 = −25']]) {
+    const tip = (await solvePlain(p, 'other')).tips[0];
+    assert.ok(tip.includes(`check by multiplying back: ${check}`), `${p}: ${tip}`);
+  }
+  // Decimals come from long division on the integers, never from a double:
+  // every digit of a terminating one, and the leading zeros of a small one.
+  assert.match((await solvePlain('9007199254740991/25', 'other')).tips[0], /as a decimal, 360287970189639\.64\./);
+  assert.match((await solvePlain('1/300', 'other')).tips[0], /repeats \(0\.003333…\)/);
+  assert.match((await solvePlain('1/7', 'other')).tips[0], /repeats \(0\.1428…\)/);
   // Multiplication keeps its own tips.
   assert.doesNotMatch(all(await solvePlain('6*7', 'other')), /100\/8/);
 });
@@ -32,6 +42,8 @@ test('the Auto-degrees tip at 0 does not claim the radian value differs', async 
     assert.doesNotMatch(tip, /is a different number/, fn);
   }
   assert.match((await solvePlain('cos(60)', 'trigonometry')).tips[0], /in radians, cos\(60\) is a different number/);
+  // Never NaN when the first angle is not a plain number.
+  assert.doesNotMatch((await solvePlain('sin(1-1)+cos(0)', 'trigonometry')).tips.join(' '), /NaN/);
 });
 
 test('JSON exports keep the stored topic and add the name the page shows', () => {
