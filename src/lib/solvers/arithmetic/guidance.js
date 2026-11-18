@@ -186,10 +186,21 @@ function arithmeticHere(method, text, expr, answer) {
       if (!m) return null;
       const [, a, op, b] = m;
       if (/[/÷]/.test(op) && /^\d+$/.test(a) && /^\d+$/.test(b)) {
-        const g = (x, y) => (y ? g(y, x % y) : x);
-        const d = g(Number(a), Number(b));
-        const dec = Number(a) / Number(b);
-        const decText = Number.isInteger(dec) ? '' : ` ${Math.abs(dec * 1e4 - Math.round(dec * 1e4)) < 1e-9 ? '=' : '≈'} ${Math.round(dec * 1e4) / 1e4}`;
+        const d = gcd(Number(a), Number(b)) || 1;
+        // Four places, worked on the integers (1.76.5): "=" only when the
+        // reduced denominator divides 10⁴, so the four places are the whole
+        // value; else rounded half up, with "≈". A double scaled by 10⁴
+        // could not tell (9007199254740991/25 showed "= 360287970189639.6").
+        const P = BigInt(a) / BigInt(d);
+        const Q = BigInt(b) / BigInt(d);
+        const fourPlaces = (n) => {
+          const t = n.toString().padStart(5, '0');
+          return `${t.slice(0, -4)}.${t.slice(-4)}`.replace(/\.?0+$/, '');
+        };
+        const exact4 = 10000n % Q === 0n;
+        const decText = Q === 1n ? '' : exact4
+          ? ` = ${fourPlaces((P * 10000n) / Q)}`
+          : ` ≈ ${fourPlaces((P * 20000n + Q) / (2n * Q))}`;
         return d > 1 ? `Here: ${mark(a)} and ${mark(b)} share the factor ${mark(String(d))}: ${mark(`${a}/${b} = ${Number(b) / d === 1 ? Number(a) / d : `${Number(a) / d}/${Number(b) / d}${decText}`}`)}.` : `Here: ${mark(a)} and ${mark(b)} share no factor, so ${mark(`${a}/${b}`)} is already in lowest terms${decText ? `: ${mark(`${a}/${b}${decText}`)}` : ''}.`;
       }
       if (/^\d{2,}$/.test(b) && /^\d+$/.test(a)) {

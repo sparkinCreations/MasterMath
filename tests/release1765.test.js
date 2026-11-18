@@ -6,6 +6,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { solvePlain } from './helpers/solvePlain.js';
 import { buildProgressJSON } from '../src/lib/exportUtils.js';
+import { saveSettings, resetSettings } from '../src/lib/settings.js';
+
+// settings.js reads localStorage; give node one so saveSettings takes effect.
+if (typeof globalThis.localStorage === 'undefined') {
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: (k) => store.delete(k),
+  };
+}
 
 const all = (r) => [...r.tips, ...r.common_mistakes].join(' ');
 
@@ -28,9 +39,20 @@ test('a division is worked on its own numbers, not 100/8', async () => {
   }
   // Decimals come from long division on the integers, never from a double:
   // every digit of a terminating one, and the leading zeros of a small one.
-  assert.match((await solvePlain('9007199254740991/25', 'other')).tips[0], /as a decimal, 360287970189639\.64\./);
+  const big = await solvePlain('9007199254740991/25', 'other');
+  assert.match(big.tips[0], /as a decimal, 360287970189639\.64\./);
+  // …and the "Here" line: "=" only when four places are the whole value.
+  assert.match(big.tips.find((t) => /^Here/.test(t)), /9007199254740991\/25 = 360287970189639\.64\.$/);
+  assert.match((await solvePlain('12/18', 'other')).tips.find((t) => /^Here/.test(t)), /2\/3 ≈ 0\.6667\.$/);
+  assert.match((await solvePlain('1/16', 'other')).tips.find((t) => /^Here/.test(t)), /1\/16 = 0\.0625\.$/);
   assert.match((await solvePlain('1/300', 'other')).tips[0], /repeats \(0\.003333…\)/);
   assert.match((await solvePlain('1/7', 'other')).tips[0], /repeats \(0\.1428…\)/);
+  // At six places 1/1500000 reaches this tip; its size is kept (a double's
+  // "6.666…e-7" cut short read as 6.666…).
+  saveSettings({ decimalPlaces: 6 });
+  try {
+    assert.match((await solvePlain('1/1500000', 'other')).tips[0], /repeats \(0\.0000006666…\)/);
+  } finally { resetSettings(); }
   // Multiplication keeps its own tips.
   assert.doesNotMatch(all(await solvePlain('6*7', 'other')), /100\/8/);
 });
