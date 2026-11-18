@@ -176,7 +176,7 @@ export function continuousAt(node, v, a) {
 
 // Null when the expression has no step function; else { left, right, steps }
 // — each side { value, exact } — or { refuse, steps } when not proved here.
-export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
+export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null, side: wanted = 0 }) {
   let tree;
   try { tree = math.parse(String(func)); } catch { return null; }
   const nodes = tree.filter(isStep);
@@ -193,11 +193,24 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
   }
   // The point exactly: from its typed digits when it is a decimal (a point
   // within rounding of a jump is then refused below, never put on it).
-  const aText = pointText === null ? rationalText(a) : exactPoint(Algebrite, pointText);
+  let aText = pointText === null ? rationalText(a) : exactPoint(Algebrite, pointText);
+  // A point written with a constant and no decimals (π, π/2, √2) is used
+  // exactly by Algebrite; every jump decision below is then exact or made
+  // far from a jump: floor(x) at π is 3.
+  let symbolicPoint = false;
+  if (aText === null && pointText !== null && !/\d\.\d|\de[+-]?\d/i.test(String(pointText))) {
+    try {
+      const t = forAlgebrite(String(pointText).replace(/π/g, 'pi').replace(/−/g, '-').replace(/√\(?([^)\s]+)\)?/g, 'sqrt($1)'));
+      const f = Number(math.evaluate(String(pointText).replace(/π/g, 'pi').replace(/−/g, '-').replace(/√\(?([^)\s]+)\)?/g, 'sqrt($1)')));
+      // Algebrite must read it as a finite constant too.
+      if (/nil|stop|error|undefined/i.test(String(Algebrite.run(`simplify(${t})`)))) throw new Error('unreadable');
+      if (Number.isFinite(f) && Math.abs(f - a) <= 1e-12 * (1 + Math.abs(a))) { aText = t; symbolicPoint = true; }
+    } catch { /* not readable: refused below */ }
+  }
   // The point the solver computes with (a double) must be exactly the point
   // typed: 1.0000000000000001 is computed as 1, and every value read off
   // it (which side of a jump, the step's value there) would be the value at 1.
-  if (aText !== null && pointText !== null) {
+  if (aText !== null && pointText !== null && !symbolicPoint) {
     const asComputed = rationalText(a);
     let same = false;
     try { same = asComputed !== null && String(Algebrite.run(`simplify((${aText}) - (${asComputed}))`)).trim() === '0'; } catch { same = false; }
@@ -214,8 +227,13 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
     if (name === 'mod') {
       const mNode = n.args[1];
       m = n.args.length === 2 && !mNode.filter((x) => x.type === 'SymbolNode' && x.name === v).length ? evalNode(mNode, v, a) : NaN;
+      // The modulus exactly, from its own expression, and agreeing with the
+      // number computed: (10¹⁴ + 1/100) − 10¹⁴ is 1/100, but 1/64 in decimals.
       const mText = rationalText(m);
-      if (!(m > 0) || mText === null) return refuse(`${mark(shown)} is not worked here, so the limit is not claimed.`);
+      const mExact = mNode ? exactPoint(Algebrite, mNode.toString()) : null;
+      let mAgrees = false;
+      try { mAgrees = mText !== null && mExact !== null && String(Algebrite.run(`simplify((${mExact}) - (${mText}))`)).trim() === '0'; } catch { mAgrees = false; }
+      if (!(m > 0) || !mAgrees) return refuse(`${mark(shown)} is not worked here, so the limit is not claimed.`);
       rule = { set: `the multiples of ${formatNumber(m)}`, at: (c) => Math.round(c / m) * m, below: () => m, above: () => 0 };
     } else if (n.args.length !== 1) {
       // round(x, n) rounds to n places: other jumps, not worked here.
@@ -247,7 +265,9 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
       else return refuse(`At ${mark(`${v} = ${formatNumber(a)}`)}, ${mark(gText)} is within rounding of ${mark(formatNumber(J))}, a jump of ${mark(shown)}, but it is not shown to be exactly that, so the limit is not claimed.`);
     }
     if (!onJump) {
-      const value = name === 'mod' ? ((c % m) + m) % m : evalNode(n, v, a);
+      // A nonnegative remainder stays as it is: adding m and reducing again
+      // can round a small remainder away (1/1024 mod 2⁴⁴ came out 0).
+      const value = name === 'mod' ? (c % m < 0 ? (c % m) + m : c % m) : evalNode(n, v, a);
       const vText = rationalText(value);
       if (vText === null) return refuse(`${mark(shown)} is not worked here, so the limit is not claimed.`);
       replacement.set(n, { left: vText, right: vText });
@@ -276,12 +296,27 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
     const exact = exactAt(Algebrite, text, v, aText);
     return { text, value: evalNode(swapped, v, a), exact };
   };
-  const L = side('left');
-  const R = side('right');
+  // A one-sided limit needs only its own side (√⌊x⌋ at 0⁺ is √0 = 0, while
+  // from the left it is not defined).
+  const L = wanted > 0 ? null : side('left');
+  const R = wanted < 0 ? null : side('right');
   for (const [s, name] of [[L, 'left'], [R, 'right']]) {
+    if (s === null) continue;
     if (s.value === null || !Number.isFinite(s.value)) {
       return refuse(`From the ${name}, ${mark(beautify(func))} is ${mark(beautify(s.text))} near ${mark(formatNumber(a))}, which is not shown continuous there, so the limit is not claimed.`);
     }
+  }
+  const shownValue = (s) => {
+    const exact = s.exact ? exactForm(s.exact) : null;
+    if (!exact) return `≈ ${formatNumber(s.value)}`;
+    return exact !== formatNumber(s.value) ? `${exact} (≈ ${formatNumber(s.value)})` : exact;
+  };
+  if (wanted !== 0) {
+    const s = wanted > 0 ? R : L;
+    const name = wanted > 0 ? 'right' : 'left';
+    steps.push(`From the ${name}, ${mark(beautify(func))} is ${mark(beautify(s.text))} near ${mark(formatNumber(a))}, continuous there, so it → ${mark(shownValue(s))}.`);
+    const one = { value: s.value, shown: shownValue(s) };
+    return { left: wanted < 0 ? one : null, right: wanted > 0 ? one : null, same: null, steps };
   }
   // Equal sides only when their difference is exactly 0.
   const diff = exactAt(Algebrite, `(${L.text}) - (${R.text})`, v, aText);
@@ -293,13 +328,8 @@ export function stepFunctionLimit(func, v, a, { Algebrite, pointText = null }) {
     if (Number.isFinite(d) && d !== 0) same = false;
   }
   if (same === null) return refuse('Whether the two sides agree is not shown exactly here, so the limit is not claimed.');
-  // Exact when Algebrite gave the side's value; otherwise the decimal is
-  // only an approximation and says so.
-  const shownValue = (s) => {
-    const exact = s.exact ? exactForm(s.exact) : null;
-    if (!exact) return `≈ ${formatNumber(s.value)}`;
-    return exact !== formatNumber(s.value) ? `${exact} (≈ ${formatNumber(s.value)})` : exact;
-  };
+  // (shownValue: exact when Algebrite gave the side's value; otherwise the
+  // decimal is only an approximation and says so.)
   steps.push(`From the left, ${mark(beautify(func))} is ${mark(beautify(L.text))} near ${mark(formatNumber(a))}, continuous there, so it → ${mark(shownValue(L))}; from the right it is ${mark(beautify(R.text))}, so it → ${mark(shownValue(R))}.`);
   return { left: { value: L.value, shown: shownValue(L) }, right: { value: R.value, shown: shownValue(R) }, same, steps };
 }

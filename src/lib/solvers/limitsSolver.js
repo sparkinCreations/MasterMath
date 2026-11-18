@@ -309,7 +309,7 @@ export async function solveLimit(expression) {
       return unsupported({
         input: expression,
         reason: result.refusedStep
-          ? 'A step function (floor, ceil, round, fix, sign or mod) meets a jump here in a way this solver cannot settle, so no limit is claimed.'
+          ? 'A step function (floor, ceil, round, fix, sign or mod) is involved here in a way this solver cannot settle exactly, so no limit is claimed.'
           : result.refusedPeriodic
             ? 'A periodic term here could not be shown to be constant or to keep the expression from settling, and samples cannot decide that, so no limit is claimed.'
             : 'No method here proves this limit, and the sampled values have not settled: they may approach a number very slowly, or not at all.',
@@ -615,7 +615,7 @@ async function evaluateInfiniteLimit(func, variable, target) {
 
 // A one-sided limit: growth rates first at 0⁺ (x·ln(x)), then sampling.
 async function evaluateOneSided(func, variable, target, side, pointText = null) {
-  const stepped = await stepThrough(func, variable, target, pointText);
+  const stepped = await stepThrough(func, variable, target, pointText, side);
   if (stepped) {
     if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
     const value = side > 0 ? stepped.right : stepped.left;
@@ -651,7 +651,7 @@ const squeezeShown = (value) => (Number.isInteger(value) ? formatNumber(value) :
 // function is replaced by its value on a side must be proved continuous at
 // the point from its structure (continuousAt in steps.js: every denominator,
 // logarithm, root and power base checked there), never from samples.
-async function stepThrough(func, variable, target, pointText = null) {
+async function stepThrough(func, variable, target, pointText = null, side = 0) {
   // x % m is mod(x, m) (mathjs reads % as mod): it goes the same way.
   if (!/\b(?:floor|ceil|round|fix|sign|mod)\s*\(|%/.test(String(func))) return null;
   // A step function is present: from here on the answer is proved or
@@ -660,7 +660,7 @@ async function stepThrough(func, variable, target, pointText = null) {
   let Algebrite = null;
   try { Algebrite = await loadAlgebrite(); } catch { Algebrite = null; }
   try {
-    return stepFunctionLimit(func, variable, target, { Algebrite, pointText });
+    return stepFunctionLimit(func, variable, target, { Algebrite, pointText, side });
   } catch {
     return { refuse: true, steps: ['This step function could not be worked here, so the limit is not claimed.'] };
   }

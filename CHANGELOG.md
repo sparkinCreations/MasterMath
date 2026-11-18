@@ -51,6 +51,14 @@ from a handful of samples, and each could be fooled.
   its exact value (10¹⁴ + 1/100 − 10¹⁴ cancels badly in decimals); and a
   periodic part inside a product, (1 + 1/x)·(1 + 10⁻¹²·sin(x)), is refused
   like a periodic term.
+- Growth rates no longer drop a coefficient for being small: only a sum
+  within the rounding error of its own terms counts as cancelled, so
+  10⁻¹²·sin(x²) is not squeezed to 0 and 10¹³x − (10¹³ − 1)x is x; a sum
+  that overflows proves nothing. Step-function limits keep a small
+  remainder of mod (mod(x + 1/1024, 2⁴⁴) at 0 is 1/1024), take the modulus
+  only from its exact value, work at a point given by a constant (floor(x)
+  at π is 3; floor(x/π) at π does not exist), and a one-sided limit needs
+  only its own side (√⌊x⌋ at 0⁺ is 0).
 - An identity is named by what the input is, not by where it lands:
   tan(x)·cot(x) = 1 is the reciprocal identity cot(θ) = 1/tan(θ), not "the
   Pythagorean identity"; sec²(x) − tan²(x) = 1 is 1 + tan²(θ) = sec²(θ).
@@ -92,6 +100,15 @@ from a handful of samples, and each could be fooled.
 - floor, ceil, round and sign are typeset upright, as named functions.
 
 ### Changed
+- An equation that divides by zero gets its common mistake worked on the
+  equation typed: (x + 1)/0 = 2x "turns into x + 1 = 0", 3 = 5/(2 − 2)
+  "into 0 = 5" (it was always x/0 = 1 → x = 0).
+- Tests guard coverage as well as safety: `tests/stepLimitsCoverage.test.js`
+  holds textbook limits that must stay solved with their answers (a
+  refusal fails, so floor(x) at π going from 3 to refused would be caught),
+  and a seeded family of 120 step-function limits checked against a
+  one-sided oracle (main gets 78 of them wrong; this release none, with at
+  most 2% refused). Both lists are in the golden comparison.
 - `limits/infinity.js`: one limit at ±∞, proved or null, shared by the
   improper integrals, the horizontal asymptotes and the limits solver —
   growth rates, the limit laws (now also erf and tanh → ±1, and a value

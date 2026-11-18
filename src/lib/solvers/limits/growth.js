@@ -592,7 +592,13 @@ function dominant(forms, order) {
     const lead = sorted[0];
     const group = sorted.filter((t) => order(t, lead) === 0);
     const c = group.reduce((sum, t) => sum + t.c, 0);
-    if (Math.abs(c) > 1e-12 * Math.max(1, ...group.map((t) => Math.abs(t.c)))) return { ...lead, c };
+    // A sum that overflowed decides nothing.
+    if (!Number.isFinite(c)) return { invalid: true };
+    // Cancelled only within the rounding error of adding this group (a few
+    // units in the last place of its largest coefficient), never by size
+    // alone: a lone 10⁻¹² is not 0, and 10¹³x − (10¹³ − 1)x is x.
+    const largest = Math.max(...group.map((t) => Math.abs(t.c)));
+    if (Math.abs(c) > 4 * Number.EPSILON * group.length * largest) return { ...lead, c };
     for (const t of group) sorted.splice(sorted.indexOf(t), 1);
   }
   return null;
@@ -612,6 +618,7 @@ export function growthLimitAtInfinity(expr, v, dir) {
   } else if (forms.some((t) => t.m !== 0 && !Number.isInteger(t.m))) return null;
   const lead = dominant(forms, (a, b) => (b.k - a.k) || (b.p - a.p) || (b.m - a.m));
   if (!lead) return 0;
+  if (lead.invalid) return null;
   const grows = lead.k > 0 || (lead.k === 0 && (lead.p > 0 || (lead.p === 0 && lead.m > 0)));
   if (grows) return lead.c > 0 ? Infinity : -Infinity;
   return lead.k === 0 && lead.p === 0 && lead.m === 0 ? lead.c : 0;
@@ -625,6 +632,7 @@ export function growthLimitAtZeroRight(expr, t) {
   const merged = forms.map((f) => ({ ...f, k: 0 }));
   const lead = dominant(merged, (a, b) => (a.p - b.p) || (b.m - a.m));
   if (!lead) return 0;
+  if (lead.invalid) return null;
   const sign = Math.sign(lead.c) * (lead.m % 2 === 0 ? 1 : -1);
   if (lead.p < 0 || (lead.p === 0 && lead.m > 0)) return sign > 0 ? Infinity : -Infinity;
   return lead.p === 0 && lead.m === 0 ? lead.c : 0;

@@ -96,6 +96,36 @@ function withWorkedExpression(result, expression) {
   return { ...result, tips: [result.tips[0], here, ...result.tips.slice(1)] };
 }
 
+// The mistake for an equation that divides by zero, worked on the user's own
+// equation (1.76.4): multiplying both sides by the zero denominator "clears"
+// the fraction and leaves a false or meaningless equation. When one side is
+// exactly that fraction, the step is shown: x/0 = 1 becomes x = 0.
+function zeroDivisionMistake(expression, zero) {
+  const generic = `Multiplying both sides by ${mark('0')} to clear the fraction: multiplying by ${mark('0')} makes any two sides equal, so the equation that results says nothing about the original — a step that is not allowed.`;
+  try {
+    let frac = math.parse(String(zero));
+    while (frac.type === 'ParenthesisNode') frac = frac.content;
+    if (frac.type !== 'OperatorNode' || frac.op !== '/') return generic;
+    const bare = (n) => { while (n.type === 'ParenthesisNode') n = n.content; return beautify(n.toString()); };
+    const N = bare(frac.args[0]);
+    const D = bare(frac.args[1]);
+    const sides = String(expression).split('=');
+    if (sides.length !== 2) return generic;
+    const same = (a, b) => math.parse(a).toString() === math.parse(b).toString();
+    const [lhs, rhs] = sides.map((t) => t.trim());
+    const by = D === '0' ? mark('0') : `${mark(D)} (which is ${mark('0')})`;
+    if (same(lhs, String(zero))) {
+      return `Multiplying both sides by ${by} to clear the fraction: that turns ${mark(`${beautify(lhs)} = ${beautify(rhs)}`)} into ${mark(`${N} = 0`)}, a step that is not allowed — multiplying by ${mark('0')} makes any two sides equal.`;
+    }
+    if (same(rhs, String(zero))) {
+      return `Multiplying both sides by ${by} to clear the fraction: that turns ${mark(`${beautify(lhs)} = ${beautify(rhs)}`)} into ${mark(`0 = ${N}`)}, a step that is not allowed — multiplying by ${mark('0')} makes any two sides equal.`;
+    }
+    return `Multiplying both sides by ${by} to clear ${mark(beautify(String(zero)))}: that "cancels" the ${mark('0')} under ${mark(N)} but turns every other term into ${mark('0')}, a step that is not allowed — multiplying by ${mark('0')} cannot be undone.`;
+  } catch {
+    return generic;
+  }
+}
+
 export async function solveAlgebra(expression, options = {}) {
   try {
     // Two-equation systems are handled upstream (api.js routes them to the
@@ -150,7 +180,7 @@ export async function solveAlgebra(expression, options = {}) {
             'An equation with an undefined side cannot be true, so no value satisfies it.',
           ],
           tips: [`Check the denominator: a ${mark('0')} there usually means a typing slip, such as ${mark('x/0')} for ${mark('x/10')}.`],
-          common_mistakes: [`Multiplying both sides by ${mark('0')} to clear the fraction: that turns ${mark('x/0 = 1')} into ${mark('x = 0')}, a step that is not allowed.`],
+          common_mistakes: [zeroDivisionMistake(expression, zero)],
         });
         result.answer = `Undefined — ${zero} divides by zero, so no value satisfies the equation`;
         return result;

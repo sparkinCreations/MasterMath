@@ -283,3 +283,34 @@ test('review round 6: overflow, cancellation and periodic parts inside products 
   assert.match((await lim('lim x->0+ floor(x)+sqrt(2)')).answer, /= √2 \(≈ 1\.4142\)$/);
   assert.match((await lim('lim x->inf x*sin(1/x)')).answer, /≈ 1/);
 });
+
+test('review round 7: regressions fixed — no tiny coefficient dropped, exact mod, irrational points, one side only', async () => {
+  const lim = (p) => solvePlain(p, 'limits');
+  // A lone 10⁻¹² coefficient is not cancelled: 10⁻¹²·sin(x²) is not
+  // squeezed to 0, so this is not "= 1" (it was; main estimated it).
+  assert.doesNotMatch((await lim('lim x->inf 1+0.000000000001*sin(x^2)')).answer, /= 1$/);
+  const { growthLimitAtInfinity } = await import('../src/lib/solvers/limits/growth.js');
+  assert.equal(growthLimitAtInfinity('(0.000000000001)', 'x', 1), 1e-12);
+  assert.equal(growthLimitAtInfinity('10000000000000*x-9999999999999*x+1', 'x', 1), Infinity);
+  assert.equal(growthLimitAtInfinity('1e308*x+1e308*x-1e308*x-1e308*x+1', 'x', 1), null);
+  // mod keeps a small nonnegative remainder, and its modulus must be exact.
+  assert.match((await lim('lim x->0 mod(x+1/1024,17592186044416)')).answer, /= 1\/1024/);
+  assert.equal((await lim('lim x->0- mod(x,(100000000000000+1/100)-100000000000000)')).status, 'unsupported');
+  assert.match((await lim('lim x->0- mod(x, 1/64)')).answer, /= 1\/64/);
+  // A point given by a constant is used exactly: floor(x) at π is 3.
+  for (const [p, a] of [['lim x->pi floor(x)', /= 3$/], ['lim x->e floor(x)', /= 2$/], ['lim x->pi floor(x/pi)', /does not exist$/],
+    ['lim x->sqrt(2) floor(x^2)', /does not exist$/], ['lim x->pi- floor(x/pi)', /= 0$/]]) {
+    assert.match((await lim(p)).answer, a, p);
+  }
+  // A one-sided limit needs only its own side: √⌊x⌋ at 0⁺ is 0.
+  assert.match((await lim('lim x->0+ sqrt(floor(x))')).answer, /= 0$/);
+});
+
+test('the divide-by-zero mistake is worked on the equation typed, not a fixed x/0 = 1', async () => {
+  const mistake = async (p) => (await solvePlain(p, 'algebra')).common_mistakes[0];
+  assert.match(await mistake('x/0 = 1'), /turns x\/0 = 1 into x = 0/);
+  assert.match(await mistake('(x+1)/0 = 2*x'), /turns \(x \+ 1\)\/0 = 2x into x \+ 1 = 0/);
+  assert.match(await mistake('3 = 5/(2-2)'), /by 2 - 2 \(which is 0\).*into 0 = 5/);
+  assert.match(await mistake('1/0 + x = 2'), /to clear 1\/0/);
+  assert.doesNotMatch(await mistake('3 = 5/(2-2)'), /x\/0 = 1/);
+});
