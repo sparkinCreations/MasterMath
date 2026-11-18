@@ -26,6 +26,15 @@ export const CONVERTED = [
   // inside's power.
   ['limits', 'lim x->1 log(x)/(x-1)'], ['limits', 'lim x->inf sin(x^2)'], ['limits', 'lim x->0 sin(1/x^2)'],
   ['integrals', 'sqrt(2x+1)'], ['integrals', '1/(3x+2)^2'],
+  // 1.76.4: limits at ∞ proved, never sampled — a periodic part, the
+  // squeeze theorem, the limit laws; trig identities named by the input.
+  ['integrals', '∫_0^∞ cos(pi*x) dx'], ['integrals', '∫_0^∞ (1+cos(pi*x)) dx'], ['integrals', '∫_0^∞ e^(-x)*sin(x) dx'], ['integrals', '∫_0^∞ 1/(1+x^2) dx'],
+  ['limits', 'lim x->inf (1 + 0.0000001*sin(x))'], ['functions', 'atan(x)'], ['functions', 'sin(pi*x)'],
+  ['trigonometry', 'tan(x)*cot(x)'], ['trigonometry', 'sec(x)^2-tan(x)^2'], ['trigonometry', 'sec(x)*cos(x)'], ['trigonometry', 'sin(x)^2+cos(x)^2+10^(-12)*x'],
+  ['limits', 'lim x->0 floor(x)'], ['limits', 'lim x->0 sign(x)^2'], ['limits', 'lim x->0.5 floor(x)'], ['limits', 'lim x->0- floor(x)'], ['limits', 'lim x->0 floor(x^2)'],
+  ['limits', 'lim x->3 mod(x, 3)'], ['limits', 'lim x->inf tan(x)'], ['limits', 'lim x->inf e^(-x)*sin(x)'], ['integrals', '∫_2^∞ 1/(x^2-1) dx'], ['integrals', '∫_0^∞ 1/(x^4+1) dx'],
+  ['algebra', '(x+1)/0 = 2*x'], ['algebra', '3 = 5/(2-2)'], ['algebra', '1/0 + x = 2'],
+  ['limits', 'lim x->inf x+sin(x)'], ['limits', 'lim x->inf (1+0.000000000001*sin(x))'], ['limits', 'lim x->1.0000000000000001 floor(x)'],
   // 1.70.5: a limit with a parameter, refused with a worked suggestion.
   ['limits', 'lim x->0 sin(n*x)/x'],
   ['functions', 'y = m*x + b'],

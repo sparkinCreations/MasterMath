@@ -7,6 +7,130 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.4] - 2026-11-16
+
+### Fixed
+A property is proved or not claimed: samples may refute a claim, never
+establish one. Three paths decided convergence, an asymptote or an identity
+from a handful of samples, and each could be fooled.
+- An improper integral of an oscillation with a whole-number period was
+  given a value: ∫₀^∞ cos(πx) dx "= 0", ∫₁^∞ sin(2πx) dx "≈ 0". Its
+  antiderivative, sin(πt)/π, is 0 at every power of ten the limit was
+  sampled at. It diverges, and the steps now say why: the periodic part
+  repeats and is not constant, so F keeps oscillating.
+- sin(πx) had the "horizontal asymptote y = 0" and cos(2πx) "y = 1", read
+  off two samples at x = 10⁶ and 10⁸. Asymptotes are now proved or not
+  claimed; the true ones (1/x, e^(−x²), sin(x)/x, the logistic curve,
+  arctan) are kept, and arctan's are exact: y = π/2 (≈ 1.5708).
+- A trig simplification was taken when it agreed with the input at seven
+  sample points: 2·sin(x)·cos(x) + 0.0000001·x was "sin(2x)",
+  cos²(x) + sin²(x) + 0.0000001·sin(x) was "1 (for sin(2x) ≠ 0)". A
+  simplification is now taken only when proved; otherwise the expression is
+  left as typed and the steps say no simpler form could be proved.
+- Cancelling logarithms at ∞ is proved, not rounded: every exponent and
+  root inside must be a whole number or a fraction over a power of two
+  (x², √x, x^(3/4)), with the products of numerators and of denominators
+  at most 2²⁰, and coefficients whole-number literals (a division only by
+  a power of two, no arithmetic between constants, sizes multiplying to at
+  most 2⁴⁰), so a double computes
+  the leading power with no rounding at all; anything else (a cube root, a
+  tower of powers, ((1 + 10⁻¹⁶) − 1)·x²) is not cancelled on. ln(x^(1 + 10⁻¹⁶) + 1) − ln(x + 1) and
+  ln(x·x^(1/10¹⁶) + 1) − ln(x + 1), which → ∞, were given the horizontal
+  asymptote y = 0 (a double rounds that power to 1). A squeeze-theorem limit that is not a whole number is
+  shown with ≈ (1/3 + e^(−x)·sin(x) → ≈ 0.3333), not as an exact "= 0.3333".
+- A limit at ∞ with a periodic term the proof cannot settle (10⁻¹²·sin(x),
+  too small to tell from a constant) is refused, not estimated "≈ 1" from
+  samples; a bounded periodic term added to a rest that → ±∞ is proved
+  (x + sin(x) → ∞; it was an estimate, and refused on 1.76.3). A number with
+  more than 15 significant digits is never used to prove a limit at ∞, and
+  a step-function limit at a typed point that is not exactly the number
+  computed with (1.0000000000000001) is refused.
+- A growth rate or a log's leading coefficient that overflows a double
+  (ln((2x)^1024 + 1) − 1024·ln(x + 1) read as ln(2^1024) = ∞) proves
+  nothing; the inside of a step function is placed against its jumps from
+  its exact value (10¹⁴ + 1/100 − 10¹⁴ cancels badly in decimals); and a
+  periodic part inside a product, (1 + 1/x)·(1 + 10⁻¹²·sin(x)), is refused
+  like a periodic term.
+- Growth rates no longer drop a coefficient for being small: only a sum
+  within the rounding error of its own terms counts as cancelled, so
+  10⁻¹²·sin(x²) is not squeezed to 0 and 10¹³x − (10¹³ − 1)x is x; a sum
+  that overflows proves nothing. Step-function limits keep a small
+  remainder of mod (mod(x + 1/1024, 2⁴⁴) at 0 is 1/1024), take the modulus
+  only from its exact value, work at a point given by a constant (floor(x)
+  at π is 3; floor(x/π) at π does not exist), and a one-sided limit needs
+  only its own side (√⌊x⌋ at 0⁺ is 0).
+- An identity is named by what the input is, not by where it lands:
+  tan(x)·cot(x) = 1 is the reciprocal identity cot(θ) = 1/tan(θ), not "the
+  Pythagorean identity"; sec²(x) − tan²(x) = 1 is 1 + tan²(θ) = sec²(θ).
+  Its tip and mistakes are the reciprocal ones (cot is 1/tan, not arctan),
+  not the Pythagorean tip and the double-angle warning.
+- lim (1 + 10⁻⁷·sin(x)) as x → ∞ was estimated "≈ 1" from samples; it does
+  not exist, proved from its periodic part. lim sin(πx) and lim tan(x) as
+  x → ∞, which were "could not be determined", are proved not to exist the
+  same way, and lim e^(−x)·sin(x) is 0 by the squeeze theorem, not "≈ 0".
+- A limit through a step function was "found" by substituting the point,
+  which proves a limit only where the function is continuous:
+  lim x→0 floor(x) was "= 0" and lim x→0 sign(x)² "= 0". Each side is now
+  worked on its own (`limits/steps.js`): floor and ceil jump at the
+  integers, round at the half-integers, sign at 0, mod(u, m) at the
+  multiples of m; at a jump the sign of the inside's derivative says which
+  side it comes from. floor(x) at 0 does not exist (−1 and 0); sign(x)² at 0
+  is 1. Where that does not settle it (⌊x²⌋ at 0, whose inside is flat
+  there) or what is left is not continuous (floor(x)/x), the limit is
+  refused, not guessed. One-sided limits through a step function are
+  proved too (floor(x) as x → 0⁻ is −1), no longer estimated, and exact:
+  floor(x) + √2 as x → 0⁺ is √2 (≈ 1.4142); a side whose exact value is
+  not found is shown with ≈, never as a bare decimal. A number written in
+  exponent form (mathjs writes 0.0001 as 1e-4) is a number, not the constant
+  e (floor(x) + 0.0001 as x → 0⁺ is 1/10000), and x % 2 is mod(x, 2), worked
+  the same way (at x = 2 it does not exist; it was "= 0"). Nothing in this route is
+  decided by a sample or a tolerance: being on a jump and two sides being
+  equal are proved exactly (10¹² + ⌊x⌋ at 0 has sides 10¹² − 1 and 10¹²;
+  ⌊x + 10⁻¹³⌋ at 0 is refused. A typed point is read exactly from its
+  digits, in parentheses or arithmetic too; one that is precision-sensitive
+  near a jump, such as 10⁻¹⁶ or (0.99999999999999999), is conservatively
+  refused, because converting it to a floating-point number may not
+  preserve the exact typed value a proof needs (10⁻¹⁶ was taken as the
+  jump at 0, "does not exist"). So is a number in the function with more
+  than 15 significant digits, ⌊x + 0.99999999999999999⌋, rather than worked
+  rounded), and continuity is read off the expression
+  (a denominator not 0, a logarithm's or root's argument positive, tan away
+  from its poles), so ⌊x⌋ + arctan(1/x) at 0⁻ is refused where a sampled
+  check passed it.
+- floor, ceil, round and sign are typeset upright, as named functions.
+
+### Changed
+- An equation that divides by zero gets its common mistake worked on the
+  equation typed: (x + 1)/0 = 2x "turns into x + 1 = 0", 3 = 5/(2 − 2)
+  "into 0 = 5" (it was always x/0 = 1 → x = 0).
+- Tests guard coverage as well as safety: `tests/stepLimitsCoverage.test.js`
+  holds textbook limits that must stay solved with their answers (a
+  refusal fails, so floor(x) at π going from 3 to refused would be caught),
+  and a seeded family of 120 step-function limits checked against a
+  one-sided oracle (main gets 78 of them wrong; this release none, with at
+  most 2% refused). Both lists are in the golden comparison.
+- `limits/infinity.js`: one limit at ±∞, proved or null, shared by the
+  improper integrals, the horizontal asymptotes and the limits solver —
+  growth rates, the limit laws (now also erf and tanh → ±1, and a value
+  with no exact text), and a periodic part beside a part that settles or
+  grows (the squeeze theorem for a decaying factor times a bounded one).
+  The improper integrals and asymptotes no longer keep their own sampling.
+  A sum of logarithms of polynomials (a partial-fraction antiderivative,
+  ½ln|t − 1| − ½ln|t + 1|) is read through each leading term — the ln(t)
+  parts cancelling only when their coefficients sum to exactly 0 — so
+  ∫₂^∞ 1/(x² − 1) dx = ½ln(3) and ∫₀^∞ 1/(x⁴ + 1) dx = π/(2√2) stay proved;
+  a leading coefficient that is irrational (√2·x + 1) no longer stops the
+  limit laws.
+- The corpus harness reports two rates: safety (correct or honestly
+  refused: no confidently wrong answer) and solved (correct only). A
+  refusal counts toward the first, never the second; a row whose right
+  answer is a refusal counts as refused, and "No solution" is a claim,
+  graded like any other (it was counted as a refusal). A refusal is read
+  from the answer's status before its text, so "No solution was found, but
+  this solver cannot show there is none" is never a match for "No
+  solution". On this corpus:
+  safety 100%, solved 90.3%, 0 wrong.
+
 ## [1.76.3] - 2026-11-16
 
 ### Fixed

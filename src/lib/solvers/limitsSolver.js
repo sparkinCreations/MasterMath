@@ -19,6 +19,10 @@ import {
   isAlgebriteFailure,
   mark,
   absBars,
+  piForm,
+  splitTerms,
+  structuralPeriod,
+  stripOuterParens,
 } from './solverUtils.js';
 import { parseError, unsupported, undefinedValue } from '../solutionEnvelope.js';
 // A limit at a trig asymptote (tan x at π/2) is recognised by the trig code.
@@ -37,6 +41,8 @@ import {
 import { tryGrowthRates, tryZeroToZero, tryNoContestAtZero } from './limits/growth.js';
 import { tryTwoSequences } from './limits/sequences.js';
 import { tryLimitLaws } from './limits/laws.js';
+import { provedLimitAtInfinity } from './limits/infinity.js';
+import { stepFunctionLimit } from './limits/steps.js';
 import {
   tryNamedTechnique,
   tryAlgebriteSimplify,
@@ -294,15 +300,19 @@ export async function solveLimit(expression) {
     const result = !Number.isFinite(target)
       ? await evaluateInfiniteLimit(func, variable, target)
       : side !== 0
-        ? await evaluateOneSided(func, variable, target, side)
-        : await evaluateFiniteLimit(func, variable, target);
+        ? await evaluateOneSided(func, variable, target, side, approachToken)
+        : await evaluateFiniteLimit(func, variable, target, approachToken);
 
     // Samples that never settled decide nothing: this was "does not exist"
     // for 1/ln(x) as x → ∞, which → 0 (1.68.6).
     if (result.undetermined) {
       return unsupported({
         input: expression,
-        reason: 'No method here proves this limit, and the sampled values have not settled: they may approach a number very slowly, or not at all.',
+        reason: result.refusedStep
+          ? 'A step function (floor, ceil, round, fix, sign or mod) is involved here in a way this solver cannot settle exactly, so no limit is claimed.'
+          : result.refusedPeriodic
+            ? 'A periodic term here could not be shown to be constant or to keep the expression from settling, and samples cannot decide that, so no limit is claimed.'
+            : 'No method here proves this limit, and the sampled values have not settled: they may approach a number very slowly, or not at all.',
         answer: 'This limit could not be determined',
         steps: [`Evaluate ${mark(`lim (${variable}→${displayTarget}) ${absBars(beautify(func))}`)}`, ...result.steps],
         tips: ['Look for a method that proves the limit: compare growth rates, rationalise with the conjugate, or use L\'Hôpital\'s rule on a quotient.'],
@@ -321,7 +331,8 @@ export async function solveLimit(expression) {
       ? ' does not exist'
       : result.estimate
         ? `${/∞/.test(result.answer) ? ' = ' : ' ≈ '}${String(result.answer).replace(/\s*\(≈[^)]*\)$/, '')} (an estimate from samples, not a proof)`
-        : ` = ${result.answer}`;
+        // A proved value known only as a decimal reads "≈ 0.3333", not "= ≈".
+        : /^≈ /.test(String(result.answer)) ? ` ${result.answer}` : ` = ${result.answer}`;
     const steps = [
       `Evaluate ${mark(`lim (${variable}→${displayTarget}) ${shownFunc}`)}`,
       ...result.steps,
@@ -384,7 +395,25 @@ function formatApproach(raw, target) {
 // after the symbolic rungs have had a chance. This ordering is what fixes the
 // classic 0/0 removable limits — (1-cos x)/x^2, (sin x - x)/x^3, etc. — that
 // blind sampling at 1e-6/1e-8 gets wrong through floating-point cancellation.
-async function evaluateFiniteLimit(func, variable, target) {
+async function evaluateFiniteLimit(func, variable, target, pointText = null) {
+  // A step function (floor, ceil, round, fix, sign, mod) is not continuous at
+  // its jumps, so substitution proves nothing there: each side is worked on
+  // its own (limits/steps.js, 1.76.4). lim x→0 floor(x) was "= 0".
+  const stepped = await stepThrough(func, variable, target, pointText);
+  if (stepped) {
+    if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
+    // Equal only when proved equal (limits/steps.js), never within a tolerance.
+    const same = stepped.same;
+    return {
+      steps: [...stepped.steps, same
+        ? `Both sides give ${mark(stepped.left.shown)}, so the limit is ${mark(stepped.left.shown)} (the value at the point itself does not enter a limit).`
+        : `The two sides give different values, ${mark(stepped.left.shown)} and ${mark(stepped.right.shown)}, so the limit does not exist.`],
+      answer: same ? stepped.left.shown : 'Does not exist',
+      verified: true,
+      verificationMethod: 'one-sided limits of a step function',
+    };
+  }
+
   // Rung 1: direct substitution. If the function is continuous at the point,
   // that value *is* the limit and we are done. This is exact by evaluation —
   // stronger than a numeric cross-check — so it carries its own method label
@@ -516,11 +545,87 @@ async function evaluateInfiniteLimit(func, variable, target) {
     const laws = tryLimitLaws(Algebrite, func, variable, target);
     if (laws && laws.verified) return laws;
   } catch { /* fall through */ }
+  // A periodic part that is not constant, beside a part that settles: the
+  // function keeps oscillating, proved (limits/infinity.js). 1 + 10⁻⁷·sin(x)
+  // was estimated "≈ 1" from samples, though it has no limit (1.76.4).
+  try {
+    const r = provedLimitAtInfinity(func, variable, target === Infinity ? 1 : -1, Algebrite);
+    // A decaying factor times a bounded one (e^(−x)·sin(x)): the squeeze
+    // theorem, not a sampled "≈ 0".
+    if (r && r.how === 'squeeze' && Number.isFinite(r.value)) {
+      return {
+        steps: [
+          `A term of ${mark(beautify(func))} that is a factor → ${mark('0')} times a bounded one (a sine or cosine, between ${mark('−1')} and ${mark('1')}) lies between minus and plus the size of that factor, and both of those → ${mark('0')}: such a term → ${mark('0')} (the squeeze theorem).`,
+          `Every other term has a limit of its own, so the limit is their sum: ${mark(squeezeShown(r.value))}.`,
+        ],
+        answer: squeezeShown(r.value),
+        verified: true,
+        verificationMethod: 'squeeze theorem',
+      };
+    }
+    // A bounded periodic part added to a rest that → ±∞ (x + sin(x)): the
+    // sum → ±∞, proved, not sampled.
+    if (r && r.inf && r.how === 'periodic' && r.periodic) {
+      const inf = r.inf > 0 ? '∞' : '-∞';
+      return {
+        steps: [
+          `${mark(beautify(r.periodic.Q))} repeats every ${mark(piForm(r.periodic.period) ?? formatNumber(r.periodic.period))} and is defined everywhere, so it is bounded: it stays between its least and greatest values.`,
+          `The other terms of ${mark(beautify(func))} → ${mark(inf)}, and adding a bounded amount does not stop that, so the limit is ${mark(inf)}.`,
+        ],
+        answer: inf,
+        verified: true,
+        verificationMethod: 'bounded periodic part',
+      };
+    }
+    if (r && r.none && r.periodic) {
+      const q = beautify(r.periodic.Q);
+      return {
+        steps: [
+          ...(r.periodic.alone ? [] : [`Split ${mark(beautify(func))} into its periodic part ${mark(q)} and the rest.`]),
+          `${mark(q)} repeats every ${mark(piForm(r.periodic.period) ?? formatNumber(r.periodic.period))} and is not constant (it takes different values within one period), so it has no limit: it takes each of its values again and again, as far out as you go.`,
+          r.periodic.alone
+            ? `So the limit does not exist.`
+            : `The rest settles to a limit, so ${mark(beautify(func))} keeps oscillating as ${mark(`${variable} → ${target === Infinity ? '∞' : '−∞'}`)}: the limit does not exist.`,
+        ],
+        answer: 'Does not exist',
+        verified: true,
+        verificationMethod: 'periodic part',
+      };
+    }
+  } catch { /* fall through */ }
+  // A periodic term that the proof above could not settle (too small to
+  // tell from a constant: 10⁻¹²·sin(x)) is not estimated: the samples would
+  // settle on a value that is not a limit. Refused instead.
+  // Anywhere in the expression, not only a top-level term:
+  // (1 + 1/x)·(1 + 10⁻¹²·sin(x)) has one inside a product.
+  let parts = [];
+  try {
+    parts = math.parse(String(func)).filter((n) => n.type !== 'ConstantNode' && n.type !== 'SymbolNode').map((n) => n.toString());
+  } catch { parts = splitTerms(stripOuterParens(String(func))).map(({ signed }) => signed); }
+  if (parts.some((t) => { const p = hasVariable(t, variable) ? structuralPeriod(t, variable) : null; return p && p > 0; })) {
+    return {
+      steps: [`A term of ${mark(beautify(func))} repeats periodically, and whether it is constant or keeps the whole from settling is not proved here.`],
+      answer: null,
+      undetermined: true,
+      refusedPeriodic: true,
+    };
+  }
   return estimateInfiniteLimit(func, variable, target);
 }
 
 // A one-sided limit: growth rates first at 0⁺ (x·ln(x)), then sampling.
-async function evaluateOneSided(func, variable, target, side) {
+async function evaluateOneSided(func, variable, target, side, pointText = null) {
+  const stepped = await stepThrough(func, variable, target, pointText, side);
+  if (stepped) {
+    if (stepped.refuse) return { steps: stepped.steps, answer: null, undetermined: true, refusedStep: true };
+    const value = side > 0 ? stepped.right : stepped.left;
+    return {
+      steps: [`This is a one-sided limit: only the ${side > 0 ? 'right' : 'left'}-hand behaviour (${mark(`${variable} → ${formatNumber(target)}${side > 0 ? '⁺' : '⁻'}`)}) matters.`, ...stepped.steps, `So the ${side > 0 ? 'right' : 'left'}-hand limit is ${mark(value.shown)}.`],
+      answer: value.shown,
+      verified: true,
+      verificationMethod: 'one-sided limits of a step function',
+    };
+  }
   try {
     const pole = tryPoleSigns(await loadAlgebrite(), func, variable, target, side);
     if (pole && pole.verified) {
@@ -536,6 +641,29 @@ async function evaluateOneSided(func, variable, target, side) {
     } catch { /* fall through */ }
   }
   return evaluateOneSidedLimit(func, variable, target, side);
+}
+
+// The squeeze route's sum of term limits is a float: a whole number is
+// shown as it is, anything else with ≈ (1/3 is not claimed from 0.3333).
+const squeezeShown = (value) => (Number.isInteger(value) ? formatNumber(value) : `≈ ${formatNumber(value)}`);
+
+// The step-function route (limits/steps.js). What is left once each step
+// function is replaced by its value on a side must be proved continuous at
+// the point from its structure (continuousAt in steps.js: every denominator,
+// logarithm, root and power base checked there), never from samples.
+async function stepThrough(func, variable, target, pointText = null, side = 0) {
+  // x % m is mod(x, m) (mathjs reads % as mod): it goes the same way.
+  if (!/\b(?:floor|ceil|round|fix|sign|mod)\s*\(|%/.test(String(func))) return null;
+  // A step function is present: from here on the answer is proved or
+  // refused, never left to substitution (which is what got it wrong) —
+  // not even if Algebrite fails to load.
+  let Algebrite = null;
+  try { Algebrite = await loadAlgebrite(); } catch { Algebrite = null; }
+  try {
+    return stepFunctionLimit(func, variable, target, { Algebrite, pointText, side });
+  } catch {
+    return { refuse: true, steps: ['This step function could not be worked here, so the limit is not claimed.'] };
+  }
 }
 
 // 1 when the function is defined just right of the point but not just left

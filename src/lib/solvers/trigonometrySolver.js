@@ -507,14 +507,19 @@ async function simplifyTrigExpression(expression, variable) {
       ['0', 'trigonometric identities'],
     ];
     const len = (e) => normalizeForCompare(e).length;
+    // A candidate is taken only when it is proved equal (1.76.4): agreeing at
+    // the sample points only shortlists it, and 2·sin(x)·cos(x) + 10⁻⁷·x
+    // agreed with sin(2x) there. The identity is named only when the input
+    // has its shape: tan(x)·cot(x) = 1 is not the Pythagorean identity,
+    // though its result is the 1 the table files under it.
     for (const [candidate, name] of targets) {
       if (len(candidate) >= len(expression)) continue;
       if (simplified && !isAlgebriteFailure(simplified) && len(candidate) >= len(simplified)) continue;
-      if (expressionsNumericallyEqual(expression, candidate, v)) {
-        simplified = candidate;
-        identityUsed = name;
-        break;
-      }
+      if (!expressionsNumericallyEqual(expression, candidate, v)) continue;
+      if (!proveTrigIdentity(Algebrite, expression, candidate, v)) continue;
+      simplified = candidate;
+      identityUsed = identityFits(name, expression, candidate, v) ? (candidate === '1' ? pythagoreanForm(expression) : name) : reciprocalIdentities(expression);
+      break;
     }
 
     const usable = Boolean(simplified) && !isAlgebriteFailure(simplified);
@@ -522,7 +527,9 @@ async function simplifyTrigExpression(expression, variable) {
     // then the identity checked as a rational function of t = tan(θ/2)
     // (1.65.0; it was "confirmed numerically at several values").
     const proved = usable && proveTrigIdentity(Algebrite, expression, simplified, variable);
-    const verified = proved || (usable && expressionsNumericallyEqual(expression, simplified, variable));
+    // Proved, or not claimed: a numeric check can refute a simplification,
+    // never establish one (CLAUDE.md; 1.76.4).
+    const verified = proved;
     // "Changed" requires a strictly shorter form — a mere reordering of terms
     // is not a simplification worth presenting as one.
     const changed = usable &&
@@ -531,6 +538,10 @@ async function simplifyTrigExpression(expression, variable) {
 
     if (usable && verified && changed) {
       const steps = [`Simplify the trigonometric expression: ${mark(display)}`];
+      // The identity named from the input's shape (1.76.4), whichever route
+      // found the result: the table, or Algebrite's own simplify.
+      if (!identityUsed && simplified === '1' && !isPythagoreanIdentity(expression) && identityFits('Pythagorean', expression, '1', variable)) identityUsed = pythagoreanForm(expression);
+      if (!identityUsed && !(simplified === '1' && isPythagoreanIdentity(expression))) identityUsed = reciprocalIdentities(expression);
       if (identityUsed) {
         steps.push(`Apply the ${identityUsed}.`);
       } else if (simplified === '1' && isPythagoreanIdentity(expression)) {
@@ -541,9 +552,7 @@ async function simplifyTrigExpression(expression, variable) {
       // The simplified form can be defined where the original is not:
       // tan(x)·cos(x) = sin(x) only where cos(x) ≠ 0.
       const lost = lostDomain(expression, simplified, variable);
-      steps.push(proved
-        ? `Check: writing both sides in ${mark(`sin(${variable})`)} and ${mark(`cos(${variable})`)} and substituting ${mark(`t = tan(${variable}/2)`)} turns them into the same rational function of ${mark('t')}; at ${mark(`${variable} = π + 2πn`)}, where ${mark('t')} is undefined, the two sides are compared directly. So the identity holds wherever both sides are defined.`
-        : `Result checked numerically at several values of ${mark(variable)} (not proved symbolically).`);
+      steps.push(`Check: writing both sides in ${mark(`sin(${variable})`)} and ${mark(`cos(${variable})`)} and substituting ${mark(`t = tan(${variable}/2)`)} turns them into the same rational function of ${mark('t')}; at ${mark(`${variable} = π + 2πn`)}, where ${mark('t')} is undefined, the two sides are compared directly. So the identity holds wherever both sides are defined.`);
       if (lost) steps.push(`The original is undefined where ${lost.map((c) => mark(c)).join(' or ')} and the result is not, so the equality holds for ${lostExcluded(lost, mark)}: ${mark(`${display} = ${beautify(simplified)}`)} there.`);
       steps.push(`Result: ${mark(beautify(simplified))}${lost ? `, for ${lostExcluded(lost, mark)}` : ''}.`);
       return {
@@ -562,9 +571,9 @@ async function simplifyTrigExpression(expression, variable) {
     return {
       steps: [
         `Simplify the trigonometric expression: ${mark(display)}`,
-        verified
-          ? 'No simpler equivalent form was found — the expression is already in simplest terms.'
-          : 'No trustworthy simplification was found for this expression.',
+        usable && changed && !proved
+          ? 'No simpler form could be proved equal to this expression, so it is left as it is.'
+          : 'No simpler equivalent form was found — the expression is already in simplest terms.',
       ],
       answer: display,
       tips,
@@ -579,6 +588,40 @@ async function simplifyTrigExpression(expression, variable) {
       tips,
     });
   }
+}
+
+// Whether a table identity is the one the input uses, read off the input's
+// shape: the Pythagorean family needs a squared trig function, the
+// double-angle family a double angle on one side only, a quotient identity a
+// division. 1.76.4: tan(x)·cot(x) = 1 was "the Pythagorean identity".
+function identityFits(name, expression, candidate, v) {
+  const plain = String(expression).replace(/\s+/g, '');
+  if (/^Pythagorean/.test(name)) return /(?:sin|cos|tan|sec|csc|cot)\([^()]*\)\^(?:2|\(2\))/.test(plain);
+  if (/^double-angle/.test(name)) {
+    const double = new RegExp(`\\(2\\*?${v}\\)`);
+    return double.test(plain) !== double.test(String(candidate).replace(/\s+/g, ''));
+  }
+  if (/^quotient/.test(name)) return plain.includes('/');
+  if (/^identities/.test(name)) return /tan/.test(plain) && /cot/.test(plain);
+  return true;
+}
+
+// The Pythagorean form an input uses: sec² − tan² = 1 is 1 + tan² = sec².
+function pythagoreanForm(expression) {
+  const plain = String(expression);
+  if (/\bsec\(/.test(plain) && /\btan\(/.test(plain)) return `Pythagorean identity ${mark('1 + tan²(θ) = sec²(θ)')}`;
+  if (/\bcsc\(/.test(plain) && /\bcot\(/.test(plain)) return `Pythagorean identity ${mark('1 + cot²(θ) = csc²(θ)')}`;
+  return `Pythagorean identity ${mark('sin²(θ) + cos²(θ) = 1')}`;
+}
+
+// The reciprocal pairs an input uses, as the identity to name: tan(x)·cot(x)
+// = 1 is cot(θ) = 1/tan(θ). Null when it uses none.
+function reciprocalIdentities(expression) {
+  const plain = String(expression);
+  const pairs = [['tan', 'cot', 'cot(θ) = 1/tan(θ)'], ['cos', 'sec', 'sec(θ) = 1/cos(θ)'], ['sin', 'csc', 'csc(θ) = 1/sin(θ)']]
+    .filter(([a, b]) => new RegExp(`\\b${a}\\(`).test(plain) && new RegExp(`\\b${b}\\(`).test(plain));
+  if (!pairs.length) return null;
+  return `reciprocal identit${pairs.length > 1 ? 'ies' : 'y'} ${pairs.map(([, , f]) => mark(f)).join(' and ')}`;
 }
 
 function normalizeForCompare(s) {

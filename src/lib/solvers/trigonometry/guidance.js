@@ -151,7 +151,11 @@ export function identityGuidance(display, result, lost, identityUsed) {
       ? `Double angle: ${mark('sin(2x) = 2·sin(x)·cos(x)')} and ${mark('cos(2x) = cos²(x) − sin²(x) = 1 − 2sin²(x) = 2cos²(x) − 1')}: read them both ways.`
       : /quotient/.test(name)
         ? `Quotient identities: ${mark('tan(x) = sin(x)/cos(x)')}, ${mark('cot(x) = cos(x)/sin(x)')}, defined where the bottom is not ${mark('0')}.`
-        : `Pythagorean identity: ${mark('sin²(x) + cos²(x) = 1')}, and its ${mark('÷cos²')} and ${mark('÷sin²')} forms, ${mark('1 + tan²(x) = sec²(x)')} and ${mark('1 + cot²(x) = csc²(x)')}.`,
+        : /reciprocal/.test(name)
+          // 1.76.4: tan(x)·cot(x) = 1 is named a reciprocal identity; its tip
+          // was the Pythagorean one.
+          ? `Reciprocal identities: ${mark('cot(x) = 1/tan(x)')}, ${mark('sec(x) = 1/cos(x)')}, ${mark('csc(x) = 1/sin(x)')}, so ${mark('tan(x)·cot(x) = 1')} wherever both are defined (neither ${mark('sin(x)')} nor ${mark('cos(x)')} is ${mark('0')}).`
+          : `Pythagorean identity: ${mark('sin²(x) + cos²(x) = 1')}, and its ${mark('÷cos²')} and ${mark('÷sin²')} forms, ${mark('1 + tan²(x) = sec²(x)')} and ${mark('1 + cot²(x) = csc²(x)')}.`,
     'Rewriting tan, sec, csc and cot in terms of sin and cos often unlocks a simplification.',
     `An identity must hold for every angle where both sides are defined; checking a few values can only find a counterexample, never prove it. By hand, the usual proof is algebra: rewrite one side with the identities until it is the other.`,
     `Simplifying can change the domain: ${mark('tan(x)·cos(x) = sin(x)')} only where ${mark('cos(x) ≠ 0')}, so say where the result holds.`,
@@ -162,6 +166,16 @@ export function identityGuidance(display, result, lost, identityUsed) {
   const here = result && result !== display
     ? `Here: ${generic ? 'written in sin and cos, ' : ''}${mark(`${display} = ${result}`)}${generic ? '' : ` by the ${identityUsed}`}${lost ? `, for ${lost.map((c) => mark(c.replace(' = ', ' ≠ '))).join(' and ')}` : ''}.`
     : null;
+  // 1.76.4: a reciprocal simplification gets its own mistakes, not the
+  // double-angle warning of the shared list.
+  if (/reciprocal/.test(name)) {
+    return assemble(tips, here, [
+      `Writing ${mark('tan(x)·cot(x) = 1')} for every ${mark('x')}: where ${mark('sin(x) = 0')} or ${mark('cos(x) = 0')} one factor is undefined, so the product is too.`,
+      `Reading ${mark('cot(x)')} as ${mark('arctan(x)')}: the reciprocal ${mark('1/tan(x)')} is not the inverse function; likewise ${mark('sec(x) = 1/cos(x)')}, not ${mark('arccos(x)')}.`,
+      `Pairing the wrong reciprocals: ${mark('sec(x) = 1/cos(x)')} and ${mark('csc(x) = 1/sin(x)')}, not the other way round.`,
+      'Forgetting where the original is undefined after it simplifies.',
+    ]);
+  }
   return assemble(tips, here, [
     `Cancelling across a sum: ${mark('sin(x)/x')} is not sin — only common factors cancel.`,
     `Dropping the argument: ${mark('sin² + cos²')} means nothing without the same angle inside both.`,

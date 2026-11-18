@@ -56,12 +56,14 @@ test('limits review, swept: powers whose base and exponent both vary', async () 
 
 test('limits review, swept: sampled only at powers of 10, tan(x) and (−1)^x were answered', async () => {
   // tan(x) was −∞ and (−1)^x was 1; samples between the powers of 10 disagree,
-  // and (−1)^x is not defined there.
-  for (const p of ['lim x->inf tan(x)', 'lim x->inf (-1)^x']) {
-    const r = await lim(p);
-    assert.equal(r.status, 'unsupported', p);
-    assert.equal(r.answer, 'This limit could not be determined', p);
-  }
+  // and (−1)^x is not defined there. Since 1.76.4 tan(x) is proved to have
+  // no limit (periodic, not constant); (−1)^x is still refused.
+  const tan = await lim('lim x->inf tan(x)');
+  assert.match(tan.answer, /does not exist$/);
+  assert.match(tan.steps.join('\n'), /repeats every π and is not constant/);
+  const r = await lim('lim x->inf (-1)^x');
+  assert.equal(r.status, 'unsupported');
+  assert.equal(r.answer, 'This limit could not be determined');
 });
 
 test('limits review: samples that have not settled decide nothing', async () => {

@@ -25,7 +25,7 @@ const FUNCTIONS = ['arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'asin',
 
 // Words allowed to appear inside a "math" fragment without making it prose.
 export const MATH_WORDS = new Set([
-  ...FUNCTIONS, 'sqrt', 'abs', 'sgn', 'erf', 'mod', 'lim', 'pi', 'dx', 'dy', 'dt', 'du', 'dv', 'dd',
+  ...FUNCTIONS, 'sqrt', 'abs', 'sgn', 'erf', 'mod', 'floor', 'ceil', 'round', 'sign', 'lim', 'pi', 'dx', 'dy', 'dt', 'du', 'dv', 'dd',
   'or', 'and', 'C', 'DNE', 'e', 'i', 'd', 'f', 'F', 'x', 'y', 't', 'u', 'v', 'n', 'a', 'b', 'c',
 ]);
 
@@ -126,6 +126,8 @@ export function toLatex(ascii) {
   // The error function has no KaTeX command: upright, as a named operator.
   s = s.replace(/\berf\b/g, '\\operatorname{erf}');
   s = s.replace(/\bsgn\b/g, '\\operatorname{sgn}');
+  // The step functions (1.76.4: limits through them are worked side by side).
+  s = s.replace(/\b(floor|ceil|round|sign|mod)(?=\()/g, '\\operatorname{$1}');
   // A "lim" with no approach written under it (a tip's "lim B^E"): upright.
   s = s.replace(/(?<!\\)\blim\b/g, '\\lim');
 

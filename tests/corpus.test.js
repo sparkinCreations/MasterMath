@@ -17,3 +17,12 @@ test('evaluation corpus: zero confidently-wrong answers', () => {
     execFileSync('node', [harness, '--wrong'], { stdio: 'pipe' });
   }, 'the evaluation corpus produced a confidently-wrong answer — run `node tests/corpus/harness.mjs` to see which');
 });
+
+// A refusal is graded by its status before its text (1.76.4): x^x = 0 is
+// "No solution was found, but this solver cannot show there is none", an
+// unsupported answer, never a match for an expected "No solution".
+test('the corpus grader counts an unsupported "No solution was found" as refused, not correct', async () => {
+  const { grade } = await import('./corpus/harness.mjs');
+  const g = await grade('Algebra', 'x^x = 0 (solve)', 'No solution');
+  assert.equal(g.verdict, 'REFUSED', g.got);
+});

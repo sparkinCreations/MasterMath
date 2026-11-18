@@ -30,6 +30,7 @@ if (typeof globalThis.localStorage === 'undefined') {
 const { solveProblem } = await import('../../src/lib/api.js');
 const { saveSettings, resetSettings } = await import('../../src/lib/settings.js');
 const { CONVERTED } = await import('../helpers/typesetProblems.js');
+const { MUST_SOLVE, stepCrossCases } = await import('../helpers/stepLimitCases.js');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
@@ -94,6 +95,11 @@ for (const c of JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/evaluations/202
 }
 
 for (const [topic, problem] of CONVERTED) add(problem, topic);
+
+// Limits that must stay solved, and the seeded step-function family
+// (tests/stepLimitsCoverage.test.js): a comparison against main sees them.
+for (const [problem] of MUST_SOLVE) add(problem, 'limits');
+for (const { problem } of stepCrossCases()) add(problem, 'limits');
 
 // solveProblem('x^2 = 4', 'algebra') / solvePlain("…", "…") with a literal
 // problem; template literals with ${…} are skipped.
