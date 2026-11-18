@@ -11,6 +11,58 @@ const assemble = (tips, here, mistakes) => ({ tips: dedupe([tips[0], here, ...ti
 const exactPart = (answer) => String(answer || '').replace(/\s*\((?:=|≈)[^)]*\)\s*$/, '').trim();
 
 // The lists for a plain arithmetic evaluation, with the worked line second.
+
+// Tips and mistakes for a ÷ b, read off the numbers typed (1.76.5): the
+// decimals cleared first, the common factor cancelled, the fraction in
+// lowest terms, and its decimal — exact when it ends, said to repeat when it
+// does not. Null when b is 0 or a number is too long to work exactly.
+function divisionGuidance(expr) {
+  const m = /^\s*(-?)(\d+)(?:\.(\d+))?\s*[/÷]\s*(-?)(\d+)(?:\.(\d+))?\s*$/.exec(String(expr));
+  if (!m) return null;
+  const places = Math.max((m[3] || '').length, (m[6] || '').length);
+  const whole = (int, frac) => Number(`${int}${(frac || '').padEnd(places, '0')}`);
+  const A = whole(m[2], m[3]);
+  const B = whole(m[5], m[6]);
+  if (B === 0 || !Number.isSafeInteger(A) || !Number.isSafeInteger(B) || places > 6) return null;
+  const negative = (m[1] === '-') !== (m[4] === '-') && A !== 0;
+  const minus = (t) => (negative ? `−${t}` : t);
+  const typed = `${m[1] ? '−' : ''}${m[2]}${m[3] ? `.${m[3]}` : ''}/${m[4] ? '−' : ''}${m[5]}${m[6] ? `.${m[6]}` : ''}`;
+  const gcdOf = (x, y) => { while (y) [x, y] = [y, x % y]; return x || 1; };
+  const g = gcdOf(A, B);
+  const p = A / g;
+  const q = B / g;
+  const fraction = minus(q === 1 ? String(p) : `${p}/${q}`);
+  let r = q;
+  for (const k of [2, 5]) while (r % k === 0) r /= k;
+  const terminates = r === 1;
+  const value = (negative ? -1 : 1) * (A / B);
+  const plain = (x) => String(x).replace(/^-/, '−');
+  const decimal = terminates ? plain(value) : `${plain(value).slice(0, value < 0 ? 7 : 6)}…`;
+  const cleared = places > 0
+    ? `Clear the decimals first: multiply both numbers by ${mark(String(10 ** places))}, so ${mark(`${typed} = ${minus(`${A}/${B}`)}`)}. `
+    : '';
+  const asDecimal = terminates ? `as a decimal, ${mark(decimal)}` : `as a decimal it repeats (${mark(decimal)})`;
+  const first = A === 0
+    ? `${mark('0')} divided by any number other than ${mark('0')} is ${mark('0')}: ${mark(`${typed} = 0`)}.`
+    : q === 1
+    ? `${cleared}${mark(String(B))} goes into ${mark(String(A))} exactly ${mark(String(p))} ${p === 1 ? 'time' : 'times'}, so ${mark(`${typed} = ${fraction}`)}; check by multiplying back: ${mark(`${p} × ${B} = ${A}`)}.`
+    : g > 1
+      ? `${cleared}A division is a fraction: cancel the common factor ${mark(String(g))} of ${mark(String(A))} and ${mark(String(B))} to get ${mark(`${typed} = ${fraction}`)}; ${asDecimal}.`
+      : `${cleared}A division is a fraction: ${mark(String(A))} and ${mark(String(B))} share no common factor, so ${mark(fraction)} is already in lowest terms; ${asDecimal}.`;
+  const rounding = q === 1
+    ? 'Skipping the check: the quotient times the divisor must give back the number divided.'
+    : terminates
+      ? `Rounding ${mark(decimal)} to ${mark(plain(Math.floor(value)))} or ${mark(plain(Math.ceil(value)))} when the exact value is asked for.`
+      : `Giving a rounded decimal such as ${mark(plain(value.toFixed(2)))} as if it were exact: ${mark(fraction)} is exact, and the repeating decimal only approximates it once it is cut off.`;
+  return {
+    tips: [first, 'A division that does not come out even is a fraction or a repeating decimal, both exact; a rounded decimal is an approximation.'],
+    common_mistakes: [
+      `Dividing in the wrong order: ${mark(typed)} is ${mark(typed.replace('/', ' ÷ '))}, not the other way round.`,
+      rounding,
+    ],
+  };
+}
+
 export function arithmeticGuidance(steps, expr, answer) {
   const picked = pickArithmetic(steps, expr);
   const text = stripMathMarkers(steps.join('\n'));
@@ -315,6 +367,10 @@ function pickArithmetic(steps, expr) {
   }
   if (/^\s*-?\d+(?:\.\d+)?\s*[*/×÷]\s*-?\d+(?:\.\d+)?\s*$/.test(expr)) {
     const division = /[/÷]/.test(expr);
+    // A division of whole numbers is worked on the numbers typed (1.76.5):
+    // it was always 100/8 = 25/2.
+    const own = division ? divisionGuidance(expr) : null;
+    if (own) return { method: 'product', ...own };
     return {
       method: 'product',
       tips: [

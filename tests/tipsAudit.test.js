@@ -128,7 +128,8 @@ test('arithmetic: one operation gets that operation\'s guidance', async () => {
   assert.match((await guidance('2^0.5', 'other')).all, /A power of 0\.5 is a square root/);
   assert.match((await guidance('5 - 8', 'other')).all, /When the number subtracted is the larger one, the result is negative/);
   assert.match((await guidance('0.1 + 0.2', 'other')).all, /0\.1 \+ 0\.2 = 0\.3 exactly/);
-  assert.match((await guidance('100 / 8', 'other')).all, /A division is a fraction: 100\/8 = 25\/2/);
+  // 1.76.5: worked on the numbers typed.
+  assert.match((await guidance('100 / 8', 'other')).all, /A division is a fraction: cancel the common factor 4 of 100 and 8 to get 100\/8 = 25\/2/);
   const squares = await guidance('sqrt(16) + sqrt(9)', 'other');
   assert.match(squares.all, /√16 = 4 because 4² = 16/);
   assert.doesNotMatch(squares.all, /√2 is irrational/);

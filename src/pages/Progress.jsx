@@ -110,7 +110,7 @@ export default function Progress() {
           toast.success("Exported as CSV successfully");
           break;
         case 'json':
-          exportAsJSON(problems);
+          exportAsJSON(problems, topicLabels);
           toast.success("Exported as JSON successfully");
           break;
         case 'markdown':

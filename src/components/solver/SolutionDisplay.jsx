@@ -340,7 +340,7 @@ export default function SolutionDisplay({ solution, problem, topic, currentTopic
           toast.success("Solution exported as Markdown");
           break;
         case 'json':
-          exportSolutionAsJSON(problem, exportTopic, solution);
+          exportSolutionAsJSON(problem, exportTopic, solution, TOPIC_LABELS);
           toast.success("Solution exported as JSON");
           break;
       }

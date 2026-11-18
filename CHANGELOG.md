@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.76.5] - 2026-11-18
+
+### Fixed
+- The Auto-degrees tip at 0 said "in radians, cos(0) is a different number";
+  0 is the one bare angle where degrees and radians agree, so the tip now
+  says the unit makes no difference here and shows one where it does
+  (cos(60°) = 1/2, cos(60) ≈ −0.952).
+
+### Changed
+- A division's tip and common mistakes are worked on the numbers typed:
+  12/18 cancels the common factor 6 to 2/3, a repeating decimal (0.6666…),
+  and the mistakes name 12 ÷ 18 and rounding 2/3 to 0.67. They always used
+  100/8 = 25/2 and 12.5. Decimals are cleared first (2.5/0.5 = 25/5 = 5),
+  a whole quotient is checked by multiplying back, and 0/5 is 0.
+- JSON exports (history and a single solution) add `topicLabel`, the name
+  the page shows ("Arithmetic"), beside the stored `topic` ("other").
+
 ## [1.76.4] - 2026-11-16
 
 ### Fixed

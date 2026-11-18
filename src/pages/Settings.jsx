@@ -92,7 +92,7 @@ export default function Settings() {
           exportAsCSV(problems, TOPIC_LABELS);
           break;
         case "json":
-          exportAsJSON(problems);
+          exportAsJSON(problems, TOPIC_LABELS);
           break;
         case "markdown":
           exportAsMarkdown(problems, TOPIC_LABELS);
