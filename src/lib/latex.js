@@ -112,6 +112,9 @@ export function toLatex(ascii) {
   // A denominator with a power stays a slash: 3/2^2 is 3/(2²), and
   // \frac{3}{2}^{2} read as (3/2)² (October 26).
   s = s.replace(/(?<![\w}])(\d+)\/(\d+)(?![\w.^])/g, '\\frac{$1}{$2}');
+  // A minus straight after a slash is a sign: KaTeX sets "/" as an ordinary
+  // symbol, so "10/-2" came out spaced as a subtraction, 10/ − 2 (1.76.5).
+  s = s.replace(/\/\s*-/g, '/{-}');
 
   // log_2(x) (beautify's form of the parser's log(x)/log(2)) → \log_{2}(x);
   // the word-boundary loop below does not see "log" before an underscore.
