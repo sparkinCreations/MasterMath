@@ -3,7 +3,7 @@
 // a worked "Here: …" line second, read from this solve's own steps (1.67.0,
 // the last topic of the insights plan).
 
-import { math, stripMathMarkers, mark } from '../solverUtils.js';
+import { math, stripMathMarkers, mark, gcd } from '../solverUtils.js';
 
 const dedupe = (list) => [...new Set(list.filter(Boolean))];
 const assemble = (tips, here, mistakes) => ({ tips: dedupe([tips[0], here, ...tips.slice(1)]), common_mistakes: dedupe(mistakes) });
@@ -11,6 +11,90 @@ const assemble = (tips, here, mistakes) => ({ tips: dedupe([tips[0], here, ...ti
 const exactPart = (answer) => String(answer || '').replace(/\s*\((?:=|≈)[^)]*\)\s*$/, '').trim();
 
 // The lists for a plain arithmetic evaluation, with the worked line second.
+
+// Tips and mistakes for a ÷ b, read off the numbers typed (1.76.5): the
+// decimals cleared first, the common factor cancelled, the fraction in
+// lowest terms, and its decimal — exact when it ends, said to repeat when it
+// does not. Null when b is 0 or a number is too long to work exactly.
+function divisionGuidance(expr) {
+  const m = /^\s*(-?)(\d+)(?:\.(\d+))?\s*[/÷]\s*(-?)(\d+)(?:\.(\d+))?\s*$/.exec(String(expr));
+  if (!m) return null;
+  const places = Math.max((m[3] || '').length, (m[6] || '').length);
+  const whole = (int, frac) => Number(`${int}${(frac || '').padEnd(places, '0')}`);
+  const A = whole(m[2], m[3]);
+  const B = whole(m[5], m[6]);
+  if (B === 0 || !Number.isSafeInteger(A) || !Number.isSafeInteger(B) || places > 6) return null;
+  const negative = (m[1] === '-') !== (m[4] === '-') && A !== 0;
+  const minus = (t) => (negative ? `−${t}` : t);
+  const typed = `${m[1] ? '−' : ''}${m[2]}${m[3] ? `.${m[3]}` : ''}/${m[4] ? '−' : ''}${m[5]}${m[6] ? `.${m[6]}` : ''}`;
+  const g = gcd(A, B) || 1;
+  const p = A / g;
+  const q = B / g;
+  const fraction = minus(q === 1 ? String(p) : `${p}/${q}`);
+  let r = q;
+  for (const k of [2, 5]) while (r % k === 0) r /= k;
+  const terminates = r === 1;
+  const value = (negative ? -1 : 1) * (A / B);
+  const plain = (x) => String(x).replace(/^-/, '−');
+  // The decimal by long division on the integers, never from a double:
+  // every digit of a terminating one (9007199254740991/25 is
+  // 360287970189639.64), and four significant digits of a repeating one,
+  // cut off with "…" (1/3000000 is 0.0000003333…).
+  const longDivision = () => {
+    const P = BigInt(p);
+    const Q = BigInt(q);
+    const whole = P / Q;
+    let rem = P % Q;
+    let digits = '';
+    let significant = whole > 0n ? 4 : 0;
+    // A terminating decimal of p/q with q < 2⁵³ has at most 53 digits after
+    // the point (q = 2^a·5^b): 64 always reaches the end. Should it not,
+    // the "…" below says the digits were cut off.
+    while (rem !== 0n && digits.length < 64) {
+      rem *= 10n;
+      const d = rem / Q;
+      rem %= Q;
+      digits += String(d);
+      if (!terminates) {
+        if (significant > 0 || d !== 0n) significant += 1;
+        if (significant >= 4 + (whole > 0n ? 4 : 0) && digits.length >= 4) break;
+      }
+    }
+    const body = digits ? `${whole}.${digits}` : String(whole);
+    return `${negative ? '−' : ''}${body}${terminates && rem === 0n ? '' : '…'}`;
+  };
+  const decimal = longDivision();
+  const cutOff = decimal.replace(/…$/, '');
+  const cleared = places > 0
+    ? `Clear the decimals first: multiply both numbers by ${mark(String(10 ** places))}, so ${mark(`${typed} = ${minus(`${A}/${B}`)}`)}. `
+    : '';
+  // The check keeps the signs: −10/2 = −5 is checked by −5 × 2 = −10.
+  const dividend = m[1] === '-' ? -A : A;
+  const divisor = m[4] === '-' ? -B : B;
+  const quotient = q === 1 ? dividend / divisor : NaN;
+  const signedCheck = `${plain(quotient)} × ${divisor < 0 ? `(${plain(divisor)})` : divisor} = ${plain(dividend)}`;
+  const asDecimal = terminates ? `as a decimal, ${mark(decimal)}` : `as a decimal it repeats (${mark(decimal)})`;
+  const first = A === 0
+    ? `${mark('0')} divided by any number other than ${mark('0')} is ${mark('0')}: ${mark(`${typed} = 0`)}.`
+    : q === 1
+    ? `${cleared}${mark(String(B))} goes into ${mark(String(A))} exactly ${mark(String(p))} ${p === 1 ? 'time' : 'times'}, so ${mark(`${typed} = ${fraction}`)}; check by multiplying back: ${mark(signedCheck)}.`
+    : g > 1
+      ? `${cleared}A division is a fraction: cancel the common factor ${mark(String(g))} of ${mark(String(A))} and ${mark(String(B))} to get ${mark(`${typed} = ${fraction}`)}; ${asDecimal}.`
+      : `${cleared}A division is a fraction: ${mark(String(A))} and ${mark(String(B))} share no common factor, so ${mark(fraction)} is already in lowest terms; ${asDecimal}.`;
+  const rounding = q === 1
+    ? 'Skipping the check: the quotient times the divisor must give back the number divided.'
+    : terminates
+      ? `Rounding ${mark(decimal)} to ${mark(plain(Math.floor(value)))} or ${mark(plain(Math.ceil(value)))} when the exact value is asked for.`
+      : `Giving a cut-off decimal such as ${mark(cutOff)} as if it were exact: ${mark(fraction)} is exact, and the repeating decimal only approximates it once it is cut off.`;
+  return {
+    tips: [first, 'A division that does not come out even is a fraction or a repeating decimal, both exact; a rounded decimal is an approximation.'],
+    common_mistakes: [
+      `Dividing in the wrong order: ${mark(typed)} is ${mark(typed.replace('/', ' ÷ '))}, not the other way round.`,
+      rounding,
+    ],
+  };
+}
+
 export function arithmeticGuidance(steps, expr, answer) {
   const picked = pickArithmetic(steps, expr);
   const text = stripMathMarkers(steps.join('\n'));
@@ -105,10 +189,21 @@ function arithmeticHere(method, text, expr, answer) {
       if (!m) return null;
       const [, a, op, b] = m;
       if (/[/÷]/.test(op) && /^\d+$/.test(a) && /^\d+$/.test(b)) {
-        const g = (x, y) => (y ? g(y, x % y) : x);
-        const d = g(Number(a), Number(b));
-        const dec = Number(a) / Number(b);
-        const decText = Number.isInteger(dec) ? '' : ` ${Math.abs(dec * 1e4 - Math.round(dec * 1e4)) < 1e-9 ? '=' : '≈'} ${Math.round(dec * 1e4) / 1e4}`;
+        const d = gcd(Number(a), Number(b)) || 1;
+        // Four places, worked on the integers (1.76.5): "=" only when the
+        // reduced denominator divides 10⁴, so the four places are the whole
+        // value; else rounded half up, with "≈". A double scaled by 10⁴
+        // could not tell (9007199254740991/25 showed "= 360287970189639.6").
+        const P = BigInt(a) / BigInt(d);
+        const Q = BigInt(b) / BigInt(d);
+        const fourPlaces = (n) => {
+          const t = n.toString().padStart(5, '0');
+          return `${t.slice(0, -4)}.${t.slice(-4)}`.replace(/\.?0+$/, '');
+        };
+        const exact4 = 10000n % Q === 0n;
+        const decText = Q === 1n ? '' : exact4
+          ? ` = ${fourPlaces((P * 10000n) / Q)}`
+          : ` ≈ ${fourPlaces((P * 20000n + Q) / (2n * Q))}`;
         return d > 1 ? `Here: ${mark(a)} and ${mark(b)} share the factor ${mark(String(d))}: ${mark(`${a}/${b} = ${Number(b) / d === 1 ? Number(a) / d : `${Number(a) / d}/${Number(b) / d}${decText}`}`)}.` : `Here: ${mark(a)} and ${mark(b)} share no factor, so ${mark(`${a}/${b}`)} is already in lowest terms${decText ? `: ${mark(`${a}/${b}${decText}`)}` : ''}.`;
       }
       if (/^\d{2,}$/.test(b) && /^\d+$/.test(a)) {
@@ -315,6 +410,10 @@ function pickArithmetic(steps, expr) {
   }
   if (/^\s*-?\d+(?:\.\d+)?\s*[*/×÷]\s*-?\d+(?:\.\d+)?\s*$/.test(expr)) {
     const division = /[/÷]/.test(expr);
+    // A division of whole numbers is worked on the numbers typed (1.76.5):
+    // it was always 100/8 = 25/2.
+    const own = division ? divisionGuidance(expr) : null;
+    if (own) return { method: 'product', ...own };
     return {
       method: 'product',
       tips: [

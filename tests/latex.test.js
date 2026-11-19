@@ -135,3 +135,14 @@ test('typed spellings render as their symbols', () => {
   // Words that contain the letters are left alone.
   assert.equal(toLatex('spiral'), 'spiral');
 });
+
+test('a minus after a slash is a sign, not a subtraction (1.76.5)', async () => {
+  const katex = (await import('katex')).default;
+  assert.equal(toLatex('10/-2 = -5'), '10/{-}2 = -5');
+  assert.equal(toLatex('x/-y'), 'x/{-}y');
+  assert.equal(toLatex('10 / -2'), '10 /{-}2');
+  assert.equal(toLatex('-10/2'), '-\\frac{10}{2}');
+  // KaTeX accepts it, and sets no binary-operator spacing after the slash.
+  const html = katex.renderToString(toLatex('10/-2'));
+  assert.doesNotMatch(html, /mbin/);
+});

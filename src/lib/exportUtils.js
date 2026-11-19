@@ -117,9 +117,14 @@ export function exportAsCSV(problems, topicLabels) {
   downloadFile(buildProgressCSV(problems, topicLabels), 'mastermath-progress.csv', 'text/csv');
 }
 
-// Export progress history as JSON
-export function exportAsJSON(problems) {
-  const jsonContent = JSON.stringify(problems, null, 2);
+// Export progress history as JSON. `topic` stays the stored value (other =
+// Arithmetic), and `topicLabel` is the name the page shows (1.76.5).
+export function buildProgressJSON(problems, topicLabels = {}) {
+  return JSON.stringify(problems.map((p) => (topicLabels[p.topic] ? { ...p, topicLabel: topicLabels[p.topic] } : p)), null, 2);
+}
+
+export function exportAsJSON(problems, topicLabels = {}) {
+  const jsonContent = buildProgressJSON(problems, topicLabels);
   downloadFile(jsonContent, 'mastermath-progress.json', 'application/json');
 }
 
@@ -212,11 +217,12 @@ export function exportSolutionAsMarkdown(problem, chosenTopic, solution, topicLa
 }
 
 // Export individual solution as JSON
-export function exportSolutionAsJSON(problem, chosenTopic, solution) {
+export function exportSolutionAsJSON(problem, chosenTopic, solution, topicLabels = {}) {
   const topic = solvedTopic(chosenTopic, solution);
   const data = {
     problem,
     topic,
+    ...(topicLabels[topic] ? { topicLabel: topicLabels[topic] } : {}),
     ...(topic !== chosenTopic ? { chosenTopic } : {}),
     solution,
     exportedAt: new Date().toISOString()

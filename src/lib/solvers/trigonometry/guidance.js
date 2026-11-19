@@ -117,8 +117,13 @@ export function valueGuidance(expression, steps, answer) {
   // Radians is −0.988; that leads, because it explains the surprise.
   const n = Number(arg);
   // Auto read a bare common angle as degrees: say so first.
-  if (/Detected input as degrees/.test(text) && !/°/.test(expression)) {
-    tips.unshift(`The angle unit is on Auto, so a bare common angle such as ${mark(String(n))} is read as degrees (${mark(`${n}°`)}); in radians, ${mark(`${fn}(${n})`)} is a different number. Write ${mark(`${fn}(${n}°)`)} or ${mark(`${fn}(${n}π/180)`)} to be explicit, or set the angle unit in Settings.`);
+  if (/Detected input as degrees/.test(text) && !/°/.test(expression) && Number.isInteger(n)) {
+    // At 0 the two units agree (cos(0°) = cos(0) = 1): it is the only bare
+    // angle where they do, so the tip says so rather than claiming a
+    // different value (1.76.5).
+    tips.unshift(n === 0
+      ? `The angle unit is on Auto, so a bare ${mark('0')} is read as degrees (${mark('0°')}). Here it makes no difference — ${mark(`${fn}(0°) = ${fn}(0)`)} — but for any other bare angle it does: ${mark('cos(60°) = 1/2')}, while ${mark('cos(60)')} in radians is about ${mark('−0.952')}. Write the degree sign, or set the angle unit in Settings.`
+      : `The angle unit is on Auto, so a bare common angle such as ${mark(String(n))} is read as degrees (${mark(`${n}°`)}); in radians, ${mark(`${fn}(${n})`)} is a different number. Write ${mark(`${fn}(${n}°)`)} or ${mark(`${fn}(${n}π/180)`)} to be explicit, or set the angle unit in Settings.`);
   }
   const radiansSurprise = Number.isInteger(n) && n !== 0 && n % 15 === 0 && /treated as -?\d+ radians|Interpreting -?\d+ as radians/.test(text);
   if (radiansSurprise) {
